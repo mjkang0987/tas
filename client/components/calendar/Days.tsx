@@ -1,3 +1,4 @@
+import {ReactNode} from 'react';
 import styled from 'styled-components';
 
 import {
@@ -14,6 +15,7 @@ import {
 
 interface DaysType {
     type: string | null;
+    children: ReactNode;
 }
 
 const getDaysInRange = (day: number, type: string) => {
@@ -70,7 +72,7 @@ const StyledDays = styled.ul <DaysType>`
 }
 `;
 
-const StyledDay = styled.li`
+const StyledDay = styled.li<{children: ReactNode}>`
   flex: 1;
   color: var(--black-color);
   border-right: 1px solid var(--light-gray-color);
