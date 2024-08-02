@@ -22,6 +22,7 @@ import {DayComponent} from './Day';
 
 interface DaysType {
     type: string | null;
+    children: ReactNode;
 }
 
 export const CalendarComponent = () => {
