@@ -15,6 +15,7 @@ interface Props {
     onDragOver?: (event: React.MouseEvent) => void;
     onDragStart?: (event: React.MouseEvent) => void;
     onDragEnd?: (event: React.MouseEvent) => void;
+    type?: string;
 }
 
 const StyledSquareButton = styled.button <Props>`
