@@ -4,6 +4,7 @@ import React from 'react';
 
 interface Props {
     iconType: string;
+    ariaHidden?: boolean;
     children?: ReactNode;
 }
 
@@ -160,6 +161,6 @@ const StyledIcon = styled.span <Props>`
 `;
 
 export const Icon: React.FC<Props> = ({iconType}) => {
-    return <StyledIcon aria-hidden={true}
+    return <StyledIcon ariaHidden={true}
                        iconType={iconType}><span className="a11y">{iconType} icon</span></StyledIcon>;
 };
