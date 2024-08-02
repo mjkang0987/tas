@@ -84,7 +84,10 @@ const StyledModal = styled.dialog<{
   }
 `;
 
-const StyledModalTitle = styled.div`
+const StyledModalTitle = styled.div<{
+    id: string;
+    children: ReactNode;
+}>`
   display: block;
   padding: 14px;
   background-color: var(--white-color);
