@@ -1,4 +1,4 @@
-import React from 'react';
+import React, {ReactNode} from 'react';
 
 import Link from 'next/link';
 
@@ -26,6 +26,7 @@ import {InputWrap} from './Input';
 
 interface Props {
     isVisible: boolean;
+    children: ReactNode;
 }
 
 export const AsideComponent = () => {
