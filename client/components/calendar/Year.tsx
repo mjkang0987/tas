@@ -47,7 +47,7 @@ export const YearComponents = () => {
         </StyledYear>);
 };
 
-const StyledYear = styled.ul `
+const StyledYear = styled.ul`
   display: flex;
   flex-wrap: wrap;
   width: 100%;
