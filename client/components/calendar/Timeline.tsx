@@ -72,6 +72,7 @@ export const TimelineComponent = ({
     </StyledTimelineWrap>);
 };
 const StyledTimelineWrap = styled.div<{
+    children: ReactNode;
     onClick: (e: React.MouseEvent<HTMLDivElement>) => void,
     type: string,
     timing: number,
