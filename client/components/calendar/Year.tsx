@@ -1,3 +1,4 @@
+import {ReactNode} from 'react';
 import styled from 'styled-components';
 
 import {
@@ -53,7 +54,7 @@ const StyledYear = styled.ul `
   height: 100%;
 `;
 
-const StyledMonth = styled.li`
+const StyledMonth = styled.li<{children: ReactNode}>`
   width: ${100 / 3}%;
   height: ${100 / 4}%;
 `;
