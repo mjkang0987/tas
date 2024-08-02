@@ -1,3 +1,4 @@
+import {ReactNode} from 'react';
 import {
     useRecoilState,
     useRecoilValue
@@ -49,7 +50,11 @@ const StyledHeader = styled.header`
   }
 `;
 
-const StyledButton = styled.button`
+const StyledButton = styled.button<{
+    type: string;
+    children: ReactNode;
+    onClick?: () => void;
+}>`
   width: 40px;
   height: 40px;
   border-radius: 100%;
