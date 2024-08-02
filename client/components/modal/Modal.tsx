@@ -1,5 +1,6 @@
 import React, {
     ReactElement,
+    Ref,
     useEffect,
     useRef
 } from 'react';
@@ -45,7 +46,6 @@ export const ModalComponent = ({
         }
     };
 
-    return (<StyledModal aria-labelledby="modalTitle"
                          ref={dialogRef}
                          onKeyDown={(e) => handlerKeyClose(e)}>
         <StyledModalTitle id="modalTitle">{title && title}</StyledModalTitle>
@@ -59,6 +59,9 @@ export const ModalComponent = ({
 };
 
 const StyledModal = styled.dialog`
+const StyledModal = styled.dialog<{
+    ref: Ref<HTMLElement>;
+}>`
   display: flex;
   flex-direction: column;
   max-width: 360px;
