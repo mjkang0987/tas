@@ -47,6 +47,7 @@ export const ModalComponent = ({
         }
     };
 
+    return (<StyledModal ariaLabelledby="modalTitle"
                          ref={dialogRef}
                          onKeyDown={(e) => handlerKeyClose(e)}>
         <StyledModalTitle id="modalTitle">{title && title}</StyledModalTitle>
@@ -59,9 +60,10 @@ export const ModalComponent = ({
     </StyledModal>);
 };
 
-const StyledModal = styled.dialog`
 const StyledModal = styled.dialog<{
+    ariaLabelledby: string;
     ref: Ref<HTMLElement>;
+    onKeyDown: (e: React.KeyboardEvent<HTMLDialogElement>) => void;
     children: ReactNode;
 }>`
   display: flex;
