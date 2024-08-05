@@ -21,6 +21,7 @@ import {CalendarComponent} from '../components/calendar/CalendarWrap';
 
 interface Props {
     isVisible: boolean;
+    children: any;
 }
 
 const Home: NextPage = ({
