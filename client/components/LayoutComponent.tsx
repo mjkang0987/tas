@@ -169,7 +169,11 @@ const StyledMain = styled.main`
   position: relative;
 `;
 
-const StyledButton = styled.button <{ isVisible: boolean }>`
+const StyledButton = styled.button <{
+    type: string;
+    isVisible: boolean
+    children?: ReactNode;
+}>`
   display: inline-flex;
   position: absolute;
   top: 10px;
