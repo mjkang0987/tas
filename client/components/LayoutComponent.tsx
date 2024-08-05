@@ -61,7 +61,7 @@ export default function LayoutComponent({children}: NodeType) {
 
     const initDate: Date = new Date();
 
-    const closeModal = (e: React.MouseEvent) => {
+    const closeModal = (e: MouseEvent) => {
         const target = e.target as HTMLElement;
         if (target.tagName === 'ASIDE' || target.tagName === 'INPUT') {
             return;
