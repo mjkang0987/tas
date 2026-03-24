@@ -1,8 +1,8 @@
 import styled from 'styled-components';
 
-export const FooterComponent = () => {
+export const Footer = () => {
     return (
-        <StyledFooter>Made By Jiwoo</StyledFooter>
+        <StyledFooter></StyledFooter>
     );
 };
 

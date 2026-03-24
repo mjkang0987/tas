@@ -7,15 +7,13 @@ import type {
     AppProps
 } from 'next/app';
 
-import {RecoilRoot} from 'recoil';
-
 import {GlobalStyle} from '../styles/globalStyle';
 
 import LayoutComponent from '../components/LayoutComponent';
 
 function App({Component, pageProps}: AppProps) {
     return (
-        <RecoilRoot>
+        <>
             <Head>
                 <title>RESERVATION</title>
             </Head>
@@ -23,7 +21,7 @@ function App({Component, pageProps}: AppProps) {
             <LayoutComponent>
                 <Component {...pageProps} />
             </LayoutComponent>
-        </RecoilRoot>
+        </>
     );
 }
 

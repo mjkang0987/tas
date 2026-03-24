@@ -1,23 +1,19 @@
-import {
-    useRecoilState,
-    useRecoilValue,
-} from 'recoil';
+import {useMemo} from 'react';
 
-import {
-    targetStateState,
-    todayState,
-    viewState
-} from '../../recoil/atoms';
+import {useCalendarStore} from '../../store/calendarStore';
+
+import {computeTargetDerived} from '../../utils/calendarDerived';
 
 import {
     isTodayValue,
 } from '../../utils/constants';
 
-import {TimelineComponent} from './Timeline';
+import {Timeline} from './Timeline';
 
-export const DayComponent = () => {
-    const today = useRecoilValue(todayState);
-    const curr = useRecoilValue(targetStateState);
+export const Day = () => {
+    const today = useCalendarStore((s) => s.today);
+    const target = useCalendarStore((s) => s.target);
+    const curr = useMemo(() => computeTargetDerived(target), [target])!;
 
     const {
         fullYear,
@@ -25,7 +21,7 @@ export const DayComponent = () => {
         date,
     } = curr;
 
-    return (<TimelineComponent fullYear={fullYear}
+    return (<Timeline fullYear={fullYear}
                                month={month}
                                date={date}
                                isToday={isTodayValue(today, fullYear, month, date)}/>

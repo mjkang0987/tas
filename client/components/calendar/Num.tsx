@@ -8,11 +8,11 @@ interface Props {
     isToday?: boolean;
 }
 
-export const Num: React.FC<Props> = ({children, ...props}) => {
-    return <StyledNum {...props}>{children}</StyledNum>;
+export const Num: React.FC<Props> = ({children, isToday, ...props}) => {
+    return <StyledNum $isToday={isToday} {...props}>{children}</StyledNum>;
 };
 
-const StyledNum = styled.button <Props>`
+const StyledNum = styled.button <{ $isToday?: boolean }>`
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -25,7 +25,7 @@ const StyledNum = styled.button <Props>`
   font-size: var(--small-font);
   color: var(--black-color);
 
-  ${props => props.isToday && `
+  ${props => props.$isToday && `
     background-color: var(--blue-color);
     color: #fff;
   `}

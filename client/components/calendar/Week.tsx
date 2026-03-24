@@ -1,23 +1,17 @@
+import {useMemo} from 'react';
+
 import styled from 'styled-components';
 
-import {
-    useRecoilState,
-    useRecoilValue,
-    useSetRecoilState,
-} from 'recoil';
+import {useCalendarStore} from '../../store/calendarStore';
 
-import {
-    targetStateState,
-    todayState,
-    viewState
-} from '../../recoil/atoms';
+import {computeTargetDerived} from '../../utils/calendarDerived';
 
 import {
     isTodayValue,
     ViewType,
 } from '../../utils/constants';
 
-import {TimelineComponent} from './Timeline';
+import {Timeline} from './Timeline';
 import {Num} from './Num';
 
 interface WeekDatesType {
@@ -25,18 +19,17 @@ interface WeekDatesType {
     weekDates: number[]
 }
 
-export const WeekComponent = ({
+export const Week = ({
     currMonth,
     weekDates
 }: WeekDatesType) => {
-    const today = useRecoilValue(todayState);
+    const today = useCalendarStore((s) => s.today);
+    const target = useCalendarStore((s) => s.target);
+    const curr = useMemo(() => computeTargetDerived(target), [target]);
+    const setCurr = useCalendarStore((s) => s.setTargetFromDate);
+    const setView = useCalendarStore((s) => s.setView);
 
-    const [curr, setCurr] = useRecoilState(targetStateState);
-    const setView = useSetRecoilState(viewState);
-
-    const {
-        fullYear
-    } = curr;
+    const fullYear = curr!.fullYear;
 
     return (<>
             {weekDates.map((w: number) => <StyledWeek key={`week_${w}`}>
@@ -47,7 +40,7 @@ export const WeekComponent = ({
                     }}
                          isToday={isTodayValue(today, fullYear, currMonth, +w)}>{w}</Num>
                 </StyledNumWrap>
-                <TimelineComponent fullYear={fullYear}
+                <Timeline fullYear={fullYear}
                                    month={currMonth}
                                    date={+w}
                                    isToday={isTodayValue(today, fullYear, currMonth, +w)}/>
@@ -88,7 +81,7 @@ const StyledNumWrap = styled.span`
   display: flex;
   justify-content: center;
   position: sticky;
-  top: 35px;
+  top: 30px;
   width: 100%;
   background-color: var(--white-color-80);
   z-index: 1;

@@ -1,29 +1,27 @@
+import {useMemo} from 'react';
+
 import styled from 'styled-components';
 
-import {
-    useRecoilValue,
-} from 'recoil';
+import {useCalendarStore} from '../../store/calendarStore';
 
-import {
-    targetStateState,
-    viewState
-} from '../../recoil/atoms';
+import {computeTargetDerived} from '../../utils/calendarDerived';
 
 import {
     ViewType
 } from '../../utils/constants';
 
-import {WeekComponent} from './Week';
+import {Week} from './Week';
 
 interface WeekType {
     type: string
 }
 
-export const WeekWrapComponent = ({
+export const WeekWrap = ({
     type
 }: WeekType) => {
-    const curr = useRecoilValue(targetStateState);
-    const view = useRecoilValue(viewState);
+    const target = useCalendarStore((s) => s.target);
+    const curr = useMemo(() => computeTargetDerived(target), [target])!;
+    const view = useCalendarStore((s) => s.view);
 
     const {
         month,
@@ -32,7 +30,13 @@ export const WeekWrapComponent = ({
     } = curr;
 
     const arrayCurrent = () => {
-        return curr[type]();
+        if (type === ViewType.Week) {
+            return curr.week();
+        }
+        if (type === ViewType.Three) {
+            return curr.three();
+        }
+        return [];
     };
 
     const arrayPrev = () => {
@@ -46,9 +50,9 @@ export const WeekWrapComponent = ({
     };
 
     return (<StyledWeeks>
-            {view.type === ViewType.Week && <WeekComponent weekDates={arrayPrev()} currMonth={month -1} />}
-            <WeekComponent weekDates={arrayCurrent()} currMonth={month} />
-            <WeekComponent weekDates={arrayNext()} currMonth={month + 1} />
+            {view.type === ViewType.Week && <Week weekDates={arrayPrev()} currMonth={month -1} />}
+            <Week weekDates={arrayCurrent()} currMonth={month} />
+            <Week weekDates={arrayNext()} currMonth={month + 1} />
         </StyledWeeks>
     );
 };

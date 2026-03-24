@@ -10,8 +10,8 @@ const StyledSquareButton = styled.button <Props>`
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  height: 35px;
-  padding: 0 15px;
+  height: 30px;
+  padding: 0 8px;
   border: 1px solid #ccc;
   background-color: var(--white-color);
   border-radius: 5px;
@@ -28,8 +28,8 @@ const StyledCircleButton = styled.button <Props>`
   align-items: center;
   justify-content: center;
   position: relative;
-  width: 25px;
-  height: 25px;
+  width: 20px;
+  height: 20px;
   border: 1px solid #ccc;
   background-color: var(--white-color);
   border-radius: 20px;

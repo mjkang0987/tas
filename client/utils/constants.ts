@@ -1,20 +1,5 @@
-import {
-    ReactNode,
-    useEffect
-} from 'react';
-
-import {useRouter} from 'next/router';
-
-export type NodeType = {
-    children: ReactNode
-};
-
-export interface DateType {
-    isToday: boolean;
-}
-
 const MAGIC_NUMBER = {
-    TIMELINE_DAY_TOP: 60,
+    TIMELINE_DAY_TOP: 40,
     TIMELINE_TOP    : 30
 };
 
@@ -37,12 +22,12 @@ interface AsideType {
 export const ASIDE: AsideType = {
     DAY  : {
         id   : 1,
-        title: '일별',
+        title: '📅 일별',
         move : 1
     },
     THREE: {
         id   : 2,
-        title: '3일',
+        title: '3️⃣ 일',
         move : 3
     },
     WEEK : {
@@ -52,7 +37,7 @@ export const ASIDE: AsideType = {
     },
     MONTH: {
         id   : 4,
-        title: '월별',
+        title: '🗓️ 월별',
     },
     YEAR : {
         id   : 5,
@@ -128,72 +113,7 @@ export const enum ViewType {
     Day = 'day'
 }
 
-type CurrentType =
-    string
-    | number;
-
-export interface SetDateType {
-    currMonth?: CurrentType;
-    currDate: CurrentType;
-}
-
 export const isTodayValue = (today: any, fullYear: number, month: number, number: number = 0): boolean => {
     return [today.getFullYear(), today.getMonth(), today.getDate()].join(' ') === [fullYear, month, number].join(' ');
-};
-
-interface RouterType {
-    type: string,
-    year: number | null,
-    month: number | null,
-    date: number | null,
-    router: any
-}
-
-export const isCalendar = (arrayPath: string[] = ['', '', '', '']) => {
-    const findIndex = Object.keys(ASIDE).findIndex((aside) => aside.toLowerCase() === arrayPath[1]);
-    return findIndex > -1;
-};
-
-export const setRouter = ({
-    type,
-    year,
-    month,
-    date,
-    router
-}: RouterType) => {
-    const arrayDate = [year, month, date];
-    const setLength = type === ViewType.Day ? arrayDate.length : 2;
-    const index = type === ViewType.Year ? 1 : setLength;
-    const isCalendarPath = isCalendar(['', type]);
-    const resultPath = isCalendarPath ? `/${type}/${arrayDate.slice(0, index).join('/')}` : `/${type}`;
-    router.push(resultPath);
-};
-
-interface RouterChangeType {
-    setRouters: Function
-}
-
-export const handleOnload = ({
-    setRouters,
-}: RouterChangeType) => {
-    const getRouterState = (url: string) => {
-        const array = url.split('/');
-
-        setRouters({
-            arrayRouter   : array,
-            isRootPath    : array.join('').length === 0,
-            isCalendarPath: isCalendar(array)
-        });
-    };
-
-    const router = useRouter();
-    useEffect(() => {
-        router.events.on('routeChangeComplete', getRouterState);
-        return () => {
-            router.events.off('routeChangeComplete', getRouterState);
-        };
-    }, []);
-
-    return null;
 };
 

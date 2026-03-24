@@ -2,26 +2,17 @@ import React from 'react';
 
 import {useRouter} from 'next/router';
 
-import {
-    useRecoilValue,
-    useSetRecoilState,
-} from 'recoil';
-
 import styled from 'styled-components';
 
-import {
-    targetState,
-    targetStateState,
-    todayState,
-    viewState
-} from '../../recoil/atoms';
+import {useCalendarStore} from '../../store/calendarStore';
 
 import {
     A11Y_DIRECTION,
     ASIDE,
-    setRouter,
     ViewType
 } from '../../utils/constants';
+
+import {setRouter} from '../../utils/router';
 
 import {Icon} from '../common/Icons';
 import {ButtonText} from '../common/ButtonText';
@@ -33,15 +24,12 @@ import {
 export const CalendarDirection = () => {
     const router = useRouter();
 
-    const today = useRecoilValue(todayState);
-
-    const view = useRecoilValue(viewState);
+    const today = useCalendarStore((s) => s.today);
+    const view = useCalendarStore((s) => s.view);
     const {type} = view;
-
-    const currValue = useRecoilValue(targetState);
+    const currValue = useCalendarStore((s) => s.target);
     const {fullYear, month, date, day} = currValue;
-
-    const setUpdateCurr = useSetRecoilState(targetStateState);
+    const setUpdateCurr = useCalendarStore((s) => s.setTargetFromDate);
 
     const handlerView = {
         yearView(isPrev: boolean) {

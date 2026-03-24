@@ -10,11 +10,16 @@ interface Props {
     children: React.ReactNode
 }
 
-const StyledInput = styled.div<Props>`
+interface StyledProps {
+    $inputIcon?: string
+    children: React.ReactNode
+}
+
+const StyledInput = styled.div<StyledProps>`
   display: flex;
   overflow: hidden;
   position: relative;
-  height: 35px;
+  height: 25px;
   box-sizing: border-box;
   border: 1px solid #ccc;
   background-color: var(--white-color);
@@ -25,20 +30,20 @@ const StyledInput = styled.div<Props>`
   &::placeholder {
     color: var(--gray-color);
   }
-  
-  ${props => props.inputIcon === 'search' && `
+
+  ${props => props.$inputIcon === 'search' && `
     input {
       border: none;
       background-color: var(--white-color);
-      padding: 0 0 0 10px;
+      padding: 0 0 0 8px;
       box-sizing: border-box;
       font-size: var(--small-font);
     }
-    
+
     button {
       display: flex;
       position: relative;
-      width: 35px;
+      width: 20px;
       border: none;
       background-color: var(--white-color);
     }
@@ -46,7 +51,7 @@ const StyledInput = styled.div<Props>`
 `;
 
 export const InputWrap:React.FC <Props> = ({children, inputIcon}) => {
-    return <StyledInput inputIcon={inputIcon}>
+    return <StyledInput $inputIcon={inputIcon}>
         {children}
         {(inputIcon && inputIcon === 'search') && <button type="button">
             <Icon iconType="search"/>

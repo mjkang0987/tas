@@ -1,40 +1,41 @@
-import type {
-    NextPage
-} from 'next';
+import {useEffect, useMemo} from 'react';
+
+import type {GetStaticProps, NextPage} from 'next';
 
 import Head from 'next/head';
 
-import {
-    useRecoilValue,
-} from 'recoil';
-
 import styled from 'styled-components';
 
-import {
-    asideState,
-    targetStateState,
-} from '../recoil/atoms';
+import {useCalendarStore} from '../store/calendarStore';
 
-import {CalendarComponent} from '../components/calendar/CalendarWrap';
+import {computeTargetDerived} from '../utils/calendarDerived';
 
-interface Props {
-    isVisible: boolean;
-    isTransitionEnd: boolean;
-}
+import {groupByDate, Reservation} from '../utils/reservations';
 
-const Home: NextPage = ({
-    reservations
-}: any) => {
-    const aside = useRecoilValue(asideState);
-    const curr = useRecoilValue(targetStateState);
+import {Calendar} from '../components/calendar/Calendar';
+
+import reservationsData from './api/reservations.json';
+
+type HomeProps = {
+    reservations: Reservation[];
+};
+
+const Home: NextPage<HomeProps> = (props) => {
+    const aside = useCalendarStore((s) => s.aside);
+    const target = useCalendarStore((s) => s.target);
+    const curr = useMemo(() => computeTargetDerived(target), [target]);
+    const setReservationMap = useCalendarStore((s) => s.setReservationMap);
+
+    useEffect(() => {
+        setReservationMap(groupByDate(props.reservations));
+    }, [props.reservations, setReservationMap]);
 
     return (<>
             <Head>
                 <title>RESERVATION</title>
             </Head>
-            <StyledSection isVisible={aside.isVisible}
-                           isTransitionEnd={aside.isTransitionEnd}>
-                {curr && <CalendarComponent/>}
+            <StyledSection $isVisible={aside.isVisible}>
+                {curr && <Calendar/>}
             </StyledSection>
         </>
     );
@@ -42,21 +43,16 @@ const Home: NextPage = ({
 
 export default Home;
 
-const StyledSection = styled.section <Props>`
+const StyledSection = styled.section <{ $isVisible: boolean }>`
   flex: 1;
   display: flex;
   flex-direction: column;
   height: 100%;
-  border-left: solid var(--light-gray-color) ${props => props.isVisible ? `1px` : 0};
+  border-left: solid var(--light-gray-color) ${props => props.$isVisible ? `1px` : 0};
 `;
 
-export const getStaticProps = (async () => {
-    const res = await fetch('http://localhost:3000/api/hello');
-    const reservations = await res.json() || {};
-
-    return {
-        props: {
-            reservations,
-        }
-    };
+export const getStaticProps: GetStaticProps<HomeProps> = async () => ({
+    props: {
+        reservations: reservationsData.reservations
+    }
 });

@@ -1,37 +1,28 @@
-import React from 'react';
-
-import {
-    useRecoilState,
-    useRecoilValue,
-} from 'recoil';
+import React, {useMemo} from 'react';
 
 import styled from 'styled-components';
 
-import {
-    targetState,
-    targetStateState,
-    viewState
-} from '../../recoil/atoms';
+import {useCalendarStore} from '../../store/calendarStore';
+
+import {computeTargetDerived} from '../../utils/calendarDerived';
 
 import {
     ViewType
 } from '../../utils/constants';
 
 export const CalendarHeading = () => {
-    const view = useRecoilValue(viewState);
+    const view = useCalendarStore((s) => s.view);
     const {type} = view;
-
-    const currValue = useRecoilValue(targetState);
+    const currValue = useCalendarStore((s) => s.target);
     const {full, fullYear, month, date} = currValue;
-
-    const curr = useRecoilValue(targetStateState);
+    const curr = useMemo(() => computeTargetDerived(currValue), [currValue]);
 
     const setMonth = () => {
         if (type === ViewType.Day || type === ViewType.Month) {
             return +month + 1;
         }
 
-        if (+date + (type === ViewType.Week ? 6 : 2) > curr?.monthLastNumber) {
+        if (curr && +date + (type === ViewType.Week ? 6 : 2) > curr.monthLastNumber) {
             const calcYear = month === 11 ? `${+fullYear + 1} / 1` : +month + 2;
             return `${+month + 1} - ${calcYear}`;
         }
@@ -65,7 +56,7 @@ const StyledDateWrap = styled.span`
 
 const StyledDateElement = styled.span`
   display: inline-flex;
-  font-size: 26px;
+  font-size: var(--big-font);
 
   + span {
     &:before {

@@ -2,20 +2,9 @@ import React from 'react';
 
 import Link from 'next/link';
 
-import {
-    useRecoilState,
-    useRecoilValue,
-    useSetRecoilState
-} from 'recoil';
-
 import styled from 'styled-components';
 
-import {
-    asideState,
-    targetState,
-    targetStateState,
-    viewState
-} from '../../recoil/atoms';
+import {useCalendarStore} from '../../store/calendarStore';
 
 import {
     ASIDE as asides,
@@ -25,18 +14,16 @@ import {
 import {InputWrap} from './Input';
 
 interface Props {
-    isVisible: boolean;
-    isTransitionEnd: boolean;
+    $isVisible: boolean;
+    $isTransitionEnd: boolean;
 }
 
-export const AsideComponent = () => {
-    const [aside, setAside] = useRecoilState(asideState);
-
-    const setView = useSetRecoilState(viewState);
-
-    const currValue = useRecoilValue(targetState)
-
-    const setCurr = useSetRecoilState(targetStateState);
+export const Aside = () => {
+    const aside = useCalendarStore((s) => s.aside);
+    const setAside = useCalendarStore((s) => s.setAside);
+    const setView = useCalendarStore((s) => s.setView);
+    const currValue = useCalendarStore((s) => s.target);
+    const setCurr = useCalendarStore((s) => s.setTargetFromDate);
 
     const setChangeView = ({viewType}: { viewType: string }) => {
         setAside({
@@ -65,8 +52,8 @@ export const AsideComponent = () => {
         return result;
     };
 
-    return (<StyledAside isVisible={aside.isVisible}
-                         isTransitionEnd={aside.isTransitionEnd}
+    return (<StyledAside $isVisible={aside.isVisible}
+                         $isTransitionEnd={aside.isTransitionEnd}
                          className={!aside.isTransitionEnd
                                     ? 'animate'
                                     : ''}
@@ -77,67 +64,67 @@ export const AsideComponent = () => {
                              });
                          }}>
             {currValue && Object.keys(asides).map((a) =>
-                <Link href={`/`}
-                      as={`/${setAsPath(a.toLowerCase()).join('/')}`}
-                      key={asides[a].id}
-                      onClick={() => setChangeView({viewType: a})}>
-                    <StyledLinkStyle>{asides[a].title}</StyledLinkStyle>
-                </Link>
+                <StyledNavLink href={`/${setAsPath(a.toLowerCase()).join('/')}`}
+                               key={asides[a].id}
+                               onClick={() => setChangeView({viewType: a})}>
+                    {asides[a].title}
+                </StyledNavLink>
             )}
             <StyledAddressLink>
                 <InputWrap inputIcon="search">
                     <input type="text"
                            placeholder="사용자 검색"/>
                 </InputWrap>
-                <Link href="/address"
-                      passHref>📖 전체보기</Link>
+                <Link href="/address">📖 전체보기</Link>
             </StyledAddressLink>
         </StyledAside>
     );
 };
 
 const StyledAside = styled.aside <Props>`
-  flex-shrink: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  ${props => (!props.isVisible && props.isTransitionEnd) && 'display: none'};
-  position: absolute;
-  top: 0;
-  left: 0;
-  height: 100%;
-  width: 220px;
-  max-width: 80%;
-  padding: 53px 15px 0;
-  border-right: solid 1px var(--light-gray-color);
-  box-sizing: border-box;
-  background-color: #fff;
-  box-shadow: 10px 0 10px 0 rgba(0 0 0 / .1);
-  z-index: 2;
-  
-  &.animate {
-    animation-name: asideHide;
-    animation-duration: .4s;
-    animation-timing-function: ease-in-out;
-    animation-direction: ${props => props.isVisible
-                                    ? 'reverse'
-                                    : 'normal'};
-    animation-fill-mode: forward;
-  }
+    flex-shrink: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    ${props => (!props.$isVisible && props.$isTransitionEnd) && 'display: none'};
+    position: absolute;
+    top: 0;
+    left: 0;
+    height: 100%;
+    width: 120px;
+    max-width: 80%;
+    padding: 42px 15px 0;
+    border-right: solid 1px var(--light-gray-color);
+    box-sizing: border-box;
+    background-color: #fff;
+    box-shadow: 10px 0 10px 0 rgba(0 0 0 / .1);
+    z-index: 2;
+
+    &.animate {
+        animation-name: asideHide;
+        animation-duration: .4s;
+        animation-timing-function: ease-in-out;
+        animation-direction: ${props => props.$isVisible
+                ? 'reverse'
+                : 'normal'};
+        animation-fill-mode: forward;
+    }
 `;
 
-const StyledLinkStyle = styled.span`
+const StyledNavLink = styled(Link)`
   display: flex;
   align-items: center;
   justify-content: center;
   width: 100%;
-  height: 35px;
+  height: 25px;
   border: 1px solid #ccc;
   box-sizing: border-box;
   background-color: var(--white-color);
   border-radius: 5px;
   box-shadow: 0 0 10px 0 rgba(0, 0, 0, .1);
   font-size: var(--small-font);
+  text-decoration: none;
+  color: inherit;
 `;
 
 const StyledAddressLink = styled.div`

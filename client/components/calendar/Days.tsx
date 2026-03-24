@@ -1,3 +1,5 @@
+import {useMemo} from 'react';
+
 import styled from 'styled-components';
 
 import {
@@ -5,12 +7,9 @@ import {
     DAYS
 } from '../../utils/constants';
 
-import {useRecoilValue} from 'recoil';
+import {useCalendarStore} from '../../store/calendarStore';
 
-import {
-    targetStateState,
-    viewState
-} from '../../recoil/atoms';
+import {computeTargetDerived} from '../../utils/calendarDerived';
 
 interface DaysType {
     type: string | null;
@@ -32,13 +31,11 @@ const getDaysInRange = (day: number, type: string) => {
     return result;
 };
 
-export const DaysComponent = () => {
-    const target = useRecoilValue(targetStateState);
-    const {
-        day,
-    } = target;
-
-    const view = useRecoilValue(viewState);
+export const Days = () => {
+    const targetState = useCalendarStore((s) => s.target);
+    const target = useMemo(() => computeTargetDerived(targetState), [targetState])!;
+    const {day} = target;
+    const view = useCalendarStore((s) => s.view);
     const {type} = view;
 
 

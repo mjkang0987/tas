@@ -1,11 +1,9 @@
 import styled from 'styled-components';
-import {useRecoilValue} from 'recoil';
-import {
-    timeState,
-} from '../../recoil/atoms';
 
-export const TimelineTitleComponent = () => {
-    const time = useRecoilValue(timeState);
+import {useCalendarStore} from '../../store/calendarStore';
+
+export const TimelineTitle = () => {
+    const time = useCalendarStore((s) => s.time);
 
     const {
         start,
@@ -48,7 +46,7 @@ export const TimelineTitleComponent = () => {
 
 const StyledTimelineTitle = styled.div`
   flex-shrink: 0;
-  width: 120px;
+  width: 80px;
   border-right: 1px solid var(--light-gray-color);
   box-sizing: border-box;
 `;
@@ -68,7 +66,7 @@ const StyledTime = styled.li`
     content: "";
     position: absolute;
     top: 50%;
-    left: calc(100% - 12px);
+    left: calc(100% - 6px);
     width: 100vw;
     height: 1px;
     background-color: var(--light-gray-color);
@@ -80,7 +78,7 @@ const StyledNum = styled.span`
   justify-content: center;
   align-items: center;
   width: 100%;
-  height: 60px;
+  height: 40px;
   padding: 0 10px;
   font-size: var(--tiny-font);
   color: var(--gray-color);

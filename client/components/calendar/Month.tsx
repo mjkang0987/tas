@@ -1,20 +1,17 @@
+import {useMemo} from 'react';
+
 import styled from 'styled-components';
 
-import {
-    useRecoilState,
-    useRecoilValue,
-    useSetRecoilState
-} from 'recoil';
-import {
-    targetStateState,
-    todayState,
-    viewState
-} from '../../recoil/atoms';
+import {useCalendarStore} from '../../store/calendarStore';
+
+import {computeTargetDerived} from '../../utils/calendarDerived';
 
 import {
     isTodayValue,
     ViewType
 } from '../../utils/constants';
+
+import {toDateKey} from '../../utils/reservations';
 
 import {Num} from './Num';
 
@@ -24,28 +21,33 @@ interface MonthType {
     type: string;
 }
 
-export const MonthComponent = ({
+export const Month = ({
     monthDates,
     currMonth,
     type
 }: MonthType) => {
-    const today = useRecoilValue(todayState);
-    const [curr, setCurr] = useRecoilState(targetStateState);
+    const today = useCalendarStore((s) => s.today);
+    const target = useCalendarStore((s) => s.target);
+    const curr = useMemo(() => computeTargetDerived(target), [target]);
+    const setCurr = useCalendarStore((s) => s.setTargetFromDate);
+    const setView = useCalendarStore((s) => s.setView);
+    const reservationMap = useCalendarStore((s) => s.reservationMap);
 
-    const {
-        fullYear
-    } = curr;
-
-    const setView = useSetRecoilState(viewState);
+    const fullYear = curr!.fullYear;
 
     return (<>
-        {monthDates.map((val, index) => <StyledDate key={`month_${val + index}`} type={type}>
-            <Num onClick={() => {
-                setCurr(new Date(fullYear, currMonth, val));
-                setView({type: ViewType.Day});
-            }}
-                 isToday={isTodayValue(today, fullYear, currMonth, +val)}>{val}</Num>
-        </StyledDate>)}
+        {monthDates.map((val, index) => {
+            const count = (reservationMap[toDateKey(fullYear, currMonth, val)] || []).length;
+
+            return (<StyledDate key={`month_${val + index}`} type={type}>
+                <Num onClick={() => {
+                    setCurr(new Date(fullYear, currMonth, val));
+                    setView({type: ViewType.Day});
+                }}
+                     isToday={isTodayValue(today, fullYear, currMonth, +val)}>{val}</Num>
+                {count > 0 && <StyledBadge>{count}</StyledBadge>}
+            </StyledDate>);
+        })}
     </>);
 };
 
@@ -67,4 +69,19 @@ const StyledDate = styled.li<{ type: string }>`
     color: var(--gray-color);
   }
   `}
+`;
+
+const StyledBadge = styled.span`
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 4px;
+  border-radius: 9px;
+  background-color: rgba(66, 133, 244, 0.85);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1;
 `;

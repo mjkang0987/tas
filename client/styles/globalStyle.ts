@@ -2,10 +2,10 @@ import {createGlobalStyle} from 'styled-components';
 
 export const GlobalStyle = createGlobalStyle`
   :root {
-    --big-font: 24px;
-    --font: 18px;
-    --small-font: 16px;
-    --tiny-font: 14px;
+    --big-font: 18px;
+    --font: 14px;
+    --small-font: 12px;
+    --tiny-font: 10px;
 
     --black-color: hsl(0, 0%, 13%);
     --gray-color: hsl(0, 0%, 62%);

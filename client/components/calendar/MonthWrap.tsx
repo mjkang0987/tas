@@ -1,16 +1,16 @@
+import {useMemo} from 'react';
+
 import styled from 'styled-components';
 
-import {
-    useRecoilValue,
-} from 'recoil';
-import {
-    targetStateState,
-} from '../../recoil/atoms';
+import {useCalendarStore} from '../../store/calendarStore';
 
-import {MonthComponent} from './Month';
+import {computeTargetDerived} from '../../utils/calendarDerived';
 
-export const MonthWrapComponent = () => {
-    const curr = useRecoilValue(targetStateState);
+import {Month} from './Month';
+
+export const MonthWrap = () => {
+    const target = useCalendarStore((s) => s.target);
+    const curr = useMemo(() => computeTargetDerived(target), [target])!;
 
     const {
         month,
@@ -33,9 +33,9 @@ export const MonthWrapComponent = () => {
     };
 
     return (<StyledMonthWrap>
-            {arrayPrev() && <MonthComponent monthDates={arrayPrev()} currMonth={month - 1} type="prev"/>}
-            <MonthComponent monthDates={arrayCurrent()} currMonth={month} type="current"/>
-            {arrayNext() && <MonthComponent monthDates={arrayNext()} currMonth={month + 1} type="next"/>}
+            {arrayPrev() && <Month monthDates={arrayPrev()} currMonth={month - 1} type="prev"/>}
+            <Month monthDates={arrayCurrent()} currMonth={month} type="current"/>
+            {arrayNext() && <Month monthDates={arrayNext()} currMonth={month + 1} type="next"/>}
         </StyledMonthWrap>
     );
 };
@@ -48,22 +48,3 @@ const StyledMonthWrap = styled.ul`
   height: 100%;
 `;
 
-const StyledDate = styled.li<{ type: string }>`
-  padding: 5px;
-  text-align: center;
-  border-right: 1px solid var(--light-gray-color);
-  border-top: 1px solid var(--light-gray-color);
-
-  &:nth-child(7n) {
-    border-right: none;
-  }
-
-  &:nth-child(-n+7) {
-    border-top: none;
-  }
-
-  ${props => (props.type === 'prev' || props.type === 'next') && `button {
-    color: var(--gray-color);
-  }
-  `}
-`;

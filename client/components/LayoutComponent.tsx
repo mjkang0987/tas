@@ -7,34 +7,19 @@ import {useRouter} from 'next/router';
 
 import styled from 'styled-components';
 
-import {
-    useRecoilState,
-    useRecoilValue,
-    useSetRecoilState
-} from 'recoil';
-
-import {
-    asideState,
-    routerState,
-    targetState,
-    targetStateState,
-    todayState,
-    viewState,
-} from '../recoil/atoms';
+import {useCalendarStore} from '../store/calendarStore';
 
 import {useIsomorphicEffect} from '../hooks/useIsomorphicEffect';
 
-import {
-    handleOnload,
-    isCalendar,
-    NodeType,
-    setRouter,
-    ViewType
-} from '../utils/constants';
+import {useRouteChangeSync} from '../hooks/useRouteChangeSync';
 
-import {HeaderComponent} from './common/Header';
-import {AsideComponent} from './common/Aside';
-import {FooterComponent} from './common/Footer';
+import {NodeType} from '../utils/types';
+import {isCalendar, setRouter} from '../utils/router';
+import {ViewType} from '../utils/constants';
+
+import {Header} from './common/Header';
+import {Aside} from './common/Aside';
+import {Footer} from './common/Footer';
 import {Icon} from './common/Icons';
 import {ButtonText} from './common/ButtonText';
 
@@ -42,12 +27,14 @@ export default function LayoutComponent({children}: NodeType) {
     const router = useRouter();
 
     const [loading, setLoading] = useState(false);
-    const [aside, setAside] = useRecoilState(asideState);
-    const setToday = useSetRecoilState(todayState);
-    const [routers, setRouters] = useRecoilState(routerState);
-    const currValue = useRecoilValue(targetState);
-    const setCurr = useSetRecoilState(targetStateState);
-    const [view, setView] = useRecoilState(viewState);
+    const aside = useCalendarStore((s) => s.aside);
+    const setAside = useCalendarStore((s) => s.setAside);
+    const setToday = useCalendarStore((s) => s.setToday);
+    const setRouterSlice = useCalendarStore((s) => s.setRouterSlice);
+    const currValue = useCalendarStore((s) => s.target);
+    const setCurr = useCalendarStore((s) => s.setTargetFromDate);
+    const view = useCalendarStore((s) => s.view);
+    const setView = useCalendarStore((s) => s.setView);
 
     const isomorphicEffect = useIsomorphicEffect();
 
@@ -75,8 +62,8 @@ export default function LayoutComponent({children}: NodeType) {
 
     const currDate = !isCalendarPath || isRootPath ? initDate : new Date(Number(array[2]), Number(array[3]) - 1 || 1, Number(array[4]) || 1);
 
-    handleOnload({
-        setRouters
+    useRouteChangeSync({
+        setRouterSlice
     });
 
     isomorphicEffect(() => {
@@ -88,9 +75,6 @@ export default function LayoutComponent({children}: NodeType) {
             type: isRootPath || !isCalendarPath ? ViewType.Week : array[1]
         });
     }, []);
-
-    useEffect(() => {
-    }, [routers, setRouters]);
 
     useEffect(() => {
         if (currValue.full === null) {
@@ -107,7 +91,7 @@ export default function LayoutComponent({children}: NodeType) {
             changeRouter = [...changeRouter, ViewType.Day, currValue.fullYear, currValue.month + 1, currValue.date]
         }
 
-        setRouters({
+        setRouterSlice({
             arrayRouter: changeRouter,
             isRootPath,
             isCalendarPath
@@ -120,23 +104,23 @@ export default function LayoutComponent({children}: NodeType) {
             date : currValue.date,
             router
         });
-    }, [currValue, currValue]);
+    }, [currValue]);
 
 
-    return (<StyledWrapper onClick={(e) => closeModal(e)}>
+    return (<StyledWrapper onClick={(e: React.MouseEvent) => closeModal(e)}>
             {!loading && <Icon iconType="loading"/>}
-            <HeaderComponent/>
+            <Header/>
             {currValue.full !== null && <>
                 <StyledMain>
                     <StyledButton type="button"
-                                  isVisible={aside.isVisible}>
+                                  $isVisible={aside.isVisible}>
                         <Icon iconType="plus"/>
                         {aside.isVisible && <ButtonText a11y={false}>일정추가</ButtonText>}
                     </StyledButton>
-                    <AsideComponent/>
+                    <Aside/>
                     {children}
                 </StyledMain>
-                <FooterComponent/>
+                <Footer/>
             </>}
         </StyledWrapper>
     );
@@ -155,27 +139,26 @@ const StyledMain = styled.main`
   height: 100%;
   position: relative;
 `;
-
-const StyledButton = styled.button <{ isVisible: boolean }>`
+const StyledButton = styled.button <{ $isVisible: boolean }>`
   display: inline-flex;
   position: absolute;
   top: 10px;
   left: 15px;
   align-items: center;
   justify-content: center;
-  width: ${props => props.isVisible
-                    ? '189px'
+  width: ${props => props.$isVisible
+                    ? '89px'
                     : 'auto'};
   max-width: calc(80% - 30px);
-  height: 35px;
+  height: 25px;
   border: 1px solid #ccc;
-  background-color: ${props => props.isVisible
+  background-color: ${props => props.$isVisible
                                ? 'var(--white-color)'
                                : 'rgb(255 255 255 / .6)'};
-  border-radius: ${props => props.isVisible
+  border-radius: ${props => props.$isVisible
                             ? '5px'
                             : '20px'};
-  box-shadow: ${props => props.isVisible
+  box-shadow: ${props => props.$isVisible
                          ? '0 0 10px 0 rgba(0, 0, 0, .1)'
                          : '0 0 10px 0 rgba(0, 0, 0, .2)'};
   font-size: var(--small-font);
@@ -183,7 +166,7 @@ const StyledButton = styled.button <{ isVisible: boolean }>`
   transition: box-shadow .1s ease-in-out;
 
   &:hover {
-    ${props => !props.isVisible && `
+    ${props => !props.$isVisible && `
       box-shadow:  0 0 15px 0 rgba(0, 0, 0, .4);
     `}
   }
