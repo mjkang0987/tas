@@ -1,6 +1,6 @@
-import {useEffect, useMemo} from 'react';
+import {useEffect, useMemo, useState} from 'react';
 
-import type {GetStaticProps, NextPage} from 'next';
+import type {GetServerSideProps, NextPage} from 'next';
 
 import Head from 'next/head';
 
@@ -10,14 +10,28 @@ import {useCalendarStore} from '../store/calendarStore';
 
 import {computeTargetDerived} from '../utils/calendarDerived';
 
-import {groupByDate, Reservation} from '../utils/reservations';
+import {groupByDate, Reservation, ReservationHistoryEntry} from '../utils/reservations';
+
+import {Customer, toCustomerMap} from '../utils/customers';
 
 import {Calendar} from '../components/calendar/Calendar';
 
-import reservationsData from './api/reservations.json';
+import {ReservationDetail} from '../components/calendar/ReservationDetail';
+
+import {ReservationListModal} from '../components/calendar/ReservationListModal';
+
+import {CustomerDetail} from '../components/calendar/CustomerDetail';
+
+import {ServiceLegend} from '../components/calendar/ServiceLegend';
+
+import {ReservationCreate} from '../components/calendar/ReservationCreate';
+
+import customersData from './api/customers.json';
 
 type HomeProps = {
     reservations: Reservation[];
+    customers: Customer[];
+    history: ReservationHistoryEntry[];
 };
 
 const Home: NextPage<HomeProps> = (props) => {
@@ -25,10 +39,29 @@ const Home: NextPage<HomeProps> = (props) => {
     const target = useCalendarStore((s) => s.target);
     const curr = useMemo(() => computeTargetDerived(target), [target]);
     const setReservationMap = useCalendarStore((s) => s.setReservationMap);
+    const setCustomerMap = useCalendarStore((s) => s.setCustomerMap);
+    const selectedReservation = useCalendarStore((s) => s.selectedReservation);
+    const setSelectedReservation = useCalendarStore((s) => s.setSelectedReservation);
+    const updateReservation = useCalendarStore((s) => s.updateReservation);
+    const cancelReservation = useCalendarStore((s) => s.cancelReservation);
+    const reservationHistory = useCalendarStore((s) => s.reservationHistory);
+    const setReservationHistory = useCalendarStore((s) => s.setReservationHistory);
+    const customerMap = useCalendarStore((s) => s.customerMap);
+    const reservationMap = useCalendarStore((s) => s.reservationMap);
+    const reservationListFilter = useCalendarStore((s) => s.reservationListFilter);
+    const createReservationInitial = useCalendarStore((s) => s.createReservationInitial);
+    const setCreateReservationInitial = useCalendarStore((s) => s.setCreateReservationInitial);
+    const addReservation = useCalendarStore((s) => s.addReservation);
+
+    const [selectedCustomerId, setSelectedCustomerId] = useState<number | null>(null);
+
+    const selectedCustomer = selectedCustomerId !== null ? customerMap[selectedCustomerId] : null;
 
     useEffect(() => {
         setReservationMap(groupByDate(props.reservations));
-    }, [props.reservations, setReservationMap]);
+        setCustomerMap(toCustomerMap(props.customers));
+        setReservationHistory(props.history);
+    }, [props.reservations, props.customers, props.history, setReservationMap, setCustomerMap, setReservationHistory]);
 
     return (<>
             <Head>
@@ -37,6 +70,25 @@ const Home: NextPage<HomeProps> = (props) => {
             <StyledSection $isVisible={aside.isVisible}>
                 {curr && <Calendar/>}
             </StyledSection>
+            {reservationListFilter && <ReservationListModal/>}
+            {createReservationInitial && (
+                <ReservationCreate initial={createReservationInitial}
+                                   customerMap={customerMap}
+                                   onClose={() => setCreateReservationInitial(null)}
+                                   onSave={addReservation}/>
+            )}
+            {selectedReservation && <ReservationDetail reservation={selectedReservation}
+                                                       customerMap={customerMap}
+                                                       reservationMap={reservationMap}
+                                                       history={reservationHistory}
+                                                       onClose={() => setSelectedReservation(null)}
+                                                       onCustomerClick={(customerId) => setSelectedCustomerId(customerId)}
+                                                       onUpdate={updateReservation}
+                                                       onCancel={cancelReservation}/>}
+            {selectedCustomer && <CustomerDetail customer={selectedCustomer}
+                                                 reservationMap={reservationMap}
+                                                 onClose={() => setSelectedCustomerId(null)}/>}
+            <ServiceLegend/>
         </>
     );
 };
@@ -51,8 +103,17 @@ const StyledSection = styled.section <{ $isVisible: boolean }>`
   border-left: solid var(--light-gray-color) ${props => props.$isVisible ? `1px` : 0};
 `;
 
-export const getStaticProps: GetStaticProps<HomeProps> = async () => ({
-    props: {
-        reservations: reservationsData.reservations
-    }
-});
+export const getServerSideProps: GetServerSideProps<HomeProps> = async () => {
+    const fs = await import('fs');
+    const path = await import('path');
+    const raw = fs.readFileSync(path.join(process.cwd(), 'pages/api/reservations.json'), 'utf-8');
+    const data = JSON.parse(raw);
+
+    return {
+        props: {
+            reservations: data.reservations,
+            customers: customersData.customers,
+            history: data.history ?? []
+        }
+    };
+};
