@@ -25,5 +25,7 @@ export const setRouter = ({
     const index = type === ViewType.Year ? 1 : setLength;
     const isCalendarPath = isCalendar(['', type]);
     const resultPath = isCalendarPath ? `/${type}/${arrayDate.slice(0, index).join('/')}` : `/${type}`;
-    router.push(resultPath);
+    if (router.asPath !== resultPath) {
+        router.push(resultPath);
+    }
 };

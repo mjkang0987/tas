@@ -1,14 +1,23 @@
+export type ReservationStatus = 'active' | 'cancelled' | 'noshow';
+
 export interface Reservation {
     id: number;
     date: string;
     startTime: string;
     endTime: string;
     service: string;
-    name: string;
-    tel: string;
+    customerId: number;
+    status?: ReservationStatus;
 }
 
 export type ReservationMap = Record<string, Reservation[]>;
+
+export interface ReservationHistoryEntry {
+    reservationId: number;
+    before: Reservation;
+    after: Reservation;
+    timestamp: string;
+}
 
 export function groupByDate(list: Reservation[]): ReservationMap {
     const map: ReservationMap = {};
