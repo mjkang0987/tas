@@ -70,13 +70,6 @@ export const Aside = () => {
                     {asides[a].title}
                 </StyledNavLink>
             )}
-            <StyledAddressLink>
-                <InputWrap inputIcon="search">
-                    <input type="text"
-                           placeholder="사용자 검색"/>
-                </InputWrap>
-                <Link href="/address">📖 전체보기</Link>
-            </StyledAddressLink>
         </StyledAside>
     );
 };
@@ -125,8 +118,4 @@ const StyledNavLink = styled(Link)`
   font-size: var(--small-font);
   text-decoration: none;
   color: inherit;
-`;
-
-const StyledAddressLink = styled.div`
-  margin-top: auto;
 `;
