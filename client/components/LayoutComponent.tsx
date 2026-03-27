@@ -8,6 +8,7 @@ import {useRouter} from 'next/router';
 import styled from 'styled-components';
 
 import {useCalendarStore} from '../store/calendarStore';
+import type {CreateReservationInitial} from '../store/calendarStore';
 
 import {useIsomorphicEffect} from '../hooks/useIsomorphicEffect';
 
@@ -35,10 +36,33 @@ export default function LayoutComponent({children}: NodeType) {
     const setCurr = useCalendarStore((s) => s.setTargetFromDate);
     const view = useCalendarStore((s) => s.view);
     const setView = useCalendarStore((s) => s.setView);
+    const setCreateReservationInitial = useCalendarStore((s) => s.setCreateReservationInitial);
 
     const isomorphicEffect = useIsomorphicEffect();
 
     const initDate: Date = new Date();
+
+    const handleCreateReservation = () => {
+        const now = new Date();
+        const m = now.getMinutes();
+        let h = now.getHours();
+        let rounded = 0;
+
+        if (m < 15) {
+            rounded = 0;
+        } else if (m < 45) {
+            rounded = 30;
+        } else {
+            rounded = 0;
+            h += 1;
+        }
+
+        const pad = (n: number) => String(n).padStart(2, '0');
+        const date = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
+        const startTime = `${pad(h)}:${pad(rounded)}`;
+
+        setCreateReservationInitial({date, startTime});
+    };
 
     const closeModal = (e: React.MouseEvent) => {
         const target = e.target as HTMLElement;
@@ -77,7 +101,32 @@ export default function LayoutComponent({children}: NodeType) {
     }, []);
 
     useEffect(() => {
+        const handlePopState = () => {
+            const segments = window.location.pathname.split('/');
+            const isCalPath = isCalendar(segments);
+            const isRoot = segments.join('').length === 0;
+
+            if (!isCalPath || isRoot) return;
+
+            const viewType = segments[1];
+            const year = Number(segments[2]);
+            const month = (Number(segments[3]) - 1) || 0;
+            const date = Number(segments[4]) || 1;
+
+            setView({type: viewType});
+            setCurr(new Date(year, month, date));
+        };
+
+        window.addEventListener('popstate', handlePopState);
+        return () => window.removeEventListener('popstate', handlePopState);
+    }, []);
+
+    useEffect(() => {
         if (currValue.full === null) {
+            return;
+        }
+
+        if (!isCalendarPath && !isRootPath) {
             return;
         }
 
@@ -104,7 +153,7 @@ export default function LayoutComponent({children}: NodeType) {
             date : currValue.date,
             router
         });
-    }, [currValue]);
+    }, [currValue, view]);
 
 
     return (<StyledWrapper onClick={(e: React.MouseEvent) => closeModal(e)}>
@@ -113,7 +162,8 @@ export default function LayoutComponent({children}: NodeType) {
             {currValue.full !== null && <>
                 <StyledMain>
                     <StyledButton type="button"
-                                  $isVisible={aside.isVisible}>
+                                  $isVisible={aside.isVisible}
+                                  onClick={handleCreateReservation}>
                         <Icon iconType="plus"/>
                         {aside.isVisible && <ButtonText a11y={false}>일정추가</ButtonText>}
                     </StyledButton>
