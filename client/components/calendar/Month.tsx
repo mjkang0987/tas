@@ -8,12 +8,14 @@ import {computeTargetDerived} from '../../utils/calendarDerived';
 
 import {
     isTodayValue,
-    ViewType
+    ViewType,
 } from '../../utils/constants';
 
 import {toDateKey} from '../../utils/reservations';
 
 import {Num} from './Num';
+import {ButtonAdd} from '../common/Buttons';
+import {ReservationList} from './ReservationList';
 
 interface MonthType {
     monthDates: number[];
@@ -22,66 +24,72 @@ interface MonthType {
 }
 
 export const Month = ({
-    monthDates,
-    currMonth,
-    type
-}: MonthType) => {
+                          monthDates,
+                          currMonth,
+                          type
+                      }: MonthType) => {
     const today = useCalendarStore((s) => s.today);
     const target = useCalendarStore((s) => s.target);
     const curr = useMemo(() => computeTargetDerived(target), [target]);
     const setCurr = useCalendarStore((s) => s.setTargetFromDate);
     const setView = useCalendarStore((s) => s.setView);
     const reservationMap = useCalendarStore((s) => s.reservationMap);
+    const setReservationListFilter = useCalendarStore((s) => s.setReservationListFilter);
+    const setCreateReservationInitial = useCalendarStore((s) => s.setCreateReservationInitial);
 
     const fullYear = curr!.fullYear;
 
     return (<>
         {monthDates.map((val, index) => {
-            const count = (reservationMap[toDateKey(fullYear, currMonth, val)] || []).length;
+            const dateKey = toDateKey(fullYear, currMonth, val);
+            const dateReservations = reservationMap[dateKey] || [];
+            const hasReservations = dateReservations.length > 0;
 
-            return (<StyledDate key={`month_${val + index}`} type={type}>
-                <Num onClick={() => {
-                    setCurr(new Date(fullYear, currMonth, val));
-                    setView({type: ViewType.Day});
-                }}
-                     isToday={isTodayValue(today, fullYear, currMonth, +val)}>{val}</Num>
-                {count > 0 && <StyledBadge>{count}</StyledBadge>}
+            return (<StyledDate key={`month_${val + index}`}
+                                type={type}>
+                <StyledDateHeader>
+                    <Num onClick={() => {
+                        setCurr(new Date(fullYear, currMonth, val));
+                        setView({type: ViewType.Day});
+                    }}
+                         isToday={isTodayValue(today, fullYear, currMonth, +val)}>{val}</Num>
+                    <ButtonAdd onClick={() => setCreateReservationInitial({date: toDateKey(fullYear, currMonth, val), startTime: '10:00'})}
+                               aria-label={`${currMonth + 1}월 ${val}일 예약 추가`}/>
+                </StyledDateHeader>
+                {hasReservations && (
+                    <ReservationList reservations={dateReservations}
+                                     variant="date"
+                                     onViewAll={() => setReservationListFilter({type: 'date', dateKey})}/>
+                )}
             </StyledDate>);
         })}
     </>);
 };
 
+const StyledDateHeader = styled.div`
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+`;
+
 const StyledDate = styled.li<{ type: string }>`
-  padding: 5px;
-  text-align: center;
-  border-right: 1px solid var(--light-gray-color);
-  border-top: 1px solid var(--light-gray-color);
+    padding: 5px;
+    text-align: center;
+    overflow-y: auto;
+    border-right: 1px solid var(--light-gray-color);
+    border-top: 1px solid var(--light-gray-color);
 
-  &:nth-child(7n) {
-    border-right: none;
-  }
+    &:nth-child(7n) {
+        border-right: none;
+    }
 
-  &:nth-child(-n+7) {
-    border-top: none;
-  }
+    &:nth-child(-n+7) {
+        border-top: none;
+    }
 
-  ${props => (props.type === 'prev' || props.type === 'next') && `button {
+    ${props => (props.type === 'prev' || props.type === 'next') && `button {
     color: var(--gray-color);
   }
   `}
 `;
 
-const StyledBadge = styled.span`
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-width: 18px;
-  height: 18px;
-  padding: 0 4px;
-  border-radius: 9px;
-  background-color: rgba(66, 133, 244, 0.85);
-  color: #fff;
-  font-size: 11px;
-  font-weight: 600;
-  line-height: 1;
-`;
