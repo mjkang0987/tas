@@ -17,6 +17,8 @@ import {useRouteChangeSync} from '../hooks/useRouteChangeSync';
 import {NodeType} from '../utils/types';
 import {isCalendar, setRouter} from '../utils/router';
 import {ViewType} from '../utils/constants';
+import {roundToHalfHour, pad} from '../utils/timeRound';
+import {toDateKey} from '../utils/reservations';
 
 import {Header} from './common/Header';
 import {Aside} from './common/Aside';
@@ -44,22 +46,9 @@ export default function LayoutComponent({children}: NodeType) {
 
     const handleCreateReservation = () => {
         const now = new Date();
-        const m = now.getMinutes();
-        let h = now.getHours();
-        let rounded = 0;
-
-        if (m < 15) {
-            rounded = 0;
-        } else if (m < 45) {
-            rounded = 30;
-        } else {
-            rounded = 0;
-            h += 1;
-        }
-
-        const pad = (n: number) => String(n).padStart(2, '0');
-        const date = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
-        const startTime = `${pad(h)}:${pad(rounded)}`;
+        const {hour, rounded} = roundToHalfHour(now.getHours(), now.getMinutes());
+        const date = toDateKey(now.getFullYear(), now.getMonth(), now.getDate());
+        const startTime = `${pad(hour)}:${pad(rounded)}`;
 
         setCreateReservationInitial({date, startTime});
     };

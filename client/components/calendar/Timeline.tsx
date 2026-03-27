@@ -13,6 +13,7 @@ import {
 import {getServiceColor} from '../../utils/services';
 
 import {toDateKey} from '../../utils/reservations';
+import {roundToHalfHour, pad} from '../../utils/timeRound';
 import {ButtonReserve} from "../common/Buttons";
 
 export const Timeline = ({
@@ -56,12 +57,11 @@ export const Timeline = ({
         const clickM = Math.floor(totalMin % 60);
         clickH = Math.min(Math.max(clickH, start), end - 1);
 
-        const rounded = clickM < 15 ? 0 : clickM < 45 ? 30 : 0;
-        if (clickM >= 45) clickH = Math.min(clickH + 1, end - 1);
+        const result = roundToHalfHour(clickH, clickM);
+        clickH = Math.min(result.hour, end - 1);
 
-        const pad = (n: number) => String(n).padStart(2, '0');
-        const dateStr = `${fullYear}-${pad(month + 1)}-${pad(date)}`;
-        const startTime = `${pad(clickH)}:${pad(rounded)}`;
+        const dateStr = toDateKey(fullYear, month, date);
+        const startTime = `${pad(clickH)}:${pad(result.rounded)}`;
 
         setCreateReservationInitial({date: dateStr, startTime});
     };
