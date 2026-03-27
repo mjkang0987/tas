@@ -34,14 +34,6 @@ export interface RouterSlice {
     isCalendarPath: boolean;
 }
 
-export interface MousePositionType {
-    hour: number;
-    minute: number;
-    fullYear: number;
-    month: number;
-    date: number;
-}
-
 export interface CreateReservationInitial {
     date: string;
     startTime: string;
@@ -54,7 +46,6 @@ export interface CalendarState {
     view: ViewSlice;
     time: TimeSlice;
     router: RouterSlice;
-    mousePosition: MousePositionType | null;
     reservationMap: ReservationMap;
     customerMap: CustomerMap;
     selectedReservation: Reservation | null;
@@ -69,7 +60,6 @@ export interface CalendarState {
     setView: (v: ViewSlice | ((prev: ViewSlice) => ViewSlice)) => void;
     setTime: (v: TimeSlice | ((prev: TimeSlice) => TimeSlice)) => void;
     setRouterSlice: (v: RouterSlice | ((prev: RouterSlice) => RouterSlice)) => void;
-    setMousePosition: (v: MousePositionType | null) => void;
     setReservationMap: (map: ReservationMap) => void;
     setCustomerMap: (map: CustomerMap) => void;
     setSelectedReservation: (v: Reservation | null) => void;
@@ -107,7 +97,6 @@ export const useCalendarStore = create<CalendarState>((set) => ({
         isRootPath    : false,
         isCalendarPath: false
     },
-    mousePosition: null,
     reservationMap: {},
     customerMap: {},
     selectedReservation: null,
@@ -154,8 +143,6 @@ export const useCalendarStore = create<CalendarState>((set) => ({
         set((state) => ({
             router: typeof v === 'function' ? v(state.router) : v
         })),
-
-    setMousePosition: (mousePosition) => set({mousePosition}),
 
     setReservationMap: (reservationMap) => set({reservationMap}),
 

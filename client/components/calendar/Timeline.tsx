@@ -12,8 +12,6 @@ import {
 
 import {getServiceColor} from '../../utils/services';
 
-import {calcTimelinePosition} from '../../utils/calcTimelinePosition';
-
 import {toDateKey} from '../../utils/reservations';
 import {ButtonReserve} from "../common/Buttons";
 
@@ -27,7 +25,6 @@ export const Timeline = ({
     const view = useCalendarStore((s) => s.view);
     const {type} = view;
     const time = useCalendarStore((s) => s.time);
-    const setPosition = useCalendarStore((s) => s.setMousePosition);
     const setCreateReservationInitial = useCalendarStore((s) => s.setCreateReservationInitial);
     const reservationMap = useCalendarStore((s) => s.reservationMap);
     const setSelectedReservation = useCalendarStore((s) => s.setSelectedReservation);
@@ -50,17 +47,6 @@ export const Timeline = ({
     const full = (end - start) * 80;
 
     const setMousePositionHandler = (e: React.MouseEvent<HTMLDivElement>) => {
-        calcTimelinePosition({
-            event: e,
-            type,
-            setPosition,
-            fullYear,
-            month,
-            date,
-            start,
-            end
-        });
-
         const el = e.currentTarget;
         const rect = el.getBoundingClientRect();
         const paddingTop = type === ViewType.Day ? TIMELINE_DAY_TOP : TIMELINE_TOP;
