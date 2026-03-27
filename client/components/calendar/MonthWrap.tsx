@@ -1,3 +1,4 @@
+
 import {useMemo} from 'react';
 
 import styled from 'styled-components';
@@ -44,7 +45,8 @@ const StyledMonthWrap = styled.ul`
   flex: 1;
   display: grid;
   grid-template-columns: repeat(7, 1fr);
-  align-items: stretch;
+  grid-auto-rows: 1fr;
   height: 100%;
+  overflow: hidden;
 `;
 

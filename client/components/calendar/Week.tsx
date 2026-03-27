@@ -71,10 +71,6 @@ const StyledWeek = styled.li`
       display: none;
     }
   }
-
-  button {
-    font-size: var(--default-font);
-  }
 `;
 
 const StyledNumWrap = styled.span`
