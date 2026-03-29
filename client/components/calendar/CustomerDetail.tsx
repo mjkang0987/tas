@@ -7,6 +7,12 @@ import styled from 'styled-components';
 import type {Customer} from '../../utils/customers';
 import type {Reservation, ReservationMap} from '../../utils/reservations';
 
+import {
+    StyledOverlay,
+    StyledDetail,
+    StyledHeader,
+} from './ModalStyles';
+
 import {getServiceColor} from '../../utils/services';
 
 const PAGE_SIZE = 5;
@@ -45,7 +51,7 @@ export const CustomerDetail = ({customer, reservationMap, onClose}: CustomerDeta
                                        role="dialog"
                                        aria-modal="true"
                                        aria-label="고객 정보">
-        <StyledDetail onClick={(e) => e.stopPropagation()}>
+        <StyledCustomerDetail onClick={(e) => e.stopPropagation()}>
             <StyledHeader>
                 <h3>{customer.name}</h3>
                 <button type="button" onClick={onClose} aria-label="닫기">&#x2715;</button>
@@ -73,56 +79,12 @@ export const CustomerDetail = ({customer, reservationMap, onClose}: CustomerDeta
                     더보기
                 </StyledMoreButton>}
             </StyledReservationSection>
-        </StyledDetail>
+        </StyledCustomerDetail>
     </StyledOverlay>, modalRoot);
 };
 
-const StyledOverlay = styled.div`
-  position: fixed;
-  inset: 0;
-  z-index: 101;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 20px;
-  background-color: rgba(0, 0, 0, 0.4);
-  box-sizing: border-box;
-`;
-
-const StyledDetail = styled.div`
+const StyledCustomerDetail = styled(StyledDetail)`
   width: 360px;
-  max-height: 80vh;
-  background-color: #fff;
-  border-radius: 8px;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
-  overflow: hidden;
-  display: flex;
-  flex-direction: column;
-`;
-
-const StyledHeader = styled.div`
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  flex-shrink: 0;
-  padding: 12px 16px;
-  border-bottom: 1px solid var(--light-gray-color);
-
-  h3 {
-    margin: 0;
-    font-size: 16px;
-    font-weight: 600;
-  }
-
-  button {
-    border: none;
-    background: none;
-    font-size: 16px;
-    cursor: pointer;
-    padding: 0;
-    line-height: 1;
-    color: var(--gray-color);
-  }
 `;
 
 const StyledInfo = styled.div`
