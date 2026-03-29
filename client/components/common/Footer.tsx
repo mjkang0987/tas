@@ -6,7 +6,7 @@ import React from "react";
 export const Footer = () => {
     return (
         <StyledFooter>
-            <StyledAddressLink>
+            <div>
                 <InputWrap htmlFor="inputSearch"
                            inputIcon="search">
                     <input type="text"
@@ -14,7 +14,7 @@ export const Footer = () => {
                            placeholder="사용자 검색"/>
                 </InputWrap>
                 <Link href="/address">📖 전체보기</Link>
-            </StyledAddressLink>
+            </div>
         </StyledFooter>
     );
 };
@@ -24,7 +24,4 @@ const StyledFooter = styled.footer `
   border-top: solid 1px var(--light-gray-color);
   font-size: var(--small-font);
   color: var(--gray-color);
-`;
-
-const StyledAddressLink = styled.div`
 `;
