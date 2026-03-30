@@ -28,7 +28,7 @@ import {
 
 import {ServiceFields} from './ServiceFields';
 
-type Mode = 'view' | 'editing' | 'confirming' | 'cancelling' | 'noshow' | 'history';
+type Mode = 'view' | 'editing' | 'confirming' | 'pastConfirm' | 'noChanges' | 'cancelling' | 'noshow' | 'history';
 
 interface ReservationDetailProps {
     reservation: Reservation;
@@ -195,6 +195,12 @@ export const ReservationDetail = ({reservation, customerMap, reservationMap, his
         return '';
     };
 
+    const isPastTime = () => {
+        const now = new Date();
+        const startDateTime = new Date(`${form.date}T${form.startTime}`);
+        return startDateTime < now;
+    };
+
     const handleConfirmRequest = () => {
         const msg = validateForm();
         if (msg) {
@@ -202,10 +208,14 @@ export const ReservationDetail = ({reservation, customerMap, reservationMap, his
             return;
         }
         if (changedFields.length === 0) {
-            setMode('view');
+            setMode('noChanges');
             return;
         }
         setError('');
+        if (isPastTime()) {
+            setMode('pastConfirm');
+            return;
+        }
         setMode('confirming');
     };
 
@@ -227,7 +237,7 @@ export const ReservationDetail = ({reservation, customerMap, reservationMap, his
     };
 
     const handleBack = () => {
-        if (mode === 'confirming') {
+        if (mode === 'confirming' || mode === 'pastConfirm' || mode === 'noChanges') {
             setMode('editing');
         } else if (mode === 'editing' || mode === 'cancelling' || mode === 'noshow') {
             handleCancel();
@@ -250,7 +260,7 @@ export const ReservationDetail = ({reservation, customerMap, reservationMap, his
                                        aria-label="예약 상세">
         <StyledDetail onClick={(e) => e.stopPropagation()}>
             <StyledHeader>
-                <h3>{mode === 'editing' ? '예약 수정' : mode === 'confirming' ? '변경 확인' : mode === 'cancelling' ? '예약 취소' : mode === 'noshow' ? '노쇼 처리' : mode === 'history' ? '변경 이력' : reservation.service}</h3>
+                <h3>{mode === 'editing' ? '예약 수정' : mode === 'confirming' || mode === 'pastConfirm' ? '변경 확인' : mode === 'noChanges' ? '알림' : mode === 'cancelling' ? '예약 취소' : mode === 'noshow' ? '노쇼 처리' : mode === 'history' ? '변경 이력' : reservation.service}</h3>
                 <button type="button" onClick={handleBack} aria-label="닫기">&#x2715;</button>
             </StyledHeader>
 
@@ -329,6 +339,29 @@ export const ReservationDetail = ({reservation, customerMap, reservationMap, his
             {mode === 'confirming' && (
                 <StyledBody>
                     <StyledConfirmMessage>수정하시겠습니까?</StyledConfirmMessage>
+                    <StyledDiffList>
+                        {changedFields.map((d) => (
+                            <StyledDiffItem key={d.label}>
+                                <dt>{d.label}</dt>
+                                <dd>
+                                    <del>{d.before}</del>
+                                    <ins>{d.after}</ins>
+                                </dd>
+                            </StyledDiffItem>
+                        ))}
+                    </StyledDiffList>
+                </StyledBody>
+            )}
+
+            {mode === 'noChanges' && (
+                <StyledBody>
+                    <StyledConfirmMessage>변경내역이 없습니다.</StyledConfirmMessage>
+                </StyledBody>
+            )}
+
+            {mode === 'pastConfirm' && (
+                <StyledBody>
+                    <StyledPastWarning>현재 시간보다 과거입니다. 변경하시겠습니까?</StyledPastWarning>
                     <StyledDiffList>
                         {changedFields.map((d) => (
                             <StyledDiffItem key={d.label}>
@@ -451,6 +484,18 @@ export const ReservationDetail = ({reservation, customerMap, reservationMap, his
                                         $primary
                                         onClick={handleConfirmSave}>확인</StyledActionButton>
                 </>)}
+                {mode === 'noChanges' && (
+                    <StyledActionButton type="button"
+                                        $primary
+                                        onClick={() => setMode('editing')}>확인</StyledActionButton>
+                )}
+                {mode === 'pastConfirm' && (<>
+                    <StyledActionButton type="button"
+                                        onClick={() => setMode('editing')}>아니오</StyledActionButton>
+                    <StyledActionButton type="button"
+                                        $primary
+                                        onClick={handleConfirmSave}>네</StyledActionButton>
+                </>)}
                 {mode === 'cancelling' && (<>
                     <StyledActionButton type="button"
                                         onClick={() => setMode('view')}>돌아가기</StyledActionButton>
@@ -514,6 +559,14 @@ const StyledNoshowBadge = styled.span`
   font-size: 12px;
   font-weight: 600;
   color: #EA4335;
+`;
+
+const StyledPastWarning = styled.p`
+  margin: 0 0 12px;
+  font-size: 14px;
+  font-weight: 600;
+  text-align: center;
+  color: #a88417;
 `;
 
 const StyledCancelWarning = styled.p`
