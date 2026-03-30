@@ -59,8 +59,13 @@ export const Month = ({
                 {hasReservations && (
                     <ReservationList reservations={dateReservations}
                                      variant="date"
-                                     onViewAll={() => setReservationListFilter({type: 'date', dateKey})}/>
+                                     onViewAll={() => setReservationListFilter({type: 'date', dateKey})}
+                                     hideViewAll/>
                 )}
+                <StyledViewAllButton type="button"
+                                     onClick={() => setReservationListFilter({type: 'date', dateKey})}>
+                    전체 ({dateReservations.length}) &laquo;
+                </StyledViewAllButton>
             </StyledDate>);
         })}
     </>);
@@ -73,6 +78,8 @@ const StyledDateHeader = styled.div`
 `;
 
 const StyledDate = styled.li<{ type: string }>`
+    display: flex;
+    flex-direction: column;
     padding: 5px;
     text-align: center;
     overflow-y: auto;
@@ -91,5 +98,22 @@ const StyledDate = styled.li<{ type: string }>`
     color: var(--gray-color);
   }
   `}
+`;
+
+const StyledViewAllButton = styled.button`
+    margin-top: 5px;
+    padding: 2px 0;
+    flex-shrink: 0;
+    border: 1px solid var(--light-gray-color);
+    border-radius: 3px;
+    background-color: var(--white-color);
+    font-size: 9px;
+    font-weight: 600;
+    color: var(--dark-gray-color);
+    cursor: pointer;
+
+    &:hover {
+        background-color: var(--light-gray-color);
+    }
 `;
 

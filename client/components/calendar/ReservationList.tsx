@@ -10,9 +10,10 @@ interface ReservationListProps {
     reservations: Reservation[];
     variant: 'date' | 'month';
     onViewAll: () => void;
+    hideViewAll?: boolean;
 }
 
-export const ReservationList = ({reservations, variant, onViewAll}: ReservationListProps) => {
+export const ReservationList = ({reservations, variant, onViewAll, hideViewAll}: ReservationListProps) => {
     const customerMap = useCalendarStore((s) => s.customerMap);
     const setSelectedReservation = useCalendarStore((s) => s.setSelectedReservation);
 
@@ -34,11 +35,13 @@ export const ReservationList = ({reservations, variant, onViewAll}: ReservationL
                 );
             })}
         </StyledList>
-        <StyledViewAllButton type="button"
-                             $variant={variant}
-                             onClick={onViewAll}>
-            {variant === 'date' ? '전체' : '전체보기'} ({reservations.length})
-        </StyledViewAllButton>
+        {!hideViewAll && (
+            <StyledViewAllButton type="button"
+                                 $variant={variant}
+                                 onClick={onViewAll}>
+                {variant === 'date' ? '전체' : '전체보기'} ({reservations.length})
+            </StyledViewAllButton>
+        )}
     </>);
 };
 
@@ -49,9 +52,11 @@ const StyledList = styled.ul<{ $variant: 'date' | 'month' }>`
     ${(props) => props.$variant === 'date' ? 'margin-top: 2px;' : ''}
     padding: ${(props) => props.$variant === 'date' ? '0' : '0 5px'};
     list-style: none;
-    ${(props) => props.$variant === 'date' ? 'max-height: 80px;' : 'flex: 1;'}
+    flex: 1;
+    min-height: 0;
     ${(props) => props.$variant === 'date' ? '' : 'width: 100%;'}
     overflow-y: auto;
+    box-sizing: border-box;
 `;
 
 const StyledItem = styled.button<{ $color: string }>`
