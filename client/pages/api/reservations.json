@@ -68,17 +68,18 @@
         },
         {
             "id": 9,
-            "date": "2026-03-12",
+            "date": "2026-03-13",
             "startTime": "10:00",
             "endTime": "13:00",
             "service": "뿌리/전체(새치)+남자 일반펌",
-            "customerId": 2
+            "customerId": 2,
+            "status": "cancelled"
         },
         {
             "id": 10,
-            "date": "2026-03-12",
-            "startTime": "13:00",
-            "endTime": "15:00",
+            "date": "2026-03-30",
+            "startTime": "08:00",
+            "endTime": "10:00",
             "service": "남자 매직",
             "customerId": 9
         },
@@ -182,8 +183,8 @@
             "id": 23,
             "date": "2026-03-24",
             "startTime": "10:00",
-            "endTime": "10:30",
-            "service": "남성커트",
+            "endTime": "12:00",
+            "service": "남성커트+남자 일반펌",
             "customerId": 11
         },
         {
@@ -473,6 +474,147 @@
                 "status": "cancelled"
             },
             "timestamp": "2026-03-27T00:04:52.594Z"
+        },
+        {
+            "reservationId": 9,
+            "before": {
+                "id": 9,
+                "date": "2026-03-12",
+                "startTime": "10:00",
+                "endTime": "13:00",
+                "service": "뿌리/전체(새치)+남자 일반펌",
+                "customerId": 2
+            },
+            "after": {
+                "id": 9,
+                "date": "2026-03-13",
+                "startTime": "10:00",
+                "endTime": "13:00",
+                "service": "뿌리/전체(새치)+남자 일반펌",
+                "customerId": 2
+            },
+            "timestamp": "2026-03-30T00:59:40.831Z"
+        },
+        {
+            "reservationId": 9,
+            "before": {
+                "id": 9,
+                "date": "2026-03-13",
+                "startTime": "10:00",
+                "endTime": "13:00",
+                "service": "뿌리/전체(새치)+남자 일반펌",
+                "customerId": 2
+            },
+            "after": {
+                "id": 9,
+                "date": "2026-03-13",
+                "startTime": "10:00",
+                "endTime": "13:00",
+                "service": "뿌리/전체(새치)+남자 일반펌",
+                "customerId": 2,
+                "status": "cancelled"
+            },
+            "timestamp": "2026-03-30T00:59:43.544Z"
+        },
+        {
+            "reservationId": 10,
+            "before": {
+                "id": 10,
+                "date": "2026-03-12",
+                "startTime": "13:00",
+                "endTime": "15:00",
+                "service": "남자 매직",
+                "customerId": 9
+            },
+            "after": {
+                "id": 10,
+                "date": "2026-03-30",
+                "startTime": "13:00",
+                "endTime": "15:00",
+                "service": "남자 매직",
+                "customerId": 9
+            },
+            "timestamp": "2026-03-30T01:00:01.982Z"
+        },
+        {
+            "reservationId": 10,
+            "before": {
+                "id": 10,
+                "date": "2026-03-30",
+                "startTime": "13:00",
+                "endTime": "15:00",
+                "service": "남자 매직",
+                "customerId": 9
+            },
+            "after": {
+                "id": 10,
+                "date": "2026-03-30",
+                "startTime": "10:00",
+                "endTime": "12:00",
+                "service": "남자 매직",
+                "customerId": 9
+            },
+            "timestamp": "2026-03-30T01:00:22.407Z"
+        },
+        {
+            "reservationId": 10,
+            "before": {
+                "id": 10,
+                "date": "2026-03-30",
+                "startTime": "10:00",
+                "endTime": "12:00",
+                "service": "남자 매직",
+                "customerId": 9
+            },
+            "after": {
+                "id": 10,
+                "date": "2026-03-30",
+                "startTime": "09:00",
+                "endTime": "11:00",
+                "service": "남자 매직",
+                "customerId": 9
+            },
+            "timestamp": "2026-03-30T01:00:31.617Z"
+        },
+        {
+            "reservationId": 10,
+            "before": {
+                "id": 10,
+                "date": "2026-03-30",
+                "startTime": "09:00",
+                "endTime": "11:00",
+                "service": "남자 매직",
+                "customerId": 9
+            },
+            "after": {
+                "id": 10,
+                "date": "2026-03-30",
+                "startTime": "08:00",
+                "endTime": "10:00",
+                "service": "남자 매직",
+                "customerId": 9
+            },
+            "timestamp": "2026-03-30T01:12:27.118Z"
+        },
+        {
+            "reservationId": 23,
+            "before": {
+                "id": 23,
+                "date": "2026-03-24",
+                "startTime": "10:00",
+                "endTime": "10:30",
+                "service": "남성커트",
+                "customerId": 11
+            },
+            "after": {
+                "id": 23,
+                "date": "2026-03-24",
+                "startTime": "10:00",
+                "endTime": "12:00",
+                "service": "남성커트+남자 일반펌",
+                "customerId": 11
+            },
+            "timestamp": "2026-03-30T01:39:54.309Z"
         }
     ]
 }
