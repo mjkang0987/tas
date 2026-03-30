@@ -42,28 +42,43 @@ export const ReservationListModal = () => {
         return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
     }, []);
 
-    const {title, reservations} = useMemo(() => {
-        if (!filter) return {title: '', reservations: [] as Reservation[]};
+    const {title, reservations, grouped} = useMemo(() => {
+        if (!filter) return {title: '', reservations: [] as Reservation[], grouped: [] as { date: string; items: Reservation[] }[]};
+
+        let list: Reservation[];
+        let modalTitle: string;
 
         if (filter.type === 'date') {
-            const list = (reservationMap[filter.dateKey] || [])
+            list = (reservationMap[filter.dateKey] || [])
                 .slice()
                 .sort((a, b) => a.startTime.localeCompare(b.startTime));
-            return {title: filter.dateKey, reservations: list};
+            modalTitle = filter.dateKey;
+        } else {
+            const pad = (n: number) => String(n + 1).padStart(2, '0');
+            const prefix = `${filter.year}-${pad(filter.month)}`;
+            list = [];
+
+            for (const [key, rList] of Object.entries(reservationMap)) {
+                if (key.startsWith(prefix)) {
+                    list.push(...rList);
+                }
+            }
+
+            list.sort((a, b) => a.date.localeCompare(b.date) || a.startTime.localeCompare(b.startTime));
+            modalTitle = `${filter.year}년 ${filter.month + 1}월`;
         }
 
-        const pad = (n: number) => String(n + 1).padStart(2, '0');
-        const prefix = `${filter.year}-${pad(filter.month)}`;
-        const list: Reservation[] = [];
-
-        for (const [key, rList] of Object.entries(reservationMap)) {
-            if (key.startsWith(prefix)) {
-                list.push(...rList);
+        const groups: { date: string; items: Reservation[] }[] = [];
+        for (const r of list) {
+            const last = groups[groups.length - 1];
+            if (last && last.date === r.date) {
+                last.items.push(r);
+            } else {
+                groups.push({date: r.date, items: [r]});
             }
         }
 
-        list.sort((a, b) => a.date.localeCompare(b.date) || a.startTime.localeCompare(b.startTime));
-        return {title: `${filter.year}년 ${filter.month + 1}월`, reservations: list};
+        return {title: modalTitle, reservations: list, grouped: groups};
     }, [filter, reservationMap]);
 
     const getStatusType = (r: Reservation) => {
@@ -103,26 +118,30 @@ export const ReservationListModal = () => {
                 {reservations.length === 0 ? (
                     <StyledEmpty>예약이 없습니다.</StyledEmpty>
                 ) : (
-                    <StyledList>
-                        {reservations.map((r, i) => {
-                            const customer = customerMap[r.customerId];
-                            const statusType = getStatusType(r);
-                            const isInactive = statusType === 'cancelled' || statusType === 'noshow';
+                    grouped.map((group) => (
+                        <StyledDateGroup key={group.date}>
+                            <StyledDateTitle>{group.date} ({group.items.length})</StyledDateTitle>
+                            <StyledList>
+                                {group.items.map((r) => {
+                                    const customer = customerMap[r.customerId];
+                                    const statusType = getStatusType(r);
+                                    const isInactive = statusType === 'cancelled' || statusType === 'noshow';
 
-                            return (
-                                <StyledItem key={r.id}
-                                            $color={getServiceColor(r.service)}
-                                            $inactive={isInactive}
-                                            onClick={() => handleClick(r)}>
-                                    {filter?.type === 'month' && <StyledDateCol>{r.date.slice(5)}</StyledDateCol>}
-                                    <StyledTime>{r.startTime}~{r.endTime}</StyledTime>
-                                    <StyledService>{r.service}</StyledService>
-                                    <StyledCustomer>{customer?.name ?? '-'}</StyledCustomer>
-                                    <StyledBadge $type={statusType}>{getStatusLabel(r)}</StyledBadge>
-                                </StyledItem>
-                            );
-                        })}
-                    </StyledList>
+                                    return (
+                                        <StyledItem key={r.id}
+                                                    $color={getServiceColor(r.service)}
+                                                    $inactive={isInactive}
+                                                    onClick={() => handleClick(r)}>
+                                            <StyledTime>{r.startTime}~{r.endTime}</StyledTime>
+                                            <StyledService>{r.service}</StyledService>
+                                            <StyledCustomer>{customer?.name ?? '-'}</StyledCustomer>
+                                            <StyledBadge $type={statusType}>{getStatusLabel(r)}</StyledBadge>
+                                        </StyledItem>
+                                    );
+                                })}
+                            </StyledList>
+                        </StyledDateGroup>
+                    ))
                 )}
             </StyledListBody>
         </StyledListModal>
@@ -151,6 +170,24 @@ const StyledList = styled.ul`
     gap: 4px;
 `;
 
+const StyledDateGroup = styled.div`
+    &:not(:first-child) {
+        margin-top: 8px;
+    }
+`;
+
+const StyledDateTitle = styled.div`
+    position: sticky;
+    top: 0;
+    z-index: 1;
+    padding: 6px 10px;
+    background-color: var(--white-color);
+    border-bottom: 1px solid var(--light-gray-color);
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--dark-gray-color);
+`;
+
 const StyledItem = styled.li<{ $color: string; $inactive: boolean }>`
     display: grid;
     grid-template-columns: 100px 1fr 60px 44px;
@@ -167,10 +204,6 @@ const StyledItem = styled.li<{ $color: string; $inactive: boolean }>`
     &:hover {
         background-color: var(--light-gray-color);
     }
-`;
-
-const StyledDateCol = styled.span`
-    font-weight: 500;
 `;
 
 const StyledTime = styled.span`
