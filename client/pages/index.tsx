@@ -1,4 +1,4 @@
-import {useEffect, useMemo, useState} from 'react';
+import {useEffect, useMemo} from 'react';
 
 import type {GetServerSideProps, NextPage} from 'next';
 
@@ -53,7 +53,8 @@ const Home: NextPage<HomeProps> = (props) => {
     const setCreateReservationInitial = useCalendarStore((s) => s.setCreateReservationInitial);
     const addReservation = useCalendarStore((s) => s.addReservation);
 
-    const [selectedCustomerId, setSelectedCustomerId] = useState<number | null>(null);
+    const selectedCustomerId = useCalendarStore((s) => s.selectedCustomerId);
+    const setSelectedCustomerId = useCalendarStore((s) => s.setSelectedCustomerId);
 
     const selectedCustomer = selectedCustomerId !== null ? customerMap[selectedCustomerId] : null;
 

@@ -52,6 +52,7 @@ export interface CalendarState {
     reservationHistory: ReservationHistoryEntry[];
     reservationListFilter: { type: 'month'; year: number; month: number } | { type: 'date'; dateKey: string } | null;
     createReservationInitial: CreateReservationInitial | null;
+    selectedCustomerId: number | null;
 
     setToday: (v: FullType) => void;
     setTarget: (partial: Partial<DateType>) => void;
@@ -66,6 +67,7 @@ export interface CalendarState {
     setReservationHistory: (history: ReservationHistoryEntry[]) => void;
     setReservationListFilter: (v: CalendarState['reservationListFilter']) => void;
     setCreateReservationInitial: (v: CreateReservationInitial | null) => void;
+    setSelectedCustomerId: (v: number | null) => void;
     addReservation: (reservation: Reservation) => void;
     updateReservation: (prev: Reservation, updated: Reservation) => void;
     cancelReservation: (reservation: Reservation, status?: ReservationStatus) => void;
@@ -103,6 +105,7 @@ export const useCalendarStore = create<CalendarState>((set) => ({
     reservationHistory: [],
     reservationListFilter: null,
     createReservationInitial: null,
+    selectedCustomerId: null,
 
     setToday: (today) => set({today}),
 
@@ -155,6 +158,8 @@ export const useCalendarStore = create<CalendarState>((set) => ({
     setReservationListFilter: (reservationListFilter) => set({reservationListFilter}),
 
     setCreateReservationInitial: (createReservationInitial) => set({createReservationInitial}),
+
+    setSelectedCustomerId: (selectedCustomerId) => set({selectedCustomerId}),
 
     addReservation: (reservation) => {
         set((state) => {
