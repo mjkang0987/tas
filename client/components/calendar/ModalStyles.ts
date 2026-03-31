@@ -51,7 +51,7 @@ export const StyledBody = styled.div`
   flex: 1;
   overflow-y: auto;
   overscroll-behavior: contain;
-  padding: 16px;
+  padding: 8px;
 `;
 
 export const StyledForm = styled.div`

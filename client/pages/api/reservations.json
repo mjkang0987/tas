@@ -78,8 +78,8 @@
         {
             "id": 10,
             "date": "2026-03-30",
-            "startTime": "08:00",
-            "endTime": "10:00",
+            "startTime": "10:00",
+            "endTime": "12:00",
             "service": "남자 매직",
             "customerId": 9
         },
@@ -274,7 +274,8 @@
             "startTime": "11:00",
             "endTime": "13:30",
             "service": "셋팅펌",
-            "customerId": 10
+            "customerId": 10,
+            "status": "cancelled"
         },
         {
             "id": 35,
@@ -615,6 +616,47 @@
                 "customerId": 11
             },
             "timestamp": "2026-03-30T01:39:54.309Z"
+        },
+        {
+            "reservationId": 10,
+            "before": {
+                "id": 10,
+                "date": "2026-03-30",
+                "startTime": "08:00",
+                "endTime": "10:00",
+                "service": "남자 매직",
+                "customerId": 9
+            },
+            "after": {
+                "id": 10,
+                "date": "2026-03-30",
+                "startTime": "10:00",
+                "endTime": "12:00",
+                "service": "남자 매직",
+                "customerId": 9
+            },
+            "timestamp": "2026-03-30T07:34:54.468Z"
+        },
+        {
+            "reservationId": 34,
+            "before": {
+                "id": 34,
+                "date": "2026-03-28",
+                "startTime": "11:00",
+                "endTime": "13:30",
+                "service": "셋팅펌",
+                "customerId": 10
+            },
+            "after": {
+                "id": 34,
+                "date": "2026-03-28",
+                "startTime": "11:00",
+                "endTime": "13:30",
+                "service": "셋팅펌",
+                "customerId": 10,
+                "status": "cancelled"
+            },
+            "timestamp": "2026-03-30T07:36:03.931Z"
         }
     ]
 }
