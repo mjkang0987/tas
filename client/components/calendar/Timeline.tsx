@@ -1,4 +1,4 @@
-import React from 'react';
+import React, {useMemo} from 'react';
 
 import styled from 'styled-components';
 
@@ -10,7 +10,7 @@ import {
     ViewType,
 } from '../../utils/constants';
 
-import {getServiceColor} from '../../utils/services';
+import {buildServiceColorMap, getServiceColor} from '../../utils/services';
 
 import {toDateKey} from '../../utils/reservations';
 import {roundToHalfHour, pad} from '../../utils/timeRound';
@@ -29,6 +29,8 @@ export const Timeline = ({
     const setCreateReservationInitial = useCalendarStore((s) => s.setCreateReservationInitial);
     const reservationMap = useCalendarStore((s) => s.reservationMap);
     const setSelectedReservation = useCalendarStore((s) => s.setSelectedReservation);
+    const serviceCatalog = useCalendarStore((s) => s.serviceCatalog);
+    const categoryBaseColorMap = useCalendarStore((s) => s.categoryBaseColorMap);
 
     const {start, end} = time;
 
@@ -36,6 +38,10 @@ export const Timeline = ({
 
     const dateKey = toDateKey(fullYear, month, date);
     const reservations = reservationMap[dateKey] || [];
+    const serviceColorMap = useMemo(
+        () => buildServiceColorMap(serviceCatalog, categoryBaseColorMap),
+        [serviceCatalog, categoryBaseColorMap]
+    );
     const blockOffset = type === ViewType.Day ? 50 : 20;
 
     const today = new Date();
@@ -83,7 +89,7 @@ export const Timeline = ({
                                    $position='absolute'
                                    $top={blockTop}
                                    $height={blockHeight}
-                                   $color={getServiceColor(r.service)}
+                                   $color={getServiceColor(r.service, serviceColorMap)}
                                    $cancelled={r.status === 'cancelled' || r.status === 'noshow'}
                                    onClick={(e: React.MouseEvent) => {
                                        e.stopPropagation();
@@ -138,4 +144,3 @@ const StyledBar = styled.span`
         border-radius: 100%;
     }
 `;
-

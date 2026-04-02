@@ -13,7 +13,8 @@ import {
     StyledHeader,
 } from './ModalStyles';
 
-import {getServiceColor} from '../../utils/services';
+import {buildServiceColorMap, getServiceColor} from '../../utils/services';
+import {useCalendarStore} from '../../store/calendarStore';
 
 const PAGE_SIZE = 5;
 
@@ -25,7 +26,13 @@ interface CustomerDetailProps {
 
 export const CustomerDetail = ({customer, reservationMap, onClose}: CustomerDetailProps) => {
     const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
+    const serviceCatalog = useCalendarStore((s) => s.serviceCatalog);
+    const categoryBaseColorMap = useCalendarStore((s) => s.categoryBaseColorMap);
     const modalRoot = document.getElementById('modal-root');
+    const serviceColorMap = useMemo(
+        () => buildServiceColorMap(serviceCatalog, categoryBaseColorMap),
+        [serviceCatalog, categoryBaseColorMap]
+    );
 
     const customerReservations = useMemo(() => {
         const list: Reservation[] = [];
@@ -67,7 +74,7 @@ export const CustomerDetail = ({customer, reservationMap, onClose}: CustomerDeta
                 <StyledReservationList>
                     {visibleList.map((r, index) => (
                         <StyledReservationItem key={r.id}
-                                               $color={getServiceColor(r.service)}>
+                                               $color={getServiceColor(r.service, serviceColorMap)}>
                             <span className="date">{r.date}</span>
                             <span className="time">{r.startTime} ~ {r.endTime}</span>
                             <strong>{r.service}</strong>

@@ -6,7 +6,7 @@ import styled from 'styled-components';
 
 import {useCalendarStore} from '../../store/calendarStore';
 
-import {getServiceColor} from '../../utils/services';
+import {buildServiceColorMap, getServiceColor} from '../../utils/services';
 
 import {
     StyledOverlay,
@@ -35,7 +35,13 @@ export const ReservationListModal = () => {
     const filter = useCalendarStore((s) => s.reservationListFilter);
     const setReservationListFilter = useCalendarStore((s) => s.setReservationListFilter);
     const setSelectedReservation = useCalendarStore((s) => s.setSelectedReservation);
+    const serviceCatalog = useCalendarStore((s) => s.serviceCatalog);
+    const categoryBaseColorMap = useCalendarStore((s) => s.categoryBaseColorMap);
     const modalRoot = document.getElementById('modal-root');
+    const serviceColorMap = useMemo(
+        () => buildServiceColorMap(serviceCatalog, categoryBaseColorMap),
+        [serviceCatalog, categoryBaseColorMap]
+    );
 
     const today = useMemo(() => {
         const d = new Date();
@@ -129,7 +135,7 @@ export const ReservationListModal = () => {
 
                                     return (
                                         <StyledItem key={r.id}
-                                                    $color={getServiceColor(r.service)}
+                                                    $color={getServiceColor(r.service, serviceColorMap)}
                                                     $inactive={isInactive}
                                                     onClick={() => handleClick(r)}>
                                             <StyledTime>{r.startTime}~{r.endTime}</StyledTime>
