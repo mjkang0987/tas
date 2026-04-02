@@ -424,7 +424,7 @@ const StyledDetails = styled.details`
         &::before {
             left: auto;
             right: -10px;
-            transform: rotate(-90deg);
+            transform: rotate(90deg);
         }
     }
 
@@ -433,7 +433,7 @@ const StyledDetails = styled.details`
         border-bottom: 2px solid var(--black-color);
 
         > summary::before {
-            transform: rotate(90deg);
+            transform: rotate(-90deg);
         }
     }
 `;

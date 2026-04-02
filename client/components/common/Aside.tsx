@@ -70,6 +70,11 @@ export const Aside = () => {
                     {asides[a].title}
                 </StyledNavLink>
             )}
+            <StyledDivider/>
+            <StyledNavLink href="/settings"
+                           onClick={() => setAside({...aside, isVisible: false})}>
+                설정
+            </StyledNavLink>
         </StyledAside>
     );
 };
@@ -102,6 +107,12 @@ const StyledAside = styled.aside <Props>`
                 : 'normal'};
         animation-fill-mode: forward;
     }
+`;
+
+const StyledDivider = styled.hr`
+  border: none;
+  border-top: 1px solid var(--light-gray-color);
+  margin: 4px 0;
 `;
 
 const StyledNavLink = styled(Link)`

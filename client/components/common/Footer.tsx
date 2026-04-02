@@ -20,6 +20,7 @@ export const Footer = () => {
                 <ButtonText a11y={false}>고객 검색</ButtonText>
             </StyledSearchButton>
             <Link href="/address">📖 전체보기</Link>
+            <StyledFooterLink href="/settings">설정</StyledFooterLink>
             {isSearchOpen && <SearchLayer onClose={() => setIsSearchOpen(false)}/>}
         </StyledFooter>
     );
@@ -33,7 +34,7 @@ const SearchLayer = ({onClose}: { onClose: () => void }) => {
     const inputRef = useRef<HTMLInputElement>(null);
     const modalRoot = document.getElementById('modal-root');
 
-    const customers = Object.values(customerMap);
+    const customers = Object.values(customerMap).sort((a, b) => a.name.localeCompare(b.name, 'ko'));
     const filtered = query.trim()
         ? customers.filter((c) => c.name.includes(query) || c.tel.includes(query))
         : customers;
@@ -104,6 +105,23 @@ const StyledSearchButton = styled.button`
   font-size: var(--small-font);
   color: var(--gray-color);
   cursor: pointer;
+
+  &:hover {
+    box-shadow: 0 0 10px 0 rgba(0, 0, 0, .2);
+  }
+`;
+
+const StyledFooterLink = styled(Link)`
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 10px;
+  border: 1px solid #ccc;
+  border-radius: 5px;
+  background-color: var(--white-color);
+  box-shadow: 0 0 10px 0 rgba(0, 0, 0, .1);
+  font-size: var(--small-font);
+  color: var(--gray-color);
+  text-decoration: none;
 
   &:hover {
     box-shadow: 0 0 10px 0 rgba(0, 0, 0, .2);
