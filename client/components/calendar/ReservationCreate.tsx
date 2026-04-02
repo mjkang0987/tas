@@ -14,6 +14,8 @@ import type {CustomerMap} from '../../utils/customers';
 import {
     joinServiceNames,
     sumDurationMinutes,
+    sumPrice,
+    formatPrice,
     calcEndTime,
 } from '../../utils/services';
 
@@ -27,6 +29,8 @@ import {
     StyledError,
     StyledFooter,
     StyledActionButton,
+    StyledPriceRow,
+    StyledPriceUnit,
 } from './ModalStyles';
 
 import {ServiceFields} from './ServiceFields';
@@ -49,11 +53,14 @@ export const ReservationCreate = ({initial, customerMap, onClose, onSave}: Reser
     const [showSuggestions, setShowSuggestions] = useState(false);
     const blurTimerRef = useRef<ReturnType<typeof setTimeout>>(undefined);
     const [selectedServices, setSelectedServices] = useState<string[]>([]);
+    const [price, setPrice] = useState(0);
+    const [isPriceManual, setIsPriceManual] = useState(false);
     const [form, setForm] = useState({
         date: initial.date,
         startTime: initial.startTime,
         endTime: calcEndTime(initial.startTime, 30),
     });
+    const [memo, setMemo] = useState('');
     const [isEndTimeManual, setIsEndTimeManual] = useState(false);
     const [error, setError] = useState('');
 
@@ -90,6 +97,7 @@ export const ReservationCreate = ({initial, customerMap, onClose, onSave}: Reser
     };
 
     const totalDuration = sumDurationMinutes(selectedServices);
+    const totalPrice = sumPrice(selectedServices);
 
     const handleStartTimeChange = (value: string) => {
         setForm((prev) => {
@@ -128,6 +136,10 @@ export const ReservationCreate = ({initial, customerMap, onClose, onSave}: Reser
                 }
                 return updated;
             });
+
+            if (!isPriceManual) {
+                setPrice(sumPrice(next));
+            }
 
             setIsEndTimeManual(false);
             setError('');
@@ -168,6 +180,8 @@ export const ReservationCreate = ({initial, customerMap, onClose, onSave}: Reser
             service: joinServiceNames(selectedServices),
             customerId,
             status: 'active',
+            price,
+            ...(memo.trim() && {memo: memo.trim()}),
         };
 
         onSave(reservation);
@@ -223,8 +237,26 @@ export const ReservationCreate = ({initial, customerMap, onClose, onSave}: Reser
                         <ServiceFields idPrefix="create"
                                        selectedServices={selectedServices}
                                        onServiceToggle={handleServiceToggle}
-                                       totalDuration={totalDuration}/>
+                                       totalDuration={totalDuration}
+                                       totalPrice={totalPrice}/>
                     </StyledFieldRow>
+                    <label htmlFor="create-price">
+                        <strong>가격</strong>
+                        <StyledPriceRow>
+                            <input id="create-price"
+                                   type="text"
+                                   inputMode="numeric"
+                                   value={price.toLocaleString('ko-KR')}
+                                   onChange={(e) => {
+                                       const raw = e.target.value.replace(/[^0-9]/g, '');
+                                       const num = raw === '' ? 0 : parseInt(raw, 10);
+                                       setPrice(num);
+                                       setIsPriceManual(true);
+                                       setError('');
+                                   }}/>
+                            <StyledPriceUnit>원</StyledPriceUnit>
+                        </StyledPriceRow>
+                    </label>
                     <label htmlFor="create-date">
                         <strong>날짜</strong>
                         <input id="create-date"
@@ -245,6 +277,14 @@ export const ReservationCreate = ({initial, customerMap, onClose, onSave}: Reser
                                type="time"
                                value={form.endTime}
                                onChange={(e) => handleEndTimeChange(e.target.value)}/>
+                    </label>
+                    <label htmlFor="create-memo">
+                        <strong>메모</strong>
+                        <StyledMemo id="create-memo"
+                                    placeholder="특이사항, 요청사항 등"
+                                    value={memo}
+                                    onChange={(e) => setMemo(e.target.value)}
+                                    rows={2}/>
                     </label>
                 </StyledForm>
                 {error && <StyledError>{error}</StyledError>}
@@ -305,3 +345,24 @@ const StyledNoResult = styled.li`
   color: var(--gray-color);
   text-align: center;
 `;
+
+const StyledMemo = styled.textarea`
+  width: 100%;
+  padding: var(--gap-md);
+  border: 1px solid var(--light-gray-color);
+  border-radius: var(--radius-sm);
+  font-size: 13px;
+  font-family: inherit;
+  resize: vertical;
+  box-sizing: border-box;
+  outline: none;
+
+  &:focus {
+    border-color: var(--blue-color);
+  }
+
+  &::placeholder {
+    color: var(--gray-color);
+  }
+`;
+

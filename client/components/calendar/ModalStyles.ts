@@ -100,12 +100,80 @@ export const StyledFieldRow = styled.div`
 
 export const StyledError = styled.p`
   margin: 10px 0 0;
-  padding: 8px 10px;
-  background-color: #fef2f2;
-  border: 1px solid #fecaca;
-  border-radius: 4px;
-  font-size: 12px;
-  color: #c93a30;
+  padding: var(--gap-md) var(--gap-lg);
+  background-color: var(--danger-bg);
+  border: 1px solid var(--danger-border);
+  border-radius: var(--radius-sm);
+  font-size: var(--small-font);
+  color: var(--danger-color);
+`;
+
+export const StyledPriceRow = styled.div`
+  display: flex;
+  align-items: center;
+  gap: var(--gap-xs);
+
+  > input {
+    flex: 1;
+    text-align: right;
+  }
+`;
+
+export const StyledPriceUnit = styled.span`
+  flex-shrink: 0;
+  font-size: 13px;
+  color: var(--dark-gray-color);
+`;
+
+export const StyledStatusBadge = styled.span<{ $variant: 'danger' | 'warning' }>`
+  display: inline-block;
+  padding: 2px var(--gap-md);
+  background-color: ${(p) => p.$variant === 'danger' ? 'var(--danger-bg)' : 'var(--warning-bg)'};
+  border: 1px solid ${(p) => p.$variant === 'danger' ? 'var(--danger-border)' : 'var(--warning-border)'};
+  border-radius: var(--radius-sm);
+  font-size: var(--small-font);
+  font-weight: 600;
+  color: ${(p) => p.$variant === 'danger' ? 'var(--danger-color)' : 'var(--warning-color)'};
+`;
+
+export const StyledModalMessage = styled.p<{ $color?: string }>`
+  margin: 0 0 12px;
+  font-size: var(--font);
+  font-weight: 600;
+  text-align: center;
+  color: ${(p) => p.$color || 'var(--black-color)'};
+`;
+
+export const StyledDiffGrid = styled.dl`
+  display: grid;
+  grid-template-columns: 60px 1fr;
+  gap: var(--gap-xs) var(--gap-lg);
+  margin: 0;
+
+  dd {
+    display: flex;
+    align-items: center;
+    gap: var(--gap-md);
+  }
+
+  del {
+    color: var(--danger-color);
+    text-decoration: line-through;
+    font-size: var(--small-font);
+  }
+
+  ins {
+    color: var(--success-color);
+    text-decoration: none;
+    font-weight: 600;
+    font-size: var(--small-font);
+
+    &::before {
+      content: "\\2192\\00a0";
+      color: var(--gray-color);
+      font-weight: 400;
+    }
+  }
 `;
 
 export const StyledFooter = styled.div`

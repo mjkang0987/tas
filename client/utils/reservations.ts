@@ -8,6 +8,8 @@ export interface Reservation {
     service: string;
     customerId: number;
     status?: ReservationStatus;
+    price?: number;
+    memo?: string;
 }
 
 export type ReservationMap = Record<string, Reservation[]>;

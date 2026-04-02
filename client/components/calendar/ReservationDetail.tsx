@@ -11,6 +11,8 @@ import {
     parseServiceString,
     joinServiceNames,
     sumDurationMinutes,
+    sumPrice,
+    formatPrice,
     calcEndTime,
 } from '../../utils/services';
 
@@ -24,6 +26,11 @@ import {
     StyledError,
     StyledFooter,
     StyledActionButton,
+    StyledPriceRow,
+    StyledPriceUnit,
+    StyledStatusBadge,
+    StyledModalMessage,
+    StyledDiffGrid,
 } from './ModalStyles';
 
 import {ServiceFields} from './ServiceFields';
@@ -46,24 +53,35 @@ interface FormState {
     startTime: string;
     endTime: string;
     service: string;
+    price: number;
 }
 
 const FIELD_LABELS: Record<keyof FormState, string> = {
     service: '시술',
     date: '날짜',
     startTime: '시작시간',
-    endTime: '종료시간'
+    endTime: '종료시간',
+    price: '가격'
 };
 
 const getChangedFields = (before: Reservation, after: FormState) => {
     const fields: { label: string; before: string; after: string }[] = [];
+    const beforePrice = before.price ?? sumPrice(parseServiceString(before.service));
 
     (Object.keys(FIELD_LABELS) as (keyof FormState)[]).forEach((key) => {
-        if (before[key] !== after[key]) {
+        if (key === 'price') {
+            if (beforePrice !== after.price) {
+                fields.push({
+                    label: FIELD_LABELS[key],
+                    before: formatPrice(beforePrice),
+                    after: formatPrice(after.price)
+                });
+            }
+        } else if (before[key] !== after[key]) {
             fields.push({
                 label: FIELD_LABELS[key],
-                before: before[key],
-                after: after[key]
+                before: before[key] as string,
+                after: after[key] as string
             });
         }
     });
@@ -85,11 +103,21 @@ const getHistoryDiffs = (entry: ReservationHistoryEntry) => {
     }
 
     (Object.keys(FIELD_LABELS) as (keyof FormState)[]).forEach((key) => {
-        if (entry.before[key] !== entry.after[key]) {
+        if (key === 'price') {
+            const beforePrice = entry.before.price ?? sumPrice(parseServiceString(entry.before.service));
+            const afterPrice = entry.after.price ?? sumPrice(parseServiceString(entry.after.service));
+            if (beforePrice !== afterPrice) {
+                diffs.push({
+                    label: FIELD_LABELS[key],
+                    before: formatPrice(beforePrice),
+                    after: formatPrice(afterPrice)
+                });
+            }
+        } else if (entry.before[key] !== entry.after[key]) {
             diffs.push({
                 label: FIELD_LABELS[key],
-                before: entry.before[key],
-                after: entry.after[key]
+                before: entry.before[key] as string,
+                after: entry.after[key] as string
             });
         }
     });
@@ -108,21 +136,26 @@ export const ReservationDetail = ({reservation, customerMap, reservationMap, his
     const modalRoot = document.getElementById('modal-root');
 
     const [mode, setMode] = useState<Mode>('view');
+    const initialPrice = reservation.price ?? sumPrice(parseServiceString(reservation.service));
     const [form, setForm] = useState<FormState>({
         date: reservation.date,
         startTime: reservation.startTime,
         endTime: reservation.endTime,
-        service: reservation.service
+        service: reservation.service,
+        price: initialPrice
     });
     const [error, setError] = useState('');
     const [selectedServices, setSelectedServices] = useState<string[]>(
         () => parseServiceString(reservation.service)
     );
     const [isEndTimeManual, setIsEndTimeManual] = useState(false);
+    const [isPriceManual, setIsPriceManual] = useState(false);
 
     const changedFields = getChangedFields(reservation, form);
     const thisHistory = history.filter((h) => h.reservationId === reservation.id);
     const totalDuration = sumDurationMinutes(selectedServices);
+    const totalPrice = sumPrice(selectedServices);
+    const displayPrice = reservation.price ?? sumPrice(parseServiceString(reservation.service));
 
     const handleChange = (field: keyof FormState, value: string) => {
         setForm((prev) => ({...prev, [field]: value}));
@@ -166,6 +199,10 @@ export const ReservationDetail = ({reservation, customerMap, reservationMap, his
 
                 if (duration > 0) {
                     updated.endTime = calcEndTime(f.startTime, duration);
+                }
+
+                if (!isPriceManual) {
+                    updated.price = sumPrice(next);
                 }
 
                 return updated;
@@ -229,10 +266,12 @@ export const ReservationDetail = ({reservation, customerMap, reservationMap, his
             date: reservation.date,
             startTime: reservation.startTime,
             endTime: reservation.endTime,
-            service: reservation.service
+            service: reservation.service,
+            price: initialPrice
         });
         setSelectedServices(parseServiceString(reservation.service));
         setIsEndTimeManual(false);
+        setIsPriceManual(false);
         setMode('view');
     };
 
@@ -269,16 +308,18 @@ export const ReservationDetail = ({reservation, customerMap, reservationMap, his
                     <dl>
                         {isCancelled && (<>
                             <dt>상태</dt>
-                            <dd><StyledCancelledBadge>취소됨</StyledCancelledBadge></dd>
+                            <dd><StyledStatusBadge $variant="danger">취소됨</StyledStatusBadge></dd>
                         </>)}
                         {isNoshow && (<>
                             <dt>상태</dt>
-                            <dd><StyledNoshowBadge>노쇼</StyledNoshowBadge></dd>
+                            <dd><StyledStatusBadge $variant="warning">노쇼</StyledStatusBadge></dd>
                         </>)}
                         <dt>날짜</dt>
                         <dd>{reservation.date}</dd>
                         <dt>시간</dt>
                         <dd>{reservation.startTime} ~ {reservation.endTime}</dd>
+                        <dt>가격</dt>
+                        <dd>{formatPrice(displayPrice)}</dd>
                         <dt>고객명</dt>
                         <dd>
                             <StyledCustomerButton type="button"
@@ -308,8 +349,26 @@ export const ReservationDetail = ({reservation, customerMap, reservationMap, his
                             <ServiceFields idPrefix="edit"
                                            selectedServices={selectedServices}
                                            onServiceToggle={handleServiceToggle}
-                                           totalDuration={totalDuration}/>
+                                           totalDuration={totalDuration}
+                                           totalPrice={totalPrice}/>
                         </StyledFieldRow>
+                        <label htmlFor="edit-price">
+                            <span>가격</span>
+                            <StyledPriceRow>
+                                <input id="edit-price"
+                                       type="text"
+                                       inputMode="numeric"
+                                       value={form.price.toLocaleString('ko-KR')}
+                                       onChange={(e) => {
+                                           const raw = e.target.value.replace(/[^0-9]/g, '');
+                                           const num = raw === '' ? 0 : parseInt(raw, 10);
+                                           setForm((f) => ({...f, price: num}));
+                                           setIsPriceManual(true);
+                                           setError('');
+                                       }}/>
+                                <StyledPriceUnit>원</StyledPriceUnit>
+                            </StyledPriceRow>
+                        </label>
                         <label htmlFor="edit-date">
                             <span>날짜</span>
                             <input id="edit-date"
@@ -338,16 +397,16 @@ export const ReservationDetail = ({reservation, customerMap, reservationMap, his
 
             {mode === 'confirming' && (
                 <StyledBody>
-                    <StyledConfirmMessage>수정하시겠습니까?</StyledConfirmMessage>
+                    <StyledModalMessage>수정하시겠습니까?</StyledModalMessage>
                     <StyledDiffList>
                         {changedFields.map((d) => (
-                            <StyledDiffItem key={d.label}>
+                            <StyledDiffGrid key={d.label}>
                                 <dt>{d.label}</dt>
                                 <dd>
                                     <del>{d.before}</del>
                                     <ins>{d.after}</ins>
                                 </dd>
-                            </StyledDiffItem>
+                            </StyledDiffGrid>
                         ))}
                     </StyledDiffList>
                 </StyledBody>
@@ -355,22 +414,22 @@ export const ReservationDetail = ({reservation, customerMap, reservationMap, his
 
             {mode === 'noChanges' && (
                 <StyledBody>
-                    <StyledConfirmMessage>변경내역이 없습니다.</StyledConfirmMessage>
+                    <StyledModalMessage>변경내역이 없습니다.</StyledModalMessage>
                 </StyledBody>
             )}
 
             {mode === 'pastConfirm' && (
                 <StyledBody>
-                    <StyledPastWarning>현재 시간보다 과거입니다. 변경하시겠습니까?</StyledPastWarning>
+                    <StyledModalMessage $color="var(--caution-color)">현재 시간보다 과거입니다. 변경하시겠습니까?</StyledModalMessage>
                     <StyledDiffList>
                         {changedFields.map((d) => (
-                            <StyledDiffItem key={d.label}>
+                            <StyledDiffGrid key={d.label}>
                                 <dt>{d.label}</dt>
                                 <dd>
                                     <del>{d.before}</del>
                                     <ins>{d.after}</ins>
                                 </dd>
-                            </StyledDiffItem>
+                            </StyledDiffGrid>
                         ))}
                     </StyledDiffList>
                 </StyledBody>
@@ -378,48 +437,48 @@ export const ReservationDetail = ({reservation, customerMap, reservationMap, his
 
             {mode === 'cancelling' && (
                 <StyledBody>
-                    <StyledCancelWarning>이 예약을 취소하시겠습니까?</StyledCancelWarning>
+                    <StyledModalMessage $color="var(--danger-color)">이 예약을 취소하시겠습니까?</StyledModalMessage>
                     <StyledDiffList>
-                        <StyledDiffItem>
+                        <StyledDiffGrid>
                             <dt>시술</dt>
                             <dd>{reservation.service}</dd>
-                        </StyledDiffItem>
-                        <StyledDiffItem>
+                        </StyledDiffGrid>
+                        <StyledDiffGrid>
                             <dt>날짜</dt>
                             <dd>{reservation.date}</dd>
-                        </StyledDiffItem>
-                        <StyledDiffItem>
+                        </StyledDiffGrid>
+                        <StyledDiffGrid>
                             <dt>시간</dt>
                             <dd>{reservation.startTime} ~ {reservation.endTime}</dd>
-                        </StyledDiffItem>
-                        <StyledDiffItem>
+                        </StyledDiffGrid>
+                        <StyledDiffGrid>
                             <dt>고객명</dt>
                             <dd>{customer?.name ?? '-'}</dd>
-                        </StyledDiffItem>
+                        </StyledDiffGrid>
                     </StyledDiffList>
                 </StyledBody>
             )}
 
             {mode === 'noshow' && (
                 <StyledBody>
-                    <StyledNoshowWarning>이 예약을 노쇼 처리하시겠습니까?</StyledNoshowWarning>
+                    <StyledModalMessage $color="var(--warning-color)">이 예약을 노쇼 처리하시겠습니까?</StyledModalMessage>
                     <StyledDiffList>
-                        <StyledDiffItem>
+                        <StyledDiffGrid>
                             <dt>시술</dt>
                             <dd>{reservation.service}</dd>
-                        </StyledDiffItem>
-                        <StyledDiffItem>
+                        </StyledDiffGrid>
+                        <StyledDiffGrid>
                             <dt>날짜</dt>
                             <dd>{reservation.date}</dd>
-                        </StyledDiffItem>
-                        <StyledDiffItem>
+                        </StyledDiffGrid>
+                        <StyledDiffGrid>
                             <dt>시간</dt>
                             <dd>{reservation.startTime} ~ {reservation.endTime}</dd>
-                        </StyledDiffItem>
-                        <StyledDiffItem>
+                        </StyledDiffGrid>
+                        <StyledDiffGrid>
                             <dt>고객명</dt>
                             <dd>{customer?.name ?? '-'}</dd>
-                        </StyledDiffItem>
+                        </StyledDiffGrid>
                     </StyledDiffList>
                 </StyledBody>
             )}
@@ -442,13 +501,13 @@ export const ReservationDetail = ({reservation, customerMap, reservationMap, his
                                     </StyledHistoryDetailHeader>
                                     <StyledHistoryDetailDiffs>
                                         {diffs.map((d) => (
-                                            <StyledHistoryDetailDiff key={d.label}>
+                                            <StyledHistoryDiffGrid key={d.label}>
                                                 <dt>{d.label}</dt>
                                                 <dd>
                                                     <del>{d.before}</del>
                                                     <ins>{d.after}</ins>
                                                 </dd>
-                                            </StyledHistoryDetailDiff>
+                                            </StyledHistoryDiffGrid>
                                         ))}
                                     </StyledHistoryDetailDiffs>
                                 </StyledHistoryDetailItem>
@@ -539,52 +598,6 @@ const StyledDetailBody = styled(StyledBody)`
   }
 `;
 
-const StyledCancelledBadge = styled.span`
-  display: inline-block;
-  padding: 2px 8px;
-  background-color: #fef2f2;
-  border: 1px solid #fecaca;
-  border-radius: 4px;
-  font-size: 12px;
-  font-weight: 600;
-  color: #c93a30;
-`;
-
-const StyledNoshowBadge = styled.span`
-  display: inline-block;
-  padding: 2px 8px;
-  background-color: #FCE8E6;
-  border: 1px solid #f5c6c2;
-  border-radius: 4px;
-  font-size: 12px;
-  font-weight: 600;
-  color: #EA4335;
-`;
-
-const StyledPastWarning = styled.p`
-  margin: 0 0 12px;
-  font-size: 14px;
-  font-weight: 600;
-  text-align: center;
-  color: #a88417;
-`;
-
-const StyledCancelWarning = styled.p`
-  margin: 0 0 12px;
-  font-size: 14px;
-  font-weight: 600;
-  text-align: center;
-  color: #c93a30;
-`;
-
-const StyledNoshowWarning = styled.p`
-  margin: 0 0 12px;
-  font-size: 14px;
-  font-weight: 600;
-  text-align: center;
-  color: #EA4335;
-`;
-
 const StyledCustomerButton = styled.button`
   border: none;
   background: none;
@@ -599,52 +612,13 @@ const StyledCustomerButton = styled.button`
   }
 `;
 
-const StyledConfirmMessage = styled.p`
-  margin: 0 0 12px;
-  font-size: 14px;
-  font-weight: 600;
-  text-align: center;
-`;
-
 const StyledDiffList = styled.div`
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: var(--gap-md);
   padding: 12px;
   background-color: var(--black-color-10);
-  border-radius: 6px;
-`;
-
-const StyledDiffItem = styled.dl`
-  display: grid;
-  grid-template-columns: 60px 1fr;
-  gap: 4px 10px;
-  margin: 0;
-
-  dd {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-  }
-
-  del {
-    color: #c93a30;
-    text-decoration: line-through;
-    font-size: 12px;
-  }
-
-  ins {
-    color: #24753a;
-    text-decoration: none;
-    font-weight: 600;
-    font-size: 12px;
-
-    &::before {
-      content: "\\2192\\00a0";
-      color: var(--gray-color);
-      font-weight: 400;
-    }
-  }
+  border-radius: var(--radius-md);
 `;
 
 const StyledHistorySection = styled.div`
@@ -688,15 +662,15 @@ const StyledHistoryDetailList = styled.div`
 `;
 
 const HISTORY_ITEM_STYLES: Record<string, { bg: string; border: string }> = {
-  cancelled: {bg: '#fef2f2', border: '#fecaca'},
-  noshow: {bg: '#FCE8E6', border: '#f5c6c2'},
+  cancelled: {bg: 'var(--danger-bg)', border: 'var(--danger-border)'},
+  noshow: {bg: 'var(--warning-bg)', border: 'var(--warning-border)'},
 };
 
 const StyledHistoryDetailItem = styled.div<{ $type: string }>`
-  padding: 10px;
+  padding: var(--gap-lg);
   background-color: ${(props) => HISTORY_ITEM_STYLES[props.$type]?.bg || 'var(--black-color-10)'};
   border: 1px solid ${(props) => HISTORY_ITEM_STYLES[props.$type]?.border || 'transparent'};
-  border-radius: 6px;
+  border-radius: var(--radius-md);
 `;
 
 const StyledHistoryDetailHeader = styled.div`
@@ -706,21 +680,21 @@ const StyledHistoryDetailHeader = styled.div`
   margin-bottom: 8px;
 
   > time {
-    font-size: 11px;
+    font-size: var(--xsmall-font);
     color: var(--gray-color);
   }
 `;
 
 const HISTORY_BADGE_COLORS: Record<string, string> = {
-  cancelled: '#c93a30',
-  noshow: '#EA4335',
+  cancelled: 'var(--danger-color)',
+  noshow: 'var(--warning-color)',
 };
 
 const StyledHistoryTypeBadge = styled.span<{ $type: string }>`
   display: inline-block;
-  padding: 2px 6px;
-  border-radius: 4px;
-  font-size: 10px;
+  padding: 2px var(--gap-sm);
+  border-radius: var(--radius-sm);
+  font-size: var(--tiny-font);
   font-weight: 600;
   background-color: ${(props) => HISTORY_BADGE_COLORS[props.$type] || 'var(--blue-color)'};
   color: #fff;
@@ -729,44 +703,22 @@ const StyledHistoryTypeBadge = styled.span<{ $type: string }>`
 const StyledHistoryDetailDiffs = styled.div`
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: var(--gap-xs);
 `;
 
-const StyledHistoryDetailDiff = styled.dl`
-  display: grid;
+const StyledHistoryDiffGrid = styled(StyledDiffGrid)`
   grid-template-columns: 55px 1fr;
-  gap: 4px 8px;
-  margin: 0;
 
   dt {
-    font-size: 11px;
-    font-weight: 500;
-    color: var(--gray-color);
+    font-size: var(--xsmall-font);
+  }
+
+  del, ins {
+    font-size: var(--xsmall-font);
   }
 
   dd {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    margin: 0;
-
-    del {
-      color: #c93a30;
-      text-decoration: line-through;
-      font-size: 11px;
-    }
-
-    ins {
-      color: #24753a;
-      text-decoration: none;
-      font-weight: 600;
-      font-size: 11px;
-
-      &::before {
-        content: "\\2192\\00a0";
-        color: var(--gray-color);
-        font-weight: 400;
-      }
-    }
+    gap: var(--gap-sm);
   }
 `;
+

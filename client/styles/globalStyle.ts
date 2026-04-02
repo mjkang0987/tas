@@ -5,6 +5,7 @@ export const GlobalStyle = createGlobalStyle`
         --big-font: 18px;
         --font: 14px;
         --small-font: 12px;
+        --xsmall-font: 11px;
         --tiny-font: 10px;
 
         --black-color: hsl(0, 0%, 13%);
@@ -21,6 +22,26 @@ export const GlobalStyle = createGlobalStyle`
         --white-color-80: hsla(0, 0%, 100%, .8);
         --white-color-60: hsla(0, 0%, 100%, .6);
         --white-color-40: hsla(0, 0%, 100%, .4);
+
+        --danger-color: #c93a30;
+        --danger-bg: #fef2f2;
+        --danger-border: #fecaca;
+        --warning-color: #EA4335;
+        --warning-bg: #FCE8E6;
+        --warning-border: #f5c6c2;
+        --success-color: #24753a;
+        --caution-color: #a88417;
+
+        --radius-sm: 4px;
+        --radius-md: 6px;
+        --radius-lg: 8px;
+
+        --gap-xs: 4px;
+        --gap-sm: 6px;
+        --gap-md: 8px;
+        --gap-lg: 10px;
+
+        --dot-size: 10px;
 
         --bar-top: 56px;
     }
