@@ -2,6 +2,8 @@ import {create} from 'zustand';
 
 import type {Reservation, ReservationMap, ReservationHistoryEntry, ReservationStatus} from '../utils/reservations';
 import type {CustomerMap} from '../utils/customers';
+import type {ServiceItem} from '../utils/services';
+import {CATEGORY_BASE_COLOR_MAP, SERVICE_CATALOG} from '../utils/services';
 
 export type FullType = Date | null;
 
@@ -53,6 +55,8 @@ export interface CalendarState {
     reservationListFilter: { type: 'month'; year: number; month: number } | { type: 'date'; dateKey: string } | null;
     createReservationInitial: CreateReservationInitial | null;
     selectedCustomerId: number | null;
+    serviceCatalog: ServiceItem[];
+    categoryBaseColorMap: Record<string, string>;
 
     setToday: (v: FullType) => void;
     setTarget: (partial: Partial<DateType>) => void;
@@ -68,9 +72,27 @@ export interface CalendarState {
     setReservationListFilter: (v: CalendarState['reservationListFilter']) => void;
     setCreateReservationInitial: (v: CreateReservationInitial | null) => void;
     setSelectedCustomerId: (v: number | null) => void;
+    setServiceCatalog: (catalog: ServiceItem[]) => void;
+    setCategoryBaseColorMap: (colorMap: Record<string, string>) => void;
+    updateCategoryBaseColor: (category: string, color: string) => void;
+    addService: (item: ServiceItem) => void;
+    updateService: (name: string, updated: ServiceItem) => void;
+    deleteService: (name: string) => void;
+    moveCategory: (dragCategory: string, targetCategory: string) => void;
+    moveServiceInCategory: (dragName: string, targetName: string) => void;
     addReservation: (reservation: Reservation) => void;
     updateReservation: (prev: Reservation, updated: Reservation) => void;
     cancelReservation: (reservation: Reservation, status?: ReservationStatus) => void;
+}
+
+function syncServiceSettings(services: ServiceItem[], categoryBaseColors: Record<string, string>): void {
+    fetch('/api/services', {
+        method: 'PUT',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({services, categoryBaseColors})
+    }).catch(() => {
+        // Preserve local UX even if sync fails; server data can be retried later.
+    });
 }
 
 export const useCalendarStore = create<CalendarState>((set) => ({
@@ -106,6 +128,8 @@ export const useCalendarStore = create<CalendarState>((set) => ({
     reservationListFilter: null,
     createReservationInitial: null,
     selectedCustomerId: null,
+    serviceCatalog: SERVICE_CATALOG,
+    categoryBaseColorMap: CATEGORY_BASE_COLOR_MAP,
 
     setToday: (today) => set({today}),
 
@@ -160,6 +184,98 @@ export const useCalendarStore = create<CalendarState>((set) => ({
     setCreateReservationInitial: (createReservationInitial) => set({createReservationInitial}),
 
     setSelectedCustomerId: (selectedCustomerId) => set({selectedCustomerId}),
+
+    setServiceCatalog: (serviceCatalog) => set({serviceCatalog}),
+    setCategoryBaseColorMap: (categoryBaseColorMap) => set({categoryBaseColorMap}),
+
+    updateCategoryBaseColor: (category, color) =>
+        set((state) => {
+            const nextCategoryBaseColorMap = {
+                ...state.categoryBaseColorMap,
+                [category]: color
+            };
+            syncServiceSettings(state.serviceCatalog, nextCategoryBaseColorMap);
+
+            return {categoryBaseColorMap: nextCategoryBaseColorMap};
+        }),
+
+    addService: (item) =>
+        set((state) => {
+            const nextCatalog = [...state.serviceCatalog, item];
+            syncServiceSettings(nextCatalog, state.categoryBaseColorMap);
+
+            return {serviceCatalog: nextCatalog};
+        }),
+
+    updateService: (name, updated) =>
+        set((state) => {
+            const nextCatalog = state.serviceCatalog.map((s) => s.name === name ? updated : s);
+            syncServiceSettings(nextCatalog, state.categoryBaseColorMap);
+
+            return {serviceCatalog: nextCatalog};
+        }),
+
+    deleteService: (name) =>
+        set((state) => {
+            const nextCatalog = state.serviceCatalog.filter((s) => s.name !== name);
+            syncServiceSettings(nextCatalog, state.categoryBaseColorMap);
+
+            return {serviceCatalog: nextCatalog};
+        }),
+
+    moveCategory: (dragCategory, targetCategory) =>
+        set((state) => {
+            if (dragCategory === targetCategory) return state;
+
+            const grouped = new Map<string, ServiceItem[]>();
+
+            for (const item of state.serviceCatalog) {
+                const group = grouped.get(item.category);
+
+                if (group) {
+                    group.push(item);
+                } else {
+                    grouped.set(item.category, [item]);
+                }
+            }
+
+            const categories = Array.from(grouped.keys());
+            const dragIndex = categories.indexOf(dragCategory);
+            const targetIndex = categories.indexOf(targetCategory);
+
+            if (dragIndex === -1 || targetIndex === -1) return state;
+
+            const nextCategories = [...categories];
+            const [movedCategory] = nextCategories.splice(dragIndex, 1);
+            const insertIndex = dragIndex < targetIndex ? targetIndex - 1 : targetIndex;
+            nextCategories.splice(insertIndex, 0, movedCategory);
+
+            const nextCatalog = nextCategories.flatMap((category) => grouped.get(category) || []);
+            syncServiceSettings(nextCatalog, state.categoryBaseColorMap);
+
+            return {serviceCatalog: nextCatalog};
+        }),
+
+    moveServiceInCategory: (dragName, targetName) =>
+        set((state) => {
+            if (dragName === targetName) return state;
+
+            const dragIndex = state.serviceCatalog.findIndex((s) => s.name === dragName);
+            const targetIndex = state.serviceCatalog.findIndex((s) => s.name === targetName);
+
+            if (dragIndex === -1 || targetIndex === -1) return state;
+
+            const targetItem = state.serviceCatalog[targetIndex];
+
+            const nextCatalog = [...state.serviceCatalog];
+            const [moved] = nextCatalog.splice(dragIndex, 1);
+            const movedWithCategory: ServiceItem = {...moved, category: targetItem.category};
+            const insertIndex = dragIndex < targetIndex ? targetIndex - 1 : targetIndex;
+            nextCatalog.splice(insertIndex, 0, movedWithCategory);
+            syncServiceSettings(nextCatalog, state.categoryBaseColorMap);
+
+            return {serviceCatalog: nextCatalog};
+        }),
 
     addReservation: (reservation) => {
         set((state) => {

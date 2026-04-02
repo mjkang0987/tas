@@ -1,8 +1,10 @@
+import {useMemo} from 'react';
+
 import styled from 'styled-components';
 
 import {useCalendarStore} from '../../store/calendarStore';
 
-import {getServiceColor} from '../../utils/services';
+import {buildServiceColorMap, getServiceColor} from '../../utils/services';
 
 import type {Reservation} from '../../utils/reservations';
 
@@ -16,6 +18,12 @@ interface ReservationListProps {
 export const ReservationList = ({reservations, variant, onViewAll, hideViewAll}: ReservationListProps) => {
     const customerMap = useCalendarStore((s) => s.customerMap);
     const setSelectedReservation = useCalendarStore((s) => s.setSelectedReservation);
+    const serviceCatalog = useCalendarStore((s) => s.serviceCatalog);
+    const categoryBaseColorMap = useCalendarStore((s) => s.categoryBaseColorMap);
+    const serviceColorMap = useMemo(
+        () => buildServiceColorMap(serviceCatalog, categoryBaseColorMap),
+        [serviceCatalog, categoryBaseColorMap]
+    );
 
     return (<>
         <StyledList $variant={variant}>
@@ -25,7 +33,7 @@ export const ReservationList = ({reservations, variant, onViewAll, hideViewAll}:
                 return (
                     <li key={r.id}>
                         <StyledItem type="button"
-                                    $color={getServiceColor(r.service)}
+                                    $color={getServiceColor(r.service, serviceColorMap)}
                                     onClick={() => setSelectedReservation(r)}>
                             <span>{variant === 'date' ? r.startTime : r.date.slice(5)}</span>
                             <strong>{r.service}</strong>

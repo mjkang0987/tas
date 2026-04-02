@@ -1,12 +1,19 @@
-import {useState} from 'react';
+import {useMemo, useState} from 'react';
 
 import styled from 'styled-components';
 
-import {getGroupedCatalog, SERVICE_COLOR_MAP} from '../../utils/services';
+import {useCalendarStore} from '../../store/calendarStore';
+import {buildServiceColorMap, getGroupedCatalog, getServiceColor} from '../../utils/services';
 
 export const ServiceLegend = () => {
     const [open, setOpen] = useState(false);
-    const grouped = getGroupedCatalog();
+    const serviceCatalog = useCalendarStore((s) => s.serviceCatalog);
+    const categoryBaseColorMap = useCalendarStore((s) => s.categoryBaseColorMap);
+    const grouped = getGroupedCatalog(serviceCatalog);
+    const serviceColorMap = useMemo(
+        () => buildServiceColorMap(serviceCatalog, categoryBaseColorMap),
+        [serviceCatalog, categoryBaseColorMap]
+    );
 
     return (<StyledWrap>
         {open && <StyledPanel>
@@ -16,7 +23,7 @@ export const ServiceLegend = () => {
                     <StyledItems>
                         {items.map((item) => (
                             <StyledItem key={item.name}>
-                                <StyledDot $color={SERVICE_COLOR_MAP[item.name] || '#999'}/>
+                                <StyledDot $color={getServiceColor(item.name, serviceColorMap)}/>
                                 <span>{item.name}</span>
                             </StyledItem>
                         ))}
