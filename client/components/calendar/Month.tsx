@@ -64,7 +64,7 @@ export const Month = ({
                 )}
                 <StyledViewAllButton type="button"
                                      onClick={() => setReservationListFilter({type: 'date', dateKey})}>
-                    전체 ({dateReservations.length}) &laquo;
+                    전체 ({dateReservations.length})
                 </StyledViewAllButton>
             </StyledDate>);
         })}
@@ -102,7 +102,7 @@ const StyledDate = styled.li<{ type: string }>`
 `;
 
 const StyledViewAllButton = styled.button`
-    margin-top: 5px;
+    margin-top: auto;
     padding: 2px 0;
     flex-shrink: 0;
     border: 1px solid var(--light-gray-color);
