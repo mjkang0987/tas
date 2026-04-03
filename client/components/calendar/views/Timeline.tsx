@@ -1,4 +1,4 @@
-import React, {useMemo} from 'react';
+import React, {useEffect, useMemo, useRef, useState} from 'react';
 
 import styled from 'styled-components';
 
@@ -10,11 +10,26 @@ import {
     ViewType,
 } from '../../../utils/constants';
 
-import {buildServiceColorMap, getServiceColor} from '../../../utils/services';
+import {buildServiceColorMap, calcEndTime, getServiceColor} from '../../../utils/services';
 
-import {toDateKey} from '../../../utils/reservations';
+import {findOverlap, toDateKey, type Reservation} from '../../../utils/reservations';
 import {roundToHalfHour, pad} from '../../../utils/timeRound';
 import {ButtonReserve} from "../../ui/Buttons";
+
+interface DragPreview {
+    reservationId: number;
+    top: number;
+    startTime: string;
+    endTime: string;
+}
+
+interface DragState {
+    reservation: Reservation;
+    durationMinutes: number;
+    pointerOffsetY: number;
+    originTop: number;
+    didDrag: boolean;
+}
 
 export const Timeline = ({
                              fullYear,
@@ -29,6 +44,7 @@ export const Timeline = ({
     const setCreateReservationInitial = useCalendarStore((s) => s.setCreateReservationInitial);
     const reservationMap = useCalendarStore((s) => s.reservationMap);
     const setSelectedReservation = useCalendarStore((s) => s.setSelectedReservation);
+    const updateReservation = useCalendarStore((s) => s.updateReservation);
     const serviceCatalog = useCalendarStore((s) => s.serviceCatalog);
     const categoryBaseColorMap = useCalendarStore((s) => s.categoryBaseColorMap);
 
@@ -52,8 +68,96 @@ export const Timeline = ({
     const timing = ((end - hour) * 3600) - (minutes * 60) - seconds;
     const top = ((hour - start) * 80) + (minutes * 4 / 3);
     const full = (end - start) * 80;
+    const timelineRef = useRef<HTMLDivElement | null>(null);
+    const dragStateRef = useRef<DragState | null>(null);
+    const suppressCreateClickRef = useRef(false);
+    const [dragPreview, setDragPreview] = useState<DragPreview | null>(null);
+
+    const pxPerMinute = 4 / 3;
+
+    const getStartTimeFromTop = (topValue: number, durationMinutes: number) => {
+        const maxStartMinutes = Math.max(0, ((end - start) * 60) - durationMinutes);
+        const rawMinutes = (topValue - blockOffset) / pxPerMinute;
+        const boundedMinutes = Math.min(Math.max(rawMinutes, 0), maxStartMinutes);
+        const snappedMinutes = Math.round(boundedMinutes / 30) * 30;
+        const hour = start + Math.floor(snappedMinutes / 60);
+        const minute = snappedMinutes % 60;
+
+        return `${pad(hour)}:${pad(minute)}`;
+    };
+
+    useEffect(() => {
+        const handleMouseMove = (event: MouseEvent) => {
+            const dragState = dragStateRef.current;
+            const timeline = timelineRef.current;
+            if (!dragState || !timeline) return;
+
+            const rect = timeline.getBoundingClientRect();
+            const paddingTop = type === ViewType.Day ? TIMELINE_DAY_TOP : TIMELINE_TOP;
+            const rawTop = event.clientY - rect.top - paddingTop - dragState.pointerOffsetY;
+            const nextStartTime = getStartTimeFromTop(rawTop, dragState.durationMinutes);
+            const [nextHour, nextMinute] = nextStartTime.split(':').map(Number);
+            const nextTop = (nextHour - start) * 80 + nextMinute * pxPerMinute + blockOffset;
+            const movedPx = Math.abs(nextTop - dragState.originTop);
+
+            if (movedPx > 3) {
+                dragState.didDrag = true;
+            }
+
+            setDragPreview({
+                reservationId: dragState.reservation.id,
+                top: nextTop,
+                startTime: nextStartTime,
+                endTime: calcEndTime(nextStartTime, dragState.durationMinutes),
+            });
+        };
+
+        const handleMouseUp = () => {
+            const dragState = dragStateRef.current;
+
+            if (!dragState) return;
+
+            const preview = dragPreview;
+            dragStateRef.current = null;
+
+            if (!dragState.didDrag || !preview) {
+                setSelectedReservation(dragState.reservation);
+                setDragPreview(null);
+                return;
+            }
+
+            suppressCreateClickRef.current = true;
+            window.setTimeout(() => {
+                suppressCreateClickRef.current = false;
+            }, 0);
+
+            if (preview.startTime !== dragState.reservation.startTime || preview.endTime !== dragState.reservation.endTime) {
+                const overlap = findOverlap(reservationMap, dateKey, preview.startTime, preview.endTime, dragState.reservation.id);
+
+                if (!overlap) {
+                    updateReservation(dragState.reservation, {
+                        ...dragState.reservation,
+                        startTime: preview.startTime,
+                        endTime: preview.endTime,
+                    });
+                }
+            }
+
+            setDragPreview(null);
+        };
+
+        window.addEventListener('mousemove', handleMouseMove);
+        window.addEventListener('mouseup', handleMouseUp);
+
+        return () => {
+            window.removeEventListener('mousemove', handleMouseMove);
+            window.removeEventListener('mouseup', handleMouseUp);
+        };
+    }, [blockOffset, dateKey, dragPreview, end, pxPerMinute, reservationMap, setSelectedReservation, start, type, updateReservation]);
 
     const setMousePositionHandler = (e: React.MouseEvent<HTMLDivElement>) => {
+        if (suppressCreateClickRef.current) return;
+
         const el = e.currentTarget;
         const rect = el.getBoundingClientRect();
         const paddingTop = type === ViewType.Day ? TIMELINE_DAY_TOP : TIMELINE_TOP;
@@ -72,7 +176,8 @@ export const Timeline = ({
         setCreateReservationInitial({date: dateStr, startTime});
     };
 
-    return (<StyledTimelineWrap onClick={setMousePositionHandler}
+    return (<StyledTimelineWrap ref={timelineRef}
+                                onClick={setMousePositionHandler}
                                 type={type}
                                 $timing={timing}
                                 $top={top}
@@ -84,18 +189,38 @@ export const Timeline = ({
             const blockTop = (sH - start) * 80 + sM * 4 / 3 + blockOffset;
             const blockHeight = (eH - sH) * 80 + (eM - sM) * 4 / 3;
             const customer = customerMap[r.customerId];
+            const preview = dragPreview?.reservationId === r.id ? dragPreview : null;
+            const durationMinutes = (eH * 60 + eM) - (sH * 60 + sM);
 
             return (<ButtonReserve key={r.id}
                                    $position='absolute'
-                                   $top={blockTop}
+                                   $top={preview?.top ?? blockTop}
                                    $height={blockHeight}
                                    $color={getServiceColor(r.service, serviceColorMap)}
                                    $cancelled={r.status === 'cancelled' || r.status === 'noshow'}
-                                   onClick={(e: React.MouseEvent) => {
+                                   onMouseDown={(e: React.MouseEvent) => {
                                        e.stopPropagation();
-                                       setSelectedReservation(r);
+                                       if (r.status === 'cancelled' || r.status === 'noshow') {
+                                           dragStateRef.current = null;
+                                           return;
+                                       }
+
+                                       dragStateRef.current = {
+                                           reservation: r,
+                                           durationMinutes,
+                                           pointerOffsetY: e.clientY - e.currentTarget.getBoundingClientRect().top,
+                                           originTop: blockTop,
+                                           didDrag: false,
+                                       };
+                                       setDragPreview({
+                                           reservationId: r.id,
+                                           top: blockTop,
+                                           startTime: r.startTime,
+                                           endTime: r.endTime,
+                                       });
                                    }}>
                 <strong>{r.service}{r.status === 'cancelled' ? ' (취소)' : r.status === 'noshow' ? ' (노쇼)' : ''}</strong>
+                {preview && <span className="sub">{preview.startTime}~{preview.endTime}</span>}
                 {customer && <span className="detail">{customer.name}</span>}
             </ButtonReserve>);
         })}
@@ -118,6 +243,7 @@ const StyledTimelineWrap = styled.div<{
     width: 100%;
     padding: ${props => props.type === ViewType.Day ? TIMELINE_DAY_TOP : TIMELINE_TOP}px 5px 0;
     box-sizing: border-box;
+    user-select: none;
 
     > span {
         top: ${props => props.type === ViewType.Day ? 50 : 20}px;

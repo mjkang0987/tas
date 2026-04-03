@@ -4,6 +4,7 @@ import React from 'react';
 interface Props {
     children: React.ReactNode | string;
     onClick?: (event: React.MouseEvent<HTMLButtonElement>) => void;
+    onMouseDown?: (event: React.MouseEvent<HTMLButtonElement>) => void;
     key?: number | undefined;
     $position?: string | undefined;
     $top?: number | undefined;
