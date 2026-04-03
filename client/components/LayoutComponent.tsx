@@ -216,7 +216,7 @@ const StyledButton = styled.button <{ $isVisible: boolean }>`
                          ? '0 0 10px 0 rgba(0, 0, 0, .1)'
                          : '0 0 10px 0 rgba(0, 0, 0, .2)'};
   font-size: var(--small-font);
-  z-index: 3;
+  z-index: 101;
   transition: box-shadow .1s ease-in-out;
 
   &:hover {

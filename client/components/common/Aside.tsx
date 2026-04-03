@@ -96,7 +96,7 @@ const StyledAside = styled.aside <Props>`
     box-sizing: border-box;
     background-color: #fff;
     box-shadow: 10px 0 10px 0 rgba(0 0 0 / .1);
-    z-index: 2;
+    z-index: 100;
 
     &.animate {
         animation-name: asideHide;
