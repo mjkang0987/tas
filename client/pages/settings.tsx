@@ -8,7 +8,7 @@ import {useRouter} from 'next/router';
 import styled from 'styled-components';
 
 import {useCalendarStore} from '../store/calendarStore';
-import {getDailyRevenue, getMonthlyRevenue} from '../utils/revenue';
+import {getDailyRevenue, getRangeRevenue} from '../utils/revenue';
 import {buildServiceColorMap, formatPrice, formatDuration, getCategoryBaseColor, getGroupedCatalog, getServiceColor} from '../utils/services';
 import type {ServiceItem} from '../utils/services';
 import type {Designer} from '../utils/designers';
@@ -31,7 +31,6 @@ type SettingsProps = {
 };
 
 type SettingsTab = 'revenue' | 'service' | 'designer';
-type RevenueTab = 'daily' | 'monthly';
 type RevenueDesignerKey = 'all' | `${number}`;
 
 const WEEKDAYS = ['일', '월', '화', '수', '목', '금', '토'];
@@ -41,15 +40,17 @@ function formatDateLabel(dateKey: string): string {
     return `${d.getFullYear()}년 ${d.getMonth() + 1}월 ${d.getDate()}일 (${WEEKDAYS[d.getDay()]})`;
 }
 
-function formatMonthLabel(year: number, month: number): string {
-    return `${year}년 ${month + 1}월`;
-}
-
 function formatShortDate(dateKey: string): string {
     const parts = dateKey.split('-');
     const d = Number(parts[2]);
     const date = new Date(dateKey + 'T00:00:00');
     return `${d}일 (${WEEKDAYS[date.getDay()]})`;
+}
+
+function isValidDateKey(value: string): boolean {
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
+    const d = new Date(value + 'T00:00:00');
+    return !Number.isNaN(d.getTime()) && toDateKey(d.getFullYear(), d.getMonth(), d.getDate()) === value;
 }
 
 interface EditState {
@@ -66,52 +67,55 @@ interface RevenueSectionProps {
     reservationMap: ReservationMap;
     designers: Designer[];
     onSelectReservation: (reservation: Reservation) => void;
-    view: RevenueTab;
-    setView: (v: RevenueTab) => void;
     designerKey: RevenueDesignerKey;
     setDesignerKey: (v: RevenueDesignerKey) => void;
-    dateKey: string;
-    setDateKey: (key: string) => void;
-    year: number;
-    month: number;
-    setYearMonth: (y: number, m: number) => void;
+    startDateKey: string;
+    setStartDateKey: (key: string) => void;
+    endDateKey: string;
+    setEndDateKey: (key: string) => void;
+    selectedDateKey: string;
+    setSelectedDateKey: (key: string) => void;
 }
 
 const RevenueSection = ({
     reservationMap,
     designers,
     onSelectReservation,
-    view,
-    setView,
     designerKey,
     setDesignerKey,
-    dateKey,
-    setDateKey,
-    year,
-    month,
-    setYearMonth
+    startDateKey,
+    setStartDateKey,
+    endDateKey,
+    setEndDateKey,
+    selectedDateKey,
+    setSelectedDateKey
 }: RevenueSectionProps) => {
     const selectedDesignerId = designerKey === 'all' ? null : Number(designerKey);
-    const daily = getDailyRevenue(reservationMap, dateKey, selectedDesignerId);
-    const monthly = getMonthlyRevenue(reservationMap, year, month, selectedDesignerId);
-
-    const navigateDay = (offset: number) => {
-        const d = new Date(dateKey + 'T00:00:00');
-        d.setDate(d.getDate() + offset);
-        setDateKey(toDateKey(d.getFullYear(), d.getMonth(), d.getDate()));
-    };
-
-    const navigateMonth = (offset: number) => {
-        const d = new Date(year, month + offset, 1);
-        setYearMonth(d.getFullYear(), d.getMonth());
-    };
+    const [fromDateKey, toDateKeyValue] = startDateKey <= endDateKey
+        ? [startDateKey, endDateKey]
+        : [endDateKey, startDateKey];
+    const rangeRevenue = getRangeRevenue(reservationMap, fromDateKey, toDateKeyValue, selectedDesignerId);
+    const selectedDailyKey = selectedDateKey < fromDateKey || selectedDateKey > toDateKeyValue ? toDateKeyValue : selectedDateKey;
+    const daily = getDailyRevenue(reservationMap, selectedDailyKey, selectedDesignerId);
+    const days = [...rangeRevenue.days].sort((a, b) => b.dateKey.localeCompare(a.dateKey));
 
     return (
         <>
-            <StyledSubTabs>
-                <StyledSubTab type="button" $active={view === 'daily'} onClick={() => setView('daily')}>일별</StyledSubTab>
-                <StyledSubTab type="button" $active={view === 'monthly'} onClick={() => setView('monthly')}>월별</StyledSubTab>
-            </StyledSubTabs>
+            <StyledRangeFilter>
+                <StyledRangeInputWrap>
+                    <span>시작일</span>
+                    <StyledDateInput type="date"
+                                     value={startDateKey}
+                                     onChange={(e) => setStartDateKey(e.target.value)}/>
+                </StyledRangeInputWrap>
+                <StyledRangeDivider>~</StyledRangeDivider>
+                <StyledRangeInputWrap>
+                    <span>종료일</span>
+                    <StyledDateInput type="date"
+                                     value={endDateKey}
+                                     onChange={(e) => setEndDateKey(e.target.value)}/>
+                </StyledRangeInputWrap>
+            </StyledRangeFilter>
             <StyledDesignerTabs>
                 <StyledDesignerTab type="button"
                                    $active={designerKey === 'all'}
@@ -131,69 +135,50 @@ const RevenueSection = ({
                     );
                 })}
             </StyledDesignerTabs>
-
-            {view === 'daily' && (
-                <StyledCardBody>
-                    <StyledNav>
-                        <button type="button" onClick={() => navigateDay(-1)} aria-label="이전 날">&#x276E;</button>
-                        <span>{formatDateLabel(dateKey)}</span>
-                        <button type="button" onClick={() => navigateDay(1)} aria-label="다음 날">&#x276F;</button>
-                    </StyledNav>
-
-                    {daily.count === 0 ? (
-                        <StyledEmpty>예약 없음</StyledEmpty>
-                    ) : (
-                        <StyledList>
-                            {daily.items.map((item) => {
-                                const reservation = (reservationMap[dateKey] || []).find((r) => r.id === item.reservationId);
-                                return (
-                                    <StyledClickableRow key={item.reservationId}
-                                                        onClick={() => reservation && onSelectReservation(reservation)}>
-                                        <StyledTime>{item.startTime}</StyledTime>
-                                        <StyledService>{item.service}</StyledService>
-                                        <StyledPrice>{formatPrice(item.price)}</StyledPrice>
-                                    </StyledClickableRow>
-                                );
-                            })}
-                        </StyledList>
-                    )}
-
-                    <StyledSummary>
-                        <span>{daily.count}건</span>
-                        <strong>{formatPrice(daily.total)}</strong>
-                    </StyledSummary>
-                </StyledCardBody>
-            )}
-
-            {view === 'monthly' && (
-                <StyledCardBody>
-                    <StyledNav>
-                        <button type="button" onClick={() => navigateMonth(-1)} aria-label="이전 달">&#x276E;</button>
-                        <span>{formatMonthLabel(year, month)}</span>
-                        <button type="button" onClick={() => navigateMonth(1)} aria-label="다음 달">&#x276F;</button>
-                    </StyledNav>
-
-                    {monthly.days.length === 0 ? (
-                        <StyledEmpty>매출 없음</StyledEmpty>
-                    ) : (
-                        <StyledList>
-                            {monthly.days.map((day) => (
-                                <StyledClickableRow key={day.dateKey}
-                                                    onClick={() => setDateKey(day.dateKey)}>
-                                    <StyledDate>{formatShortDate(day.dateKey)}</StyledDate>
-                                    <StyledCount>{day.count}건</StyledCount>
-                                    <StyledPrice>{formatPrice(day.total)}</StyledPrice>
+            <StyledCardBody>
+                {days.length === 0 ? (
+                    <StyledEmpty>매출 없음</StyledEmpty>
+                ) : (
+                    <StyledList>
+                        {days.map((day) => (
+                            <StyledClickableRow key={day.dateKey}
+                                                onClick={() => setSelectedDateKey(day.dateKey)}>
+                                <StyledDate>{formatShortDate(day.dateKey)}</StyledDate>
+                                <StyledCount>{day.count}건</StyledCount>
+                                <StyledPrice>{formatPrice(day.total)}</StyledPrice>
+                            </StyledClickableRow>
+                        ))}
+                    </StyledList>
+                )}
+                <StyledSummary>
+                    <span>{rangeRevenue.count}건</span>
+                    <strong>{formatPrice(rangeRevenue.total)}</strong>
+                </StyledSummary>
+            </StyledCardBody>
+            <StyledDetailTitle>{formatDateLabel(selectedDailyKey)} 상세</StyledDetailTitle>
+            <StyledCardBody>
+                {daily.count === 0 ? (
+                    <StyledEmpty>예약 없음</StyledEmpty>
+                ) : (
+                    <StyledList>
+                        {daily.items.map((item) => {
+                            const reservation = (reservationMap[selectedDailyKey] || []).find((r) => r.id === item.reservationId);
+                            return (
+                                <StyledClickableRow key={item.reservationId}
+                                                    onClick={() => reservation && onSelectReservation(reservation)}>
+                                    <StyledTime>{item.startTime}</StyledTime>
+                                    <StyledService>{item.service}</StyledService>
+                                    <StyledPrice>{formatPrice(item.price)}</StyledPrice>
                                 </StyledClickableRow>
-                            ))}
-                        </StyledList>
-                    )}
-
-                    <StyledSummary>
-                        <span>{monthly.count}건</span>
-                        <strong>{formatPrice(monthly.total)}</strong>
-                    </StyledSummary>
-                </StyledCardBody>
-            )}
+                            );
+                        })}
+                    </StyledList>
+                )}
+                <StyledSummary>
+                    <span>{daily.count}건</span>
+                    <strong>{formatPrice(daily.total)}</strong>
+                </StyledSummary>
+            </StyledCardBody>
         </>
     );
 };
@@ -539,20 +524,22 @@ const Settings: NextPage<SettingsProps> = ({reservations, customers, history}) =
     const customerMap: CustomerMap = toCustomerMap(customers);
 
     const now = new Date();
-    const defaultDateKey = target.full
+    const todayKey = target.full
         ? toDateKey(target.fullYear, target.month, target.date)
         : toDateKey(now.getFullYear(), now.getMonth(), now.getDate());
+    const monthStartKey = target.full
+        ? toDateKey(target.fullYear, target.month, 1)
+        : toDateKey(now.getFullYear(), now.getMonth(), 1);
 
     const q = router.query;
     const tab: SettingsTab = q.tab === 'service' || q.tab === 'designer' ? q.tab : 'revenue';
-    const revenueView: RevenueTab = q.view === 'monthly' ? 'monthly' : 'daily';
     const parsedDesignerId = typeof q.designer === 'string' ? Number(q.designer) : NaN;
     const revenueDesignerKey: RevenueDesignerKey = Number.isInteger(parsedDesignerId) && parsedDesignerId > 0
         ? String(parsedDesignerId) as RevenueDesignerKey
         : 'all';
-    const dateKey = typeof q.date === 'string' ? q.date : defaultDateKey;
-    const revYear = typeof q.year === 'string' ? Number(q.year) : (target.full ? target.fullYear : now.getFullYear());
-    const revMonth = typeof q.month === 'string' ? Number(q.month) - 1 : (target.full ? target.month : now.getMonth());
+    const startDateKey = typeof q.start === 'string' && isValidDateKey(q.start) ? q.start : monthStartKey;
+    const endDateKey = typeof q.end === 'string' && isValidDateKey(q.end) ? q.end : todayKey;
+    const selectedDateKey = typeof q.date === 'string' && isValidDateKey(q.date) ? q.date : endDateKey;
 
     const replaceQuery = (patch: Record<string, string>) => {
         router.replace({pathname: '/settings', query: patch}, undefined, {shallow: true});
@@ -562,58 +549,55 @@ const Settings: NextPage<SettingsProps> = ({reservations, customers, history}) =
         if (t === 'revenue') {
             replaceQuery({
                 tab: 'revenue',
-                view: revenueView,
                 designer: revenueDesignerKey,
-                date: dateKey,
-                year: String(revYear),
-                month: String(revMonth + 1)
+                start: startDateKey,
+                end: endDateKey,
+                date: selectedDateKey,
             });
         } else {
             replaceQuery({tab: t});
         }
     };
 
-    const setRevenueView = (v: RevenueTab) => {
-        replaceQuery({
-            tab: 'revenue',
-            view: v,
-            designer: revenueDesignerKey,
-            date: dateKey,
-            year: String(revYear),
-            month: String(revMonth + 1)
-        });
-    };
-
     const setRevenueDesigner = (designer: RevenueDesignerKey) => {
         replaceQuery({
             tab: 'revenue',
-            view: revenueView,
             designer,
-            date: dateKey,
-            year: String(revYear),
-            month: String(revMonth + 1)
+            start: startDateKey,
+            end: endDateKey,
+            date: selectedDateKey,
         });
     };
 
-    const setDateKey = (key: string) => {
+    const setRevenueStartDate = (key: string) => {
+        if (!isValidDateKey(key)) return;
         replaceQuery({
             tab: 'revenue',
-            view: 'daily',
             designer: revenueDesignerKey,
+            start: key,
+            end: endDateKey,
+            date: selectedDateKey,
+        });
+    };
+
+    const setRevenueEndDate = (key: string) => {
+        if (!isValidDateKey(key)) return;
+        replaceQuery({
+            tab: 'revenue',
+            designer: revenueDesignerKey,
+            start: startDateKey,
+            end: key,
+            date: selectedDateKey,
+        });
+    };
+
+    const setRevenueSelectedDate = (key: string) => {
+        replaceQuery({
+            tab: 'revenue',
+            designer: revenueDesignerKey,
+            start: startDateKey,
+            end: endDateKey,
             date: key,
-            year: String(revYear),
-            month: String(revMonth + 1)
-        });
-    };
-
-    const setYearMonth = (y: number, m: number) => {
-        replaceQuery({
-            tab: 'revenue',
-            view: 'monthly',
-            designer: revenueDesignerKey,
-            date: dateKey,
-            year: String(y),
-            month: String(m + 1)
         });
     };
     const [selectedReservation, setSelectedReservation] = useState<Reservation | null>(null);
@@ -640,15 +624,14 @@ const Settings: NextPage<SettingsProps> = ({reservations, customers, history}) =
                 {tab === 'revenue' && <RevenueSection reservationMap={reservationMap}
                                                       designers={designers}
                                                       onSelectReservation={setSelectedReservation}
-                                                      view={revenueView}
-                                                      setView={setRevenueView}
                                                       designerKey={revenueDesignerKey}
                                                       setDesignerKey={setRevenueDesigner}
-                                                      dateKey={dateKey}
-                                                      setDateKey={setDateKey}
-                                                      year={revYear}
-                                                      month={revMonth}
-                                                      setYearMonth={setYearMonth}/>}
+                                                      startDateKey={startDateKey}
+                                                      setStartDateKey={setRevenueStartDate}
+                                                      endDateKey={endDateKey}
+                                                      setEndDateKey={setRevenueEndDate}
+                                                      selectedDateKey={selectedDateKey}
+                                                      setSelectedDateKey={setRevenueSelectedDate}/>}
                 {tab === 'service' && <ServiceManageSection/>}
                 {tab === 'designer' && <DesignerManageSection/>}
             </StyledContent>
@@ -747,21 +730,37 @@ const StyledCardBody = styled.div`
 
 /* ── Revenue Styles ── */
 
-const StyledSubTabs = styled.div`
+const StyledRangeFilter = styled.div`
     display: flex;
+    align-items: flex-end;
+    gap: 8px;
+    padding: 10px 16px;
     border-bottom: 1px solid var(--light-gray-color);
 `;
 
-const StyledSubTab = styled.button<{ $active: boolean }>`
+const StyledRangeInputWrap = styled.label`
     flex: 1;
-    padding: 10px;
-    border: none;
-    border-bottom: 2px solid ${(p) => p.$active ? 'var(--blue-color)' : 'transparent'};
-    background: none;
-    font-size: 13px;
-    font-weight: ${(p) => p.$active ? '600' : '400'};
-    color: ${(p) => p.$active ? 'var(--blue-color)' : 'var(--dark-gray-color)'};
-    cursor: pointer;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    font-size: 11px;
+    color: var(--dark-gray-color2);
+`;
+
+const StyledDateInput = styled.input`
+    height: 30px;
+    border: 1px solid var(--light-gray-color);
+    border-radius: 6px;
+    padding: 0 8px;
+    font-size: 12px;
+    color: var(--dark-gray-color);
+`;
+
+const StyledRangeDivider = styled.span`
+    flex-shrink: 0;
+    padding-bottom: 6px;
+    font-size: 12px;
+    color: var(--dark-gray-color2);
 `;
 
 const StyledDesignerTabs = styled.div`
@@ -783,25 +782,6 @@ const StyledDesignerTab = styled.button<{ $active: boolean }>`
     color: ${(p) => p.$active ? '#fff' : 'var(--dark-gray-color)'};
     font-size: 12px;
     cursor: pointer;
-`;
-
-const StyledNav = styled.div`
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 10px 16px;
-    font-size: 13px;
-    font-weight: 600;
-    color: var(--dark-gray-color);
-
-    > button {
-        border: none;
-        background: none;
-        font-size: 14px;
-        cursor: pointer;
-        padding: 4px 8px;
-        color: var(--dark-gray-color);
-    }
 `;
 
 const StyledList = styled.div`
@@ -870,6 +850,13 @@ const StyledSummary = styled.div`
         font-size: 16px;
         color: var(--blue-color);
     }
+`;
+
+const StyledDetailTitle = styled.h3`
+    margin: 12px 16px 4px;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--dark-gray-color);
 `;
 
 const StyledEmpty = styled.div`

@@ -26,6 +26,12 @@ export interface MonthlyRevenue {
     count: number;
 }
 
+export interface RangeRevenue {
+    days: MonthlyDayEntry[];
+    total: number;
+    count: number;
+}
+
 function resolvePrice(service: string, price?: number): number {
     if (price != null) return price;
     return sumPrice(parseServiceString(service));
@@ -81,6 +87,38 @@ export function getMonthlyRevenue(
 
         total += daily.total;
         count += daily.count;
+    }
+
+    return {days, total, count};
+}
+
+export function getRangeRevenue(
+    reservationMap: ReservationMap,
+    startDateKey: string,
+    endDateKey: string,
+    designerId: number | null = null
+): RangeRevenue {
+    const start = new Date(startDateKey + 'T00:00:00');
+    const end = new Date(endDateKey + 'T00:00:00');
+    const [from, to] = start <= end ? [start, end] : [end, start];
+
+    const days: MonthlyDayEntry[] = [];
+    let total = 0;
+    let count = 0;
+
+    const cursor = new Date(from);
+
+    while (cursor <= to) {
+        const dateKey = `${cursor.getFullYear()}-${String(cursor.getMonth() + 1).padStart(2, '0')}-${String(cursor.getDate()).padStart(2, '0')}`;
+        const daily = getDailyRevenue(reservationMap, dateKey, designerId);
+
+        if (daily.count > 0) {
+            days.push({dateKey, total: daily.total, count: daily.count});
+        }
+
+        total += daily.total;
+        count += daily.count;
+        cursor.setDate(cursor.getDate() + 1);
     }
 
     return {days, total, count};
