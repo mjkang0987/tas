@@ -112,57 +112,59 @@ const RevenueSection = ({
 
     return (
         <>
-            <StyledRangeFilter>
-                <StyledRangeInputWrap>
-                    <span>시작일</span>
-                    <StyledDateInput type="date"
-                                     value={startDateKey}
-                                     onChange={(e) => setStartDateKey(e.target.value)}/>
-                </StyledRangeInputWrap>
-                <StyledRangeDivider>~</StyledRangeDivider>
-                <StyledRangeInputWrap>
-                    <span>종료일</span>
-                    <StyledDateInput type="date"
-                                     value={endDateKey}
-                                     onChange={(e) => setEndDateKey(e.target.value)}/>
-                </StyledRangeInputWrap>
-            </StyledRangeFilter>
-            <StyledQuickFilters>
-                <StyledQuickFilterButton type="button"
-                                         $active={quickRange === 'month'}
-                                         onClick={() => setQuickRange('month')}>
-                    한 달
-                </StyledQuickFilterButton>
-                <StyledQuickFilterButton type="button"
-                                         $active={quickRange === 'week'}
-                                         onClick={() => setQuickRange('week')}>
-                    일주일
-                </StyledQuickFilterButton>
-                <StyledQuickFilterButton type="button"
-                                         $active={quickRange === 'today'}
-                                         onClick={() => setQuickRange('today')}>
-                    오늘
-                </StyledQuickFilterButton>
-            </StyledQuickFilters>
-            <StyledDesignerTabs>
-                <StyledDesignerTab type="button"
-                                   $active={designerKey === 'all'}
-                                   onClick={() => setDesignerKey('all')}>
-                    전체
-                </StyledDesignerTab>
-                {designers.map((designer) => {
-                    const key = String(designer.id) as RevenueDesignerKey;
+            <StyledRevenueStickyArea>
+                <StyledRangeFilter>
+                    <StyledRangeInputWrap>
+                        <span>시작일</span>
+                        <StyledDateInput type="date"
+                                         value={startDateKey}
+                                         onChange={(e) => setStartDateKey(e.target.value)}/>
+                    </StyledRangeInputWrap>
+                    <StyledRangeDivider>~</StyledRangeDivider>
+                    <StyledRangeInputWrap>
+                        <span>종료일</span>
+                        <StyledDateInput type="date"
+                                         value={endDateKey}
+                                         onChange={(e) => setEndDateKey(e.target.value)}/>
+                    </StyledRangeInputWrap>
+                </StyledRangeFilter>
+                <StyledQuickFilters>
+                    <StyledQuickFilterButton type="button"
+                                             $active={quickRange === 'month'}
+                                             onClick={() => setQuickRange('month')}>
+                        한 달
+                    </StyledQuickFilterButton>
+                    <StyledQuickFilterButton type="button"
+                                             $active={quickRange === 'week'}
+                                             onClick={() => setQuickRange('week')}>
+                        일주일
+                    </StyledQuickFilterButton>
+                    <StyledQuickFilterButton type="button"
+                                             $active={quickRange === 'today'}
+                                             onClick={() => setQuickRange('today')}>
+                        오늘
+                    </StyledQuickFilterButton>
+                </StyledQuickFilters>
+                <StyledDesignerTabs>
+                    <StyledDesignerTab type="button"
+                                       $active={designerKey === 'all'}
+                                       onClick={() => setDesignerKey('all')}>
+                        전체
+                    </StyledDesignerTab>
+                    {designers.map((designer) => {
+                        const key = String(designer.id) as RevenueDesignerKey;
 
-                    return (
-                        <StyledDesignerTab key={designer.id}
-                                           type="button"
-                                           $active={designerKey === key}
-                                           onClick={() => setDesignerKey(key)}>
-                            {designer.name}
-                        </StyledDesignerTab>
-                    );
-                })}
-            </StyledDesignerTabs>
+                        return (
+                            <StyledDesignerTab key={designer.id}
+                                               type="button"
+                                               $active={designerKey === key}
+                                               onClick={() => setDesignerKey(key)}>
+                                {designer.name}
+                            </StyledDesignerTab>
+                        );
+                    })}
+                </StyledDesignerTabs>
+            </StyledRevenueStickyArea>
             <StyledCardBody>
                 {days.length === 0 ? (
                     <StyledEmpty>매출 없음</StyledEmpty>
@@ -755,6 +757,10 @@ const StyledPageTabs = styled.div`
     display: flex;
     margin: 0 10px;
     border-bottom: 2px solid var(--light-gray-color);
+    position: sticky;
+    top: 0;
+    z-index: 20;
+    background: var(--white-color);
 `;
 
 const StyledPageTab = styled.button<{ $active: boolean }>`
@@ -787,12 +793,19 @@ const StyledCardBody = styled.div`
 
 /* ── Revenue Styles ── */
 
+const StyledRevenueStickyArea = styled.div`
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    background: var(--white-color);
+    border-bottom: 1px solid var(--light-gray-color);
+`;
+
 const StyledRangeFilter = styled.div`
     display: flex;
     align-items: flex-end;
     gap: 8px;
     padding: 10px 16px;
-    border-bottom: 1px solid var(--light-gray-color);
 `;
 
 const StyledRangeInputWrap = styled.label`
@@ -843,7 +856,6 @@ const StyledDesignerTabs = styled.div`
     padding: 8px 16px;
     overflow-x: auto;
     overscroll-behavior: auto;
-    border-bottom: 1px solid var(--light-gray-color);
 `;
 
 const StyledDesignerTab = styled.button<{ $active: boolean }>`
