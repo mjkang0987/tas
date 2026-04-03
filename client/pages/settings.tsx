@@ -1210,8 +1210,6 @@ const StyledAddActions = styled.div`
 /* ── Designer Manage Styles ── */
 
 const StyledDesignerBody = styled.div`
-    overflow-y: auto;
-    overscroll-behavior: auto;
     padding: 8px 0;
     display: flex;
     flex-direction: column;
