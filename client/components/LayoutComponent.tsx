@@ -25,6 +25,7 @@ import {Aside} from './common/Aside';
 import {Footer} from './common/Footer';
 import {Icon} from './common/Icons';
 import {ButtonText} from './common/ButtonText';
+import {ReservationCreate} from './calendar/ReservationCreate';
 
 export default function LayoutComponent({children}: NodeType) {
     const router = useRouter();
@@ -41,6 +42,9 @@ export default function LayoutComponent({children}: NodeType) {
     const view = useCalendarStore((s) => s.view);
     const setView = useCalendarStore((s) => s.setView);
     const setCreateReservationInitial = useCalendarStore((s) => s.setCreateReservationInitial);
+    const createReservationInitial = useCalendarStore((s) => s.createReservationInitial);
+    const customerMap = useCalendarStore((s) => s.customerMap);
+    const addReservation = useCalendarStore((s) => s.addReservation);
 
     const isomorphicEffect = useIsomorphicEffect();
 
@@ -164,6 +168,12 @@ export default function LayoutComponent({children}: NodeType) {
                     <Aside/>
                     {children}
                 </StyledMain>
+                {createReservationInitial && (
+                    <ReservationCreate initial={createReservationInitial}
+                                       customerMap={customerMap}
+                                       onClose={() => setCreateReservationInitial(null)}
+                                       onSave={addReservation}/>
+                )}
                 <Footer/>
             </>}
         </StyledWrapper>

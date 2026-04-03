@@ -24,8 +24,6 @@ import {CustomerDetail} from '../components/calendar/CustomerDetail';
 
 import {ServiceLegend} from '../components/calendar/ServiceLegend';
 
-import {ReservationCreate} from '../components/calendar/ReservationCreate';
-
 import customersData from './api/customers.json';
 
 type HomeProps = {
@@ -49,9 +47,6 @@ const Home: NextPage<HomeProps> = (props) => {
     const customerMap = useCalendarStore((s) => s.customerMap);
     const reservationMap = useCalendarStore((s) => s.reservationMap);
     const reservationListFilter = useCalendarStore((s) => s.reservationListFilter);
-    const createReservationInitial = useCalendarStore((s) => s.createReservationInitial);
-    const setCreateReservationInitial = useCalendarStore((s) => s.setCreateReservationInitial);
-    const addReservation = useCalendarStore((s) => s.addReservation);
 
     const selectedCustomerId = useCalendarStore((s) => s.selectedCustomerId);
     const setSelectedCustomerId = useCalendarStore((s) => s.setSelectedCustomerId);
@@ -72,12 +67,6 @@ const Home: NextPage<HomeProps> = (props) => {
                 {curr && <Calendar/>}
             </StyledSection>
             {reservationListFilter && <ReservationListModal/>}
-            {createReservationInitial && (
-                <ReservationCreate initial={createReservationInitial}
-                                   customerMap={customerMap}
-                                   onClose={() => setCreateReservationInitial(null)}
-                                   onSave={addReservation}/>
-            )}
             {selectedReservation && <ReservationDetail reservation={selectedReservation}
                                                        customerMap={customerMap}
                                                        reservationMap={reservationMap}
