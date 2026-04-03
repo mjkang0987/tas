@@ -12,12 +12,14 @@ import {SessionProvider} from 'next-auth/react';
 import {GlobalStyle} from '../styles/globalStyle';
 import {useCalendarStore} from '../store/calendarStore';
 import type {ServiceItem} from '../utils/services';
+import type {Designer} from '../utils/designers';
 
 import LayoutComponent from '../components/LayoutComponent';
 
 function App({Component, pageProps: {session, ...pageProps}}: AppProps) {
     const setServiceCatalog = useCalendarStore((s) => s.setServiceCatalog);
     const setCategoryBaseColorMap = useCalendarStore((s) => s.setCategoryBaseColorMap);
+    const setDesigners = useCalendarStore((s) => s.setDesigners);
 
     useEffect(() => {
         fetch('/api/services')
@@ -38,6 +40,22 @@ function App({Component, pageProps: {session, ...pageProps}}: AppProps) {
                 // Keep default SERVICE_CATALOG if loading fails.
             });
     }, [setServiceCatalog, setCategoryBaseColorMap]);
+
+    useEffect(() => {
+        fetch('/api/designers')
+            .then((res) => {
+                if (!res.ok) throw new Error('Failed to load designers');
+                return res.json() as Promise<{ designers: Designer[] }>;
+            })
+            .then((data) => {
+                if (Array.isArray(data.designers)) {
+                    setDesigners(data.designers);
+                }
+            })
+            .catch(() => {
+                // Keep default designers if loading fails.
+            });
+    }, [setDesigners]);
 
     return (
         <SessionProvider session={session}>

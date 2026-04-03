@@ -1,0 +1,86 @@
+{
+    "designers": [
+        {
+            "id": 1,
+            "name": "디자이너 1",
+            "schedule": [
+                {
+                    "enabled": true,
+                    "start": "10:00",
+                    "end": "20:00"
+                },
+                {
+                    "enabled": true,
+                    "start": "10:00",
+                    "end": "20:00"
+                },
+                {
+                    "enabled": true,
+                    "start": "10:00",
+                    "end": "20:00"
+                },
+                {
+                    "enabled": true,
+                    "start": "10:00",
+                    "end": "20:00"
+                },
+                {
+                    "enabled": true,
+                    "start": "10:00",
+                    "end": "20:00"
+                },
+                {
+                    "enabled": false,
+                    "start": "10:00",
+                    "end": "20:00"
+                },
+                {
+                    "enabled": false,
+                    "start": "10:00",
+                    "end": "20:00"
+                }
+            ]
+        },
+        {
+            "id": 1775175884450,
+            "name": "영감",
+            "schedule": [
+                {
+                    "enabled": true,
+                    "start": "10:00",
+                    "end": "20:00"
+                },
+                {
+                    "enabled": true,
+                    "start": "10:00",
+                    "end": "20:00"
+                },
+                {
+                    "enabled": true,
+                    "start": "10:00",
+                    "end": "20:00"
+                },
+                {
+                    "enabled": true,
+                    "start": "10:00",
+                    "end": "20:00"
+                },
+                {
+                    "enabled": true,
+                    "start": "10:00",
+                    "end": "20:00"
+                },
+                {
+                    "enabled": false,
+                    "start": "10:00",
+                    "end": "20:00"
+                },
+                {
+                    "enabled": false,
+                    "start": "10:00",
+                    "end": "20:00"
+                }
+            ]
+        }
+    ]
+}

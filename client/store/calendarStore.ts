@@ -4,6 +4,8 @@ import type {Reservation, ReservationMap, ReservationHistoryEntry, ReservationSt
 import type {CustomerMap} from '../utils/customers';
 import type {ServiceItem} from '../utils/services';
 import {CATEGORY_BASE_COLOR_MAP, SERVICE_CATALOG} from '../utils/services';
+import type {DaySchedule, Designer} from '../utils/designers';
+import {createDefaultSchedule, DEFAULT_DESIGNERS} from '../utils/designers';
 
 export type FullType = Date | null;
 
@@ -57,6 +59,7 @@ export interface CalendarState {
     selectedCustomerId: number | null;
     serviceCatalog: ServiceItem[];
     categoryBaseColorMap: Record<string, string>;
+    designers: Designer[];
 
     setToday: (v: FullType) => void;
     setTarget: (partial: Partial<DateType>) => void;
@@ -74,6 +77,11 @@ export interface CalendarState {
     setSelectedCustomerId: (v: number | null) => void;
     setServiceCatalog: (catalog: ServiceItem[]) => void;
     setCategoryBaseColorMap: (colorMap: Record<string, string>) => void;
+    setDesigners: (designers: Designer[]) => void;
+    addDesigner: (name: string) => void;
+    updateDesigner: (designerId: number, patch: Partial<Pick<Designer, 'name'>>) => void;
+    updateDesignerDay: (designerId: number, dayIndex: number, patch: Partial<DaySchedule>) => void;
+    deleteDesigner: (designerId: number) => void;
     updateCategoryBaseColor: (category: string, color: string) => void;
     addService: (item: ServiceItem) => void;
     updateService: (name: string, updated: ServiceItem) => void;
@@ -90,6 +98,16 @@ function syncServiceSettings(services: ServiceItem[], categoryBaseColors: Record
         method: 'PUT',
         headers: {'Content-Type': 'application/json'},
         body: JSON.stringify({services, categoryBaseColors})
+    }).catch(() => {
+        // Preserve local UX even if sync fails; server data can be retried later.
+    });
+}
+
+function syncDesignerSettings(designers: Designer[]): void {
+    fetch('/api/designers', {
+        method: 'PUT',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({designers})
     }).catch(() => {
         // Preserve local UX even if sync fails; server data can be retried later.
     });
@@ -166,6 +184,7 @@ export const useCalendarStore = create<CalendarState>((set) => ({
     selectedCustomerId: null,
     serviceCatalog: SERVICE_CATALOG,
     categoryBaseColorMap: CATEGORY_BASE_COLOR_MAP,
+    designers: DEFAULT_DESIGNERS,
 
     setToday: (today) => set({today}),
 
@@ -223,6 +242,65 @@ export const useCalendarStore = create<CalendarState>((set) => ({
 
     setServiceCatalog: (serviceCatalog) => set({serviceCatalog}),
     setCategoryBaseColorMap: (categoryBaseColorMap) => set({categoryBaseColorMap}),
+    setDesigners: (designers) => set({designers}),
+
+    addDesigner: (name) =>
+        set((state) => {
+            const cleanName = name.trim();
+            if (!cleanName) return state;
+
+            const nextDesigners = [
+                ...state.designers,
+                {
+                    id: Date.now(),
+                    name: cleanName,
+                    schedule: createDefaultSchedule()
+                }
+            ];
+
+            syncDesignerSettings(nextDesigners);
+            return {designers: nextDesigners};
+        }),
+
+    updateDesigner: (designerId, patch) =>
+        set((state) => {
+            const nextName = patch.name?.trim();
+            if (patch.name !== undefined && !nextName) return state;
+
+            const nextDesigners = state.designers.map((designer) =>
+                designer.id === designerId
+                    ? {...designer, ...(nextName ? {name: nextName} : {})}
+                    : designer
+            );
+
+            syncDesignerSettings(nextDesigners);
+            return {designers: nextDesigners};
+        }),
+
+    updateDesignerDay: (designerId, dayIndex, patch) =>
+        set((state) => {
+            if (dayIndex < 0 || dayIndex > 6) return state;
+
+            const nextDesigners = state.designers.map((designer) => {
+                if (designer.id !== designerId) return designer;
+
+                const nextSchedule = designer.schedule.map((day, index) =>
+                    index === dayIndex ? {...day, ...patch} : day
+                );
+
+                return {...designer, schedule: nextSchedule};
+            });
+
+            syncDesignerSettings(nextDesigners);
+            return {designers: nextDesigners};
+        }),
+
+    deleteDesigner: (designerId) =>
+        set((state) => {
+            const nextDesigners = state.designers.filter((designer) => designer.id !== designerId);
+            syncDesignerSettings(nextDesigners);
+            return {designers: nextDesigners};
+        }),
 
     updateCategoryBaseColor: (category, color) =>
         set((state) => {

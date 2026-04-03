@@ -11,6 +11,8 @@ import {useCalendarStore} from '../store/calendarStore';
 import {getDailyRevenue, getMonthlyRevenue} from '../utils/revenue';
 import {buildServiceColorMap, formatPrice, formatDuration, getCategoryBaseColor, getGroupedCatalog, getServiceColor} from '../utils/services';
 import type {ServiceItem} from '../utils/services';
+import type {Designer} from '../utils/designers';
+import {WEEKDAY_LABELS} from '../utils/designers';
 import type {Reservation, ReservationMap, ReservationHistoryEntry} from '../utils/reservations';
 import {groupByDate, toDateKey} from '../utils/reservations';
 import type {Customer} from '../utils/customers';
@@ -18,6 +20,7 @@ import {toCustomerMap} from '../utils/customers';
 import type {CustomerMap} from '../utils/customers';
 
 import {ReservationDetail} from '../components/calendar/ReservationDetail';
+import {CustomerDetail} from '../components/calendar/CustomerDetail';
 
 import customersData from './api/customers.json';
 
@@ -27,7 +30,7 @@ type SettingsProps = {
     history: ReservationHistoryEntry[];
 };
 
-type SettingsTab = 'revenue' | 'service';
+type SettingsTab = 'revenue' | 'service' | 'designer';
 type RevenueTab = 'daily' | 'monthly';
 
 const WEEKDAYS = ['일', '월', '화', '수', '목', '금', '토'];
@@ -399,6 +402,88 @@ const ServiceManageSection = () => {
     );
 };
 
+/* ── Designer Manage Section ── */
+
+const DesignerManageSection = () => {
+    const designers = useCalendarStore((s) => s.designers);
+    const addDesigner = useCalendarStore((s) => s.addDesigner);
+    const updateDesigner = useCalendarStore((s) => s.updateDesigner);
+    const updateDesignerDay = useCalendarStore((s) => s.updateDesignerDay);
+    const deleteDesigner = useCalendarStore((s) => s.deleteDesigner);
+
+    const [newName, setNewName] = useState('');
+
+    const handleAdd = () => {
+        const name = newName.trim();
+        if (!name) return;
+        addDesigner(name);
+        setNewName('');
+    };
+
+    return (
+        <>
+            <StyledDesignerBody>
+                {designers.length === 0 && <StyledEmpty>디자이너 없음</StyledEmpty>}
+                {designers.map((designer: Designer) => (
+                    <StyledDesignerCard key={designer.id}>
+                        <StyledDesignerHeader>
+                            <StyledDesignerNameInput
+                                value={designer.name}
+                                onChange={(e) => updateDesigner(designer.id, {name: e.target.value})}
+                                placeholder="디자이너명"
+                            />
+                            <StyledDeleteBtn type="button" onClick={() => deleteDesigner(designer.id)}>삭제</StyledDeleteBtn>
+                        </StyledDesignerHeader>
+                        <StyledScheduleList>
+                            {WEEKDAY_LABELS.map((label, dayIndex) => {
+                                const day = designer.schedule[dayIndex];
+                                if (!day) return null;
+
+                                return (
+                                    <StyledScheduleRow key={`${designer.id}-${label}`}>
+                                        <StyledDayLabel>{label}</StyledDayLabel>
+                                        <StyledDaySwitch>
+                                            <input
+                                                type="checkbox"
+                                                checked={day.enabled}
+                                                onChange={(e) => updateDesignerDay(designer.id, dayIndex, {enabled: e.target.checked})}
+                                            />
+                                            <span>{day.enabled ? '근무' : '휴무'}</span>
+                                        </StyledDaySwitch>
+                                        <StyledTimeInput
+                                            type="time"
+                                            value={day.start}
+                                            disabled={!day.enabled}
+                                            onChange={(e) => updateDesignerDay(designer.id, dayIndex, {start: e.target.value})}
+                                        />
+                                        <span>~</span>
+                                        <StyledTimeInput
+                                            type="time"
+                                            value={day.end}
+                                            disabled={!day.enabled}
+                                            onChange={(e) => updateDesignerDay(designer.id, dayIndex, {end: e.target.value})}
+                                        />
+                                    </StyledScheduleRow>
+                                );
+                            })}
+                        </StyledScheduleList>
+                    </StyledDesignerCard>
+                ))}
+            </StyledDesignerBody>
+            <StyledServiceFooter>
+                <StyledDesignerAddRow>
+                    <StyledAddInput
+                        value={newName}
+                        onChange={(e) => setNewName(e.target.value)}
+                        placeholder="새 디자이너명"
+                    />
+                    <StyledSaveBtn type="button" onClick={handleAdd}>추가</StyledSaveBtn>
+                </StyledDesignerAddRow>
+            </StyledServiceFooter>
+        </>
+    );
+};
+
 /* ── Settings Page ── */
 
 const Settings: NextPage<SettingsProps> = ({reservations, customers, history}) => {
@@ -421,7 +506,7 @@ const Settings: NextPage<SettingsProps> = ({reservations, customers, history}) =
         : toDateKey(now.getFullYear(), now.getMonth(), now.getDate());
 
     const q = router.query;
-    const tab: SettingsTab = q.tab === 'service' ? 'service' : 'revenue';
+    const tab: SettingsTab = q.tab === 'service' || q.tab === 'designer' ? q.tab : 'revenue';
     const revenueView: RevenueTab = q.view === 'monthly' ? 'monthly' : 'daily';
     const dateKey = typeof q.date === 'string' ? q.date : defaultDateKey;
     const revYear = typeof q.year === 'string' ? Number(q.year) : (target.full ? target.fullYear : now.getFullYear());
@@ -451,6 +536,7 @@ const Settings: NextPage<SettingsProps> = ({reservations, customers, history}) =
         replaceQuery({tab: 'revenue', view: 'monthly', date: dateKey, year: String(y), month: String(m + 1)});
     };
     const [selectedReservation, setSelectedReservation] = useState<Reservation | null>(null);
+    const [selectedCustomerId, setSelectedCustomerId] = useState<number | null>(null);
 
     useEffect(() => {
         setCustomerMap(customerMap);
@@ -467,6 +553,7 @@ const Settings: NextPage<SettingsProps> = ({reservations, customers, history}) =
             <StyledPageTabs>
                 <StyledPageTab type="button" $active={tab === 'revenue'} onClick={() => setTab('revenue')}>매출</StyledPageTab>
                 <StyledPageTab type="button" $active={tab === 'service'} onClick={() => setTab('service')}>서비스 관리</StyledPageTab>
+                <StyledPageTab type="button" $active={tab === 'designer'} onClick={() => setTab('designer')}>디자이너 관리</StyledPageTab>
             </StyledPageTabs>
             <StyledContent>
                 {tab === 'revenue' && <RevenueSection reservationMap={reservationMap}
@@ -479,6 +566,7 @@ const Settings: NextPage<SettingsProps> = ({reservations, customers, history}) =
                                                       month={revMonth}
                                                       setYearMonth={setYearMonth}/>}
                 {tab === 'service' && <ServiceManageSection/>}
+                {tab === 'designer' && <DesignerManageSection/>}
             </StyledContent>
             {selectedReservation && (
                 <ReservationDetail reservation={selectedReservation}
@@ -486,7 +574,7 @@ const Settings: NextPage<SettingsProps> = ({reservations, customers, history}) =
                                    reservationMap={storeReservationMap}
                                    history={storeHistory}
                                    onClose={() => setSelectedReservation(null)}
-                                   onCustomerClick={() => {}}
+                                   onCustomerClick={(customerId) => setSelectedCustomerId(customerId)}
                                    onUpdate={(prev, updated) => {
                                        updateReservation(prev, updated);
                                        setSelectedReservation(updated);
@@ -495,6 +583,11 @@ const Settings: NextPage<SettingsProps> = ({reservations, customers, history}) =
                                        cancelReservation(reservation);
                                        setSelectedReservation(null);
                                    }}/>
+            )}
+            {selectedCustomerId !== null && customerMap[selectedCustomerId] && (
+                <CustomerDetail customer={customerMap[selectedCustomerId]}
+                                reservationMap={storeReservationMap}
+                                onClose={() => setSelectedCustomerId(null)}/>
             )}
         </StyledSection>
     );
@@ -946,4 +1039,87 @@ const StyledAddActions = styled.div`
     display: flex;
     gap: 4px;
     justify-content: flex-end;
+`;
+
+/* ── Designer Manage Styles ── */
+
+const StyledDesignerBody = styled.div`
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    padding: 8px 0;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+`;
+
+const StyledDesignerCard = styled.div`
+    border: 1px solid var(--light-gray-color);
+    border-radius: 6px;
+    padding: 10px 12px;
+    background-color: var(--white-color);
+`;
+
+const StyledDesignerHeader = styled.div`
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 8px;
+`;
+
+const StyledDesignerNameInput = styled.input`
+    flex: 1;
+    height: 30px;
+    padding: 0 8px;
+    border: 1px solid var(--light-gray-color);
+    border-radius: 4px;
+    font-size: 13px;
+    outline: none;
+
+    &:focus {
+        border-color: var(--blue-color);
+    }
+`;
+
+const StyledScheduleList = styled.div`
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+`;
+
+const StyledScheduleRow = styled.div`
+    display: grid;
+    grid-template-columns: 28px 70px 1fr 12px 1fr;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+`;
+
+const StyledDayLabel = styled.span`
+    color: var(--dark-gray-color);
+    font-weight: 600;
+`;
+
+const StyledDaySwitch = styled.label`
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    color: var(--dark-gray-color2);
+`;
+
+const StyledTimeInput = styled.input`
+    height: 28px;
+    padding: 0 6px;
+    border: 1px solid var(--light-gray-color);
+    border-radius: 4px;
+    font-size: 12px;
+    outline: none;
+
+    &:focus {
+        border-color: var(--blue-color);
+    }
+`;
+
+const StyledDesignerAddRow = styled.div`
+    display: flex;
+    gap: 6px;
 `;
