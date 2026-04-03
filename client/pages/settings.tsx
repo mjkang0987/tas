@@ -524,12 +524,8 @@ const Settings: NextPage<SettingsProps> = ({reservations, customers, history}) =
     const customerMap: CustomerMap = toCustomerMap(customers);
 
     const now = new Date();
-    const todayKey = target.full
-        ? toDateKey(target.fullYear, target.month, target.date)
-        : toDateKey(now.getFullYear(), now.getMonth(), now.getDate());
-    const monthStartKey = target.full
-        ? toDateKey(target.fullYear, target.month, 1)
-        : toDateKey(now.getFullYear(), now.getMonth(), 1);
+    const todayKey = toDateKey(now.getFullYear(), now.getMonth(), now.getDate());
+    const monthStartKey = toDateKey(now.getFullYear(), now.getMonth(), 1);
 
     const q = router.query;
     const tab: SettingsTab = q.tab === 'service' || q.tab === 'designer' ? q.tab : 'revenue';
