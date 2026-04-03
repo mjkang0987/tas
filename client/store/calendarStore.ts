@@ -1,7 +1,7 @@
 import {create} from 'zustand';
 
 import type {Reservation, ReservationMap, ReservationHistoryEntry, ReservationStatus} from '../utils/reservations';
-import type {CustomerMap} from '../utils/customers';
+import type {Customer, CustomerMap} from '../utils/customers';
 import type {ServiceItem} from '../utils/services';
 import {CATEGORY_BASE_COLOR_MAP, SERVICE_CATALOG} from '../utils/services';
 import type {DaySchedule, Designer, DesignerStatus} from '../utils/designers';
@@ -70,6 +70,7 @@ export interface CalendarState {
     setRouterSlice: (v: RouterSlice | ((prev: RouterSlice) => RouterSlice)) => void;
     setReservationMap: (map: ReservationMap) => void;
     setCustomerMap: (map: CustomerMap) => void;
+    addCustomer: (customer: Customer) => void;
     setSelectedReservation: (v: Reservation | null) => void;
     setReservationHistory: (history: ReservationHistoryEntry[]) => void;
     setReservationListFilter: (v: CalendarState['reservationListFilter']) => void;
@@ -108,6 +109,16 @@ function syncDesignerSettings(designers: Designer[]): void {
         method: 'PUT',
         headers: {'Content-Type': 'application/json'},
         body: JSON.stringify({designers})
+    }).catch(() => {
+        // Preserve local UX even if sync fails; server data can be retried later.
+    });
+}
+
+function syncCustomerSettings(customers: Customer[]): void {
+    fetch('/api/customers', {
+        method: 'PUT',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({customers})
     }).catch(() => {
         // Preserve local UX even if sync fails; server data can be retried later.
     });
@@ -229,6 +240,17 @@ export const useCalendarStore = create<CalendarState>((set) => ({
     setReservationMap: (reservationMap) => set({reservationMap}),
 
     setCustomerMap: (customerMap) => set({customerMap}),
+
+    addCustomer: (customer) =>
+        set((state) => {
+            const nextCustomerMap = {
+                ...state.customerMap,
+                [customer.id]: customer
+            };
+
+            syncCustomerSettings(Object.values(nextCustomerMap));
+            return {customerMap: nextCustomerMap};
+        }),
 
     setSelectedReservation: (selectedReservation) => set({selectedReservation}),
 
