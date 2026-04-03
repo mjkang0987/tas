@@ -32,6 +32,7 @@ type SettingsProps = {
 
 type SettingsTab = 'revenue' | 'service' | 'designer';
 type RevenueTab = 'daily' | 'monthly';
+type RevenueDesignerKey = 'all' | `${number}`;
 
 const WEEKDAYS = ['일', '월', '화', '수', '목', '금', '토'];
 
@@ -63,9 +64,12 @@ const EMPTY_FORM = {name: '', category: '', durationMinutes: '', price: ''};
 
 interface RevenueSectionProps {
     reservationMap: ReservationMap;
+    designers: Designer[];
     onSelectReservation: (reservation: Reservation) => void;
     view: RevenueTab;
     setView: (v: RevenueTab) => void;
+    designerKey: RevenueDesignerKey;
+    setDesignerKey: (v: RevenueDesignerKey) => void;
     dateKey: string;
     setDateKey: (key: string) => void;
     year: number;
@@ -73,9 +77,23 @@ interface RevenueSectionProps {
     setYearMonth: (y: number, m: number) => void;
 }
 
-const RevenueSection = ({reservationMap, onSelectReservation, view, setView, dateKey, setDateKey, year, month, setYearMonth}: RevenueSectionProps) => {
-    const daily = getDailyRevenue(reservationMap, dateKey);
-    const monthly = getMonthlyRevenue(reservationMap, year, month);
+const RevenueSection = ({
+    reservationMap,
+    designers,
+    onSelectReservation,
+    view,
+    setView,
+    designerKey,
+    setDesignerKey,
+    dateKey,
+    setDateKey,
+    year,
+    month,
+    setYearMonth
+}: RevenueSectionProps) => {
+    const selectedDesignerId = designerKey === 'all' ? null : Number(designerKey);
+    const daily = getDailyRevenue(reservationMap, dateKey, selectedDesignerId);
+    const monthly = getMonthlyRevenue(reservationMap, year, month, selectedDesignerId);
 
     const navigateDay = (offset: number) => {
         const d = new Date(dateKey + 'T00:00:00');
@@ -94,6 +112,25 @@ const RevenueSection = ({reservationMap, onSelectReservation, view, setView, dat
                 <StyledSubTab type="button" $active={view === 'daily'} onClick={() => setView('daily')}>일별</StyledSubTab>
                 <StyledSubTab type="button" $active={view === 'monthly'} onClick={() => setView('monthly')}>월별</StyledSubTab>
             </StyledSubTabs>
+            <StyledDesignerTabs>
+                <StyledDesignerTab type="button"
+                                   $active={designerKey === 'all'}
+                                   onClick={() => setDesignerKey('all')}>
+                    전체
+                </StyledDesignerTab>
+                {designers.map((designer) => {
+                    const key = String(designer.id) as RevenueDesignerKey;
+
+                    return (
+                        <StyledDesignerTab key={designer.id}
+                                           type="button"
+                                           $active={designerKey === key}
+                                           onClick={() => setDesignerKey(key)}>
+                            {designer.name}
+                        </StyledDesignerTab>
+                    );
+                })}
+            </StyledDesignerTabs>
 
             {view === 'daily' && (
                 <StyledCardBody>
@@ -490,6 +527,7 @@ const Settings: NextPage<SettingsProps> = ({reservations, customers, history}) =
     const setCustomerMap = useCalendarStore((s) => s.setCustomerMap);
     const setReservationMap = useCalendarStore((s) => s.setReservationMap);
     const setReservationHistory = useCalendarStore((s) => s.setReservationHistory);
+    const designers = useCalendarStore((s) => s.designers);
     const updateReservation = useCalendarStore((s) => s.updateReservation);
     const cancelReservation = useCalendarStore((s) => s.cancelReservation);
     const storeReservationMap = useCalendarStore((s) => s.reservationMap);
@@ -508,6 +546,10 @@ const Settings: NextPage<SettingsProps> = ({reservations, customers, history}) =
     const q = router.query;
     const tab: SettingsTab = q.tab === 'service' || q.tab === 'designer' ? q.tab : 'revenue';
     const revenueView: RevenueTab = q.view === 'monthly' ? 'monthly' : 'daily';
+    const parsedDesignerId = typeof q.designer === 'string' ? Number(q.designer) : NaN;
+    const revenueDesignerKey: RevenueDesignerKey = Number.isInteger(parsedDesignerId) && parsedDesignerId > 0
+        ? String(parsedDesignerId) as RevenueDesignerKey
+        : 'all';
     const dateKey = typeof q.date === 'string' ? q.date : defaultDateKey;
     const revYear = typeof q.year === 'string' ? Number(q.year) : (target.full ? target.fullYear : now.getFullYear());
     const revMonth = typeof q.month === 'string' ? Number(q.month) - 1 : (target.full ? target.month : now.getMonth());
@@ -518,22 +560,61 @@ const Settings: NextPage<SettingsProps> = ({reservations, customers, history}) =
 
     const setTab = (t: SettingsTab) => {
         if (t === 'revenue') {
-            replaceQuery({tab: 'revenue', view: revenueView, date: dateKey, year: String(revYear), month: String(revMonth + 1)});
+            replaceQuery({
+                tab: 'revenue',
+                view: revenueView,
+                designer: revenueDesignerKey,
+                date: dateKey,
+                year: String(revYear),
+                month: String(revMonth + 1)
+            });
         } else {
             replaceQuery({tab: t});
         }
     };
 
     const setRevenueView = (v: RevenueTab) => {
-        replaceQuery({tab: 'revenue', view: v, date: dateKey, year: String(revYear), month: String(revMonth + 1)});
+        replaceQuery({
+            tab: 'revenue',
+            view: v,
+            designer: revenueDesignerKey,
+            date: dateKey,
+            year: String(revYear),
+            month: String(revMonth + 1)
+        });
+    };
+
+    const setRevenueDesigner = (designer: RevenueDesignerKey) => {
+        replaceQuery({
+            tab: 'revenue',
+            view: revenueView,
+            designer,
+            date: dateKey,
+            year: String(revYear),
+            month: String(revMonth + 1)
+        });
     };
 
     const setDateKey = (key: string) => {
-        replaceQuery({tab: 'revenue', view: 'daily', date: key, year: String(revYear), month: String(revMonth + 1)});
+        replaceQuery({
+            tab: 'revenue',
+            view: 'daily',
+            designer: revenueDesignerKey,
+            date: key,
+            year: String(revYear),
+            month: String(revMonth + 1)
+        });
     };
 
     const setYearMonth = (y: number, m: number) => {
-        replaceQuery({tab: 'revenue', view: 'monthly', date: dateKey, year: String(y), month: String(m + 1)});
+        replaceQuery({
+            tab: 'revenue',
+            view: 'monthly',
+            designer: revenueDesignerKey,
+            date: dateKey,
+            year: String(y),
+            month: String(m + 1)
+        });
     };
     const [selectedReservation, setSelectedReservation] = useState<Reservation | null>(null);
     const [selectedCustomerId, setSelectedCustomerId] = useState<number | null>(null);
@@ -557,9 +638,12 @@ const Settings: NextPage<SettingsProps> = ({reservations, customers, history}) =
             </StyledPageTabs>
             <StyledContent>
                 {tab === 'revenue' && <RevenueSection reservationMap={reservationMap}
+                                                      designers={designers}
                                                       onSelectReservation={setSelectedReservation}
                                                       view={revenueView}
                                                       setView={setRevenueView}
+                                                      designerKey={revenueDesignerKey}
+                                                      setDesignerKey={setRevenueDesigner}
                                                       dateKey={dateKey}
                                                       setDateKey={setDateKey}
                                                       year={revYear}
@@ -677,6 +761,27 @@ const StyledSubTab = styled.button<{ $active: boolean }>`
     font-size: 13px;
     font-weight: ${(p) => p.$active ? '600' : '400'};
     color: ${(p) => p.$active ? 'var(--blue-color)' : 'var(--dark-gray-color)'};
+    cursor: pointer;
+`;
+
+const StyledDesignerTabs = styled.div`
+    display: flex;
+    gap: 6px;
+    padding: 8px 16px;
+    overflow-x: auto;
+    overscroll-behavior: auto;
+    border-bottom: 1px solid var(--light-gray-color);
+`;
+
+const StyledDesignerTab = styled.button<{ $active: boolean }>`
+    flex-shrink: 0;
+    height: 28px;
+    padding: 0 10px;
+    border: 1px solid ${(p) => p.$active ? 'var(--blue-color)' : 'var(--light-gray-color)'};
+    border-radius: 14px;
+    background: ${(p) => p.$active ? 'var(--blue-color)' : 'var(--white-color)'};
+    color: ${(p) => p.$active ? '#fff' : 'var(--dark-gray-color)'};
+    font-size: 12px;
     cursor: pointer;
 `;
 

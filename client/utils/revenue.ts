@@ -31,9 +31,18 @@ function resolvePrice(service: string, price?: number): number {
     return sumPrice(parseServiceString(service));
 }
 
-export function getDailyRevenue(reservationMap: ReservationMap, dateKey: string): DailyRevenue {
+function matchDesigner(designerId: number | null | undefined, targetDesignerId: number | null): boolean {
+    if (targetDesignerId == null) return true;
+    return designerId === targetDesignerId;
+}
+
+export function getDailyRevenue(reservationMap: ReservationMap, dateKey: string, designerId: number | null = null): DailyRevenue {
     const reservations = reservationMap[dateKey] ?? [];
-    const active = reservations.filter((r) => r.status !== 'cancelled' && r.status !== 'noshow');
+    const active = reservations.filter((r) =>
+        r.status !== 'cancelled' &&
+        r.status !== 'noshow' &&
+        matchDesigner(r.designerId, designerId)
+    );
 
     const items: RevenueItem[] = active.map((r) => ({
         reservationId: r.id,
@@ -49,7 +58,12 @@ export function getDailyRevenue(reservationMap: ReservationMap, dateKey: string)
     return {items, total, count: items.length};
 }
 
-export function getMonthlyRevenue(reservationMap: ReservationMap, year: number, month: number): MonthlyRevenue {
+export function getMonthlyRevenue(
+    reservationMap: ReservationMap,
+    year: number,
+    month: number,
+    designerId: number | null = null
+): MonthlyRevenue {
     const prefix = `${year}-${String(month + 1).padStart(2, '0')}`;
     const daysInMonth = new Date(year, month + 1, 0).getDate();
 
@@ -59,7 +73,7 @@ export function getMonthlyRevenue(reservationMap: ReservationMap, year: number, 
 
     for (let d = 1; d <= daysInMonth; d++) {
         const dateKey = `${prefix}-${String(d).padStart(2, '0')}`;
-        const daily = getDailyRevenue(reservationMap, dateKey);
+        const daily = getDailyRevenue(reservationMap, dateKey, designerId);
 
         if (daily.count > 0) {
             days.push({dateKey, total: daily.total, count: daily.count});
