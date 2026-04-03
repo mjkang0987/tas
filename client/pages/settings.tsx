@@ -32,6 +32,7 @@ type SettingsProps = {
 
 type SettingsTab = 'revenue' | 'service' | 'designer';
 type RevenueDesignerKey = 'all' | `${number}`;
+type RevenueQuickRange = 'month' | 'week' | 'today';
 
 const WEEKDAYS = ['일', '월', '화', '수', '목', '금', '토'];
 
@@ -75,6 +76,8 @@ interface RevenueSectionProps {
     setEndDateKey: (key: string) => void;
     selectedDateKey: string;
     setSelectedDateKey: (key: string) => void;
+    quickRange: RevenueQuickRange | null;
+    setQuickRange: (range: RevenueQuickRange) => void;
 }
 
 const RevenueSection = ({
@@ -88,7 +91,9 @@ const RevenueSection = ({
     endDateKey,
     setEndDateKey,
     selectedDateKey,
-    setSelectedDateKey
+    setSelectedDateKey,
+    quickRange,
+    setQuickRange
 }: RevenueSectionProps) => {
     const selectedDesignerId = designerKey === 'all' ? null : Number(designerKey);
     const [fromDateKey, toDateKeyValue] = startDateKey <= endDateKey
@@ -116,6 +121,23 @@ const RevenueSection = ({
                                      onChange={(e) => setEndDateKey(e.target.value)}/>
                 </StyledRangeInputWrap>
             </StyledRangeFilter>
+            <StyledQuickFilters>
+                <StyledQuickFilterButton type="button"
+                                         $active={quickRange === 'month'}
+                                         onClick={() => setQuickRange('month')}>
+                    한 달
+                </StyledQuickFilterButton>
+                <StyledQuickFilterButton type="button"
+                                         $active={quickRange === 'week'}
+                                         onClick={() => setQuickRange('week')}>
+                    일주일
+                </StyledQuickFilterButton>
+                <StyledQuickFilterButton type="button"
+                                         $active={quickRange === 'today'}
+                                         onClick={() => setQuickRange('today')}>
+                    오늘
+                </StyledQuickFilterButton>
+            </StyledQuickFilters>
             <StyledDesignerTabs>
                 <StyledDesignerTab type="button"
                                    $active={designerKey === 'all'}
@@ -526,6 +548,8 @@ const Settings: NextPage<SettingsProps> = ({reservations, customers, history}) =
     const now = new Date();
     const todayKey = toDateKey(now.getFullYear(), now.getMonth(), now.getDate());
     const monthStartKey = toDateKey(now.getFullYear(), now.getMonth(), 1);
+    const revenue30DaysStartKey = toDateKey(now.getFullYear(), now.getMonth(), now.getDate() - 30);
+    const revenueWeekStartKey = toDateKey(now.getFullYear(), now.getMonth(), now.getDate() - 7);
 
     const q = router.query;
     const tab: SettingsTab = q.tab === 'service' || q.tab === 'designer' ? q.tab : 'revenue';
@@ -536,6 +560,13 @@ const Settings: NextPage<SettingsProps> = ({reservations, customers, history}) =
     const startDateKey = typeof q.start === 'string' && isValidDateKey(q.start) ? q.start : monthStartKey;
     const endDateKey = typeof q.end === 'string' && isValidDateKey(q.end) ? q.end : todayKey;
     const selectedDateKey = typeof q.date === 'string' && isValidDateKey(q.date) ? q.date : endDateKey;
+    const quickRange: RevenueQuickRange | null = startDateKey === revenue30DaysStartKey && endDateKey === todayKey
+        ? 'month'
+        : startDateKey === revenueWeekStartKey && endDateKey === todayKey
+            ? 'week'
+            : startDateKey === todayKey && endDateKey === todayKey
+                ? 'today'
+                : null;
 
     const replaceQuery = (patch: Record<string, string>) => {
         router.replace({pathname: '/settings', query: patch}, undefined, {shallow: true});
@@ -596,6 +627,28 @@ const Settings: NextPage<SettingsProps> = ({reservations, customers, history}) =
             date: key,
         });
     };
+
+    const setRevenueQuickRange = (range: RevenueQuickRange) => {
+        if (range === 'today') {
+            replaceQuery({
+                tab: 'revenue',
+                designer: revenueDesignerKey,
+                start: todayKey,
+                end: todayKey,
+                date: todayKey,
+            });
+            return;
+        }
+
+        const start = range === 'week' ? revenueWeekStartKey : revenue30DaysStartKey;
+        replaceQuery({
+            tab: 'revenue',
+            designer: revenueDesignerKey,
+            start,
+            end: todayKey,
+            date: todayKey,
+        });
+    };
     const [selectedReservation, setSelectedReservation] = useState<Reservation | null>(null);
     const [selectedCustomerId, setSelectedCustomerId] = useState<number | null>(null);
 
@@ -627,7 +680,9 @@ const Settings: NextPage<SettingsProps> = ({reservations, customers, history}) =
                                                       endDateKey={endDateKey}
                                                       setEndDateKey={setRevenueEndDate}
                                                       selectedDateKey={selectedDateKey}
-                                                      setSelectedDateKey={setRevenueSelectedDate}/>}
+                                                      setSelectedDateKey={setRevenueSelectedDate}
+                                                      quickRange={quickRange}
+                                                      setQuickRange={setRevenueQuickRange}/>}
                 {tab === 'service' && <ServiceManageSection/>}
                 {tab === 'designer' && <DesignerManageSection/>}
             </StyledContent>
@@ -757,6 +812,23 @@ const StyledRangeDivider = styled.span`
     padding-bottom: 6px;
     font-size: 12px;
     color: var(--dark-gray-color2);
+`;
+
+const StyledQuickFilters = styled.div`
+    display: flex;
+    gap: 6px;
+    padding: 8px 16px 0;
+`;
+
+const StyledQuickFilterButton = styled.button<{ $active: boolean }>`
+    height: 26px;
+    padding: 0 10px;
+    border: 1px solid ${(p) => p.$active ? 'var(--blue-color)' : 'var(--light-gray-color)'};
+    border-radius: 13px;
+    background: ${(p) => p.$active ? 'var(--blue-color)' : 'var(--white-color)'};
+    color: ${(p) => p.$active ? '#fff' : 'var(--dark-gray-color)'};
+    font-size: 12px;
+    cursor: pointer;
 `;
 
 const StyledDesignerTabs = styled.div`
