@@ -101,14 +101,17 @@ const RevenueSection = ({
     quickRange,
     setQuickRange
 }: RevenueSectionProps) => {
+    const [detailDateKey, setDetailDateKey] = useState<string | null>(null);
     const selectedDesignerId = designerKey === 'all' ? null : Number(designerKey);
     const [fromDateKey, toDateKeyValue] = startDateKey <= endDateKey
         ? [startDateKey, endDateKey]
         : [endDateKey, startDateKey];
     const rangeRevenue = getRangeRevenue(reservationMap, fromDateKey, toDateKeyValue, selectedDesignerId);
-    const selectedDailyKey = selectedDateKey < fromDateKey || selectedDateKey > toDateKeyValue ? toDateKeyValue : selectedDateKey;
-    const daily = getDailyRevenue(reservationMap, selectedDailyKey, selectedDesignerId);
     const days = [...rangeRevenue.days].sort((a, b) => b.dateKey.localeCompare(a.dateKey));
+    const openedDateKey = detailDateKey && detailDateKey >= fromDateKey && detailDateKey <= toDateKeyValue
+        ? detailDateKey
+        : null;
+    const layerDaily = openedDateKey ? getDailyRevenue(reservationMap, openedDateKey, selectedDesignerId) : null;
 
     return (
         <>
@@ -172,7 +175,10 @@ const RevenueSection = ({
                     <StyledList>
                         {days.map((day) => (
                             <StyledClickableRow key={day.dateKey}
-                                                onClick={() => setSelectedDateKey(day.dateKey)}>
+                                                onClick={() => {
+                                                    setSelectedDateKey(day.dateKey);
+                                                    setDetailDateKey(day.dateKey);
+                                                }}>
                                 <StyledDate>{formatShortDate(day.dateKey)}</StyledDate>
                                 <StyledCount>{day.count}건</StyledCount>
                                 <StyledPrice>{formatPrice(day.total)}</StyledPrice>
@@ -185,30 +191,41 @@ const RevenueSection = ({
                     <strong>{formatPrice(rangeRevenue.total)}</strong>
                 </StyledSummary>
             </StyledCardBody>
-            <StyledDetailTitle>{formatDateLabel(selectedDailyKey)} 상세</StyledDetailTitle>
-            <StyledCardBody>
-                {daily.count === 0 ? (
-                    <StyledEmpty>예약 없음</StyledEmpty>
-                ) : (
-                    <StyledList>
-                        {daily.items.map((item) => {
-                            const reservation = (reservationMap[selectedDailyKey] || []).find((r) => r.id === item.reservationId);
-                            return (
-                                <StyledClickableRow key={item.reservationId}
-                                                    onClick={() => reservation && onSelectReservation(reservation)}>
-                                    <StyledTime>{item.startTime}</StyledTime>
-                                    <StyledService>{item.service}</StyledService>
-                                    <StyledPrice>{formatPrice(item.price)}</StyledPrice>
-                                </StyledClickableRow>
-                            );
-                        })}
-                    </StyledList>
-                )}
-                <StyledSummary>
-                    <span>{daily.count}건</span>
-                    <strong>{formatPrice(daily.total)}</strong>
-                </StyledSummary>
-            </StyledCardBody>
+            {openedDateKey && layerDaily && (
+                <StyledLayerBackdrop onClick={() => setDetailDateKey(null)}>
+                    <StyledRevenueLayer onClick={(e) => e.stopPropagation()}>
+                        <StyledRevenueLayerHeader>
+                            <strong>{formatDateLabel(openedDateKey)} 상세</strong>
+                            <StyledLayerCloseButton type="button" onClick={() => setDetailDateKey(null)}>닫기</StyledLayerCloseButton>
+                        </StyledRevenueLayerHeader>
+                        {layerDaily.count === 0 ? (
+                            <StyledEmpty>예약 없음</StyledEmpty>
+                        ) : (
+                            <StyledList>
+                                {layerDaily.items.map((item) => {
+                                    const reservation = (reservationMap[openedDateKey] || []).find((r) => r.id === item.reservationId);
+                                    return (
+                                        <StyledClickableRow key={item.reservationId}
+                                                            onClick={() => {
+                                                                if (!reservation) return;
+                                                                onSelectReservation(reservation);
+                                                                setDetailDateKey(null);
+                                                            }}>
+                                            <StyledTime>{item.startTime}</StyledTime>
+                                            <StyledService>{item.service}</StyledService>
+                                            <StyledPrice>{formatPrice(item.price)}</StyledPrice>
+                                        </StyledClickableRow>
+                                    );
+                                })}
+                            </StyledList>
+                        )}
+                        <StyledSummary>
+                            <span>{layerDaily.count}건</span>
+                            <strong>{formatPrice(layerDaily.total)}</strong>
+                        </StyledSummary>
+                    </StyledRevenueLayer>
+                </StyledLayerBackdrop>
+            )}
         </>
     );
 };
@@ -938,13 +955,6 @@ const StyledSummary = styled.div`
     }
 `;
 
-const StyledDetailTitle = styled.h3`
-    margin: 12px 16px 4px;
-    font-size: 13px;
-    font-weight: 600;
-    color: var(--dark-gray-color);
-`;
-
 const StyledEmpty = styled.div`
     display: flex;
     align-items: center;
@@ -952,6 +962,46 @@ const StyledEmpty = styled.div`
     padding: 40px;
     font-size: 13px;
     color: var(--dark-gray-color2);
+`;
+
+const StyledLayerBackdrop = styled.div`
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.45);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 100;
+    padding: 16px;
+`;
+
+const StyledRevenueLayer = styled.div`
+    width: min(560px, 100%);
+    max-height: 80vh;
+    overflow-y: auto;
+    background: var(--white-color);
+    border-radius: 10px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.18);
+`;
+
+const StyledRevenueLayerHeader = styled.div`
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--light-gray-color);
+    font-size: 14px;
+    color: var(--dark-gray-color);
+`;
+
+const StyledLayerCloseButton = styled.button`
+    border: 1px solid var(--light-gray-color);
+    background: var(--white-color);
+    color: var(--dark-gray-color);
+    border-radius: 4px;
+    padding: 4px 8px;
+    font-size: 12px;
+    cursor: pointer;
 `;
 
 /* ── Service Manage Styles ── */
