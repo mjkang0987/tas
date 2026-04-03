@@ -54,6 +54,12 @@ function isValidDateKey(value: string): boolean {
     return !Number.isNaN(d.getTime()) && toDateKey(d.getFullYear(), d.getMonth(), d.getDate()) === value;
 }
 
+function shiftDateKey(baseDate: Date, days: number): string {
+    const d = new Date(baseDate);
+    d.setDate(d.getDate() + days);
+    return toDateKey(d.getFullYear(), d.getMonth(), d.getDate());
+}
+
 interface EditState {
     name: string;
     durationMinutes: string;
@@ -548,8 +554,8 @@ const Settings: NextPage<SettingsProps> = ({reservations, customers, history}) =
     const now = new Date();
     const todayKey = toDateKey(now.getFullYear(), now.getMonth(), now.getDate());
     const monthStartKey = toDateKey(now.getFullYear(), now.getMonth(), 1);
-    const revenue30DaysStartKey = toDateKey(now.getFullYear(), now.getMonth(), now.getDate() - 30);
-    const revenueWeekStartKey = toDateKey(now.getFullYear(), now.getMonth(), now.getDate() - 7);
+    const revenue30DaysStartKey = shiftDateKey(now, -30);
+    const revenueWeekStartKey = shiftDateKey(now, -7);
 
     const q = router.query;
     const tab: SettingsTab = q.tab === 'service' || q.tab === 'designer' ? q.tab : 'revenue';
