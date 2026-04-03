@@ -2,30 +2,30 @@
     "designers": [
         {
             "id": 1775183550311,
-            "name": "아",
+            "name": "제인",
             "schedule": [
                 {
-                    "enabled": true,
+                    "enabled": false,
                     "start": "10:00",
                     "end": "20:00"
                 },
                 {
-                    "enabled": true,
+                    "enabled": false,
                     "start": "10:00",
                     "end": "20:00"
                 },
                 {
-                    "enabled": true,
+                    "enabled": false,
                     "start": "10:00",
                     "end": "20:00"
                 },
                 {
-                    "enabled": true,
+                    "enabled": false,
                     "start": "10:00",
                     "end": "20:00"
                 },
                 {
-                    "enabled": true,
+                    "enabled": false,
                     "start": "10:00",
                     "end": "20:00"
                 },
@@ -43,7 +43,7 @@
         },
         {
             "id": 1775183559011,
-            "name": "디자이너1",
+            "name": "찰스",
             "schedule": [
                 {
                     "enabled": true,
@@ -85,7 +85,7 @@
         },
         {
             "id": 1775183630516,
-            "name": "디자이너 1",
+            "name": "마이클",
             "schedule": [
                 {
                     "enabled": true,
