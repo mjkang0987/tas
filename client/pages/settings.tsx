@@ -1088,7 +1088,7 @@ const StyledScheduleList = styled.div`
 
 const StyledScheduleRow = styled.div`
     display: grid;
-    grid-template-columns: 28px 70px 1fr 12px 1fr;
+    grid-template-columns: 28px 70px minmax(0, 1fr) 12px minmax(0, 1fr);
     align-items: center;
     gap: 6px;
     font-size: 12px;
@@ -1107,11 +1107,14 @@ const StyledDaySwitch = styled.label`
 `;
 
 const StyledTimeInput = styled.input`
+    width: 100%;
+    min-width: 0;
     height: 28px;
     padding: 0 6px;
     border: 1px solid var(--light-gray-color);
     border-radius: 4px;
     font-size: 12px;
+    box-sizing: border-box;
     outline: none;
 
     &:focus {
