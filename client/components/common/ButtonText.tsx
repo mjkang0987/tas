@@ -7,11 +7,12 @@ interface Props {
     a11y: boolean
 }
 
-const StyledButtonText = styled.span <{$a11y: boolean}>`
-  display: flex;
-  position: relative;
-  font-size: var(--small-font);
-  ${props => props.$a11y && `
+const StyledButtonText = styled.span <{ $a11y: boolean }>`
+    display: flex;
+    position: relative;
+    font-size: var(--small-font);
+    color: var(--dark-gray-color);
+    ${props => props.$a11y && `
       overflow: hidden;
       position: absolute;
       border: 0;
@@ -24,6 +25,6 @@ const StyledButtonText = styled.span <{$a11y: boolean}>`
   `};
 `;
 
-export const ButtonText: React.FC <Props> = ({children, a11y}) => {
+export const ButtonText: React.FC<Props> = ({children, a11y}) => {
     return <StyledButtonText $a11y={a11y}>{children}</StyledButtonText>;
 };

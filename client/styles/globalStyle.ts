@@ -77,6 +77,9 @@ export const GlobalStyle = createGlobalStyle`
     article,
     ul,
     ol,
+    dl,
+    dt,
+    dd,
     li {
         margin: 0;
         padding: 0;

@@ -80,7 +80,7 @@ const StyledDateHeader = styled.div`
 const StyledDate = styled.li<{ type: string }>`
     display: flex;
     flex-direction: column;
-    padding: 5px;
+    padding: 2px;
     text-align: center;
     overflow-y: auto;
     overscroll-behavior: auto;

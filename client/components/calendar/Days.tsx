@@ -70,7 +70,7 @@ const StyledDays = styled.ul <DaysType>`
 const StyledDay = styled.li`
   flex: 1;
   text-align: center;
-  padding: 10px 0 5px;
+  padding: 4px 0 2px;
   font-size: var(--small-font);
   color: var(--black-color);
   border-right: 1px solid var(--light-gray-color);

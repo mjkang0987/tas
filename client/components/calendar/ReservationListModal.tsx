@@ -138,10 +138,10 @@ export const ReservationListModal = () => {
                                                     $color={getServiceColor(r.service, serviceColorMap)}
                                                     $inactive={isInactive}
                                                     onClick={() => handleClick(r)}>
+                                            <StyledBadge $type={statusType}>{getStatusLabel(r)}</StyledBadge>
                                             <StyledTime>{r.startTime}~{r.endTime}</StyledTime>
                                             <StyledService>{r.service}</StyledService>
                                             <StyledCustomer>{customer?.name ?? '-'}</StyledCustomer>
-                                            <StyledBadge $type={statusType}>{getStatusLabel(r)}</StyledBadge>
                                         </StyledItem>
                                     );
                                 })}
@@ -181,6 +181,10 @@ const StyledDateGroup = styled.div`
     &:not(:first-child) {
         margin-top: 8px;
     }
+    
+    &:last-child {
+        margin-bottom: 10px;
+    }
 `;
 
 const StyledDateTitle = styled.div`
@@ -189,20 +193,19 @@ const StyledDateTitle = styled.div`
     z-index: 1;
     padding: 12px 10px;
     background-color: var(--white-color);
-    border-bottom: 1px solid var(--light-gray-color);
     font-size: 12px;
     font-weight: 600;
     color: var(--dark-gray-color);
 `;
 
 const StyledItem = styled.li<{ $color: string; $inactive: boolean }>`
-    display: grid;
-    grid-template-columns: 100px 1fr 60px 44px;
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
     gap: 8px;
     align-items: center;
     padding: 8px 10px;
-    border-radius: 4px;
-    border-left: 3px solid ${(props) => props.$color};
+    border-left: 4px solid ${(props) => props.$color};
     background-color: var(--black-color-10);
     font-size: var(--small-font);
     cursor: pointer;

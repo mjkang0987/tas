@@ -58,7 +58,7 @@ const StyledList = styled.ul<{ $variant: 'date' | 'month' }>`
     flex-direction: column;
     gap: ${(props) => props.$variant === 'date' ? '2px' : '3px'};
     ${(props) => props.$variant === 'date' ? 'margin-top: 2px;' : ''}
-    padding: ${(props) => props.$variant === 'date' ? '0' : '0 5px'};
+    padding: ${(props) => props.$variant === 'date' ? '0' : '0 2px'};
     list-style: none;
     flex: 1;
     min-height: 0;
@@ -98,7 +98,7 @@ const StyledItem = styled.button<{ $color: string }>`
 `;
 
 const StyledViewAllButton = styled.button<{ $variant: 'date' | 'month' }>`
-    width: ${(props) => props.$variant === 'date' ? '100%' : 'calc(100% - 10px)'};
+    width: 100%;
     margin: ${(props) => props.$variant === 'date' ? '2px 0 0' : '4px auto 2px'};
     padding: ${(props) => props.$variant === 'date' ? '2px 0' : '3px 0'};
     border: 1px solid var(--light-gray-color);

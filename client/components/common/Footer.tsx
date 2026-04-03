@@ -17,10 +17,10 @@ export const Footer = () => {
         <StyledFooter>
             <StyledSearchButton type="button" onClick={() => setIsSearchOpen(true)}>
                 <Icon iconType="search"/>
-                <ButtonText a11y={false}>고객 검색</ButtonText>
+                <ButtonText a11y={false}>고객검색</ButtonText>
             </StyledSearchButton>
-            <Link href="/address">📖 전체보기</Link>
-            <StyledFooterLink href="/settings">설정</StyledFooterLink>
+            <Link href="/address">📖 고객명단</Link>
+            <StyledFooterLink href="/settings">⚙️ 설정</StyledFooterLink>
             {isSearchOpen && <SearchLayer onClose={() => setIsSearchOpen(false)}/>}
         </StyledFooter>
     );
@@ -84,48 +84,52 @@ const SearchLayer = ({onClose}: { onClose: () => void }) => {
 };
 
 const StyledFooter = styled.footer`
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 10px;
-  border-top: solid 1px var(--light-gray-color);
-  font-size: var(--small-font);
-  color: var(--gray-color);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 10px;
+    padding: 10px;
+    border-top: solid 1px var(--light-gray-color);
+    font-size: var(--small-font);
+    color: var(--gray-color);
 `;
 
 const StyledSearchButton = styled.button`
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  padding: 4px 10px;
-  border: 1px solid #ccc;
-  border-radius: 5px;
-  background-color: var(--white-color);
-  box-shadow: 0 0 10px 0 rgba(0, 0, 0, .1);
-  font-size: var(--small-font);
-  color: var(--gray-color);
-  cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px 10px;
+    min-height: 30px;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    background-color: var(--white-color);
+    box-shadow: 0 0 10px 0 rgba(0, 0, 0, .1);
+    font-size: var(--small-font);
+    color: var(--gray-color);
+    cursor: pointer;
 
-  &:hover {
-    box-shadow: 0 0 10px 0 rgba(0, 0, 0, .2);
-  }
+    &:hover {
+        box-shadow: 0 0 10px 0 rgba(0, 0, 0, .2);
+    }
 `;
 
 const StyledFooterLink = styled(Link)`
-  display: inline-flex;
-  align-items: center;
-  padding: 4px 10px;
-  border: 1px solid #ccc;
-  border-radius: 5px;
-  background-color: var(--white-color);
-  box-shadow: 0 0 10px 0 rgba(0, 0, 0, .1);
-  font-size: var(--small-font);
-  color: var(--gray-color);
-  text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    padding: 2px 10px;
+    min-height: 30px;
+    box-sizing: border-box;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    background-color: var(--white-color);
+    box-shadow: 0 0 10px 0 rgba(0, 0, 0, .1);
+    font-size: var(--small-font);
+    color: var(--dark-gray-color);
+    text-decoration: none;
 
-  &:hover {
-    box-shadow: 0 0 10px 0 rgba(0, 0, 0, .2);
-  }
+    &:hover {
+        box-shadow: 0 0 10px 0 rgba(0, 0, 0, .2);
+    }
 `;
 
 const StyledOverlay = styled.div`
@@ -167,13 +171,13 @@ const StyledSearchHeader = styled.div`
     cursor: pointer;
     padding: 0;
     line-height: 1;
-    color: var(--gray-color);
+    color: var(--dark-gray-color);
   }
 `;
 
 const StyledSearchInput = styled.input`
   flex: 1;
-  height: 32px;
+  height: 24px;
   padding: 0 10px;
   border: 1px solid var(--light-gray-color);
   border-radius: 4px;

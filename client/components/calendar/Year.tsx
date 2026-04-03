@@ -98,9 +98,5 @@ const StyledMonth = styled.li`
     border-radius: 5px;
     background-color: var(--black-color-10);
     text-align: center;
-
-    > button {
-        margin-bottom: 10px;
-    }
 `;
 
