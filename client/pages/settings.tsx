@@ -422,13 +422,19 @@ const ServiceManageSection = () => {
                                     <StyledViewRow>
                                         <StyledDragHandle>::</StyledDragHandle>
                                         <StyledColorDot $color={getServiceColor(item.name, serviceColorMap)}/>
-                                        <StyledName>{item.name}</StyledName>
-                                        <StyledMeta>
-                                            {formatDuration(item.durationMinutes)}
-                                            {item.price > 0 && ` / ${formatPrice(item.price)}`}
-                                        </StyledMeta>
-                                        <StyledEditBtn type="button" onClick={() => startEdit(item)}>수정</StyledEditBtn>
-                                        <StyledDeleteBtn type="button" onClick={() => handleDelete(item.name)}>삭제</StyledDeleteBtn>
+                                        <StyledServiceContent>
+                                            <StyledServiceMainLine>
+                                                <StyledName>{item.name}</StyledName>
+                                                <StyledServiceActions>
+                                                    <StyledEditBtn type="button" onClick={() => startEdit(item)}>수정</StyledEditBtn>
+                                                    <StyledDeleteBtn type="button" onClick={() => handleDelete(item.name)}>삭제</StyledDeleteBtn>
+                                                </StyledServiceActions>
+                                            </StyledServiceMainLine>
+                                            <StyledMeta>
+                                                {formatDuration(item.durationMinutes)}
+                                                {item.price > 0 && ` / ${formatPrice(item.price)}`}
+                                            </StyledMeta>
+                                        </StyledServiceContent>
                                     </StyledViewRow>
                                 )}
                             </StyledItem>
@@ -442,6 +448,7 @@ const ServiceManageSection = () => {
                     <StyledAddForm>
                         <StyledAddRow>
                             <select value={form.category}
+                                    aria-label="시술 카테고리"
                                     onChange={(e) => setForm({...form, category: e.target.value})}>
                                 <option value="">카테고리</option>
                                 {categories.map((c) => <option key={c} value={c}>{c}</option>)}
@@ -485,234 +492,233 @@ const ServiceManageSection = () => {
 
 /* ── Designer Manage Section ── */
 
+const DESIGNER_STATUS_OPTIONS: DesignerStatus[] = ['재직', '휴직', '퇴직'];
+
+interface DesignerCardProps {
+    designer: Designer;
+    isEditing: boolean;
+    onUpdateDesigner: (designerId: number, patch: Partial<Pick<Designer, 'name' | 'status' | 'phone' | 'note'>>) => void;
+    onUpdateDesignerDay: (designerId: number, dayIndex: number, patch: {enabled?: boolean; start?: string; end?: string}) => void;
+    onStartEdit: (designerId: number) => void;
+    onFinishEdit: () => void;
+    onDeleteDesigner: (designer: Designer) => void;
+}
+
+const DesignerCard = ({
+    designer,
+    isEditing,
+    onUpdateDesigner,
+    onUpdateDesignerDay,
+    onStartEdit,
+    onFinishEdit,
+    onDeleteDesigner,
+}: DesignerCardProps) => (
+    <StyledDesignerCard>
+        <StyledDesignerHeader>
+            <StyledDesignerNameInput
+                value={designer.name}
+                disabled={!isEditing}
+                onChange={(e) => onUpdateDesigner(designer.id, {name: e.target.value})}
+                placeholder="디자이너명"
+            />
+            <StyledDesignerStatusSelect
+                value={getDesignerStatus(designer)}
+                aria-label={`${designer.name} 상태`}
+                disabled={!isEditing}
+                onChange={(e) => {
+                    const nextStatus = e.target.value as DesignerStatus;
+                    const currentStatus = getDesignerStatus(designer);
+
+                    if (nextStatus === currentStatus) return;
+                    if (nextStatus === '퇴직' && !confirm(`"${designer.name}" 디자이너를 퇴직 처리하시겠습니까?`)) {
+                        e.target.value = currentStatus;
+                        return;
+                    }
+
+                    onUpdateDesigner(designer.id, {status: nextStatus});
+                }}
+            >
+                {DESIGNER_STATUS_OPTIONS.map((status) => (
+                    <option key={status} value={status}>{status}</option>
+                ))}
+            </StyledDesignerStatusSelect>
+            <StyledDesignerHeaderActions>
+                {isEditing ? (
+                    <>
+                        <StyledDeleteBtn type="button" onClick={() => onDeleteDesigner(designer)}>삭제</StyledDeleteBtn>
+                        <StyledCancelBtn type="button" onClick={onFinishEdit}>완료</StyledCancelBtn>
+                    </>
+                ) : (
+                    <StyledEditBtn type="button" onClick={() => onStartEdit(designer.id)}>수정</StyledEditBtn>
+                )}
+            </StyledDesignerHeaderActions>
+        </StyledDesignerHeader>
+        <StyledDesignerMetaGrid>
+            <StyledDesignerMetaField>
+                <StyledDesignerMetaLabel>연락처</StyledDesignerMetaLabel>
+                <StyledDesignerMetaInput
+                    value={designer.phone ?? ''}
+                    disabled={!isEditing}
+                    aria-label={`${designer.name} 연락처`}
+                    onChange={(e) => onUpdateDesigner(designer.id, {phone: e.target.value})}
+                    placeholder="010-0000-0000"
+                />
+            </StyledDesignerMetaField>
+                <StyledDesignerMetaField>
+                    <StyledDesignerMetaLabel>메모</StyledDesignerMetaLabel>
+                <StyledDesignerMetaInput
+                    value={designer.note ?? ''}
+                    disabled={!isEditing}
+                    aria-label={`${designer.name} 메모`}
+                    onChange={(e) => onUpdateDesigner(designer.id, {note: e.target.value})}
+                    placeholder="특이사항 메모"
+                />
+            </StyledDesignerMetaField>
+        </StyledDesignerMetaGrid>
+        <StyledScheduleList>
+            {WEEKDAY_LABELS.map((label, dayIndex) => {
+                const day = designer.schedule[dayIndex];
+                if (!day) return null;
+
+                return (
+                    <StyledScheduleRow key={`${designer.id}-${label}`}>
+                        <StyledDayLabel>{label}</StyledDayLabel>
+                        <StyledDaySwitch>
+                            <input
+                                type="checkbox"
+                                checked={day.enabled}
+                                aria-label={`${designer.name} ${label} 근무 여부`}
+                                disabled={!isEditing}
+                                onChange={(e) => onUpdateDesignerDay(designer.id, dayIndex, {enabled: e.target.checked})}
+                            />
+                            <span>{day.enabled ? '근무' : '휴무'}</span>
+                        </StyledDaySwitch>
+                        <StyledTimeRange>
+                            <StyledTimeInput
+                                type="time"
+                                value={day.start}
+                                aria-label={`${designer.name} ${label} 시작 시간`}
+                                disabled={!isEditing || !day.enabled}
+                                onChange={(e) => onUpdateDesignerDay(designer.id, dayIndex, {start: e.target.value})}
+                            />
+                            <StyledTimeRangeDivider>~</StyledTimeRangeDivider>
+                            <StyledTimeInput
+                                type="time"
+                                value={day.end}
+                                aria-label={`${designer.name} ${label} 종료 시간`}
+                                disabled={!isEditing || !day.enabled}
+                                onChange={(e) => onUpdateDesignerDay(designer.id, dayIndex, {end: e.target.value})}
+                            />
+                        </StyledTimeRange>
+                    </StyledScheduleRow>
+                );
+            })}
+        </StyledScheduleList>
+    </StyledDesignerCard>
+);
+
+interface DesignerSectionProps {
+    title: string;
+    designers: Designer[];
+    editingDesignerId: number | null;
+    onUpdateDesigner: (designerId: number, patch: Partial<Pick<Designer, 'name' | 'status' | 'phone' | 'note'>>) => void;
+    onUpdateDesignerDay: (designerId: number, dayIndex: number, patch: {enabled?: boolean; start?: string; end?: string}) => void;
+    onStartEdit: (designerId: number) => void;
+    onFinishEdit: () => void;
+    onDeleteDesigner: (designer: Designer) => void;
+}
+
+const DesignerSection = ({
+    title,
+    designers,
+    editingDesignerId,
+    onUpdateDesigner,
+    onUpdateDesignerDay,
+    onStartEdit,
+    onFinishEdit,
+    onDeleteDesigner,
+}: DesignerSectionProps) => {
+    if (designers.length === 0) return null;
+
+    return (
+        <StyledDesignerSection>
+            <StyledDesignerSectionTitle>{title}</StyledDesignerSectionTitle>
+            {designers.map((designer) => (
+                <DesignerCard key={designer.id}
+                              designer={designer}
+                              isEditing={editingDesignerId === designer.id}
+                              onUpdateDesigner={onUpdateDesigner}
+                              onUpdateDesignerDay={onUpdateDesignerDay}
+                              onStartEdit={onStartEdit}
+                              onFinishEdit={onFinishEdit}
+                              onDeleteDesigner={onDeleteDesigner}/>
+            ))}
+        </StyledDesignerSection>
+    );
+};
+
 const DesignerManageSection = () => {
     const designers = useCalendarStore((s) => s.designers);
     const addDesigner = useCalendarStore((s) => s.addDesigner);
     const updateDesigner = useCalendarStore((s) => s.updateDesigner);
     const updateDesignerDay = useCalendarStore((s) => s.updateDesignerDay);
-    const deleteDesigner = useCalendarStore((s) => s.deleteDesigner);
-
     const [newName, setNewName] = useState('');
     const [newStatus, setNewStatus] = useState<DesignerStatus>('재직');
-    const [isEditMode, setIsEditMode] = useState(false);
+    const [newPhone, setNewPhone] = useState('');
+    const [newNote, setNewNote] = useState('');
+    const [editingDesignerId, setEditingDesignerId] = useState<number | null>(null);
+    const [isAddingDesigner, setIsAddingDesigner] = useState(false);
     const {active: activeDesigners, onLeave: onLeaveDesigners, resigned: resignedDesigners} = splitDesignersByStatus(designers);
 
     const handleAdd = () => {
         const name = newName.trim();
         if (!name) return;
-        addDesigner(name, newStatus);
+        addDesigner(name, newStatus, newPhone.trim(), newNote.trim());
         setNewName('');
         setNewStatus('재직');
+        setNewPhone('');
+        setNewNote('');
+        setIsAddingDesigner(false);
     };
 
     const handleDeleteDesigner = (designer: Designer) => {
-        if (!confirm(`"${designer.name}" 디자이너를 삭제하시겠습니까?`)) return;
-        deleteDesigner(designer.id);
+        if (!confirm(`"${designer.name}" 디자이너를 퇴직 처리하시겠습니까?`)) return;
+        updateDesigner(designer.id, {status: '퇴직'});
+        setEditingDesignerId(null);
     };
 
     return (
         <>
             <StyledDesignerBody>
                 {designers.length === 0 && <StyledEmpty>디자이너 없음</StyledEmpty>}
-                {activeDesigners.length > 0 && (
-                    <StyledDesignerSection>
-                        <StyledDesignerSectionTitle>재직자</StyledDesignerSectionTitle>
-                        {activeDesigners.map((designer: Designer) => (
-                            <StyledDesignerCard key={designer.id}>
-                                <StyledDesignerHeader>
-                                    <StyledDesignerNameInput
-                                        value={designer.name}
-                                        disabled={!isEditMode}
-                                        onChange={(e) => updateDesigner(designer.id, {name: e.target.value})}
-                                        placeholder="디자이너명"
-                                    />
-                                    <StyledDesignerStatusSelect
-                                        value={getDesignerStatus(designer)}
-                                        disabled={!isEditMode}
-                                        onChange={(e) => updateDesigner(designer.id, {status: e.target.value as DesignerStatus})}
-                                    >
-                                        <option value="재직">재직</option>
-                                        <option value="휴직">휴직</option>
-                                        <option value="퇴직">퇴직</option>
-                                    </StyledDesignerStatusSelect>
-                                    {isEditMode && (
-                                        <StyledDeleteBtn type="button" onClick={() => handleDeleteDesigner(designer)}>삭제</StyledDeleteBtn>
-                                    )}
-                                </StyledDesignerHeader>
-                                <StyledScheduleList>
-                                    {WEEKDAY_LABELS.map((label, dayIndex) => {
-                                        const day = designer.schedule[dayIndex];
-                                        if (!day) return null;
-
-                                        return (
-                                            <StyledScheduleRow key={`${designer.id}-${label}`}>
-                                                <StyledDayLabel>{label}</StyledDayLabel>
-                                                <StyledDaySwitch>
-                                                    <input
-                                                        type="checkbox"
-                                                        checked={day.enabled}
-                                                        disabled={!isEditMode}
-                                                        onChange={(e) => updateDesignerDay(designer.id, dayIndex, {enabled: e.target.checked})}
-                                                    />
-                                                    <span>{day.enabled ? '근무' : '휴무'}</span>
-                                                </StyledDaySwitch>
-                                                <StyledTimeRange>
-                                                    <StyledTimeInput
-                                                        type="time"
-                                                        value={day.start}
-                                                        disabled={!isEditMode || !day.enabled}
-                                                        onChange={(e) => updateDesignerDay(designer.id, dayIndex, {start: e.target.value})}
-                                                    />
-                                                    <StyledTimeRangeDivider>~</StyledTimeRangeDivider>
-                                                    <StyledTimeInput
-                                                        type="time"
-                                                        value={day.end}
-                                                        disabled={!isEditMode || !day.enabled}
-                                                        onChange={(e) => updateDesignerDay(designer.id, dayIndex, {end: e.target.value})}
-                                                    />
-                                                </StyledTimeRange>
-                                            </StyledScheduleRow>
-                                        );
-                                    })}
-                                </StyledScheduleList>
-                            </StyledDesignerCard>
-                        ))}
-                    </StyledDesignerSection>
-                )}
-                {onLeaveDesigners.length > 0 && (
-                    <StyledDesignerSection>
-                        <StyledDesignerSectionTitle>휴직자</StyledDesignerSectionTitle>
-                        {onLeaveDesigners.map((designer: Designer) => (
-                            <StyledDesignerCard key={designer.id}>
-                                <StyledDesignerHeader>
-                                    <StyledDesignerNameInput
-                                        value={designer.name}
-                                        disabled={!isEditMode}
-                                        onChange={(e) => updateDesigner(designer.id, {name: e.target.value})}
-                                        placeholder="디자이너명"
-                                    />
-                                    <StyledDesignerStatusSelect
-                                        value={getDesignerStatus(designer)}
-                                        disabled={!isEditMode}
-                                        onChange={(e) => updateDesigner(designer.id, {status: e.target.value as DesignerStatus})}
-                                    >
-                                        <option value="재직">재직</option>
-                                        <option value="휴직">휴직</option>
-                                        <option value="퇴직">퇴직</option>
-                                    </StyledDesignerStatusSelect>
-                                    {isEditMode && (
-                                        <StyledDeleteBtn type="button" onClick={() => handleDeleteDesigner(designer)}>삭제</StyledDeleteBtn>
-                                    )}
-                                </StyledDesignerHeader>
-                                <StyledScheduleList>
-                                    {WEEKDAY_LABELS.map((label, dayIndex) => {
-                                        const day = designer.schedule[dayIndex];
-                                        if (!day) return null;
-
-                                        return (
-                                            <StyledScheduleRow key={`${designer.id}-${label}`}>
-                                                <StyledDayLabel>{label}</StyledDayLabel>
-                                                <StyledDaySwitch>
-                                                    <input
-                                                        type="checkbox"
-                                                        checked={day.enabled}
-                                                        disabled={!isEditMode}
-                                                        onChange={(e) => updateDesignerDay(designer.id, dayIndex, {enabled: e.target.checked})}
-                                                    />
-                                                    <span>{day.enabled ? '근무' : '휴무'}</span>
-                                                </StyledDaySwitch>
-                                                <StyledTimeRange>
-                                                    <StyledTimeInput
-                                                        type="time"
-                                                        value={day.start}
-                                                        disabled={!isEditMode || !day.enabled}
-                                                        onChange={(e) => updateDesignerDay(designer.id, dayIndex, {start: e.target.value})}
-                                                    />
-                                                    <StyledTimeRangeDivider>~</StyledTimeRangeDivider>
-                                                    <StyledTimeInput
-                                                        type="time"
-                                                        value={day.end}
-                                                        disabled={!isEditMode || !day.enabled}
-                                                        onChange={(e) => updateDesignerDay(designer.id, dayIndex, {end: e.target.value})}
-                                                    />
-                                                </StyledTimeRange>
-                                            </StyledScheduleRow>
-                                        );
-                                    })}
-                                </StyledScheduleList>
-                            </StyledDesignerCard>
-                        ))}
-                    </StyledDesignerSection>
-                )}
-                {resignedDesigners.length > 0 && (
-                    <StyledDesignerSection>
-                        <StyledDesignerSectionTitle>퇴직자</StyledDesignerSectionTitle>
-                        {resignedDesigners.map((designer: Designer) => (
-                            <StyledDesignerCard key={designer.id}>
-                                <StyledDesignerHeader>
-                                    <StyledDesignerNameInput
-                                        value={designer.name}
-                                        disabled={!isEditMode}
-                                        onChange={(e) => updateDesigner(designer.id, {name: e.target.value})}
-                                        placeholder="디자이너명"
-                                    />
-                                    <StyledDesignerStatusSelect
-                                        value={getDesignerStatus(designer)}
-                                        disabled={!isEditMode}
-                                        onChange={(e) => updateDesigner(designer.id, {status: e.target.value as DesignerStatus})}
-                                    >
-                                        <option value="재직">재직</option>
-                                        <option value="휴직">휴직</option>
-                                        <option value="퇴직">퇴직</option>
-                                    </StyledDesignerStatusSelect>
-                                    {isEditMode && (
-                                        <StyledDeleteBtn type="button" onClick={() => handleDeleteDesigner(designer)}>삭제</StyledDeleteBtn>
-                                    )}
-                                </StyledDesignerHeader>
-                                <StyledScheduleList>
-                                    {WEEKDAY_LABELS.map((label, dayIndex) => {
-                                        const day = designer.schedule[dayIndex];
-                                        if (!day) return null;
-
-                                        return (
-                                            <StyledScheduleRow key={`${designer.id}-${label}`}>
-                                                <StyledDayLabel>{label}</StyledDayLabel>
-                                                <StyledDaySwitch>
-                                                    <input
-                                                        type="checkbox"
-                                                        checked={day.enabled}
-                                                        disabled={!isEditMode}
-                                                        onChange={(e) => updateDesignerDay(designer.id, dayIndex, {enabled: e.target.checked})}
-                                                    />
-                                                    <span>{day.enabled ? '근무' : '휴무'}</span>
-                                                </StyledDaySwitch>
-                                                <StyledTimeRange>
-                                                    <StyledTimeInput
-                                                        type="time"
-                                                        value={day.start}
-                                                        disabled={!isEditMode || !day.enabled}
-                                                        onChange={(e) => updateDesignerDay(designer.id, dayIndex, {start: e.target.value})}
-                                                    />
-                                                    <StyledTimeRangeDivider>~</StyledTimeRangeDivider>
-                                                    <StyledTimeInput
-                                                        type="time"
-                                                        value={day.end}
-                                                        disabled={!isEditMode || !day.enabled}
-                                                        onChange={(e) => updateDesignerDay(designer.id, dayIndex, {end: e.target.value})}
-                                                    />
-                                                </StyledTimeRange>
-                                            </StyledScheduleRow>
-                                        );
-                                    })}
-                                </StyledScheduleList>
-                            </StyledDesignerCard>
-                        ))}
-                    </StyledDesignerSection>
-                )}
+                <DesignerSection title="재직자"
+                                 designers={activeDesigners}
+                                 editingDesignerId={editingDesignerId}
+                                 onUpdateDesigner={updateDesigner}
+                                 onUpdateDesignerDay={updateDesignerDay}
+                                 onStartEdit={setEditingDesignerId}
+                                 onFinishEdit={() => setEditingDesignerId(null)}
+                                 onDeleteDesigner={handleDeleteDesigner}/>
+                <DesignerSection title="휴직자"
+                                 designers={onLeaveDesigners}
+                                 editingDesignerId={editingDesignerId}
+                                 onUpdateDesigner={updateDesigner}
+                                 onUpdateDesignerDay={updateDesignerDay}
+                                 onStartEdit={setEditingDesignerId}
+                                 onFinishEdit={() => setEditingDesignerId(null)}
+                                 onDeleteDesigner={handleDeleteDesigner}/>
+                <DesignerSection title="퇴직자"
+                                 designers={resignedDesigners}
+                                 editingDesignerId={editingDesignerId}
+                                 onUpdateDesigner={updateDesigner}
+                                 onUpdateDesignerDay={updateDesignerDay}
+                                 onStartEdit={setEditingDesignerId}
+                                 onFinishEdit={() => setEditingDesignerId(null)}
+                                 onDeleteDesigner={handleDeleteDesigner}/>
             </StyledDesignerBody>
             <StyledServiceFooter>
                 <StyledDesignerFooterActions>
-                    {isEditMode ? (
+                    {isAddingDesigner ? (
                         <>
                             <StyledDesignerAddRow>
                                 <StyledAddInput
@@ -722,22 +728,37 @@ const DesignerManageSection = () => {
                                 />
                                 <StyledDesignerStatusSelect
                                     value={newStatus}
+                                    aria-label="새 디자이너 상태"
                                     onChange={(e) => setNewStatus(e.target.value as DesignerStatus)}
                                 >
-                                    <option value="재직">재직</option>
-                                    <option value="휴직">휴직</option>
-                                    <option value="퇴직">퇴직</option>
+                                    {DESIGNER_STATUS_OPTIONS.map((status) => (
+                                        <option key={status} value={status}>{status}</option>
+                                    ))}
                                 </StyledDesignerStatusSelect>
+                                <StyledAddInput
+                                    value={newPhone}
+                                    onChange={(e) => setNewPhone(e.target.value)}
+                                    placeholder="연락처"
+                                    aria-label="새 디자이너 연락처"
+                                />
                                 <StyledSaveBtn type="button" onClick={handleAdd}>추가</StyledSaveBtn>
                             </StyledDesignerAddRow>
+                            <StyledDesignerMetaInput
+                                value={newNote}
+                                onChange={(e) => setNewNote(e.target.value)}
+                                placeholder="메모"
+                                aria-label="새 디자이너 메모"
+                            />
                             <StyledCancelBtn type="button" onClick={() => {
-                                setIsEditMode(false);
+                                setIsAddingDesigner(false);
                                 setNewName('');
                                 setNewStatus('재직');
-                            }}>완료</StyledCancelBtn>
+                                setNewPhone('');
+                                setNewNote('');
+                            }}>취소</StyledCancelBtn>
                         </>
                     ) : (
-                        <StyledEditBtn type="button" onClick={() => setIsEditMode(true)}>수정</StyledEditBtn>
+                        <StyledEditBtn type="button" onClick={() => setIsAddingDesigner(true)}>디자이너 추가</StyledEditBtn>
                     )}
                 </StyledDesignerFooterActions>
             </StyledServiceFooter>
@@ -1010,6 +1031,56 @@ const StyledRevenueStickyArea = styled.div`
     border-bottom: 1px solid var(--light-gray-color);
 `;
 
+const compactInputStyle = css`
+    min-height: 32px;
+    border: 1px solid var(--light-gray-color);
+    border-radius: var(--radius-md);
+    background: var(--white-color);
+    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+    font-size: 12px;
+    box-sizing: border-box;
+    outline: none;
+    transition: border-color 0.15s ease, box-shadow 0.15s ease, background-color 0.15s ease;
+
+    &:focus {
+        border-color: var(--blue-color);
+        box-shadow: 0 0 0 3px rgba(0, 169, 230, 0.14);
+    }
+
+    &:disabled {
+        background: var(--gray-color2);
+        color: var(--dark-gray-color2);
+    }
+`;
+
+const actionButtonStyle = css`
+    flex-shrink: 0;
+    min-height: 32px;
+    padding: 0 12px;
+    border-radius: var(--radius-md);
+    font-size: 12px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: transform 0.12s ease, box-shadow 0.15s ease, border-color 0.15s ease, background-color 0.15s ease;
+
+    &:hover {
+        box-shadow: 0 6px 14px rgba(15, 23, 42, 0.08);
+        transform: translateY(-1px);
+    }
+`;
+
+const mobileStretchButtonStyle = css`
+    @media (max-width: 640px) {
+        flex: 1;
+    }
+`;
+
+const footerActionStackStyle = css`
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+`;
+
 const StyledRangeFilter = styled.div`
     display: flex;
     align-items: flex-end;
@@ -1027,13 +1098,22 @@ const StyledRangeInputWrap = styled.label`
 `;
 
 const StyledDateInput = styled.input`
-    min-height: 30px;
+    min-height: 34px;
     border: 1px solid var(--light-gray-color);
-    border-radius: 6px;
-    padding: 0 8px;
+    border-radius: var(--radius-md);
+    background: var(--white-color);
+    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
     font-size: 12px;
-    color: var(--dark-gray-color);
     box-sizing: border-box;
+    outline: none;
+    transition: border-color 0.15s ease, box-shadow 0.15s ease, background-color 0.15s ease;
+    padding: 0 8px;
+    color: var(--dark-gray-color);
+
+    &:focus {
+        border-color: var(--blue-color);
+        box-shadow: 0 0 0 3px rgba(0, 169, 230, 0.14);
+    }
 `;
 
 const StyledRangeDivider = styled.span`
@@ -1050,14 +1130,13 @@ const StyledQuickFilters = styled.div`
 `;
 
 const StyledQuickFilterButton = styled.button<{ $active: boolean }>`
-    height: 26px;
-    padding: 0 10px;
+    ${actionButtonStyle};
+    min-height: 28px;
+    padding: 0 11px;
     border: 1px solid ${(p) => p.$active ? 'var(--blue-color)' : 'var(--light-gray-color)'};
     border-radius: 13px;
     background: ${(p) => p.$active ? 'var(--blue-color)' : 'var(--white-color)'};
     color: ${(p) => p.$active ? '#fff' : 'var(--dark-gray-color)'};
-    font-size: 12px;
-    cursor: pointer;
 `;
 
 const StyledDesignerTabs = styled.div`
@@ -1070,14 +1149,13 @@ const StyledDesignerTabs = styled.div`
 
 const StyledDesignerTab = styled.button<{ $active: boolean }>`
     flex-shrink: 0;
-    height: 28px;
-    padding: 0 10px;
+    ${actionButtonStyle};
+    min-height: 30px;
+    padding: 0 11px;
     border: 1px solid ${(p) => p.$active ? 'var(--blue-color)' : 'var(--light-gray-color)'};
     border-radius: 14px;
     background: ${(p) => p.$active ? 'var(--blue-color)' : 'var(--white-color)'};
     color: ${(p) => p.$active ? '#fff' : 'var(--dark-gray-color)'};
-    font-size: 12px;
-    cursor: pointer;
 `;
 
 const StyledList = styled.div`
@@ -1276,38 +1354,6 @@ const StyledCategoryColorInput = styled.input`
     cursor: pointer;
 `;
 
-const compactInputStyle = css`
-    min-height: 28px;
-    border: 1px solid var(--light-gray-color);
-    border-radius: 3px;
-    font-size: 12px;
-    box-sizing: border-box;
-    outline: none;
-
-    &:focus {
-        border-color: var(--blue-color);
-    }
-`;
-
-const actionButtonStyle = css`
-    flex-shrink: 0;
-    border-radius: 3px;
-    font-size: 12px;
-    cursor: pointer;
-`;
-
-const mobileStretchButtonStyle = css`
-    @media (max-width: 640px) {
-        flex: 1;
-    }
-`;
-
-const footerActionStackStyle = css`
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-`;
-
 const StyledItem = styled.div<{ $isDragging: boolean; $isDragOver: boolean }>`
     padding: 0 16px;
     border-bottom: 1px solid var(--black-color-10);
@@ -1321,10 +1367,36 @@ const StyledViewRow = styled.div`
     gap: 6px;
     padding: 8px 0;
     font-size: 13px;
+`;
+
+const StyledServiceContent = styled.div`
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+`;
+
+const StyledServiceMainLine = styled.div`
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-width: 0;
 
     @media (max-width: 640px) {
         flex-wrap: wrap;
-        row-gap: 8px;
+        row-gap: 6px;
+    }
+`;
+
+const StyledServiceActions = styled.div`
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-left: auto;
+
+    @media (max-width: 640px) {
+        margin-left: 0;
     }
 `;
 
@@ -1342,35 +1414,25 @@ const StyledColorDot = styled.span<{ $color: string }>`
     height: 8px;
     border-radius: 50%;
     background-color: ${(p) => p.$color};
+    align-self: center;
 `;
 
 const StyledName = styled.span`
+    flex: 1;
+    min-width: 0;
     color: var(--dark-gray-color);
-
-    @media (max-width: 640px) {
-        flex: 1;
-        min-width: 0;
-    }
 `;
 
 const StyledMeta = styled.span`
-    flex: 1;
-    text-align: right;
+    display: block;
     font-size: 11px;
     color: var(--dark-gray-color2);
-
-    @media (max-width: 640px) {
-        flex-basis: 100%;
-        text-align: left;
-        padding-left: 20px;
-    }
 `;
 
 const StyledEditBtn = styled.button`
     ${actionButtonStyle};
     border: 1px solid var(--light-gray-color);
     background: none;
-    padding: 2px 6px;
     font-size: 11px;
     color: var(--dark-gray-color);
 `;
@@ -1378,8 +1440,7 @@ const StyledEditBtn = styled.button`
 const StyledDeleteBtn = styled.button`
     ${actionButtonStyle};
     border: 1px solid var(--danger-border);
-    background: none;
-    padding: 2px 6px;
+    background: var(--danger-bg);
     font-size: 11px;
     color: var(--danger-color);
 `;
@@ -1418,8 +1479,6 @@ const StyledEditSmall = styled.input`
 const StyledSaveBtn = styled.button`
     ${actionButtonStyle};
     ${mobileStretchButtonStyle};
-    height: 28px;
-    padding: 0 10px;
     border: 1px solid var(--blue-color);
     background-color: var(--blue-color);
     color: #fff;
@@ -1428,8 +1487,6 @@ const StyledSaveBtn = styled.button`
 const StyledCancelBtn = styled.button`
     ${actionButtonStyle};
     ${mobileStretchButtonStyle};
-    height: 28px;
-    padding: 0 10px;
     border: 1px solid var(--light-gray-color);
     background: none;
     color: var(--dark-gray-color);
@@ -1442,13 +1499,12 @@ const StyledServiceFooter = styled.div`
 
 const StyledAddButton = styled.button`
     width: 100%;
-    height: 34px;
+    ${actionButtonStyle};
+    min-height: 36px;
     border: 1px dashed var(--light-gray-color);
-    border-radius: 4px;
     background: none;
     font-size: 13px;
     color: var(--dark-gray-color);
-    cursor: pointer;
 
     &:hover {
         border-color: var(--blue-color);
@@ -1471,17 +1527,8 @@ const StyledAddRow = styled.div`
     }
 
     > select {
-        height: 28px;
+        ${compactInputStyle};
         padding: 0 4px;
-        border: 1px solid var(--light-gray-color);
-        border-radius: 3px;
-        font-size: 12px;
-        outline: none;
-        box-sizing: border-box;
-
-        &:focus {
-            border-color: var(--blue-color);
-        }
 
         @media (max-width: 640px) {
             width: 100%;
@@ -1551,9 +1598,43 @@ const StyledDesignerHeader = styled.div`
     margin-bottom: 8px;
 
     @media (max-width: 640px) {
-        flex-direction: column;
-        align-items: stretch;
+        flex-wrap: wrap;
+        align-items: flex-start;
     }
+`;
+
+const StyledDesignerHeaderActions = styled.div`
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-left: auto;
+
+    @media (max-width: 640px) {
+        margin-left: 0;
+    }
+`;
+
+const StyledDesignerMetaGrid = styled.div`
+    display: grid;
+    grid-template-columns: minmax(0, 180px) minmax(0, 1fr);
+    gap: 8px;
+    margin-bottom: 10px;
+
+    @media (max-width: 640px) {
+        grid-template-columns: 1fr;
+    }
+`;
+
+const StyledDesignerMetaField = styled.div`
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    min-width: 0;
+`;
+
+const StyledDesignerMetaLabel = styled.label`
+    font-size: 11px;
+    color: var(--dark-gray-color2);
 `;
 
 const StyledDesignerNameInput = styled.input`
@@ -1562,23 +1643,35 @@ const StyledDesignerNameInput = styled.input`
     min-height: 30px;
     padding: 0 8px;
     font-size: 13px;
+
+    @media (max-width: 640px) {
+        width: auto;
+        max-width: 100%;
+    }
+`;
+
+const StyledDesignerMetaInput = styled.input`
+    width: 100%;
+    min-width: 0;
+    ${compactInputStyle};
+    padding: 0 8px;
 `;
 
 const StyledDesignerStatusSelect = styled.select`
     flex-shrink: 0;
-    min-height: 30px;
+    ${compactInputStyle};
+    min-height: 28px;
     padding: 0 8px;
-    border: 1px solid var(--light-gray-color);
     border-radius: 999px;
-    background: var(--white-color);
     font-size: 11px;
     color: var(--dark-gray-color2);
-    outline: none;
 
-    &:focus {
-        border-color: var(--blue-color);
+    @media (max-width: 640px) {
+        width: auto;
+        max-width: 100%;
     }
 `;
+
 
 const StyledScheduleList = styled.div`
     display: flex;
@@ -1643,22 +1736,27 @@ const StyledDesignerAddRow = styled.div`
     gap: 6px;
 
     @media (max-width: 640px) {
-        flex-direction: column;
+        flex-wrap: wrap;
+        align-items: flex-start;
+    }
+
+    > * {
+        max-width: 100%;
     }
 `;
 
 const StyledDesignerFooterActions = styled.div`
-    ${footerActionStackStyle};
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    justify-content: flex-end;
 
     ${StyledEditBtn},
     ${StyledCancelBtn} {
-        align-self: flex-end;
+        max-width: 100%;
     }
 
     @media (max-width: 640px) {
-        ${StyledEditBtn},
-        ${StyledCancelBtn} {
-            align-self: stretch;
-        }
+        justify-content: flex-start;
     }
 `;

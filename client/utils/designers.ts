@@ -11,6 +11,8 @@ export interface Designer {
     name: string;
     schedule: DaySchedule[];
     status?: DesignerStatus;
+    phone?: string;
+    note?: string;
 }
 
 export const WEEKDAY_LABELS = ['월', '화', '수', '목', '금', '토', '일'] as const;
@@ -45,5 +47,7 @@ export const DEFAULT_DESIGNERS: Designer[] = [
         name: '디자이너 1',
         schedule: createDefaultSchedule(),
         status: '재직',
+        phone: '',
+        note: '',
     },
 ];

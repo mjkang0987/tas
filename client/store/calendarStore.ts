@@ -78,8 +78,8 @@ export interface CalendarState {
     setServiceCatalog: (catalog: ServiceItem[]) => void;
     setCategoryBaseColorMap: (colorMap: Record<string, string>) => void;
     setDesigners: (designers: Designer[]) => void;
-    addDesigner: (name: string, status?: DesignerStatus) => void;
-    updateDesigner: (designerId: number, patch: Partial<Pick<Designer, 'name' | 'status'>>) => void;
+    addDesigner: (name: string, status?: DesignerStatus, phone?: string, note?: string) => void;
+    updateDesigner: (designerId: number, patch: Partial<Pick<Designer, 'name' | 'status' | 'phone' | 'note'>>) => void;
     updateDesignerDay: (designerId: number, dayIndex: number, patch: Partial<DaySchedule>) => void;
     deleteDesigner: (designerId: number) => void;
     updateCategoryBaseColor: (category: string, color: string) => void;
@@ -244,7 +244,7 @@ export const useCalendarStore = create<CalendarState>((set) => ({
     setCategoryBaseColorMap: (categoryBaseColorMap) => set({categoryBaseColorMap}),
     setDesigners: (designers) => set({designers}),
 
-    addDesigner: (name, status = '재직') =>
+    addDesigner: (name, status = '재직', phone = '', note = '') =>
         set((state) => {
             const cleanName = name.trim();
             if (!cleanName) return state;
@@ -254,6 +254,8 @@ export const useCalendarStore = create<CalendarState>((set) => ({
                 name: cleanName,
                 schedule: createDefaultSchedule(),
                 status,
+                phone,
+                note,
             };
 
             const nextDesigners = [
@@ -272,7 +274,9 @@ export const useCalendarStore = create<CalendarState>((set) => ({
                     ? {
                         ...designer,
                         ...(patch.name !== undefined ? {name: patch.name} : {}),
-                        ...(patch.status ? {status: patch.status} : {})
+                        ...(patch.status ? {status: patch.status} : {}),
+                        ...(patch.phone !== undefined ? {phone: patch.phone} : {}),
+                        ...(patch.note !== undefined ? {note: patch.note} : {}),
                     }
                     : designer
             );
