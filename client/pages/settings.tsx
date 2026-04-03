@@ -41,11 +41,16 @@ function formatDateLabel(dateKey: string): string {
     return `${d.getFullYear()}년 ${d.getMonth() + 1}월 ${d.getDate()}일 (${WEEKDAYS[d.getDay()]})`;
 }
 
-function formatShortDate(dateKey: string): string {
+function getShortDateParts(dateKey: string): {monthDay: string; yearWeekday: string} {
     const parts = dateKey.split('-');
-    const d = Number(parts[2]);
+    const year = Number(parts[0]);
+    const month = Number(parts[1]);
+    const day = Number(parts[2]);
     const date = new Date(dateKey + 'T00:00:00');
-    return `${d}일 (${WEEKDAYS[date.getDay()]})`;
+    return {
+        monthDay: `${month}월 ${day}일`,
+        yearWeekday: `${year}년 (${WEEKDAYS[date.getDay()]})`,
+    };
 }
 
 function isValidDateKey(value: string): boolean {
@@ -173,17 +178,24 @@ const RevenueSection = ({
                     <StyledEmpty>매출 없음</StyledEmpty>
                 ) : (
                     <StyledList>
-                        {days.map((day) => (
-                            <StyledClickableRow key={day.dateKey}
-                                                onClick={() => {
-                                                    setSelectedDateKey(day.dateKey);
-                                                    setDetailDateKey(day.dateKey);
-                                                }}>
-                                <StyledDate>{formatShortDate(day.dateKey)}</StyledDate>
-                                <StyledCount>{day.count}건</StyledCount>
-                                <StyledPrice>{formatPrice(day.total)}</StyledPrice>
-                            </StyledClickableRow>
-                        ))}
+                        {days.map((day) => {
+                            const dateParts = getShortDateParts(day.dateKey);
+
+                            return (
+                                <StyledClickableRow key={day.dateKey}
+                                                    onClick={() => {
+                                                        setSelectedDateKey(day.dateKey);
+                                                        setDetailDateKey(day.dateKey);
+                                                    }}>
+                                    <StyledDate>
+                                        <StyledDateMonthDay>{dateParts.monthDay}</StyledDateMonthDay>
+                                        <StyledDateYear>{dateParts.yearWeekday}</StyledDateYear>
+                                    </StyledDate>
+                                    <StyledCount>{day.count}건</StyledCount>
+                                    <StyledPrice>{formatPrice(day.total)}</StyledPrice>
+                                </StyledClickableRow>
+                            );
+                        })}
                     </StyledList>
                 )}
                 <StyledSummary>
@@ -841,6 +853,7 @@ const StyledDateInput = styled.input`
     padding: 0 8px;
     font-size: 12px;
     color: var(--dark-gray-color);
+    box-sizing: border-box;
 `;
 
 const StyledRangeDivider = styled.span`
@@ -914,10 +927,22 @@ const StyledTime = styled.span`
 
 const StyledDate = styled.span`
     flex-shrink: 0;
-    width: 70px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 2px;
+    width: 96px;
+`;
+
+const StyledDateMonthDay = styled.span`
     font-size: 12px;
     color: var(--dark-gray-color);
     font-weight: 500;
+`;
+
+const StyledDateYear = styled.span`
+    font-size: 10px;
+    color: var(--dark-gray-color2);
 `;
 
 const StyledCount = styled.span`
