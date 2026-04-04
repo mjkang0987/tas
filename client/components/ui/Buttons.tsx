@@ -17,12 +17,12 @@ const StyledSquareButton = styled.button <Props>`
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    height: 30px;
+    min-height: 30px;
     padding: 0 8px;
-    border: 1px solid #ccc;
+    border: 1px solid var(--border-color);
     background-color: var(--white-color);
-    border-radius: 5px;
-    box-shadow: 0 0 10px 0 rgba(0, 0, 0, .1);
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-sm);
     font-size: var(--small-font);
 `;
 
@@ -37,10 +37,10 @@ const StyledCircleButton = styled.button <Props>`
     position: relative;
     width: 20px;
     height: 20px;
-    border: 1px solid #ccc;
+    border: 1px solid var(--border-color);
     background-color: var(--white-color);
     border-radius: 20px;
-    box-shadow: 0 0 10px 0 rgba(0, 0, 0, .1);
+    box-shadow: var(--shadow-sm);
 `;
 
 export const ButtonCircle: React.FC<Props> = ({children, ...props}) => {
@@ -55,11 +55,11 @@ const StyledReserveButton = styled.button <Props>`
     width: calc(100% - 10px);
     height: ${props => props.$height}px;
     max-height: ${props => props.$height}px;
-    background-color: ${props => props.$cancelled ? '#9ca3af' : props.$color};
+    background-color: ${props => props.$cancelled ? 'var(--cancelled-color)' : props.$color};
     border: none;
-    border-radius: 4px;
+    border-radius: var(--radius-sm);
     padding: 2px 6px;
-    color: #fff;
+    color: var(--white-color);
     font-size: 12px;
     overflow: hidden;
     cursor: pointer;

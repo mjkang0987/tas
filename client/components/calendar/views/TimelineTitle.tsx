@@ -46,7 +46,7 @@ export const TimelineTitle = () => {
 
 const StyledTimelineTitle = styled.div`
   flex-shrink: 0;
-  width: 80px;
+  width: var(--timeline-col);
   border-right: 1px solid var(--light-gray-color);
   box-sizing: border-box;
 `;

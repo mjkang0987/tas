@@ -78,7 +78,9 @@ const StyledWrapper = styled.div`
     align-items: center;
     justify-content: center;
     height: 100%;
-    background-color: #f5f5f5;
+    padding: 16px;
+    box-sizing: border-box;
+    background-color: var(--gray-color2);
 `;
 
 const StyledCard = styled.div`
@@ -86,23 +88,27 @@ const StyledCard = styled.div`
     flex-direction: column;
     align-items: center;
     padding: 40px 30px;
-    background-color: #fff;
-    border-radius: 12px;
-    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.1);
+    background-color: var(--white-color);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-md);
     width: 100%;
     max-width: 360px;
+
+    @media (max-width: 640px) {
+        padding: 32px 20px;
+    }
 `;
 
 const StyledTitle = styled.h1`
     font-size: 24px;
     font-weight: 700;
     margin: 0 0 8px;
-    color: #333;
+    color: var(--black-color);
 `;
 
 const StyledSubtitle = styled.p`
-    font-size: 14px;
-    color: #888;
+    font-size: var(--font);
+    color: var(--dark-gray-color2);
     margin: 0 0 30px;
 `;
 

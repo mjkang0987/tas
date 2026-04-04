@@ -41,9 +41,21 @@ export const GlobalStyle = createGlobalStyle`
         --gap-md: 8px;
         --gap-lg: 10px;
 
+        --border-color: hsl(0, 0%, 80%);
+        --shadow-sm: 0 1px 4px rgba(0, 0, 0, .08);
+        --shadow-md: 0 4px 16px rgba(0, 0, 0, .12);
+        --cancelled-color: hsl(220, 9%, 62%);
+        --timeline-col: 80px;
+
         --dot-size: 10px;
 
         --bar-top: 56px;
+    }
+
+    @media (max-width: 640px) {
+        :root {
+            --timeline-col: 56px;
+        }
     }
 
     html,

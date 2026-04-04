@@ -42,7 +42,7 @@ const StyledDaysWrap = styled.div <DaysType>`
   width: 100%;
 
   ${props => props.type !== ViewType.Month && `
-  grid-template-columns: 80px 1fr;
+  grid-template-columns: var(--timeline-col) 1fr;
   height: 100%;
   overflow-y: auto;
   overflow-x: hidden;

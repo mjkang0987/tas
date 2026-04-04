@@ -20,10 +20,10 @@ const StyledInput = styled.label<StyledProps>`
     display: flex;
     position: relative;
     box-sizing: border-box;
-    border: 1px solid #ccc;
+    border: 1px solid var(--border-color);
     background-color: var(--white-color);
-    border-radius: 5px;
-    box-shadow: 0 0 10px 0 rgba(0, 0, 0, .1);
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-sm);
 
     &::placeholder {
         color: var(--gray-color);
@@ -35,7 +35,7 @@ const StyledInput = styled.label<StyledProps>`
         border: none;
         background-color: var(--white-color);
         padding: 0 0 0 8px;
-        border-radius: 5px;
+        border-radius: var(--radius-md);
         box-sizing: border-box;
         font-size: var(--small-font);
         outline: none;
@@ -62,7 +62,7 @@ const StyledInput = styled.label<StyledProps>`
       width: 20px;
       border: none;
       background-color: var(--white-color);
-     border-radius: 5px;
+     border-radius: var(--radius-md);
     }
   `};
 `;

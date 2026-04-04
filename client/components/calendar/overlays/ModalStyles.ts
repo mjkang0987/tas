@@ -17,10 +17,16 @@ export const StyledDetail = styled.div<{ $width?: number | string }>`
   max-width: 100%;
   max-height: 80vh;
   display: flex;
-  flex-direction: column;  background-color: #fff;
-  border-radius: 8px;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+  flex-direction: column;
+  background-color: var(--white-color);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-md);
   overflow: hidden;
+
+  @media (max-width: 640px) {
+    width: 100%;
+    max-height: 90vh;
+  }
 `;
 
 export const StyledHeader = styled.div`
@@ -183,15 +189,24 @@ export const StyledFooter = styled.div`
   flex-shrink: 0;
   gap: 8px;
   padding: 0 16px 16px;
+
+  @media (max-width: 640px) {
+    flex-wrap: wrap;
+
+    > button {
+      flex: 1;
+      min-height: 36px;
+    }
+  }
 `;
 
 export const StyledActionButton = styled.button<{ $primary?: boolean; $danger?: boolean; $warning?: boolean }>`
-  min-height: 24px;
-  padding: 0 8px;
-  border: 1px solid ${(props) => props.$danger ? '#c93a30' : props.$warning ? '#EA4335' : props.$primary ? 'var(--blue-color)' : 'var(--light-gray-color)'};
-  border-radius: 4px;
-  background-color: ${(props) => props.$danger ? '#c93a30' : props.$warning ? '#EA4335' : props.$primary ? 'var(--blue-color)' : 'var(--white-color)'};
-  color: ${(props) => (props.$danger || props.$primary || props.$warning) ? '#fff' : 'var(--dark-gray-color)'};
+  min-height: 28px;
+  padding: 0 10px;
+  border: 1px solid ${(props) => props.$danger ? 'var(--danger-color)' : props.$warning ? 'var(--warning-color)' : props.$primary ? 'var(--blue-color)' : 'var(--border-color)'};
+  border-radius: var(--radius-sm);
+  background-color: ${(props) => props.$danger ? 'var(--danger-color)' : props.$warning ? 'var(--warning-color)' : props.$primary ? 'var(--blue-color)' : 'var(--white-color)'};
+  color: ${(props) => (props.$danger || props.$primary || props.$warning) ? 'var(--white-color)' : 'var(--dark-gray-color)'};
   font-size: var(--small-font);
   font-weight: 500;
   cursor: pointer;
