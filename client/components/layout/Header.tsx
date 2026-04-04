@@ -40,47 +40,61 @@ export const Header = () => {
 const StyledHeader = styled.header`
   display: flex;
   align-items: center;
-  gap: 20px;
+  gap: 12px;
   width: 100%;
-  padding: 8px 15px 7px;
+  padding: 0 12px;
+  height: 48px;
   box-sizing: border-box;
+  background-color: var(--white-color);
   border-bottom: solid 1px var(--light-gray-color);
+  flex-shrink: 0;
 `;
 
 const StyledButton = styled.button`
-  width: 30px;
-  height: 30px;
-  border-radius: 100%;
-  background-color: #fff;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: var(--radius-md);
+  background-color: transparent;
   border: none;
+  color: var(--dark-gray-color);
+  flex-shrink: 0;
 
   &:hover {
-    background-color: rgba(0, 0, 0, .1);
+    background-color: var(--gray-color2);
   }
 `;
 
 const StyledUserArea = styled.div`
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
   margin-left: auto;
 `;
 
 const StyledUserName = styled.span`
   font-size: var(--small-font);
-  color: #555;
+  color: var(--dark-gray-color2);
+
+  @media (max-width: 640px) {
+    display: none;
+  }
 `;
 
 const StyledLogoutButton = styled.button`
-  padding: 4px 10px;
-  border: 1px solid #ccc;
-  border-radius: 4px;
-  background-color: #fff;
+  padding: 0 10px;
+  height: 28px;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  background-color: var(--white-color);
   font-size: var(--small-font);
-  color: #555;
+  color: var(--dark-gray-color);
   cursor: pointer;
 
   &:hover {
-    background-color: #f5f5f5;
+    background-color: var(--gray-color2);
+    border-color: var(--gray-color);
   }
 `;

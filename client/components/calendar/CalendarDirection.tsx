@@ -127,11 +127,5 @@ export const CalendarDirection = () => {
 const StyledButtonWrap = styled.span`
   display: flex;
   align-items: center;
-  gap: 5px;
-
-  button {
-    &:first-child {
-      margin-right: 40px;
-    }
-  }
+  gap: 4px;
 `;

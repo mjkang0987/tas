@@ -83,19 +83,19 @@ const StyledAside = styled.aside <Props>`
     flex-shrink: 0;
     display: flex;
     flex-direction: column;
-    gap: 6px;
+    gap: 2px;
     ${props => (!props.$isVisible && props.$isTransitionEnd) && 'display: none'};
     position: absolute;
     top: 0;
     left: 0;
     height: 100%;
-    width: 120px;
+    width: 160px;
     max-width: 80%;
-    padding: 42px 15px 0;
+    padding: 52px 8px 12px;
     border-right: solid 1px var(--light-gray-color);
     box-sizing: border-box;
-    background-color: #fff;
-    box-shadow: 10px 0 10px 0 rgba(0 0 0 / .1);
+    background-color: var(--white-color);
+    box-shadow: var(--shadow-md);
     z-index: 100;
 
     &.animate {
@@ -112,21 +112,27 @@ const StyledAside = styled.aside <Props>`
 const StyledDivider = styled.hr`
   border: none;
   border-top: 1px solid var(--light-gray-color);
-  margin: 4px 0;
+  margin: 6px 4px;
 `;
 
 const StyledNavLink = styled(Link)`
   display: flex;
   align-items: center;
-  justify-content: center;
   width: 100%;
-  height: 25px;
-  border: 1px solid #ccc;
+  height: 36px;
+  padding: 0 12px;
   box-sizing: border-box;
-  background-color: var(--white-color);
-  border-radius: 5px;
-  box-shadow: 0 0 10px 0 rgba(0, 0, 0, .1);
+  background-color: transparent;
+  border: none;
+  border-radius: var(--radius-md);
   font-size: var(--small-font);
+  font-weight: 500;
   text-decoration: none;
-  color: inherit;
+  color: var(--dark-gray-color);
+  transition: background-color 0.1s;
+
+  &:hover {
+    background-color: var(--gray-color2);
+    color: var(--black-color);
+  }
 `;
