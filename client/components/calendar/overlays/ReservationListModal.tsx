@@ -10,6 +10,7 @@ import {getDesignerColor} from '../../../utils/designers';
 import {buildServiceColorMap, getServiceColor, parseServiceString} from '../../../utils/services';
 
 import {
+    OVERLAY_Z_INDEX,
     StyledOverlay,
     StyledDetail,
     StyledHeader,
@@ -134,10 +135,10 @@ export const ReservationListModal = () => {
 
     if (!modalRoot) return null;
 
-    return createPortal(<StyledOverlay onClick={handleClose}
-                                       role="dialog"
-                                       aria-modal="true"
-                                       aria-label="예약 목록">
+    return createPortal(<StyledListOverlay onClick={handleClose}
+                                           role="dialog"
+                                           aria-modal="true"
+                                           aria-label="예약 목록">
         <StyledListModal onClick={(e) => e.stopPropagation()}>
             <StyledHeader>
                 <h3>{title} 예약 ({reservations.length})</h3>
@@ -189,8 +190,12 @@ export const ReservationListModal = () => {
                 )}
             </StyledListBody>
         </StyledListModal>
-    </StyledOverlay>, modalRoot);
+    </StyledListOverlay>, modalRoot);
 };
+
+const StyledListOverlay = styled(StyledOverlay)`
+    z-index: ${OVERLAY_Z_INDEX.base};
+`;
 
 const StyledListModal = styled(StyledDetail)`
     max-width: 500px;

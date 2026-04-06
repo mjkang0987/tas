@@ -5,6 +5,7 @@ import styled from 'styled-components';
 import type {Reservation} from '../../../utils/reservations';
 
 import {
+    OVERLAY_Z_INDEX,
     StyledActionButton,
     StyledDetail,
     StyledFooter,
@@ -33,10 +34,10 @@ export const ReservationMoveConfirmModal = ({
     if (!modalRoot) return null;
 
     return createPortal(
-        <StyledOverlay onClick={onClose}
-                       role="dialog"
-                       aria-modal="true"
-                       aria-label="예약 변경 확인">
+        <StyledConfirmOverlay onClick={onClose}
+                              role="dialog"
+                              aria-modal="true"
+                              aria-label="예약 변경 확인">
             <StyledConfirmModal onClick={(e) => e.stopPropagation()}>
                 <StyledHeader>
                     <h3>예약 변경 전 확인</h3>
@@ -76,10 +77,14 @@ export const ReservationMoveConfirmModal = ({
                     <StyledActionButton type="button" $primary onClick={onConfirm}>변경</StyledActionButton>
                 </StyledFooter>
             </StyledConfirmModal>
-        </StyledOverlay>,
+        </StyledConfirmOverlay>,
         modalRoot
     );
 };
+
+const StyledConfirmOverlay = styled(StyledOverlay)`
+    z-index: ${OVERLAY_Z_INDEX.confirm};
+`;
 
 const StyledConfirmModal = styled(StyledDetail)`
     width: min(100%, 360px);

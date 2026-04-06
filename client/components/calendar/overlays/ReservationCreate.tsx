@@ -20,6 +20,7 @@ import {
 } from '../../../utils/services';
 
 import {
+    OVERLAY_Z_INDEX,
     StyledOverlay,
     StyledDetail,
     StyledHeader,
@@ -221,10 +222,10 @@ export const ReservationCreate = ({initial, customerMap, onClose, onSave}: Reser
 
     if (!modalRoot) return null;
 
-    return createPortal(<StyledOverlay onClick={onClose}
-                                       role="dialog"
-                                       aria-modal="true"
-                                       aria-label="예약 추가">
+    return createPortal(<StyledCreateOverlay onClick={onClose}
+                                             role="dialog"
+                                             aria-modal="true"
+                                             aria-label="예약 추가">
         <StyledDetail onClick={(e) => e.stopPropagation()}>
             <StyledHeader>
                 <h3>예약 추가</h3>
@@ -356,8 +357,12 @@ export const ReservationCreate = ({initial, customerMap, onClose, onSave}: Reser
                 <StyledActionButton type="button" $primary onClick={handleSave}>저장</StyledActionButton>
             </StyledFooter>
         </StyledDetail>
-    </StyledOverlay>, modalRoot);
+    </StyledCreateOverlay>, modalRoot);
 };
+
+const StyledCreateOverlay = styled(StyledOverlay)`
+  z-index: ${OVERLAY_Z_INDEX.base};
+`;
 
 const StyledCreateForm = styled.div`
   display: flex;

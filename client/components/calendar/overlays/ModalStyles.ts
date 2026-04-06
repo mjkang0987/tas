@@ -1,9 +1,17 @@
 import styled from 'styled-components';
 
+export const OVERLAY_Z_INDEX = {
+  base: 100,
+  supporting: 105,
+  detail: 120,
+  childDetail: 130,
+  confirm: 140,
+} as const;
+
 export const StyledOverlay = styled.div`
   position: fixed;
   inset: 0;
-  z-index: 100;
+  z-index: ${OVERLAY_Z_INDEX.base};
   display: flex;
   align-items: center;
   justify-content: center;

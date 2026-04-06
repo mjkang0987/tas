@@ -21,6 +21,7 @@ import {
 } from '../../../utils/services';
 
 import {
+    OVERLAY_Z_INDEX,
     StyledOverlay,
     StyledDetail,
     StyledHeader,
@@ -209,6 +210,7 @@ export const ReservationDetail = ({
                                   }: ReservationDetailProps) => {
     const customer = customerMap[reservation.customerId];
     const designers = useCalendarStore((s) => s.designers);
+    const selectedCustomerId = useCalendarStore((s) => s.selectedCustomerId);
     const serviceCatalog = useCalendarStore((s) => s.serviceCatalog);
     const categoryBaseColorMap = useCalendarStore((s) => s.categoryBaseColorMap);
     const {
@@ -532,10 +534,11 @@ export const ReservationDetail = ({
 
     if (!modalRoot) return null;
 
-    return createPortal(<StyledOverlay onClick={handleBack}
-                                       role="dialog"
-                                       aria-modal="true"
-                                       aria-label={dialogLabel}>
+    return createPortal(<StyledReservationOverlay onClick={handleBack}
+                                                  role="dialog"
+                                                  aria-modal="true"
+                                                  aria-label={dialogLabel}
+                                                  $stacked={selectedCustomerId !== null}>
         <StyledDetail onClick={(e) => e.stopPropagation()}
                       $width={400}>
             <StyledReservationHeader>
@@ -709,8 +712,12 @@ export const ReservationDetail = ({
             isOpen={isHistoryOpen}
             onClose={() => setIsHistoryOpen(false)}
         />
-    </StyledOverlay>, modalRoot);
+    </StyledReservationOverlay>, modalRoot);
 };
+
+const StyledReservationOverlay = styled(StyledOverlay)<{ $stacked: boolean }>`
+    z-index: ${(props) => props.$stacked ? OVERLAY_Z_INDEX.confirm : OVERLAY_Z_INDEX.detail};
+`;
 
 const StyledReservationHeader = styled(StyledHeader)``;
 

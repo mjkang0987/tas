@@ -7,6 +7,7 @@ import type {Designer} from '../../../utils/designers';
 import {formatPrice} from '../../../utils/services';
 
 import {
+    OVERLAY_Z_INDEX,
     StyledActionButton,
     StyledBody,
     StyledDetail,
@@ -543,7 +544,7 @@ const StyledHistoryButton = styled.button`
 `;
 
 const StyledHistoryOverlay = styled(StyledOverlay)`
-    z-index: 110;
+    z-index: ${OVERLAY_Z_INDEX.childDetail};
     background-color: rgba(0, 0, 0, 0.24);
 `;
 
