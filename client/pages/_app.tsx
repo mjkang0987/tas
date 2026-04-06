@@ -13,6 +13,7 @@ import {GlobalStyle} from '../styles/globalStyle';
 import {useCalendarStore} from '../store/calendarStore';
 import type {ServiceItem} from '../utils/services';
 import type {Designer} from '../utils/designers';
+import type {StoreSettings} from '../utils/storeSettings';
 
 import LayoutComponent from '../components/layout/LayoutComponent';
 
@@ -20,6 +21,7 @@ function App({Component, pageProps: {session, ...pageProps}}: AppProps) {
     const setServiceCatalog = useCalendarStore((s) => s.setServiceCatalog);
     const setCategoryBaseColorMap = useCalendarStore((s) => s.setCategoryBaseColorMap);
     const setDesigners = useCalendarStore((s) => s.setDesigners);
+    const setStoreSettings = useCalendarStore((s) => s.setStoreSettings);
 
     useEffect(() => {
         fetch('/api/services')
@@ -56,6 +58,22 @@ function App({Component, pageProps: {session, ...pageProps}}: AppProps) {
                 // Keep default designers if loading fails.
             });
     }, [setDesigners]);
+
+    useEffect(() => {
+        fetch('/api/store')
+            .then((res) => {
+                if (!res.ok) throw new Error('Failed to load store settings');
+                return res.json() as Promise<StoreSettings>;
+            })
+            .then((data) => {
+                if (data && typeof data === 'object' && data.businessHours && Array.isArray(data.closedDates)) {
+                    setStoreSettings(data);
+                }
+            })
+            .catch(() => {
+                // Keep default store settings if loading fails.
+            });
+    }, [setStoreSettings]);
 
     return (
         <SessionProvider session={session}>

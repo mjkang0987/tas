@@ -36,7 +36,7 @@ class ReservationDocument extends Document {
                     <meta name="description" content="meta content description"/>
                     <meta name="keywords" content="meta keywords"/>
                     <meta name="author" content="MJ Kang"/>
-                    <meta name="og:site_name" content="RESERVATION"/>
+                    <meta name="og:site_name" content="Chairtime"/>
                     <meta name="og:title" content="service title"/>
                     <meta name="og:description" content="service description"/>
                     <meta name="og:type" content="website"/>

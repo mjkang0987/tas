@@ -47,11 +47,16 @@ const Home: NextPage<HomeProps> = (props) => {
     const customerMap = useCalendarStore((s) => s.customerMap);
     const reservationMap = useCalendarStore((s) => s.reservationMap);
     const reservationListFilter = useCalendarStore((s) => s.reservationListFilter);
+    const setCreateReservationInitial = useCalendarStore((s) => s.setCreateReservationInitial);
 
     const selectedCustomerId = useCalendarStore((s) => s.selectedCustomerId);
     const setSelectedCustomerId = useCalendarStore((s) => s.setSelectedCustomerId);
 
     const selectedCustomer = selectedCustomerId !== null ? customerMap[selectedCustomerId] : null;
+    const handleCloseReservationDetail = () => {
+        setSelectedReservation(null);
+        setCreateReservationInitial(null);
+    };
 
     useEffect(() => {
         setReservationMap(groupByDate(props.reservations));
@@ -59,9 +64,15 @@ const Home: NextPage<HomeProps> = (props) => {
         setReservationHistory(props.history);
     }, [props.reservations, props.customers, props.history, setReservationMap, setCustomerMap, setReservationHistory]);
 
+    useEffect(() => {
+        if (selectedReservation) {
+            setCreateReservationInitial(null);
+        }
+    }, [selectedReservation, setCreateReservationInitial]);
+
     return (<>
             <Head>
-                <title>RESERVATION</title>
+                <title>Chairtime</title>
             </Head>
             <StyledSection $isVisible={aside.isVisible}>
                 {curr && <Calendar/>}
@@ -71,7 +82,7 @@ const Home: NextPage<HomeProps> = (props) => {
                                                        customerMap={customerMap}
                                                        reservationMap={reservationMap}
                                                        history={reservationHistory}
-                                                       onClose={() => setSelectedReservation(null)}
+                                                       onClose={handleCloseReservationDetail}
                                                        onCustomerClick={(customerId) => setSelectedCustomerId(customerId)}
                                                        onUpdate={updateReservation}
                                                        onCancel={cancelReservation}/>}

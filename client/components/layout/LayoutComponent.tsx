@@ -43,6 +43,7 @@ export default function LayoutComponent({children}: NodeType) {
     const setView = useCalendarStore((s) => s.setView);
     const setCreateReservationInitial = useCalendarStore((s) => s.setCreateReservationInitial);
     const createReservationInitial = useCalendarStore((s) => s.createReservationInitial);
+    const selectedReservation = useCalendarStore((s) => s.selectedReservation);
     const customerMap = useCalendarStore((s) => s.customerMap);
     const addReservation = useCalendarStore((s) => s.addReservation);
 
@@ -168,7 +169,7 @@ export default function LayoutComponent({children}: NodeType) {
                     <Aside/>
                     {children}
                 </StyledMain>
-                {createReservationInitial && (
+                {createReservationInitial && !selectedReservation && (
                     <ReservationCreate initial={createReservationInitial}
                                        customerMap={customerMap}
                                        onClose={() => setCreateReservationInitial(null)}
