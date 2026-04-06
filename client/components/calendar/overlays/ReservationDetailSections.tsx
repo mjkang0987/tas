@@ -171,6 +171,9 @@ interface ReservationViewSectionProps {
     customerMap: CustomerMap;
     displayPrice: number;
     displayDesignerName: string;
+    displayDesignerColor: string;
+    paymentCompleted: boolean;
+    paymentLines: string[];
     historyCount: number;
     onCustomerClick: (customerId: number) => void;
     onOpenHistory: () => void;
@@ -181,6 +184,9 @@ export const ReservationViewSection = ({
     customerMap,
     displayPrice,
     displayDesignerName,
+    displayDesignerColor,
+    paymentCompleted,
+    paymentLines,
     historyCount,
     onCustomerClick,
     onOpenHistory,
@@ -206,6 +212,17 @@ export const ReservationViewSection = ({
                 <dd>{reservation.startTime} ~ {reservation.endTime}</dd>
                 <dt>가격</dt>
                 <dd>{formatPrice(displayPrice)}</dd>
+                <dt>결제</dt>
+                <dd>
+                    <StyledPaymentValue>
+                        <StyledPaymentBadge $completed={paymentCompleted}>
+                            {paymentCompleted ? '결제완료' : '미결제'}
+                        </StyledPaymentBadge>
+                        <StyledPaymentLineList>
+                            {paymentLines.map((line) => <span key={line}>{line}</span>)}
+                        </StyledPaymentLineList>
+                    </StyledPaymentValue>
+                </dd>
                 <dt>고객명</dt>
                 <dd>
                     <StyledCustomerButton type="button" onClick={() => onCustomerClick(reservation.customerId)}>
@@ -215,7 +232,12 @@ export const ReservationViewSection = ({
                 <dt>연락처</dt>
                 <dd>{customer?.tel ?? '-'}</dd>
                 <dt>디자이너</dt>
-                <dd>{displayDesignerName}</dd>
+                <dd>
+                    <StyledDesignerValue>
+                        <StyledDesignerDot $color={displayDesignerColor} />
+                        <span>{displayDesignerName}</span>
+                    </StyledDesignerValue>
+                </dd>
             </dl>
             {historyCount > 0 && (
                 <StyledHistorySection>
@@ -449,6 +471,44 @@ const StyledTimeRow = styled.div`
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 8px;
+`;
+
+const StyledDesignerValue = styled.span`
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+`;
+
+const StyledDesignerDot = styled.span<{ $color: string }>`
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background-color: ${(props) => props.$color};
+    flex-shrink: 0;
+`;
+
+const StyledPaymentValue = styled.span`
+    display: inline-flex;
+    align-items: flex-start;
+    gap: 8px;
+    flex-wrap: wrap;
+`;
+
+const StyledPaymentLineList = styled.span`
+    display: inline-flex;
+    flex-direction: column;
+    gap: 2px;
+`;
+
+const StyledPaymentBadge = styled.span<{ $completed: boolean }>`
+    display: inline-block;
+    padding: 2px var(--gap-md);
+    border-radius: var(--radius-sm);
+    border: 1px solid ${(props) => props.$completed ? '#CDEAD6' : 'var(--light-gray-color)'};
+    background-color: ${(props) => props.$completed ? '#E6F4EA' : 'var(--black-color-10)'};
+    color: ${(props) => props.$completed ? '#137333' : 'var(--dark-gray-color2)'};
+    font-size: var(--small-font);
+    font-weight: 600;
 `;
 
 const StyledHistorySection = styled.div`

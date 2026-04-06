@@ -1,13 +1,14 @@
 import {useState} from 'react';
 
 import {createPortal} from 'react-dom';
+import styled from 'styled-components';
 
 import {useCalendarStore} from '../../../store/calendarStore';
 
-import type {Reservation, ReservationHistoryEntry, ReservationMap, ReservationStatus} from '../../../utils/reservations';
+import type {PaymentEntry, PaymentMethod, Reservation, ReservationHistoryEntry, ReservationMap, ReservationStatus} from '../../../utils/reservations';
 import {findOverlap} from '../../../utils/reservations';
 import type {CustomerMap} from '../../../utils/customers';
-import {splitDesignersByStatus} from '../../../utils/designers';
+import {getDesignerColor, splitDesignersByStatus} from '../../../utils/designers';
 import {
     parseServiceString,
     joinServiceNames,
@@ -15,6 +16,8 @@ import {
     sumPrice,
     formatPrice,
     calcEndTime,
+    buildServiceColorMap,
+    getServiceColor,
 } from '../../../utils/services';
 
 import {
@@ -34,7 +37,29 @@ import {
     type ReservationDetailFormState,
 } from './ReservationDetailSections';
 
-type Mode = 'view' | 'editing' | 'confirming' | 'pastConfirm' | 'noChanges' | 'cancelling' | 'noshow';
+type Mode = 'view' | 'editing' | 'confirming' | 'pastConfirm' | 'noChanges' | 'cancelling' | 'noshow' | 'payment';
+
+const PAYMENT_METHOD_OPTIONS: PaymentMethod[] = ['현금', '현금+현금영수증', '카드', '네이버페이', '지역화폐', '지역화폐+현금영수증', '상품권'];
+
+function getPaymentEntries(reservation: Reservation): PaymentEntry[] {
+    if (Array.isArray(reservation.paymentEntries) && reservation.paymentEntries.length > 0) {
+        return reservation.paymentEntries;
+    }
+
+    if (reservation.paymentCompleted && reservation.paymentMethod) {
+        return [{
+            method: reservation.paymentMethod,
+            amount: reservation.price ?? 0,
+        }];
+    }
+
+    return [];
+}
+
+function formatPaymentEntries(entries: PaymentEntry[]): string[] {
+    if (entries.length === 0) return ['미입력'];
+    return entries.map((entry) => `${entry.method} · ${formatPrice(entry.amount)}`);
+}
 
 const MODE_LABELS: Partial<Record<Mode, string>> = {
     editing: '예약 수정',
@@ -43,6 +68,7 @@ const MODE_LABELS: Partial<Record<Mode, string>> = {
     noChanges: '알림',
     cancelling: '예약 취소',
     noshow: '노쇼 처리',
+    payment: '결제 처리',
 };
 
 interface ReservationDetailProps {
@@ -76,8 +102,8 @@ const getChangedFields = (before: Reservation, after: ReservationDetailFormState
             if (beforeDesignerId !== after.designerId) {
                 fields.push({
                     label: FIELD_LABELS[key],
-                    before: designerNameMap[beforeDesignerId] ?? '-',
-                    after: designerNameMap[after.designerId] ?? '-'
+                    before: designerNameMap[beforeDesignerId] ?? '미지정',
+                    after: designerNameMap[after.designerId] ?? '미지정'
                 });
             }
         } else if (key === 'price') {
@@ -113,6 +139,25 @@ const getHistoryDiffs = (entry: ReservationHistoryEntry, designerNameMap: Record
         return diffs;
     }
 
+    if ((entry.before.paymentCompleted ?? false) !== (entry.after.paymentCompleted ?? false)) {
+        diffs.push({
+            label: '결제상태',
+            before: entry.before.paymentCompleted ? '결제완료' : '미결제',
+            after: entry.after.paymentCompleted ? '결제완료' : '미결제'
+        });
+    }
+
+    const beforePaymentLines = formatPaymentEntries(getPaymentEntries(entry.before)).join(', ');
+    const afterPaymentLines = formatPaymentEntries(getPaymentEntries(entry.after)).join(', ');
+
+    if (beforePaymentLines !== afterPaymentLines) {
+        diffs.push({
+            label: '결제수단',
+            before: beforePaymentLines,
+            after: afterPaymentLines
+        });
+    }
+
     (Object.keys(FIELD_LABELS) as (keyof ReservationDetailFormState)[]).forEach((key) => {
         if (key === 'designerId') {
             const beforeDesignerId = entry.before.designerId ?? 0;
@@ -120,8 +165,8 @@ const getHistoryDiffs = (entry: ReservationHistoryEntry, designerNameMap: Record
             if (beforeDesignerId !== afterDesignerId) {
                 diffs.push({
                     label: FIELD_LABELS[key],
-                    before: designerNameMap[beforeDesignerId] ?? '-',
-                    after: designerNameMap[afterDesignerId] ?? '-'
+                    before: designerNameMap[beforeDesignerId] ?? '미지정',
+                    after: designerNameMap[afterDesignerId] ?? '미지정'
                 });
             }
         } else if (key === 'price') {
@@ -164,6 +209,8 @@ export const ReservationDetail = ({
                                   }: ReservationDetailProps) => {
     const customer = customerMap[reservation.customerId];
     const designers = useCalendarStore((s) => s.designers);
+    const serviceCatalog = useCalendarStore((s) => s.serviceCatalog);
+    const categoryBaseColorMap = useCalendarStore((s) => s.categoryBaseColorMap);
     const {
         active: activeDesigners,
         onLeave: onLeaveDesigners,
@@ -173,7 +220,8 @@ export const ReservationDetail = ({
     const designerNameMap = designers.reduce<Record<number, string>>((acc, designer) => {
         acc[designer.id] = designer.name;
         return acc;
-    }, {});
+    }, {0: '미지정'});
+    const serviceColorMap = buildServiceColorMap(serviceCatalog, categoryBaseColorMap);
     const modalRoot = document.getElementById('modal-root');
 
     const [mode, setMode] = useState<Mode>('view');
@@ -195,13 +243,27 @@ export const ReservationDetail = ({
     );
     const [isEndTimeManual, setIsEndTimeManual] = useState(false);
     const [isPriceManual, setIsPriceManual] = useState(false);
+    const displayPrice = reservation.price ?? sumPrice(parseServiceString(reservation.service));
+    const [paymentEntries, setPaymentEntries] = useState<Array<{ method: PaymentMethod | ''; amount: string }>>(
+        () => {
+            const entries = getPaymentEntries(reservation);
+            return entries.length > 0
+                ? entries.map((entry) => ({method: entry.method, amount: String(entry.amount)}))
+                : [{method: '', amount: String(displayPrice)}];
+        }
+    );
 
     const changedFields = getChangedFields(reservation, form, designerNameMap);
     const thisHistory = history.filter((h) => h.reservationId === reservation.id);
     const totalDuration = sumDurationMinutes(selectedServices);
     const totalPrice = sumPrice(selectedServices);
-    const displayPrice = reservation.price ?? sumPrice(parseServiceString(reservation.service));
-    const displayDesignerName = reservation.designerId ? (designerNameMap[reservation.designerId] ?? '-') : '-';
+    const displayDesignerName = reservation.designerId ? (designerNameMap[reservation.designerId] ?? '미지정') : '미지정';
+    const displayDesignerColor = reservation.designerId
+        ? getDesignerColor(designers.find((designer) => designer.id === reservation.designerId))
+        : '#8E8E93';
+    const normalizedPaymentEntries = getPaymentEntries(reservation);
+    const paymentCompleted = normalizedPaymentEntries.length > 0 || reservation.paymentCompleted === true;
+    const paymentLines = formatPaymentEntries(normalizedPaymentEntries);
 
     const handleChange = (field: keyof ReservationDetailFormState, value: string) => {
         setForm((prev) => ({...prev, [field]: value}));
@@ -308,6 +370,29 @@ export const ReservationDetail = ({
         setMode('view');
     };
 
+    const handlePaymentSave = () => {
+        const normalizedEntries = paymentEntries
+            .map((entry) => ({
+                method: entry.method,
+                amount: Number(entry.amount.replace(/[^0-9]/g, '')) || 0,
+            }))
+            .filter((entry): entry is PaymentEntry => !!entry.method && entry.amount > 0);
+
+        if (normalizedEntries.length === 0) {
+            setError('결제종류와 금액을 입력해주세요.');
+            return;
+        }
+
+        onUpdate(reservation, {
+            ...reservation,
+            paymentCompleted: true,
+            paymentMethod: normalizedEntries[0].method,
+            paymentEntries: normalizedEntries,
+        });
+        setError('');
+        setMode('view');
+    };
+
     const handleCancel = () => {
         setForm({
             date: reservation.date,
@@ -322,6 +407,11 @@ export const ReservationDetail = ({
         setIsEndTimeManual(false);
         setIsPriceManual(false);
         setIsHistoryOpen(false);
+        setPaymentEntries(
+            getPaymentEntries(reservation).length > 0
+                ? getPaymentEntries(reservation).map((entry) => ({method: entry.method, amount: String(entry.amount)}))
+                : [{method: '', amount: String(displayPrice)}]
+        );
         setMode('view');
     };
 
@@ -333,7 +423,7 @@ export const ReservationDetail = ({
 
         if (mode === 'confirming' || mode === 'pastConfirm' || mode === 'noChanges') {
             setMode('editing');
-        } else if (mode === 'editing' || mode === 'cancelling' || mode === 'noshow') {
+        } else if (mode === 'editing' || mode === 'cancelling' || mode === 'noshow' || mode === 'payment') {
             handleCancel();
         } else {
             onClose();
@@ -354,6 +444,19 @@ export const ReservationDetail = ({
                 <StyledActionButton type="button"
                                     $warning
                                     onClick={() => setMode('noshow')}>노쇼</StyledActionButton>
+                <StyledActionButton type="button"
+                                    $primary
+                                    onClick={() => {
+                                        setPaymentEntries(
+                                            getPaymentEntries(reservation).length > 0
+                                                ? getPaymentEntries(reservation).map((entry) => ({method: entry.method, amount: String(entry.amount)}))
+                                                : [{method: '', amount: String(displayPrice)}]
+                                        );
+                                        setError('');
+                                        setMode('payment');
+                                    }}>
+                    {paymentCompleted ? '결제수단 변경' : '결제완료'}
+                </StyledActionButton>
                 <StyledActionButton type="button"
                                     $primary
                                     onClick={() => setMode('editing')}>수정</StyledActionButton>
@@ -415,6 +518,16 @@ export const ReservationDetail = ({
                                                             onClick={() => onCancel(reservation, 'noshow')}>노쇼 처리</StyledActionButton>
                                     </>
                                 )
+                                : mode === 'payment'
+                                    ? (
+                                        <>
+                                            <StyledActionButton type="button"
+                                                                onClick={() => setMode('view')}>취소</StyledActionButton>
+                                            <StyledActionButton type="button"
+                                                                $primary
+                                                                onClick={handlePaymentSave}>결제 저장</StyledActionButton>
+                                        </>
+                                    )
                                 : null;
 
     if (!modalRoot) return null;
@@ -425,12 +538,22 @@ export const ReservationDetail = ({
                                        aria-label={dialogLabel}>
         <StyledDetail onClick={(e) => e.stopPropagation()}
                       $width={400}>
-            <StyledHeader>
-                <h3>{dialogTitle}</h3>
+            <StyledReservationHeader>
+                <StyledReservationTitleGroup>
+                    <StyledServiceBadgeList>
+                        {parseServiceString(reservation.service).map((serviceName) => (
+                            <StyledServiceDotBadge key={serviceName}
+                                                   $color={getServiceColor(serviceName, serviceColorMap)}
+                                                   aria-label={serviceName}
+                                                   title={serviceName} />
+                        ))}
+                    </StyledServiceBadgeList>
+                    <h3>{dialogTitle}</h3>
+                </StyledReservationTitleGroup>
                 <button type="button"
                         onClick={handleBack}
                         aria-label="닫기">&#x2715;</button>
-            </StyledHeader>
+            </StyledReservationHeader>
 
             {mode === 'view' && (
                 <ReservationViewSection
@@ -438,6 +561,9 @@ export const ReservationDetail = ({
                     customerMap={customerMap}
                     displayPrice={displayPrice}
                     displayDesignerName={displayDesignerName}
+                    displayDesignerColor={displayDesignerColor}
+                    paymentCompleted={paymentCompleted}
+                    paymentLines={paymentLines}
                     historyCount={thisHistory.length}
                     onCustomerClick={onCustomerClick}
                     onOpenHistory={() => setIsHistoryOpen(true)}
@@ -502,6 +628,64 @@ export const ReservationDetail = ({
                 />
             )}
 
+            {mode === 'payment' && (
+                <StyledBody>
+                    <StyledPaymentLayer>
+                        <StyledPaymentMessage>결제 종류와 금액을 입력해 주세요.</StyledPaymentMessage>
+                        <StyledPaymentEntryList>
+                            {paymentEntries.map((entry, index) => (
+                                <StyledPaymentEntryRow key={`payment-entry-${index}`}>
+                                    <select
+                                        value={entry.method}
+                                        onChange={(e) => {
+                                            const value = e.target.value as PaymentMethod | '';
+                                            setPaymentEntries((prev) => prev.map((item, itemIndex) => (
+                                                itemIndex === index ? {...item, method: value} : item
+                                            )));
+                                            setError('');
+                                        }}
+                                    >
+                                        <option value="">결제종류</option>
+                                        {PAYMENT_METHOD_OPTIONS.map((option) => (
+                                            <option key={option} value={option}>{option}</option>
+                                        ))}
+                                    </select>
+                                    <input
+                                        type="text"
+                                        inputMode="numeric"
+                                        value={entry.amount}
+                                        placeholder="금액"
+                                        onChange={(e) => {
+                                            const value = e.target.value.replace(/[^0-9]/g, '');
+                                            setPaymentEntries((prev) => prev.map((item, itemIndex) => (
+                                                itemIndex === index ? {...item, amount: value} : item
+                                            )));
+                                            setError('');
+                                        }}
+                                    />
+                                    <StyledPaymentRemoveButton
+                                        type="button"
+                                        onClick={() => {
+                                            setPaymentEntries((prev) => prev.length > 1 ? prev.filter((_, itemIndex) => itemIndex !== index) : [{method: '', amount: ''}]);
+                                            setError('');
+                                        }}
+                                    >
+                                        삭제
+                                    </StyledPaymentRemoveButton>
+                                </StyledPaymentEntryRow>
+                            ))}
+                        </StyledPaymentEntryList>
+                        <StyledPaymentAddButton
+                            type="button"
+                            onClick={() => setPaymentEntries((prev) => [...prev, {method: '', amount: ''}])}
+                        >
+                            결제수단 추가
+                        </StyledPaymentAddButton>
+                        {error && <StyledPaymentError>{error}</StyledPaymentError>}
+                    </StyledPaymentLayer>
+                </StyledBody>
+            )}
+
             {mode === 'noshow' && (
                 <ReservationStaticDiffSection
                     message="이 예약을 노쇼 처리하시겠습니까?"
@@ -527,3 +711,120 @@ export const ReservationDetail = ({
         />
     </StyledOverlay>, modalRoot);
 };
+
+const StyledReservationHeader = styled(StyledHeader)``;
+
+const StyledReservationTitleGroup = styled.div`
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    min-width: 0;
+
+    h3 {
+        margin: 0;
+    }
+`;
+
+const StyledServiceBadgeList = styled.div`
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+`;
+
+const StyledServiceDotBadge = styled.span<{ $color: string }>`
+    display: inline-flex;
+    align-items: center;
+    width: 12px;
+    height: 12px;
+    border-radius: 999px;
+    background-color: ${(props) => props.$color};
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.45);
+`;
+
+const StyledPaymentLayer = styled.div`
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+`;
+
+const StyledPaymentMessage = styled.p`
+    margin: 0;
+    font-size: 13px;
+    color: var(--dark-gray-color);
+`;
+
+const StyledPaymentOptionGrid = styled.div`
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+`;
+
+const StyledPaymentEntryList = styled.div`
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+`;
+
+const StyledPaymentEntryRow = styled.div`
+    display: grid;
+    grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr) auto;
+    gap: 8px;
+
+    select,
+    input {
+        height: 30px;
+        padding: 0 10px;
+        border: 1px solid var(--light-gray-color);
+        border-radius: 8px;
+        background: var(--white-color);
+        font-size: 12px;
+        color: var(--dark-gray-color);
+        box-sizing: border-box;
+    }
+
+    @media (max-width: 640px) {
+        grid-template-columns: 1fr;
+    }
+`;
+
+const StyledPaymentOptionButton = styled.button<{ $active: boolean }>`
+    min-height: 40px;
+    padding: 8px 10px;
+    border: 1px solid ${(props) => props.$active ? 'var(--blue-color)' : 'var(--light-gray-color)'};
+    border-radius: 8px;
+    background: ${(props) => props.$active ? 'rgba(45, 127, 249, 0.12)' : 'var(--white-color)'};
+    color: var(--dark-gray-color);
+    font-size: 12px;
+    font-weight: ${(props) => props.$active ? 600 : 500};
+    cursor: pointer;
+    text-align: center;
+`;
+
+const StyledPaymentAddButton = styled.button`
+    height: 30px;
+    border: 1px dashed var(--light-gray-color);
+    border-radius: 8px;
+    background: none;
+    color: var(--dark-gray-color);
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+`;
+
+const StyledPaymentRemoveButton = styled.button`
+    min-width: 52px;
+    height: 30px;
+    padding: 0 10px;
+    border: 1px solid var(--danger-border);
+    border-radius: 8px;
+    background: var(--danger-bg);
+    color: var(--danger-color);
+    font-size: 12px;
+    cursor: pointer;
+`;
+
+const StyledPaymentError = styled.p`
+    margin: 0;
+    font-size: 12px;
+    color: var(--danger-color);
+`;

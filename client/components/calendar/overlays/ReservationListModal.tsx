@@ -6,7 +6,8 @@ import styled from 'styled-components';
 
 import {useCalendarStore} from '../../../store/calendarStore';
 
-import {buildServiceColorMap, getServiceColor} from '../../../utils/services';
+import {getDesignerColor} from '../../../utils/designers';
+import {buildServiceColorMap, getServiceColor, parseServiceString} from '../../../utils/services';
 
 import {
     StyledOverlay,
@@ -37,10 +38,26 @@ export const ReservationListModal = () => {
     const setSelectedReservation = useCalendarStore((s) => s.setSelectedReservation);
     const serviceCatalog = useCalendarStore((s) => s.serviceCatalog);
     const categoryBaseColorMap = useCalendarStore((s) => s.categoryBaseColorMap);
+    const designers = useCalendarStore((s) => s.designers);
+    const calendarDesignerId = useCalendarStore((s) => s.calendarDesignerId);
     const modalRoot = document.getElementById('modal-root');
     const serviceColorMap = useMemo(
         () => buildServiceColorMap(serviceCatalog, categoryBaseColorMap),
         [serviceCatalog, categoryBaseColorMap]
+    );
+    const designerNameMap = useMemo(
+        () => designers.reduce<Record<number, string>>((acc, designer) => {
+            acc[designer.id] = designer.name;
+            return acc;
+        }, {0: '미지정'}),
+        [designers]
+    );
+    const designerColorMap = useMemo(
+        () => designers.reduce<Record<number, string>>((acc, designer) => {
+            acc[designer.id] = getDesignerColor(designer);
+            return acc;
+        }, {}),
+        [designers]
     );
 
     const today = useMemo(() => {
@@ -74,6 +91,14 @@ export const ReservationListModal = () => {
             modalTitle = `${filter.year}년 ${filter.month + 1}월`;
         }
 
+        if (calendarDesignerId != null) {
+            list = list.filter((reservation) => reservation.designerId === calendarDesignerId);
+            const designerName = designers.find((designer) => designer.id === calendarDesignerId)?.name;
+            if (designerName) {
+                modalTitle = `${modalTitle} · ${designerName}`;
+            }
+        }
+
         const groups: { date: string; items: Reservation[] }[] = [];
         for (const r of list) {
             const last = groups[groups.length - 1];
@@ -85,7 +110,7 @@ export const ReservationListModal = () => {
         }
 
         return {title: modalTitle, reservations: list, grouped: groups};
-    }, [filter, reservationMap]);
+    }, [filter, reservationMap, calendarDesignerId, designers]);
 
     const getStatusType = (r: Reservation) => {
         if (r.status === 'cancelled') return 'cancelled';
@@ -130,18 +155,31 @@ export const ReservationListModal = () => {
                             <StyledList>
                                 {group.items.map((r) => {
                                     const customer = customerMap[r.customerId];
+                                    const designerName = r.designerId ? (designerNameMap[r.designerId] ?? '미지정') : '미지정';
                                     const statusType = getStatusType(r);
                                     const isInactive = statusType === 'cancelled' || statusType === 'noshow';
 
                                     return (
                                         <StyledItem key={r.id}
-                                                    $color={getServiceColor(r.service, serviceColorMap)}
+                                                    $color={r.designerId ? (designerColorMap[r.designerId] ?? '#8E8E93') : '#8E8E93'}
                                                     $inactive={isInactive}
                                                     onClick={() => handleClick(r)}>
-                                            <StyledBadge $type={statusType}>{getStatusLabel(r)}</StyledBadge>
-                                            <StyledTime>{r.startTime}~{r.endTime}</StyledTime>
-                                            <StyledService>{r.service}</StyledService>
-                                            <StyledCustomer>{customer?.name ?? '-'}</StyledCustomer>
+                                            <StyledItemTop>
+                                                <StyledBadge $type={statusType}>{getStatusLabel(r)}</StyledBadge>
+                                                <StyledTime>{r.startTime}~{r.endTime}</StyledTime>
+                                                <StyledService>
+                                                    {parseServiceString(r.service).map((serviceName) => (
+                                                        <StyledServiceToken key={`${r.id}-${serviceName}`}>
+                                                            <StyledServiceDot $color={getServiceColor(serviceName, serviceColorMap)} />
+                                                            <span>{serviceName}</span>
+                                                        </StyledServiceToken>
+                                                    ))}
+                                                </StyledService>
+                                            </StyledItemTop>
+                                            <StyledMetaLine>
+                                                <StyledDesigner>디자이너: {designerName}</StyledDesigner>
+                                                <StyledCustomer>고객: {customer?.name ?? '-'}</StyledCustomer>
+                                            </StyledMetaLine>
                                         </StyledItem>
                                     );
                                 })}
@@ -200,20 +238,27 @@ const StyledDateTitle = styled.div`
 
 const StyledItem = styled.li<{ $color: string; $inactive: boolean }>`
     display: flex;
-    flex-wrap: wrap;
-    justify-content: space-between;
+    flex-direction: column;
     gap: 8px;
-    align-items: center;
     padding: 8px 10px;
-    border-left: 4px solid ${(props) => props.$color};
-    background-color: var(--black-color-10);
+    border: 1px solid ${(props) => props.$color};
+    border-left-width: 4px;
+    border-radius: 8px;
+    background-color: ${(props) => `${props.$color}12`};
     font-size: var(--small-font);
     cursor: pointer;
     opacity: ${(props) => props.$inactive ? 0.5 : 1};
 
     &:hover {
-        background-color: var(--light-gray-color);
+        background-color: ${(props) => `${props.$color}1d`};
     }
+`;
+
+const StyledItemTop = styled.div`
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
 `;
 
 const StyledTime = styled.span`
@@ -221,15 +266,42 @@ const StyledTime = styled.span`
 `;
 
 const StyledService = styled.span`
+    display: inline-flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px;
+    min-width: 0;
     font-weight: 500;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
+`;
+
+const StyledServiceToken = styled.span`
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    min-width: 0;
+`;
+
+const StyledServiceDot = styled.span<{ $color: string }>`
+    flex-shrink: 0;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background-color: ${(props) => props.$color};
 `;
 
 const StyledCustomer = styled.span`
     color: var(--dark-gray-color);
-    text-align: center;
+`;
+
+const StyledDesigner = styled.span`
+    color: var(--gray-color);
+`;
+
+const StyledMetaLine = styled.div`
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    font-size: var(--tiny-font);
 `;
 
 const StyledBadge = styled.span<{ $type: string }>`
