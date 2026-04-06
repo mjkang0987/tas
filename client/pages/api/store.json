@@ -1,0 +1,9 @@
+{
+    "businessHours": {
+        "start": "10:00",
+        "end": "20:00"
+    },
+    "closedDates": [
+        "2026-04-22"
+    ]
+}
