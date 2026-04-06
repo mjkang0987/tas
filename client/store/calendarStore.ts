@@ -5,7 +5,9 @@ import type {Customer, CustomerMap} from '../utils/customers';
 import type {ServiceItem} from '../utils/services';
 import {CATEGORY_BASE_COLOR_MAP, SERVICE_CATALOG} from '../utils/services';
 import type {DaySchedule, Designer, DesignerStatus} from '../utils/designers';
-import {createDefaultSchedule, DEFAULT_DESIGNERS} from '../utils/designers';
+import {createDefaultSchedule, DEFAULT_DESIGNERS, getDesignerColor} from '../utils/designers';
+import type {StoreSettings} from '../utils/storeSettings';
+import {DEFAULT_STORE_SETTINGS} from '../utils/storeSettings';
 
 export type FullType = Date | null;
 
@@ -57,9 +59,11 @@ export interface CalendarState {
     reservationListFilter: { type: 'month'; year: number; month: number } | { type: 'date'; dateKey: string } | null;
     createReservationInitial: CreateReservationInitial | null;
     selectedCustomerId: number | null;
+    calendarDesignerId: number | null;
     serviceCatalog: ServiceItem[];
     categoryBaseColorMap: Record<string, string>;
     designers: Designer[];
+    storeSettings: StoreSettings;
 
     setToday: (v: FullType) => void;
     setTarget: (partial: Partial<DateType>) => void;
@@ -76,17 +80,24 @@ export interface CalendarState {
     setReservationListFilter: (v: CalendarState['reservationListFilter']) => void;
     setCreateReservationInitial: (v: CreateReservationInitial | null) => void;
     setSelectedCustomerId: (v: number | null) => void;
+    setCalendarDesignerId: (v: number | null) => void;
     setServiceCatalog: (catalog: ServiceItem[]) => void;
     setCategoryBaseColorMap: (colorMap: Record<string, string>) => void;
     setDesigners: (designers: Designer[]) => void;
-    addDesigner: (name: string, status?: DesignerStatus, phone?: string, note?: string) => void;
-    updateDesigner: (designerId: number, patch: Partial<Pick<Designer, 'name' | 'status' | 'phone' | 'note'>>) => void;
+    setStoreSettings: (storeSettings: StoreSettings) => void;
+    updateStoreBusinessHours: (hours: Partial<StoreSettings['businessHours']>) => void;
+    updateStoreClosedDates: (dates: string[]) => void;
+    addStoreClosedDate: (date: string) => void;
+    removeStoreClosedDate: (date: string) => void;
+    addDesigner: (name: string, status?: DesignerStatus, phone?: string, note?: string, color?: string) => void;
+    updateDesigner: (designerId: number, patch: Partial<Pick<Designer, 'name' | 'status' | 'phone' | 'note' | 'color'>>) => void;
     updateDesignerDay: (designerId: number, dayIndex: number, patch: Partial<DaySchedule>) => void;
     deleteDesigner: (designerId: number) => void;
     updateCategoryBaseColor: (category: string, color: string) => void;
     addService: (item: ServiceItem) => void;
     updateService: (name: string, updated: ServiceItem) => void;
     deleteService: (name: string) => void;
+    renameCategory: (prevCategory: string, nextCategory: string) => void;
     moveCategory: (dragCategory: string, targetCategory: string) => void;
     moveServiceInCategory: (dragName: string, targetName: string) => void;
     addReservation: (reservation: Reservation) => void;
@@ -119,6 +130,16 @@ function syncCustomerSettings(customers: Customer[]): void {
         method: 'PUT',
         headers: {'Content-Type': 'application/json'},
         body: JSON.stringify({customers})
+    }).catch(() => {
+        // Preserve local UX even if sync fails; server data can be retried later.
+    });
+}
+
+function syncStoreSettings(storeSettings: StoreSettings): void {
+    fetch('/api/store', {
+        method: 'PUT',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify(storeSettings)
     }).catch(() => {
         // Preserve local UX even if sync fails; server data can be retried later.
     });
@@ -193,9 +214,11 @@ export const useCalendarStore = create<CalendarState>((set) => ({
     reservationListFilter: null,
     createReservationInitial: null,
     selectedCustomerId: null,
+    calendarDesignerId: null,
     serviceCatalog: SERVICE_CATALOG,
     categoryBaseColorMap: CATEGORY_BASE_COLOR_MAP,
     designers: DEFAULT_DESIGNERS,
+    storeSettings: DEFAULT_STORE_SETTINGS,
 
     setToday: (today) => set({today}),
 
@@ -262,22 +285,75 @@ export const useCalendarStore = create<CalendarState>((set) => ({
 
     setSelectedCustomerId: (selectedCustomerId) => set({selectedCustomerId}),
 
+    setCalendarDesignerId: (calendarDesignerId) => set({calendarDesignerId}),
+
     setServiceCatalog: (serviceCatalog) => set({serviceCatalog}),
     setCategoryBaseColorMap: (categoryBaseColorMap) => set({categoryBaseColorMap}),
     setDesigners: (designers) => set({designers}),
+    setStoreSettings: (storeSettings) => set({storeSettings}),
 
-    addDesigner: (name, status = '재직', phone = '', note = '') =>
+    updateStoreBusinessHours: (hours) =>
+        set((state) => {
+            const nextStoreSettings = {
+                ...state.storeSettings,
+                businessHours: {
+                    ...state.storeSettings.businessHours,
+                    ...hours,
+                }
+            };
+            syncStoreSettings(nextStoreSettings);
+            return {storeSettings: nextStoreSettings};
+        }),
+
+    updateStoreClosedDates: (dates) =>
+        set((state) => {
+            const nextStoreSettings = {
+                ...state.storeSettings,
+                closedDates: [...dates].sort()
+            };
+            syncStoreSettings(nextStoreSettings);
+            return {storeSettings: nextStoreSettings};
+        }),
+
+    addStoreClosedDate: (date) =>
+        set((state) => {
+            if (!date || state.storeSettings.closedDates.includes(date)) return state;
+
+            const nextStoreSettings = {
+                ...state.storeSettings,
+                closedDates: [...state.storeSettings.closedDates, date].sort()
+            };
+            syncStoreSettings(nextStoreSettings);
+            return {storeSettings: nextStoreSettings};
+        }),
+
+    removeStoreClosedDate: (date) =>
+        set((state) => {
+            const nextClosedDates = state.storeSettings.closedDates.filter((item) => item !== date);
+            if (nextClosedDates.length === state.storeSettings.closedDates.length) return state;
+
+            const nextStoreSettings = {
+                ...state.storeSettings,
+                closedDates: nextClosedDates
+            };
+            syncStoreSettings(nextStoreSettings);
+            return {storeSettings: nextStoreSettings};
+        }),
+
+    addDesigner: (name, status = '재직', phone = '', note = '', color) =>
         set((state) => {
             const cleanName = name.trim();
             if (!cleanName) return state;
+            const designerId = Date.now();
 
             const nextDesigner: Designer = {
-                id: Date.now(),
+                id: designerId,
                 name: cleanName,
                 schedule: createDefaultSchedule(),
                 status,
                 phone,
                 note,
+                color: color || getDesignerColor({id: designerId}),
             };
 
             const nextDesigners = [
@@ -299,6 +375,7 @@ export const useCalendarStore = create<CalendarState>((set) => ({
                         ...(patch.status ? {status: patch.status} : {}),
                         ...(patch.phone !== undefined ? {phone: patch.phone} : {}),
                         ...(patch.note !== undefined ? {note: patch.note} : {}),
+                        ...(patch.color !== undefined ? {color: patch.color} : {}),
                     }
                     : designer
             );
@@ -359,6 +436,29 @@ export const useCalendarStore = create<CalendarState>((set) => ({
         set((state) => {
             const nextCatalog = state.serviceCatalog.filter((s) => s.name !== name);
             return withSyncedCatalog(state, nextCatalog);
+        }),
+
+    renameCategory: (prevCategory, nextCategory) =>
+        set((state) => {
+            const trimmed = nextCategory.trim();
+            if (!trimmed || trimmed === prevCategory) return state;
+            if (state.serviceCatalog.some((item) => item.category === trimmed)) return state;
+
+            const nextCatalog = state.serviceCatalog.map((item) => (
+                item.category === prevCategory ? {...item, category: trimmed} : item
+            ));
+
+            const nextCategoryBaseColorMap = {...state.categoryBaseColorMap};
+            if (prevCategory in nextCategoryBaseColorMap) {
+                nextCategoryBaseColorMap[trimmed] = nextCategoryBaseColorMap[prevCategory];
+                delete nextCategoryBaseColorMap[prevCategory];
+            }
+
+            syncServiceSettings(nextCatalog, nextCategoryBaseColorMap);
+            return {
+                serviceCatalog: nextCatalog,
+                categoryBaseColorMap: nextCategoryBaseColorMap,
+            };
         }),
 
     moveCategory: (dragCategory, targetCategory) =>
