@@ -70,6 +70,7 @@ const StyledReserveButton = styled.button <Props>`
     z-index: 1;
     opacity: ${props => props.$cancelled ? 0.5 : 1};
     transition: max-height 0.2s ease, box-shadow 0.2s ease;
+    text-align: left;
 
     .highlight {
         display: block;
@@ -109,6 +110,46 @@ const StyledReserveButton = styled.button <Props>`
         display: inline-flex;
         align-items: center;
         margin-right: 6px;
+    }
+
+    .drag-handle {
+        position: absolute;
+        top: 50%;
+        right: 6px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 18px;
+        height: 18px;
+        padding: 0;
+        border: 1px solid rgba(15, 23, 42, 0.12);
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.86);
+        color: var(--dark-gray-color);
+        line-height: 1;
+        cursor: grab;
+        z-index: 2;
+        transform: translateY(-50%);
+
+        &::before {
+            content: '';
+            display: block;
+            width: 8px;
+            height: 8px;
+            border-radius: 1px;
+            background-image:
+                linear-gradient(currentColor, currentColor),
+                linear-gradient(currentColor, currentColor),
+                linear-gradient(currentColor, currentColor);
+            background-position: center 1px, center 4px, center 7px;
+            background-size: 8px 1.5px;
+            background-repeat: no-repeat;
+            opacity: 0.7;
+        }
+    }
+
+    .drag-handle:active {
+        cursor: grabbing;
     }
 
     @media (max-width: 1024px) {

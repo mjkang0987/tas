@@ -414,6 +414,65 @@ export const Timeline = ({
     const showDragGhost = isDateChanging && !!dragPreview && !!draggingReservation;
     const draggingCustomer = draggingReservation ? customerMap[draggingReservation.customerId] : null;
 
+    const startMouseDrag = (event: React.MouseEvent<HTMLElement>, reservation: Reservation, durationMinutes: number, blockTop: number, blockHeight: number) => {
+        event.stopPropagation();
+        if (reservation.status === 'cancelled' || reservation.status === 'noshow') {
+            dragStateRef.current = null;
+            return;
+        }
+
+        dragStateRef.current = {
+            reservation,
+            durationMinutes,
+            pointerOffsetY: event.clientY - event.currentTarget.getBoundingClientRect().top,
+            originTop: blockTop,
+            didDrag: false,
+        };
+        const initialPreview: DragPreview = {
+            reservationId: reservation.id,
+            top: blockTop,
+            date: reservation.date,
+            startTime: reservation.startTime,
+            endTime: reservation.endTime,
+            ghostLeft: 0,
+            ghostTop: 0,
+            ghostWidth: 0,
+            ghostHeight: blockHeight,
+        };
+        dragPreviewRef.current = initialPreview;
+        setDragPreview(initialPreview);
+    };
+
+    const startTouchDrag = (event: React.TouchEvent<HTMLElement>, reservation: Reservation, durationMinutes: number, blockTop: number, blockHeight: number) => {
+        event.stopPropagation();
+        if (reservation.status === 'cancelled' || reservation.status === 'noshow') {
+            dragStateRef.current = null;
+            return;
+        }
+
+        const touch = event.touches[0];
+        dragStateRef.current = {
+            reservation,
+            durationMinutes,
+            pointerOffsetY: touch.clientY - event.currentTarget.getBoundingClientRect().top,
+            originTop: blockTop,
+            didDrag: false,
+        };
+        const initialPreview: DragPreview = {
+            reservationId: reservation.id,
+            top: blockTop,
+            date: reservation.date,
+            startTime: reservation.startTime,
+            endTime: reservation.endTime,
+            ghostLeft: 0,
+            ghostTop: 0,
+            ghostWidth: 0,
+            ghostHeight: blockHeight,
+        };
+        dragPreviewRef.current = initialPreview;
+        setDragPreview(initialPreview);
+    };
+
     return (<StyledTimelineWrap ref={timelineRef}
                                 data-timeline-date={dateKey}
                                 onClick={setMousePositionHandler}
@@ -522,67 +581,18 @@ export const Timeline = ({
                                    $cancelled={r.status === 'cancelled' || r.status === 'noshow'}
                                    onClick={(e: React.MouseEvent) => {
                                        e.stopPropagation();
-                                       if (r.status === 'cancelled' || r.status === 'noshow') {
-                                           openReservationDetail(r);
-                                       }
-                                   }}
-                                   onMouseDown={(e: React.MouseEvent) => {
-                                       e.stopPropagation();
-                                       if (r.status === 'cancelled' || r.status === 'noshow') {
-                                           dragStateRef.current = null;
+                                       if (suppressCreateClickRef.current) {
                                            return;
                                        }
-
-                                       dragStateRef.current = {
-                                           reservation: r,
-                                           durationMinutes,
-                                           pointerOffsetY: e.clientY - e.currentTarget.getBoundingClientRect().top,
-                                           originTop: blockTop,
-                                           didDrag: false,
-                                       };
-                                       const initialPreview: DragPreview = {
-                                           reservationId: r.id,
-                                           top: blockTop,
-                                           date: r.date,
-                                           startTime: r.startTime,
-                                           endTime: r.endTime,
-                                           ghostLeft: 0,
-                                           ghostTop: 0,
-                                           ghostWidth: 0,
-                                           ghostHeight: blockHeight,
-                                       };
-                                       dragPreviewRef.current = initialPreview;
-                                       setDragPreview(initialPreview);
-                                   }}
-                                   onTouchStart={(e: React.TouchEvent) => {
-                                       e.stopPropagation();
-                                       if (r.status === 'cancelled' || r.status === 'noshow') {
-                                           dragStateRef.current = null;
-                                           return;
-                                       }
-
-                                       const touch = e.touches[0];
-                                       dragStateRef.current = {
-                                           reservation: r,
-                                           durationMinutes,
-                                           pointerOffsetY: touch.clientY - e.currentTarget.getBoundingClientRect().top,
-                                           originTop: blockTop,
-                                           didDrag: false,
-                                       };
-                                       const initialPreview: DragPreview = {
-                                           reservationId: r.id,
-                                           top: blockTop,
-                                           date: r.date,
-                                           startTime: r.startTime,
-                                           endTime: r.endTime,
-                                           ghostLeft: 0,
-                                           ghostTop: 0,
-                                           ghostWidth: 0,
-                                           ghostHeight: blockHeight,
-                                       };
-                                       dragPreviewRef.current = initialPreview;
-                                       setDragPreview(initialPreview);
+                                       openReservationDetail(r);
                                    }}>
+                {r.status !== 'cancelled' && r.status !== 'noshow' && (
+                    <span className="drag-handle"
+                          onMouseDown={(e) => startMouseDrag(e, r, durationMinutes, blockTop, blockHeight)}
+                          onTouchStart={(e) => startTouchDrag(e, r, durationMinutes, blockTop, blockHeight)}>
+                        <span className="a11y">예약 이동</span>
+                    </span>
+                )}
                 <strong className="highlight">
                     {parseServiceString(r.service).map((serviceName) => (
                         <span className="service-token"
