@@ -17,33 +17,8 @@ import {buildServiceColorMap, calcEndTime, getServiceColor, parseServiceString} 
 import {findOverlap, toDateKey, type Reservation} from '../../../utils/reservations';
 import {roundToHalfHour, pad} from '../../../utils/timeRound';
 import {ButtonReserve} from "../../ui/Buttons";
+import {buildInitialDragPreview, type DragPreview, type DragState, type PendingMove} from './timelineDrag';
 import {buildTimelineEntries, type TimelineEntry} from './timelineEntries';
-
-interface DragPreview {
-    reservationId: number;
-    top: number;
-    date: string;
-    startTime: string;
-    endTime: string;
-    ghostLeft: number;
-    ghostTop: number;
-    ghostWidth: number;
-    ghostHeight: number;
-}
-
-interface DragState {
-    reservation: Reservation;
-    durationMinutes: number;
-    pointerOffsetY: number;
-    originTop: number;
-    didDrag: boolean;
-}
-
-interface PendingMove {
-    prev: Reservation;
-    next: Reservation;
-    customerName?: string;
-}
 
 export const Timeline = ({
                              fullYear,
@@ -347,17 +322,7 @@ export const Timeline = ({
             originTop: blockTop,
             didDrag: false,
         };
-        const initialPreview: DragPreview = {
-            reservationId: reservation.id,
-            top: blockTop,
-            date: reservation.date,
-            startTime: reservation.startTime,
-            endTime: reservation.endTime,
-            ghostLeft: 0,
-            ghostTop: 0,
-            ghostWidth: 0,
-            ghostHeight: blockHeight,
-        };
+        const initialPreview = buildInitialDragPreview(reservation, blockTop, blockHeight);
         dragPreviewRef.current = initialPreview;
         setDragPreview(initialPreview);
     };
@@ -377,17 +342,7 @@ export const Timeline = ({
             originTop: blockTop,
             didDrag: false,
         };
-        const initialPreview: DragPreview = {
-            reservationId: reservation.id,
-            top: blockTop,
-            date: reservation.date,
-            startTime: reservation.startTime,
-            endTime: reservation.endTime,
-            ghostLeft: 0,
-            ghostTop: 0,
-            ghostWidth: 0,
-            ghostHeight: blockHeight,
-        };
+        const initialPreview = buildInitialDragPreview(reservation, blockTop, blockHeight);
         dragPreviewRef.current = initialPreview;
         setDragPreview(initialPreview);
     };
