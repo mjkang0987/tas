@@ -26,7 +26,9 @@ import {
     StyledDetail,
     StyledHeader,
     StyledBody,
+    StyledBodyInner,
     StyledActionButton,
+    useLayerInstanceId,
 } from './ModalStyles';
 import {
     ReservationDiffSection,
@@ -225,6 +227,7 @@ export const ReservationDetail = ({
     }, {0: '미지정'});
     const serviceColorMap = buildServiceColorMap(serviceCatalog, categoryBaseColorMap);
     const modalRoot = document.getElementById('modal-root');
+    const {layerId, layerDataId} = useLayerInstanceId('reservation-detail');
 
     const [mode, setMode] = useState<Mode>('view');
     const [isHistoryOpen, setIsHistoryOpen] = useState(false);
@@ -538,6 +541,8 @@ export const ReservationDetail = ({
                                                   role="dialog"
                                                   aria-modal="true"
                                                   aria-label={dialogLabel}
+                                                  id={layerId}
+                                                  data-layer-id={layerDataId}
                                                   $stacked={selectedCustomerId !== null}>
         <StyledDetail onClick={(e) => e.stopPropagation()}
                       $width={400}>
@@ -555,7 +560,7 @@ export const ReservationDetail = ({
                 </StyledReservationTitleGroup>
                 <button type="button"
                         onClick={handleBack}
-                        aria-label="닫기">&#x2715;</button>
+                        aria-label="닫기">닫기</button>
             </StyledReservationHeader>
 
             {mode === 'view' && (
@@ -632,7 +637,7 @@ export const ReservationDetail = ({
             )}
 
             {mode === 'payment' && (
-                <StyledBody>
+                <StyledBody><StyledBodyInner>
                     <StyledPaymentLayer>
                         <StyledPaymentMessage>결제 종류와 금액을 입력해 주세요.</StyledPaymentMessage>
                         <StyledPaymentEntryList>
@@ -686,7 +691,7 @@ export const ReservationDetail = ({
                         </StyledPaymentAddButton>
                         {error && <StyledPaymentError>{error}</StyledPaymentError>}
                     </StyledPaymentLayer>
-                </StyledBody>
+                </StyledBodyInner></StyledBody>
             )}
 
             {mode === 'noshow' && (

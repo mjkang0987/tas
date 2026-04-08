@@ -12,6 +12,7 @@ import {
     StyledHeader,
     StyledModalMessage,
     StyledOverlay,
+    useLayerInstanceId,
 } from './ModalStyles';
 
 interface ReservationMoveConfirmModalProps {
@@ -30,6 +31,7 @@ export const ReservationMoveConfirmModal = ({
     onConfirm,
 }: ReservationMoveConfirmModalProps) => {
     const modalRoot = document.getElementById('modal-root');
+    const {layerId, layerDataId} = useLayerInstanceId('reservation-move-confirm');
 
     if (!modalRoot) return null;
 
@@ -37,13 +39,15 @@ export const ReservationMoveConfirmModal = ({
         <StyledConfirmOverlay onClick={onClose}
                               role="dialog"
                               aria-modal="true"
-                              aria-label="예약 변경 확인">
+                              aria-label="예약 변경 확인"
+                              id={layerId}
+                              data-layer-id={layerDataId}>
             <StyledConfirmModal onClick={(e) => e.stopPropagation()}>
                 <StyledHeader>
                     <h3>예약 변경 전 확인</h3>
                     <button type="button"
                             onClick={onClose}
-                            aria-label="닫기">&#x2715;</button>
+                            aria-label="닫기">닫기</button>
                 </StyledHeader>
                 <StyledContent>
                     <StyledModalMessage>드래그한 예약 시간을 변경할까요?</StyledModalMessage>

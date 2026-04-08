@@ -12,9 +12,13 @@ import {
     StyledOverlay,
     StyledDetail,
     StyledHeader,
+    useLayerInstanceId,
+    scrollHintStyle,
+    scrollContentStyle,
 } from './ModalStyles';
 
-import {buildServiceColorMap, getServiceColor} from '../../../utils/services';
+import {getDesignerColor} from '../../../utils/designers';
+import {buildServiceColorMap, getServiceColor, parseServiceString} from '../../../utils/services';
 import {useCalendarStore} from '../../../store/calendarStore';
 
 const PAGE_SIZE = 5;
@@ -30,10 +34,26 @@ export const CustomerDetail = ({customer, reservationMap, onClose, onReservation
     const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
     const serviceCatalog = useCalendarStore((s) => s.serviceCatalog);
     const categoryBaseColorMap = useCalendarStore((s) => s.categoryBaseColorMap);
+    const designers = useCalendarStore((s) => s.designers);
     const modalRoot = document.getElementById('modal-root');
+    const {layerId, layerDataId} = useLayerInstanceId('customer-detail');
     const serviceColorMap = useMemo(
         () => buildServiceColorMap(serviceCatalog, categoryBaseColorMap),
         [serviceCatalog, categoryBaseColorMap]
+    );
+    const designerColorMap = useMemo(
+        () => designers.reduce<Record<number, string>>((acc, designer) => {
+            acc[designer.id] = getDesignerColor(designer);
+            return acc;
+        }, {}),
+        [designers]
+    );
+    const designerNameMap = useMemo(
+        () => designers.reduce<Record<number, string>>((acc, designer) => {
+            acc[designer.id] = designer.name;
+            return acc;
+        }, {}),
+        [designers]
     );
 
     const customerReservations = useMemo(() => {
@@ -59,11 +79,13 @@ export const CustomerDetail = ({customer, reservationMap, onClose, onReservation
     return createPortal(<StyledCustomerOverlay onClick={onClose}
                                                role="dialog"
                                                aria-modal="true"
-                                               aria-label="고객 정보">
+                                               aria-label="고객 정보"
+                                               id={layerId}
+                                               data-layer-id={layerDataId}>
         <StyledCustomerDetail onClick={(e) => e.stopPropagation()}>
             <StyledHeader>
                 <h3>{customer.name}</h3>
-                <button type="button" onClick={onClose} aria-label="닫기">&#x2715;</button>
+                <button type="button" onClick={onClose} aria-label="닫기">닫기</button>
             </StyledHeader>
             <StyledInfo>
                 <dl>
@@ -72,24 +94,42 @@ export const CustomerDetail = ({customer, reservationMap, onClose, onReservation
                 </dl>
             </StyledInfo>
             <StyledReservationSection>
+                <StyledReservationScroll>
                 <h4>예약 내역 ({customerReservations.length})</h4>
                 <StyledReservationList>
-                    {visibleList.map((r) => (
-                        <StyledReservationItem key={r.id}
-                                               type="button"
-                                               $clickable={!!onReservationClick}
-                                               $color={getServiceColor(r.service, serviceColorMap)}
-                                               onClick={() => onReservationClick?.(r)}>
-                            <span className="date">{r.date}</span>
-                            <span className="time">{r.startTime} ~ {r.endTime}</span>
-                            <strong>{r.service}</strong>
-                        </StyledReservationItem>
-                    ))}
+                    {visibleList.map((r) => {
+                        const designerColor = r.designerId ? (designerColorMap[r.designerId] ?? '#8E8E93') : '#8E8E93';
+                        const designerName = r.designerId ? (designerNameMap[r.designerId] ?? '미지정') : '미지정';
+                        return (
+                            <StyledReservationItem key={r.id}
+                                                   type="button"
+                                                   $clickable={!!onReservationClick}
+                                                   $color={designerColor}
+                                                   onClick={() => onReservationClick?.(r)}>
+                                <StyledItemTop>
+                                    <span className="date">{r.date}</span>
+                                    <span className="time">{r.startTime}~{r.endTime}</span>
+                                    <StyledServiceList>
+                                        {parseServiceString(r.service).map((serviceName) => (
+                                            <StyledServiceToken key={`${r.id}-${serviceName}`}>
+                                                <StyledServiceDot $color={getServiceColor(serviceName, serviceColorMap)} />
+                                                <span>{serviceName}</span>
+                                            </StyledServiceToken>
+                                        ))}
+                                    </StyledServiceList>
+                                </StyledItemTop>
+                                <StyledMetaLine>
+                                    <span>디자이너: {designerName}</span>
+                                </StyledMetaLine>
+                            </StyledReservationItem>
+                        );
+                    })}
                 </StyledReservationList>
                 {hasMore && <StyledMoreButton type="button"
                                               onClick={() => setVisibleCount((prev) => prev + PAGE_SIZE)}>
                     더보기
                 </StyledMoreButton>}
+                </StyledReservationScroll>
             </StyledReservationSection>
         </StyledCustomerDetail>
     </StyledCustomerOverlay>, modalRoot);
@@ -127,10 +167,13 @@ const StyledInfo = styled.div`
 `;
 
 const StyledReservationSection = styled.div`
-  padding: 12px 16px;
-  overflow-y: auto;
-  overscroll-behavior: auto;
   flex: 1;
+  ${scrollHintStyle};
+`;
+
+const StyledReservationScroll = styled.div`
+  ${scrollContentStyle};
+  padding: 12px 16px 30px;
 
   h4 {
     margin: 0 0 8px;
@@ -147,34 +190,66 @@ const StyledReservationList = styled.ul`
 
 const StyledReservationItem = styled.button<{ $color: string; $clickable: boolean }>`
   display: flex;
-  align-items: center;
+  flex-direction: column;
   gap: 8px;
   width: 100%;
   padding: 8px 10px;
-  border: none;
-  border-radius: 4px;
-  background-color: ${props => props.$color};
-  color: #fff;
+  border: 1px solid ${props => props.$color};
+  border-left-width: 4px;
+  border-radius: 8px;
+  background-color: ${props => `${props.$color}12`};
+  color: var(--dark-gray-color);
   font-size: 12px;
   text-align: left;
   cursor: ${props => props.$clickable ? 'pointer' : 'default'};
 
-  .date {
+  .date, .time {
+    color: var(--dark-gray-color);
     opacity: 0.9;
-  }
-
-  .time {
-    opacity: 0.9;
-  }
-
-  strong {
-    font-weight: 600;
-    margin-left: auto;
   }
 
   &:hover {
-    filter: ${props => props.$clickable ? 'brightness(0.96)' : 'none'};
+    background-color: ${props => props.$clickable ? `${props.$color}1d` : `${props.$color}12`};
   }
+`;
+
+const StyledItemTop = styled.div`
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+`;
+
+const StyledServiceList = styled.span`
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  font-weight: 500;
+`;
+
+const StyledServiceToken = styled.span`
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+`;
+
+const StyledServiceDot = styled.span<{ $color: string }>`
+  flex-shrink: 0;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background-color: ${props => props.$color};
+`;
+
+const StyledMetaLine = styled.div`
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  font-size: var(--tiny-font);
+  color: var(--gray-color);
 `;
 
 const StyledMoreButton = styled.button`

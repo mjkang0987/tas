@@ -10,6 +10,8 @@ import {
     OVERLAY_Z_INDEX,
     StyledActionButton,
     StyledBody,
+    StyledBodyInner,
+    scrollContentStyle,
     StyledDetail,
     StyledDiffGrid,
     StyledError,
@@ -22,6 +24,8 @@ import {
     StyledPriceRow,
     StyledPriceUnit,
     StyledStatusBadge,
+    useLayerInstanceId,
+    scrollHintStyle,
 } from './ModalStyles';
 import {ServiceFields} from '../service/ServiceFields';
 
@@ -197,7 +201,7 @@ export const ReservationViewSection = ({
     const isNoshow = reservation.status === 'noshow';
 
     return (
-        <StyledDetailBody>
+        <StyledDetailBody><StyledDetailBodyInner>
             <dl>
                 {isCancelled && (<>
                     <dt>상태</dt>
@@ -247,7 +251,7 @@ export const ReservationViewSection = ({
                     </StyledHistoryButton>
                 </StyledHistorySection>
             )}
-        </StyledDetailBody>
+        </StyledDetailBodyInner></StyledDetailBody>
     );
 };
 
@@ -286,7 +290,7 @@ export const ReservationEditSection = ({
     onStartTimeChange,
     onEndTimeChange,
 }: ReservationEditSectionProps) => (
-    <StyledBody>
+    <StyledBody><StyledBodyInner>
         <ReservationFormFields
             idPrefix="edit"
             form={form}
@@ -305,7 +309,7 @@ export const ReservationEditSection = ({
             onEndTimeChange={onEndTimeChange}
         />
         {error && <StyledError>{error}</StyledError>}
-    </StyledBody>
+    </StyledBodyInner></StyledBody>
 );
 
 interface ReservationDiffSectionProps {
@@ -315,7 +319,7 @@ interface ReservationDiffSectionProps {
 }
 
 export const ReservationDiffSection = ({message, color, diffs}: ReservationDiffSectionProps) => (
-    <StyledBody>
+    <StyledBody><StyledBodyInner>
         <StyledModalMessage $color={color}>{message}</StyledModalMessage>
         {diffs.length > 0 && (
             <StyledDiffList>
@@ -330,7 +334,7 @@ export const ReservationDiffSection = ({message, color, diffs}: ReservationDiffS
                 ))}
             </StyledDiffList>
         )}
-    </StyledBody>
+    </StyledBodyInner></StyledBody>
 );
 
 interface ReservationStaticDiffSectionProps {
@@ -340,7 +344,7 @@ interface ReservationStaticDiffSectionProps {
 }
 
 export const ReservationStaticDiffSection = ({message, color, items}: ReservationStaticDiffSectionProps) => (
-    <StyledBody>
+    <StyledBody><StyledBodyInner>
         <StyledModalMessage $color={color}>{message}</StyledModalMessage>
         <StyledDiffList>
             {items.map((item) => (
@@ -350,7 +354,7 @@ export const ReservationStaticDiffSection = ({message, color, items}: Reservatio
                 </StyledDiffGrid>
             ))}
         </StyledDiffList>
-    </StyledBody>
+    </StyledBodyInner></StyledBody>
 );
 
 interface ReservationHistoryLayerProps {
@@ -370,16 +374,22 @@ export const ReservationHistoryLayer = ({
     isOpen,
     onClose,
 }: ReservationHistoryLayerProps) => {
+    const {layerId, layerDataId} = useLayerInstanceId('reservation-history');
     if (!isOpen) return null;
 
     return (
-        <StyledHistoryOverlay onClick={onClose} role="dialog" aria-modal="true" aria-label="예약 변경 이력">
+        <StyledHistoryOverlay onClick={onClose}
+                              role="dialog"
+                              aria-modal="true"
+                              aria-label="예약 변경 이력"
+                              id={layerId}
+                              data-layer-id={layerDataId}>
             <StyledHistoryPanel onClick={(e) => e.stopPropagation()} $width={400}>
                 <StyledHeader>
                     <h3>변경 이력</h3>
-                    <button type="button" onClick={onClose} aria-label="닫기">&#x2715;</button>
+                    <button type="button" onClick={onClose} aria-label="닫기">닫기</button>
                 </StyledHeader>
-                <StyledBody>
+                <StyledBody><StyledBodyInner>
                     <StyledHistoryDetailList>
                         {[...history].reverse().map((entry, index) => {
                             const diffs = getHistoryDiffs(entry, designerNameMap);
@@ -410,7 +420,7 @@ export const ReservationHistoryLayer = ({
                             );
                         })}
                     </StyledHistoryDetailList>
-                </StyledBody>
+                </StyledBodyInner></StyledBody>
             </StyledHistoryPanel>
         </StyledHistoryOverlay>
     );
@@ -425,8 +435,10 @@ export const ReservationFooter = ({actions}: ReservationFooterProps) => {
     return <StyledFooter>{actions}</StyledFooter>;
 };
 
-const StyledDetailBody = styled(StyledBody)`
-    > dl {
+const StyledDetailBody = styled(StyledBody)``;
+
+const StyledDetailBodyInner = styled(StyledBodyInner)`
+    dl {
         display: grid;
         grid-template-columns: 60px 1fr;
         gap: 8px 12px;
@@ -554,9 +566,6 @@ const StyledHistoryDetailList = styled.div`
     display: flex;
     flex-direction: column;
     gap: 10px;
-    max-height: 320px;
-    overflow-y: auto;
-    overscroll-behavior: auto;
 `;
 
 const HISTORY_ITEM_STYLES: Record<string, { bg: string; border: string }> = {

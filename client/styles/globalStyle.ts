@@ -106,6 +106,7 @@ export const GlobalStyle = createGlobalStyle`
     a {
         font-size: var(--font);
         color: var(--black-color);
+        box-sizing: border-box;
     }
 
     button,
@@ -134,6 +135,18 @@ export const GlobalStyle = createGlobalStyle`
         height: 1px;
         clip: rect(1px, 1px, 1px, 1px);
         clip-path: inset(50%);
+    }
+
+    [id*="customer-detail-layer"] {
+        ~ [id*="reservation-detail-layer"] {
+            z-index: 150;
+        }
+    }
+
+    [id*="reservation-detail-layer"] {
+        ~ [id*="customer-detail-layer"] {
+            z-index: 140;
+        }
     }
 
     @keyframes spin {

@@ -25,9 +25,13 @@ import {
     StyledDetail,
     StyledHeader,
     StyledBody,
+    StyledBodyInner,
     StyledError,
     StyledFooter,
     StyledActionButton,
+    useLayerInstanceId,
+    scrollHintStyle,
+    scrollContentStyle,
 } from './ModalStyles';
 import {ReservationFormFields, type ReservationDetailFormState} from './ReservationDetailSections';
 
@@ -45,6 +49,7 @@ export const ReservationCreate = ({initial, customerMap, onClose, onSave}: Reser
     const designers = useCalendarStore((s) => s.designers);
     const addCustomer = useCalendarStore((s) => s.addCustomer);
     const modalRoot = document.getElementById('modal-root');
+    const {layerId, layerDataId} = useLayerInstanceId('reservation-create');
     const {active: activeDesigners, onLeave: onLeaveDesigners, resigned: resignedDesigners} = splitDesignersByStatus(designers);
     const selectableDesigners = [...activeDesigners, ...onLeaveDesigners, ...resignedDesigners];
 
@@ -225,14 +230,16 @@ export const ReservationCreate = ({initial, customerMap, onClose, onSave}: Reser
     return createPortal(<StyledCreateOverlay onClick={onClose}
                                              role="dialog"
                                              aria-modal="true"
-                                             aria-label="예약 추가">
+                                             aria-label="예약 추가"
+                                             id={layerId}
+                                             data-layer-id={layerDataId}>
         <StyledDetail onClick={(e) => e.stopPropagation()}>
             <StyledHeader>
                 <h3>예약 추가</h3>
-                <button type="button" onClick={onClose} aria-label="닫기">&#x2715;</button>
+                <button type="button" onClick={onClose} aria-label="닫기">닫기</button>
             </StyledHeader>
 
-            <StyledBody>
+            <StyledBody><StyledBodyInner>
                 <StyledCreateForm>
                     <StyledCustomerModeTabs>
                         <StyledCustomerModeButton
@@ -270,22 +277,26 @@ export const ReservationCreate = ({initial, customerMap, onClose, onSave}: Reser
                                        onBlur={handleCustomerBlur}/>
                             </label>
                             {showSuggestions && filteredCustomers.length > 0 && (
-                                <StyledSuggestionList role="listbox" id="create-customer-listbox">
-                                    {filteredCustomers.map((c) => (
-                                        <StyledSuggestionItem key={c.id}
-                                                              role="option"
-                                                              aria-selected={c.id === customerId}
-                                                              onMouseDown={() => handleCustomerSelect(c.id)}>
-                                            <span>{c.name}</span>
-                                            <span>{c.tel}</span>
-                                        </StyledSuggestionItem>
-                                    ))}
-                                </StyledSuggestionList>
+                                <StyledSuggestionWrap>
+                                    <StyledSuggestionList role="listbox" id="create-customer-listbox">
+                                        {filteredCustomers.map((c) => (
+                                            <StyledSuggestionItem key={c.id}
+                                                                  role="option"
+                                                                  aria-selected={c.id === customerId}
+                                                                  onMouseDown={() => handleCustomerSelect(c.id)}>
+                                                <span>{c.name}</span>
+                                                <span>{c.tel}</span>
+                                            </StyledSuggestionItem>
+                                        ))}
+                                    </StyledSuggestionList>
+                                </StyledSuggestionWrap>
                             )}
                             {showSuggestions && customerQuery.trim() && filteredCustomers.length === 0 && (
-                                <StyledSuggestionList>
-                                    <StyledNoResult>검색 결과 없음</StyledNoResult>
-                                </StyledSuggestionList>
+                                <StyledSuggestionWrap>
+                                    <StyledSuggestionList>
+                                        <StyledNoResult>검색 결과 없음</StyledNoResult>
+                                    </StyledSuggestionList>
+                                </StyledSuggestionWrap>
                             )}
                         </StyledAutocomplete>
                     ) : (
@@ -350,7 +361,7 @@ export const ReservationCreate = ({initial, customerMap, onClose, onSave}: Reser
                     />
                 </StyledCreateForm>
                 {error && <StyledError>{error}</StyledError>}
-            </StyledBody>
+            </StyledBodyInner></StyledBody>
 
             <StyledFooter>
                 <StyledActionButton type="button" onClick={onClose}>취소</StyledActionButton>
@@ -400,22 +411,25 @@ const StyledAutocomplete = styled.div`
   position: relative;
 `;
 
-const StyledSuggestionList = styled.ul`
+const StyledSuggestionWrap = styled.div`
+  ${scrollHintStyle};
   position: absolute;
   left: 0;
   right: 0;
   top: 100%;
   z-index: 10;
   margin: 4px 0 0;
-  padding: 4px 0;
-  list-style: none;
+  max-height: 160px;
   background-color: #fff;
   border: 1px solid var(--light-gray-color);
   border-radius: 4px;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-  max-height: 160px;
-  overflow-y: auto;
-  overscroll-behavior: auto;
+`;
+
+const StyledSuggestionList = styled.ul`
+  ${scrollContentStyle};
+  padding: 4px 0;
+  list-style: none;
 `;
 
 const StyledSuggestionItem = styled.li`

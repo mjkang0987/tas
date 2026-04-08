@@ -6,6 +6,7 @@ import styled from 'styled-components';
 import Link from 'next/link';
 
 import {useCalendarStore} from '../../store/calendarStore';
+import {scrollHintStyle, scrollContentStyle} from '../calendar/overlays/ModalStyles';
 
 import {Icon} from '../ui/Icons';
 import {ButtonText} from '../ui/ButtonText';
@@ -63,9 +64,9 @@ const SearchLayer = ({onClose}: { onClose: () => void }) => {
                                        placeholder="고객명 또는 연락처 검색"
                                        value={query}
                                        onChange={(e) => setQuery(e.target.value)}/>
-                    <button type="button" onClick={onClose} aria-label="닫기">&#x2715;</button>
+                    <button type="button" onClick={onClose} aria-label="닫기">닫기</button>
                 </StyledSearchHeader>
-                <StyledResultList>
+                <StyledResultListWrap><StyledResultList>
                     {query.trim() && filtered.length === 0 ? (
                         <StyledNoResult>검색 결과 없음</StyledNoResult>
                     ) : (
@@ -76,7 +77,7 @@ const SearchLayer = ({onClose}: { onClose: () => void }) => {
                             </StyledResultItem>
                         ))
                     )}
-                </StyledResultList>
+                </StyledResultList></StyledResultListWrap>
             </StyledSearchModal>
         </StyledOverlay>,
         modalRoot
@@ -159,13 +160,20 @@ const StyledSearchHeader = styled.div`
   border-bottom: 1px solid var(--light-gray-color);
 
   > button {
-    border: none;
-    background: none;
-    font-size: 16px;
+    min-width: 44px;
+    height: 30px;
+    padding: 0 10px;
+    border: 1px solid var(--light-gray-color);
+    border-radius: 8px;
+    background: var(--white-color);
+    font-size: 12px;
+    font-weight: 600;
     cursor: pointer;
-    padding: 0;
-    line-height: 1;
     color: var(--dark-gray-color);
+
+    &:hover {
+      background-color: var(--black-color-10);
+    }
   }
 `;
 
@@ -194,11 +202,14 @@ const StyledSearchInput = styled.input`
   }
 `;
 
-const StyledResultList = styled.ul`
+const StyledResultListWrap = styled.div`
   flex: 1;
-  overflow-y: auto;
-  overscroll-behavior: auto;
-  padding: 4px 0;
+  ${scrollHintStyle};
+`;
+
+const StyledResultList = styled.ul`
+  ${scrollContentStyle};
+  padding: 4px 0 30px;
   list-style: none;
 `;
 
