@@ -15,6 +15,8 @@ import {
     StyledDetail,
     StyledHeader,
     StyledBody,
+    StyledBodyInner,
+    useLayerInstanceId,
 } from './ModalStyles';
 
 import type {Reservation} from '../../../utils/reservations';
@@ -36,12 +38,13 @@ export const ReservationListModal = () => {
     const customerMap = useCalendarStore((s) => s.customerMap);
     const filter = useCalendarStore((s) => s.reservationListFilter);
     const setReservationListFilter = useCalendarStore((s) => s.setReservationListFilter);
-    const setSelectedReservation = useCalendarStore((s) => s.setSelectedReservation);
+    const openReservationDetail = useCalendarStore((s) => s.openReservationDetail);
     const serviceCatalog = useCalendarStore((s) => s.serviceCatalog);
     const categoryBaseColorMap = useCalendarStore((s) => s.categoryBaseColorMap);
     const designers = useCalendarStore((s) => s.designers);
     const calendarDesignerId = useCalendarStore((s) => s.calendarDesignerId);
     const modalRoot = document.getElementById('modal-root');
+    const {layerId, layerDataId} = useLayerInstanceId('reservation-list');
     const serviceColorMap = useMemo(
         () => buildServiceColorMap(serviceCatalog, categoryBaseColorMap),
         [serviceCatalog, categoryBaseColorMap]
@@ -93,8 +96,12 @@ export const ReservationListModal = () => {
         }
 
         if (calendarDesignerId != null) {
-            list = list.filter((reservation) => reservation.designerId === calendarDesignerId);
-            const designerName = designers.find((designer) => designer.id === calendarDesignerId)?.name;
+            list = list.filter((reservation) => (
+                calendarDesignerId === 0 ? !reservation.designerId : reservation.designerId === calendarDesignerId
+            ));
+            const designerName = calendarDesignerId === 0
+                ? '미지정'
+                : designers.find((designer) => designer.id === calendarDesignerId)?.name;
             if (designerName) {
                 modalTitle = `${modalTitle} · ${designerName}`;
             }
@@ -130,7 +137,7 @@ export const ReservationListModal = () => {
     const handleClose = () => setReservationListFilter(null);
 
     const handleClick = (r: Reservation) => {
-        setSelectedReservation(r);
+        openReservationDetail(r);
     };
 
     if (!modalRoot) return null;
@@ -138,15 +145,17 @@ export const ReservationListModal = () => {
     return createPortal(<StyledListOverlay onClick={handleClose}
                                            role="dialog"
                                            aria-modal="true"
-                                           aria-label="예약 목록">
+                                           aria-label="예약 목록"
+                                           id={layerId}
+                                           data-layer-id={layerDataId}>
         <StyledListModal onClick={(e) => e.stopPropagation()}>
             <StyledHeader>
                 <h3>{title} 예약 ({reservations.length})</h3>
                 <button type="button"
                         onClick={handleClose}
-                        aria-label="닫기">&#x2715;</button>
+                        aria-label="닫기">닫기</button>
             </StyledHeader>
-            <StyledListBody>
+            <StyledListBody><StyledListBodyInner>
                 {reservations.length === 0 ? (
                     <StyledEmpty>예약이 없습니다.</StyledEmpty>
                 ) : (
@@ -188,7 +197,7 @@ export const ReservationListModal = () => {
                         </StyledDateGroup>
                     ))
                 )}
-            </StyledListBody>
+            </StyledListBodyInner></StyledListBody>
         </StyledListModal>
     </StyledListOverlay>, modalRoot);
 };
@@ -202,9 +211,10 @@ const StyledListModal = styled(StyledDetail)`
     width: 100%;
 `;
 
-const StyledListBody = styled(StyledBody)`
-    padding: 0 12px;
-    overscroll-behavior: auto;
+const StyledListBody = styled(StyledBody)``;
+
+const StyledListBodyInner = styled(StyledBodyInner)`
+    padding: 0 12px 30px;
 `;
 
 const StyledEmpty = styled.p`

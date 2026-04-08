@@ -54,7 +54,7 @@ const Address: NextPage<AddressProps> = ({customers, reservations, history}) => 
     const [editingId, setEditingId] = useState<number | null>(null);
     const [tagInput, setTagInput] = useState('');
     const [selectedColor, setSelectedColor] = useState(TAG_COLORS[0]);
-    const [selectedReservation, setSelectedReservation] = useState<Reservation | null>(null);
+    const [selectedReservations, setSelectedReservations] = useState<Reservation[]>([]);
 
     const [searchInput, setSearchInput] = useState('');
     const [searchTerm, setSearchTerm] = useState('');
@@ -284,7 +284,7 @@ const Address: NextPage<AddressProps> = ({customers, reservations, history}) => 
                                                     <dl>
                                                         {customerReservations.map((r) => (
                                                             <StyledReservationItem key={r.id}
-                                                                                   onClick={() => setSelectedReservation(r)}>
+                                                                                   onClick={() => setSelectedReservations((prev) => [...prev, r])}>
                                                                 <dt className="a11y">예약정보</dt>
                                                                 <dd>
                                                                     <time dateTime={r.date}>{r.date}</time>
@@ -322,17 +322,21 @@ const Address: NextPage<AddressProps> = ({customers, reservations, history}) => 
                     </StyledItems>
                 )}
             </StyledGrid>
-            {selectedReservation && <ReservationDetail reservation={selectedReservation}
-                                                       customerMap={customerMap}
-                                                       reservationMap={reservationMap}
-                                                       history={history}
-                                                       onClose={() => setSelectedReservation(null)}
-                                                       onCustomerClick={(customerId) => {
-                                                           setSelectedReservation(null);
-                                                           openCustomerDetail(customerId);
-                                                       }}
-                                                       onUpdate={(prev, updated) => setSelectedReservation(updated)}
-                                                       onCancel={() => setSelectedReservation(null)}/>}
+            {selectedReservations.map((reservation, index) => (
+                <ReservationDetail key={`${reservation.id}-${index}`}
+                                   reservation={reservation}
+                                   customerMap={customerMap}
+                                   reservationMap={reservationMap}
+                                   history={history}
+                                   onClose={() => setSelectedReservations((prev) => prev.filter((_, itemIndex) => itemIndex !== index))}
+                                   onCustomerClick={openCustomerDetail}
+                                   onUpdate={(prev, updated) => {
+                                       setSelectedReservations((current) => current.map((item) => item.id === prev.id ? updated : item));
+                                   }}
+                                   onCancel={(targetReservation) => {
+                                       setSelectedReservations((prev) => prev.filter((item) => item.id !== targetReservation.id));
+                                   }}/>
+            ))}
             {selectedCustomerId !== null && customerMap[selectedCustomerId] && (
                 <CustomerDetail customer={customerMap[selectedCustomerId]}
                                 reservationMap={reservationMap}

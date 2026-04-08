@@ -19,7 +19,7 @@ interface ReservationListProps {
 
 export const ReservationList = ({reservations, variant, onViewAll, hideViewAll}: ReservationListProps) => {
     const customerMap = useCalendarStore((s) => s.customerMap);
-    const setSelectedReservation = useCalendarStore((s) => s.setSelectedReservation);
+    const openReservationDetail = useCalendarStore((s) => s.openReservationDetail);
     const setCreateReservationInitial = useCalendarStore((s) => s.setCreateReservationInitial);
     const serviceCatalog = useCalendarStore((s) => s.serviceCatalog);
     const categoryBaseColorMap = useCalendarStore((s) => s.categoryBaseColorMap);
@@ -48,7 +48,7 @@ export const ReservationList = ({reservations, variant, onViewAll, hideViewAll}:
                                     onClick={(e) => {
                                         e.stopPropagation();
                                         setCreateReservationInitial(null);
-                                        setSelectedReservation(r);
+                                        openReservationDetail(r);
                                     }}>
                             <StyledMeta>{variant === 'date' ? r.startTime : r.date.slice(5)}</StyledMeta>
                             <StyledServiceName>

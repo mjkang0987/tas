@@ -8,7 +8,7 @@ import {useRouter} from 'next/router';
 import styled, {css} from 'styled-components';
 
 import {useCalendarStore} from '../store/calendarStore';
-import {getDailyRevenue, getRangeRevenue} from '../utils/revenue';
+import {getDailyRevenue, getRangeRevenue, getRevenueInsights} from '../utils/revenue';
 import {buildServiceColorMap, formatPrice, formatDuration, getCategoryBaseColor, getGroupedCatalog, getServiceColor} from '../utils/services';
 import type {ServiceItem} from '../utils/services';
 import type {Designer, DesignerStatus} from '../utils/designers';
@@ -65,6 +65,38 @@ function shiftDateKey(baseDate: Date, days: number): string {
     return toDateKey(d.getFullYear(), d.getMonth(), d.getDate());
 }
 
+const PAYMENT_METHOD_COLORS = ['#2D7FF9', '#00A896', '#FB8C00', '#E85D75', '#7E57C2', '#4C6EF5', '#8E8E93'] as const;
+
+function buildRevenueLinePath(values: number[], width: number, height: number): {linePath: string; areaPath: string} {
+    if (values.length === 0) return {linePath: '', areaPath: ''};
+
+    const max = Math.max(...values, 1);
+    const stepX = values.length > 1 ? width / (values.length - 1) : 0;
+    const points = values.map((value, index) => {
+        const x = values.length > 1 ? index * stepX : width / 2;
+        const y = height - (value / max) * height;
+        return {x, y};
+    });
+    const linePath = points.map((point, index) => `${index === 0 ? 'M' : 'L'} ${point.x} ${point.y}`).join(' ');
+    const areaPath = `${linePath} L ${points[points.length - 1].x} ${height} L ${points[0].x} ${height} Z`;
+
+    return {linePath, areaPath};
+}
+
+function buildPaymentDonutGradient(colors: string[], totals: number[]): string {
+    const sum = totals.reduce((acc, value) => acc + value, 0);
+    if (sum <= 0 || colors.length === 0) return 'conic-gradient(#E5E7EB 0deg 360deg)';
+
+    let angle = 0;
+    const segments = totals.map((total, index) => {
+        const start = angle;
+        angle += (total / sum) * 360;
+        return `${colors[index]} ${start}deg ${angle}deg`;
+    });
+
+    return `conic-gradient(${segments.join(', ')})`;
+}
+
 interface EditState {
     name: string;
     durationMinutes: string;
@@ -108,15 +140,43 @@ const RevenueSection = ({
 }: RevenueSectionProps) => {
     const [detailDateKey, setDetailDateKey] = useState<string | null>(null);
     const selectedDesignerId = designerKey === 'all' ? null : Number(designerKey);
+    const designerMap = useMemo(
+        () => Object.fromEntries(designers.map((designer) => [designer.id, designer])),
+        [designers]
+    );
     const [fromDateKey, toDateKeyValue] = startDateKey <= endDateKey
         ? [startDateKey, endDateKey]
         : [endDateKey, startDateKey];
     const rangeRevenue = getRangeRevenue(reservationMap, fromDateKey, toDateKeyValue, selectedDesignerId);
+    const revenueInsights = useMemo(
+        () => getRevenueInsights(reservationMap, fromDateKey, toDateKeyValue, selectedDesignerId),
+        [reservationMap, fromDateKey, toDateKeyValue, selectedDesignerId]
+    );
     const days = [...rangeRevenue.days].sort((a, b) => b.dateKey.localeCompare(a.dateKey));
     const openedDateKey = detailDateKey && detailDateKey >= fromDateKey && detailDateKey <= toDateKeyValue
         ? detailDateKey
         : null;
     const layerDaily = openedDateKey ? getDailyRevenue(reservationMap, openedDateKey, selectedDesignerId) : null;
+    const paymentChartItems = revenueInsights.payments.map((entry, index) => ({
+        ...entry,
+        color: PAYMENT_METHOD_COLORS[index % PAYMENT_METHOD_COLORS.length],
+    }));
+    const designerChartItems = revenueInsights.designers.map((entry) => {
+        const matchedDesigner = entry.designerId != null ? designerMap[entry.designerId] : null;
+
+        return {
+            ...entry,
+            name: matchedDesigner?.name ?? '미지정',
+            color: getDesignerColor(matchedDesigner),
+        };
+    });
+    const chartPath = buildRevenueLinePath(revenueInsights.series.map((item) => item.total), 320, 120);
+    const linePeak = Math.max(...revenueInsights.series.map((item) => item.total), 0);
+    const lineLow = Math.min(...revenueInsights.series.map((item) => item.total), 0);
+    const paymentDonutGradient = buildPaymentDonutGradient(
+        paymentChartItems.map((item) => item.color),
+        paymentChartItems.map((item) => item.total)
+    );
 
     return (
         <>
@@ -174,6 +234,118 @@ const RevenueSection = ({
                 </StyledDesignerTabs>
             </StyledRevenueStickyArea>
             <StyledCardBody>
+                <StyledRevenueDashboard>
+                    <StyledKpiGrid>
+                        <StyledKpiCard>
+                            <span>총 매출</span>
+                            <strong>{formatPrice(rangeRevenue.total)}</strong>
+                        </StyledKpiCard>
+                        <StyledKpiCard>
+                            <span>예약 건수</span>
+                            <strong>{rangeRevenue.count}건</strong>
+                        </StyledKpiCard>
+                        <StyledKpiCard>
+                            <span>객단가</span>
+                            <strong>{formatPrice(revenueInsights.averagePrice)}</strong>
+                        </StyledKpiCard>
+                        <StyledKpiCard>
+                            <span>결제완료</span>
+                            <strong>{formatPrice(revenueInsights.paidTotal)}</strong>
+                        </StyledKpiCard>
+                    </StyledKpiGrid>
+                    <StyledChartGrid>
+                        <StyledChartCard>
+                            <StyledChartHeader>
+                                <strong>기간별 매출 추이</strong>
+                                <span>{fromDateKey} ~ {toDateKeyValue}</span>
+                            </StyledChartHeader>
+                            {revenueInsights.series.length === 0 ? (
+                                <StyledChartEmpty>집계할 매출이 없습니다.</StyledChartEmpty>
+                            ) : (
+                                <>
+                                    <StyledLineChartBox>
+                                        <StyledChartMetaTop>{formatPrice(linePeak)}</StyledChartMetaTop>
+                                        <StyledLineChart viewBox="0 0 320 120" preserveAspectRatio="none">
+                                            <path d={chartPath.areaPath} fill="rgba(45, 127, 249, 0.14)" />
+                                            <path d={chartPath.linePath} fill="none" stroke="var(--blue-color)" strokeWidth="3" strokeLinecap="round" />
+                                        </StyledLineChart>
+                                        <StyledChartMetaBottom>{formatPrice(lineLow)}</StyledChartMetaBottom>
+                                    </StyledLineChartBox>
+                                    <StyledChartAxis>
+                                        <span>{fromDateKey.slice(5)}</span>
+                                        <span>{toDateKeyValue.slice(5)}</span>
+                                    </StyledChartAxis>
+                                </>
+                            )}
+                        </StyledChartCard>
+                        <StyledChartCard>
+                            <StyledChartHeader>
+                                <strong>디자이너별 매출</strong>
+                                <span>{designerKey === 'all' ? '전체 기준' : '선택 디자이너 기준'}</span>
+                            </StyledChartHeader>
+                            {designerChartItems.length === 0 ? (
+                                <StyledChartEmpty>디자이너 매출이 없습니다.</StyledChartEmpty>
+                            ) : (
+                                <StyledBarChartList>
+                                    {designerChartItems.map((item) => {
+                                        const ratio = linePeak > 0 ? (item.total / Math.max(...designerChartItems.map((entry) => entry.total), 1)) * 100 : 0;
+
+                                        return (
+                                            <StyledBarRow key={`${item.designerId ?? 'none'}-${item.name}`}>
+                                                <StyledBarLabel>
+                                                    <StyledColorSwatch $color={item.color} />
+                                                    <span>{item.name}</span>
+                                                </StyledBarLabel>
+                                                <StyledBarTrack>
+                                                    <StyledBarFill $color={item.color} $width={ratio} />
+                                                </StyledBarTrack>
+                                                <StyledBarValue>{formatPrice(item.total)}</StyledBarValue>
+                                            </StyledBarRow>
+                                        );
+                                    })}
+                                </StyledBarChartList>
+                            )}
+                        </StyledChartCard>
+                        <StyledChartCard>
+                            <StyledChartHeader>
+                                <strong>결제수단 비중</strong>
+                                <span>결제완료 기준</span>
+                            </StyledChartHeader>
+                            {paymentChartItems.length === 0 ? (
+                                <StyledChartEmpty>결제 데이터가 없습니다.</StyledChartEmpty>
+                            ) : (
+                                <StyledPaymentChartWrap>
+                                    <StyledDonutChart $gradient={paymentDonutGradient}>
+                                        <div>
+                                            <strong>{formatPrice(revenueInsights.paidTotal)}</strong>
+                                            <span>결제합계</span>
+                                        </div>
+                                    </StyledDonutChart>
+                                    <StyledLegendList>
+                                        {paymentChartItems.map((item) => {
+                                            const percent = revenueInsights.paidTotal > 0
+                                                ? Math.round((item.total / revenueInsights.paidTotal) * 100)
+                                                : 0;
+
+                                            return (
+                                                <StyledLegendItem key={item.method}>
+                                                    <StyledBarLabel>
+                                                        <StyledColorSwatch $color={item.color} />
+                                                        <span>{item.method}</span>
+                                                    </StyledBarLabel>
+                                                    <StyledLegendValue>
+                                                        <strong>{formatPrice(item.total)}</strong>
+                                                        <span>{percent}%</span>
+                                                    </StyledLegendValue>
+                                                </StyledLegendItem>
+                                            );
+                                        })}
+                                    </StyledLegendList>
+                                </StyledPaymentChartWrap>
+                            )}
+                        </StyledChartCard>
+                    </StyledChartGrid>
+                </StyledRevenueDashboard>
                 {days.length === 0 ? (
                     <StyledEmpty>매출 없음</StyledEmpty>
                 ) : (
@@ -1132,7 +1304,7 @@ const Settings: NextPage<SettingsProps> = ({reservations, customers, history}) =
             date: todayKey,
         });
     };
-    const [selectedReservation, setSelectedReservation] = useState<Reservation | null>(null);
+    const [selectedReservations, setSelectedReservations] = useState<Reservation[]>([]);
     const [selectedCustomerId, setSelectedCustomerId] = useState<number | null>(null);
 
     useEffect(() => {
@@ -1156,7 +1328,7 @@ const Settings: NextPage<SettingsProps> = ({reservations, customers, history}) =
             <StyledContent>
                 {tab === 'revenue' && <RevenueSection reservationMap={reservationMap}
                                                       designers={designers}
-                                                      onSelectReservation={setSelectedReservation}
+                                                      onSelectReservation={(reservation) => setSelectedReservations((prev) => [...prev, reservation])}
                                                       designerKey={revenueDesignerKey}
                                                       setDesignerKey={setRevenueDesigner}
                                                       startDateKey={startDateKey}
@@ -1171,22 +1343,23 @@ const Settings: NextPage<SettingsProps> = ({reservations, customers, history}) =
                 {tab === 'service' && <ServiceManageSection/>}
                 {tab === 'designer' && <DesignerManageSection/>}
             </StyledContent>
-            {selectedReservation && (
-                <ReservationDetail reservation={selectedReservation}
+            {selectedReservations.map((reservation, index) => (
+                <ReservationDetail key={`${reservation.id}-${index}`}
+                                   reservation={reservation}
                                    customerMap={customerMap}
                                    reservationMap={storeReservationMap}
                                    history={storeHistory}
-                                   onClose={() => setSelectedReservation(null)}
+                                   onClose={() => setSelectedReservations((prev) => prev.filter((_, itemIndex) => itemIndex !== index))}
                                    onCustomerClick={openCustomerDetail}
                                    onUpdate={(prev, updated) => {
                                        updateReservation(prev, updated);
-                                       setSelectedReservation(updated);
+                                       setSelectedReservations((current) => current.map((item) => item.id === prev.id ? updated : item));
                                    }}
-                                   onCancel={(reservation) => {
-                                       cancelReservation(reservation);
-                                       setSelectedReservation(null);
+                                   onCancel={(targetReservation) => {
+                                       cancelReservation(targetReservation);
+                                       setSelectedReservations((prev) => prev.filter((item) => item.id !== targetReservation.id));
                                    }}/>
-            )}
+            ))}
             {selectedCustomerId !== null && customerMap[selectedCustomerId] && (
                 <CustomerDetail customer={customerMap[selectedCustomerId]}
                                 reservationMap={storeReservationMap}
@@ -1270,6 +1443,269 @@ const StyledCardBody = styled.div`
 `;
 
 /* ── Revenue Styles ── */
+
+const StyledRevenueDashboard = styled.div`
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    padding: 12px 0 8px;
+`;
+
+const StyledKpiGrid = styled.div`
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 8px;
+
+    @media (max-width: 900px) {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+`;
+
+const StyledKpiCard = styled.div`
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 14px 16px;
+    border: 1px solid var(--light-gray-color);
+    border-radius: 14px;
+    background: linear-gradient(180deg, #ffffff 0%, #f9fbff 100%);
+    box-shadow: 0 8px 20px rgba(15, 23, 42, 0.05);
+
+    span {
+        font-size: 11px;
+        color: var(--dark-gray-color2);
+    }
+
+    strong {
+        font-size: 18px;
+        color: var(--black-color);
+    }
+`;
+
+const StyledChartGrid = styled.div`
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 12px;
+
+    @media (max-width: 1080px) {
+        grid-template-columns: 1fr;
+    }
+`;
+
+const StyledChartCard = styled.div`
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    min-height: 250px;
+    padding: 16px;
+    border: 1px solid var(--light-gray-color);
+    border-radius: 16px;
+    background: var(--white-color);
+    box-shadow: 0 10px 24px rgba(15, 23, 42, 0.05);
+`;
+
+const StyledChartHeader = styled.div`
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 8px;
+
+    strong {
+        font-size: 14px;
+        color: var(--black-color);
+    }
+
+    span {
+        font-size: 11px;
+        color: var(--dark-gray-color2);
+        text-align: right;
+    }
+`;
+
+const StyledChartEmpty = styled.div`
+    display: flex;
+    flex: 1;
+    align-items: center;
+    justify-content: center;
+    border-radius: 12px;
+    background: var(--gray-color2);
+    font-size: 12px;
+    color: var(--dark-gray-color2);
+`;
+
+const StyledLineChartBox = styled.div`
+    position: relative;
+    display: grid;
+    grid-template-rows: auto 1fr auto;
+    gap: 6px;
+    min-height: 180px;
+    padding: 12px;
+    border-radius: 14px;
+    background:
+        linear-gradient(to top, rgba(15, 23, 42, 0.05) 1px, transparent 1px) 0 0 / 100% 33.33%,
+        linear-gradient(180deg, #f8fbff 0%, #ffffff 100%);
+`;
+
+const StyledChartMetaTop = styled.span`
+    font-size: 11px;
+    color: var(--dark-gray-color2);
+`;
+
+const StyledChartMetaBottom = styled.span`
+    font-size: 11px;
+    color: var(--dark-gray-color2);
+`;
+
+const StyledLineChart = styled.svg`
+    width: 100%;
+    height: 120px;
+    overflow: visible;
+`;
+
+const StyledChartAxis = styled.div`
+    display: flex;
+    justify-content: space-between;
+    font-size: 11px;
+    color: var(--dark-gray-color2);
+`;
+
+const StyledBarChartList = styled.div`
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+`;
+
+const StyledBarRow = styled.div`
+    display: grid;
+    grid-template-columns: minmax(0, 88px) minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 10px;
+`;
+
+const StyledBarLabel = styled.div`
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    min-width: 0;
+    font-size: 12px;
+    color: var(--dark-gray-color);
+
+    > span {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+`;
+
+const StyledColorSwatch = styled.span<{ $color: string }>`
+    flex-shrink: 0;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: ${(props) => props.$color};
+`;
+
+const StyledBarTrack = styled.div`
+    position: relative;
+    height: 10px;
+    border-radius: 999px;
+    background: #edf2f7;
+    overflow: hidden;
+`;
+
+const StyledBarFill = styled.div<{ $color: string; $width: number }>`
+    width: ${(props) => `${props.$width}%`};
+    height: 100%;
+    border-radius: inherit;
+    background: ${(props) => props.$color};
+`;
+
+const StyledBarValue = styled.span`
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--black-color);
+`;
+
+const StyledPaymentChartWrap = styled.div`
+    display: grid;
+    grid-template-columns: 150px minmax(0, 1fr);
+    gap: 16px;
+    align-items: center;
+
+    @media (max-width: 640px) {
+        grid-template-columns: 1fr;
+        justify-items: center;
+    }
+`;
+
+const StyledDonutChart = styled.div<{ $gradient: string }>`
+    position: relative;
+    width: 150px;
+    height: 150px;
+    border-radius: 50%;
+    background: ${(props) => props.$gradient};
+
+    &::after {
+        content: '';
+        position: absolute;
+        inset: 22px;
+        border-radius: 50%;
+        background: var(--white-color);
+        box-shadow: inset 0 0 0 1px rgba(15, 23, 42, 0.04);
+    }
+
+    > div {
+        position: absolute;
+        inset: 0;
+        z-index: 1;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 4px;
+        text-align: center;
+    }
+
+    strong {
+        font-size: 14px;
+        color: var(--black-color);
+    }
+
+    span {
+        font-size: 11px;
+        color: var(--dark-gray-color2);
+    }
+`;
+
+const StyledLegendList = styled.div`
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+`;
+
+const StyledLegendItem = styled.div`
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+`;
+
+const StyledLegendValue = styled.div`
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 2px;
+
+    strong {
+        font-size: 12px;
+        color: var(--black-color);
+    }
+
+    span {
+        font-size: 11px;
+        color: var(--dark-gray-color2);
+    }
+`;
 
 const StyledRevenueStickyArea = styled.div`
     position: sticky;

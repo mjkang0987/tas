@@ -55,6 +55,7 @@ export interface CalendarState {
     reservationMap: ReservationMap;
     customerMap: CustomerMap;
     selectedReservation: Reservation | null;
+    selectedReservations: Reservation[];
     reservationHistory: ReservationHistoryEntry[];
     reservationListFilter: { type: 'month'; year: number; month: number } | { type: 'date'; dateKey: string } | null;
     createReservationInitial: CreateReservationInitial | null;
@@ -76,8 +77,10 @@ export interface CalendarState {
     setCustomerMap: (map: CustomerMap) => void;
     addCustomer: (customer: Customer) => void;
     setSelectedReservation: (v: Reservation | null) => void;
+    setSelectedReservations: (v: Reservation[]) => void;
     openReservationDetail: (reservation: Reservation) => void;
     openReservationDetailFromCustomer: (reservation: Reservation) => void;
+    closeReservationDetail: (layerIndex: number) => void;
     setReservationHistory: (history: ReservationHistoryEntry[]) => void;
     setReservationListFilter: (v: CalendarState['reservationListFilter']) => void;
     setCreateReservationInitial: (v: CreateReservationInitial | null) => void;
@@ -213,6 +216,7 @@ export const useCalendarStore = create<CalendarState>((set) => ({
     reservationMap: {},
     customerMap: {},
     selectedReservation: null,
+    selectedReservations: [],
     reservationHistory: [],
     reservationListFilter: null,
     createReservationInitial: null,
@@ -280,16 +284,38 @@ export const useCalendarStore = create<CalendarState>((set) => ({
 
     setSelectedReservation: (selectedReservation) => set({selectedReservation}),
 
+    setSelectedReservations: (selectedReservations) => set({
+        selectedReservations,
+        selectedReservation: selectedReservations[selectedReservations.length - 1] ?? null,
+    }),
+
     openReservationDetail: (selectedReservation) =>
-        set({
-            selectedReservation,
-            createReservationInitial: null,
+        set((state) => {
+            const nextReservations = [...state.selectedReservations, selectedReservation];
+            return {
+                selectedReservation,
+                selectedReservations: nextReservations,
+                createReservationInitial: null,
+            };
         }),
 
     openReservationDetailFromCustomer: (selectedReservation) =>
-        set({
-            selectedReservation,
-            createReservationInitial: null,
+        set((state) => {
+            const nextReservations = [...state.selectedReservations, selectedReservation];
+            return {
+                selectedReservation,
+                selectedReservations: nextReservations,
+                createReservationInitial: null,
+            };
+        }),
+
+    closeReservationDetail: (layerIndex) =>
+        set((state) => {
+            const nextReservations = state.selectedReservations.filter((_, index) => index !== layerIndex);
+            return {
+                selectedReservations: nextReservations,
+                selectedReservation: nextReservations[nextReservations.length - 1] ?? null,
+            };
         }),
 
     setReservationHistory: (reservationHistory) => set({reservationHistory}),
@@ -564,6 +590,9 @@ export const useCalendarStore = create<CalendarState>((set) => ({
             return {
                 reservationMap: map,
                 selectedReservation: updated,
+                selectedReservations: state.selectedReservations.map((reservation) => (
+                    reservation.id === updated.id ? updated : reservation
+                )),
                 reservationHistory: [...state.reservationHistory, entry]
             };
         });
@@ -593,9 +622,12 @@ export const useCalendarStore = create<CalendarState>((set) => ({
                 timestamp: new Date().toISOString()
             };
 
+            const nextSelectedReservations = state.selectedReservations.filter((item) => item.id !== reservation.id);
+
             return {
                 reservationMap: map,
-                selectedReservation: null,
+                selectedReservation: nextSelectedReservations[nextSelectedReservations.length - 1] ?? null,
+                selectedReservations: nextSelectedReservations,
                 reservationHistory: [...state.reservationHistory, entry]
             };
         });

@@ -38,8 +38,8 @@ const Home: NextPage<HomeProps> = (props) => {
     const curr = useMemo(() => computeTargetDerived(target), [target]);
     const setReservationMap = useCalendarStore((s) => s.setReservationMap);
     const setCustomerMap = useCalendarStore((s) => s.setCustomerMap);
-    const selectedReservation = useCalendarStore((s) => s.selectedReservation);
-    const setSelectedReservation = useCalendarStore((s) => s.setSelectedReservation);
+    const selectedReservations = useCalendarStore((s) => s.selectedReservations);
+    const closeReservationDetail = useCalendarStore((s) => s.closeReservationDetail);
     const openReservationDetailFromCustomer = useCalendarStore((s) => s.openReservationDetailFromCustomer);
     const updateReservation = useCalendarStore((s) => s.updateReservation);
     const cancelReservation = useCalendarStore((s) => s.cancelReservation);
@@ -55,10 +55,6 @@ const Home: NextPage<HomeProps> = (props) => {
     const openCustomerDetail = useCalendarStore((s) => s.openCustomerDetail);
 
     const selectedCustomer = selectedCustomerId !== null ? customerMap[selectedCustomerId] : null;
-    const handleCloseReservationDetail = () => {
-        setSelectedReservation(null);
-        setCreateReservationInitial(null);
-    };
 
     useEffect(() => {
         setReservationMap(groupByDate(props.reservations));
@@ -67,10 +63,10 @@ const Home: NextPage<HomeProps> = (props) => {
     }, [props.reservations, props.customers, props.history, setReservationMap, setCustomerMap, setReservationHistory]);
 
     useEffect(() => {
-        if (selectedReservation) {
+        if (selectedReservations.length > 0) {
             setCreateReservationInitial(null);
         }
-    }, [selectedReservation, setCreateReservationInitial]);
+    }, [selectedReservations, setCreateReservationInitial]);
 
     return (<>
             <Head>
@@ -80,14 +76,17 @@ const Home: NextPage<HomeProps> = (props) => {
                 {curr && <Calendar/>}
             </StyledSection>
             {reservationListFilter && <ReservationListModal/>}
-            {selectedReservation && <ReservationDetail reservation={selectedReservation}
-                                                       customerMap={customerMap}
-                                                       reservationMap={reservationMap}
-                                                       history={reservationHistory}
-                                                       onClose={handleCloseReservationDetail}
-                                                       onCustomerClick={openCustomerDetail}
-                                                       onUpdate={updateReservation}
-                                                       onCancel={cancelReservation}/>}
+            {selectedReservations.map((reservation, index) => (
+                <ReservationDetail key={`${reservation.id}-${index}`}
+                                   reservation={reservation}
+                                   customerMap={customerMap}
+                                   reservationMap={reservationMap}
+                                   history={reservationHistory}
+                                   onClose={() => closeReservationDetail(index)}
+                                   onCustomerClick={openCustomerDetail}
+                                   onUpdate={updateReservation}
+                                   onCancel={cancelReservation}/>
+            ))}
             {selectedCustomer && <CustomerDetail customer={selectedCustomer}
                                                  reservationMap={reservationMap}
                                                  onReservationClick={openReservationDetailFromCustomer}
