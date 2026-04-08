@@ -77,11 +77,6 @@ const StyledYear = styled.ul`
     gap: 5px;
     padding: 5px;
     box-sizing: border-box;
-
-    @media (max-width: 640px) {
-        grid-template-columns: repeat(2, 1fr);
-        grid-template-rows: repeat(6, 1fr);
-    }
 `;
 
 const StyledMonthHeader = styled.div`
