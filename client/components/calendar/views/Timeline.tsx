@@ -276,7 +276,7 @@ export const Timeline = ({
         setDragPreview(preview);
     };
 
-    const handlePointerUp = (dateKeyValue: string) => {
+    const handlePointerUp = () => {
         const dragState = dragStateRef.current;
         if (!dragState) return;
 
@@ -321,14 +321,12 @@ export const Timeline = ({
     };
 
     useEffect(() => {
-        const dateKeyValue = toDateKey(fullYear, month, date);
-
         const handleMouseMove = (event: MouseEvent) => {
             handlePointerMove(event.clientX, event.clientY);
         };
 
         const handleMouseUp = () => {
-            handlePointerUp(dateKeyValue);
+            handlePointerUp();
         };
 
         const handleTouchMove = (event: TouchEvent) => {
@@ -339,7 +337,7 @@ export const Timeline = ({
         };
 
         const handleTouchEnd = () => {
-            handlePointerUp(dateKeyValue);
+            handlePointerUp();
         };
 
         window.addEventListener('mousemove', handleMouseMove);
@@ -420,7 +418,7 @@ export const Timeline = ({
                                 data-timeline-date={dateKey}
                                 onClick={setMousePositionHandler}
                                 onTouchEnd={setTouchPositionHandler}
-                                type={type}
+                                $type={type}
                                 $timing={timing}
                                 $top={top}
                                 $full={full}>
@@ -635,7 +633,7 @@ export const Timeline = ({
 };
 const StyledTimelineWrap = styled.div<{
     onClick: (e: React.MouseEvent<HTMLDivElement>) => void,
-    type: string,
+    $type: string,
     $timing: number,
     $top: number,
     $full: number
@@ -648,12 +646,12 @@ const StyledTimelineWrap = styled.div<{
     flex-direction: column;
     position: relative;
     width: 100%;
-    padding: ${props => props.type === ViewType.Day ? TIMELINE_DAY_TOP : TIMELINE_TOP}px 5px 0;
+    padding: ${props => props.$type === ViewType.Day ? TIMELINE_DAY_TOP : TIMELINE_TOP}px 5px 0;
     box-sizing: border-box;
     user-select: none;
 
     > span {
-        top: ${props => props.type === ViewType.Day ? 50 : 20}px;
+        top: ${props => props.$type === ViewType.Day ? 50 : 20}px;
         animation: down ${props => props.$timing ? props.$timing : 10 * 3600}s linear;
     }
 `;
