@@ -10,6 +10,8 @@ import type {Customer} from '../utils/customers';
 import {toCustomerMap} from '../utils/customers';
 import type {Reservation, ReservationHistoryEntry} from '../utils/reservations';
 import {groupByDate} from '../utils/reservations';
+import {getDesignerColor} from '../utils/designers';
+import {buildServiceColorMap, getServiceColor, parseServiceString} from '../utils/services';
 
 import {ReservationDetail} from '../components/calendar/overlays/ReservationDetail';
 import {CustomerDetail} from '../components/calendar/overlays/CustomerDetail';
@@ -50,6 +52,9 @@ const Address: NextPage<AddressProps> = ({customers, reservations, history}) => 
     const setSelectedCustomerId = useCalendarStore((s) => s.setSelectedCustomerId);
     const openReservationDetailFromCustomer = useCalendarStore((s) => s.openReservationDetailFromCustomer);
     const openCustomerDetail = useCalendarStore((s) => s.openCustomerDetail);
+    const designers = useCalendarStore((s) => s.designers);
+    const serviceCatalog = useCalendarStore((s) => s.serviceCatalog);
+    const categoryBaseColorMap = useCalendarStore((s) => s.categoryBaseColorMap);
 
     const [tags, setTags] = useState<Record<number, Tag[]>>({});
     const [editingId, setEditingId] = useState<number | null>(null);
@@ -83,6 +88,24 @@ const Address: NextPage<AddressProps> = ({customers, reservations, history}) => 
 
     const customerMap = useMemo(() => toCustomerMap(customers), [customers]);
     const reservationMap = useMemo(() => groupByDate(reservations), [reservations]);
+    const serviceColorMap = useMemo(
+        () => buildServiceColorMap(serviceCatalog, categoryBaseColorMap),
+        [serviceCatalog, categoryBaseColorMap]
+    );
+    const designerColorMap = useMemo(
+        () => designers.reduce<Record<number, string>>((acc, designer) => {
+            acc[designer.id] = getDesignerColor(designer);
+            return acc;
+        }, {}),
+        [designers]
+    );
+    const designerNameMap = useMemo(
+        () => designers.reduce<Record<number, string>>((acc, designer) => {
+            acc[designer.id] = designer.name;
+            return acc;
+        }, {}),
+        [designers]
+    );
 
     const reservationsByCustomer = useMemo(() => {
         const map: Record<number, Reservation[]> = {};
@@ -285,28 +308,36 @@ const Address: NextPage<AddressProps> = ({customers, reservations, history}) => 
                                                     <dl>
                                                         {customerReservations.map((r) => (
                                                             <StyledReservationItem key={r.id}
+                                                                                   $color={r.designerId ? (designerColorMap[r.designerId] ?? '#8E8E93') : '#8E8E93'}
                                                                                    onClick={() => setSelectedReservations((prev) => [...prev, r])}>
                                                                 <dt className="a11y">예약정보</dt>
                                                                 <dd>
-                                                                    <time dateTime={r.date}>{r.date}</time>
-                                                                </dd>
-                                                                <dd>
-                                                                    <time dateTime={r.startTime}>{r.startTime}</time>
-                                                                    ~ <time dateTime={r.endTime}>{r.endTime}</time>
-                                                                </dd>
-                                                                <dd>{r.service}</dd>
-                                                                <dd>
-                                                                    <StyledReservationBadge $type={
-                                                                        r.status === 'cancelled' ? 'cancelled'
-                                                                            : r.status === 'noshow' ? 'noshow'
-                                                                                : r.date < today ? 'completed'
-                                                                                    : 'booked'
-                                                                    }>
-                                                                        {r.status === 'cancelled' ? '취소'
-                                                                            : r.status === 'noshow' ? '노쇼'
-                                                                                : r.date < today ? '완료'
-                                                                                    : '예약'}
-                                                                    </StyledReservationBadge>
+                                                                    <StyledReservationItemTop>
+                                                                        <span className="date">{r.date}</span>
+                                                                        <span className="time">{r.startTime}~{r.endTime}</span>
+                                                                        <StyledServiceList>
+                                                                            {parseServiceString(r.service).map((serviceName) => (
+                                                                                <StyledServiceToken key={`${r.id}-${serviceName}`}>
+                                                                                    <StyledServiceDot $color={getServiceColor(serviceName, serviceColorMap)} />
+                                                                                    <span>{serviceName}</span>
+                                                                                </StyledServiceToken>
+                                                                            ))}
+                                                                        </StyledServiceList>
+                                                                    </StyledReservationItemTop>
+                                                                    <StyledReservationMetaLine>
+                                                                        <span>디자이너: {r.designerId ? (designerNameMap[r.designerId] ?? '미지정') : '미지정'}</span>
+                                                                        <StyledReservationBadge $type={
+                                                                            r.status === 'cancelled' ? 'cancelled'
+                                                                                : r.status === 'noshow' ? 'noshow'
+                                                                                    : r.date < today ? 'completed'
+                                                                                        : 'booked'
+                                                                        }>
+                                                                            {r.status === 'cancelled' ? '취소'
+                                                                                : r.status === 'noshow' ? '노쇼'
+                                                                                    : r.date < today ? '완료'
+                                                                                        : '예약'}
+                                                                        </StyledReservationBadge>
+                                                                    </StyledReservationMetaLine>
                                                                 </dd>
                                                             </StyledReservationItem>
                                                         ))}
@@ -642,28 +673,29 @@ const StyledReservationWrap = styled.div`
 
 
 const StyledReservationScroll = styled.div<{ $count: number }>`
-    max-height: ${RESERVATION_VISIBLE_COUNT * RESERVATION_ITEM_HEIGHT}px;
-    overflow-y: ${(props) => props.$count > RESERVATION_VISIBLE_COUNT ? 'auto' : 'visible'};
 `;
 
-const StyledReservationItem = styled.div`
+const StyledReservationItem = styled.div<{ $color: string }>`
     display: flex;
-    flex-wrap: wrap;
-    gap: 4px 8px;
-    align-items: center;
+    flex-direction: column;
+    gap: 8px;
     min-height: ${RESERVATION_ITEM_HEIGHT}px;
     padding: 6px 10px;
     font-size: var(--small-font);
     box-sizing: border-box;
-    border-bottom: 1px solid var(--light-gray-color);
+    border: 1px solid ${(props) => props.$color};
+    border-left-width: 4px;
+    border-radius: 8px;
+    background-color: ${(props) => `${props.$color}12`};
     cursor: pointer;
+    margin-bottom: 6px;
 
     &:last-child {
-        border-bottom: none;
+        margin-bottom: 0;
     }
 
     &:hover {
-        background-color: var(--black-color-10);
+        background-color: ${(props) => `${props.$color}1d`};
     }
 
     dt {
@@ -677,12 +709,55 @@ const StyledReservationItem = styled.div`
 
     dd {
         margin: 0;
+        width: 100%;
     }
+`;
 
-    dd:last-child {
-        font-weight: 500;
-        margin-left: auto;
+const StyledReservationItemTop = styled.div`
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+
+    .date,
+    .time {
+        color: var(--dark-gray-color);
+        opacity: 0.9;
     }
+`;
+
+const StyledServiceList = styled.span`
+    display: inline-flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px;
+    min-width: 0;
+    font-weight: 500;
+`;
+
+const StyledServiceToken = styled.span`
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    min-width: 0;
+`;
+
+const StyledServiceDot = styled.span<{ $color: string }>`
+    flex-shrink: 0;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background-color: ${(props) => props.$color};
+`;
+
+const StyledReservationMetaLine = styled.div`
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 12px;
+    justify-content: space-between;
+    font-size: var(--tiny-font);
+    color: var(--gray-color);
 `;
 
 const RESERVATION_BADGE_STYLES: Record<string, { bg: string; color: string }> = {
