@@ -1,16 +1,7 @@
 import React from 'react';
 
 import {StyledActionButton} from './ModalStyles';
-
-type ReservationDetailMode =
-    | 'view'
-    | 'editing'
-    | 'confirming'
-    | 'pastConfirm'
-    | 'noChanges'
-    | 'cancelling'
-    | 'noshow'
-    | 'payment';
+import type {ReservationDetailMode} from './reservationDetailTypes';
 
 type ReservationDetailFooterActionsProps = {
     mode: ReservationDetailMode;

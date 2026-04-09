@@ -37,6 +37,7 @@ import {
 import {ReservationDetailHeader} from './ReservationDetailHeader';
 import {ReservationDetailFooterActions} from './ReservationDetailFooterActions';
 import {ReservationDetailPaymentLayer} from './ReservationDetailPaymentLayer';
+import type {ReservationDetailMode} from './reservationDetailTypes';
 import {
     formatPaymentEntries,
     formatTimestamp,
@@ -46,11 +47,9 @@ import {
     getPaymentEntryDrafts,
 } from './reservationDetailUtils';
 
-type Mode = 'view' | 'editing' | 'confirming' | 'pastConfirm' | 'noChanges' | 'cancelling' | 'noshow' | 'payment';
-
 const PAYMENT_METHOD_OPTIONS: PaymentMethod[] = ['현금', '현금+현금영수증', '카드', '네이버페이', '지역화폐', '지역화폐+현금영수증', '상품권'];
 
-const MODE_LABELS: Partial<Record<Mode, string>> = {
+const MODE_LABELS: Partial<Record<ReservationDetailMode, string>> = {
     editing: '예약 수정',
     confirming: '변경 확인',
     pastConfirm: '변경 확인',
@@ -100,7 +99,7 @@ export const ReservationDetail = ({
     const modalRoot = document.getElementById('modal-root');
     const {layerId, layerDataId} = useLayerInstanceId('reservation-detail');
 
-    const [mode, setMode] = useState<Mode>('view');
+    const [mode, setMode] = useState<ReservationDetailMode>('view');
     const [isHistoryOpen, setIsHistoryOpen] = useState(false);
     const initialPrice = reservation.price ?? sumPrice(parseServiceString(reservation.service));
     const initialDesignerId = reservation.designerId ?? (selectableDesigners[0]?.id ?? 0);

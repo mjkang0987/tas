@@ -3,6 +3,7 @@ import React from 'react';
 import styled from 'styled-components';
 
 import type {ReservationHistoryEntry} from '../../../utils/reservations';
+import type {ReservationDiffItem} from './reservationDetailTypes';
 import {
     OVERLAY_Z_INDEX,
     StyledBody,
@@ -17,7 +18,7 @@ import {
 interface ReservationHistoryLayerProps {
     history: ReservationHistoryEntry[];
     designerNameMap: Record<number, string>;
-    getHistoryDiffs: (entry: ReservationHistoryEntry, designerNameMap: Record<number, string>) => {label: string; before: string; after: string}[];
+    getHistoryDiffs: (entry: ReservationHistoryEntry, designerNameMap: Record<number, string>) => ReservationDiffItem[];
     formatTimestamp: (iso: string) => string;
     isOpen: boolean;
     onClose: () => void;

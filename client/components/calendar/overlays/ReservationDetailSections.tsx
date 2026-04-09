@@ -25,6 +25,7 @@ import {
 import {ServiceFields} from '../service/ServiceFields';
 export {ReservationHistoryLayer} from './ReservationHistoryLayer';
 export {ReservationViewSection} from './ReservationViewSection';
+import type {ReservationDiffItem} from './reservationDetailTypes';
 
 export interface ReservationDetailFormState {
     date: string;
@@ -228,7 +229,7 @@ export const ReservationEditSection = ({
 interface ReservationDiffSectionProps {
     message: string;
     color?: string;
-    diffs: {label: string; before: string; after: string}[];
+    diffs: ReservationDiffItem[];
 }
 
 export const ReservationDiffSection = ({message, color, diffs}: ReservationDiffSectionProps) => (

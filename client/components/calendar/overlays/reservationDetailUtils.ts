@@ -1,6 +1,7 @@
-import type {PaymentEntry, PaymentMethod, Reservation, ReservationHistoryEntry} from '../../../utils/reservations';
+import type {PaymentEntry, Reservation, ReservationHistoryEntry} from '../../../utils/reservations';
 import {formatPrice, parseServiceString, sumPrice} from '../../../utils/services';
 import type {ReservationDetailFormState} from './ReservationDetailSections';
+import type {PaymentEntryDraft, ReservationDiffItem} from './reservationDetailTypes';
 
 const FIELD_LABELS: Record<keyof ReservationDetailFormState, string> = {
     service: '시술',
@@ -35,7 +36,7 @@ export function formatPaymentEntries(entries: PaymentEntry[]): string[] {
 export function getPaymentEntryDrafts(
     reservation: Reservation,
     fallbackAmount: number
-): Array<{ method: PaymentMethod | ''; amount: string }> {
+): PaymentEntryDraft[] {
     const entries = getPaymentEntries(reservation);
     return entries.length > 0
         ? entries.map((entry) => ({method: entry.method, amount: String(entry.amount)}))
@@ -47,7 +48,7 @@ export function getChangedFields(
     after: ReservationDetailFormState,
     designerNameMap: Record<number, string>
 ) {
-    const fields: { label: string; before: string; after: string }[] = [];
+    const fields: ReservationDiffItem[] = [];
     const beforePrice = before.price ?? sumPrice(parseServiceString(before.service));
 
     (Object.keys(FIELD_LABELS) as (keyof ReservationDetailFormState)[]).forEach((key) => {
@@ -81,7 +82,7 @@ export function getChangedFields(
 }
 
 export function getHistoryDiffs(entry: ReservationHistoryEntry, designerNameMap: Record<number, string>) {
-    const diffs: { label: string; before: string; after: string }[] = [];
+    const diffs: ReservationDiffItem[] = [];
 
     if (entry.after.status === 'cancelled' && entry.before.status !== 'cancelled') {
         diffs.push({label: '상태', before: '활성', after: '취소됨'});

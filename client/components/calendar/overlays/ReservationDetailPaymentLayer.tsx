@@ -4,11 +4,7 @@ import styled from 'styled-components';
 
 import type {PaymentMethod} from '../../../utils/reservations';
 import {StyledBody, StyledBodyInner} from './ModalStyles';
-
-type PaymentEntryDraft = {
-    method: PaymentMethod | '';
-    amount: string;
-};
+import type {PaymentEntryDraft} from './reservationDetailTypes';
 
 type ReservationDetailPaymentLayerProps = {
     paymentEntries: PaymentEntryDraft[];
