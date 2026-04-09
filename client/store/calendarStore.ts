@@ -37,6 +37,12 @@ import {
     buildRenamedCategoryState,
     buildUpdatedServiceState,
 } from './calendarStoreServiceHelpers';
+import {
+    buildAddedStoreClosedDateState,
+    buildRemovedStoreClosedDateState,
+    buildUpdatedStoreBusinessHoursState,
+    buildUpdatedStoreClosedDatesState,
+} from './calendarStoreStoreSettingsHelpers';
 
 export type FullType = Date | null;
 
@@ -286,48 +292,30 @@ export const useCalendarStore = create<CalendarState>((set) => ({
 
     updateStoreBusinessHours: (hours) =>
         set((state) => {
-            const nextStoreSettings = {
-                ...state.storeSettings,
-                businessHours: {
-                    ...state.storeSettings.businessHours,
-                    ...hours,
-                }
-            };
+            const nextStoreSettings = buildUpdatedStoreBusinessHoursState(state.storeSettings, hours);
             syncStoreSettings(nextStoreSettings);
             return {storeSettings: nextStoreSettings};
         }),
 
     updateStoreClosedDates: (dates) =>
         set((state) => {
-            const nextStoreSettings = {
-                ...state.storeSettings,
-                closedDates: [...dates].sort()
-            };
+            const nextStoreSettings = buildUpdatedStoreClosedDatesState(state.storeSettings, dates);
             syncStoreSettings(nextStoreSettings);
             return {storeSettings: nextStoreSettings};
         }),
 
     addStoreClosedDate: (date) =>
         set((state) => {
-            if (!date || state.storeSettings.closedDates.includes(date)) return state;
-
-            const nextStoreSettings = {
-                ...state.storeSettings,
-                closedDates: [...state.storeSettings.closedDates, date].sort()
-            };
+            const nextStoreSettings = buildAddedStoreClosedDateState(state.storeSettings, date);
+            if (!nextStoreSettings) return state;
             syncStoreSettings(nextStoreSettings);
             return {storeSettings: nextStoreSettings};
         }),
 
     removeStoreClosedDate: (date) =>
         set((state) => {
-            const nextClosedDates = state.storeSettings.closedDates.filter((item) => item !== date);
-            if (nextClosedDates.length === state.storeSettings.closedDates.length) return state;
-
-            const nextStoreSettings = {
-                ...state.storeSettings,
-                closedDates: nextClosedDates
-            };
+            const nextStoreSettings = buildRemovedStoreClosedDateState(state.storeSettings, date);
+            if (!nextStoreSettings) return state;
             syncStoreSettings(nextStoreSettings);
             return {storeSettings: nextStoreSettings};
         }),
