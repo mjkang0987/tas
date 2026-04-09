@@ -37,40 +37,18 @@ import {
 import {ReservationDetailHeader} from './ReservationDetailHeader';
 import {ReservationDetailFooterActions} from './ReservationDetailFooterActions';
 import {ReservationDetailPaymentLayer} from './ReservationDetailPaymentLayer';
+import {
+    formatPaymentEntries,
+    formatTimestamp,
+    getChangedFields,
+    getHistoryDiffs,
+    getPaymentEntries,
+    getPaymentEntryDrafts,
+} from './reservationDetailUtils';
 
 type Mode = 'view' | 'editing' | 'confirming' | 'pastConfirm' | 'noChanges' | 'cancelling' | 'noshow' | 'payment';
 
 const PAYMENT_METHOD_OPTIONS: PaymentMethod[] = ['현금', '현금+현금영수증', '카드', '네이버페이', '지역화폐', '지역화폐+현금영수증', '상품권'];
-
-function getPaymentEntries(reservation: Reservation): PaymentEntry[] {
-    if (Array.isArray(reservation.paymentEntries) && reservation.paymentEntries.length > 0) {
-        return reservation.paymentEntries;
-    }
-
-    if (reservation.paymentCompleted && reservation.paymentMethod) {
-        return [{
-            method: reservation.paymentMethod,
-            amount: reservation.price ?? 0,
-        }];
-    }
-
-    return [];
-}
-
-function formatPaymentEntries(entries: PaymentEntry[]): string[] {
-    if (entries.length === 0) return ['미입력'];
-    return entries.map((entry) => `${entry.method} · ${formatPrice(entry.amount)}`);
-}
-
-function getPaymentEntryDrafts(
-    reservation: Reservation,
-    fallbackAmount: number
-): Array<{ method: PaymentMethod | ''; amount: string }> {
-    const entries = getPaymentEntries(reservation);
-    return entries.length > 0
-        ? entries.map((entry) => ({method: entry.method, amount: String(entry.amount)}))
-        : [{method: '', amount: String(fallbackAmount)}];
-}
 
 const MODE_LABELS: Partial<Record<Mode, string>> = {
     editing: '예약 수정',
@@ -92,121 +70,6 @@ interface ReservationDetailProps {
     onUpdate: (prev: Reservation, updated: Reservation) => void;
     onCancel: (reservation: Reservation, status?: ReservationStatus) => void;
 }
-
-const FIELD_LABELS: Record<keyof ReservationDetailFormState, string> = {
-    service: '시술',
-    designerId: '디자이너',
-    date: '날짜',
-    startTime: '시작시간',
-    endTime: '종료시간',
-    price: '가격',
-    memo: '메모'
-};
-
-const getChangedFields = (before: Reservation, after: ReservationDetailFormState, designerNameMap: Record<number, string>) => {
-    const fields: { label: string; before: string; after: string }[] = [];
-    const beforePrice = before.price ?? sumPrice(parseServiceString(before.service));
-
-    (Object.keys(FIELD_LABELS) as (keyof ReservationDetailFormState)[]).forEach((key) => {
-        if (key === 'designerId') {
-            const beforeDesignerId = before.designerId ?? 0;
-            if (beforeDesignerId !== after.designerId) {
-                fields.push({
-                    label: FIELD_LABELS[key],
-                    before: designerNameMap[beforeDesignerId] ?? '미지정',
-                    after: designerNameMap[after.designerId] ?? '미지정'
-                });
-            }
-        } else if (key === 'price') {
-            if (beforePrice !== after.price) {
-                fields.push({
-                    label: FIELD_LABELS[key],
-                    before: formatPrice(beforePrice),
-                    after: formatPrice(after.price)
-                });
-            }
-        } else if (before[key] !== after[key]) {
-            fields.push({
-                label: FIELD_LABELS[key],
-                before: before[key] as string,
-                after: after[key] as string
-            });
-        }
-    });
-
-    return fields;
-};
-
-const getHistoryDiffs = (entry: ReservationHistoryEntry, designerNameMap: Record<number, string>) => {
-    const diffs: { label: string; before: string; after: string }[] = [];
-
-    if (entry.after.status === 'cancelled' && entry.before.status !== 'cancelled') {
-        diffs.push({label: '상태', before: '활성', after: '취소됨'});
-        return diffs;
-    }
-
-    if (entry.after.status === 'noshow' && entry.before.status !== 'noshow') {
-        diffs.push({label: '상태', before: '활성', after: '노쇼'});
-        return diffs;
-    }
-
-    if ((entry.before.paymentCompleted ?? false) !== (entry.after.paymentCompleted ?? false)) {
-        diffs.push({
-            label: '결제상태',
-            before: entry.before.paymentCompleted ? '결제완료' : '미결제',
-            after: entry.after.paymentCompleted ? '결제완료' : '미결제'
-        });
-    }
-
-    const beforePaymentLines = formatPaymentEntries(getPaymentEntries(entry.before)).join(', ');
-    const afterPaymentLines = formatPaymentEntries(getPaymentEntries(entry.after)).join(', ');
-
-    if (beforePaymentLines !== afterPaymentLines) {
-        diffs.push({
-            label: '결제수단',
-            before: beforePaymentLines,
-            after: afterPaymentLines
-        });
-    }
-
-    (Object.keys(FIELD_LABELS) as (keyof ReservationDetailFormState)[]).forEach((key) => {
-        if (key === 'designerId') {
-            const beforeDesignerId = entry.before.designerId ?? 0;
-            const afterDesignerId = entry.after.designerId ?? 0;
-            if (beforeDesignerId !== afterDesignerId) {
-                diffs.push({
-                    label: FIELD_LABELS[key],
-                    before: designerNameMap[beforeDesignerId] ?? '미지정',
-                    after: designerNameMap[afterDesignerId] ?? '미지정'
-                });
-            }
-        } else if (key === 'price') {
-            const beforePrice = entry.before.price ?? sumPrice(parseServiceString(entry.before.service));
-            const afterPrice = entry.after.price ?? sumPrice(parseServiceString(entry.after.service));
-            if (beforePrice !== afterPrice) {
-                diffs.push({
-                    label: FIELD_LABELS[key],
-                    before: formatPrice(beforePrice),
-                    after: formatPrice(afterPrice)
-                });
-            }
-        } else if (entry.before[key] !== entry.after[key]) {
-            diffs.push({
-                label: FIELD_LABELS[key],
-                before: entry.before[key] as string,
-                after: entry.after[key] as string
-            });
-        }
-    });
-
-    return diffs;
-};
-
-const formatTimestamp = (iso: string) => {
-    const d = new Date(iso);
-    const pad = (n: number) => String(n).padStart(2, '0');
-    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
-};
 
 export const ReservationDetail = ({
                                       reservation,
