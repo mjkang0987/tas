@@ -8,6 +8,14 @@ import type {DaySchedule, Designer, DesignerStatus} from '../utils/designers';
 import {createDefaultSchedule, DEFAULT_DESIGNERS, getDesignerColor} from '../utils/designers';
 import type {StoreSettings} from '../utils/storeSettings';
 import {DEFAULT_STORE_SETTINGS} from '../utils/storeSettings';
+import {
+    groupCatalogByCategory,
+    reorder,
+    syncCustomerSettings,
+    syncDesignerSettings,
+    syncServiceSettings,
+    syncStoreSettings,
+} from './calendarStoreHelpers';
 
 export type FullType = Date | null;
 
@@ -111,46 +119,6 @@ export interface CalendarState {
     cancelReservation: (reservation: Reservation, status?: ReservationStatus) => void;
 }
 
-function syncServiceSettings(services: ServiceItem[], categoryBaseColors: Record<string, string>): void {
-    fetch('/api/services', {
-        method: 'PUT',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({services, categoryBaseColors})
-    }).catch(() => {
-        // Preserve local UX even if sync fails; server data can be retried later.
-    });
-}
-
-function syncDesignerSettings(designers: Designer[]): void {
-    fetch('/api/designers', {
-        method: 'PUT',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({designers})
-    }).catch(() => {
-        // Preserve local UX even if sync fails; server data can be retried later.
-    });
-}
-
-function syncCustomerSettings(customers: Customer[]): void {
-    fetch('/api/customers', {
-        method: 'PUT',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({customers})
-    }).catch(() => {
-        // Preserve local UX even if sync fails; server data can be retried later.
-    });
-}
-
-function syncStoreSettings(storeSettings: StoreSettings): void {
-    fetch('/api/store', {
-        method: 'PUT',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify(storeSettings)
-    }).catch(() => {
-        // Preserve local UX even if sync fails; server data can be retried later.
-    });
-}
-
 type ServiceSettingsState = Pick<CalendarState, 'serviceCatalog' | 'categoryBaseColorMap'>;
 
 function withSyncedCatalog(state: ServiceSettingsState, nextCatalog: ServiceItem[]) {
@@ -161,30 +129,6 @@ function withSyncedCatalog(state: ServiceSettingsState, nextCatalog: ServiceItem
 function withSyncedCategoryColors(state: ServiceSettingsState, nextCategoryBaseColorMap: Record<string, string>) {
     syncServiceSettings(state.serviceCatalog, nextCategoryBaseColorMap);
     return {categoryBaseColorMap: nextCategoryBaseColorMap};
-}
-
-function groupCatalogByCategory(serviceCatalog: ServiceItem[]): Map<string, ServiceItem[]> {
-    const grouped = new Map<string, ServiceItem[]>();
-
-    for (const item of serviceCatalog) {
-        const group = grouped.get(item.category);
-
-        if (group) {
-            group.push(item);
-        } else {
-            grouped.set(item.category, [item]);
-        }
-    }
-
-    return grouped;
-}
-
-function reorder<T>(list: T[], fromIndex: number, targetIndex: number): T[] {
-    const next = [...list];
-    const [moved] = next.splice(fromIndex, 1);
-    const insertIndex = fromIndex < targetIndex ? targetIndex - 1 : targetIndex;
-    next.splice(insertIndex, 0, moved);
-    return next;
 }
 
 export const useCalendarStore = create<CalendarState>((set) => ({
