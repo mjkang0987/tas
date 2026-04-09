@@ -15,23 +15,18 @@ import {buildServiceColorMap} from '../utils/services';
 
 import {ReservationDetail} from '../components/calendar/overlays/ReservationDetail';
 import {CustomerDetail} from '../components/calendar/overlays/CustomerDetail';
-import {AddressCustomerRow} from '../components/address/AddressCustomerRow';
+import {AddressContent} from '../components/address/AddressContent';
+import type {AddressTag} from '../components/address/AddressCustomerTags';
 
 import {useCalendarStore} from '../store/calendarStore';
 
 import customersData from './api/customers.json';
-import {InputWrap} from "../components/ui/Input";
 
 type AddressProps = {
     customers: Customer[];
     reservations: Reservation[];
     history: ReservationHistoryEntry[];
 };
-
-interface Tag {
-    text: string;
-    color: string;
-}
 
 const TAG_COLORS = [
     '#4285F4',
@@ -53,7 +48,7 @@ const Address: NextPage<AddressProps> = ({customers, reservations, history}) => 
     const serviceCatalog = useCalendarStore((s) => s.serviceCatalog);
     const categoryBaseColorMap = useCalendarStore((s) => s.categoryBaseColorMap);
 
-    const [tags, setTags] = useState<Record<number, Tag[]>>({});
+    const [tags, setTags] = useState<Record<number, AddressTag[]>>({});
     const [editingId, setEditingId] = useState<number | null>(null);
     const [tagInput, setTagInput] = useState('');
     const [selectedColor, setSelectedColor] = useState(TAG_COLORS[0]);
@@ -193,69 +188,37 @@ const Address: NextPage<AddressProps> = ({customers, reservations, history}) => 
             <Head>
                 <title>RESERVATION - 고객명단</title>
             </Head>
-            <StyledSticky>
-                <StyledHeading>고객명단</StyledHeading>
-                <InputWrap htmlFor="filterSearch">
-                    <input type="search"
-                           id="filterSearch"
-                           value={searchInput}
-                           onChange={(e) => handleSearchChange(e.target.value)}
-                           placeholder="고객명, 연락처, 메모 검색" />
-                </InputWrap>
-            </StyledSticky>
-            <StyledGrid>
-                <StyledHeaderRow>
-                    <span>이름</span>
-                    <span>연락처</span>
-                    <span>최근 시술</span>
-                    <span>예약현황</span>
-                </StyledHeaderRow>
-                {filteredCustomers.length === 0 ? (
-                    <StyledEmpty>검색 결과가 없습니다.</StyledEmpty>
-                ) : (
-                    <StyledItems>
-                        {filteredCustomers.map((customer) => {
-                            const customerReservations = reservationsByCustomer[customer.id] || [];
-                            const isEditing = editingId === customer.id;
-                            const customerTags = tags[customer.id] || [];
-                            const stats = customerStats[customer.id];
-
-                            return (
-                                <AddressCustomerRow
-                                    key={customer.id}
-                                    customer={customer}
-                                    customerReservations={customerReservations}
-                                    customerTags={customerTags}
-                                    isEditing={isEditing}
-                                    stats={stats}
-                                    tagColors={TAG_COLORS}
-                                    tagInput={tagInput}
-                                    selectedColor={selectedColor}
-                                    serviceColorMap={serviceColorMap}
-                                    designerColorMap={designerColorMap}
-                                    designerNameMap={designerNameMap}
-                                    today={today}
-                                    onTagInputChange={setTagInput}
-                                    onSelectColor={setSelectedColor}
-                                    onAddTag={addTag}
-                                    onRemoveTag={removeTag}
-                                    onStartEditing={(customerId) => {
-                                        setEditingId(customerId);
-                                        setTagInput('');
-                                    }}
-                                    onFinishEditing={() => {
-                                        setEditingId(null);
-                                        setTagInput('');
-                                    }}
-                                    onReservationClick={(reservation) => {
-                                        setSelectedReservations((prev) => [...prev, reservation]);
-                                    }}
-                                />
-                            );
-                        })}
-                    </StyledItems>
-                )}
-            </StyledGrid>
+            <AddressContent
+                filteredCustomers={filteredCustomers}
+                reservationsByCustomer={reservationsByCustomer}
+                tags={tags}
+                editingId={editingId}
+                tagColors={TAG_COLORS}
+                tagInput={tagInput}
+                selectedColor={selectedColor}
+                serviceColorMap={serviceColorMap}
+                designerColorMap={designerColorMap}
+                designerNameMap={designerNameMap}
+                today={today}
+                customerStats={customerStats}
+                searchInput={searchInput}
+                onSearchChange={handleSearchChange}
+                onTagInputChange={setTagInput}
+                onSelectColor={setSelectedColor}
+                onAddTag={addTag}
+                onRemoveTag={removeTag}
+                onStartEditing={(customerId) => {
+                    setEditingId(customerId);
+                    setTagInput('');
+                }}
+                onFinishEditing={() => {
+                    setEditingId(null);
+                    setTagInput('');
+                }}
+                onReservationClick={(reservation) => {
+                    setSelectedReservations((prev) => [...prev, reservation]);
+                }}
+            />
             {selectedReservations.map((reservation, index) => (
                 <ReservationDetail key={`${reservation.id}-${index}`}
                                    reservation={reservation}
@@ -306,57 +269,4 @@ const StyledSection = styled.section`
     overflow-y: auto;
     overscroll-behavior: auto;
     box-sizing: border-box;
-`;
-
-const StyledHeading = styled.h2`
-    text-align: center;
-    font-size: var(--big-font);
-    font-weight: 600;
-    margin-bottom: 5px;
-`;
-
-const StyledSticky = styled.div`
-    position: sticky;
-    top: 0;
-    background-color: var(--white-color);
-    padding: 20px 10px;
-    z-index: 1;
-`;
-
-const StyledGrid = styled.div`
-    flex: 1;
-    padding: 0 10px 10px;
-`;
-
-const StyledHeaderRow = styled.div`
-    display: grid;
-    grid-template-columns: 80px 130px 1fr auto;
-    gap: 12px;
-    position: sticky;
-    top: 95px;
-    padding: 0 10px 10px;
-    border-bottom: 2px solid var(--black-color);
-    background-color: var(--white-color);
-    font-size: var(--small-font);
-    font-weight: 600;
-    color: var(--dark-gray-color);
-    z-index: 1;
-
-    @media (max-width: 600px) {
-        display: none;
-    }
-`;
-
-const StyledItems = styled.ul`
-    position: relative;
-    z-index: 0;
-`;
-
-const StyledEmpty = styled.p`
-    padding: 16px 10px;
-    font-size: var(--small-font);
-    color: var(--gray-color);
-    text-align: center;
-    background-color: var(--black-color-10);
-    border-radius: 4px;
 `;
