@@ -11,25 +11,22 @@ import {toCustomerMap} from '../utils/customers';
 import type {Reservation, ReservationHistoryEntry} from '../utils/reservations';
 import {groupByDate} from '../utils/reservations';
 import {getDesignerColor} from '../utils/designers';
-import {buildServiceColorMap, getServiceColor, parseServiceString} from '../utils/services';
+import {buildServiceColorMap} from '../utils/services';
 
 import {ReservationDetail} from '../components/calendar/overlays/ReservationDetail';
 import {CustomerDetail} from '../components/calendar/overlays/CustomerDetail';
+import {AddressCustomerRow} from '../components/address/AddressCustomerRow';
 
 import {useCalendarStore} from '../store/calendarStore';
 
 import customersData from './api/customers.json';
 import {InputWrap} from "../components/ui/Input";
-import {formControlStyle} from "../components/ui/FormControls";
 
 type AddressProps = {
     customers: Customer[];
     reservations: Reservation[];
     history: ReservationHistoryEntry[];
 };
-
-const RESERVATION_ITEM_HEIGHT = 40;
-const RESERVATION_VISIBLE_COUNT = 5;
 
 interface Tag {
     text: string;
@@ -224,131 +221,36 @@ const Address: NextPage<AddressProps> = ({customers, reservations, history}) => 
                             const stats = customerStats[customer.id];
 
                             return (
-                                <StyledItem key={customer.id}>
-                                    <StyledDetails>
-                                        <StyledSummary>
-                                            <strong>{customer.name}</strong>
-                                            <span>{customer.tel.replace(/(\d{3})(\d{4})(\d{4})/, '$1-$2-$3')}</span>
-                                            <span>{stats?.recentService || '-'}</span>
-                                            <StyledStatusCounts>
-                                                <StyledStatusBadge $type="booked">예약({stats?.booked || 0})</StyledStatusBadge>
-                                                <StyledStatusBadge $type="cancelled">취소({stats?.cancelled || 0})</StyledStatusBadge>
-                                                <StyledStatusBadge $type="completed">완료({stats?.completed || 0})</StyledStatusBadge>
-                                                <StyledStatusBadge $type="noshow">노쇼({stats?.noshow || 0})</StyledStatusBadge>
-                                            </StyledStatusCounts>
-                                        </StyledSummary>
-                                        <StyledMemoCell onClick={(e) => e.preventDefault()}>
-                                            {isEditing ? (
-                                                <StyledTagEditor>
-                                                    {customerTags.length > 0 && (
-                                                        <StyledTagList>
-                                                            {customerTags.map((tag) => (
-                                                                <StyledTag key={tag.text}
-                                                                           $color={tag.color}>
-                                                                    {tag.text}
-                                                                    <button type="button"
-                                                                            onClick={() => removeTag(customer.id, tag.text)}>&#x2715;</button>
-                                                                </StyledTag>
-                                                            ))}
-                                                        </StyledTagList>
-                                                    )}
-                                                    <StyledPalette>
-                                                        {TAG_COLORS.map((color) => (
-                                                            <StyledColorDot key={color}
-                                                                            $color={color}
-                                                                            $active={selectedColor === color}
-                                                                            type="button"
-                                                                            onClick={() => setSelectedColor(color)} />
-                                                        ))}
-                                                    </StyledPalette>
-                                                    <StyledTagInputRow>
-                                                        <StyledMemoInput value={tagInput}
-                                                                         onChange={(e) => setTagInput(e.target.value)}
-                                                                         onKeyDown={(e) => {
-                                                                             if (e.key === 'Enter' && !e.nativeEvent.isComposing) {
-                                                                                 e.preventDefault();
-                                                                                 addTag(customer.id);
-                                                                             }
-                                                                         }}
-                                                                         placeholder="태그 입력"
-                                                                         autoFocus />
-                                                        <StyledMemoButton type="button"
-                                                                          onClick={() => addTag(customer.id)}>추가</StyledMemoButton>
-                                                        <StyledMemoButton type="button"
-                                                                          onClick={() => {
-                                                                              setEditingId(null);
-                                                                              setTagInput('');
-                                                                          }}>완료</StyledMemoButton>
-                                                    </StyledTagInputRow>
-                                                </StyledTagEditor>
-                                            ) : (<>
-                                                {customerTags.length > 0 ? (
-                                                    <StyledTagList>
-                                                        {customerTags.map((tag) => (
-                                                            <StyledTagReadonly key={tag.text}
-                                                                               $color={tag.color}>{tag.text}</StyledTagReadonly>
-                                                        ))}
-                                                    </StyledTagList>
-                                                ) : (
-                                                    <StyledMemoText $isEmpty>메모 없음</StyledMemoText>
-                                                )}
-                                                <StyledMemoButton type="button"
-                                                                  onClick={() => {
-                                                                      setEditingId(customer.id);
-                                                                      setTagInput('');
-                                                                  }}>
-                                                    {customerTags.length > 0 ? '수정' : '추가'}
-                                                </StyledMemoButton>
-                                            </>)}
-                                        </StyledMemoCell>
-
-                                        <StyledReservationWrap>
-                                            {customerReservations.length > 0 ? (<>
-                                                <StyledReservationScroll $count={customerReservations.length}>
-                                                    <dl>
-                                                        {customerReservations.map((r) => (
-                                                            <StyledReservationItem key={r.id}
-                                                                                   $color={r.designerId ? (designerColorMap[r.designerId] ?? '#8E8E93') : '#8E8E93'}
-                                                                                   onClick={() => setSelectedReservations((prev) => [...prev, r])}>
-                                                                <dt className="a11y">예약정보</dt>
-                                                                <dd>
-                                                                    <StyledReservationItemTop>
-                                                                        <span className="date">{r.date}</span>
-                                                                        <span className="time">{r.startTime}~{r.endTime}</span>
-                                                                        <StyledServiceList>
-                                                                            {parseServiceString(r.service).map((serviceName) => (
-                                                                                <StyledServiceToken key={`${r.id}-${serviceName}`}>
-                                                                                    <StyledServiceDot $color={getServiceColor(serviceName, serviceColorMap)} />
-                                                                                    <span>{serviceName}</span>
-                                                                                </StyledServiceToken>
-                                                                            ))}
-                                                                        </StyledServiceList>
-                                                                    </StyledReservationItemTop>
-                                                                    <StyledReservationMetaLine>
-                                                                        <span>디자이너: {r.designerId ? (designerNameMap[r.designerId] ?? '미지정') : '미지정'}</span>
-                                                                        <StyledReservationBadge $type={
-                                                                            r.status === 'cancelled' ? 'cancelled'
-                                                                                : r.status === 'noshow' ? 'noshow'
-                                                                                    : r.date < today ? 'completed'
-                                                                                        : 'booked'
-                                                                        }>
-                                                                            {r.status === 'cancelled' ? '취소'
-                                                                                : r.status === 'noshow' ? '노쇼'
-                                                                                    : r.date < today ? '완료'
-                                                                                        : '예약'}
-                                                                        </StyledReservationBadge>
-                                                                    </StyledReservationMetaLine>
-                                                                </dd>
-                                                            </StyledReservationItem>
-                                                        ))}
-                                                    </dl>
-                                                </StyledReservationScroll>
-                                            </>) : (
-                                                <StyledEmpty>예약 내역이 없습니다.</StyledEmpty>
-                                            )}
-                                        </StyledReservationWrap>
-                                    </StyledDetails>
-                                </StyledItem>
+                                <AddressCustomerRow
+                                    key={customer.id}
+                                    customer={customer}
+                                    customerReservations={customerReservations}
+                                    customerTags={customerTags}
+                                    isEditing={isEditing}
+                                    stats={stats}
+                                    tagColors={TAG_COLORS}
+                                    tagInput={tagInput}
+                                    selectedColor={selectedColor}
+                                    serviceColorMap={serviceColorMap}
+                                    designerColorMap={designerColorMap}
+                                    designerNameMap={designerNameMap}
+                                    today={today}
+                                    onTagInputChange={setTagInput}
+                                    onSelectColor={setSelectedColor}
+                                    onAddTag={addTag}
+                                    onRemoveTag={removeTag}
+                                    onStartEditing={(customerId) => {
+                                        setEditingId(customerId);
+                                        setTagInput('');
+                                    }}
+                                    onFinishEditing={() => {
+                                        setEditingId(null);
+                                        setTagInput('');
+                                    }}
+                                    onReservationClick={(reservation) => {
+                                        setSelectedReservations((prev) => [...prev, reservation]);
+                                    }}
+                                />
                             );
                         })}
                     </StyledItems>
@@ -448,334 +350,6 @@ const StyledHeaderRow = styled.div`
 const StyledItems = styled.ul`
     position: relative;
     z-index: 0;
-`;
-
-const StyledItem = styled.li`
-    border-bottom: 1px solid var(--light-gray-color);
-`;
-
-const StyledDetails = styled.details`
-    padding-right: 20px;
-
-    > summary {
-        position: relative;
-
-        &::before {
-            left: auto;
-            right: -10px;
-            transform: rotate(90deg);
-        }
-    }
-
-    &[open] {
-        background-color: #fff9f2;
-        border-bottom: 2px solid var(--black-color);
-
-        > summary::before {
-            transform: rotate(-90deg);
-        }
-    }
-`;
-
-const StyledSummary = styled.summary`
-    display: grid;
-    grid-template-columns: 80px 130px 1fr auto;
-    gap: 12px;
-    align-items: center;
-    padding: 10px 12px;
-    cursor: pointer;
-    list-style: none;
-    position: relative;
-
-    &::-webkit-details-marker {
-        display: none;
-    }
-
-    &::before {
-        content: "";
-        position: absolute;
-        left: 0;
-        display: inline-block;
-        width: 0;
-        height: 0;
-        border-top: 5px solid transparent;
-        border-bottom: 5px solid transparent;
-        border-left: 5px solid var(--dark-gray-color);
-        transition: transform 0.15s ease;
-    }
-
-    > strong {
-        font-size: var(--font);
-        font-weight: 500;
-    }
-
-    > span:first-of-type {
-        font-size: var(--small-font);
-        color: var(--dark-gray-color);
-    }
-
-    > span:nth-of-type(2) {
-        font-size: var(--small-font);
-        overflow: hidden;
-        text-overflow: ellipsis;
-        white-space: nowrap;
-    }
-
-    &:hover > strong {
-        color: var(--blue-color);
-    }
-
-    @media (max-width: 600px) {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 4px 10px;
-
-        > strong {
-            min-width: 60px;
-        }
-
-        > span:nth-of-type(2) {
-            width: 100%;
-        }
-    }
-`;
-
-const STATUS_COLORS: Record<string, string> = {
-    booked: '#4285F4',
-    cancelled: '#999',
-    completed: '#34A853',
-    noshow: '#EA4335',
-};
-
-const StyledStatusCounts = styled.div`
-    display: flex;
-    gap: 4px;
-    flex-wrap: wrap;
-`;
-
-const StyledStatusBadge = styled.span<{ $type: string }>`
-    font-size: var(--tiny-font);
-    font-weight: 500;
-    color: ${(props) => STATUS_COLORS[props.$type] || 'var(--gray-color)'};
-`;
-
-const StyledMemoCell = styled.div`
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    padding: 10px 0 12px 12px;
-`;
-
-const StyledMemoInput = styled.input`
-    flex: 1;
-    max-width: 200px;
-    ${formControlStyle};
-    padding: 0 8px;
-`;
-
-const StyledMemoText = styled.span<{ $isEmpty: boolean }>`
-    font-size: var(--small-font);
-    color: ${(props) => props.$isEmpty ? 'var(--dark-gray-color2)' : 'var(--black-color)'};
-`;
-
-const StyledTagEditor = styled.div`
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
-    flex: 1;
-`;
-
-const StyledTagInputRow = styled.div`
-    display: flex;
-    align-items: center;
-    gap: 4px;
-`;
-
-const StyledTagList = styled.div`
-    display: flex;
-    flex-wrap: wrap;
-    gap: 4px;
-`;
-
-const StyledTag = styled.span<{ $color: string }>`
-    display: inline-flex;
-    align-items: center;
-    gap: 4px;
-    padding: 2px 6px;
-    background-color: ${(props) => props.$color};
-    color: #fff;
-    border-radius: 4px;
-    font-size: var(--tiny-font);
-    font-weight: 500;
-
-    > button {
-        border: none;
-        background: none;
-        color: rgba(255, 255, 255, 0.7);
-        font-size: 9px;
-        cursor: pointer;
-        padding: 0;
-        line-height: 1;
-
-        &:hover {
-            color: #fff;
-        }
-    }
-`;
-
-const StyledTagReadonly = styled.span<{ $color: string }>`
-    display: inline-block;
-    padding: 2px 8px;
-    background-color: ${(props) => props.$color};
-    border-radius: 4px;
-    font-size: var(--tiny-font);
-    font-weight: 500;
-    color: #fff;
-`;
-
-const StyledPalette = styled.div`
-    display: flex;
-    gap: 4px;
-`;
-
-const StyledColorDot = styled.button<{ $color: string; $active: boolean }>`
-    width: 18px;
-    height: 18px;
-    border-radius: 50%;
-    border: 2px solid ${(props) => props.$active ? 'var(--dark-gray-color)' : 'transparent'};
-    background-color: ${(props) => props.$color};
-    cursor: pointer;
-    padding: 0;
-    box-sizing: border-box;
-
-    &:hover {
-        opacity: 0.8;
-    }
-`;
-
-const StyledMemoButton = styled.button`
-    flex-shrink: 0;
-    height: 28px;
-    padding: 0 10px;
-    border: 1px solid var(--light-gray-color);
-    border-radius: 4px;
-    background-color: var(--white-color);
-    font-size: var(--tiny-font);
-    color: var(--dark-gray-color);
-
-    &:hover {
-        background-color: var(--black-color-10);
-    }
-`;
-
-const StyledReservationWrap = styled.div`
-`;
-
-
-const StyledReservationScroll = styled.div<{ $count: number }>`
-`;
-
-const StyledReservationItem = styled.div<{ $color: string }>`
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-    min-height: ${RESERVATION_ITEM_HEIGHT}px;
-    padding: 6px 10px;
-    font-size: var(--small-font);
-    box-sizing: border-box;
-    border: 1px solid ${(props) => props.$color};
-    border-left-width: 4px;
-    border-radius: 8px;
-    background-color: ${(props) => `${props.$color}12`};
-    cursor: pointer;
-    margin-bottom: 6px;
-
-    &:last-child {
-        margin-bottom: 0;
-    }
-
-    &:hover {
-        background-color: ${(props) => `${props.$color}1d`};
-    }
-
-    dt {
-        position: absolute;
-        overflow: hidden;
-        width: 1px;
-        height: 1px;
-        clip: rect(1px, 1px, 1px, 1px);
-        clip-path: inset(50%);
-    }
-
-    dd {
-        margin: 0;
-        width: 100%;
-    }
-`;
-
-const StyledReservationItemTop = styled.div`
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: 8px;
-
-    .date,
-    .time {
-        color: var(--dark-gray-color);
-        opacity: 0.9;
-    }
-`;
-
-const StyledServiceList = styled.span`
-    display: inline-flex;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: 6px;
-    min-width: 0;
-    font-weight: 500;
-`;
-
-const StyledServiceToken = styled.span`
-    display: inline-flex;
-    align-items: center;
-    gap: 4px;
-    min-width: 0;
-`;
-
-const StyledServiceDot = styled.span<{ $color: string }>`
-    flex-shrink: 0;
-    width: 8px;
-    height: 8px;
-    border-radius: 50%;
-    background-color: ${(props) => props.$color};
-`;
-
-const StyledReservationMetaLine = styled.div`
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: 12px;
-    justify-content: space-between;
-    font-size: var(--tiny-font);
-    color: var(--gray-color);
-`;
-
-const RESERVATION_BADGE_STYLES: Record<string, { bg: string; color: string }> = {
-    booked: {bg: '#E8F0FE', color: '#4285F4'},
-    cancelled: {bg: '#F1F1F1', color: '#999'},
-    completed: {bg: '#E6F4EA', color: '#34A853'},
-    noshow: {bg: '#FCE8E6', color: '#EA4335'},
-};
-
-const StyledReservationBadge = styled.span<{ $type: string }>`
-    display: inline-block;
-    padding: 2px 8px;
-    border-radius: 10px;
-    font-size: var(--tiny-font);
-    font-weight: 600;
-    white-space: nowrap;
-    background-color: ${(props) => RESERVATION_BADGE_STYLES[props.$type]?.bg || '#F1F1F1'};
-    color: ${(props) => RESERVATION_BADGE_STYLES[props.$type]?.color || '#999'};
 `;
 
 const StyledEmpty = styled.p`
