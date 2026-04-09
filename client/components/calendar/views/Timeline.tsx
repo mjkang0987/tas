@@ -16,9 +16,9 @@ import {buildServiceColorMap, calcEndTime, getServiceColor, parseServiceString} 
 
 import {findOverlap, toDateKey, type Reservation} from '../../../utils/reservations';
 import {roundToHalfHour, pad} from '../../../utils/timeRound';
-import {ButtonReserve} from "../../ui/Buttons";
 import {buildInitialDragPreview, type DragPreview, type DragState, type PendingMove} from './timelineDrag';
 import {TimelineCluster} from './TimelineCluster';
+import {TimelineDragGhost, TimelineReservationCard} from './TimelineReservationCard';
 import {buildTimelineEntries, type TimelineEntry} from './timelineEntries';
 
 export const Timeline = ({
@@ -402,64 +402,32 @@ export const Timeline = ({
                 preview.date !== r.date
             );
 
-            return (<ButtonReserve key={r.id}
-                                   style={hideOriginalBlock ? {visibility: 'hidden'} : undefined}
-                                   $position='absolute'
-                                   $top={preview?.top ?? blockTop}
-                                   $height={blockHeight}
-                                   $color={r.designerId ? (designerColorMap[r.designerId] ?? '#8E8E93') : '#8E8E93'}
-                                   $cancelled={r.status === 'cancelled' || r.status === 'noshow'}
-                                   onClick={(e: React.MouseEvent) => {
-                                       e.stopPropagation();
-                                       if (suppressCreateClickRef.current) {
-                                           return;
-                                       }
-                                       openReservationDetail(r);
-                                   }}>
-                {r.status !== 'cancelled' && r.status !== 'noshow' && (
-                    <span className="drag-handle"
-                          onMouseDown={(e) => startMouseDrag(e, r, durationMinutes, blockTop, blockHeight)}
-                          onTouchStart={(e) => startTouchDrag(e, r, durationMinutes, blockTop, blockHeight)}>
-                        <span className="a11y">예약 이동</span>
-                    </span>
-                )}
-                <strong className="highlight">
-                    {parseServiceString(r.service).map((serviceName) => (
-                        <span className="service-token"
-                              key={`${r.id}-${serviceName}`}>
-                            <span className="dot"
-                                  style={{backgroundColor: getServiceColor(serviceName, serviceColorMap)}} />
-                            {serviceName}
-                        </span>
-                    ))}
-                    {r.status === 'cancelled' ? ' (취소)' : r.status === 'noshow' ? ' (노쇼)' : ''}
-                </strong>
-                {preview && <span className="sub">{preview.date} {preview.startTime}~{preview.endTime}</span>}
-                {customer && <span className="detail">{customer.name}</span>}
-            </ButtonReserve>);
+            return (
+                <TimelineReservationCard
+                    key={r.id}
+                    reservation={r}
+                    preview={preview}
+                    blockTop={blockTop}
+                    blockHeight={blockHeight}
+                    customerName={customer?.name}
+                    color={r.designerId ? (designerColorMap[r.designerId] ?? '#8E8E93') : '#8E8E93'}
+                    serviceColorMap={serviceColorMap}
+                    hideOriginalBlock={hideOriginalBlock}
+                    suppressClick={suppressCreateClickRef.current}
+                    onClick={() => openReservationDetail(r)}
+                    onMouseDragStart={(e) => startMouseDrag(e, r, durationMinutes, blockTop, blockHeight)}
+                    onTouchDragStart={(e) => startTouchDrag(e, r, durationMinutes, blockTop, blockHeight)}
+                />
+            );
         })}
         {showDragGhost && dragPreview && draggingReservation && (
-            <StyledDragGhost aria-hidden="true"
-                             $left={dragPreview.ghostLeft}
-                             $top={dragPreview.ghostTop}
-                             $width={dragPreview.ghostWidth}
-                             $height={dragPreview.ghostHeight}
-                             $color={draggingReservation.designerId ? (designerColorMap[draggingReservation.designerId] ?? '#8E8E93') : '#8E8E93'}
-                             $cancelled={draggingReservation.status === 'cancelled' || draggingReservation.status === 'noshow'}>
-                <strong>
-                    {parseServiceString(draggingReservation.service).map((serviceName) => (
-                        <span className="service-token"
-                              key={`${draggingReservation.id}-${serviceName}`}>
-                            <span className="dot"
-                                  style={{backgroundColor: getServiceColor(serviceName, serviceColorMap)}} />
-                            {serviceName}
-                        </span>
-                    ))}
-                    {draggingReservation.status === 'cancelled' ? ' (취소)' : draggingReservation.status === 'noshow' ? ' (노쇼)' : ''}
-                </strong>
-                <span className="sub">{dragPreview.date} {dragPreview.startTime}~{dragPreview.endTime}</span>
-                {draggingCustomer && <span className="detail">{draggingCustomer.name}</span>}
-            </StyledDragGhost>
+            <TimelineDragGhost
+                reservation={draggingReservation}
+                preview={dragPreview}
+                customerName={draggingCustomer?.name}
+                color={draggingReservation.designerId ? (designerColorMap[draggingReservation.designerId] ?? '#8E8E93') : '#8E8E93'}
+                serviceColorMap={serviceColorMap}
+            />
         )}
         {pendingMove && <ReservationMoveConfirmModal reservation={pendingMove.prev}
                                                      nextReservation={pendingMove.next}
@@ -513,66 +481,5 @@ const StyledBar = styled.span`
         height: 10px;
         background-color: var(--orange-color);
         border-radius: 100%;
-    }
-`;
-
-const StyledDragGhost = styled.div<{
-    $left: number;
-    $top: number;
-    $width: number;
-    $height: number;
-    $color: string;
-    $cancelled: boolean
-}>`
-    position: fixed;
-    left: ${(props) => props.$left}px;
-    top: ${(props) => props.$top}px;
-    width: ${(props) => props.$width}px;
-    height: ${(props) => props.$height}px;
-    max-height: ${(props) => props.$height}px;
-    z-index: 30;
-    display: flex;
-    flex-direction: column;
-    gap: 2px;
-    box-sizing: border-box;
-    padding: 2px 6px;
-    border-radius: var(--radius-sm);
-    background-color: ${(props) => props.$cancelled ? 'var(--cancelled-color)' : `${props.$color}12`};
-    border: 1px solid ${(props) => props.$cancelled ? 'var(--cancelled-color)' : props.$color};
-    border-left-width: 4px;
-    box-shadow: 0 12px 28px rgba(15, 23, 42, 0.28);
-    color: ${(props) => props.$cancelled ? 'var(--white-color)' : 'var(--dark-gray-color)'};
-    opacity: 0.72;
-    pointer-events: none;
-
-    strong {
-        font-size: var(--small-font);
-        font-weight: 600;
-    }
-
-    .sub {
-        font-size: var(--tiny-font);
-        opacity: 0.9;
-    }
-
-    .detail {
-        margin-top: 2px;
-        font-size: var(--tiny-font);
-        opacity: 0.9;
-    }
-
-    .dot {
-        display: inline-block;
-        width: 8px;
-        height: 8px;
-        margin-right: 4px;
-        border-radius: 50%;
-        vertical-align: middle;
-    }
-
-    .service-token {
-        display: inline-flex;
-        align-items: center;
-        margin-right: 6px;
     }
 `;
