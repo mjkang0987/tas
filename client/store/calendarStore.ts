@@ -16,6 +16,10 @@ import {
     syncServiceSettings,
     syncStoreSettings,
 } from './calendarStoreHelpers';
+import {
+    buildClosedReservationState,
+    buildOpenedReservationState,
+} from './calendarStoreOverlayHelpers';
 
 export type FullType = Date | null;
 
@@ -234,33 +238,13 @@ export const useCalendarStore = create<CalendarState>((set) => ({
     }),
 
     openReservationDetail: (selectedReservation) =>
-        set((state) => {
-            const nextReservations = [...state.selectedReservations, selectedReservation];
-            return {
-                selectedReservation,
-                selectedReservations: nextReservations,
-                createReservationInitial: null,
-            };
-        }),
+        set((state) => buildOpenedReservationState(state, selectedReservation)),
 
     openReservationDetailFromCustomer: (selectedReservation) =>
-        set((state) => {
-            const nextReservations = [...state.selectedReservations, selectedReservation];
-            return {
-                selectedReservation,
-                selectedReservations: nextReservations,
-                createReservationInitial: null,
-            };
-        }),
+        set((state) => buildOpenedReservationState(state, selectedReservation)),
 
     closeReservationDetail: (layerIndex) =>
-        set((state) => {
-            const nextReservations = state.selectedReservations.filter((_, index) => index !== layerIndex);
-            return {
-                selectedReservations: nextReservations,
-                selectedReservation: nextReservations[nextReservations.length - 1] ?? null,
-            };
-        }),
+        set((state) => buildClosedReservationState(state, layerIndex)),
 
     setReservationHistory: (reservationHistory) => set({reservationHistory}),
 
