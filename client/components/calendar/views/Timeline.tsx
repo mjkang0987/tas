@@ -15,9 +15,14 @@ import {getDesignerColor} from '../../../utils/designers';
 import {buildServiceColorMap, calcEndTime, getServiceColor, parseServiceString} from '../../../utils/services';
 
 import {findOverlap, toDateKey, type Reservation} from '../../../utils/reservations';
-import {roundToHalfHour, pad} from '../../../utils/timeRound';
-import {buildInitialDragPreview, type DragPreview, type DragState, type PendingMove} from './timelineDrag';
+import {pad} from '../../../utils/timeRound';
+import {type DragPreview, type DragState, type PendingMove} from './timelineDrag';
 import {TimelineCluster} from './TimelineCluster';
+import {
+    buildCreateReservationFromPointer,
+    buildMouseDragState,
+    buildTouchDragState,
+} from './timelineInteractions';
 import {TimelineDragGhost, TimelineReservationCard} from './TimelineReservationCard';
 import {buildTimelineEntries, type TimelineEntry} from './timelineEntries';
 
@@ -263,23 +268,16 @@ export const Timeline = ({
             return;
         }
         if (suppressCreateClickRef.current) return;
-
-        const el = e.currentTarget;
-        const rect = el.getBoundingClientRect();
-        const paddingTop = type === ViewType.Day ? TIMELINE_DAY_TOP : TIMELINE_TOP;
-        const relativeY = e.clientY - rect.top - paddingTop;
-        const totalMin = Math.max(0, relativeY) / 2;
-        let clickH = start + Math.floor(totalMin / 60);
-        const clickM = Math.floor(totalMin % 60);
-        clickH = Math.min(Math.max(clickH, start), end - 1);
-
-        const result = roundToHalfHour(clickH, clickM);
-        clickH = Math.min(result.hour, end - 1);
-
-        const dateStr = toDateKey(fullYear, month, date);
-        const startTime = `${pad(clickH)}:${pad(result.rounded)}`;
-
-        setCreateReservationInitial({date: dateStr, startTime});
+        setCreateReservationInitial(buildCreateReservationFromPointer({
+            container: e.currentTarget,
+            clientY: e.clientY,
+            type,
+            start,
+            end,
+            fullYear,
+            month,
+            date,
+        }));
     };
 
     const setTouchPositionHandler = (e: React.TouchEvent<HTMLDivElement>) => {
@@ -289,24 +287,16 @@ export const Timeline = ({
         }
         if (dragStateRef.current) return;
         if (suppressCreateClickRef.current) return;
-
-        const el = e.currentTarget;
-        const rect = el.getBoundingClientRect();
-        const paddingTop = type === ViewType.Day ? TIMELINE_DAY_TOP : TIMELINE_TOP;
-        const touch = e.changedTouches[0];
-        const relativeY = touch.clientY - rect.top - paddingTop;
-        const totalMin = Math.max(0, relativeY) / 2;
-        let clickH = start + Math.floor(totalMin / 60);
-        const clickM = Math.floor(totalMin % 60);
-        clickH = Math.min(Math.max(clickH, start), end - 1);
-
-        const result = roundToHalfHour(clickH, clickM);
-        clickH = Math.min(result.hour, end - 1);
-
-        const dateStr = toDateKey(fullYear, month, date);
-        const startTime = `${pad(clickH)}:${pad(result.rounded)}`;
-
-        setCreateReservationInitial({date: dateStr, startTime});
+        setCreateReservationInitial(buildCreateReservationFromPointer({
+            container: e.currentTarget,
+            clientY: e.changedTouches[0].clientY,
+            type,
+            start,
+            end,
+            fullYear,
+            month,
+            date,
+        }));
     };
 
     const draggingReservation = dragStateRef.current?.reservation ?? null;
@@ -316,41 +306,28 @@ export const Timeline = ({
 
     const startMouseDrag = (event: React.MouseEvent<HTMLElement>, reservation: Reservation, durationMinutes: number, blockTop: number, blockHeight: number) => {
         event.stopPropagation();
-        if (reservation.status === 'cancelled' || reservation.status === 'noshow') {
+        const nextDrag = buildMouseDragState(event, reservation, durationMinutes, blockTop, blockHeight);
+        if (!nextDrag) {
             dragStateRef.current = null;
             return;
         }
 
-        dragStateRef.current = {
-            reservation,
-            durationMinutes,
-            pointerOffsetY: event.clientY - event.currentTarget.getBoundingClientRect().top,
-            originTop: blockTop,
-            didDrag: false,
-        };
-        const initialPreview = buildInitialDragPreview(reservation, blockTop, blockHeight);
-        dragPreviewRef.current = initialPreview;
-        setDragPreview(initialPreview);
+        dragStateRef.current = nextDrag.dragState;
+        dragPreviewRef.current = nextDrag.preview;
+        setDragPreview(nextDrag.preview);
     };
 
     const startTouchDrag = (event: React.TouchEvent<HTMLElement>, reservation: Reservation, durationMinutes: number, blockTop: number, blockHeight: number) => {
         event.stopPropagation();
-        if (reservation.status === 'cancelled' || reservation.status === 'noshow') {
+        const nextDrag = buildTouchDragState(event, reservation, durationMinutes, blockTop, blockHeight);
+        if (!nextDrag) {
             dragStateRef.current = null;
             return;
         }
 
-        const touch = event.touches[0];
-        dragStateRef.current = {
-            reservation,
-            durationMinutes,
-            pointerOffsetY: touch.clientY - event.currentTarget.getBoundingClientRect().top,
-            originTop: blockTop,
-            didDrag: false,
-        };
-        const initialPreview = buildInitialDragPreview(reservation, blockTop, blockHeight);
-        dragPreviewRef.current = initialPreview;
-        setDragPreview(initialPreview);
+        dragStateRef.current = nextDrag.dragState;
+        dragPreviewRef.current = nextDrag.preview;
+        setDragPreview(nextDrag.preview);
     };
 
     return (<StyledTimelineWrap ref={timelineRef}
