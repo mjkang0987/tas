@@ -20,6 +20,11 @@ import {
     buildClosedReservationState,
     buildOpenedReservationState,
 } from './calendarStoreOverlayHelpers';
+import {
+    buildAddedReservationMap,
+    buildCancelledReservationState,
+    buildUpdatedReservationState,
+} from './calendarStoreReservationHelpers';
 
 export type FullType = Date | null;
 
@@ -473,13 +478,8 @@ export const useCalendarStore = create<CalendarState>((set) => ({
 
     addReservation: (reservation) => {
         set((state) => {
-            const map = {...state.reservationMap};
-            const key = reservation.date;
-
-            if (!map[key]) map[key] = [];
-            map[key] = [...map[key], reservation];
-
-            return {reservationMap: map, createReservationInitial: null};
+            const nextMap = buildAddedReservationMap(state.reservationMap, reservation);
+            return {reservationMap: nextMap, createReservationInitial: null};
         });
 
         fetch('/api/reservations', {
@@ -490,40 +490,7 @@ export const useCalendarStore = create<CalendarState>((set) => ({
     },
 
     updateReservation: (prev, updated) => {
-        set((state) => {
-            const map = {...state.reservationMap};
-            const oldKey = prev.date;
-            const newKey = updated.date;
-
-            if (map[oldKey]) {
-                map[oldKey] = map[oldKey].filter((r) => r.id !== prev.id);
-                if (map[oldKey].length === 0) delete map[oldKey];
-            }
-
-            if (!map[newKey]) map[newKey] = [];
-            const idx = map[newKey].findIndex((r) => r.id === updated.id);
-            if (idx > -1) {
-                map[newKey][idx] = updated;
-            } else {
-                map[newKey].push(updated);
-            }
-
-            const entry: ReservationHistoryEntry = {
-                reservationId: prev.id,
-                before: prev,
-                after: updated,
-                timestamp: new Date().toISOString()
-            };
-
-            return {
-                reservationMap: map,
-                selectedReservation: updated,
-                selectedReservations: state.selectedReservations.map((reservation) => (
-                    reservation.id === updated.id ? updated : reservation
-                )),
-                reservationHistory: [...state.reservationHistory, entry]
-            };
-        });
+        set((state) => buildUpdatedReservationState(state, prev, updated));
 
         fetch('/api/reservations', {
             method: 'PUT',
@@ -535,30 +502,7 @@ export const useCalendarStore = create<CalendarState>((set) => ({
     cancelReservation: (reservation, status = 'cancelled') => {
         const updated: Reservation = {...reservation, status};
 
-        set((state) => {
-            const map = {...state.reservationMap};
-            const key = reservation.date;
-
-            if (map[key]) {
-                map[key] = map[key].map((r) => r.id === reservation.id ? updated : r);
-            }
-
-            const entry: ReservationHistoryEntry = {
-                reservationId: reservation.id,
-                before: reservation,
-                after: updated,
-                timestamp: new Date().toISOString()
-            };
-
-            const nextSelectedReservations = state.selectedReservations.filter((item) => item.id !== reservation.id);
-
-            return {
-                reservationMap: map,
-                selectedReservation: nextSelectedReservations[nextSelectedReservations.length - 1] ?? null,
-                selectedReservations: nextSelectedReservations,
-                reservationHistory: [...state.reservationHistory, entry]
-            };
-        });
+        set((state) => buildCancelledReservationState(state, reservation, updated));
 
         fetch('/api/reservations', {
             method: 'PATCH',
