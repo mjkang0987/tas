@@ -42,6 +42,7 @@ import {
     buildRemovedStoreClosedDateState,
     buildUpdatedStoreBusinessHoursState,
     buildUpdatedStoreClosedDatesState,
+    buildUpdatedStorePointSettingsState,
 } from './calendarStoreStoreSettingsHelpers';
 
 export type FullType = Date | null;
@@ -111,6 +112,7 @@ export interface CalendarState {
     setReservationMap: (map: ReservationMap) => void;
     setCustomerMap: (map: CustomerMap) => void;
     addCustomer: (customer: Customer) => void;
+    updateCustomer: (customerId: number, patch: Partial<Customer>) => void;
     setSelectedReservation: (v: Reservation | null) => void;
     setSelectedReservations: (v: Reservation[]) => void;
     openReservationDetail: (reservation: Reservation) => void;
@@ -127,6 +129,7 @@ export interface CalendarState {
     setDesigners: (designers: Designer[]) => void;
     setStoreSettings: (storeSettings: StoreSettings) => void;
     updateStoreBusinessHours: (hours: Partial<StoreSettings['businessHours']>) => void;
+    updateStorePointSettings: (pointSettings: Partial<StoreSettings['pointSettings']>) => void;
     updateStoreClosedDates: (dates: string[]) => void;
     addStoreClosedDate: (date: string) => void;
     removeStoreClosedDate: (date: string) => void;
@@ -253,6 +256,23 @@ export const useCalendarStore = create<CalendarState>((set) => ({
             return {customerMap: nextCustomerMap};
         }),
 
+    updateCustomer: (customerId, patch) =>
+        set((state) => {
+            const currentCustomer = state.customerMap[customerId];
+            if (!currentCustomer) return state;
+
+            const nextCustomerMap = {
+                ...state.customerMap,
+                [customerId]: {
+                    ...currentCustomer,
+                    ...patch,
+                },
+            };
+
+            syncCustomerSettings(Object.values(nextCustomerMap));
+            return {customerMap: nextCustomerMap};
+        }),
+
     setSelectedReservation: (selectedReservation) => set({selectedReservation}),
 
     setSelectedReservations: (selectedReservations) => set({
@@ -293,6 +313,13 @@ export const useCalendarStore = create<CalendarState>((set) => ({
     updateStoreBusinessHours: (hours) =>
         set((state) => {
             const nextStoreSettings = buildUpdatedStoreBusinessHoursState(state.storeSettings, hours);
+            syncStoreSettings(nextStoreSettings);
+            return {storeSettings: nextStoreSettings};
+        }),
+
+    updateStorePointSettings: (pointSettings) =>
+        set((state) => {
+            const nextStoreSettings = buildUpdatedStorePointSettingsState(state.storeSettings, pointSettings);
             syncStoreSettings(nextStoreSettings);
             return {storeSettings: nextStoreSettings};
         }),

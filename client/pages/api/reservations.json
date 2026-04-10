@@ -406,11 +406,14 @@
         },
         {
             "id": 10,
-            "date": "2026-03-30",
-            "startTime": "10:00",
-            "endTime": "12:00",
+            "date": "2026-04-01",
+            "startTime": "11:00",
+            "endTime": "13:00",
             "service": "남자 매직",
-            "customerId": 9
+            "customerId": 9,
+            "designerId": 1775183550311,
+            "price": 100000,
+            "memo": ""
         },
         {
             "id": 44,
@@ -527,6 +530,18 @@
             "customerId": 3,
             "status": "active",
             "designerId": 1775183630516
+        },
+        {
+            "id": 1775718654958,
+            "date": "2026-04-07",
+            "startTime": "11:30",
+            "endTime": "14:30",
+            "service": "볼륨매직",
+            "customerId": 2,
+            "designerId": 1775183550311,
+            "status": "active",
+            "price": 150000,
+            "memo": ""
         }
     ],
     "history": [
@@ -1004,6 +1019,134 @@
                 ]
             },
             "timestamp": "2026-04-08T07:27:17.463Z"
+        },
+        {
+            "reservationId": 1775718654958,
+            "before": {
+                "id": 1775718654958,
+                "date": "2026-04-07",
+                "startTime": "11:30",
+                "endTime": "17:00",
+                "service": "셋팅펌+볼륨매직",
+                "customerId": 2,
+                "designerId": 1775183550311,
+                "status": "active",
+                "price": 230000
+            },
+            "after": {
+                "id": 1775718654958,
+                "date": "2026-04-07",
+                "startTime": "11:30",
+                "endTime": "14:30",
+                "service": "볼륨매직",
+                "customerId": 2,
+                "designerId": 1775183550311,
+                "status": "active",
+                "price": 150000,
+                "memo": ""
+            },
+            "timestamp": "2026-04-09T07:11:07.406Z"
+        },
+        {
+            "reservationId": 10,
+            "before": {
+                "id": 10,
+                "date": "2026-03-30",
+                "startTime": "10:00",
+                "endTime": "12:00",
+                "service": "남자 매직",
+                "customerId": 9
+            },
+            "after": {
+                "id": 10,
+                "date": "2026-03-30",
+                "startTime": "10:00",
+                "endTime": "12:00",
+                "service": "남자 매직",
+                "customerId": 9,
+                "designerId": 1775183550311,
+                "price": 100000,
+                "memo": ""
+            },
+            "timestamp": "2026-04-09T07:16:29.620Z"
+        },
+        {
+            "reservationId": 10,
+            "before": {
+                "id": 10,
+                "date": "2026-03-30",
+                "startTime": "10:00",
+                "endTime": "12:00",
+                "service": "남자 매직",
+                "customerId": 9,
+                "designerId": 1775183550311,
+                "price": 100000,
+                "memo": ""
+            },
+            "after": {
+                "id": 10,
+                "date": "2026-04-01",
+                "startTime": "12:00",
+                "endTime": "14:00",
+                "service": "남자 매직",
+                "customerId": 9,
+                "designerId": 1775183550311,
+                "price": 100000,
+                "memo": ""
+            },
+            "timestamp": "2026-04-09T07:16:36.222Z"
+        },
+        {
+            "reservationId": 10,
+            "before": {
+                "id": 10,
+                "date": "2026-04-01",
+                "startTime": "12:00",
+                "endTime": "14:00",
+                "service": "남자 매직",
+                "customerId": 9,
+                "designerId": 1775183550311,
+                "price": 100000,
+                "memo": ""
+            },
+            "after": {
+                "id": 10,
+                "date": "2026-04-02",
+                "startTime": "12:00",
+                "endTime": "14:00",
+                "service": "남자 매직",
+                "customerId": 9,
+                "designerId": 1775183550311,
+                "price": 100000,
+                "memo": ""
+            },
+            "timestamp": "2026-04-09T07:16:40.689Z"
+        },
+        {
+            "reservationId": 10,
+            "before": {
+                "id": 10,
+                "date": "2026-04-02",
+                "startTime": "12:00",
+                "endTime": "14:00",
+                "service": "남자 매직",
+                "customerId": 9,
+                "designerId": 1775183550311,
+                "price": 100000,
+                "memo": ""
+            },
+            "after": {
+                "id": 10,
+                "date": "2026-04-01",
+                "startTime": "11:00",
+                "endTime": "13:00",
+                "service": "남자 매직",
+                "customerId": 9,
+                "designerId": 1775183550311,
+                "price": 100000,
+                "memo": ""
+            },
+            "timestamp": "2026-04-09T07:17:00.006Z"
         }
     ]
 }

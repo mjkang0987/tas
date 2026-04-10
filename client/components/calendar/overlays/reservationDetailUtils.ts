@@ -33,6 +33,12 @@ export function formatPaymentEntries(entries: PaymentEntry[]): string[] {
     return entries.map((entry) => `${entry.method} · ${formatPrice(entry.amount)}`);
 }
 
+export function getPointAmount(entries: PaymentEntry[]): number {
+    return entries
+        .filter((entry) => entry.method === '적립금')
+        .reduce((sum, entry) => sum + entry.amount, 0);
+}
+
 export function getPaymentEntryDrafts(
     reservation: Reservation,
     fallbackAmount: number

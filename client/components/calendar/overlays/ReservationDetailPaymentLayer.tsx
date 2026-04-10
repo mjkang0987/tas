@@ -4,24 +4,32 @@ import styled from 'styled-components';
 
 import type {PaymentMethod} from '../../../utils/reservations';
 import {StyledBody, StyledBodyInner} from './ModalStyles';
-import type {PaymentEntryDraft} from './reservationDetailTypes';
+import type {PaymentEntryDraft, PointAwardDraft} from './reservationDetailTypes';
 
 type ReservationDetailPaymentLayerProps = {
     paymentEntries: PaymentEntryDraft[];
+    pointAward: PointAwardDraft;
+    showPointAward: boolean;
     error: string;
     paymentMethodOptions: PaymentMethod[];
     onChangeEntryMethod: (index: number, value: PaymentMethod | '') => void;
     onChangeEntryAmount: (index: number, value: string) => void;
+    onTogglePointAward: (enabled: boolean) => void;
+    onChangePointAwardAmount: (value: string) => void;
     onRemoveEntry: (index: number) => void;
     onAddEntry: () => void;
 };
 
 export function ReservationDetailPaymentLayer({
     paymentEntries,
+    pointAward,
+    showPointAward,
     error,
     paymentMethodOptions,
     onChangeEntryMethod,
     onChangeEntryAmount,
+    onTogglePointAward,
+    onChangePointAwardAmount,
     onRemoveEntry,
     onAddEntry,
 }: ReservationDetailPaymentLayerProps) {
@@ -61,6 +69,26 @@ export function ReservationDetailPaymentLayer({
                     <StyledPaymentAddButton type="button" onClick={onAddEntry}>
                         결제수단 추가
                     </StyledPaymentAddButton>
+                    {showPointAward && (
+                        <StyledPointAwardBox>
+                            <StyledPointAwardToggle>
+                                <input
+                                    type="checkbox"
+                                    checked={pointAward.enabled}
+                                    onChange={(e) => onTogglePointAward(e.target.checked)}
+                                />
+                                <span>적립 적용</span>
+                            </StyledPointAwardToggle>
+                            <StyledPointAwardInput
+                                type="text"
+                                inputMode="numeric"
+                                value={pointAward.amount}
+                                placeholder="적립 금액"
+                                disabled={!pointAward.enabled}
+                                onChange={(e) => onChangePointAwardAmount(e.target.value)}
+                            />
+                        </StyledPointAwardBox>
+                    )}
                     {error && <StyledPaymentError>{error}</StyledPaymentError>}
                 </StyledPaymentLayer>
             </StyledBodyInner>
@@ -135,4 +163,35 @@ const StyledPaymentError = styled.p`
     margin: 0;
     font-size: 12px;
     color: var(--danger-color);
+`;
+
+const StyledPointAwardBox = styled.div`
+    display: grid;
+    grid-template-columns: auto minmax(0, 140px);
+    gap: 8px;
+    align-items: center;
+
+    @media (max-width: 640px) {
+        grid-template-columns: 1fr;
+    }
+`;
+
+const StyledPointAwardToggle = styled.label`
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--dark-gray-color);
+`;
+
+const StyledPointAwardInput = styled.input`
+    height: 30px;
+    padding: 0 10px;
+    border: 1px solid var(--light-gray-color);
+    border-radius: 8px;
+    background: var(--white-color);
+    font-size: 12px;
+    color: var(--dark-gray-color);
+    box-sizing: border-box;
 `;

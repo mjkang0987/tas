@@ -18,6 +18,7 @@ import type {CustomerMap} from '../utils/customers';
 import {ReservationDetail} from '../components/calendar/overlays/ReservationDetail';
 import {CustomerDetail} from '../components/calendar/overlays/CustomerDetail';
 import {DesignerManageSection} from '../components/settings/DesignerManageSection';
+import {PointManageSection} from '../components/settings/PointManageSection';
 import {RevenueSection, type RevenueDesignerKey, type RevenueQuickRange} from '../components/settings/RevenueSection';
 import {ServiceManageSection} from '../components/settings/ServiceManageSection';
 import {StoreManageSection} from '../components/settings/StoreManageSection';
@@ -30,7 +31,7 @@ type SettingsProps = {
     history: ReservationHistoryEntry[];
 };
 
-type SettingsTab = 'revenue' | 'service' | 'designer' | 'store';
+type SettingsTab = 'revenue' | 'point' | 'service' | 'designer' | 'store';
 
 const WEEKDAYS = ['일', '월', '화', '수', '목', '금', '토'];
 
@@ -57,6 +58,7 @@ function shiftDateKey(baseDate: Date, days: number): string {
 
 const Settings: NextPage<SettingsProps> = ({reservations, customers, history}) => {
     const setCustomerMap = useCalendarStore((s) => s.setCustomerMap);
+    const storeCustomerMap = useCalendarStore((s) => s.customerMap);
     const setReservationMap = useCalendarStore((s) => s.setReservationMap);
     const setReservationHistory = useCalendarStore((s) => s.setReservationHistory);
     const designers = useCalendarStore((s) => s.designers);
@@ -76,8 +78,8 @@ const Settings: NextPage<SettingsProps> = ({reservations, customers, history}) =
     const target = useCalendarStore((s) => s.target);
     const serviceCatalog = useCalendarStore((s) => s.serviceCatalog);
     const categoryBaseColorMap = useCalendarStore((s) => s.categoryBaseColorMap);
-    const reservationMap = groupByDate(reservations);
-    const customerMap: CustomerMap = toCustomerMap(customers);
+    const reservationMap = useMemo(() => groupByDate(reservations), [reservations]);
+    const initialCustomerMap: CustomerMap = useMemo(() => toCustomerMap(customers), [customers]);
     const serviceColorMap = useMemo(
         () => buildServiceColorMap(serviceCatalog, categoryBaseColorMap),
         [serviceCatalog, categoryBaseColorMap]
@@ -90,7 +92,7 @@ const Settings: NextPage<SettingsProps> = ({reservations, customers, history}) =
     const revenueWeekStartKey = shiftDateKey(now, -7);
 
     const q = router.query;
-    const tab: SettingsTab = q.tab === 'service' || q.tab === 'designer' || q.tab === 'store' ? q.tab : 'revenue';
+    const tab: SettingsTab = q.tab === 'service' || q.tab === 'designer' || q.tab === 'store' || q.tab === 'point' ? q.tab : 'revenue';
     const parsedDesignerId = typeof q.designer === 'string' ? Number(q.designer) : NaN;
     const revenueDesignerKey: RevenueDesignerKey = Number.isInteger(parsedDesignerId) && parsedDesignerId > 0
         ? String(parsedDesignerId) as RevenueDesignerKey
@@ -156,6 +158,17 @@ const Settings: NextPage<SettingsProps> = ({reservations, customers, history}) =
         });
     };
 
+    const setRevenueDateRange = (startKey: string, endKey: string, selectedKey?: string) => {
+        if (!isValidDateKey(startKey) || !isValidDateKey(endKey)) return;
+        replaceQuery({
+            tab: 'revenue',
+            designer: revenueDesignerKey,
+            start: startKey,
+            end: endKey,
+            date: selectedKey ?? endKey,
+        });
+    };
+
     const setRevenueSelectedDate = (key: string) => {
         replaceQuery({
             tab: 'revenue',
@@ -188,10 +201,10 @@ const Settings: NextPage<SettingsProps> = ({reservations, customers, history}) =
         });
     };
     useEffect(() => {
-        setCustomerMap(customerMap);
+        setCustomerMap(initialCustomerMap);
         setReservationMap(reservationMap);
         setReservationHistory(history);
-    }, [reservations, customers, history]);
+    }, [initialCustomerMap, reservationMap, history]);
 
     return (
         <StyledSection>
@@ -201,6 +214,7 @@ const Settings: NextPage<SettingsProps> = ({reservations, customers, history}) =
             <StyledHeading>설정</StyledHeading>
             <StyledPageTabs>
                 <StyledPageTab type="button" $active={tab === 'revenue'} onClick={() => setTab('revenue')}>매출</StyledPageTab>
+                <StyledPageTab type="button" $active={tab === 'point'} onClick={() => setTab('point')}>적립금 관리</StyledPageTab>
                 <StyledPageTab type="button" $active={tab === 'store'} onClick={() => setTab('store')}>매장관리</StyledPageTab>
                 <StyledPageTab type="button" $active={tab === 'service'} onClick={() => setTab('service')}>서비스 관리</StyledPageTab>
                 <StyledPageTab type="button" $active={tab === 'designer'} onClick={() => setTab('designer')}>디자이너 관리</StyledPageTab>
@@ -208,19 +222,22 @@ const Settings: NextPage<SettingsProps> = ({reservations, customers, history}) =
             <StyledContent>
                 {tab === 'revenue' && <RevenueSection reservationMap={reservationMap}
                                                       designers={designers}
-                                                      customerMap={customerMap}
+                                                      customerMap={storeCustomerMap}
                                                       serviceColorMap={serviceColorMap}
                                                       onSelectReservation={openReservationDetail}
+                                                      onSelectCustomer={openCustomerDetail}
                                                       designerKey={revenueDesignerKey}
                                                       setDesignerKey={setRevenueDesigner}
                                                       startDateKey={startDateKey}
                                                       setStartDateKey={setRevenueStartDate}
                                                       endDateKey={endDateKey}
                                                       setEndDateKey={setRevenueEndDate}
+                                                      setDateRange={setRevenueDateRange}
                                                       selectedDateKey={selectedDateKey}
                                                       setSelectedDateKey={setRevenueSelectedDate}
                                                       quickRange={quickRange}
                                                       setQuickRange={setRevenueQuickRange}/>}
+                {tab === 'point' && <PointManageSection />}
                 {tab === 'store' && <StoreManageSection formatDateLabel={formatDateLabel}/>}
                 {tab === 'service' && <ServiceManageSection/>}
                 {tab === 'designer' && <DesignerManageSection/>}
@@ -228,7 +245,7 @@ const Settings: NextPage<SettingsProps> = ({reservations, customers, history}) =
             {selectedReservations.map((reservation, index) => (
                 <ReservationDetail key={`${reservation.id}-${index}`}
                                    reservation={reservation}
-                                   customerMap={customerMap}
+                                   customerMap={storeCustomerMap}
                                    reservationMap={storeReservationMap}
                                    history={storeHistory}
                                    onClose={() => closeReservationDetail(index)}
@@ -236,8 +253,8 @@ const Settings: NextPage<SettingsProps> = ({reservations, customers, history}) =
                                    onUpdate={updateReservation}
                                    onCancel={cancelReservation}/>
             ))}
-            {selectedCustomerId !== null && customerMap[selectedCustomerId] && (
-                <CustomerDetail customer={customerMap[selectedCustomerId]}
+            {selectedCustomerId !== null && storeCustomerMap[selectedCustomerId] && (
+                <CustomerDetail customer={storeCustomerMap[selectedCustomerId]}
                                 reservationMap={storeReservationMap}
                                 onReservationClick={openReservationDetailFromCustomer}
                                 onClose={() => setSelectedCustomerId(null)}/>

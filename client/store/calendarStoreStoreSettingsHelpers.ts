@@ -13,6 +13,19 @@ export function buildUpdatedStoreBusinessHoursState(
     };
 }
 
+export function buildUpdatedStorePointSettingsState(
+    storeSettings: StoreSettings,
+    pointSettings: Partial<StoreSettings['pointSettings']>
+) {
+    return {
+        ...storeSettings,
+        pointSettings: {
+            ...storeSettings.pointSettings,
+            ...pointSettings,
+        },
+    };
+}
+
 export function buildUpdatedStoreClosedDatesState(storeSettings: StoreSettings, dates: string[]) {
     return {
         ...storeSettings,

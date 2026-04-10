@@ -1,5 +1,5 @@
 export type ReservationStatus = 'active' | 'cancelled' | 'noshow';
-export type PaymentMethod = '현금' | '현금+현금영수증' | '카드' | '네이버페이' | '지역화폐' | '지역화폐+현금영수증' | '상품권';
+export type PaymentMethod = '현금' | '현금+현금영수증' | '카드' | '네이버페이' | '지역화폐' | '지역화폐+현금영수증' | '상품권' | '적립금';
 
 export interface PaymentEntry {
     method: PaymentMethod;
@@ -20,6 +20,7 @@ export interface Reservation {
     paymentCompleted?: boolean;
     paymentMethod?: PaymentMethod;
     paymentEntries?: PaymentEntry[];
+    pointEarned?: number;
 }
 
 export type ReservationMap = Record<string, Reservation[]>;

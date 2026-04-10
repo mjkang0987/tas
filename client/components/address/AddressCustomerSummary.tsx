@@ -3,6 +3,7 @@ import React from 'react';
 import styled from 'styled-components';
 
 import type {Customer} from '../../utils/customers';
+import {formatPrice} from '../../utils/services';
 
 const STATUS_COLORS: Record<string, string> = {
     booked: '#4285F4',
@@ -30,6 +31,7 @@ export function AddressCustomerSummary({customer, stats}: AddressCustomerSummary
             <strong>{customer.name}</strong>
             <span>{customer.tel.replace(/(\d{3})(\d{4})(\d{4})/, '$1-$2-$3')}</span>
             <span>{stats?.recentService || '-'}</span>
+            <span>{formatPrice(customer.points ?? 0)}</span>
             <StyledStatusCounts>
                 <StyledStatusBadge $type="booked">예약({stats?.booked || 0})</StyledStatusBadge>
                 <StyledStatusBadge $type="cancelled">취소({stats?.cancelled || 0})</StyledStatusBadge>
@@ -42,7 +44,7 @@ export function AddressCustomerSummary({customer, stats}: AddressCustomerSummary
 
 const StyledSummary = styled.summary`
     display: grid;
-    grid-template-columns: 80px 130px 1fr auto;
+    grid-template-columns: 80px 130px 1fr 100px auto;
     gap: 12px;
     align-items: center;
     padding: 10px 12px;
@@ -84,6 +86,13 @@ const StyledSummary = styled.summary`
         white-space: nowrap;
     }
 
+    > span:nth-of-type(3) {
+        font-size: var(--small-font);
+        text-align: right;
+        color: var(--dark-gray-color);
+        font-weight: 600;
+    }
+
     &:hover > strong {
         color: var(--blue-color);
     }
@@ -99,6 +108,10 @@ const StyledSummary = styled.summary`
 
         > span:nth-of-type(2) {
             width: 100%;
+        }
+
+        > span:nth-of-type(3) {
+            text-align: left;
         }
     }
 `;

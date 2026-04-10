@@ -4,6 +4,7 @@ import styled from 'styled-components';
 
 import type {Customer} from '../../utils/customers';
 import type {Reservation} from '../../utils/reservations';
+import {AddressCustomerRecharge} from './AddressCustomerRecharge';
 import {AddressCustomerReservations} from './AddressCustomerReservations';
 import {AddressCustomerSummary} from './AddressCustomerSummary';
 import {AddressCustomerTags} from './AddressCustomerTags';
@@ -78,6 +79,7 @@ export function AddressCustomerRow({
                     onStartEditing={onStartEditing}
                     onFinishEditing={onFinishEditing}
                 />
+                <AddressCustomerRecharge customer={customer} />
                 <AddressCustomerReservations
                     customerReservations={customerReservations}
                     designerColorMap={designerColorMap}

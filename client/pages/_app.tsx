@@ -67,7 +67,29 @@ function App({Component, pageProps: {session, ...pageProps}}: AppProps) {
             })
             .then((data) => {
                 if (data && typeof data === 'object' && data.businessHours && Array.isArray(data.closedDates)) {
-                    setStoreSettings(data);
+                    const rawPointSettings = data.pointSettings as StoreSettings['pointSettings'] & {mode?: string} | undefined;
+                    setStoreSettings({
+                        ...data,
+                        pointSettings: rawPointSettings
+                            ? {
+                                enableServiceRate: typeof rawPointSettings.enableServiceRate === 'boolean'
+                                    ? rawPointSettings.enableServiceRate
+                                    : rawPointSettings.mode === 'service-rate',
+                                enableRecharge: typeof rawPointSettings.enableRecharge === 'boolean'
+                                    ? rawPointSettings.enableRecharge
+                                    : rawPointSettings.mode === 'recharge',
+                                serviceRate: rawPointSettings.serviceRate ?? 5,
+                                rechargeRules: Array.isArray(rawPointSettings.rechargeRules)
+                                    ? rawPointSettings.rechargeRules
+                                    : [{baseAmount: 100000, bonusAmount: 5000}],
+                            }
+                            : {
+                                enableServiceRate: true,
+                                enableRecharge: true,
+                                serviceRate: 5,
+                                rechargeRules: [{baseAmount: 100000, bonusAmount: 5000}],
+                            },
+                    });
                 }
             })
             .catch(() => {

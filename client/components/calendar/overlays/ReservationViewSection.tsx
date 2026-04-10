@@ -77,6 +77,8 @@ export function ReservationViewSection({
                     </dd>
                     <dt>연락처</dt>
                     <dd>{customer?.tel ?? '-'}</dd>
+                    <dt>적립금</dt>
+                    <dd>{formatPrice(customer?.points ?? 0)}</dd>
                     <dt>디자이너</dt>
                     <dd>
                         <StyledDesignerValue>

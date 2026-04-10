@@ -4,6 +4,7 @@ import fs from 'fs';
 import path from 'path';
 
 import type {StoreSettings} from '../../utils/storeSettings';
+import {DEFAULT_STORE_SETTINGS} from '../../utils/storeSettings';
 
 const DATA_PATH = path.join(process.cwd(), 'pages/api/store.json');
 
@@ -27,7 +28,7 @@ export default function handler(req: NextApiRequest, res: NextApiResponse) {
     }
 
     if (req.method === 'PUT') {
-        const {businessHours, closedDates} = req.body as StoreSettings;
+        const {businessHours, closedDates, pointSettings} = req.body as StoreSettings;
 
         if (
             typeof businessHours !== 'object' ||
@@ -42,7 +43,23 @@ export default function handler(req: NextApiRequest, res: NextApiResponse) {
             return res.status(400).json({error: 'Invalid closedDates payload'});
         }
 
-        const nextData: StoreSettings = {businessHours, closedDates};
+        const nextPointSettings = pointSettings ?? DEFAULT_STORE_SETTINGS.pointSettings;
+        const isValidPointMode = typeof nextPointSettings.enableServiceRate === 'boolean'
+            && typeof nextPointSettings.enableRecharge === 'boolean';
+        const isValidServiceRate = typeof nextPointSettings.serviceRate === 'number' && nextPointSettings.serviceRate >= 0;
+        const isValidRechargeRules = Array.isArray(nextPointSettings.rechargeRules)
+            && nextPointSettings.rechargeRules.every((rule) => (
+                typeof rule?.baseAmount === 'number'
+                && rule.baseAmount >= 0
+                && typeof rule?.bonusAmount === 'number'
+                && rule.bonusAmount >= 0
+            ));
+
+        if (!isValidPointMode || !isValidServiceRate || !isValidRechargeRules) {
+            return res.status(400).json({error: 'Invalid pointSettings payload'});
+        }
+
+        const nextData: StoreSettings = {businessHours, closedDates, pointSettings: nextPointSettings};
         writeData(nextData);
         return res.status(200).json(nextData);
     }

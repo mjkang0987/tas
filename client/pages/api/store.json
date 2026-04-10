@@ -5,5 +5,24 @@
     },
     "closedDates": [
         "2026-04-22"
-    ]
+    ],
+    "pointSettings": {
+        "enableServiceRate": true,
+        "enableRecharge": true,
+        "serviceRate": 5,
+        "rechargeRules": [
+            {
+                "baseAmount": 200000,
+                "bonusAmount": 20000
+            },
+            {
+                "baseAmount": 300000,
+                "bonusAmount": 50000
+            },
+            {
+                "baseAmount": 500000,
+                "bonusAmount": 100000
+            }
+        ]
+    }
 }

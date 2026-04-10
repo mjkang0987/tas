@@ -20,3 +20,8 @@ export type PaymentEntryDraft = {
     method: PaymentMethod | '';
     amount: string;
 };
+
+export type PointAwardDraft = {
+    enabled: boolean;
+    amount: string;
+};

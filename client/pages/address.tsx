@@ -40,6 +40,8 @@ const TAG_COLORS = [
 ];
 
 const Address: NextPage<AddressProps> = ({customers, reservations, history}) => {
+    const setCustomerMap = useCalendarStore((s) => s.setCustomerMap);
+    const storeCustomerMap = useCalendarStore((s) => s.customerMap);
     const selectedCustomerId = useCalendarStore((s) => s.selectedCustomerId);
     const setSelectedCustomerId = useCalendarStore((s) => s.setSelectedCustomerId);
     const openReservationDetailFromCustomer = useCalendarStore((s) => s.openReservationDetailFromCustomer);
@@ -164,6 +166,10 @@ const Address: NextPage<AddressProps> = ({customers, reservations, history}) => 
         );
     }, [customers, searchTerm, tags]);
 
+    useEffect(() => {
+        setCustomerMap(customerMap);
+    }, [customerMap, setCustomerMap]);
+
     const addTag = (id: number) => {
         const value = tagInput.trim();
         if (!value) return;
@@ -222,7 +228,7 @@ const Address: NextPage<AddressProps> = ({customers, reservations, history}) => 
             {selectedReservations.map((reservation, index) => (
                 <ReservationDetail key={`${reservation.id}-${index}`}
                                    reservation={reservation}
-                                   customerMap={customerMap}
+                                   customerMap={storeCustomerMap}
                                    reservationMap={reservationMap}
                                    history={history}
                                    onClose={() => setSelectedReservations((prev) => prev.filter((_, itemIndex) => itemIndex !== index))}
@@ -234,8 +240,8 @@ const Address: NextPage<AddressProps> = ({customers, reservations, history}) => 
                                        setSelectedReservations((prev) => prev.filter((item) => item.id !== targetReservation.id));
                                    }}/>
             ))}
-            {selectedCustomerId !== null && customerMap[selectedCustomerId] && (
-                <CustomerDetail customer={customerMap[selectedCustomerId]}
+            {selectedCustomerId !== null && storeCustomerMap[selectedCustomerId] && (
+                <CustomerDetail customer={storeCustomerMap[selectedCustomerId]}
                                 reservationMap={reservationMap}
                                 onReservationClick={openReservationDetailFromCustomer}
                                 onClose={() => setSelectedCustomerId(null)}/>

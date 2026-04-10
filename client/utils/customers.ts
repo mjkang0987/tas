@@ -2,6 +2,7 @@ export interface Customer {
     id: number;
     name: string;
     tel: string;
+    points?: number;
 }
 
 export type CustomerMap = Record<number, Customer>;
