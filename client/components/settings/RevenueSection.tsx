@@ -1,7 +1,17 @@
 import {Fragment, useMemo, useState} from 'react';
 
+import {createPortal} from 'react-dom';
 import styled, {css} from 'styled-components';
 
+import {
+    StyledActionButton,
+    StyledDetail,
+    StyledFooter,
+    StyledHeader,
+    StyledOverlay,
+    useDialogAccessibility,
+    useLayerInstanceId,
+} from '../calendar/overlays/ModalStyles';
 import {getDailyRevenue, getRangeRevenue, getRevenueInsights} from '../../utils/revenue';
 import {formatPrice, getServiceColor, parseServiceString} from '../../utils/services';
 import type {Designer} from '../../utils/designers';
@@ -20,12 +30,14 @@ interface RevenueSectionProps {
     customerMap: CustomerMap;
     serviceColorMap: Record<string, string>;
     onSelectReservation: (reservation: Reservation) => void;
+    onSelectCustomer: (customerId: number) => void;
     designerKey: RevenueDesignerKey;
     setDesignerKey: (v: RevenueDesignerKey) => void;
     startDateKey: string;
     setStartDateKey: (key: string) => void;
     endDateKey: string;
     setEndDateKey: (key: string) => void;
+    setDateRange: (startKey: string, endKey: string, selectedKey?: string) => void;
     selectedDateKey: string;
     setSelectedDateKey: (key: string) => void;
     quickRange: RevenueQuickRange | null;
@@ -33,12 +45,25 @@ interface RevenueSectionProps {
 }
 
 type RevenueViewTab = 'all' | 'chart' | 'list';
+type RevenueMetricKey = 'sales' | 'count' | 'new' | 'returning' | 'paid';
 
 const WEEKDAYS = ['일', '월', '화', '수', '목', '금', '토'];
-const PAYMENT_METHOD_COLORS = ['#2D7FF9', '#00A896', '#FB8C00', '#E85D75', '#7E57C2', '#4C6EF5', '#8E8E93'] as const;
-const PAYMENT_METHOD_ORDER: PaymentMethod[] = ['현금', '현금+현금영수증', '카드', '네이버페이', '지역화폐', '지역화폐+현금영수증', '상품권'];
+const PAYMENT_METHOD_COLORS = ['#2D7FF9', '#00A896', '#FB8C00', '#E85D75', '#7E57C2', '#4C6EF5', '#8E8E93', '#34A853'] as const;
+const PAYMENT_METHOD_ORDER: PaymentMethod[] = ['현금', '현금+현금영수증', '카드', '네이버페이', '지역화폐', '지역화폐+현금영수증', '상품권', '적립금'];
 const REVENUE_CHART_WIDTH = 320;
 const REVENUE_CHART_HEIGHT = 160;
+
+function shiftDateKey(dateKey: string, days: number): string {
+    const date = new Date(`${dateKey}T00:00:00`);
+    date.setDate(date.getDate() + days);
+    return toDateKey(date.getFullYear(), date.getMonth(), date.getDate());
+}
+
+function getDiffDays(fromDateKey: string, toDateKeyValue: string): number {
+    const from = new Date(`${fromDateKey}T00:00:00`);
+    const to = new Date(`${toDateKeyValue}T00:00:00`);
+    return Math.max(Math.round((to.getTime() - from.getTime()) / 86400000), 0);
+}
 
 function formatDateLabel(dateKey: string): string {
     const d = new Date(dateKey + 'T00:00:00');
@@ -61,6 +86,14 @@ function buildRevenueLinePath(values: number[], width: number, height: number): 
     if (values.length === 0) return {linePath: '', areaPath: ''};
 
     const max = Math.max(...values, 1);
+    if (values.length === 1) {
+        const y = height - (values[0] / max) * height;
+        return {
+            linePath: `M 0 ${y} L ${width} ${y}`,
+            areaPath: `M 0 ${y} L ${width} ${y} L ${width} ${height} L 0 ${height} Z`,
+        };
+    }
+
     const stepX = values.length > 1 ? width / (values.length - 1) : 0;
     const points = values.map((value, index) => {
         const x = values.length > 1 ? index * stepX : width / 2;
@@ -93,18 +126,21 @@ export const RevenueSection = ({
     customerMap,
     serviceColorMap,
     onSelectReservation,
+    onSelectCustomer,
     designerKey,
     setDesignerKey,
     startDateKey,
     setStartDateKey,
     endDateKey,
     setEndDateKey,
+    setDateRange,
     selectedDateKey,
     setSelectedDateKey,
     quickRange,
     setQuickRange,
 }: RevenueSectionProps) => {
     const [detailDateKey, setDetailDateKey] = useState<string | null>(null);
+    const [metricLayerKey, setMetricLayerKey] = useState<RevenueMetricKey | null>(null);
     const [revenueViewTab, setRevenueViewTab] = useState<RevenueViewTab>('all');
     const [hoveredRevenueDateKey, setHoveredRevenueDateKey] = useState<string | null>(null);
     const selectedDesignerId = designerKey === 'all' ? null : Number(designerKey);
@@ -191,11 +227,135 @@ export const RevenueSection = ({
         paymentChartItems.map((item) => item.total)
     );
     const hoveredRevenuePoint = chartPoints.find((item) => item.dateKey === hoveredRevenueDateKey) ?? null;
+    const metricReservations = useMemo(() => {
+        const items: Reservation[] = [];
+        const cursor = new Date(fromDateKey + 'T00:00:00');
+        const endCursor = new Date(toDateKeyValue + 'T00:00:00');
+
+        while (cursor <= endCursor) {
+            const dateKey = toDateKey(cursor.getFullYear(), cursor.getMonth(), cursor.getDate());
+            const reservations = (reservationMap[dateKey] ?? []).filter((reservation) => (
+                reservation.status !== 'cancelled'
+                && reservation.status !== 'noshow'
+                && (selectedDesignerId == null || reservation.designerId === selectedDesignerId)
+            ));
+            items.push(...reservations);
+            cursor.setDate(cursor.getDate() + 1);
+        }
+
+        return items.sort((a, b) => a.date.localeCompare(b.date) || a.startTime.localeCompare(b.startTime));
+    }, [fromDateKey, toDateKeyValue, reservationMap, selectedDesignerId]);
+    const firstVisitByCustomer = useMemo(() => {
+        const firstVisit = new Map<number, string>();
+
+        for (const [dateKey, reservations] of Object.entries(reservationMap)) {
+            for (const reservation of reservations) {
+                if (reservation.status === 'cancelled' || reservation.status === 'noshow') continue;
+                if (selectedDesignerId != null && reservation.designerId !== selectedDesignerId) continue;
+
+                const current = firstVisit.get(reservation.customerId);
+                if (!current || dateKey < current) {
+                    firstVisit.set(reservation.customerId, dateKey);
+                }
+            }
+        }
+
+        return firstVisit;
+    }, [reservationMap, selectedDesignerId]);
+    const newCustomerEntries = useMemo(() => {
+        const seen = new Set<number>();
+        return metricReservations.filter((reservation) => {
+            if (seen.has(reservation.customerId)) return false;
+            seen.add(reservation.customerId);
+            return firstVisitByCustomer.get(reservation.customerId) === reservation.date;
+        });
+    }, [metricReservations, firstVisitByCustomer]);
+    const returningCustomerEntries = useMemo(() => {
+        const seen = new Set<number>();
+        return metricReservations.filter((reservation) => {
+            if (seen.has(reservation.customerId)) return false;
+            seen.add(reservation.customerId);
+            const firstVisit = firstVisitByCustomer.get(reservation.customerId);
+            return !!firstVisit && firstVisit < reservation.date;
+        });
+    }, [metricReservations, firstVisitByCustomer]);
+    const newCustomerList = useMemo(
+        () => newCustomerEntries.map((reservation) => ({
+            customer: customerMap[reservation.customerId],
+            visitDate: reservation.date,
+        })).filter((item): item is {customer: NonNullable<typeof item.customer>; visitDate: string} => !!item.customer),
+        [customerMap, newCustomerEntries]
+    );
+    const returningCustomerList = useMemo(
+        () => returningCustomerEntries.map((reservation) => ({
+            customer: customerMap[reservation.customerId],
+            visitDate: reservation.date,
+        })).filter((item): item is {customer: NonNullable<typeof item.customer>; visitDate: string} => !!item.customer),
+        [customerMap, returningCustomerEntries]
+    );
+    const paidReservations = useMemo(
+        () => metricReservations.filter((reservation) => (
+            Array.isArray(reservation.paymentEntries) ? reservation.paymentEntries.length > 0 : reservation.paymentCompleted
+        )),
+        [metricReservations]
+    );
+    const metricLayer = useMemo(() => {
+        switch (metricLayerKey) {
+            case 'sales':
+                return {title: '총 매출 상세', summary: `${metricReservations.length}건 · ${formatPrice(rangeRevenue.total)}`, reservations: metricReservations, customers: []};
+            case 'count':
+                return {title: '예약 건수 상세', summary: `${metricReservations.length}건`, reservations: metricReservations, customers: []};
+            case 'new':
+                return {title: '신규 고객 상세', summary: `${newCustomerEntries.length}명`, reservations: newCustomerEntries, customers: newCustomerList};
+            case 'returning':
+                return {title: '재방문 고객 상세', summary: `${returningCustomerEntries.length}명`, reservations: returningCustomerEntries, customers: returningCustomerList};
+            case 'paid':
+                return {title: '결제완료 상세', summary: `${paidReservations.length}건 · ${formatPrice(revenueInsights.paidTotal)}`, reservations: paidReservations, customers: []};
+            default:
+                return null;
+        }
+    }, [metricLayerKey, metricReservations, newCustomerEntries, newCustomerList, paidReservations, rangeRevenue.total, returningCustomerEntries, returningCustomerList, revenueInsights.paidTotal]);
+    const modalRoot = typeof document !== 'undefined' ? document.getElementById('modal-root') : null;
+    const {layerId, layerDataId} = useLayerInstanceId('revenue-metric');
+    const metricDialogRef = useDialogAccessibility<HTMLDivElement>(() => setMetricLayerKey(null));
+    const rangeShiftDays = quickRange === 'today'
+        ? 1
+        : quickRange === 'week'
+            ? 7
+            : quickRange === 'month'
+                ? 30
+                : Math.max(getDiffDays(fromDateKey, toDateKeyValue), 1);
+
+    const handleMoveRange = (direction: 'prev' | 'next') => {
+        const today = toDateKey(new Date().getFullYear(), new Date().getMonth(), new Date().getDate());
+
+        if (quickRange === 'today') {
+            const nextDate = direction === 'prev'
+                ? shiftDateKey(toDateKeyValue, -1)
+                : shiftDateKey(toDateKeyValue, 1);
+            const clampedDate = nextDate > today ? today : nextDate;
+            setDateRange(clampedDate, clampedDate, clampedDate);
+            return;
+        }
+
+        if (direction === 'prev') {
+            const nextStart = shiftDateKey(fromDateKey, -rangeShiftDays);
+            const nextEnd = shiftDateKey(toDateKeyValue, -rangeShiftDays);
+            setDateRange(nextStart, nextEnd, nextEnd);
+            return;
+        }
+
+        const tentativeEnd = shiftDateKey(toDateKeyValue, rangeShiftDays);
+        const nextEnd = tentativeEnd > today ? today : tentativeEnd;
+        const nextStart = shiftDateKey(nextEnd, -getDiffDays(fromDateKey, toDateKeyValue));
+        setDateRange(nextStart, nextEnd, nextEnd);
+    };
 
     return (
         <>
             <StyledRevenueStickyArea>
                 <StyledRangeFilter>
+                    <StyledRangeNavButton type="button" onClick={() => handleMoveRange('prev')}>이전</StyledRangeNavButton>
                     <StyledRangeInputWrap>
                         <span>시작일</span>
                         <StyledDateInput type="date" value={startDateKey} onChange={(e) => setStartDateKey(e.target.value)} />
@@ -205,6 +365,7 @@ export const RevenueSection = ({
                         <span>종료일</span>
                         <StyledDateInput type="date" value={endDateKey} onChange={(e) => setEndDateKey(e.target.value)} />
                     </StyledRangeInputWrap>
+                    <StyledRangeNavButton type="button" onClick={() => handleMoveRange('next')}>다음</StyledRangeNavButton>
                 </StyledRangeFilter>
                 <StyledQuickFilters>
                     <StyledQuickFilterButton type="button" $active={quickRange === 'today'} onClick={() => setQuickRange('today')}>오늘</StyledQuickFilterButton>
@@ -235,19 +396,23 @@ export const RevenueSection = ({
                     <StyledKpiGrid>
                         <StyledKpiCard>
                             <span>총 매출</span>
-                            <strong>{formatPrice(rangeRevenue.total)}</strong>
+                            <strong onClick={() => setMetricLayerKey('sales')}>{formatPrice(rangeRevenue.total)}</strong>
                         </StyledKpiCard>
                         <StyledKpiCard>
                             <span>예약 건수</span>
-                            <strong>{rangeRevenue.count}건</strong>
+                            <strong onClick={() => setMetricLayerKey('count')}>{rangeRevenue.count}건</strong>
                         </StyledKpiCard>
                         <StyledKpiCard>
-                            <span>객단가</span>
-                            <strong>{formatPrice(revenueInsights.averagePrice)}</strong>
+                            <span>신규 고객 수</span>
+                            <strong onClick={() => setMetricLayerKey('new')}>{revenueInsights.newCustomerCount}명</strong>
+                        </StyledKpiCard>
+                        <StyledKpiCard>
+                            <span>재방문 고객 수</span>
+                            <strong onClick={() => setMetricLayerKey('returning')}>{revenueInsights.returningCustomerCount}명</strong>
                         </StyledKpiCard>
                         <StyledKpiCard>
                             <span>결제완료</span>
-                            <strong>{formatPrice(revenueInsights.paidTotal)}</strong>
+                            <strong onClick={() => setMetricLayerKey('paid')}>{formatPrice(revenueInsights.paidTotal)}</strong>
                         </StyledKpiCard>
                     </StyledKpiGrid>
                     <StyledChartGrid>
@@ -493,6 +658,96 @@ export const RevenueSection = ({
                     </StyledRevenueLayer>
                 </StyledLayerBackdrop>
             )}
+            {metricLayer && modalRoot && createPortal(
+                <StyledMetricOverlay onClick={() => setMetricLayerKey(null)}
+                                     role="dialog"
+                                     aria-modal="true"
+                                     aria-label={metricLayer.title}
+                                     id={layerId}
+                                     data-layer-id={layerDataId}>
+                    <StyledMetricModal ref={metricDialogRef} tabIndex={-1} onClick={(e) => e.stopPropagation()}>
+                        <StyledHeader>
+                            <div>
+                                <h3>{metricLayer.title}</h3>
+                                {(metricLayerKey === 'new' || metricLayerKey === 'returning') && (
+                                    <StyledMetricSubtitle>
+                                        {metricLayerKey === 'new' ? '기간 내 첫 방문 고객 목록' : '이전 방문 이력이 있는 고객 목록'}
+                                    </StyledMetricSubtitle>
+                                )}
+                            </div>
+                            <button type="button" onClick={() => setMetricLayerKey(null)} aria-label="닫기">닫기</button>
+                        </StyledHeader>
+                        <StyledMetricBody>
+                            {metricLayerKey === 'new' || metricLayerKey === 'returning' ? (
+                                metricLayer.customers.length === 0 ? (
+                                    <StyledRevenueEmpty>내역이 없습니다.</StyledRevenueEmpty>
+                                ) : (
+                                    <StyledList>
+                                        {metricLayer.customers.map((item) => (
+                                            <StyledClickableRow
+                                                key={`${metricLayerKey}-customer-${item.customer.id}`}
+                                                onClick={() => onSelectCustomer(item.customer.id)}
+                                            >
+                                                <StyledTime>{item.customer.name}</StyledTime>
+                                                <StyledRevenueRowBody>
+                                                    <StyledRevenueMetaList>
+                                                        <StyledRevenueMetaItem>
+                                                            <StyledCustomerInfoGrid>
+                                                                <span><strong>이름</strong>{item.customer.name}</span>
+                                                                <span><strong>연락처</strong>{item.customer.tel}</span>
+                                                                <span><strong>적립금</strong>{formatPrice(item.customer.points ?? 0)}</span>
+                                                                <span><strong>방문일</strong>{item.visitDate}</span>
+                                                            </StyledCustomerInfoGrid>
+                                                        </StyledRevenueMetaItem>
+                                                    </StyledRevenueMetaList>
+                                                </StyledRevenueRowBody>
+                                            </StyledClickableRow>
+                                        ))}
+                                    </StyledList>
+                                )
+                            ) : metricLayer.reservations.length === 0 ? (
+                                <StyledRevenueEmpty>내역이 없습니다.</StyledRevenueEmpty>
+                            ) : (
+                                <StyledList>
+                                    {metricLayer.reservations.map((reservation) => (
+                                        <StyledClickableRow
+                                            key={`${metricLayerKey}-${reservation.id}`}
+                                            onClick={() => onSelectReservation(reservation)}
+                                        >
+                                            <StyledTime>{reservation.date} {reservation.startTime}</StyledTime>
+                                            <StyledRevenueRowBody>
+                                                <StyledRevenueMetaList>
+                                                    <StyledRevenueMetaItem>
+                                                        <StyledRevenueMetaLabel>
+                                                            <StyledColorSwatch $color={designerMap[reservation.designerId ?? -1]?.color ?? '#D1D5DB'} />
+                                                            <span>{designerMap[reservation.designerId ?? -1]?.name ?? '미지정'}</span>
+                                                        </StyledRevenueMetaLabel>
+                                                        <span>{customerMap[reservation.customerId]?.name ?? '고객 미지정'}</span>
+                                                        <StyledRevenueServiceName>
+                                                            {parseServiceString(reservation.service).map((service) => (
+                                                                <StyledRevenueServiceChip key={`${metricLayerKey}-${reservation.id}-${service}`}>
+                                                                    <StyledColorDot $color={getServiceColor(service, serviceColorMap)} />
+                                                                    <strong>{service}</strong>
+                                                                </StyledRevenueServiceChip>
+                                                            ))}
+                                                        </StyledRevenueServiceName>
+                                                    </StyledRevenueMetaItem>
+                                                </StyledRevenueMetaList>
+                                            </StyledRevenueRowBody>
+                                            <StyledPrice>{formatPrice(reservation.price ?? 0)}</StyledPrice>
+                                        </StyledClickableRow>
+                                    ))}
+                                </StyledList>
+                            )}
+                        </StyledMetricBody>
+                        <StyledFooter>
+                            <span>{metricLayer.summary}</span>
+                            <StyledActionButton type="button" onClick={() => setMetricLayerKey(null)}>닫기</StyledActionButton>
+                        </StyledFooter>
+                    </StyledMetricModal>
+                </StyledMetricOverlay>,
+                modalRoot
+            )}
         </>
     );
 };
@@ -533,10 +788,14 @@ const StyledRevenueStickyArea = styled.div`
 
 const StyledRangeFilter = styled.div`
     display: grid;
-    grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+    grid-template-columns: auto minmax(0, 1fr) auto minmax(0, 1fr) auto;
     align-items: flex-end;
     gap: 8px;
     padding: 8px 0;
+
+    @media (max-width: 640px) {
+        grid-template-columns: 1fr 1fr;
+    }
 `;
 
 const StyledRangeInputWrap = styled.label`
@@ -561,6 +820,22 @@ const StyledRangeDivider = styled.span`
     padding-bottom: 6px;
     font-size: 12px;
     color: var(--dark-gray-color2);
+
+    @media (max-width: 640px) {
+        display: none;
+    }
+`;
+
+const StyledRangeNavButton = styled.button`
+    ${actionButtonStyle};
+    border: 1px solid var(--light-gray-color);
+    background: var(--white-color);
+    color: var(--dark-gray-color);
+    white-space: nowrap;
+
+    @media (max-width: 640px) {
+        order: 1;
+    }
 `;
 
 const StyledQuickFilters = styled.div`
@@ -650,6 +925,51 @@ const StyledKpiCard = styled.div`
     strong {
         font-size: 18px;
         color: var(--black-color);
+        cursor: pointer;
+    }
+`;
+
+const StyledMetricOverlay = styled(StyledOverlay)`
+    z-index: 180;
+`;
+
+const StyledMetricModal = styled(StyledDetail)`
+    width: min(100%, 720px);
+`;
+
+const StyledMetricBody = styled.div`
+    max-height: min(60vh, 560px);
+    overflow-y: auto;
+    padding: 16px;
+`;
+
+const StyledMetricSubtitle = styled.p`
+    margin: 4px 0 0;
+    font-size: 12px;
+    color: var(--dark-gray-color2);
+    font-weight: 500;
+`;
+
+const StyledCustomerInfoGrid = styled.div`
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px 12px;
+    width: 100%;
+
+    span {
+        display: flex;
+        gap: 6px;
+        font-size: 12px;
+        color: var(--dark-gray-color);
+    }
+
+    strong {
+        color: var(--dark-gray-color2);
+        font-weight: 600;
+    }
+
+    @media (max-width: 640px) {
+        grid-template-columns: 1fr;
     }
 `;
 

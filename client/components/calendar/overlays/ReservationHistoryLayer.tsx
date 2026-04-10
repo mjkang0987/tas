@@ -12,6 +12,7 @@ import {
     StyledDiffGrid,
     StyledHeader,
     StyledOverlay,
+    useDialogAccessibility,
     useLayerInstanceId,
 } from './ModalStyles';
 
@@ -33,6 +34,7 @@ export function ReservationHistoryLayer({
     onClose,
 }: ReservationHistoryLayerProps) {
     const {layerId, layerDataId} = useLayerInstanceId('reservation-history');
+    const dialogRef = useDialogAccessibility<HTMLDivElement>(onClose);
     if (!isOpen) return null;
 
     return (
@@ -44,7 +46,7 @@ export function ReservationHistoryLayer({
             id={layerId}
             data-layer-id={layerDataId}
         >
-            <StyledHistoryPanel onClick={(e) => e.stopPropagation()} $width={400}>
+            <StyledHistoryPanel ref={dialogRef} tabIndex={-1} onClick={(e) => e.stopPropagation()} $width={400}>
                 <StyledHeader>
                     <h3>변경 이력</h3>
                     <button type="button" onClick={onClose} aria-label="닫기">닫기</button>

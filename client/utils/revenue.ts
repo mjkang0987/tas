@@ -55,6 +55,8 @@ export interface RevenueInsights {
     payments: RevenuePaymentEntry[];
     paidTotal: number;
     averagePrice: number;
+    newCustomerCount: number;
+    returningCustomerCount: number;
 }
 
 function resolvePrice(service: string, price?: number): number {
@@ -150,9 +152,22 @@ export function getRevenueInsights(
     const series: RevenueSeriesEntry[] = [];
     const designerTotals = new Map<number | null, RevenueDesignerEntry>();
     const paymentTotals = new Map<PaymentMethod, number>();
+    const firstVisitByCustomer = new Map<number, string>();
+    const customerIdsInRange = new Set<number>();
     let total = 0;
     let count = 0;
     let paidTotal = 0;
+
+    for (const [dateKey, reservations] of Object.entries(reservationMap)) {
+        for (const reservation of reservations) {
+            if (!isRevenueTarget(reservation, designerId)) continue;
+
+            const existingDate = firstVisitByCustomer.get(reservation.customerId);
+            if (!existingDate || dateKey < existingDate) {
+                firstVisitByCustomer.set(reservation.customerId, dateKey);
+            }
+        }
+    }
 
     const cursor = new Date(from);
 
@@ -170,6 +185,7 @@ export function getRevenueInsights(
         for (const reservation of reservations) {
             const resolvedPrice = resolvePrice(reservation.service, reservation.price);
             const entryKey = reservation.designerId ?? null;
+            customerIdsInRange.add(reservation.customerId);
             const existingDesigner = designerTotals.get(entryKey);
 
             if (existingDesigner) {
@@ -194,6 +210,18 @@ export function getRevenueInsights(
         cursor.setDate(cursor.getDate() + 1);
     }
 
+    let newCustomerCount = 0;
+    let returningCustomerCount = 0;
+
+    for (const customerId of customerIdsInRange) {
+        const firstVisitDate = firstVisitByCustomer.get(customerId);
+        if (firstVisitDate && firstVisitDate >= startDateKey && firstVisitDate <= endDateKey) {
+            newCustomerCount += 1;
+        } else {
+            returningCustomerCount += 1;
+        }
+    }
+
     return {
         series,
         designers: [...designerTotals.values()].sort((a, b) => b.total - a.total),
@@ -202,6 +230,8 @@ export function getRevenueInsights(
             .sort((a, b) => b.total - a.total),
         paidTotal,
         averagePrice: count > 0 ? Math.round(total / count) : 0,
+        newCustomerCount,
+        returningCustomerCount,
     };
 }
 

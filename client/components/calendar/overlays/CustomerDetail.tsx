@@ -12,13 +12,14 @@ import {
     StyledOverlay,
     StyledDetail,
     StyledHeader,
+    useDialogAccessibility,
     useLayerInstanceId,
     scrollHintStyle,
     scrollContentStyle,
 } from './ModalStyles';
 
 import {getDesignerColor} from '../../../utils/designers';
-import {buildServiceColorMap, getServiceColor, parseServiceString} from '../../../utils/services';
+import {buildServiceColorMap, formatPrice, getServiceColor, parseServiceString} from '../../../utils/services';
 import {useCalendarStore} from '../../../store/calendarStore';
 
 const PAGE_SIZE = 5;
@@ -37,6 +38,7 @@ export const CustomerDetail = ({customer, reservationMap, onClose, onReservation
     const designers = useCalendarStore((s) => s.designers);
     const modalRoot = document.getElementById('modal-root');
     const {layerId, layerDataId} = useLayerInstanceId('customer-detail');
+    const dialogRef = useDialogAccessibility<HTMLDivElement>(onClose);
     const serviceColorMap = useMemo(
         () => buildServiceColorMap(serviceCatalog, categoryBaseColorMap),
         [serviceCatalog, categoryBaseColorMap]
@@ -82,7 +84,7 @@ export const CustomerDetail = ({customer, reservationMap, onClose, onReservation
                                                aria-label="고객 정보"
                                                id={layerId}
                                                data-layer-id={layerDataId}>
-        <StyledCustomerDetail onClick={(e) => e.stopPropagation()}>
+        <StyledCustomerDetail ref={dialogRef} tabIndex={-1} onClick={(e) => e.stopPropagation()}>
             <StyledHeader>
                 <h3>{customer.name}</h3>
                 <button type="button" onClick={onClose} aria-label="닫기">닫기</button>
@@ -91,6 +93,8 @@ export const CustomerDetail = ({customer, reservationMap, onClose, onReservation
                 <dl>
                     <dt>연락처</dt>
                     <dd>{customer.tel}</dd>
+                    <dt>적립금</dt>
+                    <dd>{formatPrice(customer.points ?? 0)}</dd>
                 </dl>
             </StyledInfo>
             <StyledReservationSection>

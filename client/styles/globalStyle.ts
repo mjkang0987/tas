@@ -148,6 +148,16 @@ export const GlobalStyle = createGlobalStyle`
             z-index: 140;
         }
     }
+    
+    [id*="revenue-metric-layer"] {
+        ~ [id*="reservation-detail-layer"] {
+            z-index: 190;
+        }
+        
+        ~ [id*="customer-detail-layer"] {
+            z-index: 190;
+        }
+    }
 
     @keyframes spin {
         0% {

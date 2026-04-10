@@ -19,6 +19,7 @@ import {
     StyledError,
     StyledFooter,
     StyledActionButton,
+    useDialogAccessibility,
     useLayerInstanceId,
 } from './ModalStyles';
 import {ReservationFormFields, type ReservationDetailFormState} from './ReservationDetailSections';
@@ -38,6 +39,7 @@ export const ReservationCreate = ({initial, customerMap, onClose, onSave}: Reser
     const addCustomer = useCalendarStore((s) => s.addCustomer);
     const modalRoot = document.getElementById('modal-root');
     const {layerId, layerDataId} = useLayerInstanceId('reservation-create');
+    const dialogRef = useDialogAccessibility<HTMLDivElement>(onClose);
     const {
         activeDesigners,
         onLeaveDesigners,
@@ -87,7 +89,7 @@ export const ReservationCreate = ({initial, customerMap, onClose, onSave}: Reser
                                              aria-label="예약 추가"
                                              id={layerId}
                                              data-layer-id={layerDataId}>
-        <StyledDetail onClick={(e) => e.stopPropagation()}>
+        <StyledDetail ref={dialogRef} tabIndex={-1} onClick={(e) => e.stopPropagation()}>
             <StyledHeader>
                 <h3>예약 추가</h3>
                 <button type="button" onClick={onClose} aria-label="닫기">닫기</button>

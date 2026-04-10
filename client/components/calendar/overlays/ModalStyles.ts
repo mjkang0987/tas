@@ -1,4 +1,4 @@
-import {useEffect, useState} from 'react';
+import {useEffect, useRef, useState} from 'react';
 
 import styled, {css} from 'styled-components';
 import {formControlStyle} from '../../ui/FormControls';
@@ -50,6 +50,69 @@ export function useLayerInstanceId(layerKey: string) {
         layerDataId: `${layerKey}-${instanceIndex}`,
         layerIndex: instanceIndex,
     };
+}
+
+const FOCUSABLE_SELECTOR = [
+    'button:not([disabled])',
+    'a[href]',
+    'input:not([disabled])',
+    'select:not([disabled])',
+    'textarea:not([disabled])',
+    '[tabindex]:not([tabindex="-1"])',
+].join(', ');
+
+export function useDialogAccessibility<T extends HTMLElement>(onClose: () => void) {
+    const dialogRef = useRef<T | null>(null);
+
+    useEffect(() => {
+        const dialog = dialogRef.current;
+        if (!dialog) return;
+
+        const focusable = Array.from(dialog.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR));
+        const initialTarget = focusable[0] ?? dialog;
+        initialTarget.focus();
+
+        const handleKeyDown = (event: KeyboardEvent) => {
+            if (event.key === 'Escape') {
+                event.preventDefault();
+                onClose();
+                return;
+            }
+
+            if (event.key !== 'Tab') return;
+
+            const currentFocusable = Array.from(dialog.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR));
+            if (currentFocusable.length === 0) {
+                event.preventDefault();
+                dialog.focus();
+                return;
+            }
+
+            const first = currentFocusable[0];
+            const last = currentFocusable[currentFocusable.length - 1];
+            const active = document.activeElement as HTMLElement | null;
+
+            if (event.shiftKey) {
+                if (active === first || !dialog.contains(active)) {
+                    event.preventDefault();
+                    last.focus();
+                }
+                return;
+            }
+
+            if (active === last) {
+                event.preventDefault();
+                first.focus();
+            }
+        };
+
+        dialog.addEventListener('keydown', handleKeyDown);
+        return () => {
+            dialog.removeEventListener('keydown', handleKeyDown);
+        };
+    }, [onClose]);
+
+    return dialogRef;
 }
 
 export const StyledOverlay = styled.div`

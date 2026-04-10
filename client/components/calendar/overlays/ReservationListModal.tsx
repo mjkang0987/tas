@@ -16,6 +16,7 @@ import {
     StyledHeader,
     StyledBody,
     StyledBodyInner,
+    useDialogAccessibility,
     useLayerInstanceId,
 } from './ModalStyles';
 
@@ -45,6 +46,8 @@ export const ReservationListModal = () => {
     const calendarDesignerId = useCalendarStore((s) => s.calendarDesignerId);
     const modalRoot = document.getElementById('modal-root');
     const {layerId, layerDataId} = useLayerInstanceId('reservation-list');
+    const handleClose = () => setReservationListFilter(null);
+    const dialogRef = useDialogAccessibility<HTMLDivElement>(handleClose);
     const serviceColorMap = useMemo(
         () => buildServiceColorMap(serviceCatalog, categoryBaseColorMap),
         [serviceCatalog, categoryBaseColorMap]
@@ -134,8 +137,6 @@ export const ReservationListModal = () => {
         return STATUS_LABELS[type] || '예약';
     };
 
-    const handleClose = () => setReservationListFilter(null);
-
     const handleClick = (r: Reservation) => {
         openReservationDetail(r);
     };
@@ -148,7 +149,7 @@ export const ReservationListModal = () => {
                                            aria-label="예약 목록"
                                            id={layerId}
                                            data-layer-id={layerDataId}>
-        <StyledListModal onClick={(e) => e.stopPropagation()}>
+        <StyledListModal ref={dialogRef} tabIndex={-1} onClick={(e) => e.stopPropagation()}>
             <StyledHeader>
                 <h3>{title} 예약 ({reservations.length})</h3>
                 <button type="button"
