@@ -8,7 +8,7 @@ import {useCalendarStore} from '../../../store/calendarStore';
 import type {PaymentEntry, PaymentMethod, Reservation, ReservationHistoryEntry, ReservationMap, ReservationStatus} from '../../../utils/reservations';
 import {findOverlap} from '../../../utils/reservations';
 import type {CustomerMap} from '../../../utils/customers';
-import {getDesignerColor, splitDesignersByStatus} from '../../../utils/designers';
+import {getDesignerAvailabilityError, getDesignerColor, splitDesignersByStatus} from '../../../utils/designers';
 import {
     parseServiceString,
     joinServiceNames,
@@ -23,6 +23,7 @@ import {
     OVERLAY_Z_INDEX,
     StyledOverlay,
     StyledDetail,
+    useDialogAccessibility,
     useLayerInstanceId,
 } from './ModalStyles';
 import {
@@ -37,7 +38,7 @@ import {
 import {ReservationDetailHeader} from './ReservationDetailHeader';
 import {ReservationDetailFooterActions} from './ReservationDetailFooterActions';
 import {ReservationDetailPaymentLayer} from './ReservationDetailPaymentLayer';
-import type {ReservationDetailMode} from './reservationDetailTypes';
+import type {PointAwardDraft, ReservationDetailMode} from './reservationDetailTypes';
 import {
     formatPaymentEntries,
     formatTimestamp,
@@ -45,9 +46,10 @@ import {
     getHistoryDiffs,
     getPaymentEntries,
     getPaymentEntryDrafts,
+    getPointAmount,
 } from './reservationDetailUtils';
 
-const PAYMENT_METHOD_OPTIONS: PaymentMethod[] = ['현금', '현금+현금영수증', '카드', '네이버페이', '지역화폐', '지역화폐+현금영수증', '상품권'];
+const PAYMENT_METHOD_OPTIONS: PaymentMethod[] = ['현금', '현금+현금영수증', '카드', '네이버페이', '지역화폐', '지역화폐+현금영수증', '상품권', '적립금'];
 
 const MODE_LABELS: Partial<Record<ReservationDetailMode, string>> = {
     editing: '예약 수정',
@@ -82,6 +84,8 @@ export const ReservationDetail = ({
                                   }: ReservationDetailProps) => {
     const customer = customerMap[reservation.customerId];
     const designers = useCalendarStore((s) => s.designers);
+    const updateCustomer = useCalendarStore((s) => s.updateCustomer);
+    const storeSettings = useCalendarStore((s) => s.storeSettings);
     const selectedCustomerId = useCalendarStore((s) => s.selectedCustomerId);
     const serviceCatalog = useCalendarStore((s) => s.serviceCatalog);
     const categoryBaseColorMap = useCalendarStore((s) => s.categoryBaseColorMap);
@@ -98,6 +102,7 @@ export const ReservationDetail = ({
     const serviceColorMap = buildServiceColorMap(serviceCatalog, categoryBaseColorMap);
     const modalRoot = document.getElementById('modal-root');
     const {layerId, layerDataId} = useLayerInstanceId('reservation-detail');
+    const getDefaultPointAwardAmount = (baseAmount: number) => Math.floor((baseAmount * storeSettings.pointSettings.serviceRate) / 100);
 
     const [mode, setMode] = useState<ReservationDetailMode>('view');
     const [isHistoryOpen, setIsHistoryOpen] = useState(false);
@@ -122,6 +127,11 @@ export const ReservationDetail = ({
     const [paymentEntries, setPaymentEntries] = useState<Array<{ method: PaymentMethod | ''; amount: string }>>(
         () => getPaymentEntryDrafts(reservation, displayPrice)
     );
+    const [isPointAwardManual, setIsPointAwardManual] = useState(false);
+    const [pointAward, setPointAward] = useState<PointAwardDraft>(() => ({
+        enabled: (reservation.pointEarned ?? 0) > 0 || storeSettings.pointSettings.enableServiceRate,
+        amount: String(reservation.pointEarned ?? getDefaultPointAwardAmount(displayPrice)),
+    }));
 
     const changedFields = getChangedFields(reservation, form, designerNameMap);
     const thisHistory = history.filter((h) => h.reservationId === reservation.id);
@@ -134,6 +144,7 @@ export const ReservationDetail = ({
     const normalizedPaymentEntries = getPaymentEntries(reservation);
     const paymentCompleted = normalizedPaymentEntries.length > 0 || reservation.paymentCompleted === true;
     const paymentLines = formatPaymentEntries(normalizedPaymentEntries);
+    const showPointAward = storeSettings.pointSettings.enableServiceRate;
 
     const handleChange = (field: keyof ReservationDetailFormState, value: string) => {
         setForm((prev) => ({...prev, [field]: value}));
@@ -201,6 +212,15 @@ export const ReservationDetail = ({
         if (!form.endTime) return '종료 시간을 입력해주세요.';
         if (form.startTime >= form.endTime) return '시작 시간은 종료 시간보다 앞서야 합니다.';
 
+        const availabilityError = getDesignerAvailabilityError(
+            designers,
+            form.designerId,
+            form.date,
+            form.startTime,
+            form.endTime
+        );
+        if (availabilityError) return availabilityError;
+
         const overlap = findOverlap(reservationMap, form.date, form.startTime, form.endTime, reservation.id);
 
         if (overlap) {
@@ -240,6 +260,27 @@ export const ReservationDetail = ({
         setMode('view');
     };
 
+    const syncPointAward = (entries: Array<{ method: PaymentMethod | ''; amount: string }>) => {
+        if (!storeSettings.pointSettings.enableServiceRate || isPointAwardManual) return;
+
+        const nonPointPaidAmount = entries.reduce((sum, entry) => {
+            if (!entry.method || entry.method === '적립금') return sum;
+            return sum + (Number(entry.amount.replace(/[^0-9]/g, '')) || 0);
+        }, 0);
+
+        setPointAward((prev) => ({
+            ...prev,
+            enabled: true,
+            amount: String(Math.floor((nonPointPaidAmount * storeSettings.pointSettings.serviceRate) / 100)),
+        }));
+    };
+
+    const handlePaymentEntriesChange = (nextEntries: Array<{ method: PaymentMethod | ''; amount: string }>) => {
+        setPaymentEntries(nextEntries);
+        syncPointAward(nextEntries);
+        setError('');
+    };
+
     const handlePaymentSave = () => {
         const normalizedEntries = paymentEntries
             .map((entry) => ({
@@ -253,12 +294,34 @@ export const ReservationDetail = ({
             return;
         }
 
+        const previousPointAmount = getPointAmount(getPaymentEntries(reservation));
+        const nextPointAmount = getPointAmount(normalizedEntries);
+        const pointUsageDiff = nextPointAmount - previousPointAmount;
+        const nextPointEarned = pointAward.enabled
+            ? Number(pointAward.amount.replace(/[^0-9]/g, '')) || 0
+            : 0;
+        const previousPointEarned = reservation.pointEarned ?? 0;
+        const pointEarnDiff = nextPointEarned - previousPointEarned;
+
+        if ((customer?.points ?? 0) - pointUsageDiff + pointEarnDiff < 0) {
+            setError('고객 적립금이 부족합니다.');
+            return;
+        }
+
         onUpdate(reservation, {
             ...reservation,
             paymentCompleted: true,
             paymentMethod: normalizedEntries[0].method,
             paymentEntries: normalizedEntries,
+            pointEarned: nextPointEarned,
         });
+
+        if (customer && (pointUsageDiff !== 0 || pointEarnDiff !== 0)) {
+            updateCustomer(customer.id, {
+                points: Math.max((customer.points ?? 0) - pointUsageDiff + pointEarnDiff, 0),
+            });
+        }
+
         setError('');
         setMode('view');
     };
@@ -278,6 +341,11 @@ export const ReservationDetail = ({
         setIsPriceManual(false);
         setIsHistoryOpen(false);
         setPaymentEntries(getPaymentEntryDrafts(reservation, displayPrice));
+        setIsPointAwardManual(false);
+        setPointAward({
+            enabled: (reservation.pointEarned ?? 0) > 0 || storeSettings.pointSettings.enableServiceRate,
+            amount: String(reservation.pointEarned ?? getDefaultPointAwardAmount(displayPrice)),
+        });
         setMode('view');
     };
 
@@ -301,6 +369,7 @@ export const ReservationDetail = ({
     const isInactive = isCancelled || isNoshow;
     const dialogLabel = MODE_LABELS[mode] ?? '예약 상세';
     const dialogTitle = MODE_LABELS[mode] ?? `${reservation.service} - ${customer?.name}`;
+    const dialogRef = useDialogAccessibility<HTMLDivElement>(handleBack);
 
     if (!modalRoot) return null;
 
@@ -311,7 +380,9 @@ export const ReservationDetail = ({
                                                   id={layerId}
                                                   data-layer-id={layerDataId}
                                                   $stacked={selectedCustomerId !== null}>
-        <StyledDetail onClick={(e) => e.stopPropagation()}
+        <StyledDetail ref={dialogRef}
+                      tabIndex={-1}
+                      onClick={(e) => e.stopPropagation()}
                       $width={400}>
             <ReservationDetailHeader
                 title={dialogTitle}
@@ -396,26 +467,44 @@ export const ReservationDetail = ({
             {mode === 'payment' && (
                 <ReservationDetailPaymentLayer
                     paymentEntries={paymentEntries}
+                    pointAward={pointAward}
+                    showPointAward={showPointAward}
                     error={error}
                     paymentMethodOptions={PAYMENT_METHOD_OPTIONS}
                     onChangeEntryMethod={(index, value) => {
-                        setPaymentEntries((prev) => prev.map((item, itemIndex) => (
+                        handlePaymentEntriesChange(paymentEntries.map((item, itemIndex) => (
                             itemIndex === index ? {...item, method: value} : item
                         )));
-                        setError('');
                     }}
                     onChangeEntryAmount={(index, value) => {
                         const normalizedValue = value.replace(/[^0-9]/g, '');
-                        setPaymentEntries((prev) => prev.map((item, itemIndex) => (
+                        handlePaymentEntriesChange(paymentEntries.map((item, itemIndex) => (
                             itemIndex === index ? {...item, amount: normalizedValue} : item
                         )));
+                    }}
+                    onTogglePointAward={(enabled) => {
+                        setPointAward((prev) => ({
+                            ...prev,
+                            enabled,
+                        }));
+                        setError('');
+                    }}
+                    onChangePointAwardAmount={(value) => {
+                        setIsPointAwardManual(true);
+                        setPointAward((prev) => ({
+                            ...prev,
+                            amount: value.replace(/[^0-9]/g, ''),
+                        }));
                         setError('');
                     }}
                     onRemoveEntry={(index) => {
-                        setPaymentEntries((prev) => prev.length > 1 ? prev.filter((_, itemIndex) => itemIndex !== index) : [{method: '', amount: ''}]);
-                        setError('');
+                        handlePaymentEntriesChange(
+                            paymentEntries.length > 1
+                                ? paymentEntries.filter((_, itemIndex) => itemIndex !== index)
+                                : [{method: '', amount: ''}]
+                        );
                     }}
-                    onAddEntry={() => setPaymentEntries((prev) => [...prev, {method: '', amount: ''}])}
+                    onAddEntry={() => handlePaymentEntriesChange([...paymentEntries, {method: '', amount: ''}])}
                 />
             )}
 
@@ -442,6 +531,11 @@ export const ReservationDetail = ({
                         onOpenNoshow={() => setMode('noshow')}
                         onOpenPayment={() => {
                             setPaymentEntries(getPaymentEntryDrafts(reservation, displayPrice));
+                            setIsPointAwardManual(false);
+                            setPointAward({
+                                enabled: (reservation.pointEarned ?? 0) > 0 || storeSettings.pointSettings.enableServiceRate,
+                                amount: String(reservation.pointEarned ?? getDefaultPointAwardAmount(displayPrice)),
+                            });
                             setError('');
                             setMode('payment');
                         }}

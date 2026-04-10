@@ -3,6 +3,7 @@ import React, {useEffect, useMemo, useRef, useState} from 'react';
 import styled from 'styled-components';
 
 import {useCalendarStore} from '../../../store/calendarStore';
+import {DesignerOffDayMoveConfirmModal} from '../overlays/DesignerOffDayMoveConfirmModal';
 import {ReservationMoveConfirmModal} from '../overlays/ReservationMoveConfirmModal';
 
 import {
@@ -20,7 +21,8 @@ import {
     buildCreateReservationFromPointer,
 } from './timelineInteractions';
 import {TimelineDragGhost, TimelineReservationCard} from './TimelineReservationCard';
-import {buildTimelineEntries, type TimelineEntry} from './timelineEntries';
+import type {PendingMove} from './timelineDrag';
+import {buildTimelineEntries} from './timelineEntries';
 import {useTimelineDrag} from './useTimelineDrag';
 
 export const Timeline = ({
@@ -79,6 +81,7 @@ export const Timeline = ({
     const full = (end - start) * 80;
     const timelineRef = useRef<HTMLDivElement | null>(null);
     const [openClusterId, setOpenClusterId] = useState<string | null>(null);
+    const [confirmedOffDayMove, setConfirmedOffDayMove] = useState<PendingMove | null>(null);
     const {
         dragPreview,
         pendingMove,
@@ -96,12 +99,17 @@ export const Timeline = ({
         blockOffset,
         reservationMap,
         customerMap,
+        designers,
         onOpenReservationDetail: openReservationDetail,
     });
 
     useEffect(() => {
         setOpenClusterId(null);
     }, [dateKey, reservations.length]);
+
+    useEffect(() => {
+        setConfirmedOffDayMove(null);
+    }, [dateKey]);
 
     const setMousePositionHandler = (e: React.MouseEvent<HTMLDivElement>) => {
         if (openClusterId) {
@@ -220,14 +228,36 @@ export const Timeline = ({
                 serviceColorMap={serviceColorMap}
             />
         )}
-        {pendingMove && <ReservationMoveConfirmModal reservation={pendingMove.prev}
-                                                     nextReservation={pendingMove.next}
-                                                     customerName={pendingMove.customerName}
-                                                     onClose={() => setPendingMove(null)}
-                                                     onConfirm={() => {
-                                                         updateReservation(pendingMove.prev, pendingMove.next);
-                                                         setPendingMove(null);
-                                                     }} />}
+        {pendingMove?.warningMessage && (
+            <DesignerOffDayMoveConfirmModal
+                reservation={pendingMove.prev}
+                nextReservation={pendingMove.next}
+                customerName={pendingMove.customerName}
+                warningMessage={pendingMove.warningMessage}
+                onClose={() => setPendingMove(null)}
+                onConfirm={() => {
+                    setConfirmedOffDayMove(pendingMove);
+                    setPendingMove(null);
+                }}
+            />
+        )}
+        {(pendingMove && !pendingMove.warningMessage) || confirmedOffDayMove ? (
+            <ReservationMoveConfirmModal
+                reservation={(confirmedOffDayMove ?? pendingMove)!.prev}
+                nextReservation={(confirmedOffDayMove ?? pendingMove)!.next}
+                customerName={(confirmedOffDayMove ?? pendingMove)!.customerName}
+                onClose={() => {
+                    setPendingMove(null);
+                    setConfirmedOffDayMove(null);
+                }}
+                onConfirm={() => {
+                    const moveTarget = (confirmedOffDayMove ?? pendingMove)!;
+                    updateReservation(moveTarget.prev, moveTarget.next);
+                    setPendingMove(null);
+                    setConfirmedOffDayMove(null);
+                }}
+            />
+        ) : null}
     </StyledTimelineWrap>);
 };
 const StyledTimelineWrap = styled.div<{

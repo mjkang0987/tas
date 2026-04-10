@@ -3,6 +3,8 @@ import {useEffect, useRef, useState} from 'react';
 import {TIMELINE_DAY_TOP, TIMELINE_TOP, ViewType} from '../../../utils/constants';
 import {findOverlap, type Reservation, type ReservationMap} from '../../../utils/reservations';
 import type {CustomerMap} from '../../../utils/customers';
+import type {Designer} from '../../../utils/designers';
+import {getDesignerAvailabilityState} from '../../../utils/designers';
 import {calcEndTime} from '../../../utils/services';
 import {pad} from '../../../utils/timeRound';
 import type {DragPreview, DragState, PendingMove} from './timelineDrag';
@@ -17,6 +19,7 @@ type UseTimelineDragParams = {
     blockOffset: number;
     reservationMap: ReservationMap;
     customerMap: CustomerMap;
+    designers: Designer[];
     onOpenReservationDetail: (reservation: Reservation) => void;
 };
 
@@ -54,6 +57,7 @@ export function useTimelineDrag({
     blockOffset,
     reservationMap,
     customerMap,
+    designers,
     onOpenReservationDetail,
 }: UseTimelineDragParams) {
     const dragStateRef = useRef<DragState | null>(null);
@@ -155,6 +159,20 @@ export function useTimelineDrag({
             preview.startTime !== dragState.reservation.startTime ||
             preview.endTime !== dragState.reservation.endTime
         ) {
+            const availability = getDesignerAvailabilityState(
+                designers,
+                dragState.reservation.designerId,
+                preview.date,
+                preview.startTime,
+                preview.endTime
+            );
+
+            if (availability.kind === 'outside-hours') {
+                window.alert(availability.message);
+                setDragPreview(null);
+                return;
+            }
+
             const overlap = findOverlap(
                 reservationMapRef.current,
                 preview.date,
@@ -173,6 +191,7 @@ export function useTimelineDrag({
                         endTime: preview.endTime,
                     },
                     customerName: customerMap[dragState.reservation.customerId]?.name,
+                    warningMessage: availability.kind === 'off-day' ? availability.message : undefined,
                 });
             }
         }

@@ -24,6 +24,7 @@ export interface PendingMove {
     prev: Reservation;
     next: Reservation;
     customerName?: string;
+    warningMessage?: string;
 }
 
 export function buildInitialDragPreview(reservation: Reservation, blockTop: number, blockHeight: number): DragPreview {

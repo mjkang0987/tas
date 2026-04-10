@@ -5,7 +5,7 @@ import type {Reservation} from '../../../utils/reservations';
 import {findOverlap} from '../../../utils/reservations';
 import type {Customer, CustomerMap} from '../../../utils/customers';
 import type {Designer} from '../../../utils/designers';
-import {splitDesignersByStatus} from '../../../utils/designers';
+import {getDesignerAvailabilityError, splitDesignersByStatus} from '../../../utils/designers';
 import {calcEndTime, joinServiceNames, sumDurationMinutes, sumPrice} from '../../../utils/services';
 import type {ReservationDetailFormState} from './ReservationDetailSections';
 
@@ -154,6 +154,15 @@ export function useReservationCreateForm({
         if (!form.endTime) return '종료 시간을 입력해주세요.';
         if (form.startTime >= form.endTime) return '시작 시간은 종료 시간보다 앞서야 합니다.';
 
+        const availabilityError = getDesignerAvailabilityError(
+            designers,
+            designerId,
+            form.date,
+            form.startTime,
+            form.endTime
+        );
+        if (availabilityError) return availabilityError;
+
         const overlap = findOverlap(reservationMap, form.date, form.startTime, form.endTime);
         if (overlap) {
             const name = customerMap[overlap.customerId]?.name ?? '-';
@@ -177,6 +186,7 @@ export function useReservationCreateForm({
                 id: Date.now(),
                 name: newCustomerName.trim(),
                 tel: newCustomerTel.trim(),
+                points: 0,
             };
 
             addCustomer(nextCustomer);
