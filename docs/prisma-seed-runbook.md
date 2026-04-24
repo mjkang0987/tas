@@ -80,7 +80,7 @@ pnpm prisma:migrate:deploy
 - reservation count matches `reservations.json`
 - reservation history count matches source history length
 - customer point history count matches source data
-- one paid reservation includes imported payment entries
+- at least one paid reservation includes imported payment entries
 
 ## First Production Run Notes
 
