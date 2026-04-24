@@ -25,13 +25,13 @@ Risks:
 
 ### 2. Auth is not enforcing access
 
-`client/auth.ts` currently allows all requests in `authorized()`.
+The app now requires authentication for app routes by default, but authorization is still incomplete.
 
 Risks:
 
-- unauthenticated access
-- no role separation
+- role-less access after login
 - no store boundary enforcement
+- no membership-backed user resolution yet
 
 ### 3. Business rules rely too much on client state
 
@@ -89,7 +89,7 @@ Before service launch:
 
 ### Phase 4. Auth and authorization
 
-1. Restrict access to authenticated users
+1. Keep unauthenticated users behind `/login`
 2. Add `owner / manager / staff` roles
 3. Scope all data access by `storeId`
 4. Add protected middleware / route guards
