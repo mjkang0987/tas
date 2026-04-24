@@ -46,6 +46,12 @@ pnpm prisma:verify-seed
 
 If migrations are introduced before first deploy, replace `prisma db push` with the migration command used by the project.
 
+Production deploys should use:
+
+```bash
+pnpm prisma:migrate:deploy
+```
+
 ## Expected Seed Behavior
 
 - Creates the default store with business hours, closed dates, and point settings.
