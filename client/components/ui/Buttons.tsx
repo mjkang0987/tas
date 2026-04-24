@@ -6,6 +6,7 @@ interface Props {
     onClick?: (event: React.MouseEvent<HTMLButtonElement>) => void;
     onMouseDown?: (event: React.MouseEvent<HTMLButtonElement>) => void;
     onTouchStart?: (event: React.TouchEvent<HTMLButtonElement>) => void;
+    onTouchEnd?: (event: React.TouchEvent<HTMLButtonElement>) => void;
     style?: React.CSSProperties;
     key?: number | undefined;
     $position?: string | undefined;
@@ -71,6 +72,9 @@ const StyledReserveButton = styled.button <Props>`
     opacity: ${props => props.$cancelled ? 0.5 : 1};
     transition: max-height 0.2s ease, box-shadow 0.2s ease;
     text-align: left;
+    @media (max-width: 640px) {
+        padding: 10px 2px;
+    }
 
     .highlight {
         display: block;
@@ -87,14 +91,15 @@ const StyledReserveButton = styled.button <Props>`
     .sub {
         display: block;
         font-size: var(--tiny-font);
-        opacity: 0.9;
     }
 
     .detail {
         display: block;
         margin-top: 2px;
         font-size: var(--tiny-font);
-        opacity: 0.9;
+        @media (max-width: 640px) {
+            display: none;
+        }
     }
 
     .dot {
@@ -109,7 +114,10 @@ const StyledReserveButton = styled.button <Props>`
     .service-token {
         display: inline-flex;
         align-items: center;
-        margin-right: 6px;
+        @media (max-width: 640px) {
+            flex-wrap: wrap;
+            gap: 4px;
+        }
     }
 
     .drag-handle {
@@ -130,6 +138,12 @@ const StyledReserveButton = styled.button <Props>`
         cursor: grab;
         z-index: 2;
         transform: translateY(-50%);
+        @media (max-width: 640px) {
+            top: 5px;
+            right: 0;
+            left: 50%;
+            transform: translate(-50%, 0);
+        }
 
         &::before {
             content: '';

@@ -39,7 +39,7 @@ export const Header = () => {
                 <StyledDesignerFilter value={calendarDesignerId ?? ''}
                                       onChange={(e) => setCalendarDesignerId(e.target.value ? Number(e.target.value) : null)}
                                       aria-label="달력 디자이너 필터">
-                    <option value="">전체 디자이너</option>
+                    <option value="">필터</option>
                     <option value="0" data-bg-color="#8E8E93">미지정</option>
                     {activeDesigners.map((designer) => (
                         <option key={designer.id}
@@ -92,6 +92,11 @@ const StyledHeader = styled.header`
     background-color: var(--white-color);
     border-bottom: solid 1px var(--light-gray-color);
     flex-shrink: 0;
+    @media (max-width: 640px) {
+        justify-content: space-between;
+        gap: 4px;
+        padding: 0 4px;
+    }
 `;
 
 const StyledButton = styled.button`
@@ -124,6 +129,9 @@ const StyledDesignerFilter = styled.select`
     padding: 0 10px;
     ${formControlStyle};
     cursor: pointer;
+    @media (max-width: 640px) {
+        padding: 0 4px;
+    }
 
     option {
         gap: 2px;

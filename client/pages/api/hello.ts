@@ -1,15 +1,14 @@
-// Next.js API route support: https://nextjs.org/docs/api-routes/introduction
 import type {NextApiRequest, NextApiResponse} from 'next';
+
 import reservations from './reservations.json';
 
-type ReservationType = {
-    reservations: any
-}
+type ReservationResponse = typeof reservations;
 
-export default (
+const handler = (
     req: NextApiRequest,
-    res: NextApiResponse<ReservationType>
+    res: NextApiResponse<ReservationResponse>
 ) => {
-
     res.status(200).json(reservations);
-}
+};
+
+export default handler;

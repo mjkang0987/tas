@@ -11,8 +11,6 @@ import {
     ViewType
 } from '../../utils/constants';
 
-import {InputWrap} from '../ui/Input';
-
 interface Props {
     $isVisible: boolean;
     $isTransitionEnd: boolean;
@@ -39,7 +37,7 @@ export const Aside = () => {
     };
 
     const setAsPath = (path: string) => {
-        let result: (string | number)[] = [path, currValue.fullYear];
+        const result: (string | number)[] = [path, currValue.fullYear];
 
         if (path !== ViewType.Year) {
             result.push(Number(currValue.month + 1));

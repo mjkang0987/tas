@@ -8,8 +8,6 @@ import {useRouter} from 'next/router';
 import styled from 'styled-components';
 
 import {useCalendarStore} from '../../store/calendarStore';
-import type {CreateReservationInitial} from '../../store/calendarStore';
-
 import {useIsomorphicEffect} from '../../hooks/useIsomorphicEffect';
 
 import {useRouteChangeSync} from '../../hooks/useRouteChangeSync';
@@ -181,7 +179,7 @@ export default function LayoutComponent({children}: NodeType) {
     );
 }
 
-const StyledWrapper = styled.div<{ onClick?: Function }>`
+const StyledWrapper = styled.div`
   display: flex;
   flex-direction: column;
   height: 100%;
