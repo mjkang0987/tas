@@ -39,7 +39,7 @@ From `client/`:
 
 ```bash
 pnpm prisma:generate
-pnpm prisma db push
+pnpm prisma:db:push
 pnpm prisma:seed
 pnpm prisma:verify-seed
 ```
