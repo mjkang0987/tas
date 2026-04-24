@@ -41,6 +41,7 @@ From `client/`:
 pnpm prisma:generate
 pnpm prisma db push
 pnpm prisma:seed
+pnpm prisma:verify-seed
 ```
 
 If migrations are introduced before first deploy, replace `prisma db push` with the migration command used by the project.
