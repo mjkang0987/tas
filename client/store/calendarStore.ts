@@ -1,7 +1,10 @@
 import {create} from 'zustand';
 
 import type {Reservation, ReservationMap, ReservationHistoryEntry, ReservationStatus} from '../utils/reservations';
+import {hasCompletedPayment} from '../utils/reservations';
 import type {Customer, CustomerMap} from '../utils/customers';
+import type {PointHistoryEntry} from '../utils/customers';
+import {appendPointHistories, syncCustomerFirstVisitDates} from '../utils/customers';
 import type {ServiceItem} from '../utils/services';
 import {CATEGORY_BASE_COLOR_MAP, SERVICE_CATALOG} from '../utils/services';
 import type {DaySchedule, Designer, DesignerStatus} from '../utils/designers';
@@ -112,7 +115,11 @@ export interface CalendarState {
     setReservationMap: (map: ReservationMap) => void;
     setCustomerMap: (map: CustomerMap) => void;
     addCustomer: (customer: Customer) => void;
-    updateCustomer: (customerId: number, patch: Partial<Customer>) => void;
+    updateCustomer: (
+        customerId: number,
+        patch: Partial<Customer>,
+        pointHistory?: Array<Omit<PointHistoryEntry, 'id' | 'balance' | 'createdAt'>> | Omit<PointHistoryEntry, 'id' | 'balance' | 'createdAt'>
+    ) => void;
     setSelectedReservation: (v: Reservation | null) => void;
     setSelectedReservations: (v: Reservation[]) => void;
     openReservationDetail: (reservation: Reservation) => void;
@@ -241,9 +248,23 @@ export const useCalendarStore = create<CalendarState>((set) => ({
             router: typeof v === 'function' ? v(state.router) : v
         })),
 
-    setReservationMap: (reservationMap) => set({reservationMap}),
+    setReservationMap: (reservationMap) =>
+        set((state) => {
+            const nextCustomerMap = syncCustomerFirstVisitDates(state.customerMap, reservationMap);
+            if (Object.keys(nextCustomerMap).length > 0) {
+                syncCustomerSettings(Object.values(nextCustomerMap));
+            }
+            return {reservationMap, customerMap: nextCustomerMap};
+        }),
 
-    setCustomerMap: (customerMap) => set({customerMap}),
+    setCustomerMap: (customerMap) =>
+        set((state) => {
+            const nextCustomerMap = syncCustomerFirstVisitDates(customerMap, state.reservationMap);
+            if (Object.keys(nextCustomerMap).length > 0) {
+                syncCustomerSettings(Object.values(nextCustomerMap));
+            }
+            return {customerMap: nextCustomerMap};
+        }),
 
     addCustomer: (customer) =>
         set((state) => {
@@ -251,26 +272,40 @@ export const useCalendarStore = create<CalendarState>((set) => ({
                 ...state.customerMap,
                 [customer.id]: customer
             };
-
-            syncCustomerSettings(Object.values(nextCustomerMap));
-            return {customerMap: nextCustomerMap};
+            const normalizedCustomerMap = syncCustomerFirstVisitDates(nextCustomerMap, state.reservationMap);
+            if (Object.keys(normalizedCustomerMap).length > 0) {
+                syncCustomerSettings(Object.values(normalizedCustomerMap));
+            }
+            return {customerMap: normalizedCustomerMap};
         }),
 
-    updateCustomer: (customerId, patch) =>
+    updateCustomer: (customerId, patch, pointHistory) =>
         set((state) => {
             const currentCustomer = state.customerMap[customerId];
             if (!currentCustomer) return state;
 
-            const nextCustomerMap = {
-                ...state.customerMap,
-                [customerId]: {
-                    ...currentCustomer,
-                    ...patch,
-                },
+            const pointHistories = Array.isArray(pointHistory)
+                ? pointHistory
+                : pointHistory
+                    ? [pointHistory]
+                    : [];
+            const customerWithHistory = pointHistories.length > 0
+                ? appendPointHistories(currentCustomer, pointHistories)
+                : currentCustomer;
+            const nextCustomer = {
+                ...customerWithHistory,
+                ...patch,
             };
 
-            syncCustomerSettings(Object.values(nextCustomerMap));
-            return {customerMap: nextCustomerMap};
+            const nextCustomerMap = {
+                ...state.customerMap,
+                [customerId]: nextCustomer,
+            };
+            const normalizedCustomerMap = syncCustomerFirstVisitDates(nextCustomerMap, state.reservationMap);
+            if (Object.keys(normalizedCustomerMap).length > 0) {
+                syncCustomerSettings(Object.values(normalizedCustomerMap));
+            }
+            return {customerMap: normalizedCustomerMap};
         }),
 
     setSelectedReservation: (selectedReservation) => set({selectedReservation}),
@@ -438,7 +473,11 @@ export const useCalendarStore = create<CalendarState>((set) => ({
     addReservation: (reservation) => {
         set((state) => {
             const nextMap = buildAddedReservationMap(state.reservationMap, reservation);
-            return {reservationMap: nextMap, createReservationInitial: null};
+            const nextCustomerMap = syncCustomerFirstVisitDates(state.customerMap, nextMap);
+            if (Object.keys(nextCustomerMap).length > 0) {
+                syncCustomerSettings(Object.values(nextCustomerMap));
+            }
+            return {reservationMap: nextMap, customerMap: nextCustomerMap, createReservationInitial: null};
         });
 
         fetch('/api/reservations', {
@@ -449,7 +488,18 @@ export const useCalendarStore = create<CalendarState>((set) => ({
     },
 
     updateReservation: (prev, updated) => {
-        set((state) => buildUpdatedReservationState(state, prev, updated));
+        if (updated.status === 'completed' && !hasCompletedPayment(updated)) {
+            return;
+        }
+
+        set((state) => {
+            const nextState = buildUpdatedReservationState(state, prev, updated);
+            const nextCustomerMap = syncCustomerFirstVisitDates(state.customerMap, nextState.reservationMap);
+            if (Object.keys(nextCustomerMap).length > 0) {
+                syncCustomerSettings(Object.values(nextCustomerMap));
+            }
+            return {...nextState, customerMap: nextCustomerMap};
+        });
 
         fetch('/api/reservations', {
             method: 'PUT',
@@ -461,7 +511,14 @@ export const useCalendarStore = create<CalendarState>((set) => ({
     cancelReservation: (reservation, status = 'cancelled') => {
         const updated: Reservation = {...reservation, status};
 
-        set((state) => buildCancelledReservationState(state, reservation, updated));
+        set((state) => {
+            const nextState = buildCancelledReservationState(state, reservation, updated);
+            const nextCustomerMap = syncCustomerFirstVisitDates(state.customerMap, nextState.reservationMap);
+            if (Object.keys(nextCustomerMap).length > 0) {
+                syncCustomerSettings(Object.values(nextCustomerMap));
+            }
+            return {...nextState, customerMap: nextCustomerMap};
+        });
 
         fetch('/api/reservations', {
             method: 'PATCH',
