@@ -42,6 +42,8 @@ export const {handlers, auth, signIn, signOut} = NextAuth({
             if (session.user) {
                 session.user.id = token.sub ?? '';
                 session.user.provider = (token.provider as string) ?? '';
+                session.user.role = token.role as 'owner' | 'manager' | 'staff' | undefined;
+                session.user.storeId = token.storeId as string | undefined;
             }
             return session;
         }
