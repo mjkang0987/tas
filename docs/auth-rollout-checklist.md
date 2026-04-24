@@ -5,15 +5,15 @@
 - app routes require authentication by default
 - `/login` remains public
 - `role` and `storeId` fields are available in session types
-- membership lookup is not connected yet
+- JWT/session callbacks now hydrate the first available membership
+- write API authorization is not connected yet
 
 ## Next Steps
 
-1. Resolve logged-in users to `User` + `Membership` records
-2. Persist `role` and `storeId` into JWT/session callbacks
-3. Restrict write APIs by role
-4. Scope all DB reads and writes by `storeId`
-5. Add unauthorized fallback screens where needed
+1. Restrict write APIs by role
+2. Scope all DB reads and writes by `storeId`
+3. Handle users with multiple memberships explicitly
+4. Add unauthorized fallback screens where needed
 
 ## Pre-Launch Checks
 
