@@ -9,6 +9,9 @@ client/pnpm-lock.yaml
 
 client/.next/
 *.tsbuildinfo
+.pnpm-store/
+client/prisma/dev.db
+client/prisma/dev.db-journal
 
 client/next-env.d.ts
 
