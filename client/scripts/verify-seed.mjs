@@ -19,6 +19,10 @@ function getSourceCount(source, key) {
     return Array.isArray(source[key]) ? source[key].length : 0;
 }
 
+function createCheck(label, actual, expected) {
+    return [label, actual, expected];
+}
+
 async function main() {
     const [customers, designers, services, reservations] = await Promise.all([
         readJson('pages/api/customers.json'),
@@ -67,12 +71,12 @@ async function main() {
     }
 
     const checks = [
-        ['customers', store._count.customers, getSourceCount(customers, 'customers')],
-        ['designers', store._count.designers, getSourceCount(designers, 'designers')],
-        ['services', store._count.services, getSourceCount(services, 'services')],
-        ['reservations', store._count.reservations, getSourceCount(reservations, 'reservations')],
-        ['reservation history', store._count.reservationEvents, getSourceCount(reservations, 'history')],
-        ['customer point history', store._count.pointHistories, getCustomerPointHistoryCount(customers)],
+        createCheck('customers', store._count.customers, getSourceCount(customers, 'customers')),
+        createCheck('designers', store._count.designers, getSourceCount(designers, 'designers')),
+        createCheck('services', store._count.services, getSourceCount(services, 'services')),
+        createCheck('reservations', store._count.reservations, getSourceCount(reservations, 'reservations')),
+        createCheck('reservation history', store._count.reservationEvents, getSourceCount(reservations, 'history')),
+        createCheck('customer point history', store._count.pointHistories, getCustomerPointHistoryCount(customers)),
     ];
 
     let hasMismatch = false;
