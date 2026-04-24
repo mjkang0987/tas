@@ -22,8 +22,14 @@ export const {handlers, auth, signIn, signOut} = NextAuth({
         signIn: '/login'
     },
     callbacks: {
-        authorized() {
-            return true;
+        authorized({auth, request}) {
+            const pathname = request.nextUrl.pathname;
+
+            if (pathname === '/login' || pathname.startsWith('/api/auth')) {
+                return true;
+            }
+
+            return !!auth;
         },
         jwt({token, account}) {
             if (account) {
