@@ -72,6 +72,8 @@ export function useTimelineDrag({
 
     const [dragPreview, setDragPreview] = useState<DragPreview | null>(null);
     const [pendingMove, setPendingMove] = useState<PendingMove | null>(null);
+    const [draggingReservation, setDraggingReservation] = useState<Reservation | null>(null);
+    const [suppressCreateClick, setSuppressCreateClick] = useState(false);
 
     useEffect(() => {
         reservationMapRef.current = reservationMap;
@@ -146,12 +148,15 @@ export function useTimelineDrag({
         if (!dragState.didDrag || !preview) {
             onOpenReservationDetailRef.current(dragState.reservation);
             setDragPreview(null);
+            setDraggingReservation(null);
             return;
         }
 
         suppressCreateClickRef.current = true;
+        setSuppressCreateClick(true);
         window.setTimeout(() => {
             suppressCreateClickRef.current = false;
+            setSuppressCreateClick(false);
         }, 0);
 
         if (
@@ -197,6 +202,7 @@ export function useTimelineDrag({
         }
 
         setDragPreview(null);
+        setDraggingReservation(null);
     };
 
     useEffect(() => {
@@ -248,6 +254,7 @@ export function useTimelineDrag({
 
         dragStateRef.current = nextDrag.dragState;
         dragPreviewRef.current = nextDrag.preview;
+        setDraggingReservation(reservation);
         setDragPreview(nextDrag.preview);
     };
 
@@ -267,6 +274,7 @@ export function useTimelineDrag({
 
         dragStateRef.current = nextDrag.dragState;
         dragPreviewRef.current = nextDrag.preview;
+        setDraggingReservation(reservation);
         setDragPreview(nextDrag.preview);
     };
 
@@ -274,8 +282,8 @@ export function useTimelineDrag({
         dragPreview,
         pendingMove,
         setPendingMove,
-        suppressCreateClickRef,
-        draggingReservation: dragStateRef.current?.reservation ?? null,
+        suppressCreateClick,
+        draggingReservation,
         startMouseDrag,
         startTouchDrag,
     };

@@ -4,6 +4,8 @@ import styled from 'styled-components';
 
 import {useCalendarStore} from '../../../store/calendarStore';
 
+import {NewCustomerBadge} from '../../ui/NewCustomerBadge';
+import {isNewCustomerVisit} from '../../../utils/customers';
 import {getDesignerColor} from '../../../utils/designers';
 import {buildServiceColorMap, getServiceColor, parseServiceString} from '../../../utils/services';
 import {StyledColorDot} from '../service/ServiceFields';
@@ -59,7 +61,10 @@ export const ReservationList = ({reservations, variant, onViewAll, hideViewAll}:
                                     </StyledServiceToken>
                                 ))}
                             </StyledServiceName>
-                            <StyledMeta>{customer?.name ?? ''}</StyledMeta>
+                            <StyledMeta>
+                                {isNewCustomerVisit(customer?.firstVisitDate, r.date) && <NewCustomerBadge>N</NewCustomerBadge>}
+                                <span>{customer?.name ?? ''}</span>
+                            </StyledMeta>
                         </StyledItem>
                     </li>
                 );
@@ -99,7 +104,7 @@ const StyledItem = styled.button<{ $color: string }>`
     align-items: center;
     gap: 6px;
     width: 100%;
-    padding: 4px 8px;
+    padding: 4px;
     border: 1px solid ${(p) => p.$color};
     border-left-width: 4px;
     border-radius: var(--radius-sm);
@@ -131,16 +136,18 @@ const StyledServiceToken = styled.span`
     align-items: center;
     gap: 4px;
     min-width: 0;
-
-    strong {
-        overflow: hidden;
-        text-overflow: ellipsis;
-        white-space: nowrap;
+    @media (max-width: 640px) {
+        flex-wrap: wrap;
     }
 `;
 
 const StyledMeta = styled.span`
-    opacity: 0.9;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    @media (max-width: 640px) {
+        flex-wrap: wrap;
+    }
 `;
 
 const StyledViewAllButton = styled.button<{ $variant: 'date' | 'month' }>`

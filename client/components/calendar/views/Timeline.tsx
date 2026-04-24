@@ -13,10 +13,12 @@ import {
 } from '../../../utils/constants';
 
 import {getDesignerColor} from '../../../utils/designers';
+import {isNewCustomerVisit} from '../../../utils/customers';
 import {buildServiceColorMap} from '../../../utils/services';
 
 import {toDateKey} from '../../../utils/reservations';
 import {TimelineCluster} from './TimelineCluster';
+import {TimelineClusterLayer, type TimelineClusterData} from './TimelineClusterLayer';
 import {
     buildCreateReservationFromPointer,
 } from './timelineInteractions';
@@ -80,13 +82,14 @@ export const Timeline = ({
     const top = ((hour - start) * 80) + (minutes * 4 / 3);
     const full = (end - start) * 80;
     const timelineRef = useRef<HTMLDivElement | null>(null);
-    const [openClusterId, setOpenClusterId] = useState<string | null>(null);
-    const [confirmedOffDayMove, setConfirmedOffDayMove] = useState<PendingMove | null>(null);
+    const [isTouchDevice, setIsTouchDevice] = useState(false);
+    const [openClusterState, setOpenClusterState] = useState<{ dateKey: string; cluster: TimelineClusterData } | null>(null);
+    const [confirmedOffDayMoveState, setConfirmedOffDayMoveState] = useState<{ dateKey: string; move: PendingMove } | null>(null);
     const {
         dragPreview,
         pendingMove,
         setPendingMove,
-        suppressCreateClickRef,
+        suppressCreateClick,
         draggingReservation,
         startMouseDrag,
         startTouchDrag,
@@ -103,42 +106,38 @@ export const Timeline = ({
         onOpenReservationDetail: openReservationDetail,
     });
 
-    useEffect(() => {
-        setOpenClusterId(null);
-    }, [dateKey, reservations.length]);
+    const openCluster = openClusterState?.dateKey === dateKey ? openClusterState.cluster : null;
+    const confirmedOffDayMove = confirmedOffDayMoveState?.dateKey === dateKey ? confirmedOffDayMoveState.move : null;
 
     useEffect(() => {
-        setConfirmedOffDayMove(null);
-    }, [dateKey]);
+        if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return;
 
-    const setMousePositionHandler = (e: React.MouseEvent<HTMLDivElement>) => {
-        if (openClusterId) {
-            setOpenClusterId(null);
+        const mediaQuery = window.matchMedia('(pointer: coarse)');
+        const update = () => setIsTouchDevice(mediaQuery.matches);
+        update();
+
+        if (typeof mediaQuery.addEventListener === 'function') {
+            mediaQuery.addEventListener('change', update);
+            return () => mediaQuery.removeEventListener('change', update);
+        }
+
+        mediaQuery.addListener(update);
+        return () => mediaQuery.removeListener(update);
+    }, []);
+
+    const setMousePositionHandler = (e: React.MouseEvent<HTMLElement>) => {
+        if (isTouchDevice) return;
+        const target = e.target as HTMLElement | null;
+        if (target?.closest('[data-timeline-interactive="true"]')) return;
+        if (!timelineRef.current) return;
+        if (openCluster) {
+            setOpenClusterState(null);
             return;
         }
-        if (suppressCreateClickRef.current) return;
+        if (suppressCreateClick) return;
         setCreateReservationInitial(buildCreateReservationFromPointer({
-            container: e.currentTarget,
+            container: timelineRef.current,
             clientY: e.clientY,
-            type,
-            start,
-            end,
-            fullYear,
-            month,
-            date,
-        }));
-    };
-
-    const setTouchPositionHandler = (e: React.TouchEvent<HTMLDivElement>) => {
-        if (openClusterId) {
-            setOpenClusterId(null);
-            return;
-        }
-        if (draggingReservation) return;
-        if (suppressCreateClickRef.current) return;
-        setCreateReservationInitial(buildCreateReservationFromPointer({
-            container: e.currentTarget,
-            clientY: e.changedTouches[0].clientY,
             type,
             start,
             end,
@@ -154,12 +153,17 @@ export const Timeline = ({
 
     return (<StyledTimelineWrap ref={timelineRef}
                                 data-timeline-date={dateKey}
-                                onClick={setMousePositionHandler}
-                                onTouchEnd={setTouchPositionHandler}
                                 $type={type}
                                 $timing={timing}
                                 $top={top}
                                 $full={full}>
+        {!isTouchDevice && (
+            <StyledTimelineBackground
+                type="button"
+                aria-label="예약 추가"
+                onClick={setMousePositionHandler}
+            />
+        )}
         {isToday && <StyledBar />}
         {timelineEntries.map((entry) => {
             if (entry.kind === 'cluster') {
@@ -172,16 +176,8 @@ export const Timeline = ({
                         cluster={cluster}
                         blockTop={blockTop}
                         blockHeight={blockHeight}
-                        isOpen={openClusterId === cluster.id}
                         designerColorMap={designerColorMap}
-                        serviceColorMap={serviceColorMap}
-                        customerMap={customerMap}
-                        designerNameById={designerNameById}
-                        onToggle={() => setOpenClusterId((prev) => prev === cluster.id ? null : cluster.id)}
-                        onReservationClick={(reservation) => {
-                            openReservationDetail(reservation);
-                            setOpenClusterId(null);
-                        }}
+                        onToggle={() => setOpenClusterState({dateKey, cluster})}
                     />
                 );
             }
@@ -209,10 +205,12 @@ export const Timeline = ({
                     blockTop={blockTop}
                     blockHeight={blockHeight}
                     customerName={customer?.name}
+                    isNewCustomer={isNewCustomerVisit(customer?.firstVisitDate, r.date)}
+                    customer={customer}
                     color={r.designerId ? (designerColorMap[r.designerId] ?? '#8E8E93') : '#8E8E93'}
                     serviceColorMap={serviceColorMap}
                     hideOriginalBlock={hideOriginalBlock}
-                    suppressClick={suppressCreateClickRef.current}
+                    suppressClick={suppressCreateClick}
                     onClick={() => openReservationDetail(r)}
                     onMouseDragStart={(e) => startMouseDrag(e, r, durationMinutes, blockTop, blockHeight)}
                     onTouchDragStart={(e) => startTouchDrag(e, r, durationMinutes, blockTop, blockHeight)}
@@ -224,8 +222,23 @@ export const Timeline = ({
                 reservation={draggingReservation}
                 preview={dragPreview}
                 customerName={draggingCustomer?.name}
+                isNewCustomer={isNewCustomerVisit(draggingCustomer?.firstVisitDate, draggingReservation.date)}
+                customer={draggingCustomer ?? undefined}
                 color={draggingReservation.designerId ? (designerColorMap[draggingReservation.designerId] ?? '#8E8E93') : '#8E8E93'}
                 serviceColorMap={serviceColorMap}
+            />
+        )}
+        {openCluster && (
+            <TimelineClusterLayer
+                cluster={openCluster}
+                designerColorMap={designerColorMap}
+                serviceColorMap={serviceColorMap}
+                customerMap={customerMap}
+                designerNameById={designerNameById}
+                onClose={() => setOpenClusterState(null)}
+                onReservationClick={(reservation) => {
+                    openReservationDetail(reservation);
+                }}
             />
         )}
         {pendingMove?.warningMessage && (
@@ -236,7 +249,7 @@ export const Timeline = ({
                 warningMessage={pendingMove.warningMessage}
                 onClose={() => setPendingMove(null)}
                 onConfirm={() => {
-                    setConfirmedOffDayMove(pendingMove);
+                    setConfirmedOffDayMoveState({dateKey, move: pendingMove});
                     setPendingMove(null);
                 }}
             />
@@ -248,20 +261,19 @@ export const Timeline = ({
                 customerName={(confirmedOffDayMove ?? pendingMove)!.customerName}
                 onClose={() => {
                     setPendingMove(null);
-                    setConfirmedOffDayMove(null);
+                    setConfirmedOffDayMoveState(null);
                 }}
                 onConfirm={() => {
                     const moveTarget = (confirmedOffDayMove ?? pendingMove)!;
                     updateReservation(moveTarget.prev, moveTarget.next);
                     setPendingMove(null);
-                    setConfirmedOffDayMove(null);
+                    setConfirmedOffDayMoveState(null);
                 }}
             />
         ) : null}
     </StyledTimelineWrap>);
 };
 const StyledTimelineWrap = styled.div<{
-    onClick: (e: React.MouseEvent<HTMLDivElement>) => void,
     $type: string,
     $timing: number,
     $top: number,
@@ -283,6 +295,17 @@ const StyledTimelineWrap = styled.div<{
         top: ${props => props.$type === ViewType.Day ? 50 : 20}px;
         animation: down ${props => props.$timing ? props.$timing : 10 * 3600}s linear;
     }
+`;
+
+const StyledTimelineBackground = styled.button`
+    position: absolute;
+    inset: 0;
+    border: 0;
+    background: transparent;
+    padding: 0;
+    margin: 0;
+    cursor: pointer;
+    z-index: 0;
 `;
 
 const StyledBar = styled.span`

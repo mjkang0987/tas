@@ -3,6 +3,8 @@ import React from 'react';
 import styled from 'styled-components';
 
 import {ButtonReserve} from '../../ui/Buttons';
+import {NewCustomerBadge} from '../../ui/NewCustomerBadge';
+import {getCustomerAlertItems, type Customer} from '../../../utils/customers';
 import type {Reservation} from '../../../utils/reservations';
 import {getServiceColor, parseServiceString} from '../../../utils/services';
 import type {DragPreview} from './timelineDrag';
@@ -13,6 +15,8 @@ type TimelineReservationCardProps = {
     blockTop: number;
     blockHeight: number;
     customerName?: string;
+    isNewCustomer?: boolean;
+    customer?: Customer;
     color: string;
     serviceColorMap: Record<string, string>;
     hideOriginalBlock: boolean;
@@ -28,6 +32,8 @@ export function TimelineReservationCard({
     blockTop,
     blockHeight,
     customerName,
+    isNewCustomer,
+    customer,
     color,
     serviceColorMap,
     hideOriginalBlock,
@@ -36,10 +42,12 @@ export function TimelineReservationCard({
     onMouseDragStart,
     onTouchDragStart,
 }: TimelineReservationCardProps) {
-    const isCancelled = reservation.status === 'cancelled' || reservation.status === 'noshow';
+    const isCancelled = reservation.status === 'cancelled' || reservation.status === 'noshow' || reservation.status === 'completed';
+    const customerAlerts = getCustomerAlertItems(customer);
 
     return (
         <ButtonReserve
+            data-timeline-interactive="true"
             style={hideOriginalBlock ? {visibility: 'hidden'} : undefined}
             $position="absolute"
             $top={preview?.top ?? blockTop}
@@ -54,6 +62,7 @@ export function TimelineReservationCard({
         >
             {!isCancelled && onMouseDragStart && onTouchDragStart && (
                 <span
+                    data-timeline-interactive="true"
                     className="drag-handle"
                     onMouseDown={onMouseDragStart}
                     onTouchStart={onTouchDragStart}
@@ -68,10 +77,22 @@ export function TimelineReservationCard({
                         {serviceName}
                     </span>
                 ))}
-                {reservation.status === 'cancelled' ? ' (취소)' : reservation.status === 'noshow' ? ' (노쇼)' : ''}
+                {reservation.status === 'cancelled' ? ' (취소)' : reservation.status === 'noshow' ? ' (노쇼)' : reservation.status === 'completed' ? ' (완료)' : ''}
             </strong>
             {preview && <span className="sub">{preview.date} {preview.startTime}~{preview.endTime}</span>}
-            {customerName && <span className="detail">{customerName}</span>}
+            {customerName && (
+                <span className="detail">
+                    {isNewCustomer && <NewCustomerBadge>N</NewCustomerBadge>}
+                    <span>{customerName}</span>
+                </span>
+            )}
+            {customerAlerts.length > 0 && (
+                <span className="alerts">
+                    {customerAlerts.map((alert) => (
+                        <span className={`alert-badge ${alert.tone}`} key={alert.key}>{alert.label}</span>
+                    ))}
+                </span>
+            )}
         </ButtonReserve>
     );
 }
@@ -80,6 +101,8 @@ type TimelineDragGhostProps = {
     reservation: Reservation;
     preview: DragPreview;
     customerName?: string;
+    isNewCustomer?: boolean;
+    customer?: Customer;
     color: string;
     serviceColorMap: Record<string, string>;
 };
@@ -88,10 +111,13 @@ export function TimelineDragGhost({
     reservation,
     preview,
     customerName,
+    isNewCustomer,
+    customer,
     color,
     serviceColorMap,
 }: TimelineDragGhostProps) {
-    const isCancelled = reservation.status === 'cancelled' || reservation.status === 'noshow';
+    const isCancelled = reservation.status === 'cancelled' || reservation.status === 'noshow' || reservation.status === 'completed';
+    const customerAlerts = getCustomerAlertItems(customer);
 
     return (
         <StyledDragGhost
@@ -110,10 +136,22 @@ export function TimelineDragGhost({
                         {serviceName}
                     </span>
                 ))}
-                {reservation.status === 'cancelled' ? ' (취소)' : reservation.status === 'noshow' ? ' (노쇼)' : ''}
+                {reservation.status === 'cancelled' ? ' (취소)' : reservation.status === 'noshow' ? ' (노쇼)' : reservation.status === 'completed' ? ' (완료)' : ''}
             </strong>
             <span className="sub">{preview.date} {preview.startTime}~{preview.endTime}</span>
-            {customerName && <span className="detail">{customerName}</span>}
+            {customerName && (
+                <span className="detail">
+                    {isNewCustomer && <NewCustomerBadge>N</NewCustomerBadge>}
+                    <span>{customerName}</span>
+                </span>
+            )}
+            {customerAlerts.length > 0 && (
+                <span className="alerts">
+                    {customerAlerts.map((alert) => (
+                        <span className={`alert-badge ${alert.tone}`} key={alert.key}>{alert.label}</span>
+                    ))}
+                </span>
+            )}
         </StyledDragGhost>
     );
 }
@@ -146,6 +184,9 @@ const StyledDragGhost = styled.div<{
     color: ${(props) => props.$cancelled ? 'var(--white-color)' : 'var(--dark-gray-color)'};
     opacity: 0.72;
     pointer-events: none;
+    @media (max-width: 640px) {
+        padding: 2px;
+    }
 
     strong {
         font-size: var(--small-font);
@@ -154,13 +195,57 @@ const StyledDragGhost = styled.div<{
 
     .sub {
         font-size: var(--tiny-font);
-        opacity: 0.9;
+        @media (max-width: 640px) {
+            display: none;
+        }
     }
 
     .detail {
         margin-top: 2px;
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
         font-size: var(--tiny-font);
         opacity: 0.9;
+        @media (max-width: 640px) {
+            display: none;
+        }
+    }
+
+    .alerts {
+        display: inline-flex;
+        flex-wrap: wrap;
+        gap: 4px;
+        margin-top: 2px;
+
+        @media (max-width: 640px) {
+            display: none;
+        }
+    }
+
+    .alert-badge {
+        display: inline-flex;
+        align-items: center;
+        min-height: 16px;
+        padding: 0 6px;
+        border-radius: 999px;
+        font-size: 10px;
+        font-weight: 700;
+    }
+
+    .alert-badge.danger {
+        background: #FDE8E6;
+        color: #B42318;
+    }
+
+    .alert-badge.warning {
+        background: #FFF7DB;
+        color: #9A6700;
+    }
+
+    .alert-badge.info {
+        background: #EFF6FF;
+        color: #1D4ED8;
     }
 
     .dot {
@@ -176,5 +261,9 @@ const StyledDragGhost = styled.div<{
         display: inline-flex;
         align-items: center;
         margin-right: 6px;
+        @media (max-width: 640px) {
+            flex-wrap: wrap;
+            gap: 4px;
+        }
     }
 `;

@@ -54,7 +54,7 @@ export function buildMouseDragState(
     blockTop: number,
     blockHeight: number
 ): { dragState: DragState; preview: ReturnType<typeof buildInitialDragPreview> } | null {
-    if (reservation.status === 'cancelled' || reservation.status === 'noshow') {
+    if (reservation.status === 'cancelled' || reservation.status === 'noshow' || reservation.status === 'completed') {
         return null;
     }
 
@@ -77,7 +77,7 @@ export function buildTouchDragState(
     blockTop: number,
     blockHeight: number
 ): { dragState: DragState; preview: ReturnType<typeof buildInitialDragPreview> } | null {
-    if (reservation.status === 'cancelled' || reservation.status === 'noshow') {
+    if (reservation.status === 'cancelled' || reservation.status === 'noshow' || reservation.status === 'completed') {
         return null;
     }
 

@@ -276,15 +276,15 @@ export const StyledPriceUnit = styled.span`
     color: var(--dark-gray-color);
 `;
 
-export const StyledStatusBadge = styled.span<{ $variant: 'danger' | 'warning' }>`
+export const StyledStatusBadge = styled.span<{ $variant: 'danger' | 'warning' | 'success' }>`
     display: inline-block;
     padding: 2px var(--gap-md);
-    background-color: ${(p) => p.$variant === 'danger' ? 'var(--danger-bg)' : 'var(--warning-bg)'};
-    border: 1px solid ${(p) => p.$variant === 'danger' ? 'var(--danger-border)' : 'var(--warning-border)'};
+    background-color: ${(p) => p.$variant === 'danger' ? 'var(--danger-bg)' : p.$variant === 'warning' ? 'var(--warning-bg)' : '#E6F4EA'};
+    border: 1px solid ${(p) => p.$variant === 'danger' ? 'var(--danger-border)' : p.$variant === 'warning' ? 'var(--warning-border)' : '#CDEAD6'};
     border-radius: var(--radius-sm);
     font-size: var(--small-font);
     font-weight: 600;
-    color: ${(p) => p.$variant === 'danger' ? 'var(--danger-color)' : 'var(--warning-color)'};
+    color: ${(p) => p.$variant === 'danger' ? 'var(--danger-color)' : p.$variant === 'warning' ? 'var(--warning-color)' : '#137333'};
 `;
 
 export const StyledModalMessage = styled.p<{ $color?: string }>`
