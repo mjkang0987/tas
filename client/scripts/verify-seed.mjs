@@ -35,6 +35,13 @@ async function main() {
         },
     });
 
+    const ownerMembershipCount = await prisma.membership.count({
+        where: {
+            storeId: DEFAULT_STORE_KEY,
+            role: 'owner',
+        },
+    });
+
     if (!store) {
         throw new Error('Default store not found. Run the seed first.');
     }
@@ -56,6 +63,12 @@ async function main() {
     }
 
     console.log(`[verify-seed] memberships: ${store._count.memberships}`);
+    console.log(`[verify-seed] owner memberships: ${ownerMembershipCount}`);
+
+    if (ownerMembershipCount < 1) {
+        hasMismatch = true;
+        console.log('[verify-seed] owner membership check failed');
+    }
 
     if (hasMismatch) {
         process.exitCode = 1;
