@@ -28,6 +28,9 @@ const getReservationState = (reservation: Reservation, today: string) => {
     if (reservation.status === 'noshow') {
         return {type: 'noshow', label: '노쇼'};
     }
+    if (reservation.status === 'completed') {
+        return {type: 'completed', label: '완료'};
+    }
     if (reservation.date < today) {
         return {type: 'completed', label: '완료'};
     }

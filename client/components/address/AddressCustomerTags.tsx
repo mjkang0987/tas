@@ -2,16 +2,12 @@ import React from 'react';
 
 import styled from 'styled-components';
 
+import type {CustomerMemoTag} from '../../utils/customers';
 import {formControlStyle} from '../ui/FormControls';
-
-export type AddressTag = {
-    text: string;
-    color: string;
-};
 
 type AddressCustomerTagsProps = {
     customerId: number;
-    customerTags: AddressTag[];
+    customerTags: CustomerMemoTag[];
     isEditing: boolean;
     tagColors: string[];
     tagInput: string;
@@ -116,9 +112,14 @@ export function AddressCustomerTags({
 
 const StyledMemoCell = styled.div`
     display: flex;
-    align-items: center;
+    align-items: flex-start;
     gap: 8px;
     padding: 10px 0 12px 12px;
+`;
+
+const StyledMemoText = styled.span<{ $isEmpty: boolean }>`
+    font-size: var(--small-font);
+    color: ${(props) => props.$isEmpty ? 'var(--dark-gray-color2)' : 'var(--black-color)'};
 `;
 
 const StyledMemoInput = styled.input`
@@ -126,11 +127,6 @@ const StyledMemoInput = styled.input`
     max-width: 200px;
     ${formControlStyle};
     padding: 0 8px;
-`;
-
-const StyledMemoText = styled.span<{ $isEmpty: boolean }>`
-    font-size: var(--small-font);
-    color: ${(props) => props.$isEmpty ? 'var(--dark-gray-color2)' : 'var(--black-color)'};
 `;
 
 const StyledTagEditor = styled.div`
@@ -149,7 +145,8 @@ const StyledTagInputRow = styled.div`
 const StyledTagList = styled.div`
     display: flex;
     flex-wrap: wrap;
-    gap: 4px;
+    gap: 6px;
+    flex: 1;
 `;
 
 const StyledTag = styled.span<{ $color: string }>`

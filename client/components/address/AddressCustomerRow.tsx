@@ -8,7 +8,7 @@ import {AddressCustomerRecharge} from './AddressCustomerRecharge';
 import {AddressCustomerReservations} from './AddressCustomerReservations';
 import {AddressCustomerSummary} from './AddressCustomerSummary';
 import {AddressCustomerTags} from './AddressCustomerTags';
-import type {AddressTag} from './AddressCustomerTags';
+import type {CustomerMemoTag} from '../../utils/customers';
 
 type CustomerStats = {
     recentService: string;
@@ -21,7 +21,7 @@ type CustomerStats = {
 type AddressCustomerRowProps = {
     customer: Customer;
     customerReservations: Reservation[];
-    customerTags: AddressTag[];
+    customerTags: CustomerMemoTag[];
     isEditing: boolean;
     stats?: CustomerStats;
     tagColors: string[];

@@ -12,7 +12,7 @@ import {buildServiceColorMap} from '../utils/services';
 import type {Reservation, ReservationMap, ReservationHistoryEntry} from '../utils/reservations';
 import {groupByDate, toDateKey} from '../utils/reservations';
 import type {Customer} from '../utils/customers';
-import {toCustomerMap} from '../utils/customers';
+import {syncCustomerFirstVisitDateList, toCustomerMap} from '../utils/customers';
 import type {CustomerMap} from '../utils/customers';
 
 import {ReservationDetail} from '../components/calendar/overlays/ReservationDetail';
@@ -270,11 +270,13 @@ export const getServerSideProps: GetServerSideProps<SettingsProps> = async () =>
     const path = await import('path');
     const raw = fs.readFileSync(path.join(process.cwd(), 'pages/api/reservations.json'), 'utf-8');
     const data = JSON.parse(raw);
+    const reservationMap = groupByDate(data.reservations);
+    const customers = customersData.customers as Customer[];
 
     return {
         props: {
             reservations: data.reservations,
-            customers: customersData.customers,
+            customers: syncCustomerFirstVisitDateList(customers, reservationMap),
             history: data.history ?? [],
         }
     };

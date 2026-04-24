@@ -7,7 +7,7 @@ import Head from 'next/head';
 import styled from 'styled-components';
 
 import type {Customer} from '../utils/customers';
-import {toCustomerMap} from '../utils/customers';
+import {syncCustomerFirstVisitDateList, toCustomerMap} from '../utils/customers';
 import type {Reservation, ReservationHistoryEntry} from '../utils/reservations';
 import {groupByDate} from '../utils/reservations';
 import {getDesignerColor} from '../utils/designers';
@@ -16,7 +16,6 @@ import {buildServiceColorMap} from '../utils/services';
 import {ReservationDetail} from '../components/calendar/overlays/ReservationDetail';
 import {CustomerDetail} from '../components/calendar/overlays/CustomerDetail';
 import {AddressContent} from '../components/address/AddressContent';
-import type {AddressTag} from '../components/address/AddressCustomerTags';
 
 import {useCalendarStore} from '../store/calendarStore';
 
@@ -46,11 +45,11 @@ const Address: NextPage<AddressProps> = ({customers, reservations, history}) => 
     const setSelectedCustomerId = useCalendarStore((s) => s.setSelectedCustomerId);
     const openReservationDetailFromCustomer = useCalendarStore((s) => s.openReservationDetailFromCustomer);
     const openCustomerDetail = useCalendarStore((s) => s.openCustomerDetail);
+    const updateCustomer = useCalendarStore((s) => s.updateCustomer);
     const designers = useCalendarStore((s) => s.designers);
     const serviceCatalog = useCalendarStore((s) => s.serviceCatalog);
     const categoryBaseColorMap = useCalendarStore((s) => s.categoryBaseColorMap);
 
-    const [tags, setTags] = useState<Record<number, AddressTag[]>>({});
     const [editingId, setEditingId] = useState<number | null>(null);
     const [tagInput, setTagInput] = useState('');
     const [selectedColor, setSelectedColor] = useState(TAG_COLORS[0]);
@@ -81,6 +80,10 @@ const Address: NextPage<AddressProps> = ({customers, reservations, history}) => 
     }, []);
 
     const customerMap = useMemo(() => toCustomerMap(customers), [customers]);
+    const customerList = useMemo(
+        () => customers.map((customer) => storeCustomerMap[customer.id] ?? customer),
+        [customers, storeCustomerMap]
+    );
     const reservationMap = useMemo(() => groupByDate(reservations), [reservations]);
     const serviceColorMap = useMemo(
         () => buildServiceColorMap(serviceCatalog, categoryBaseColorMap),
@@ -133,6 +136,7 @@ const Address: NextPage<AddressProps> = ({customers, reservations, history}) => 
             for (const r of rList) {
                 if (r.status === 'cancelled') cancelled++;
                 else if (r.status === 'noshow') noshow++;
+                else if (r.status === 'completed') completed++;
                 else if (r.date < today) completed++;
                 else booked++;
             }
@@ -154,17 +158,17 @@ const Address: NextPage<AddressProps> = ({customers, reservations, history}) => 
     }, [reservationsByCustomer, today]);
 
     const filteredCustomers = useMemo(() => {
-        if (!searchTerm.trim()) return customers;
+        if (!searchTerm.trim()) return customerList;
 
         const term = searchTerm.trim().toLowerCase();
         const telTerm = term.replace(/-/g, '');
 
-        return customers.filter((c) =>
+        return customerList.filter((c) =>
             c.name.toLowerCase().includes(term) ||
             c.tel.includes(telTerm) ||
-            (tags[c.id] || []).some((t) => t.text.toLowerCase().includes(term))
+            (c.memoTags ?? []).some((t) => t.text.toLowerCase().includes(term))
         );
-    }, [customers, searchTerm, tags]);
+    }, [customerList, searchTerm]);
 
     useEffect(() => {
         setCustomerMap(customerMap);
@@ -173,19 +177,24 @@ const Address: NextPage<AddressProps> = ({customers, reservations, history}) => 
     const addTag = (id: number) => {
         const value = tagInput.trim();
         if (!value) return;
+        const customer = storeCustomerMap[id];
+        if (!customer) return;
 
-        setTags((prev) => {
-            const existing = prev[id] || [];
-            if (existing.some((t) => t.text === value)) return prev;
-            return {...prev, [id]: [...existing, {text: value, color: selectedColor}]};
+        const existing = customer.memoTags ?? [];
+        if (existing.some((tag) => tag.text === value)) return;
+
+        updateCustomer(id, {
+            memoTags: [...existing, {text: value, color: selectedColor}],
         });
         setTagInput('');
     };
 
     const removeTag = (id: number, text: string) => {
-        setTags((prev) => {
-            const existing = prev[id] || [];
-            return {...prev, [id]: existing.filter((t) => t.text !== text)};
+        const customer = storeCustomerMap[id];
+        if (!customer) return;
+
+        updateCustomer(id, {
+            memoTags: (customer.memoTags ?? []).filter((tag) => tag.text !== text),
         });
     };
 
@@ -197,7 +206,6 @@ const Address: NextPage<AddressProps> = ({customers, reservations, history}) => 
             <AddressContent
                 filteredCustomers={filteredCustomers}
                 reservationsByCustomer={reservationsByCustomer}
-                tags={tags}
                 editingId={editingId}
                 tagColors={TAG_COLORS}
                 tagInput={tagInput}
@@ -257,10 +265,12 @@ export const getServerSideProps: GetServerSideProps<AddressProps> = async () => 
     const path = await import('path');
     const raw = fs.readFileSync(path.join(process.cwd(), 'pages/api/reservations.json'), 'utf-8');
     const data = JSON.parse(raw);
+    const reservationMap = groupByDate(data.reservations);
+    const customers = customersData.customers as Customer[];
 
     return {
         props: {
-            customers: customersData.customers,
+            customers: syncCustomerFirstVisitDateList(customers, reservationMap),
             reservations: data.reservations,
             history: data.history ?? []
         }

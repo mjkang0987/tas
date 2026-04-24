@@ -41,6 +41,10 @@ export function AddressCustomerRecharge({customer}: AddressCustomerRechargeProps
 
         updateCustomer(customer.id, {
             points: (customer.points ?? 0) + amount,
+        }, {
+            type: 'recharge',
+            delta: amount,
+            description: selectedValue === CUSTOM_OPTION ? '적립금 직접 충전' : '적립금 기준 충전',
         });
         setCustomAmount('');
         setSelectedValue('0');

@@ -5,7 +5,6 @@ import styled from 'styled-components';
 import type {Customer} from '../../utils/customers';
 import type {Reservation} from '../../utils/reservations';
 import {AddressCustomerRow} from './AddressCustomerRow';
-import type {AddressTag} from './AddressCustomerTags';
 import {InputWrap} from '../ui/Input';
 
 type CustomerStats = {
@@ -19,7 +18,6 @@ type CustomerStats = {
 type AddressContentProps = {
     filteredCustomers: Customer[];
     reservationsByCustomer: Record<number, Reservation[]>;
-    tags: Record<number, AddressTag[]>;
     editingId: number | null;
     tagColors: string[];
     tagInput: string;
@@ -43,7 +41,6 @@ type AddressContentProps = {
 export function AddressContent({
     filteredCustomers,
     reservationsByCustomer,
-    tags,
     editingId,
     tagColors,
     tagInput,
@@ -91,7 +88,7 @@ export function AddressContent({
                         {filteredCustomers.map((customer) => {
                             const customerReservations = reservationsByCustomer[customer.id] || [];
                             const isEditing = editingId === customer.id;
-                            const customerTags = tags[customer.id] || [];
+                            const customerTags = customer.memoTags ?? [];
                             const stats = customerStats[customer.id];
 
                             return (

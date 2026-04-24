@@ -12,7 +12,7 @@ import {computeTargetDerived} from '../utils/calendarDerived';
 
 import {groupByDate, Reservation, ReservationHistoryEntry} from '../utils/reservations';
 
-import {Customer, toCustomerMap} from '../utils/customers';
+import {Customer, syncCustomerFirstVisitDateList, toCustomerMap} from '../utils/customers';
 
 import {Calendar} from '../components/calendar/views/Calendar';
 
@@ -111,11 +111,13 @@ export const getServerSideProps: GetServerSideProps<HomeProps> = async () => {
     const path = await import('path');
     const raw = fs.readFileSync(path.join(process.cwd(), 'pages/api/reservations.json'), 'utf-8');
     const data = JSON.parse(raw);
+    const reservationMap = groupByDate(data.reservations);
+    const customers = customersData.customers as Customer[];
 
     return {
         props: {
             reservations: data.reservations,
-            customers: customersData.customers,
+            customers: syncCustomerFirstVisitDateList(customers, reservationMap),
             history: data.history ?? []
         }
     };
