@@ -4,7 +4,7 @@ import styled, {css} from 'styled-components';
 
 import {useCalendarStore} from '../../store/calendarStore';
 import type {Designer, DesignerStatus} from '../../utils/designers';
-import {WEEKDAY_LABELS, getDesignerColor, getDesignerStatus, splitDesignersByStatus} from '../../utils/designers';
+import {WEEKDAY_LABELS, getDesignerColor, getDesignerStatus, getDesignerStatusMeta, splitDesignersByStatus} from '../../utils/designers';
 import {formControlStyle} from '../ui/FormControls';
 
 const DESIGNER_STATUS_OPTIONS: DesignerStatus[] = ['재직', '휴직', '퇴직'];
@@ -28,7 +28,7 @@ const DesignerCard = ({
     onFinishEdit,
     onDeleteDesigner,
 }: DesignerCardProps) => (
-    <StyledDesignerCard>
+    <StyledDesignerCard $status={getDesignerStatus(designer)}>
         <StyledDesignerHeader>
             <StyledDesignerNameInput
                 value={designer.name}
@@ -57,6 +57,9 @@ const DesignerCard = ({
                     <option key={status} value={status}>{status}</option>
                 ))}
             </StyledDesignerStatusSelect>
+            <StyledDesignerStatusBadge $status={getDesignerStatus(designer)}>
+                {getDesignerStatus(designer)}
+            </StyledDesignerStatusBadge>
             <StyledDesignerHeaderActions>
                 {isEditing ? (
                     <>
@@ -100,45 +103,53 @@ const DesignerCard = ({
                 />
             </StyledDesignerMetaField>
         </StyledDesignerMetaGrid>
-        <StyledScheduleList>
-            {WEEKDAY_LABELS.map((label, dayIndex) => {
-                const day = designer.schedule[dayIndex];
-                if (!day) return null;
+        {getDesignerStatus(designer) === '재직' ? (
+            <StyledScheduleList>
+                {WEEKDAY_LABELS.map((label, dayIndex) => {
+                    const day = designer.schedule[dayIndex];
+                    if (!day) return null;
 
-                return (
-                    <StyledScheduleRow key={`${designer.id}-${label}`}>
-                        <StyledDayLabel>{label}</StyledDayLabel>
-                        <StyledDaySwitch>
-                            <input
-                                type="checkbox"
-                                checked={day.enabled}
-                                aria-label={`${designer.name} ${label} 근무 여부`}
-                                disabled={!isEditing}
-                                onChange={(e) => onUpdateDesignerDay(designer.id, dayIndex, {enabled: e.target.checked})}
-                            />
-                            <span>{day.enabled ? '근무' : '휴무'}</span>
-                        </StyledDaySwitch>
-                        <StyledTimeRange>
-                            <StyledTimeInput
-                                type="time"
-                                value={day.start}
-                                aria-label={`${designer.name} ${label} 시작 시간`}
-                                disabled={!isEditing || !day.enabled}
-                                onChange={(e) => onUpdateDesignerDay(designer.id, dayIndex, {start: e.target.value})}
-                            />
-                            <StyledTimeRangeDivider>~</StyledTimeRangeDivider>
-                            <StyledTimeInput
-                                type="time"
-                                value={day.end}
-                                aria-label={`${designer.name} ${label} 종료 시간`}
-                                disabled={!isEditing || !day.enabled}
-                                onChange={(e) => onUpdateDesignerDay(designer.id, dayIndex, {end: e.target.value})}
-                            />
-                        </StyledTimeRange>
-                    </StyledScheduleRow>
-                );
-            })}
-        </StyledScheduleList>
+                    return (
+                        <StyledScheduleRow key={`${designer.id}-${label}`}>
+                            <StyledDayLabel>{label}</StyledDayLabel>
+                            <StyledDaySwitch>
+                                <input
+                                    type="checkbox"
+                                    checked={day.enabled}
+                                    aria-label={`${designer.name} ${label} 근무 여부`}
+                                    disabled={!isEditing}
+                                    onChange={(e) => onUpdateDesignerDay(designer.id, dayIndex, {enabled: e.target.checked})}
+                                />
+                                <span>{day.enabled ? '근무' : '휴무'}</span>
+                            </StyledDaySwitch>
+                            <StyledTimeRange>
+                                <StyledTimeInput
+                                    type="time"
+                                    value={day.start}
+                                    aria-label={`${designer.name} ${label} 시작 시간`}
+                                    disabled={!isEditing || !day.enabled}
+                                    onChange={(e) => onUpdateDesignerDay(designer.id, dayIndex, {start: e.target.value})}
+                                />
+                                <StyledTimeRangeDivider>~</StyledTimeRangeDivider>
+                                <StyledTimeInput
+                                    type="time"
+                                    value={day.end}
+                                    aria-label={`${designer.name} ${label} 종료 시간`}
+                                    disabled={!isEditing || !day.enabled}
+                                    onChange={(e) => onUpdateDesignerDay(designer.id, dayIndex, {end: e.target.value})}
+                                />
+                            </StyledTimeRange>
+                        </StyledScheduleRow>
+                    );
+                })}
+            </StyledScheduleList>
+        ) : (
+            <StyledScheduleCollapsedNotice $status={getDesignerStatus(designer)}>
+                {getDesignerStatus(designer) === '휴직'
+                    ? '휴직 상태에서는 근무시간 설정을 접어 둡니다. 복귀 후 다시 조정할 수 있습니다.'
+                    : '퇴직 상태에서는 예약 선택이 비활성화되며 근무시간 설정을 표시하지 않습니다.'}
+            </StyledScheduleCollapsedNotice>
+        )}
     </StyledDesignerCard>
 );
 
@@ -411,13 +422,14 @@ const StyledDesignerSectionTitle = styled.strong`
     color: var(--dark-gray-color2);
 `;
 
-const StyledDesignerCard = styled.div`
-    border: 1px solid var(--light-gray-color);
+const StyledDesignerCard = styled.div<{ $status: DesignerStatus }>`
+    border: 1px solid ${({$status}) => getDesignerStatusMeta($status).border};
     border-radius: 6px;
     padding: 12px;
     display: flex;
     flex-direction: column;
     gap: 10px;
+    background: ${({$status}) => getDesignerStatusMeta($status).tint};
 `;
 
 const StyledDesignerHeader = styled.div`
@@ -509,10 +521,33 @@ const StyledDesignerStatusSelect = styled.select`
     }
 `;
 
+const StyledDesignerStatusBadge = styled.span<{ $status: DesignerStatus }>`
+    display: inline-flex;
+    align-items: center;
+    height: 28px;
+    padding: 0 10px;
+    border-radius: 999px;
+    border: 1px solid ${({$status}) => getDesignerStatusMeta($status).border};
+    background: ${({$status}) => getDesignerStatusMeta($status).tint};
+    color: ${({$status}) => getDesignerStatusMeta($status).accent};
+    font-size: 11px;
+    font-weight: 700;
+`;
+
 const StyledScheduleList = styled.div`
     display: flex;
     flex-direction: column;
     gap: 4px;
+`;
+
+const StyledScheduleCollapsedNotice = styled.div<{ $status: DesignerStatus }>`
+    padding: 10px 12px;
+    border-radius: 8px;
+    border: 1px dashed ${({$status}) => getDesignerStatusMeta($status).border};
+    color: ${({$status}) => getDesignerStatusMeta($status).accent};
+    background: rgba(255, 255, 255, 0.55);
+    font-size: 12px;
+    line-height: 1.5;
 `;
 
 const StyledScheduleRow = styled.div`

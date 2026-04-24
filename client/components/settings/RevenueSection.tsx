@@ -12,14 +12,24 @@ import {
     useDialogAccessibility,
     useLayerInstanceId,
 } from '../calendar/overlays/ModalStyles';
-import {getDailyRevenue, getRangeRevenue, getRevenueInsights} from '../../utils/revenue';
+import {
+    getDailyRevenue,
+    getOperationInsights,
+    getRangeRevenue,
+    getRevenueInsights,
+    isPaidReservationTarget,
+    isRevenueReservationTarget,
+    type RevenueFilterMode,
+} from '../../utils/revenue';
 import {formatPrice, getServiceColor, parseServiceString} from '../../utils/services';
 import type {Designer} from '../../utils/designers';
 import {getDesignerColor} from '../../utils/designers';
 import type {PaymentMethod, Reservation, ReservationMap} from '../../utils/reservations';
 import {toDateKey} from '../../utils/reservations';
 import type {CustomerMap} from '../../utils/customers';
+import {isNewCustomerVisit} from '../../utils/customers';
 import {formControlStyle} from '../ui/FormControls';
+import {NewCustomerBadge} from '../ui/NewCustomerBadge';
 
 export type RevenueDesignerKey = 'all' | `${number}`;
 export type RevenueQuickRange = 'month' | 'week' | 'today';
@@ -142,6 +152,7 @@ export const RevenueSection = ({
     const [detailDateKey, setDetailDateKey] = useState<string | null>(null);
     const [metricLayerKey, setMetricLayerKey] = useState<RevenueMetricKey | null>(null);
     const [revenueViewTab, setRevenueViewTab] = useState<RevenueViewTab>('all');
+    const [revenueFilterMode, setRevenueFilterMode] = useState<RevenueFilterMode>('completed');
     const [hoveredRevenueDateKey, setHoveredRevenueDateKey] = useState<string | null>(null);
     const selectedDesignerId = designerKey === 'all' ? null : Number(designerKey);
     const designerMap = useMemo(
@@ -151,29 +162,25 @@ export const RevenueSection = ({
     const [fromDateKey, toDateKeyValue] = startDateKey <= endDateKey
         ? [startDateKey, endDateKey]
         : [endDateKey, startDateKey];
-    const rangeRevenue = getRangeRevenue(reservationMap, fromDateKey, toDateKeyValue, selectedDesignerId);
-    const revenueInsights = useMemo(
-        () => getRevenueInsights(reservationMap, fromDateKey, toDateKeyValue, selectedDesignerId),
-        [reservationMap, fromDateKey, toDateKeyValue, selectedDesignerId]
-    );
+    const rangeRevenue = getRangeRevenue(reservationMap, fromDateKey, toDateKeyValue, selectedDesignerId, revenueFilterMode);
+    const revenueInsights = getRevenueInsights(reservationMap, fromDateKey, toDateKeyValue, selectedDesignerId, revenueFilterMode);
+    const operationInsights = getOperationInsights(reservationMap, fromDateKey, toDateKeyValue, selectedDesignerId);
     const days = [...rangeRevenue.days].sort((a, b) => b.dateKey.localeCompare(a.dateKey));
     const dayReservationMap = useMemo(
         () => Object.fromEntries(
             days.map((day) => [
                 day.dateKey,
                 (reservationMap[day.dateKey] ?? [])
-                    .filter((reservation) => reservation.status !== 'cancelled'
-                        && reservation.status !== 'noshow'
-                        && (selectedDesignerId == null || reservation.designerId === selectedDesignerId))
+                    .filter((reservation) => isRevenueReservationTarget(reservation, selectedDesignerId, revenueFilterMode))
                     .sort((a, b) => a.startTime.localeCompare(b.startTime)),
             ])
         ),
-        [days, reservationMap, selectedDesignerId]
+        [days, reservationMap, selectedDesignerId, revenueFilterMode]
     );
     const openedDateKey = detailDateKey && detailDateKey >= fromDateKey && detailDateKey <= toDateKeyValue
         ? detailDateKey
         : null;
-    const layerDaily = openedDateKey ? getDailyRevenue(reservationMap, openedDateKey, selectedDesignerId) : null;
+    const layerDaily = openedDateKey ? getDailyRevenue(reservationMap, openedDateKey, selectedDesignerId, revenueFilterMode) : null;
     const paymentRevenueMap = useMemo(
         () => new Map(revenueInsights.payments.map((entry) => [entry.method, entry.total])),
         [revenueInsights.payments]
@@ -211,6 +218,27 @@ export const RevenueSection = ({
         () => Math.max(...designerChartItems.map((item) => formatPrice(item.total).length), formatPrice(0).length),
         [designerChartItems]
     );
+    const customerNoshowItems = useMemo(
+        () => operationInsights.customerNoshowRates.slice(0, 5).map((item) => ({
+            ...item,
+            customer: customerMap[item.customerId],
+        })),
+        [operationInsights.customerNoshowRates, customerMap]
+    );
+    const designerCancellationItems = useMemo(
+        () => operationInsights.designerCancellationRates
+            .slice(0, 5)
+            .map((item) => ({
+                ...item,
+                name: item.designerId == null
+                    ? '미지정'
+                    : (designerMap[item.designerId]?.name ?? '미지정'),
+                color: item.designerId == null
+                    ? '#8E8E93'
+                    : (designerMap[item.designerId]?.color ?? '#8E8E93'),
+            })),
+        [operationInsights.designerCancellationRates, designerMap]
+    );
     const chartPath = buildRevenueLinePath(revenueInsights.series.map((item) => item.total), REVENUE_CHART_WIDTH, REVENUE_CHART_HEIGHT);
     const linePeak = Math.max(...revenueInsights.series.map((item) => item.total), 0);
     const lineMax = Math.max(...revenueInsights.series.map((item) => item.total), 1);
@@ -235,23 +263,20 @@ export const RevenueSection = ({
         while (cursor <= endCursor) {
             const dateKey = toDateKey(cursor.getFullYear(), cursor.getMonth(), cursor.getDate());
             const reservations = (reservationMap[dateKey] ?? []).filter((reservation) => (
-                reservation.status !== 'cancelled'
-                && reservation.status !== 'noshow'
-                && (selectedDesignerId == null || reservation.designerId === selectedDesignerId)
+                isRevenueReservationTarget(reservation, selectedDesignerId, revenueFilterMode)
             ));
             items.push(...reservations);
             cursor.setDate(cursor.getDate() + 1);
         }
 
         return items.sort((a, b) => a.date.localeCompare(b.date) || a.startTime.localeCompare(b.startTime));
-    }, [fromDateKey, toDateKeyValue, reservationMap, selectedDesignerId]);
+    }, [fromDateKey, toDateKeyValue, reservationMap, selectedDesignerId, revenueFilterMode]);
     const firstVisitByCustomer = useMemo(() => {
         const firstVisit = new Map<number, string>();
 
         for (const [dateKey, reservations] of Object.entries(reservationMap)) {
             for (const reservation of reservations) {
-                if (reservation.status === 'cancelled' || reservation.status === 'noshow') continue;
-                if (selectedDesignerId != null && reservation.designerId !== selectedDesignerId) continue;
+                if (!isRevenueReservationTarget(reservation, selectedDesignerId, revenueFilterMode)) continue;
 
                 const current = firstVisit.get(reservation.customerId);
                 if (!current || dateKey < current) {
@@ -261,7 +286,7 @@ export const RevenueSection = ({
         }
 
         return firstVisit;
-    }, [reservationMap, selectedDesignerId]);
+    }, [reservationMap, selectedDesignerId, revenueFilterMode]);
     const newCustomerEntries = useMemo(() => {
         const seen = new Set<number>();
         return metricReservations.filter((reservation) => {
@@ -294,10 +319,8 @@ export const RevenueSection = ({
         [customerMap, returningCustomerEntries]
     );
     const paidReservations = useMemo(
-        () => metricReservations.filter((reservation) => (
-            Array.isArray(reservation.paymentEntries) ? reservation.paymentEntries.length > 0 : reservation.paymentCompleted
-        )),
-        [metricReservations]
+        () => metricReservations.filter((reservation) => isPaidReservationTarget(reservation, selectedDesignerId)),
+        [metricReservations, selectedDesignerId]
     );
     const metricLayer = useMemo(() => {
         switch (metricLayerKey) {
@@ -390,6 +413,36 @@ export const RevenueSection = ({
                     <StyledRevenueViewTab type="button" $active={revenueViewTab === 'chart'} onClick={() => setRevenueViewTab('chart')}>그래프</StyledRevenueViewTab>
                     <StyledRevenueViewTab type="button" $active={revenueViewTab === 'list'} onClick={() => setRevenueViewTab('list')}>일별목록</StyledRevenueViewTab>
                 </StyledRevenueViewTabs>
+                <StyledRevenueFilterTabs>
+                    <StyledRevenueFilterTab
+                        type="button"
+                        $active={revenueFilterMode === 'completed'}
+                        onClick={() => setRevenueFilterMode('completed')}
+                    >
+                        예약완료 매출
+                    </StyledRevenueFilterTab>
+                    <StyledRevenueFilterTab
+                        type="button"
+                        $active={revenueFilterMode === 'booked'}
+                        onClick={() => setRevenueFilterMode('booked')}
+                    >
+                        예약매출
+                    </StyledRevenueFilterTab>
+                </StyledRevenueFilterTabs>
+                <StyledRevenueCriteria>
+                    <strong>집계 기준</strong>
+                    {revenueFilterMode === 'completed' ? (
+                        <>
+                            <span>예약완료 매출은 예약상태가 예약완료인 건만 집계합니다.</span>
+                            <span>결제완료 금액은 해당 집계 대상 중 결제수단과 금액이 입력된 내역만 합산됩니다.</span>
+                        </>
+                    ) : (
+                        <>
+                            <span>예약매출은 취소, 노쇼를 제외한 전체 예약을 기준으로 집계합니다.</span>
+                            <span>결제완료 금액은 예약완료 기준으로만 집계되며 예약매출 필터에서도 동일하게 유지됩니다.</span>
+                        </>
+                    )}
+                </StyledRevenueCriteria>
             </StyledRevenueStickyArea>
             {(revenueViewTab === 'all' || revenueViewTab === 'chart') && (
                 <StyledRevenueDashboard>
@@ -543,6 +596,68 @@ export const RevenueSection = ({
                                 </StyledPaymentChartWrap>
                             )}
                         </StyledChartCard>
+                        <StyledChartCard $autoHeight>
+                            <StyledChartHeader>
+                                <strong>고객별 노쇼율</strong>
+                                <span>기간 내 전체 예약 기준</span>
+                            </StyledChartHeader>
+                            <StyledOperationSummary>
+                                <span>전체 노쇼 {operationInsights.totalNoshowCount}건</span>
+                                <strong>{operationInsights.totalNoshowRate}%</strong>
+                            </StyledOperationSummary>
+                            {customerNoshowItems.length === 0 ? (
+                                <StyledChartEmpty>노쇼 데이터가 없습니다.</StyledChartEmpty>
+                            ) : (
+                                <StyledOperationList>
+                                    {customerNoshowItems.map((item) => (
+                                        <StyledOperationRow key={`noshow-${item.customerId}`}>
+                                            <StyledOperationLabel>
+                                                {item.customer ? (
+                                                    <StyledOperationCustomerButton
+                                                        type="button"
+                                                        onClick={() => onSelectCustomer(item.customerId)}
+                                                    >
+                                                        {item.customer.name}
+                                                    </StyledOperationCustomerButton>
+                                                ) : (
+                                                    <span>고객 미지정</span>
+                                                )}
+                                                <small>{item.total}건 중 {item.noshow}건</small>
+                                            </StyledOperationLabel>
+                                            <StyledOperationRate>{item.rate}%</StyledOperationRate>
+                                        </StyledOperationRow>
+                                    ))}
+                                </StyledOperationList>
+                            )}
+                        </StyledChartCard>
+                        <StyledChartCard $autoHeight>
+                            <StyledChartHeader>
+                                <strong>디자이너별 취소율</strong>
+                                <span>기간 내 전체 예약 기준</span>
+                            </StyledChartHeader>
+                            <StyledOperationSummary>
+                                <span>전체 취소 {operationInsights.totalCancelledCount}건</span>
+                                <strong>{operationInsights.totalCancelledRate}%</strong>
+                            </StyledOperationSummary>
+                            {designerCancellationItems.length === 0 ? (
+                                <StyledChartEmpty>취소 데이터가 없습니다.</StyledChartEmpty>
+                            ) : (
+                                <StyledOperationList>
+                                    {designerCancellationItems.map((item) => (
+                                        <StyledOperationRow key={`cancel-${item.designerId ?? 'none'}`}>
+                                            <StyledOperationLabel>
+                                                <StyledRevenueMetaLabel>
+                                                    <StyledColorSwatch $color={item.color} />
+                                                    <span>{item.name}</span>
+                                                </StyledRevenueMetaLabel>
+                                                <small>{item.total}건 중 {item.cancelled}건</small>
+                                            </StyledOperationLabel>
+                                            <StyledOperationRate>{item.rate}%</StyledOperationRate>
+                                        </StyledOperationRow>
+                                    ))}
+                                </StyledOperationList>
+                            )}
+                        </StyledChartCard>
                     </StyledChartGrid>
                 </StyledRevenueDashboard>
             )}
@@ -580,7 +695,18 @@ export const RevenueSection = ({
                                                             <StyledColorSwatch $color={designerMap[reservation.designerId ?? -1]?.color ?? '#D1D5DB'} />
                                                             <span>{designerMap[reservation.designerId ?? -1]?.name ?? '미지정'}</span>
                                                         </StyledRevenueMetaLabel>
-                                                        <span>{customerMap[reservation.customerId]?.name ?? '고객 미지정'}</span>
+                                                        <StyledCustomerName>
+                                                            {isNewCustomerVisit(customerMap[reservation.customerId]?.firstVisitDate, reservation.date) && <NewCustomerBadge>N</NewCustomerBadge>}
+                                                            <StyledInlineCustomerButton
+                                                                type="button"
+                                                                onClick={(e) => {
+                                                                    e.stopPropagation();
+                                                                    onSelectCustomer(reservation.customerId);
+                                                                }}
+                                                            >
+                                                                {customerMap[reservation.customerId]?.name ?? '고객 미지정'}
+                                                            </StyledInlineCustomerButton>
+                                                        </StyledCustomerName>
                                                         <StyledRevenueServiceName>
                                                             {parseServiceString(reservation.service).map((service) => (
                                                                 <StyledRevenueServiceChip key={`${reservation.id}-${service}`}>
@@ -633,7 +759,19 @@ export const RevenueSection = ({
                                                             <StyledColorSwatch $color={designerMap[reservation?.designerId ?? -1]?.color ?? '#D1D5DB'} />
                                                             <span>{designerMap[reservation?.designerId ?? -1]?.name ?? '미지정'}</span>
                                                         </StyledRevenueMetaLabel>
-                                                        <span>{customerMap[reservation?.customerId ?? -1]?.name ?? '고객 미지정'}</span>
+                                                        <StyledCustomerName>
+                                                            {reservation && isNewCustomerVisit(customerMap[reservation.customerId]?.firstVisitDate, reservation.date) && <NewCustomerBadge>N</NewCustomerBadge>}
+                                                            <StyledInlineCustomerButton
+                                                                type="button"
+                                                                onClick={(e) => {
+                                                                    e.stopPropagation();
+                                                                    if (!reservation) return;
+                                                                    onSelectCustomer(reservation.customerId);
+                                                                }}
+                                                            >
+                                                                {customerMap[reservation?.customerId ?? -1]?.name ?? '고객 미지정'}
+                                                            </StyledInlineCustomerButton>
+                                                        </StyledCustomerName>
                                                         <StyledRevenueServiceName>
                                                             {parseServiceString(item.service).map((service) => (
                                                                 <StyledRevenueServiceChip key={`${item.reservationId}-${service}`}>
@@ -671,7 +809,9 @@ export const RevenueSection = ({
                                 <h3>{metricLayer.title}</h3>
                                 {(metricLayerKey === 'new' || metricLayerKey === 'returning') && (
                                     <StyledMetricSubtitle>
-                                        {metricLayerKey === 'new' ? '기간 내 첫 방문 고객 목록' : '이전 방문 이력이 있는 고객 목록'}
+                                        {metricLayerKey === 'new'
+                                            ? `${revenueFilterMode === 'completed' ? '선택 기간 안에서 첫 예약완료가 발생한 고객 목록' : '선택 기간 안에서 첫 예약이 발생한 고객 목록'}`
+                                            : `${revenueFilterMode === 'completed' ? '선택 기간 내 예약완료가 있고, 그 이전 예약완료 이력이 있는 고객 목록' : '선택 기간 내 예약이 있고, 그 이전 예약 이력이 있는 고객 목록'}`}
                                     </StyledMetricSubtitle>
                                 )}
                             </div>
@@ -688,7 +828,12 @@ export const RevenueSection = ({
                                                 key={`${metricLayerKey}-customer-${item.customer.id}`}
                                                 onClick={() => onSelectCustomer(item.customer.id)}
                                             >
-                                                <StyledTime>{item.customer.name}</StyledTime>
+                                                <StyledTime>
+                                                    <StyledCustomerName>
+                                                        {metricLayerKey === 'new' && <NewCustomerBadge>N</NewCustomerBadge>}
+                                                        <span>{item.customer.name}</span>
+                                                    </StyledCustomerName>
+                                                </StyledTime>
                                                 <StyledRevenueRowBody>
                                                     <StyledRevenueMetaList>
                                                         <StyledRevenueMetaItem>
@@ -722,7 +867,18 @@ export const RevenueSection = ({
                                                             <StyledColorSwatch $color={designerMap[reservation.designerId ?? -1]?.color ?? '#D1D5DB'} />
                                                             <span>{designerMap[reservation.designerId ?? -1]?.name ?? '미지정'}</span>
                                                         </StyledRevenueMetaLabel>
-                                                        <span>{customerMap[reservation.customerId]?.name ?? '고객 미지정'}</span>
+                                                        <StyledCustomerName>
+                                                            {isNewCustomerVisit(customerMap[reservation.customerId]?.firstVisitDate, reservation.date) && <NewCustomerBadge>N</NewCustomerBadge>}
+                                                            <StyledInlineCustomerButton
+                                                                type="button"
+                                                                onClick={(e) => {
+                                                                    e.stopPropagation();
+                                                                    onSelectCustomer(reservation.customerId);
+                                                                }}
+                                                            >
+                                                                {customerMap[reservation.customerId]?.name ?? '고객 미지정'}
+                                                            </StyledInlineCustomerButton>
+                                                        </StyledCustomerName>
                                                         <StyledRevenueServiceName>
                                                             {parseServiceString(reservation.service).map((service) => (
                                                                 <StyledRevenueServiceChip key={`${metricLayerKey}-${reservation.id}-${service}`}>
@@ -878,6 +1034,43 @@ const StyledRevenueViewTabs = styled.div`
     padding: 0 0 8px;
 `;
 
+const StyledRevenueFilterTabs = styled.div`
+    display: flex;
+    gap: 6px;
+    padding: 0 0 8px;
+    overflow-x: auto;
+    overscroll-behavior: auto;
+`;
+
+const StyledRevenueFilterTab = styled.button<{ $active: boolean }>`
+    flex-shrink: 0;
+    ${actionButtonStyle};
+    padding: 0 11px;
+    border: 1px solid ${(p) => p.$active ? 'var(--blue-color)' : 'var(--light-gray-color)'};
+    border-radius: 14px;
+    background: ${(p) => p.$active ? 'rgba(45, 127, 249, 0.1)' : 'var(--white-color)'};
+    color: ${(p) => p.$active ? 'var(--blue-color)' : 'var(--dark-gray-color)'};
+    font-weight: ${(p) => p.$active ? 700 : 500};
+`;
+
+const StyledRevenueCriteria = styled.div`
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    padding: 0 0 10px;
+
+    strong {
+        font-size: 11px;
+        color: var(--dark-gray-color);
+    }
+
+    span {
+        font-size: 11px;
+        color: var(--dark-gray-color2);
+        line-height: 1.45;
+    }
+`;
+
 const StyledRevenueViewTab = styled.button<{ $active: boolean }>`
     ${actionButtonStyle};
     ${mobileStretchButtonStyle};
@@ -1031,6 +1224,78 @@ const StyledChartEmpty = styled.div`
     background: var(--gray-color2);
     font-size: 12px;
     color: var(--dark-gray-color2);
+`;
+
+const StyledOperationSummary = styled.div`
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    padding: 10px 12px;
+    border-radius: 12px;
+    background: #f6f8fc;
+
+    span {
+        font-size: 12px;
+        color: var(--dark-gray-color2);
+    }
+
+    strong {
+        font-size: 18px;
+        color: var(--black-color);
+    }
+`;
+
+const StyledOperationList = styled.div`
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+`;
+
+const StyledOperationRow = styled.div`
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 10px 12px;
+    border: 1px solid var(--light-gray-color);
+    border-radius: 12px;
+    background: var(--white-color);
+`;
+
+const StyledOperationLabel = styled.div`
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    min-width: 0;
+
+    span {
+        font-size: 13px;
+        color: var(--dark-gray-color);
+        font-weight: 600;
+    }
+
+    small {
+        font-size: 11px;
+        color: var(--dark-gray-color2);
+    }
+`;
+
+const StyledOperationCustomerButton = styled.button`
+    border: 0;
+    padding: 0;
+    background: transparent;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--dark-gray-color);
+    text-align: left;
+    cursor: pointer;
+`;
+
+const StyledOperationRate = styled.strong`
+    flex-shrink: 0;
+    font-size: 16px;
+    color: var(--blue-color);
 `;
 
 const StyledLineChartBox = styled.div`
@@ -1426,6 +1691,27 @@ const StyledRevenueMetaLabel = styled.span`
     gap: 5px;
     flex-shrink: 0;
     color: var(--dark-gray-color2);
+`;
+
+const StyledCustomerName = styled.span`
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    min-width: 0;
+`;
+
+const StyledInlineCustomerButton = styled.button`
+    min-width: 0;
+    border: 0;
+    padding: 0;
+    background: transparent;
+    font: inherit;
+    color: inherit;
+    text-align: left;
+    cursor: pointer;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 `;
 
 const StyledRevenueServiceName = styled.div`

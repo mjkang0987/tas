@@ -7,7 +7,7 @@
         "2026-04-22"
     ],
     "pointSettings": {
-        "enableServiceRate": true,
+        "enableServiceRate": false,
         "enableRecharge": true,
         "serviceRate": 5,
         "rechargeRules": [

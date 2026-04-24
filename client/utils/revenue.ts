@@ -59,6 +59,32 @@ export interface RevenueInsights {
     returningCustomerCount: number;
 }
 
+export interface CustomerNoshowRateEntry {
+    customerId: number;
+    total: number;
+    noshow: number;
+    rate: number;
+}
+
+export interface DesignerCancellationRateEntry {
+    designerId: number | null;
+    total: number;
+    cancelled: number;
+    rate: number;
+}
+
+export interface OperationInsights {
+    customerNoshowRates: CustomerNoshowRateEntry[];
+    designerCancellationRates: DesignerCancellationRateEntry[];
+    totalReservations: number;
+    totalNoshowCount: number;
+    totalCancelledCount: number;
+    totalNoshowRate: number;
+    totalCancelledRate: number;
+}
+
+export type RevenueFilterMode = 'completed' | 'booked';
+
 function resolvePrice(service: string, price?: number): number {
     if (price != null) return price;
     return sumPrice(parseServiceString(service));
@@ -69,12 +95,37 @@ function matchDesigner(designerId: number | null | undefined, targetDesignerId: 
     return designerId === targetDesignerId;
 }
 
-function isRevenueTarget(reservation: Reservation, designerId: number | null): boolean {
+export function isCompletedReservationTarget(reservation: Reservation, designerId: number | null): boolean {
+    if (!matchDesigner(reservation.designerId, designerId)) return false;
+    return reservation.status === 'completed';
+}
+
+export function isBookedReservationTarget(reservation: Reservation, designerId: number | null): boolean {
     return (
         reservation.status !== 'cancelled' &&
         reservation.status !== 'noshow' &&
         matchDesigner(reservation.designerId, designerId)
     );
+}
+
+export function isRevenueReservationTarget(
+    reservation: Reservation,
+    designerId: number | null,
+    filterMode: RevenueFilterMode
+): boolean {
+    return filterMode === 'completed'
+        ? isCompletedReservationTarget(reservation, designerId)
+        : isBookedReservationTarget(reservation, designerId);
+}
+
+export function isPaidReservationTarget(reservation: Reservation, designerId: number | null): boolean {
+    if (!isCompletedReservationTarget(reservation, designerId)) return false;
+
+    if (Array.isArray(reservation.paymentEntries)) {
+        return reservation.paymentEntries.some((entry) => entry.amount > 0);
+    }
+
+    return reservation.paymentCompleted === true;
 }
 
 function resolvePaymentEntries(reservation: Reservation): RevenuePaymentEntry[] {
@@ -94,9 +145,14 @@ function resolvePaymentEntries(reservation: Reservation): RevenuePaymentEntry[] 
     return [];
 }
 
-export function getDailyRevenue(reservationMap: ReservationMap, dateKey: string, designerId: number | null = null): DailyRevenue {
+export function getDailyRevenue(
+    reservationMap: ReservationMap,
+    dateKey: string,
+    designerId: number | null = null,
+    filterMode: RevenueFilterMode = 'completed'
+): DailyRevenue {
     const reservations = reservationMap[dateKey] ?? [];
-    const active = reservations.filter((r) => isRevenueTarget(r, designerId));
+    const active = reservations.filter((r) => isRevenueReservationTarget(r, designerId, filterMode));
 
     const items: RevenueItem[] = active.map((r) => ({
         reservationId: r.id,
@@ -116,7 +172,8 @@ export function getMonthlyRevenue(
     reservationMap: ReservationMap,
     year: number,
     month: number,
-    designerId: number | null = null
+    designerId: number | null = null,
+    filterMode: RevenueFilterMode = 'completed'
 ): MonthlyRevenue {
     const prefix = `${year}-${String(month + 1).padStart(2, '0')}`;
     const daysInMonth = new Date(year, month + 1, 0).getDate();
@@ -127,7 +184,7 @@ export function getMonthlyRevenue(
 
     for (let d = 1; d <= daysInMonth; d++) {
         const dateKey = `${prefix}-${String(d).padStart(2, '0')}`;
-        const daily = getDailyRevenue(reservationMap, dateKey, designerId);
+        const daily = getDailyRevenue(reservationMap, dateKey, designerId, filterMode);
 
         if (daily.count > 0) {
             days.push({dateKey, total: daily.total, count: daily.count});
@@ -144,7 +201,8 @@ export function getRevenueInsights(
     reservationMap: ReservationMap,
     startDateKey: string,
     endDateKey: string,
-    designerId: number | null = null
+    designerId: number | null = null,
+    filterMode: RevenueFilterMode = 'completed'
 ): RevenueInsights {
     const start = new Date(startDateKey + 'T00:00:00');
     const end = new Date(endDateKey + 'T00:00:00');
@@ -160,7 +218,7 @@ export function getRevenueInsights(
 
     for (const [dateKey, reservations] of Object.entries(reservationMap)) {
         for (const reservation of reservations) {
-            if (!isRevenueTarget(reservation, designerId)) continue;
+            if (!isRevenueReservationTarget(reservation, designerId, filterMode)) continue;
 
             const existingDate = firstVisitByCustomer.get(reservation.customerId);
             if (!existingDate || dateKey < existingDate) {
@@ -173,7 +231,7 @@ export function getRevenueInsights(
 
     while (cursor <= to) {
         const dateKey = `${cursor.getFullYear()}-${String(cursor.getMonth() + 1).padStart(2, '0')}-${String(cursor.getDate()).padStart(2, '0')}`;
-        const reservations = (reservationMap[dateKey] ?? []).filter((reservation) => isRevenueTarget(reservation, designerId));
+        const reservations = (reservationMap[dateKey] ?? []).filter((reservation) => isRevenueReservationTarget(reservation, designerId, filterMode));
         const dayTotal = reservations.reduce((sum, reservation) => sum + resolvePrice(reservation.service, reservation.price), 0);
 
         series.push({
@@ -239,7 +297,8 @@ export function getRangeRevenue(
     reservationMap: ReservationMap,
     startDateKey: string,
     endDateKey: string,
-    designerId: number | null = null
+    designerId: number | null = null,
+    filterMode: RevenueFilterMode = 'completed'
 ): RangeRevenue {
     const start = new Date(startDateKey + 'T00:00:00');
     const end = new Date(endDateKey + 'T00:00:00');
@@ -253,7 +312,7 @@ export function getRangeRevenue(
 
     while (cursor <= to) {
         const dateKey = `${cursor.getFullYear()}-${String(cursor.getMonth() + 1).padStart(2, '0')}-${String(cursor.getDate()).padStart(2, '0')}`;
-        const daily = getDailyRevenue(reservationMap, dateKey, designerId);
+        const daily = getDailyRevenue(reservationMap, dateKey, designerId, filterMode);
 
         if (daily.count > 0) {
             days.push({dateKey, total: daily.total, count: daily.count});
@@ -265,4 +324,76 @@ export function getRangeRevenue(
     }
 
     return {days, total, count};
+}
+
+export function getOperationInsights(
+    reservationMap: ReservationMap,
+    startDateKey: string,
+    endDateKey: string,
+    designerId: number | null = null
+): OperationInsights {
+    const start = new Date(startDateKey + 'T00:00:00');
+    const end = new Date(endDateKey + 'T00:00:00');
+    const [from, to] = start <= end ? [start, end] : [end, start];
+    const customerStats = new Map<number, {total: number; noshow: number}>();
+    const designerStats = new Map<number | null, {total: number; cancelled: number}>();
+    let totalReservations = 0;
+    let totalNoshowCount = 0;
+    let totalCancelledCount = 0;
+
+    const cursor = new Date(from);
+
+    while (cursor <= to) {
+        const dateKey = `${cursor.getFullYear()}-${String(cursor.getMonth() + 1).padStart(2, '0')}-${String(cursor.getDate()).padStart(2, '0')}`;
+        const reservations = reservationMap[dateKey] ?? [];
+
+        for (const reservation of reservations) {
+            if (!matchDesigner(reservation.designerId, designerId)) continue;
+
+            totalReservations += 1;
+
+            const customerEntry = customerStats.get(reservation.customerId) ?? {total: 0, noshow: 0};
+            customerEntry.total += 1;
+            if (reservation.status === 'noshow') {
+                customerEntry.noshow += 1;
+                totalNoshowCount += 1;
+            }
+            customerStats.set(reservation.customerId, customerEntry);
+
+            const designerEntryKey = reservation.designerId ?? null;
+            const designerEntry = designerStats.get(designerEntryKey) ?? {total: 0, cancelled: 0};
+            designerEntry.total += 1;
+            if (reservation.status === 'cancelled') {
+                designerEntry.cancelled += 1;
+                totalCancelledCount += 1;
+            }
+            designerStats.set(designerEntryKey, designerEntry);
+        }
+
+        cursor.setDate(cursor.getDate() + 1);
+    }
+
+    return {
+        customerNoshowRates: [...customerStats.entries()]
+            .map(([customerId, stats]) => ({
+                customerId,
+                total: stats.total,
+                noshow: stats.noshow,
+                rate: stats.total > 0 ? Math.round((stats.noshow / stats.total) * 100) : 0,
+            }))
+            .sort((a, b) => b.rate - a.rate || b.noshow - a.noshow || b.total - a.total),
+        designerCancellationRates: [...designerStats.entries()]
+            .map(([designerIdValue, stats]) => ({
+                designerId: designerIdValue,
+                total: stats.total,
+                cancelled: stats.cancelled,
+                rate: stats.total > 0 ? Math.round((stats.cancelled / stats.total) * 100) : 0,
+            }))
+            .sort((a, b) => b.rate - a.rate || b.cancelled - a.cancelled || b.total - a.total),
+        totalReservations,
+        totalNoshowCount,
+        totalCancelledCount,
+        totalNoshowRate: totalReservations > 0 ? Math.round((totalNoshowCount / totalReservations) * 100) : 0,
+        totalCancelledRate: totalReservations > 0 ? Math.round((totalCancelledCount / totalReservations) * 100) : 0,
+    };
 }

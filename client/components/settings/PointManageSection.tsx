@@ -1,24 +1,34 @@
-import {useEffect, useMemo, useState} from 'react';
+import {useMemo, useState} from 'react';
 
 import styled, {css} from 'styled-components';
 
 import {useCalendarStore} from '../../store/calendarStore';
+import type {PointHistoryEntry} from '../../utils/customers';
 import {formatPrice} from '../../utils/services';
 import {formControlStyle} from '../ui/FormControls';
+
+const POINT_HISTORY_LABELS: Record<PointHistoryEntry['type'], string> = {
+    manual_add: '수동 적립',
+    manual_subtract: '수동 차감',
+    recharge: '충전',
+    payment_use: '결제 사용',
+    payment_earn: '결제 적립',
+    payment_adjust: '적립 조정',
+};
+
+type PointManageTab = 'history' | 'adjust' | 'settings';
 
 export const PointManageSection = () => {
     const customerMap = useCalendarStore((s) => s.customerMap);
     const storeSettings = useCalendarStore((s) => s.storeSettings);
     const updateCustomer = useCalendarStore((s) => s.updateCustomer);
     const updateStorePointSettings = useCalendarStore((s) => s.updateStorePointSettings);
+    const openCustomerDetail = useCalendarStore((s) => s.openCustomerDetail);
     const [search, setSearch] = useState('');
     const [amountByCustomer, setAmountByCustomer] = useState<Record<number, string>>({});
     const [isEditingPolicy, setIsEditingPolicy] = useState(false);
     const [pointSettingsDraft, setPointSettingsDraft] = useState(storeSettings.pointSettings);
-
-    useEffect(() => {
-        setPointSettingsDraft(storeSettings.pointSettings);
-    }, [storeSettings.pointSettings]);
+    const [activeTab, setActiveTab] = useState<PointManageTab>('history');
 
     const customers = useMemo(
         () => Object.values(customerMap).sort((a, b) => a.name.localeCompare(b.name, 'ko')),
@@ -39,6 +49,12 @@ export const PointManageSection = () => {
         () => customers.reduce((sum, customer) => sum + (customer.points ?? 0), 0),
         [customers]
     );
+    const customersWithPoints = useMemo(
+        () => customers
+            .filter((customer) => (customer.points ?? 0) > 0)
+            .sort((a, b) => (b.points ?? 0) - (a.points ?? 0) || a.name.localeCompare(b.name, 'ko')),
+        [customers]
+    );
     const isPolicyDirty = JSON.stringify(pointSettingsDraft) !== JSON.stringify(storeSettings.pointSettings);
 
     const applyPoints = (customerId: number, direction: 'add' | 'subtract') => {
@@ -54,228 +70,306 @@ export const PointManageSection = () => {
             ? currentPoints + amount
             : Math.max(currentPoints - amount, 0);
 
-        updateCustomer(customerId, {points: nextPoints});
+        updateCustomer(customerId, {points: nextPoints}, {
+            type: direction === 'add' ? 'manual_add' : 'manual_subtract',
+            delta: direction === 'add' ? amount : -amount,
+            description: direction === 'add' ? '수동 적립' : '수동 차감',
+        });
         setAmountByCustomer((prev) => ({...prev, [customerId]: ''}));
     };
 
     return (
         <StyledWrap>
-            <StyledTopBar>
-                <div>
-                    <h3>적립금 관리</h3>
-                    <p>고객별 적립금 잔액을 확인하고 직접 적립 또는 차감할 수 있습니다.</p>
-                </div>
-                <StyledTotalCard>
-                    <span>전체 적립금 잔액</span>
-                    <strong>{formatPrice(totalPoints)}</strong>
-                </StyledTotalCard>
-            </StyledTopBar>
-            <StyledPolicyCard>
-                <StyledPolicyHeader>
+            <StyledStickyHeader>
+                <StyledTopBar>
                     <div>
-                        <strong>적립 방식</strong>
-                        <p>적립금이 쌓이는 기본 방식을 설정합니다.</p>
+                        <h3>적립금 관리</h3>
+                        <p>내역 확인, 고객별 적립/차감, 적립 정책 설정을 탭으로 분리했습니다.</p>
                     </div>
-                    {!isEditingPolicy && (
-                        <StyledEditBtn type="button" onClick={() => setIsEditingPolicy(true)}>
-                            수정
-                        </StyledEditBtn>
+                    <StyledTotalCard>
+                        <span>전체 적립금 잔액</span>
+                        <strong>{formatPrice(totalPoints)}</strong>
+                    </StyledTotalCard>
+                </StyledTopBar>
+                <StyledTabRow>
+                    <StyledTabButton type="button" $active={activeTab === 'history'} onClick={() => setActiveTab('history')}>내역</StyledTabButton>
+                    <StyledTabButton type="button" $active={activeTab === 'adjust'} onClick={() => setActiveTab('adjust')}>적립</StyledTabButton>
+                    <StyledTabButton type="button" $active={activeTab === 'settings'} onClick={() => setActiveTab('settings')}>설정</StyledTabButton>
+                </StyledTabRow>
+            </StyledStickyHeader>
+            {activeTab === 'history' && (
+                <StyledHistorySection>
+                    <StyledHistoryHeader>
+                        <div>
+                            <strong>현재 적립금 보유 고객 전체 내역</strong>
+                            <span>현재 잔액이 남아있는 고객만 모아서 전체 적립/차감/충전 이력을 표시합니다.</span>
+                        </div>
+                        <em>{customersWithPoints.length}명</em>
+                    </StyledHistoryHeader>
+                    {customersWithPoints.length === 0 ? (
+                        <StyledHistoryEmpty>현재 적립금이 남아있는 고객이 없습니다.</StyledHistoryEmpty>
+                    ) : (
+                        <StyledHistoryCustomerList>
+                            {customersWithPoints.map((customer) => {
+                                const histories = [...(customer.pointHistories ?? [])].reverse();
+
+                                return (
+                                    <StyledHistoryCustomerCard key={`point-history-${customer.id}`}>
+                                    <StyledHistoryCustomerHead>
+                                        <div>
+                                            <StyledCustomerNameButton type="button" onClick={() => openCustomerDetail(customer.id)}>
+                                                {customer.name}
+                                            </StyledCustomerNameButton>
+                                            <span>{customer.tel}</span>
+                                        </div>
+                                        <StyledHistoryPoint>{formatPrice(customer.points ?? 0)}</StyledHistoryPoint>
+                                        </StyledHistoryCustomerHead>
+                                        {histories.length === 0 ? (
+                                            <StyledHistoryEmpty>적립금 이력이 없습니다.</StyledHistoryEmpty>
+                                        ) : (
+                                            <StyledHistoryList>
+                                                {histories.map((history) => (
+                                                    <StyledHistoryItem key={history.id}>
+                                                        <StyledHistoryTop>
+                                                            <strong>{POINT_HISTORY_LABELS[history.type]}</strong>
+                                                            <span>{history.delta > 0 ? '+' : ''}{formatPrice(history.delta)}</span>
+                                                        </StyledHistoryTop>
+                                                        <StyledHistoryMeta>
+                                                            <span>{history.description}</span>
+                                                            <span>잔액 {formatPrice(history.balance)}</span>
+                                                            <span>{history.createdAt.slice(0, 16).replace('T', ' ')}</span>
+                                                        </StyledHistoryMeta>
+                                                    </StyledHistoryItem>
+                                                ))}
+                                            </StyledHistoryList>
+                                        )}
+                                    </StyledHistoryCustomerCard>
+                                );
+                            })}
+                        </StyledHistoryCustomerList>
                     )}
-                </StyledPolicyHeader>
-                <StyledPolicyOptions>
-                    <StyledPolicyBlock>
-                        <StyledPolicyOption>
-                            <input
-                                type="checkbox"
-                                checked={pointSettingsDraft.enableServiceRate}
-                                disabled={!isEditingPolicy}
-                                onChange={(e) => setPointSettingsDraft((prev) => ({...prev, enableServiceRate: e.target.checked}))}
-                            />
-                            <div>
-                                <strong>시술 시 시술 금액 퍼센트 적립</strong>
-                                <span>결제완료 시 적립금 결제를 제외한 금액 기준으로 자동 적립됩니다.</span>
-                            </div>
-                        </StyledPolicyOption>
-                        {pointSettingsDraft.enableServiceRate && (
-                            <StyledPolicyBody>
-                                <StyledRateRow>
-                                    <span>적립 퍼센트</span>
-                                    <StyledRateInput
+                </StyledHistorySection>
+            )}
+            {activeTab === 'adjust' && (
+                <>
+                    <StyledSearchRow>
+                        <StyledSearchInput
+                            type="search"
+                            value={search}
+                            placeholder="고객명 또는 연락처 검색"
+                            onChange={(e) => setSearch(e.target.value)}
+                        />
+                    </StyledSearchRow>
+                    <StyledCustomerList>
+                        {filteredCustomers.map((customer) => (
+                            <StyledCustomerCard key={customer.id}>
+                                <StyledCustomerMeta>
+                                    <StyledCustomerNameButton type="button" onClick={() => openCustomerDetail(customer.id)}>
+                                        {customer.name}
+                                    </StyledCustomerNameButton>
+                                    <span>{customer.tel}</span>
+                                </StyledCustomerMeta>
+                                <StyledPointValue>{formatPrice(customer.points ?? 0)}</StyledPointValue>
+                                <StyledAdjustRow>
+                                    <StyledAmountInput
                                         type="text"
                                         inputMode="numeric"
-                                        value={String(pointSettingsDraft.serviceRate)}
-                                        disabled={!isEditingPolicy}
-                                        onChange={(e) => {
-                                            const nextValue = Number(e.target.value.replace(/[^0-9]/g, '')) || 0;
-                                            setPointSettingsDraft((prev) => ({
-                                                ...prev,
-                                                serviceRate: Math.min(nextValue, 100),
-                                            }));
-                                        }}
+                                        value={amountByCustomer[customer.id] ?? ''}
+                                        placeholder="금액 입력"
+                                        onChange={(e) => setAmountByCustomer((prev) => ({
+                                            ...prev,
+                                            [customer.id]: e.target.value,
+                                        }))}
                                     />
-                                    <em>%</em>
-                                </StyledRateRow>
-                            </StyledPolicyBody>
+                                    <StyledActionButton type="button" onClick={() => applyPoints(customer.id, 'add')}>
+                                        적립
+                                    </StyledActionButton>
+                                    <StyledActionButton type="button" $danger onClick={() => applyPoints(customer.id, 'subtract')}>
+                                        차감
+                                    </StyledActionButton>
+                                </StyledAdjustRow>
+                            </StyledCustomerCard>
+                        ))}
+                    </StyledCustomerList>
+                </>
+            )}
+            {activeTab === 'settings' && (
+                <StyledPolicyCard>
+                    <StyledPolicyHeader>
+                        <div>
+                            <strong>적립 방식</strong>
+                            <p>적립금이 쌓이는 기본 방식을 설정합니다.</p>
+                        </div>
+                        {!isEditingPolicy && (
+                            <StyledEditBtn
+                                type="button"
+                                onClick={() => {
+                                    setPointSettingsDraft(storeSettings.pointSettings);
+                                    setIsEditingPolicy(true);
+                                }}
+                            >
+                                수정
+                            </StyledEditBtn>
                         )}
-                    </StyledPolicyBlock>
-                    <StyledPolicyBlock>
-                        <StyledPolicyOption>
-                            <input
-                                type="checkbox"
-                                checked={pointSettingsDraft.enableRecharge}
-                                disabled={!isEditingPolicy}
-                                onChange={(e) => setPointSettingsDraft((prev) => ({...prev, enableRecharge: e.target.checked}))}
-                            />
-                            <div>
-                                <strong>충전하는 방식</strong>
-                                <span>고객별 적립/차감으로 직접 충전하고 관리합니다.</span>
-                            </div>
-                        </StyledPolicyOption>
-                    </StyledPolicyBlock>
-                </StyledPolicyOptions>
-                {pointSettingsDraft.enableRecharge && (
-                    <StyledPolicyBody>
-                        <StyledRechargeSection>
-                            <StyledRechargeHeader>
-                                <strong>충전 기준</strong>
-                                <StyledAddRuleButton
-                                    type="button"
+                    </StyledPolicyHeader>
+                    <StyledPolicyOptions>
+                        <StyledPolicyBlock>
+                            <StyledPolicyOption>
+                                <input
+                                    type="checkbox"
+                                    checked={pointSettingsDraft.enableServiceRate}
                                     disabled={!isEditingPolicy}
-                                    onClick={() => setPointSettingsDraft((prev) => ({
-                                        ...prev,
-                                        rechargeRules: [
-                                            ...prev.rechargeRules,
-                                            {baseAmount: 0, bonusAmount: 0},
-                                        ],
-                                    }))}
-                                >
-                                    기준 추가
-                                </StyledAddRuleButton>
-                            </StyledRechargeHeader>
-                            <StyledRechargeList>
-                                {pointSettingsDraft.rechargeRules.map((rule, index) => (
-                                    <StyledRechargeRow key={`recharge-rule-${index}`}>
-                                        <StyledRechargeField>
-                                            <span>기준금액</span>
-                                            <StyledRateInput
-                                                type="text"
-                                                inputMode="numeric"
-                                                value={String(rule.baseAmount || '')}
-                                                placeholder="기준금액"
-                                                disabled={!isEditingPolicy}
-                                                onChange={(e) => {
-                                                    const baseAmount = Number(e.target.value.replace(/[^0-9]/g, '')) || 0;
-                                                    setPointSettingsDraft((prev) => ({
-                                                        ...prev,
-                                                        rechargeRules: prev.rechargeRules.map((item, itemIndex) => (
-                                                            itemIndex === index ? {...item, baseAmount} : item
-                                                        )),
-                                                    }));
-                                                }}
-                                            />
-                                        </StyledRechargeField>
-                                        <StyledRechargePlus>+</StyledRechargePlus>
-                                        <StyledRechargeField>
-                                            <span>추가금</span>
-                                            <StyledRateInput
-                                                type="text"
-                                                inputMode="numeric"
-                                                value={String(rule.bonusAmount || '')}
-                                                placeholder="추가금"
-                                                disabled={!isEditingPolicy}
-                                                onChange={(e) => {
-                                                    const bonusAmount = Number(e.target.value.replace(/[^0-9]/g, '')) || 0;
-                                                    setPointSettingsDraft((prev) => ({
-                                                        ...prev,
-                                                        rechargeRules: prev.rechargeRules.map((item, itemIndex) => (
-                                                            itemIndex === index ? {...item, bonusAmount} : item
-                                                        )),
-                                                    }));
-                                                }}
-                                            />
-                                        </StyledRechargeField>
-                                        <StyledDeleteRuleButton
-                                            type="button"
+                                    onChange={(e) => setPointSettingsDraft((prev) => ({...prev, enableServiceRate: e.target.checked}))}
+                                />
+                                <div>
+                                    <strong>시술 시 시술 금액 퍼센트 적립</strong>
+                                    <span>결제완료 시 적립금 결제를 제외한 금액 기준으로 자동 적립됩니다.</span>
+                                </div>
+                            </StyledPolicyOption>
+                            {pointSettingsDraft.enableServiceRate && (
+                                <StyledPolicyBody>
+                                    <StyledRateRow>
+                                        <span>적립 퍼센트</span>
+                                        <StyledRateInput
+                                            type="text"
+                                            inputMode="numeric"
+                                            value={String(pointSettingsDraft.serviceRate)}
                                             disabled={!isEditingPolicy}
-                                            onClick={() => setPointSettingsDraft((prev) => ({
-                                                ...prev,
-                                                rechargeRules: prev.rechargeRules.length > 1
-                                                    ? prev.rechargeRules.filter((_, itemIndex) => itemIndex !== index)
-                                                    : [{baseAmount: 0, bonusAmount: 0}],
-                                            }))}
-                                        >
-                                            삭제
-                                        </StyledDeleteRuleButton>
-                                        <StyledRechargePercent>
-                                            추가 적립 {rule.baseAmount > 0 ? `${Math.round((rule.bonusAmount / rule.baseAmount) * 100)}%` : '0%'}
-                                        </StyledRechargePercent>
-                                    </StyledRechargeRow>
-                                ))}
-                            </StyledRechargeList>
-                        </StyledRechargeSection>
-                    </StyledPolicyBody>
-                )}
-                {isEditingPolicy && (
-                    <StyledPolicyActionRow>
-                        <StyledCancelBtn
-                            type="button"
-                            onClick={() => {
-                                setPointSettingsDraft(storeSettings.pointSettings);
-                                setIsEditingPolicy(false);
-                            }}
-                        >
-                            취소
-                        </StyledCancelBtn>
-                        <StyledSaveBtn
-                            type="button"
-                            onClick={() => {
-                                updateStorePointSettings(pointSettingsDraft);
-                                setIsEditingPolicy(false);
-                            }}
-                            disabled={!isPolicyDirty}
-                        >
-                            저장
-                        </StyledSaveBtn>
-                    </StyledPolicyActionRow>
-                )}
-            </StyledPolicyCard>
-            <StyledSearchRow>
-                <StyledSearchInput
-                    type="search"
-                    value={search}
-                    placeholder="고객명 또는 연락처 검색"
-                    onChange={(e) => setSearch(e.target.value)}
-                />
-            </StyledSearchRow>
-            <StyledCustomerList>
-                {filteredCustomers.map((customer) => (
-                    <StyledCustomerCard key={customer.id}>
-                        <StyledCustomerMeta>
-                            <strong>{customer.name}</strong>
-                            <span>{customer.tel}</span>
-                        </StyledCustomerMeta>
-                        <StyledPointValue>{formatPrice(customer.points ?? 0)}</StyledPointValue>
-                        <StyledAdjustRow>
-                            <StyledAmountInput
-                                type="text"
-                                inputMode="numeric"
-                                value={amountByCustomer[customer.id] ?? ''}
-                                placeholder="금액 입력"
-                                onChange={(e) => setAmountByCustomer((prev) => ({
-                                    ...prev,
-                                    [customer.id]: e.target.value,
-                                }))}
-                            />
-                            <StyledActionButton type="button" onClick={() => applyPoints(customer.id, 'add')}>
-                                적립
-                            </StyledActionButton>
-                            <StyledActionButton type="button" $danger onClick={() => applyPoints(customer.id, 'subtract')}>
-                                차감
-                            </StyledActionButton>
-                        </StyledAdjustRow>
-                    </StyledCustomerCard>
-                ))}
-            </StyledCustomerList>
+                                            onChange={(e) => {
+                                                const nextValue = Number(e.target.value.replace(/[^0-9]/g, '')) || 0;
+                                                setPointSettingsDraft((prev) => ({
+                                                    ...prev,
+                                                    serviceRate: Math.min(nextValue, 100),
+                                                }));
+                                            }}
+                                        />
+                                        <em>%</em>
+                                    </StyledRateRow>
+                                </StyledPolicyBody>
+                            )}
+                        </StyledPolicyBlock>
+                        <StyledPolicyBlock>
+                            <StyledPolicyOption>
+                                <input
+                                    type="checkbox"
+                                    checked={pointSettingsDraft.enableRecharge}
+                                    disabled={!isEditingPolicy}
+                                    onChange={(e) => setPointSettingsDraft((prev) => ({...prev, enableRecharge: e.target.checked}))}
+                                />
+                                <div>
+                                    <strong>충전하는 방식</strong>
+                                    <span>고객별 적립/차감으로 직접 충전하고 관리합니다.</span>
+                                </div>
+                            </StyledPolicyOption>
+                        </StyledPolicyBlock>
+                    </StyledPolicyOptions>
+                    {pointSettingsDraft.enableRecharge && (
+                        <StyledPolicyBody>
+                            <StyledRechargeSection>
+                                <StyledRechargeHeader>
+                                    <strong>충전 기준</strong>
+                                    <StyledAddRuleButton
+                                        type="button"
+                                        disabled={!isEditingPolicy}
+                                        onClick={() => setPointSettingsDraft((prev) => ({
+                                            ...prev,
+                                            rechargeRules: [
+                                                ...prev.rechargeRules,
+                                                {baseAmount: 0, bonusAmount: 0},
+                                            ],
+                                        }))}
+                                    >
+                                        기준 추가
+                                    </StyledAddRuleButton>
+                                </StyledRechargeHeader>
+                                <StyledRechargeList>
+                                    {pointSettingsDraft.rechargeRules.map((rule, index) => (
+                                        <StyledRechargeRow key={`recharge-rule-${index}`}>
+                                            <StyledRechargeField>
+                                                <span>기준금액</span>
+                                                <StyledRateInput
+                                                    type="text"
+                                                    inputMode="numeric"
+                                                    value={String(rule.baseAmount || '')}
+                                                    placeholder="기준금액"
+                                                    disabled={!isEditingPolicy}
+                                                    onChange={(e) => {
+                                                        const baseAmount = Number(e.target.value.replace(/[^0-9]/g, '')) || 0;
+                                                        setPointSettingsDraft((prev) => ({
+                                                            ...prev,
+                                                            rechargeRules: prev.rechargeRules.map((item, itemIndex) => (
+                                                                itemIndex === index ? {...item, baseAmount} : item
+                                                            )),
+                                                        }));
+                                                    }}
+                                                />
+                                            </StyledRechargeField>
+                                            <StyledRechargePlus>+</StyledRechargePlus>
+                                            <StyledRechargeField>
+                                                <span>추가금</span>
+                                                <StyledRateInput
+                                                    type="text"
+                                                    inputMode="numeric"
+                                                    value={String(rule.bonusAmount || '')}
+                                                    placeholder="추가금"
+                                                    disabled={!isEditingPolicy}
+                                                    onChange={(e) => {
+                                                        const bonusAmount = Number(e.target.value.replace(/[^0-9]/g, '')) || 0;
+                                                        setPointSettingsDraft((prev) => ({
+                                                            ...prev,
+                                                            rechargeRules: prev.rechargeRules.map((item, itemIndex) => (
+                                                                itemIndex === index ? {...item, bonusAmount} : item
+                                                            )),
+                                                        }));
+                                                    }}
+                                                />
+                                            </StyledRechargeField>
+                                            <StyledDeleteRuleButton
+                                                type="button"
+                                                disabled={!isEditingPolicy}
+                                                onClick={() => setPointSettingsDraft((prev) => ({
+                                                    ...prev,
+                                                    rechargeRules: prev.rechargeRules.length > 1
+                                                        ? prev.rechargeRules.filter((_, itemIndex) => itemIndex !== index)
+                                                        : [{baseAmount: 0, bonusAmount: 0}],
+                                                }))}
+                                            >
+                                                삭제
+                                            </StyledDeleteRuleButton>
+                                            <StyledRechargePercent>
+                                                추가 적립 {rule.baseAmount > 0 ? `${Math.round((rule.bonusAmount / rule.baseAmount) * 100)}%` : '0%'}
+                                            </StyledRechargePercent>
+                                        </StyledRechargeRow>
+                                    ))}
+                                </StyledRechargeList>
+                            </StyledRechargeSection>
+                        </StyledPolicyBody>
+                    )}
+                    {isEditingPolicy && (
+                        <StyledPolicyActionRow>
+                            <StyledCancelBtn
+                                type="button"
+                                onClick={() => {
+                                    setPointSettingsDraft(storeSettings.pointSettings);
+                                    setIsEditingPolicy(false);
+                                }}
+                            >
+                                취소
+                            </StyledCancelBtn>
+                            <StyledSaveBtn
+                                type="button"
+                                onClick={() => {
+                                    updateStorePointSettings(pointSettingsDraft);
+                                    setIsEditingPolicy(false);
+                                }}
+                                disabled={!isPolicyDirty}
+                            >
+                                저장
+                            </StyledSaveBtn>
+                        </StyledPolicyActionRow>
+                    )}
+                </StyledPolicyCard>
+            )}
         </StyledWrap>
     );
 };
@@ -284,6 +378,20 @@ const StyledWrap = styled.div`
     display: flex;
     flex-direction: column;
     gap: 16px;
+`;
+
+const StyledStickyHeader = styled.div`
+    position: sticky;
+    top: 0;
+    z-index: 12;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin: 0 -10px;
+    padding: 0 10px 12px;
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.98) 0%, rgba(255, 255, 255, 0.94) 100%);
+    backdrop-filter: blur(8px);
+    border-bottom: 1px solid rgba(15, 23, 42, 0.06);
 `;
 
 const actionButtonStyle = css`
@@ -363,6 +471,159 @@ const StyledTotalCard = styled.div`
 `;
 
 const StyledSearchRow = styled.div``;
+
+const StyledTabRow = styled.div`
+    display: flex;
+    gap: 8px;
+    overflow-x: auto;
+    overscroll-behavior: auto;
+`;
+
+const StyledTabButton = styled.button<{ $active: boolean }>`
+    ${actionButtonStyle};
+    flex-shrink: 0;
+    min-width: 72px;
+    border: 1px solid ${(props) => props.$active ? 'var(--blue-color)' : 'var(--light-gray-color)'};
+    background: ${(props) => props.$active ? 'rgba(45, 127, 249, 0.1)' : 'var(--white-color)'};
+    color: ${(props) => props.$active ? 'var(--blue-color)' : 'var(--dark-gray-color)'};
+    font-weight: ${(props) => props.$active ? 700 : 500};
+`;
+
+const StyledHistorySection = styled.section`
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    padding: 14px;
+    border: 1px solid var(--light-gray-color);
+    border-radius: 12px;
+    background: #fbfcff;
+`;
+
+const StyledHistoryHeader = styled.div`
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+
+    div {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+    }
+
+    strong {
+        font-size: 14px;
+        color: var(--black-color);
+    }
+
+    span {
+        font-size: 12px;
+        color: var(--dark-gray-color2);
+        line-height: 1.45;
+    }
+
+    em {
+        flex-shrink: 0;
+        font-style: normal;
+        font-size: 12px;
+        font-weight: 600;
+        color: var(--blue-color);
+        white-space: nowrap;
+    }
+`;
+
+const StyledHistoryCustomerList = styled.div`
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+`;
+
+const StyledHistoryCustomerCard = styled.div`
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding: 12px;
+    border: 1px solid rgba(15, 23, 42, 0.08);
+    border-radius: 12px;
+    background: var(--white-color);
+`;
+
+const StyledHistoryCustomerHead = styled.div`
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+
+    div {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+        min-width: 0;
+    }
+
+    span {
+        font-size: 12px;
+        color: var(--dark-gray-color2);
+    }
+`;
+
+const StyledHistoryPoint = styled.strong`
+    flex-shrink: 0;
+    font-size: 15px;
+    color: var(--blue-color);
+`;
+
+const StyledHistoryList = styled.ul`
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+`;
+
+const StyledHistoryItem = styled.li`
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    padding: 10px 12px;
+    border-radius: 10px;
+    background: #f6f8fc;
+`;
+
+const StyledHistoryTop = styled.div`
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+
+    strong {
+        font-size: 12px;
+        color: var(--dark-gray-color);
+    }
+
+    span {
+        font-size: 12px;
+        font-weight: 700;
+        color: var(--blue-color);
+    }
+`;
+
+const StyledHistoryMeta = styled.div`
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px 10px;
+
+    span {
+        font-size: 11px;
+        color: var(--dark-gray-color2);
+    }
+`;
+
+const StyledHistoryEmpty = styled.div`
+    font-size: 12px;
+    color: var(--dark-gray-color2);
+`;
 
 const StyledPolicyCard = styled.div`
     display: flex;
@@ -573,13 +834,25 @@ const StyledCustomerMeta = styled.div`
     flex-direction: column;
     gap: 4px;
 
-    strong {
-        font-size: 14px;
-    }
-
     span {
         color: var(--dark-gray-color2);
         font-size: 12px;
+    }
+`;
+
+const StyledCustomerNameButton = styled.button`
+    width: fit-content;
+    padding: 0;
+    border: none;
+    background: none;
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--black-color);
+    text-align: left;
+    cursor: pointer;
+
+    &:hover {
+        color: var(--blue-color);
     }
 `;
 
