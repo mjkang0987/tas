@@ -49,6 +49,7 @@ If migrations are introduced before first deploy, replace `prisma db push` with 
 Production deploys should use:
 
 ```bash
+pnpm prisma:migrate:status
 pnpm prisma:migrate:deploy
 ```
 
