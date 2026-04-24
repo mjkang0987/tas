@@ -68,7 +68,9 @@ Target schema:
 
 - `firstVisitDate` should be converted from `YYYY-MM-DD` to `DateTime`.
 - `memoTags` becomes one row per tag in `CustomerMemoTag`.
-- `pointHistories.relatedReservationId` must be resolved through reservation `legacyId`.
+- Current source data does not include a reservation reference inside `pointHistories`.
+- `pointHistories.relatedReservationId` therefore remains `null` during the first import.
+- If reservation-linked point history is required later, an additional reconciliation step or richer source export is needed.
 
 ## Designers
 
@@ -204,7 +206,7 @@ Target schema:
 6. import `Reservation`
 7. import `ReservationPaymentEntry`
 8. import `ReservationHistory`
-9. import `CustomerPointHistory` with resolved reservation references
+9. import `CustomerPointHistory` without reservation links from the current source snapshot
 
 ## Validation Checklist
 
