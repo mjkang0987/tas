@@ -1,10 +1,5 @@
+import {ROLE_PRIORITY} from './authz';
 import {prisma} from './prisma';
-
-const ROLE_PRIORITY = {
-    owner: 0,
-    manager: 1,
-    staff: 2,
-} as const;
 
 export async function resolveUserMembership(userId: string | null | undefined) {
     if (!process.env.DATABASE_URL || !userId) {
