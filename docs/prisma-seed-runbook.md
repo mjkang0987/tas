@@ -64,7 +64,7 @@ If migrations are introduced before first deploy, replace `prisma db push` with 
 ## Validation Checklist
 
 - `Store` count is `1`
-- `Membership` includes one `owner`
+- owner membership count is at least `1`
 - customer count matches `customers.json`
 - designer count matches `designers.json`
 - service count matches `services.json`
