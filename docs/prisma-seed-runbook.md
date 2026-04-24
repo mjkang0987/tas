@@ -38,9 +38,7 @@ Imported source files:
 From `client/`:
 
 ```bash
-pnpm prisma:format
-pnpm prisma:validate
-pnpm prisma:generate
+pnpm prisma:prepare
 pnpm prisma:db:push
 pnpm prisma:seed
 pnpm prisma:verify-seed
