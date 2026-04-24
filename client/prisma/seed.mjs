@@ -11,6 +11,16 @@ function mapDesignerStatus(status) {
     return 'active';
 }
 
+function mapPointHistoryType(type) {
+    if (type === 'manual_add') return 'manual_add';
+    if (type === 'manual_subtract') return 'manual_subtract';
+    if (type === 'recharge') return 'recharge';
+    if (type === 'payment_use') return 'payment_use';
+    if (type === 'payment_earn') return 'payment_earn';
+    if (type === 'payment_adjust') return 'payment_adjust';
+    return 'manual_add';
+}
+
 async function readJson(relativePath) {
     const absolutePath = path.join(process.cwd(), relativePath);
     const raw = await fs.readFile(absolutePath, 'utf-8');
@@ -150,9 +160,88 @@ async function seedDesigners() {
     console.log(`[seed] Designers seeded: ${(designerData.designers ?? []).length}`);
 }
 
+async function seedCustomers() {
+    const customerData = await readJson('pages/api/customers.json');
+
+    const store = await prisma.store.findUnique({
+        where: {id: DEFAULT_STORE_KEY},
+        select: {id: true},
+    });
+
+    if (!store) {
+        throw new Error('Default store must exist before seeding customers.');
+    }
+
+    for (const customer of customerData.customers ?? []) {
+        const savedCustomer = await prisma.customer.upsert({
+            where: {
+                storeId_legacyId: {
+                    storeId: store.id,
+                    legacyId: customer.id,
+                },
+            },
+            update: {
+                name: customer.name,
+                tel: customer.tel,
+                points: Number(customer.points ?? 0),
+                firstVisitDate: customer.firstVisitDate ? new Date(`${customer.firstVisitDate}T00:00:00`) : null,
+                allergyNote: customer.allergyNote ?? null,
+                claimNote: customer.claimNote ?? null,
+                preferenceNote: customer.preferenceNote ?? null,
+            },
+            create: {
+                storeId: store.id,
+                legacyId: customer.id,
+                name: customer.name,
+                tel: customer.tel,
+                points: Number(customer.points ?? 0),
+                firstVisitDate: customer.firstVisitDate ? new Date(`${customer.firstVisitDate}T00:00:00`) : null,
+                allergyNote: customer.allergyNote ?? null,
+                claimNote: customer.claimNote ?? null,
+                preferenceNote: customer.preferenceNote ?? null,
+            },
+        });
+
+        await prisma.customerMemoTag.deleteMany({
+            where: {customerId: savedCustomer.id},
+        });
+
+        if (Array.isArray(customer.memoTags) && customer.memoTags.length > 0) {
+            await prisma.customerMemoTag.createMany({
+                data: customer.memoTags.map((memoTag) => ({
+                    customerId: savedCustomer.id,
+                    text: memoTag.text,
+                    color: memoTag.color,
+                })),
+            });
+        }
+
+        await prisma.customerPointHistory.deleteMany({
+            where: {customerId: savedCustomer.id},
+        });
+
+        if (Array.isArray(customer.pointHistories) && customer.pointHistories.length > 0) {
+            await prisma.customerPointHistory.createMany({
+                data: customer.pointHistories.map((history) => ({
+                    id: history.id,
+                    customerId: savedCustomer.id,
+                    type: mapPointHistoryType(history.type),
+                    delta: Number(history.delta ?? 0),
+                    balance: Number(history.balance ?? 0),
+                    description: history.description ?? '',
+                    createdAt: history.createdAt ? new Date(history.createdAt) : new Date(),
+                })),
+            });
+        }
+    }
+
+    console.log(`[seed] Customers seeded: ${(customerData.customers ?? []).length}`);
+}
+
 async function main() {
     await seedDefaultStore();
     await seedDesigners();
+    await seedCustomers();
 }
 
 main()
