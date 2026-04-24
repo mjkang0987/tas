@@ -38,13 +38,19 @@ Imported source files:
 From `client/`:
 
 ```bash
+pnpm prisma:import
+```
+
+Expanded import sequence:
+
+```bash
 pnpm prisma:prepare
 pnpm prisma:db:push
 pnpm prisma:seed
 pnpm prisma:verify-seed
 ```
 
-If migrations are introduced before first deploy, replace `prisma db push` with the migration command used by the project.
+If migrations are introduced before first deploy, replace `prisma db push` inside the import flow with the migration command used by the project.
 
 Production deploys should use:
 
