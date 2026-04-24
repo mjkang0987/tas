@@ -1,17 +1,17 @@
-const path = require('path');
+import path from 'path';
 
-/** @type {import('next').NextConfig} */
 const asides = ['day', 'three', 'week', 'month', 'year'];
 
 const extraDevOrigins = (process.env.NEXT_DEV_ALLOWED_ORIGINS ?? '')
     .split(',')
-    .map((s) => s.trim())
+    .map((value) => value.trim())
     .filter(Boolean);
 
+/** @type {import('next').NextConfig} */
 const nextConfig = {
     reactStrictMode: true,
-    compiler       : {
-        styledComponents: true
+    compiler: {
+        styledComponents: true,
     },
     /**
      * LAN IP 등으로 접속할 때 HMR / dev 전용 요청이 막히지 않게 합니다.
@@ -23,14 +23,14 @@ const nextConfig = {
      * @see https://nextjs.org/docs/app/api-reference/config/next-config-js/turbopack#root-directory
      */
     turbopack: {
-        root: path.resolve(__dirname)
+        root: path.resolve(),
     },
     async rewrites() {
         return asides.map((aside) => ({
-            source     : `/${aside}/:path*`,
-            destination: '/'
+            source: `/${aside}/:path*`,
+            destination: '/',
         }));
-    }
+    },
 };
 
-module.exports = nextConfig;
+export default nextConfig;
