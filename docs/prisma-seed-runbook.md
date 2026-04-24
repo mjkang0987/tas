@@ -38,6 +38,7 @@ Imported source files:
 From `client/`:
 
 ```bash
+pnpm prisma:validate
 pnpm prisma:generate
 pnpm prisma:db:push
 pnpm prisma:seed
