@@ -11,6 +11,10 @@ async function readJson(relativePath) {
     return JSON.parse(raw);
 }
 
+function getCustomerPointHistoryCount(customers) {
+    return (customers.customers ?? []).flatMap((customer) => customer.pointHistories ?? []).length;
+}
+
 async function main() {
     const [customers, designers, services, reservations] = await Promise.all([
         readJson('pages/api/customers.json'),
@@ -64,7 +68,7 @@ async function main() {
         ['services', store._count.services, (services.services ?? []).length],
         ['reservations', store._count.reservations, (reservations.reservations ?? []).length],
         ['reservation history', store._count.reservationEvents, (reservations.history ?? []).length],
-        ['customer point history', store._count.pointHistories, (customers.customers ?? []).flatMap((customer) => customer.pointHistories ?? []).length],
+        ['customer point history', store._count.pointHistories, getCustomerPointHistoryCount(customers)],
     ];
 
     let hasMismatch = false;
