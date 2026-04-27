@@ -1,95 +1,220 @@
 import type {NextApiRequest, NextApiResponse} from 'next';
 
-import fs from 'fs';
-import path from 'path';
-
-import type {Reservation, ReservationHistoryEntry, ReservationStatus} from '../../utils/reservations';
+import {prisma} from '../../lib/prisma';
+import {getApiSession, requireRole} from '../../lib/api-auth';
+import {
+    dbReservationToFrontend,
+    dbHistoryToFrontend,
+    frontendReservationStatusToDb,
+    frontendPaymentMethodToDb,
+} from '../../lib/db-to-frontend';
+import type {Reservation, ReservationStatus} from '../../utils/reservations';
 import {hasCompletedPayment} from '../../utils/reservations';
 
-interface ReservationData {
-    reservations: Reservation[];
-    history: ReservationHistoryEntry[];
+const reservationInclude = {
+    paymentEntries: true,
+    customer: {select: {legacyId: true}},
+    designer: {select: {legacyId: true}},
+} as const;
+
+async function resolveCustomerCuid(storeId: string, legacyId: number): Promise<string | null> {
+    const customer = await prisma.customer.findUnique({
+        where: {storeId_legacyId: {storeId, legacyId}},
+        select: {id: true},
+    });
+    return customer?.id ?? null;
 }
 
-const DATA_PATH = path.join(process.cwd(), 'pages/api/reservations.json');
-
-function readData(): ReservationData {
-    const raw = fs.readFileSync(DATA_PATH, 'utf-8');
-    return JSON.parse(raw);
+async function resolveDesignerCuid(storeId: string, legacyId: number | undefined): Promise<string | null> {
+    if (!legacyId) return null;
+    const designer = await prisma.designer.findUnique({
+        where: {storeId_legacyId: {storeId, legacyId}},
+        select: {id: true},
+    });
+    return designer?.id ?? null;
 }
 
-function writeData(data: ReservationData): void {
-    fs.writeFileSync(DATA_PATH, JSON.stringify(data, null, 4), 'utf-8');
-}
+export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+    const session = await getApiSession(req, res);
 
-export default function handler(req: NextApiRequest, res: NextApiResponse) {
     if (req.method === 'GET') {
-        const data = readData();
-        return res.status(200).json(data);
+        if (!requireRole(session, 'staff', res)) return;
+
+        const [dbReservations, dbHistories] = await Promise.all([
+            prisma.reservation.findMany({
+                where: {storeId: session.storeId},
+                include: reservationInclude,
+            }),
+            prisma.reservationHistory.findMany({
+                where: {storeId: session.storeId},
+                include: {reservation: {select: {legacyId: true}}},
+                orderBy: {createdAt: 'asc'},
+            }),
+        ]);
+
+        const reservations = dbReservations.map(dbReservationToFrontend);
+        const history = dbHistories.map(dbHistoryToFrontend);
+
+        return res.status(200).json({reservations, history});
     }
 
     if (req.method === 'POST') {
+        if (!requireRole(session, 'staff', res)) return;
+
         const reservation = req.body as Reservation;
-        const data = readData();
 
-        data.reservations.push(reservation);
-        writeData(data);
+        const customerId = await resolveCustomerCuid(session.storeId, reservation.customerId);
+        if (!customerId) {
+            return res.status(400).json({error: 'Customer not found'});
+        }
 
-        return res.status(201).json({reservation});
+        const designerId = await resolveDesignerCuid(session.storeId, reservation.designerId);
+
+        const paymentEntries = (reservation.paymentEntries ?? []).map((e) => ({
+            method: frontendPaymentMethodToDb(e.method),
+            amount: e.amount,
+        }));
+
+        const created = await prisma.reservation.create({
+            data: {
+                storeId: session.storeId,
+                legacyId: reservation.id,
+                customerId,
+                designerId,
+                date: new Date(`${reservation.date}T00:00:00`),
+                startTime: reservation.startTime,
+                endTime: reservation.endTime,
+                serviceSummary: reservation.service,
+                status: frontendReservationStatusToDb(reservation.status),
+                price: reservation.price ?? 0,
+                memo: reservation.memo ?? null,
+                paymentCompleted: reservation.paymentCompleted ?? false,
+                pointEarned: reservation.pointEarned ?? 0,
+                paymentEntries: paymentEntries.length > 0
+                    ? {createMany: {data: paymentEntries}}
+                    : undefined,
+            },
+            include: reservationInclude,
+        });
+
+        return res.status(201).json({reservation: dbReservationToFrontend(created)});
     }
 
     if (req.method === 'PUT') {
+        if (!requireRole(session, 'staff', res)) return;
+
         const {prev, updated} = req.body as { prev: Reservation; updated: Reservation };
-        const data = readData();
 
         if (updated.status === 'completed' && !hasCompletedPayment(updated)) {
             return res.status(400).json({error: 'Only paid reservations can be completed'});
         }
 
-        const idx = data.reservations.findIndex((r) => r.id === prev.id);
+        const dbReservation = await prisma.reservation.findUnique({
+            where: {storeId_legacyId: {storeId: session.storeId, legacyId: prev.id}},
+            select: {id: true},
+        });
 
-        if (idx > -1) {
-            data.reservations[idx] = updated;
-        }
-
-        const entry: ReservationHistoryEntry = {
-            reservationId: prev.id,
-            before: prev,
-            after: updated,
-            timestamp: new Date().toISOString()
-        };
-
-        data.history.push(entry);
-
-        writeData(data);
-
-        return res.status(200).json({reservation: updated, historyEntry: entry});
-    }
-
-    if (req.method === 'PATCH') {
-        const {id, status} = req.body as { id: number; status: ReservationStatus };
-        const data = readData();
-
-        const idx = data.reservations.findIndex((r) => r.id === id);
-
-        if (idx === -1) {
+        if (!dbReservation) {
             return res.status(404).json({error: 'Reservation not found'});
         }
 
-        const before = {...data.reservations[idx]};
-        data.reservations[idx] = {...data.reservations[idx], status};
+        const customerId = await resolveCustomerCuid(session.storeId, updated.customerId);
+        if (!customerId) {
+            return res.status(400).json({error: 'Customer not found'});
+        }
 
-        const entry: ReservationHistoryEntry = {
-            reservationId: id,
-            before,
-            after: data.reservations[idx],
-            timestamp: new Date().toISOString()
+        const designerId = await resolveDesignerCuid(session.storeId, updated.designerId);
+
+        const paymentEntries = (updated.paymentEntries ?? []).map((e) => ({
+            method: frontendPaymentMethodToDb(e.method),
+            amount: e.amount,
+        }));
+
+        const [savedReservation] = await prisma.$transaction([
+            prisma.reservation.update({
+                where: {id: dbReservation.id},
+                data: {
+                    customerId,
+                    designerId,
+                    date: new Date(`${updated.date}T00:00:00`),
+                    startTime: updated.startTime,
+                    endTime: updated.endTime,
+                    serviceSummary: updated.service,
+                    status: frontendReservationStatusToDb(updated.status),
+                    price: updated.price ?? 0,
+                    memo: updated.memo ?? null,
+                    paymentCompleted: updated.paymentCompleted ?? false,
+                    pointEarned: updated.pointEarned ?? 0,
+                },
+                include: reservationInclude,
+            }),
+            prisma.reservationPaymentEntry.deleteMany({where: {reservationId: dbReservation.id}}),
+            ...(paymentEntries.length > 0
+                ? [prisma.reservationPaymentEntry.createMany({
+                    data: paymentEntries.map((e) => ({reservationId: dbReservation.id, ...e})),
+                })]
+                : []),
+            prisma.reservationHistory.create({
+                data: {
+                    storeId: session.storeId,
+                    reservationId: dbReservation.id,
+                    beforeJson: prev as object,
+                    afterJson: updated as object,
+                },
+            }),
+        ]);
+
+        const entry = {
+            reservationId: prev.id,
+            before: prev,
+            after: updated,
+            timestamp: new Date().toISOString(),
         };
 
-        data.history.push(entry);
-        writeData(data);
+        return res.status(200).json({reservation: dbReservationToFrontend(savedReservation), historyEntry: entry});
+    }
 
-        return res.status(200).json({reservation: data.reservations[idx], historyEntry: entry});
+    if (req.method === 'PATCH') {
+        if (!requireRole(session, 'staff', res)) return;
+
+        const {id, status} = req.body as { id: number; status: ReservationStatus };
+
+        const dbReservation = await prisma.reservation.findUnique({
+            where: {storeId_legacyId: {storeId: session.storeId, legacyId: id}},
+            include: reservationInclude,
+        });
+
+        if (!dbReservation) {
+            return res.status(404).json({error: 'Reservation not found'});
+        }
+
+        const before = dbReservationToFrontend(dbReservation);
+
+        const updatedReservation = await prisma.reservation.update({
+            where: {id: dbReservation.id},
+            data: {status: frontendReservationStatusToDb(status)},
+            include: reservationInclude,
+        });
+
+        const after = dbReservationToFrontend(updatedReservation);
+
+        await prisma.reservationHistory.create({
+            data: {
+                storeId: session.storeId,
+                reservationId: dbReservation.id,
+                beforeJson: before as object,
+                afterJson: after as object,
+            },
+        });
+
+        const entry = {
+            reservationId: id,
+            before,
+            after,
+            timestamp: new Date().toISOString(),
+        };
+
+        return res.status(200).json({reservation: after, historyEntry: entry});
     }
 
     res.setHeader('Allow', ['GET', 'POST', 'PUT', 'PATCH']);

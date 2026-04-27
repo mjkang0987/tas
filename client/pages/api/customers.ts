@@ -1,39 +1,101 @@
 import type {NextApiRequest, NextApiResponse} from 'next';
 
-import fs from 'fs';
-import path from 'path';
+import {prisma} from '../../lib/prisma';
+import {getApiSession, requireRole} from '../../lib/api-auth';
+import {dbCustomerToFrontend} from '../../lib/db-to-frontend';
+import type {Customer, PointHistoryType} from '../../utils/customers';
 
-import type {Customer} from '../../utils/customers';
+export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+    const session = await getApiSession(req, res);
 
-interface CustomerData {
-    customers: Customer[];
-}
-
-const DATA_PATH = path.join(process.cwd(), 'pages/api/customers.json');
-
-function readData(): CustomerData {
-    const raw = fs.readFileSync(DATA_PATH, 'utf-8');
-    return JSON.parse(raw);
-}
-
-function writeData(data: CustomerData): void {
-    fs.writeFileSync(DATA_PATH, JSON.stringify(data, null, 4), 'utf-8');
-}
-
-export default function handler(req: NextApiRequest, res: NextApiResponse) {
     if (req.method === 'GET') {
-        const data = readData();
-        return res.status(200).json(data);
+        if (!requireRole(session, 'staff', res)) return;
+
+        const dbCustomers = await prisma.customer.findMany({
+            where: {storeId: session.storeId},
+            include: {
+                memoTags: true,
+                pointHistories: {orderBy: {createdAt: 'asc'}},
+            },
+            orderBy: {legacyId: 'asc'},
+        });
+
+        const customers = dbCustomers.map(dbCustomerToFrontend);
+        return res.status(200).json({customers});
     }
 
     if (req.method === 'PUT') {
-        const {customers} = req.body as CustomerData;
+        if (!requireRole(session, 'staff', res)) return;
+
+        const {customers} = req.body as { customers: Customer[] };
 
         if (!Array.isArray(customers)) {
             return res.status(400).json({error: 'Invalid customers payload'});
         }
 
-        writeData({customers});
+        await prisma.$transaction(async (tx) => {
+            for (const customer of customers) {
+                const savedCustomer = await tx.customer.upsert({
+                    where: {storeId_legacyId: {storeId: session.storeId, legacyId: customer.id}},
+                    update: {
+                        name: customer.name,
+                        tel: customer.tel,
+                        points: customer.points ?? 0,
+                        firstVisitDate: customer.firstVisitDate ? new Date(`${customer.firstVisitDate}T00:00:00`) : null,
+                        allergyNote: customer.allergyNote ?? null,
+                        claimNote: customer.claimNote ?? null,
+                        preferenceNote: customer.preferenceNote ?? null,
+                    },
+                    create: {
+                        storeId: session.storeId,
+                        legacyId: customer.id,
+                        name: customer.name,
+                        tel: customer.tel,
+                        points: customer.points ?? 0,
+                        firstVisitDate: customer.firstVisitDate ? new Date(`${customer.firstVisitDate}T00:00:00`) : null,
+                        allergyNote: customer.allergyNote ?? null,
+                        claimNote: customer.claimNote ?? null,
+                        preferenceNote: customer.preferenceNote ?? null,
+                    },
+                });
+
+                await tx.customerMemoTag.deleteMany({where: {customerId: savedCustomer.id}});
+
+                if (Array.isArray(customer.memoTags) && customer.memoTags.length > 0) {
+                    await tx.customerMemoTag.createMany({
+                        data: customer.memoTags.map((tag) => ({
+                            customerId: savedCustomer.id,
+                            text: tag.text,
+                            color: tag.color,
+                        })),
+                    });
+                }
+
+                const existingHistoryIds = new Set(
+                    (await tx.customerPointHistory.findMany({
+                        where: {customerId: savedCustomer.id},
+                        select: {id: true},
+                    })).map((h) => h.id)
+                );
+
+                const newHistories = (customer.pointHistories ?? []).filter((h) => !existingHistoryIds.has(h.id));
+
+                if (newHistories.length > 0) {
+                    await tx.customerPointHistory.createMany({
+                        data: newHistories.map((h) => ({
+                            id: h.id,
+                            customerId: savedCustomer.id,
+                            type: h.type as PointHistoryType,
+                            delta: h.delta,
+                            balance: h.balance,
+                            description: h.description,
+                            createdAt: h.createdAt ? new Date(h.createdAt) : new Date(),
+                        })),
+                    });
+                }
+            }
+        });
+
         return res.status(200).json({customers});
     }
 

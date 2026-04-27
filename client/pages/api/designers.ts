@@ -1,39 +1,92 @@
 import type {NextApiRequest, NextApiResponse} from 'next';
 
-import fs from 'fs';
-import path from 'path';
-
+import {prisma} from '../../lib/prisma';
+import {getApiSession, requireRole} from '../../lib/api-auth';
+import {dbDesignerToFrontend, frontendDesignerStatusToDb} from '../../lib/db-to-frontend';
 import type {Designer} from '../../utils/designers';
 
-interface DesignerData {
-    designers: Designer[];
-}
+export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+    const session = await getApiSession(req, res);
 
-const DATA_PATH = path.join(process.cwd(), 'pages/api/designers.json');
-
-function readData(): DesignerData {
-    const raw = fs.readFileSync(DATA_PATH, 'utf-8');
-    return JSON.parse(raw);
-}
-
-function writeData(data: DesignerData): void {
-    fs.writeFileSync(DATA_PATH, JSON.stringify(data, null, 4), 'utf-8');
-}
-
-export default function handler(req: NextApiRequest, res: NextApiResponse) {
     if (req.method === 'GET') {
-        const data = readData();
-        return res.status(200).json(data);
+        if (!requireRole(session, 'staff', res)) return;
+
+        const dbDesigners = await prisma.designer.findMany({
+            where: {storeId: session.storeId},
+            include: {schedules: true},
+            orderBy: {legacyId: 'asc'},
+        });
+
+        const designers = dbDesigners.map(dbDesignerToFrontend);
+        return res.status(200).json({designers});
     }
 
     if (req.method === 'PUT') {
-        const {designers} = req.body as DesignerData;
+        if (!requireRole(session, 'manager', res)) return;
+
+        const {designers} = req.body as { designers: Designer[] };
 
         if (!Array.isArray(designers)) {
             return res.status(400).json({error: 'Invalid designers payload'});
         }
 
-        writeData({designers});
+        const incomingLegacyIds = new Set(designers.map((d) => d.id));
+
+        const existingDesigners = await prisma.designer.findMany({
+            where: {storeId: session.storeId},
+            select: {id: true, legacyId: true},
+        });
+
+        const toDelete = existingDesigners.filter((d) => d.legacyId !== null && !incomingLegacyIds.has(d.legacyId));
+
+        await prisma.$transaction(async (tx) => {
+            if (toDelete.length > 0) {
+                await tx.designer.deleteMany({
+                    where: {id: {in: toDelete.map((d) => d.id)}},
+                });
+            }
+
+            for (const designer of designers) {
+                const savedDesigner = await tx.designer.upsert({
+                    where: {storeId_legacyId: {storeId: session.storeId, legacyId: designer.id}},
+                    update: {
+                        name: designer.name,
+                        status: frontendDesignerStatusToDb(designer.status),
+                        phone: designer.phone ?? null,
+                        note: designer.note ?? null,
+                        color: designer.color ?? null,
+                    },
+                    create: {
+                        storeId: session.storeId,
+                        legacyId: designer.id,
+                        name: designer.name,
+                        status: frontendDesignerStatusToDb(designer.status),
+                        phone: designer.phone ?? null,
+                        note: designer.note ?? null,
+                        color: designer.color ?? null,
+                    },
+                });
+
+                for (const [dayIndex, schedule] of (designer.schedule ?? []).entries()) {
+                    await tx.designerSchedule.upsert({
+                        where: {designerId_dayIndex: {designerId: savedDesigner.id, dayIndex}},
+                        update: {
+                            enabled: schedule.enabled,
+                            startTime: schedule.start,
+                            endTime: schedule.end,
+                        },
+                        create: {
+                            designerId: savedDesigner.id,
+                            dayIndex,
+                            enabled: schedule.enabled,
+                            startTime: schedule.start,
+                            endTime: schedule.end,
+                        },
+                    });
+                }
+            }
+        });
+
         return res.status(200).json({designers});
     }
 

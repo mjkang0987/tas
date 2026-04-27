@@ -1,33 +1,34 @@
 import type {NextApiRequest, NextApiResponse} from 'next';
 
-import fs from 'fs';
-import path from 'path';
-
+import {prisma} from '../../lib/prisma';
+import {getApiSession, requireRole} from '../../lib/api-auth';
+import {dbStoreToFrontend} from '../../lib/db-to-frontend';
 import type {StoreSettings} from '../../utils/storeSettings';
 import {DEFAULT_STORE_SETTINGS} from '../../utils/storeSettings';
-
-const DATA_PATH = path.join(process.cwd(), 'pages/api/store.json');
-
-function readData(): StoreSettings {
-    const raw = fs.readFileSync(DATA_PATH, 'utf-8');
-    return JSON.parse(raw);
-}
-
-function writeData(data: StoreSettings): void {
-    fs.writeFileSync(DATA_PATH, JSON.stringify(data, null, 4), 'utf-8');
-}
 
 function isValidTime(value: unknown): value is string {
     return typeof value === 'string' && /^\d{2}:\d{2}$/.test(value);
 }
 
-export default function handler(req: NextApiRequest, res: NextApiResponse) {
+export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+    const session = await getApiSession(req, res);
+
     if (req.method === 'GET') {
-        const data = readData();
-        return res.status(200).json(data);
+        if (!requireRole(session, 'staff', res)) return;
+
+        const [businessHours, closedDates, pointSettings] = await Promise.all([
+            prisma.storeBusinessHour.findMany({where: {storeId: session.storeId}, orderBy: {dayIndex: 'asc'}}),
+            prisma.storeClosedDate.findMany({where: {storeId: session.storeId}}),
+            prisma.storePointSettings.findUnique({where: {storeId: session.storeId}}),
+        ]);
+
+        const result = dbStoreToFrontend({businessHours, closedDates, pointSettings});
+        return res.status(200).json(result);
     }
 
     if (req.method === 'PUT') {
+        if (!requireRole(session, 'manager', res)) return;
+
         const {businessHours, closedDates, pointSettings} = req.body as StoreSettings;
 
         if (
@@ -59,8 +60,44 @@ export default function handler(req: NextApiRequest, res: NextApiResponse) {
             return res.status(400).json({error: 'Invalid pointSettings payload'});
         }
 
+        const weekdays = Array.from({length: 7}, (_, i) => i);
+
+        await prisma.$transaction([
+            ...weekdays.map((dayIndex) =>
+                prisma.storeBusinessHour.upsert({
+                    where: {storeId_dayIndex: {storeId: session.storeId, dayIndex}},
+                    update: {openTime: businessHours.start, closeTime: businessHours.end, enabled: true},
+                    create: {storeId: session.storeId, dayIndex, openTime: businessHours.start, closeTime: businessHours.end, enabled: true},
+                })
+            ),
+            prisma.storeClosedDate.deleteMany({where: {storeId: session.storeId}}),
+            ...(closedDates.length > 0
+                ? [prisma.storeClosedDate.createMany({
+                    data: closedDates.map((date) => ({
+                        storeId: session.storeId,
+                        date: new Date(`${date}T00:00:00`),
+                    })),
+                })]
+                : []),
+            prisma.storePointSettings.upsert({
+                where: {storeId: session.storeId},
+                update: {
+                    enableServiceRate: nextPointSettings.enableServiceRate,
+                    enableRecharge: nextPointSettings.enableRecharge,
+                    serviceRate: nextPointSettings.serviceRate,
+                    rechargeRulesJson: nextPointSettings.rechargeRules as unknown as any[],
+                },
+                create: {
+                    storeId: session.storeId,
+                    enableServiceRate: nextPointSettings.enableServiceRate,
+                    enableRecharge: nextPointSettings.enableRecharge,
+                    serviceRate: nextPointSettings.serviceRate,
+                    rechargeRulesJson: nextPointSettings.rechargeRules as unknown as any[],
+                },
+            }),
+        ]);
+
         const nextData: StoreSettings = {businessHours, closedDates, pointSettings: nextPointSettings};
-        writeData(nextData);
         return res.status(200).json(nextData);
     }
 
