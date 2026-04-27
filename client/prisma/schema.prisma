@@ -47,19 +47,20 @@ enum DesignerStatus {
 }
 
 model Store {
-  id                String              @id @default(cuid())
-  name              String
-  createdAt         DateTime            @default(now())
-  updatedAt         DateTime            @updatedAt
-  memberships       Membership[]
-  customers         Customer[]
-  designers         Designer[]
-  services          Service[]
-  reservations      Reservation[]
-  reservationEvents ReservationHistory[]
-  pointSettings     StorePointSettings?
-  businessHours     StoreBusinessHour[]
-  closedDates       StoreClosedDate[]
+  id                     String              @id @default(cuid())
+  name                   String
+  categoryBaseColorsJson Json                @default("{}")
+  createdAt              DateTime            @default(now())
+  updatedAt              DateTime            @updatedAt
+  memberships            Membership[]
+  customers              Customer[]
+  designers              Designer[]
+  services               Service[]
+  reservations           Reservation[]
+  reservationEvents      ReservationHistory[]
+  pointSettings          StorePointSettings?
+  businessHours          StoreBusinessHour[]
+  closedDates            StoreClosedDate[]
 }
 
 model User {
