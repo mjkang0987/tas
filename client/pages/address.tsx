@@ -7,7 +7,7 @@ import Head from 'next/head';
 import styled from 'styled-components';
 
 import type {Customer} from '../utils/customers';
-import {syncCustomerFirstVisitDateList, toCustomerMap} from '../utils/customers';
+import {toCustomerMap} from '../utils/customers';
 import type {Reservation, ReservationHistoryEntry} from '../utils/reservations';
 import {groupByDate} from '../utils/reservations';
 import {getDesignerColor} from '../utils/designers';
@@ -19,7 +19,7 @@ import {AddressContent} from '../components/address/AddressContent';
 
 import {useCalendarStore} from '../store/calendarStore';
 
-import customersData from './api/customers.json';
+import {getPageSession, loadPageData} from '../lib/page-data';
 
 type AddressProps = {
     customers: Customer[];
@@ -260,19 +260,19 @@ const Address: NextPage<AddressProps> = ({customers, reservations, history}) => 
 
 export default Address;
 
-export const getServerSideProps: GetServerSideProps<AddressProps> = async () => {
-    const fs = await import('fs');
-    const path = await import('path');
-    const raw = fs.readFileSync(path.join(process.cwd(), 'pages/api/reservations.json'), 'utf-8');
-    const data = JSON.parse(raw);
-    const reservationMap = groupByDate(data.reservations);
-    const customers = customersData.customers as Customer[];
+export const getServerSideProps: GetServerSideProps<AddressProps> = async (ctx) => {
+    const session = await getPageSession(ctx);
+    if (!session) {
+        return {redirect: {destination: '/login', permanent: false}};
+    }
+
+    const data = await loadPageData(session.storeId);
 
     return {
         props: {
-            customers: syncCustomerFirstVisitDateList(customers, reservationMap),
+            customers: data.customers,
             reservations: data.reservations,
-            history: data.history ?? []
+            history: data.history,
         }
     };
 };

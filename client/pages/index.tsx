@@ -12,7 +12,7 @@ import {computeTargetDerived} from '../utils/calendarDerived';
 
 import {groupByDate, Reservation, ReservationHistoryEntry} from '../utils/reservations';
 
-import {Customer, syncCustomerFirstVisitDateList, toCustomerMap} from '../utils/customers';
+import {Customer, toCustomerMap} from '../utils/customers';
 
 import {Calendar} from '../components/calendar/views/Calendar';
 
@@ -24,7 +24,7 @@ import {CustomerDetail} from '../components/calendar/overlays/CustomerDetail';
 
 import {ServiceLegend} from '../components/calendar/service/ServiceLegend';
 
-import customersData from './api/customers.json';
+import {getPageSession, loadPageData} from '../lib/page-data';
 
 type HomeProps = {
     reservations: Reservation[];
@@ -106,19 +106,19 @@ const StyledSection = styled.section <{ $isVisible: boolean }>`
   border-left: solid var(--light-gray-color) ${props => props.$isVisible ? `1px` : 0};
 `;
 
-export const getServerSideProps: GetServerSideProps<HomeProps> = async () => {
-    const fs = await import('fs');
-    const path = await import('path');
-    const raw = fs.readFileSync(path.join(process.cwd(), 'pages/api/reservations.json'), 'utf-8');
-    const data = JSON.parse(raw);
-    const reservationMap = groupByDate(data.reservations);
-    const customers = customersData.customers as Customer[];
+export const getServerSideProps: GetServerSideProps<HomeProps> = async (ctx) => {
+    const session = await getPageSession(ctx);
+    if (!session) {
+        return {redirect: {destination: '/login', permanent: false}};
+    }
+
+    const data = await loadPageData(session.storeId);
 
     return {
         props: {
             reservations: data.reservations,
-            customers: syncCustomerFirstVisitDateList(customers, reservationMap),
-            history: data.history ?? []
+            customers: data.customers,
+            history: data.history,
         }
     };
 };

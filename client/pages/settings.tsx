@@ -12,7 +12,7 @@ import {buildServiceColorMap} from '../utils/services';
 import type {Reservation, ReservationMap, ReservationHistoryEntry} from '../utils/reservations';
 import {groupByDate, toDateKey} from '../utils/reservations';
 import type {Customer} from '../utils/customers';
-import {syncCustomerFirstVisitDateList, toCustomerMap} from '../utils/customers';
+import {toCustomerMap} from '../utils/customers';
 import type {CustomerMap} from '../utils/customers';
 
 import {ReservationDetail} from '../components/calendar/overlays/ReservationDetail';
@@ -23,7 +23,7 @@ import {RevenueSection, type RevenueDesignerKey, type RevenueQuickRange} from '.
 import {ServiceManageSection} from '../components/settings/ServiceManageSection';
 import {StoreManageSection} from '../components/settings/StoreManageSection';
 
-import customersData from './api/customers.json';
+import {getPageSession, loadPageData} from '../lib/page-data';
 
 type SettingsProps = {
     reservations: Reservation[];
@@ -265,19 +265,19 @@ const Settings: NextPage<SettingsProps> = ({reservations, customers, history}) =
 
 export default Settings;
 
-export const getServerSideProps: GetServerSideProps<SettingsProps> = async () => {
-    const fs = await import('fs');
-    const path = await import('path');
-    const raw = fs.readFileSync(path.join(process.cwd(), 'pages/api/reservations.json'), 'utf-8');
-    const data = JSON.parse(raw);
-    const reservationMap = groupByDate(data.reservations);
-    const customers = customersData.customers as Customer[];
+export const getServerSideProps: GetServerSideProps<SettingsProps> = async (ctx) => {
+    const session = await getPageSession(ctx);
+    if (!session) {
+        return {redirect: {destination: '/login', permanent: false}};
+    }
+
+    const data = await loadPageData(session.storeId);
 
     return {
         props: {
             reservations: data.reservations,
-            customers: syncCustomerFirstVisitDateList(customers, reservationMap),
-            history: data.history ?? [],
+            customers: data.customers,
+            history: data.history,
         }
     };
 };
