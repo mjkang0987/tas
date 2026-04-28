@@ -2,13 +2,17 @@ import {useEffect} from 'react';
 
 import {useRouter} from 'next/router';
 
-import {signIn, useSession} from 'next-auth/react';
+import {signIn, signOut, useSession} from 'next-auth/react';
 
 import type {GetServerSideProps} from 'next';
 
 import styled from 'styled-components';
 
 type ProviderInfo = {id: string; label: string; bg: string; color: string; border: string};
+type LoginPageProps = {
+    providerIds: string[];
+    isDatabaseConfigured: boolean;
+};
 
 const ALL_PROVIDERS: ProviderInfo[] = [
     {id: 'google', label: 'Google 로그인', bg: '#fff', color: '#333', border: '#ddd'},
@@ -22,28 +26,31 @@ const ENV_KEYS: Record<string, string> = {
     naver: 'AUTH_NAVER_ID'
 };
 
-export default function LoginPage({providerIds}: {providerIds: string[]}) {
-    const {status} = useSession();
+export default function LoginPage({providerIds, isDatabaseConfigured}: LoginPageProps) {
+    const {data: session, status} = useSession();
     const router = useRouter();
+    const hasAccess = !!session?.user?.role && !!session.user?.storeId;
+    const isAuthenticatedWithoutAccess = status === 'authenticated' && !hasAccess;
 
     useEffect(() => {
-        if (status === 'authenticated') {
+        if (hasAccess) {
             router.replace('/');
         }
-    }, [status, router]);
+    }, [hasAccess, router]);
 
-    if (status === 'loading' || status === 'authenticated') {
+    if (hasAccess) {
         return null;
     }
 
     const providers = ALL_PROVIDERS.filter((p) => providerIds.includes(p.id));
+    const canStartLogin = providers.length > 0;
 
     return (
         <StyledWrapper>
             <StyledCard>
-                <StyledTitle>Chairtime</StyledTitle>
+                <StyledTitle>takeaseat</StyledTitle>
                 <StyledSubtitle>SNS 계정으로 로그인</StyledSubtitle>
-                {providers.length > 0 ? (
+                {canStartLogin ? (
                     <StyledButtonGroup>
                         {providers.map((p) => (
                             <StyledButton
@@ -57,11 +64,35 @@ export default function LoginPage({providerIds}: {providerIds: string[]}) {
                                 {p.label}
                             </StyledButton>
                         ))}
+                        {status === 'loading' && (
+                            <StyledLoadingRow>
+                                <StyledSpinner aria-hidden="true"/>
+                                <span>로그인 상태 확인 중</span>
+                            </StyledLoadingRow>
+                        )}
                     </StyledButtonGroup>
                 ) : (
                     <StyledEmptyState>
                         로그인 제공자가 설정되지 않았습니다. `AUTH_*` 환경변수를 확인해 주세요.
                     </StyledEmptyState>
+                )}
+                <StyledSecondaryButton type="button" onClick={() => router.push('/')}>
+                    게스트로 사용하기
+                </StyledSecondaryButton>
+                {!isDatabaseConfigured && (
+                    <StyledNotice>
+                        현재 `DATABASE_URL`이 설정되지 않아 로그인 후 권한 연결이 완료되지 않을 수 있습니다.
+                    </StyledNotice>
+                )}
+                {isAuthenticatedWithoutAccess && (
+                    <StyledNotice>
+                        현재 계정에는 연결된 매장 권한이 없습니다. 관리자에게 매장 멤버십을 추가해 달라고 요청하세요.
+                    </StyledNotice>
+                )}
+                {isAuthenticatedWithoutAccess && (
+                    <StyledSecondaryButton type="button" onClick={() => signOut({callbackUrl: '/login'})}>
+                        다른 계정으로 로그인
+                    </StyledSecondaryButton>
                 )}
             </StyledCard>
         </StyledWrapper>
@@ -76,7 +107,12 @@ export const getServerSideProps: GetServerSideProps = async () => {
         })
         .map((p) => p.id);
 
-    return {props: {providerIds}};
+    return {
+        props: {
+            providerIds,
+            isDatabaseConfigured: !!process.env.DATABASE_URL,
+        }
+    };
 };
 
 const StyledWrapper = styled.div`
@@ -125,6 +161,31 @@ const StyledButtonGroup = styled.div`
     width: 100%;
 `;
 
+const StyledLoadingRow = styled.div`
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    margin-top: 4px;
+    color: var(--dark-gray-color2);
+    font-size: 13px;
+`;
+
+const StyledSpinner = styled.span`
+    width: 16px;
+    height: 16px;
+    border: 2px solid #dbe7ff;
+    border-top-color: #2d7ff9;
+    border-radius: 50%;
+    animation: loginSpin 0.8s linear infinite;
+
+    @keyframes loginSpin {
+        to {
+            transform: rotate(360deg);
+        }
+    }
+`;
+
 const StyledEmptyState = styled.p`
     width: 100%;
     margin: 0;
@@ -134,6 +195,20 @@ const StyledEmptyState = styled.p`
     border-radius: 10px;
     background: #f8fafc;
     color: var(--dark-gray-color2);
+    font-size: 13px;
+    line-height: 1.6;
+    text-align: center;
+`;
+
+const StyledNotice = styled.p`
+    width: 100%;
+    margin: 16px 0 0;
+    padding: 14px 16px;
+    box-sizing: border-box;
+    border: 1px solid #fecaca;
+    border-radius: 10px;
+    background: #fff1f2;
+    color: #9f1239;
     font-size: 13px;
     line-height: 1.6;
     text-align: center;
@@ -154,4 +229,17 @@ const StyledButton = styled.button<{ $bg: string; $color: string; $border: strin
     &:hover {
         opacity: 0.85;
     }
+`;
+
+const StyledSecondaryButton = styled.button`
+    width: 100%;
+    margin-top: 12px;
+    padding: 12px;
+    border-radius: 8px;
+    border: 1px solid var(--light-gray-color);
+    background-color: var(--white-color);
+    color: var(--black-color);
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
 `;

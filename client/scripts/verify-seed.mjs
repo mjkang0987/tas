@@ -4,11 +4,16 @@ import path from 'path';
 
 const prisma = new PrismaClient();
 const DEFAULT_STORE_KEY = 'default-store';
+const SEED_DATA_DIR = 'prisma/seed-data';
 
 async function readJson(relativePath) {
     const absolutePath = path.join(process.cwd(), relativePath);
     const raw = await fs.readFile(absolutePath, 'utf-8');
     return JSON.parse(raw);
+}
+
+function seedDataPath(fileName) {
+    return `${SEED_DATA_DIR}/${fileName}`;
 }
 
 function getCustomerPointHistoryCount(customers) {
@@ -29,10 +34,10 @@ function getCheckStatus(actual, expected) {
 
 async function main() {
     const [customers, designers, services, reservations] = await Promise.all([
-        readJson('pages/api/customers.json'),
-        readJson('pages/api/designers.json'),
-        readJson('pages/api/services.json'),
-        readJson('pages/api/reservations.json'),
+        readJson(seedDataPath('customers.json')),
+        readJson(seedDataPath('designers.json')),
+        readJson(seedDataPath('services.json')),
+        readJson(seedDataPath('reservations.json')),
     ]);
 
     const store = await prisma.store.findUnique({
@@ -46,8 +51,15 @@ async function main() {
                     reservations: true,
                     reservationEvents: true,
                     memberships: true,
-                    pointHistories: true,
                 },
+            },
+        },
+    });
+
+    const pointHistoryCount = await prisma.customerPointHistory.count({
+        where: {
+            customer: {
+                storeId: DEFAULT_STORE_KEY,
             },
         },
     });
@@ -80,7 +92,7 @@ async function main() {
         createCheck('services', store._count.services, getSourceCount(services, 'services')),
         createCheck('reservations', store._count.reservations, getSourceCount(reservations, 'reservations')),
         createCheck('reservation history', store._count.reservationEvents, getSourceCount(reservations, 'history')),
-        createCheck('customer point history', store._count.pointHistories, getCustomerPointHistoryCount(customers)),
+        createCheck('customer point history', pointHistoryCount, getCustomerPointHistoryCount(customers)),
     ];
 
     let hasMismatch = false;

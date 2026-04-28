@@ -47,11 +47,11 @@ enum DesignerStatus {
 }
 
 model Store {
-  id                     String              @id @default(cuid())
+  id                     String               @id @default(cuid())
   name                   String
-  categoryBaseColorsJson Json                @default("{}")
-  createdAt              DateTime            @default(now())
-  updatedAt              DateTime            @updatedAt
+  categoryBaseColorsJson Json                 @default("{}")
+  createdAt              DateTime             @default(now())
+  updatedAt              DateTime             @updatedAt
   memberships            Membership[]
   customers              Customer[]
   designers              Designer[]
@@ -64,15 +64,15 @@ model Store {
 }
 
 model User {
-  id           String       @id @default(cuid())
-  email        String?      @unique
-  name         String?
-  image        String?
-  provider     String?
-  providerSub  String?
-  createdAt    DateTime     @default(now())
-  updatedAt    DateTime     @updatedAt
-  memberships  Membership[]
+  id          String       @id @default(cuid())
+  email       String?      @unique
+  name        String?
+  image       String?
+  provider    String?
+  providerSub String?
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+  memberships Membership[]
 }
 
 model Membership {
@@ -89,35 +89,35 @@ model Membership {
 }
 
 model Customer {
-  id              String             @id @default(cuid())
-  legacyId        Int?
-  storeId         String
-  name            String
-  tel             String
-  points          Int                @default(0)
-  firstVisitDate  DateTime?
-  allergyNote     String?
-  claimNote       String?
-  preferenceNote  String?
-  createdAt       DateTime           @default(now())
-  updatedAt       DateTime           @updatedAt
-  store           Store              @relation(fields: [storeId], references: [id], onDelete: Cascade)
-  memoTags        CustomerMemoTag[]
-  pointHistories  CustomerPointHistory[]
-  reservations    Reservation[]
+  id             String                 @id @default(cuid())
+  legacyId       Int?
+  storeId        String
+  name           String
+  tel            String
+  points         Int                    @default(0)
+  firstVisitDate DateTime?
+  allergyNote    String?
+  claimNote      String?
+  preferenceNote String?
+  createdAt      DateTime               @default(now())
+  updatedAt      DateTime               @updatedAt
+  store          Store                  @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  memoTags       CustomerMemoTag[]
+  pointHistories CustomerPointHistory[]
+  reservations   Reservation[]
 
+  @@unique([storeId, legacyId])
   @@index([storeId, name])
   @@index([storeId, tel])
-  @@unique([storeId, legacyId])
 }
 
 model CustomerMemoTag {
-  id         String    @id @default(cuid())
+  id         String   @id @default(cuid())
   customerId String
   text       String
   color      String
-  createdAt  DateTime  @default(now())
-  customer   Customer  @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  createdAt  DateTime @default(now())
+  customer   Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
 }
 
 model CustomerPointHistory {
@@ -134,31 +134,31 @@ model CustomerPointHistory {
 }
 
 model Designer {
-  id         String             @id @default(cuid())
-  legacyId   Int?
-  storeId    String
-  name       String
-  status     DesignerStatus     @default(active)
-  phone      String?
-  note       String?
-  color      String?
-  createdAt  DateTime           @default(now())
-  updatedAt  DateTime           @updatedAt
-  store      Store              @relation(fields: [storeId], references: [id], onDelete: Cascade)
-  schedules  DesignerSchedule[]
+  id           String             @id @default(cuid())
+  legacyId     Int?
+  storeId      String
+  name         String
+  status       DesignerStatus     @default(active)
+  phone        String?
+  note         String?
+  color        String?
+  createdAt    DateTime           @default(now())
+  updatedAt    DateTime           @updatedAt
+  store        Store              @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  schedules    DesignerSchedule[]
   reservations Reservation[]
 
   @@unique([storeId, legacyId])
 }
 
 model DesignerSchedule {
-  id         String    @id @default(cuid())
+  id         String   @id @default(cuid())
   designerId String
   dayIndex   Int
   enabled    Boolean
   startTime  String
   endTime    String
-  designer   Designer  @relation(fields: [designerId], references: [id], onDelete: Cascade)
+  designer   Designer @relation(fields: [designerId], references: [id], onDelete: Cascade)
 
   @@unique([designerId, dayIndex])
 }
@@ -179,7 +179,7 @@ model Service {
 }
 
 model Reservation {
-  id               String               @id @default(cuid())
+  id               String                    @id @default(cuid())
   legacyId         Int?
   storeId          String
   customerId       String
@@ -188,22 +188,22 @@ model Reservation {
   startTime        String
   endTime          String
   serviceSummary   String
-  status           ReservationStatus    @default(active)
-  price            Int                  @default(0)
+  status           ReservationStatus         @default(active)
+  price            Int                       @default(0)
   memo             String?
-  paymentCompleted Boolean              @default(false)
-  pointEarned      Int                  @default(0)
-  createdAt        DateTime             @default(now())
-  updatedAt        DateTime             @updatedAt
-  store            Store                @relation(fields: [storeId], references: [id], onDelete: Cascade)
-  customer         Customer             @relation(fields: [customerId], references: [id], onDelete: Cascade)
-  designer         Designer?            @relation(fields: [designerId], references: [id], onDelete: SetNull)
+  paymentCompleted Boolean                   @default(false)
+  pointEarned      Int                       @default(0)
+  createdAt        DateTime                  @default(now())
+  updatedAt        DateTime                  @updatedAt
+  store            Store                     @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  customer         Customer                  @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  designer         Designer?                 @relation(fields: [designerId], references: [id], onDelete: SetNull)
   paymentEntries   ReservationPaymentEntry[]
   histories        ReservationHistory[]
   pointHistories   CustomerPointHistory[]
 
-  @@index([storeId, date])
   @@unique([storeId, legacyId])
+  @@index([storeId, date])
 }
 
 model ReservationPaymentEntry {
@@ -216,13 +216,13 @@ model ReservationPaymentEntry {
 }
 
 model ReservationHistory {
-  id            String   @id @default(cuid())
+  id            String      @id @default(cuid())
   storeId       String
   reservationId String
   beforeJson    Json
   afterJson     Json
-  createdAt     DateTime @default(now())
-  store         Store    @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  createdAt     DateTime    @default(now())
+  store         Store       @relation(fields: [storeId], references: [id], onDelete: Cascade)
   reservation   Reservation @relation(fields: [reservationId], references: [id], onDelete: Cascade)
 }
 
@@ -239,15 +239,15 @@ model StorePointSettings {
 }
 
 model StoreBusinessHour {
-  id         String   @id @default(cuid())
-  storeId    String
-  dayIndex   Int
-  openTime   String
-  closeTime  String
-  enabled    Boolean  @default(true)
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
-  store      Store    @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  id        String   @id @default(cuid())
+  storeId   String
+  dayIndex  Int
+  openTime  String
+  closeTime String
+  enabled   Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  store     Store    @relation(fields: [storeId], references: [id], onDelete: Cascade)
 
   @@unique([storeId, dayIndex])
 }

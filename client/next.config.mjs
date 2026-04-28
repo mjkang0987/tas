@@ -10,6 +10,10 @@ const extraDevOrigins = (process.env.NEXT_DEV_ALLOWED_ORIGINS ?? '')
 /** @type {import('next').NextConfig} */
 const nextConfig = {
     reactStrictMode: true,
+    experimental: {
+        externalDir: true,
+    },
+    transpilePackages: ['next-auth', '@auth/core'],
     compiler: {
         styledComponents: true,
     },
@@ -23,7 +27,7 @@ const nextConfig = {
      * @see https://nextjs.org/docs/app/api-reference/config/next-config-js/turbopack#root-directory
      */
     turbopack: {
-        root: path.resolve(),
+        root: path.resolve('..'),
     },
     async rewrites() {
         return asides.map((aside) => ({

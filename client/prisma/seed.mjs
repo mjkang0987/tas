@@ -6,6 +6,8 @@ const prisma = new PrismaClient();
 const DEFAULT_STORE_KEY = 'default-store';
 const SEED_OWNER_EMAIL = process.env.SEED_OWNER_EMAIL;
 const SEED_OWNER_NAME = process.env.SEED_OWNER_NAME ?? 'Owner';
+const SEED_DATA_DIR = 'prisma/seed-data';
+const MAX_INT_32 = 2147483647;
 
 function mapDesignerStatus(status) {
     if (status === '휴직') return 'on_leave';
@@ -69,6 +71,91 @@ async function readJson(relativePath) {
     return JSON.parse(raw);
 }
 
+function seedDataPath(fileName) {
+    return `${SEED_DATA_DIR}/${fileName}`;
+}
+
+function buildLegacyIdMap(items, getRawId) {
+    const numericIds = items
+        .map(getRawId)
+        .filter((value) => Number.isInteger(value) && value > 0);
+
+    const usedIds = new Set(numericIds.filter((value) => value <= MAX_INT_32));
+    const idMap = new Map();
+    let nextId = usedIds.size > 0 ? Math.max(...usedIds) + 1 : 1;
+
+    for (const item of items) {
+        const rawId = getRawId(item);
+        if (!Number.isInteger(rawId) || rawId <= 0) continue;
+
+        if (rawId <= MAX_INT_32) {
+            idMap.set(rawId, rawId);
+            continue;
+        }
+
+        while (usedIds.has(nextId)) {
+            nextId += 1;
+        }
+
+        idMap.set(rawId, nextId);
+        usedIds.add(nextId);
+        nextId += 1;
+    }
+
+    return idMap;
+}
+
+function normalizeDesigners(designerData) {
+    const designerIdMap = buildLegacyIdMap(designerData.designers ?? [], (designer) => designer.id);
+
+    return {
+        designers: (designerData.designers ?? []).map((designer) => ({
+            ...designer,
+            id: designerIdMap.get(designer.id) ?? designer.id,
+        })),
+    };
+}
+
+function normalizeReservationPayload(reservationData) {
+    const reservationIdMap = buildLegacyIdMap(reservationData.reservations ?? [], (reservation) => reservation.id);
+    const designerIds = [
+        ...(reservationData.reservations ?? []).map((reservation) => reservation.designerId),
+        ...(reservationData.history ?? []).flatMap((history) => [
+            history.reservationId,
+            history.before?.designerId,
+            history.after?.designerId,
+        ]),
+    ];
+    const designerIdMap = buildLegacyIdMap(
+        designerIds.map((id) => ({id})).filter((entry) => Number.isInteger(entry.id) && entry.id > 0),
+        (entry) => entry.id
+    );
+
+    const normalizeDesignerId = (designerId) => designerIdMap.get(designerId) ?? designerId;
+    const normalizeReservationId = (reservationId) => reservationIdMap.get(reservationId) ?? reservationId;
+    const normalizeHistorySnapshot = (snapshot) => snapshot
+        ? {
+            ...snapshot,
+            id: normalizeReservationId(snapshot.id),
+            designerId: normalizeDesignerId(snapshot.designerId),
+        }
+        : snapshot;
+
+    return {
+        reservations: (reservationData.reservations ?? []).map((reservation) => ({
+            ...reservation,
+            id: normalizeReservationId(reservation.id),
+            designerId: normalizeDesignerId(reservation.designerId),
+        })),
+        history: (reservationData.history ?? []).map((history) => ({
+            ...history,
+            reservationId: normalizeReservationId(history.reservationId),
+            before: normalizeHistorySnapshot(history.before),
+            after: normalizeHistorySnapshot(history.after),
+        })),
+    };
+}
+
 async function getDefaultStoreIdOrThrow(message) {
     const store = await prisma.store.findUnique({
         where: {id: DEFAULT_STORE_KEY},
@@ -83,7 +170,7 @@ async function getDefaultStoreIdOrThrow(message) {
 }
 
 async function seedDefaultStore() {
-    const storeData = await readJson('pages/api/store.json');
+    const storeData = await readJson(seedDataPath('store.json'));
 
     const store = await prisma.store.upsert({
         where: {id: DEFAULT_STORE_KEY},
@@ -190,7 +277,7 @@ async function seedOwnerMembership() {
 }
 
 async function seedDesigners() {
-    const designerData = await readJson('pages/api/designers.json');
+    const designerData = normalizeDesigners(await readJson(seedDataPath('designers.json')));
 
     const storeId = await getDefaultStoreIdOrThrow('Default store must exist before seeding designers.');
 
@@ -248,7 +335,7 @@ async function seedDesigners() {
 }
 
 async function seedCustomers() {
-    const customerData = await readJson('pages/api/customers.json');
+    const customerData = await readJson(seedDataPath('customers.json'));
 
     const storeId = await getDefaultStoreIdOrThrow('Default store must exist before seeding customers.');
 
@@ -319,7 +406,7 @@ async function seedCustomers() {
 }
 
 async function seedServices() {
-    const serviceData = await readJson('pages/api/services.json');
+    const serviceData = await readJson(seedDataPath('services.json'));
 
     const storeId = await getDefaultStoreIdOrThrow('Default store must exist before seeding services.');
 
@@ -352,7 +439,7 @@ async function seedServices() {
 }
 
 async function seedReservations() {
-    const reservationData = await readJson('pages/api/reservations.json');
+    const reservationData = normalizeReservationPayload(await readJson(seedDataPath('reservations.json')));
 
     const storeId = await getDefaultStoreIdOrThrow('Default store must exist before seeding reservations.');
 

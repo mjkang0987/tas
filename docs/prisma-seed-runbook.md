@@ -27,11 +27,11 @@ Current seed order in `client/prisma/seed.mjs`:
 
 Imported source files:
 
-- `client/pages/api/store.json`
-- `client/pages/api/designers.json`
-- `client/pages/api/customers.json`
-- `client/pages/api/services.json`
-- `client/pages/api/reservations.json`
+- `client/prisma/seed-data/store.json`
+- `client/prisma/seed-data/designers.json`
+- `client/prisma/seed-data/customers.json`
+- `client/prisma/seed-data/services.json`
+- `client/prisma/seed-data/reservations.json`
 
 ## Run Sequence
 

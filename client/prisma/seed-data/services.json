@@ -1,0 +1,175 @@
+{
+    "services": [
+        {
+            "name": "남성커트",
+            "durationMinutes": 30,
+            "category": "커트",
+            "price": 18000
+        },
+        {
+            "name": "여성커트",
+            "durationMinutes": 30,
+            "category": "커트",
+            "price": 20000
+        },
+        {
+            "name": "주니어커트",
+            "durationMinutes": 30,
+            "category": "커트",
+            "price": 15000
+        },
+        {
+            "name": "남자 일반펌",
+            "category": "펌",
+            "durationMinutes": 90,
+            "price": 50000
+        },
+        {
+            "name": "여자 일반펌",
+            "category": "펌",
+            "durationMinutes": 120,
+            "price": 50000
+        },
+        {
+            "name": "남자 디자인펌",
+            "category": "펌",
+            "durationMinutes": 90,
+            "price": 70000
+        },
+        {
+            "name": "여자 디자인펌",
+            "category": "펌",
+            "durationMinutes": 120,
+            "price": 70000
+        },
+        {
+            "name": "셋팅펌",
+            "category": "펌",
+            "durationMinutes": 150,
+            "price": 80000
+        },
+        {
+            "name": "남자 매직",
+            "category": "펌",
+            "durationMinutes": 120,
+            "price": 100000
+        },
+        {
+            "name": "여자 매직",
+            "category": "펌",
+            "durationMinutes": 150,
+            "price": 100000
+        },
+        {
+            "name": "볼륨매직",
+            "category": "펌",
+            "durationMinutes": 180,
+            "price": 150000
+        },
+        {
+            "name": "뿌리염색(멋내기)",
+            "category": "컬러",
+            "durationMinutes": 90,
+            "price": 45000
+        },
+        {
+            "name": "전체염색(멋내기)",
+            "category": "컬러",
+            "durationMinutes": 90,
+            "price": 65000
+        },
+        {
+            "name": "탈색",
+            "durationMinutes": 120,
+            "category": "컬러",
+            "price": 80000
+        },
+        {
+            "name": "크리닉 3단계",
+            "durationMinutes": 60,
+            "category": "크리닉",
+            "price": 50000
+        },
+        {
+            "name": "하오니코",
+            "durationMinutes": 60,
+            "category": "크리닉",
+            "price": 100000
+        },
+        {
+            "name": "남자 드라이",
+            "durationMinutes": 20,
+            "category": "드라이",
+            "price": 18000
+        },
+        {
+            "name": "여자 드라이",
+            "durationMinutes": 30,
+            "category": "드라이",
+            "price": 20000
+        },
+        {
+            "name": "기장추가-어깨아래",
+            "category": "기타",
+            "durationMinutes": 0,
+            "price": 20000
+        },
+        {
+            "name": "기장추가-가슴아래",
+            "category": "기타",
+            "durationMinutes": 0,
+            "price": 40000
+        },
+        {
+            "name": "숱추가",
+            "durationMinutes": 0,
+            "category": "기타",
+            "price": 10000
+        },
+        {
+            "name": "옆머리 다운펌+커트",
+            "category": "펌",
+            "durationMinutes": 90,
+            "price": 38000
+        },
+        {
+            "name": "앞머리펌 롤",
+            "category": "펌",
+            "durationMinutes": 90,
+            "price": 35000
+        },
+        {
+            "name": "앞머리펌 매직",
+            "category": "펌",
+            "durationMinutes": 40000,
+            "price": 90
+        },
+        {
+            "name": "뿌리염색(새치)",
+            "category": "컬러",
+            "durationMinutes": 90,
+            "price": 45000
+        },
+        {
+            "name": "전채염색(새치)",
+            "category": "컬러",
+            "durationMinutes": 90,
+            "price": 65000
+        },
+        {
+            "name": "숱추가2",
+            "category": "기타",
+            "durationMinutes": 0,
+            "price": 20000
+        }
+    ],
+    "categoryBaseColors": {
+        "커트": "#00db6a",
+        "펌": "#b33532",
+        "컬러": "#FB8C00",
+        "크리닉": "#00A896",
+        "드라이": "#1337d8",
+        "기타": "#8E8E93",
+        "매직": "#ccc500"
+    }
+}

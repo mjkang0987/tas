@@ -1,34 +1,79 @@
-This is a [Next.js](https://nextjs.org/) project bootstrapped with [`create-next-app`](https://github.com/vercel/next.js/tree/canary/packages/create-next-app).
+# takeaseat Client
 
-## Getting Started
+Salon reservation app built with Next.js, NextAuth, Prisma, and PostgreSQL.
 
-First, run the development server:
+## Local Development
+
+From `client/`:
 
 ```bash
-npm run dev
-# or
-yarn dev
+pnpm install
+pnpm dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Required local environment variables:
 
-You can start editing the page by modifying `pages/index.tsx`. The page auto-updates as you edit the file.
+- `DATABASE_URL`
+- `AUTH_SECRET`
+- `AUTH_URL`
+- `AUTH_GOOGLE_ID`
+- `AUTH_GOOGLE_SECRET`
+- `AUTH_KAKAO_ID`
+- `AUTH_KAKAO_SECRET`
+- `AUTH_NAVER_ID`
+- `AUTH_NAVER_SECRET`
 
-[API routes](https://nextjs.org/docs/api-routes/introduction) can be accessed on [http://localhost:3000/api/hello](http://localhost:3000/api/hello). This endpoint can be edited in `pages/api/hello.ts`.
+Seed-related variables:
 
-The `pages/api` directory is mapped to `/api/*`. Files in this directory are treated as [API routes](https://nextjs.org/docs/api-routes/introduction) instead of React pages.
+- `SEED_OWNER_EMAIL`
+- `SEED_OWNER_NAME`
 
-## Learn More
+## Prisma Commands
 
-To learn more about Next.js, take a look at the following resources:
+Useful commands from `client/`:
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+```bash
+pnpm prisma:prepare
+pnpm prisma:import
+pnpm prisma:deploy
+pnpm prisma:bootstrap
+```
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js/) - your feedback and contributions are welcome!
+Meaning:
 
-## Deploy on Vercel
+- `prisma:import`: local/staging import flow using `db push`
+- `prisma:deploy`: production migration flow using checked-in migrations
+- `prisma:bootstrap`: production or staging first-run flow after database provisioning
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## Production Deploy
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/deployment) for more details.
+Expected platform shape:
+
+- App: Vercel
+- Database: PostgreSQL
+
+Build behavior:
+
+- `pnpm build` runs `prisma generate` before `next build`
+- `postinstall` also runs `prisma generate`
+
+First production deploy order:
+
+1. Provision PostgreSQL and set `DATABASE_URL`
+2. Add app env vars in hosting
+3. Deploy app
+4. Run `pnpm prisma:deploy`
+5. Run `pnpm prisma:seed`
+6. Run `pnpm prisma:verify-seed`
+
+For a combined first-run flow:
+
+```bash
+pnpm prisma:bootstrap
+```
+
+## Notes
+
+- Production OAuth credentials must not reuse local development values.
+- Run the import flow against staging before production.
+- Take a database snapshot before first production seed/import.

@@ -4,17 +4,58 @@ import Google from 'next-auth/providers/google';
 import Kakao from 'next-auth/providers/kakao';
 import Naver from 'next-auth/providers/naver';
 
-import {resolveUserMembership} from './lib/resolve-user-membership';
-import {syncAuthUser} from './lib/sync-auth-user';
+import {resolveUserMembership} from '../server/auth/resolve-user-membership';
+import {syncAuthUser} from '../server/auth/sync-auth-user';
+
+type KakaoProfile = {
+    id?: string | number;
+    sub?: string;
+    kakao_account?: {
+        email?: string;
+        profile?: {
+            nickname?: string;
+            profile_image_url?: string;
+        };
+    };
+    properties?: {
+        nickname?: string;
+        profile_image?: string;
+    };
+};
 
 const providers: Provider[] = [];
 
 if (process.env.AUTH_GOOGLE_ID && !process.env.AUTH_GOOGLE_ID.startsWith('REPLACE'))
-    providers.push(Google);
+    providers.push(Google({
+        clientId: process.env.AUTH_GOOGLE_ID,
+        clientSecret: process.env.AUTH_GOOGLE_SECRET,
+    }));
 if (process.env.AUTH_KAKAO_ID && !process.env.AUTH_KAKAO_ID.startsWith('REPLACE'))
-    providers.push(Kakao);
+    providers.push(Kakao({
+        clientId: process.env.AUTH_KAKAO_ID,
+        clientSecret: process.env.AUTH_KAKAO_SECRET,
+        profile(profile) {
+            const kakaoProfile = profile as KakaoProfile;
+            const id = kakaoProfile.id ?? kakaoProfile.sub;
+
+            if (id === undefined || id === null) {
+                const profileKeys = Object.keys(profile as Record<string, unknown>).sort().join(', ');
+                throw new Error(`Kakao profile is missing id. Received keys: ${profileKeys || '(none)'}`);
+            }
+
+            return {
+                id: String(id),
+                name: kakaoProfile.kakao_account?.profile?.nickname ?? kakaoProfile.properties?.nickname,
+                email: kakaoProfile.kakao_account?.email,
+                image: kakaoProfile.kakao_account?.profile?.profile_image_url ?? kakaoProfile.properties?.profile_image,
+            };
+        }
+    }));
 if (process.env.AUTH_NAVER_ID && !process.env.AUTH_NAVER_ID.startsWith('REPLACE'))
-    providers.push(Naver);
+    providers.push(Naver({
+        clientId: process.env.AUTH_NAVER_ID,
+        clientSecret: process.env.AUTH_NAVER_SECRET,
+    }));
 
 export const {handlers, auth, signIn, signOut} = NextAuth({
     providers,
@@ -25,14 +66,14 @@ export const {handlers, auth, signIn, signOut} = NextAuth({
         signIn: '/login'
     },
     callbacks: {
-        authorized({auth, request}) {
+        authorized({request}) {
             const pathname = request.nextUrl.pathname;
 
             if (pathname === '/login' || pathname.startsWith('/api/auth')) {
                 return true;
             }
 
-            return !!auth;
+            return true;
         },
         async jwt({token, account, user}) {
             if (account) {
