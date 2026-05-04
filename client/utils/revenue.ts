@@ -119,9 +119,10 @@ export function isRevenueReservationTarget(
 }
 
 export function isPaidReservationTarget(reservation: Reservation, designerId: number | null): boolean {
-    if (!isCompletedReservationTarget(reservation, designerId)) return false;
+    if (!matchDesigner(reservation.designerId, designerId)) return false;
+    if (reservation.status === 'cancelled' || reservation.status === 'noshow') return false;
 
-    if (Array.isArray(reservation.paymentEntries)) {
+    if (Array.isArray(reservation.paymentEntries) && reservation.paymentEntries.length > 0) {
         return reservation.paymentEntries.some((entry) => entry.amount > 0);
     }
 
