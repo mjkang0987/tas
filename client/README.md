@@ -11,6 +11,20 @@ pnpm install
 pnpm dev
 ```
 
+HTTPS local development with a custom hostname:
+
+```bash
+pnpm dev:https
+```
+
+Expected local env values for HTTPS dev:
+
+- `AUTH_URL=https://dev.takeaseat.co.kr:3000`
+- `DEV_HOSTNAME=dev.takeaseat.co.kr`
+- `HTTPS_KEY_PATH=/absolute/path/to/key.pem`
+- `HTTPS_CERT_PATH=/absolute/path/to/cert.pem`
+- `HTTPS_CA_PATH=/absolute/path/to/ca.pem` (optional)
+
 Required local environment variables:
 
 - `DATABASE_URL`

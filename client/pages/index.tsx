@@ -75,7 +75,7 @@ const Home: NextPage<HomeProps> = (props) => {
 
     return (<>
             <Head>
-                <title>takeaseat</title>
+                <title>TAS | Take a seat</title>
             </Head>
             <StyledSection $isVisible={aside.isVisible}>
                 {curr && <Calendar/>}

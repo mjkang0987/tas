@@ -219,20 +219,25 @@ const Settings: NextPage<SettingsProps> = ({reservations, customers, history, st
         return subscribeLocalDb(setLocalSnapshot);
     }, [storageMode]);
 
+    const remoteReservationMap = useMemo(
+        () => storageMode === 'local' ? null : groupByDate(reservations),
+        [storageMode, reservations]
+    );
+
     useEffect(() => {
-        if (storageMode === 'local') {
+        if (storageMode === 'local' || !remoteReservationMap) {
             return;
         }
 
         setCustomerMap(initialCustomerMap);
-        setReservationMap(reservationMap);
+        setReservationMap(remoteReservationMap);
         setReservationHistory(history);
-    }, [storageMode, initialCustomerMap, reservationMap, history, setCustomerMap, setReservationMap, setReservationHistory]);
+    }, [storageMode, initialCustomerMap, remoteReservationMap, history, setCustomerMap, setReservationMap, setReservationHistory]);
 
     return (
         <StyledSection>
             <Head>
-                <title>takeaseat - 설정</title>
+                <title>TAS | 설정</title>
             </Head>
             <StyledHeading>설정</StyledHeading>
             <StyledPageTabs>

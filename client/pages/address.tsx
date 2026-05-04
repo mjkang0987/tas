@@ -231,7 +231,7 @@ const Address: NextPage<AddressProps> = ({customers, reservations, history, stor
     return (
         <StyledSection>
             <Head>
-                <title>RESERVATION - 고객명단</title>
+                <title>TAS | 고객명단</title>
             </Head>
             <AddressContent
                 filteredCustomers={filteredCustomers}

@@ -4,6 +4,7 @@
     "private": true,
     "scripts": {
         "dev": "next dev --webpack",
+        "dev:https": "sh ./scripts/dev-https.sh",
         "dev:turbo": "next dev",
         "build": "pnpm prisma:generate && next build",
         "start": "next start",

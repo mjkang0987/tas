@@ -1,6 +1,7 @@
-import React, {useEffect} from 'react';
+import React, {useEffect, useState} from 'react';
 
 import Head from 'next/head';
+import Router from 'next/router';
 
 import type {
     AppContext,
@@ -8,6 +9,7 @@ import type {
 } from 'next/app';
 
 import {SessionProvider, useSession} from 'next-auth/react';
+import styled, {keyframes} from 'styled-components';
 
 import {GlobalStyle} from '../styles/globalStyle';
 import {useCalendarStore} from '../store/calendarStore';
@@ -144,7 +146,7 @@ function AppContent({Component, pageProps}: AppContentProps) {
     return (
         <>
             <Head>
-                <title>takeaseat</title>
+                <title>TAS | Take a seat</title>
             </Head>
             <GlobalStyle/>
             <LayoutComponent>
@@ -154,9 +156,75 @@ function AppContent({Component, pageProps}: AppContentProps) {
     );
 }
 
+function RouteLoadingSpinner() {
+    const [loading, setLoading] = useState(false);
+
+    useEffect(() => {
+        let timer: ReturnType<typeof setTimeout>;
+
+        let fallback: ReturnType<typeof setTimeout>;
+        const calendarPattern = /^\/(month|week|day|year|three)(\/|$)/;
+
+        const start = (url: string, opts: {shallow: boolean}) => {
+            if (opts.shallow || calendarPattern.test(url)) return;
+            timer = setTimeout(() => setLoading(true), 300);
+            fallback = setTimeout(() => setLoading(false), 8000);
+        };
+        const end = () => {
+            clearTimeout(timer);
+            clearTimeout(fallback);
+            setLoading(false);
+        };
+
+        Router.events.on('routeChangeStart', start);
+        Router.events.on('routeChangeComplete', end);
+        Router.events.on('routeChangeError', end);
+
+        return () => {
+            clearTimeout(timer);
+            clearTimeout(fallback);
+            Router.events.off('routeChangeStart', start);
+            Router.events.off('routeChangeComplete', end);
+            Router.events.off('routeChangeError', end);
+        };
+    }, []);
+
+    if (!loading) return null;
+
+    return (
+        <StyledOverlay>
+            <StyledSpinner />
+        </StyledOverlay>
+    );
+}
+
+const spin = keyframes`
+    to { transform: rotate(360deg); }
+`;
+
+const StyledOverlay = styled.div`
+    position: fixed;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(255, 255, 255, 0.6);
+    z-index: 9999;
+`;
+
+const StyledSpinner = styled.div`
+    width: 36px;
+    height: 36px;
+    border: 3px solid var(--light-gray-color);
+    border-top-color: var(--blue-color);
+    border-radius: 50%;
+    animation: ${spin} 0.6s linear infinite;
+`;
+
 function App({Component, pageProps: {session, ...pageProps}}: AppProps) {
     return (
         <SessionProvider session={session}>
+            <RouteLoadingSpinner />
             <AppContent Component={Component} pageProps={pageProps}/>
         </SessionProvider>
     );
