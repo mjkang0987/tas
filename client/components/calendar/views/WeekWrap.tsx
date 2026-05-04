@@ -3,12 +3,7 @@ import {useMemo} from 'react';
 import styled from 'styled-components';
 
 import {useCalendarStore} from '../../../store/calendarStore';
-
-import {computeTargetDerived} from '../../../utils/calendarDerived';
-
-import {
-    ViewType
-} from '../../../utils/constants';
+import {ViewType} from '../../../utils/constants';
 
 import {Week} from './Week';
 
@@ -20,39 +15,35 @@ export const WeekWrap = ({
     type
 }: WeekType) => {
     const target = useCalendarStore((s) => s.target);
-    const curr = useMemo(() => computeTargetDerived(target), [target])!;
-    const view = useCalendarStore((s) => s.view);
+    const dates = useMemo(() => {
+        if (!target.full) return [];
 
-    const {
-        month,
-        weekFirstNumber,
-        monthPrevLastNumber,
-    } = curr;
+        const baseDate = new Date(target.full);
 
-    const arrayCurrent = () => {
         if (type === ViewType.Week) {
-            return curr.week();
+            const startDate = new Date(baseDate);
+            startDate.setDate(baseDate.getDate() - baseDate.getDay());
+
+            return Array.from({length: 7}, (_, index) => {
+                const nextDate = new Date(startDate);
+                nextDate.setDate(startDate.getDate() + index);
+                return nextDate;
+            });
         }
+
         if (type === ViewType.Three) {
-            return curr.three();
+            return Array.from({length: 3}, (_, index) => {
+                const nextDate = new Date(baseDate);
+                nextDate.setDate(baseDate.getDate() + index);
+                return nextDate;
+            });
         }
+
         return [];
-    };
-
-    const arrayPrev = () => {
-        const prevCount = 7 - weekFirstNumber > -1 ? 7 - curr.week().length : 0;
-        return new Array(prevCount).fill(monthPrevLastNumber).reduce((acc, curr, i) => [+curr - i, ...acc], []);
-    };
-
-    const arrayNext = () => {
-        const nextCount = (view.type === ViewType.Week ? 7 : 3) - arrayCurrent().length - (view.type === ViewType.Week ? arrayPrev().length : 0);
-        return new Array(nextCount).fill(1).reduce((acc, curr, i) => [...acc, curr + i], []);
-    };
+    }, [target, type]);
 
     return (<StyledWeeks>
-            {view.type === ViewType.Week && <Week weekDates={arrayPrev()} currMonth={month -1} />}
-            <Week weekDates={arrayCurrent()} currMonth={month} />
-            <Week weekDates={arrayNext()} currMonth={month + 1} />
+            <Week dates={dates} />
         </StyledWeeks>
     );
 };

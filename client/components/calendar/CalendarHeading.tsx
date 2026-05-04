@@ -14,12 +14,31 @@ export const CalendarHeading = () => {
     const view = useCalendarStore((s) => s.view);
     const {type} = view;
     const currValue = useCalendarStore((s) => s.target);
-    const {full, fullYear, month, date} = currValue;
+    const {full, fullYear, month, date, day} = currValue;
     const curr = useMemo(() => computeTargetDerived(currValue), [currValue]);
 
     const setMonth = () => {
         if (type === ViewType.Day || type === ViewType.Month) {
             return +month + 1;
+        }
+
+        if (curr) {
+            const baseDate = new Date(+fullYear, +month, +date);
+            const endDate = new Date(baseDate);
+
+            if (type === ViewType.Week) {
+                endDate.setDate(baseDate.getDate() - +day + 6);
+            } else {
+                endDate.setDate(baseDate.getDate() + 2);
+            }
+
+            if (endDate.getMonth() !== +month || endDate.getFullYear() !== +fullYear) {
+                const calcYear = endDate.getFullYear() !== +fullYear
+                    ? `${endDate.getFullYear()} / ${endDate.getMonth() + 1}`
+                    : endDate.getMonth() + 1;
+
+                return `${+month + 1} - ${calcYear}`;
+            }
         }
 
         if (curr && +date + (type === ViewType.Week ? 6 : 2) > curr.monthLastNumber) {

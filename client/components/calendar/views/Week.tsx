@@ -15,13 +15,11 @@ import {Timeline} from './Timeline';
 import {Num} from './Num';
 
 interface WeekDatesType {
-    currMonth: number
-    weekDates: number[]
+    dates: Date[]
 }
 
 export const Week = ({
-                         currMonth,
-                         weekDates
+                         dates
                      }: WeekDatesType) => {
     const today = useCalendarStore((s) => s.today);
     const target = useCalendarStore((s) => s.target);
@@ -29,12 +27,10 @@ export const Week = ({
     const setCurr = useCalendarStore((s) => s.setTargetFromDate);
     const setView = useCalendarStore((s) => s.setView);
 
-    const fullYear = curr!.fullYear;
     const currentMonth = curr!.month;
 
     return (<>
-            {weekDates.map((w: number) => {
-                const normalizedDate = new Date(fullYear, currMonth, w);
+            {dates.map((normalizedDate) => {
                 const isAdjacentMonth = normalizedDate.getMonth() !== currentMonth;
                 const isTodayDate = isTodayValue(
                     today,
@@ -42,20 +38,21 @@ export const Week = ({
                     normalizedDate.getMonth(),
                     normalizedDate.getDate()
                 );
-                const dateLabel = isAdjacentMonth ? `${normalizedDate.getMonth() + 1}/${w}` : String(w);
+                const dateNumber = normalizedDate.getDate();
+                const dateLabel = isAdjacentMonth ? `${normalizedDate.getMonth() + 1}/${dateNumber}` : String(dateNumber);
 
-                return <StyledWeek key={`week_${w}`}>
+                return <StyledWeek key={`week_${normalizedDate.getFullYear()}-${normalizedDate.getMonth()}-${dateNumber}`}>
                     <StyledNumWrap>
                         <Num onClick={() => {
-                            setCurr(new Date(fullYear, currMonth, w));
+                            setCurr(normalizedDate);
                             setView({type: ViewType.Day});
                         }}
                              isToday={isTodayDate}
                              compact={isAdjacentMonth}>{dateLabel}</Num>
                     </StyledNumWrap>
-                    <Timeline fullYear={fullYear}
-                              month={currMonth}
-                              date={+w}
+                    <Timeline fullYear={normalizedDate.getFullYear()}
+                              month={normalizedDate.getMonth()}
+                              date={dateNumber}
                               isToday={isTodayDate} />
                 </StyledWeek>;
             })}
