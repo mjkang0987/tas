@@ -63,6 +63,11 @@ const FOCUSABLE_SELECTOR = [
 
 export function useDialogAccessibility<T extends HTMLElement>(onClose: () => void) {
     const dialogRef = useRef<T | null>(null);
+    const onCloseRef = useRef(onClose);
+
+    useEffect(() => {
+        onCloseRef.current = onClose;
+    }, [onClose]);
 
     useEffect(() => {
         const dialog = dialogRef.current;
@@ -75,7 +80,7 @@ export function useDialogAccessibility<T extends HTMLElement>(onClose: () => voi
         const handleKeyDown = (event: KeyboardEvent) => {
             if (event.key === 'Escape') {
                 event.preventDefault();
-                onClose();
+                onCloseRef.current();
                 return;
             }
 
@@ -110,7 +115,7 @@ export function useDialogAccessibility<T extends HTMLElement>(onClose: () => voi
         return () => {
             dialog.removeEventListener('keydown', handleKeyDown);
         };
-    }, [onClose]);
+    }, []);
 
     return dialogRef;
 }

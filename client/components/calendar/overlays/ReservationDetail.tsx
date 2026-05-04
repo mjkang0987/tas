@@ -1,4 +1,4 @@
-import {useState} from 'react';
+import {useEffect, useState} from 'react';
 
 import {createPortal} from 'react-dom';
 import styled from 'styled-components';
@@ -72,6 +72,65 @@ interface ReservationDetailProps {
     onCancel: (reservation: Reservation, status?: ReservationStatus) => void;
 }
 
+function resolveReservationPrice(reservation: Reservation): number {
+    return reservation.price ?? sumPrice(parseServiceString(reservation.service));
+}
+
+function buildReservationFormState(reservation: Reservation): ReservationDetailFormState {
+    return {
+        date: reservation.date,
+        startTime: reservation.startTime,
+        endTime: reservation.endTime,
+        service: reservation.service,
+        designerId: reservation.designerId ?? 0,
+        price: resolveReservationPrice(reservation),
+        memo: reservation.memo ?? '',
+    };
+}
+
+function buildDraftReservation(reservation: Reservation, form: ReservationDetailFormState): Reservation {
+    return {
+        ...reservation,
+        date: form.date,
+        startTime: form.startTime,
+        endTime: form.endTime,
+        service: form.service,
+        price: form.price,
+        memo: form.memo,
+        ...(form.designerId ? {designerId: form.designerId} : {designerId: undefined}),
+    };
+}
+
+function buildSyncedPaidReservation(reservation: Reservation, nextReservation: Reservation): Reservation {
+    const paymentEntries = getPaymentEntries(reservation);
+
+    if (paymentEntries.length === 1) {
+        return {
+            ...nextReservation,
+            paymentEntries: [{
+                ...paymentEntries[0],
+                amount: nextReservation.price ?? 0,
+            }],
+            paymentMethod: paymentEntries[0].method,
+            paymentCompleted: true,
+        };
+    }
+
+    if (paymentEntries.length === 0 && reservation.paymentCompleted && reservation.paymentMethod) {
+        return {
+            ...nextReservation,
+            paymentEntries: [{
+                method: reservation.paymentMethod,
+                amount: nextReservation.price ?? 0,
+            }],
+            paymentMethod: reservation.paymentMethod,
+            paymentCompleted: true,
+        };
+    }
+
+    return nextReservation;
+}
+
 export const ReservationDetail = ({
                                       reservation,
                                       customerMap,
@@ -105,27 +164,28 @@ export const ReservationDetail = ({
     const modalRoot = document.getElementById('modal-root');
     const {layerId, layerDataId} = useLayerInstanceId('reservation-detail');
     const getDefaultPointAwardAmount = (baseAmount: number) => Math.floor((baseAmount * storeSettings.pointSettings.serviceRate) / 100);
+    const latestKnownDesignerId = reservation.designerId ?? history.reduce<number | undefined>((found, entry) => {
+        if (found) return found;
+        const afterDesignerId = entry.after?.designerId;
+        if (typeof afterDesignerId === 'number' && afterDesignerId > 0) return afterDesignerId;
+        const beforeDesignerId = entry.before?.designerId;
+        if (typeof beforeDesignerId === 'number' && beforeDesignerId > 0) return beforeDesignerId;
+        return undefined;
+    }, undefined);
 
     const [mode, setMode] = useState<ReservationDetailMode>('view');
     const [isHistoryOpen, setIsHistoryOpen] = useState(false);
-    const initialPrice = reservation.price ?? sumPrice(parseServiceString(reservation.service));
-    const initialDesignerId = reservation.designerId ?? (activeDesigners[0]?.id ?? 0);
-    const [form, setForm] = useState<ReservationDetailFormState>({
-        date: reservation.date,
-        startTime: reservation.startTime,
-        endTime: reservation.endTime,
-        service: reservation.service,
-        designerId: initialDesignerId,
-        price: initialPrice,
-        memo: reservation.memo ?? ''
-    });
+    const initialForm = buildReservationFormState(reservation);
+    const [form, setForm] = useState<ReservationDetailFormState>(initialForm);
+    const [priceInputValue, setPriceInputValue] = useState(initialForm.price === 0 ? '' : String(initialForm.price));
     const [error, setError] = useState('');
     const [selectedServices, setSelectedServices] = useState<string[]>(
         () => parseServiceString(reservation.service)
     );
     const [isEndTimeManual, setIsEndTimeManual] = useState(false);
     const [isPriceManual, setIsPriceManual] = useState(false);
-    const displayPrice = reservation.price ?? sumPrice(parseServiceString(reservation.service));
+    const draftReservation = buildDraftReservation(reservation, form);
+    const displayPrice = resolveReservationPrice(draftReservation);
     const [paymentEntries, setPaymentEntries] = useState<Array<{ method: PaymentMethod | ''; amount: string }>>(
         () => getPaymentEntryDrafts(reservation, displayPrice)
     );
@@ -135,13 +195,35 @@ export const ReservationDetail = ({
         amount: String(reservation.pointEarned ?? getDefaultPointAwardAmount(displayPrice)),
     }));
 
+    useEffect(() => {
+        const nextForm = buildReservationFormState(reservation);
+        const nextDisplayPrice = resolveReservationPrice(reservation);
+
+        setForm(nextForm);
+        setPriceInputValue(nextForm.price === 0 ? '' : String(nextForm.price));
+        setSelectedServices(parseServiceString(reservation.service));
+        setIsEndTimeManual(false);
+        setIsPriceManual(false);
+        setPaymentEntries(getPaymentEntryDrafts(reservation, nextDisplayPrice));
+        setIsPointAwardManual(false);
+        setPointAward({
+            enabled: (reservation.pointEarned ?? 0) > 0 || storeSettings.pointSettings.enableServiceRate,
+            amount: String(reservation.pointEarned ?? getDefaultPointAwardAmount(nextDisplayPrice)),
+        });
+        setError('');
+    }, [reservation, storeSettings.pointSettings.enableServiceRate, storeSettings.pointSettings.serviceRate]);
+
     const changedFields = getChangedFields(reservation, form, designerNameMap);
     const thisHistory = history.filter((h) => h.reservationId === reservation.id);
     const totalDuration = sumDurationMinutes(selectedServices);
     const totalPrice = sumPrice(selectedServices);
-    const displayDesignerName = reservation.designerId ? (designerNameMap[reservation.designerId] ?? '미지정') : '미지정';
-    const displayDesignerColor = reservation.designerId
-        ? getDesignerColor(designers.find((designer) => designer.id === reservation.designerId))
+    const displayDesignerName = draftReservation.designerId
+        ? (designerNameMap[draftReservation.designerId] ?? '미지정')
+        : latestKnownDesignerId
+            ? `연결 끊긴 디자이너 (#${latestKnownDesignerId})`
+            : '미지정';
+    const displayDesignerColor = draftReservation.designerId
+        ? getDesignerColor(designers.find((designer) => designer.id === draftReservation.designerId))
         : '#8E8E93';
     const normalizedPaymentEntries = getPaymentEntries(reservation);
     const paymentCompleted = hasCompletedPayment(reservation);
@@ -184,6 +266,7 @@ export const ReservationDetail = ({
 
             const serviceStr = joinServiceNames(next);
             const duration = sumDurationMinutes(next);
+            const nextPrice = sumPrice(next);
 
             setForm((f) => {
                 const updated = {...f, service: serviceStr};
@@ -193,11 +276,15 @@ export const ReservationDetail = ({
                 }
 
                 if (!isPriceManual) {
-                    updated.price = sumPrice(next);
+                    updated.price = nextPrice;
                 }
 
                 return updated;
             });
+
+            if (!isPriceManual) {
+                setPriceInputValue(nextPrice === 0 ? '' : String(nextPrice));
+            }
 
             setIsEndTimeManual(false);
             setError('');
@@ -269,7 +356,10 @@ export const ReservationDetail = ({
             setMode('view');
             return;
         }
-        onUpdate(reservation, {...reservation, ...form});
+        const nextReservation = hasCompletedPayment(reservation)
+            ? buildSyncedPaidReservation(reservation, draftReservation)
+            : draftReservation;
+        onUpdate(reservation, nextReservation);
         setMode('view');
     };
 
@@ -362,24 +452,20 @@ export const ReservationDetail = ({
     };
 
     const handleCancel = () => {
-        setForm({
-            date: reservation.date,
-            startTime: reservation.startTime,
-            endTime: reservation.endTime,
-            service: reservation.service,
-            designerId: initialDesignerId,
-            price: initialPrice,
-            memo: reservation.memo ?? ''
-        });
+        const nextForm = buildReservationFormState(reservation);
+        const nextDisplayPrice = resolveReservationPrice(reservation);
+
+        setForm(nextForm);
+        setPriceInputValue(nextForm.price === 0 ? '' : String(nextForm.price));
         setSelectedServices(parseServiceString(reservation.service));
         setIsEndTimeManual(false);
         setIsPriceManual(false);
         setIsHistoryOpen(false);
-        setPaymentEntries(getPaymentEntryDrafts(reservation, displayPrice));
+        setPaymentEntries(getPaymentEntryDrafts(reservation, nextDisplayPrice));
         setIsPointAwardManual(false);
         setPointAward({
             enabled: (reservation.pointEarned ?? 0) > 0 || storeSettings.pointSettings.enableServiceRate,
-            amount: String(reservation.pointEarned ?? getDefaultPointAwardAmount(displayPrice)),
+            amount: String(reservation.pointEarned ?? getDefaultPointAwardAmount(nextDisplayPrice)),
         });
         setMode('view');
     };
@@ -404,7 +490,10 @@ export const ReservationDetail = ({
     const isNoshow = reservation.status === 'noshow';
     const isInactive = isCancelled || isNoshow || isCompleted;
     const dialogLabel = MODE_LABELS[mode] ?? '예약 상세';
-    const dialogTitle = MODE_LABELS[mode] ?? `${reservation.service} - ${customer?.name}`;
+    const headerService = mode === 'view' ? draftReservation.service : form.service;
+    const dialogTitle = mode === 'editing'
+        ? (customer?.name ?? '예약 수정')
+        : (MODE_LABELS[mode] ?? (customer?.name ?? '예약 상세'));
     const dialogRef = useDialogAccessibility<HTMLDivElement>(handleBack);
 
     if (!modalRoot) return null;
@@ -422,14 +511,14 @@ export const ReservationDetail = ({
                       $width={400}>
             <ReservationDetailHeader
                 title={dialogTitle}
-                service={reservation.service}
+                service={headerService}
                 serviceColorMap={serviceColorMap}
                 onClose={handleBack}
             />
 
             {mode === 'view' && (
                 <ReservationViewSection
-                    reservation={reservation}
+                    reservation={draftReservation}
                     customerMap={customerMap}
                     displayPrice={displayPrice}
                     displayDesignerName={displayDesignerName}
@@ -438,6 +527,7 @@ export const ReservationDetail = ({
                     paymentCompleted={paymentCompleted}
                     paymentLines={paymentLines}
                     historyCount={thisHistory.length}
+                    serviceColorMap={serviceColorMap}
                     onCustomerClick={onCustomerClick}
                     onOpenHistory={() => setIsHistoryOpen(true)}
                 />
@@ -446,6 +536,7 @@ export const ReservationDetail = ({
             {mode === 'editing' && (
                 <ReservationEditSection
                     form={form}
+                    priceInputValue={priceInputValue}
                     error={error}
                     customerMemoTags={customer?.memoTags ?? []}
                     activeDesigners={activeDesigners}
@@ -459,6 +550,7 @@ export const ReservationDetail = ({
                     onPriceChange={(value) => {
                         const raw = value.replace(/[^0-9]/g, '');
                         const num = raw === '' ? 0 : parseInt(raw, 10);
+                        setPriceInputValue(raw);
                         setForm((f) => ({...f, price: num}));
                         setIsPriceManual(true);
                         setError('');

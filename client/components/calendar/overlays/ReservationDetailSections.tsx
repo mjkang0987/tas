@@ -36,6 +36,7 @@ export interface ReservationDetailFormState {
 interface ReservationFormFieldsProps {
     idPrefix: string;
     form: ReservationDetailFormState;
+    priceInputValue?: string;
     activeDesigners: Designer[];
     onLeaveDesigners: Designer[];
     resignedDesigners: Designer[];
@@ -56,6 +57,7 @@ interface ReservationFormFieldsProps {
 export const ReservationFormFields = ({
     idPrefix,
     form,
+    priceInputValue,
     activeDesigners,
     onLeaveDesigners,
     resignedDesigners,
@@ -91,7 +93,7 @@ export const ReservationFormFields = ({
                     id={`${idPrefix}-price`}
                     type="text"
                     inputMode="numeric"
-                    value={form.price.toLocaleString('ko-KR')}
+                    value={priceInputValue ?? (form.price === 0 ? '' : String(form.price))}
                     onChange={(e) => onPriceChange(e.target.value)}
                 />
                 <StyledPriceUnit>원</StyledPriceUnit>
@@ -105,6 +107,7 @@ export const ReservationFormFields = ({
                     value={form.designerId}
                     onChange={(e) => onDesignerChange(Number(e.target.value))}
                 >
+                    <option value={0}>미지정</option>
                     {currentDesigner && !isDesignerBookable(currentDesigner) && (
                         <option value={currentDesigner.id}>
                             {currentDesigner.name} ({getDesignerStatus(currentDesigner)} · 신규 선택 불가)
@@ -169,6 +172,7 @@ export const ReservationFormFields = ({
 
 interface ReservationEditSectionProps {
     form: ReservationDetailFormState;
+    priceInputValue?: string;
     error: string;
     customerMemoTags: CustomerMemoTag[];
     activeDesigners: Designer[];
@@ -188,6 +192,7 @@ interface ReservationEditSectionProps {
 
 export const ReservationEditSection = ({
     form,
+    priceInputValue,
     error,
     customerMemoTags,
     activeDesigners,
@@ -220,6 +225,7 @@ export const ReservationEditSection = ({
         <ReservationFormFields
             idPrefix="edit"
             form={form}
+            priceInputValue={priceInputValue}
             activeDesigners={activeDesigners}
             onLeaveDesigners={onLeaveDesigners}
             resignedDesigners={resignedDesigners}
