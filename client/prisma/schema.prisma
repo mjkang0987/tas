@@ -15,6 +15,7 @@ model Store {
   updatedAt              DateTime             @updatedAt
   customers              Customer[]
   designers              Designer[]
+  invites                Invite[]
   memberships            Membership[]
   reservations           Reservation[]
   reservationEvents      ReservationHistory[]
@@ -25,20 +26,22 @@ model Store {
 }
 
 model User {
-  id           String        @id @default(cuid())
-  email        String?       @unique
-  nickname     String        @unique
-  name         String?
-  image        String?
-  createdAt    DateTime      @default(now())
-  updatedAt    DateTime      @updatedAt
-  accounts     AuthAccount[]
-  memberships  Membership[]
+  id              String        @id @default(cuid())
+  email           String?       @unique
+  nickname        String        @unique
+  name            String?
+  image           String?
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+  accounts        AuthAccount[]
+  invitesUsed     Invite[]      @relation("InviteUsedBy")
+  invitesCreated  Invite[]      @relation("InviteCreatedBy")
+  memberships     Membership[]
 }
 
 model AuthAccount {
   id          String   @id @default(cuid())
-  userId      String
+  userId      String   @unique
   provider    String
   providerSub String
   createdAt   DateTime @default(now())
@@ -46,7 +49,6 @@ model AuthAccount {
   user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([provider, providerSub])
-  @@index([userId])
 }
 
 model Membership {
@@ -234,6 +236,21 @@ model StoreClosedDate {
   store     Store    @relation(fields: [storeId], references: [id], onDelete: Cascade)
 
   @@unique([storeId, date])
+}
+
+model Invite {
+  id        String         @id @default(cuid())
+  storeId   String
+  code      String         @unique
+  role      MembershipRole
+  expiresAt DateTime
+  usedAt    DateTime?
+  usedById  String?
+  createdBy String
+  createdAt DateTime       @default(now())
+  store     Store          @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  usedByUser User?         @relation("InviteUsedBy", fields: [usedById], references: [id])
+  creator   User           @relation("InviteCreatedBy", fields: [createdBy], references: [id])
 }
 
 enum MembershipRole {
