@@ -25,7 +25,7 @@ export const Footer = () => {
                 <FooterIcon icon="customers"/>
                 <span>고객명단</span>
             </StyledFooterLink>
-            <StyledFooterLink href="/settings">
+            <StyledFooterLink href="/settings/revenue">
                 <FooterIcon icon="settings"/>
                 <span>설정</span>
             </StyledFooterLink>

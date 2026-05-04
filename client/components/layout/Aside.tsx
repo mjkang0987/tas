@@ -19,12 +19,12 @@ import {AuthActionIcon} from '../ui/AuthActionIcon';
 import {ButtonText} from '../ui/ButtonText';
 
 const SETTINGS_SUBMENU = [
-    {tab: 'revenue', label: '매출', icon: 'revenue'},
-    {tab: 'point', label: '적립금관리', icon: 'point'},
-    {tab: 'store', label: '매장관리', icon: 'store'},
-    {tab: 'service', label: '서비스관리', icon: 'service'},
-    {tab: 'designer', label: '디자이너관리', icon: 'designer'},
-    {tab: 'my', label: '계정관리', icon: 'account'},
+    {tab: 'revenue', href: '/settings/revenue', label: '매출', icon: 'revenue'},
+    {tab: 'point', href: '/settings/point', label: '적립금관리', icon: 'point'},
+    {tab: 'store', href: '/settings/store', label: '매장관리', icon: 'store'},
+    {tab: 'service', href: '/settings/service', label: '서비스관리', icon: 'service'},
+    {tab: 'designer', href: '/settings/designer', label: '디자이너관리', icon: 'designer'},
+    {tab: 'my', href: '/mypage', label: '계정관리', icon: 'account'},
 ];
 
 export const Aside = () => {
@@ -77,6 +77,7 @@ export const Aside = () => {
 
     const activeReservationType = router.asPath.split('?')[0].split('/')[1] || '';
     const activeSettingsTab = typeof router.query.tab === 'string' ? router.query.tab : 'revenue';
+    const isSettingsPage = router.pathname === '/settings' || router.pathname === '/settings/[tab]';
 
     return (<StyledAside $isVisible={aside.isVisible}>
             <StyledBrand>TAS</StyledBrand>
@@ -128,10 +129,12 @@ export const Aside = () => {
                             </svg>
                         </StyledToggleIcon>
                     </StyledAccordionToggle>
-                    <StyledAccordionContent $open={settingsOpen}>
+                        <StyledAccordionContent $open={settingsOpen}>
                         {SETTINGS_SUBMENU.map((item) =>
-                            <StyledSubNavLink href={`/settings?tab=${item.tab}`}
-                                              $active={router.pathname === '/settings' && activeSettingsTab === item.tab}
+                            <StyledSubNavLink href={item.href}
+                                              $active={item.tab === 'my'
+                                                  ? router.pathname === '/mypage'
+                                                  : isSettingsPage && activeSettingsTab === item.tab}
                                               key={item.tab}
                                               onClick={closeMobile}>
                                 <StyledMenuContent>

@@ -82,10 +82,6 @@ export const PointManageSection = () => {
         <StyledWrap>
             <StyledStickyHeader>
                 <StyledTopBar>
-                    <div>
-                        <h3>적립금 관리</h3>
-                        <p>내역 확인, 고객별 적립/차감, 적립 정책 설정을 탭으로 분리했습니다.</p>
-                    </div>
                     <StyledTotalCard>
                         <span>전체 적립금 잔액</span>
                         <strong>{formatPrice(totalPoints)}</strong>
@@ -436,21 +432,10 @@ const StyledCancelBtn = styled.button`
 
 const StyledTopBar = styled.div`
     display: flex;
-    justify-content: space-between;
+    justify-content: flex-end;
     gap: 16px;
     align-items: flex-start;
     flex-wrap: wrap;
-
-    h3 {
-        margin: 0 0 4px;
-        font-size: 16px;
-    }
-
-    p {
-        margin: 0;
-        color: var(--dark-gray-color2);
-        font-size: 12px;
-    }
 `;
 
 const StyledTotalCard = styled.div`

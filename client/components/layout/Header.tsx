@@ -13,8 +13,15 @@ import {formControlStyle} from '../ui/FormControls';
 const PAGE_TITLES: Record<string, string> = {
     '/address': '주소록',
     '/mypage': '마이페이지',
-    '/settings': '설정',
     '/logout': '로그아웃',
+};
+
+const SETTINGS_TAB_TITLES: Record<string, string> = {
+    revenue: '매출',
+    point: '적립금관리',
+    store: '매장관리',
+    service: '서비스관리',
+    designer: '디자이너관리',
 };
 
 export const Header = () => {
@@ -28,7 +35,11 @@ export const Header = () => {
     const pathSegments = router.asPath.split('?')[0].split('/');
     const isRootPath = pathSegments.join('').length === 0;
     const isCalendarPage = isRootPath || isCalendar(pathSegments);
-    const pageTitle = PAGE_TITLES[router.pathname] ?? 'TAS';
+    const settingsTab = typeof router.query.tab === 'string' ? router.query.tab : 'revenue';
+    const isSettingsPage = router.pathname === '/settings' || router.pathname === '/settings/[tab]';
+    const pageTitle = isSettingsPage
+        ? `설정 < ${SETTINGS_TAB_TITLES[settingsTab] ?? SETTINGS_TAB_TITLES.revenue}`
+        : PAGE_TITLES[router.pathname] ?? 'TAS';
     const {
         active: activeDesigners,
         onLeave: onLeaveDesigners,

@@ -54,6 +54,10 @@ function shiftDateKey(baseDate: Date, days: number): string {
     return toDateKey(d.getFullYear(), d.getMonth(), d.getDate());
 }
 
+function isSettingsTab(value: string): value is SettingsTab {
+    return value === 'revenue' || value === 'point' || value === 'service' || value === 'designer' || value === 'store';
+}
+
 /* ── Service Manage Section ── */
 
 /* ── Settings Page ── */
@@ -102,7 +106,8 @@ const Settings: NextPage<SettingsProps> = ({reservations, customers, history, st
     const revenueWeekStartKey = shiftDateKey(now, -7);
 
     const q = router.query;
-    const tab: SettingsTab = q.tab === 'service' || q.tab === 'designer' || q.tab === 'store' || q.tab === 'point' ? q.tab : 'revenue';
+    const tabQuery = typeof q.tab === 'string' ? q.tab : '';
+    const tab: SettingsTab = isSettingsTab(tabQuery) ? tabQuery : 'revenue';
     const parsedDesignerId = typeof q.designer === 'string' ? Number(q.designer) : NaN;
     const revenueDesignerKey: RevenueDesignerKey = Number.isInteger(parsedDesignerId) && parsedDesignerId > 0
         ? String(parsedDesignerId) as RevenueDesignerKey
@@ -118,27 +123,12 @@ const Settings: NextPage<SettingsProps> = ({reservations, customers, history, st
                 ? 'today'
                 : null;
 
-    const replaceQuery = (patch: Record<string, string>) => {
-        router.replace({pathname: '/settings', query: patch}, undefined, {shallow: true});
-    };
-
-    const setTab = (t: SettingsTab) => {
-        if (t === 'revenue') {
-            replaceQuery({
-                tab: 'revenue',
-                designer: revenueDesignerKey,
-                start: startDateKey,
-                end: endDateKey,
-                date: selectedDateKey,
-            });
-        } else {
-            replaceQuery({tab: t});
-        }
+    const replaceQuery = (nextTab: SettingsTab, patch: Record<string, string>) => {
+        router.replace({pathname: `/settings/${nextTab}`, query: patch}, undefined, {shallow: true});
     };
 
     const setRevenueDesigner = (designer: RevenueDesignerKey) => {
-        replaceQuery({
-            tab: 'revenue',
+        replaceQuery('revenue', {
             designer,
             start: startDateKey,
             end: endDateKey,
@@ -148,8 +138,7 @@ const Settings: NextPage<SettingsProps> = ({reservations, customers, history, st
 
     const setRevenueStartDate = (key: string) => {
         if (!isValidDateKey(key)) return;
-        replaceQuery({
-            tab: 'revenue',
+        replaceQuery('revenue', {
             designer: revenueDesignerKey,
             start: key,
             end: endDateKey,
@@ -159,8 +148,7 @@ const Settings: NextPage<SettingsProps> = ({reservations, customers, history, st
 
     const setRevenueEndDate = (key: string) => {
         if (!isValidDateKey(key)) return;
-        replaceQuery({
-            tab: 'revenue',
+        replaceQuery('revenue', {
             designer: revenueDesignerKey,
             start: startDateKey,
             end: key,
@@ -170,8 +158,7 @@ const Settings: NextPage<SettingsProps> = ({reservations, customers, history, st
 
     const setRevenueDateRange = (startKey: string, endKey: string, selectedKey?: string) => {
         if (!isValidDateKey(startKey) || !isValidDateKey(endKey)) return;
-        replaceQuery({
-            tab: 'revenue',
+        replaceQuery('revenue', {
             designer: revenueDesignerKey,
             start: startKey,
             end: endKey,
@@ -180,8 +167,7 @@ const Settings: NextPage<SettingsProps> = ({reservations, customers, history, st
     };
 
     const setRevenueSelectedDate = (key: string) => {
-        replaceQuery({
-            tab: 'revenue',
+        replaceQuery('revenue', {
             designer: revenueDesignerKey,
             start: startDateKey,
             end: endDateKey,
@@ -191,8 +177,7 @@ const Settings: NextPage<SettingsProps> = ({reservations, customers, history, st
 
     const setRevenueQuickRange = (range: RevenueQuickRange) => {
         if (range === 'today') {
-            replaceQuery({
-                tab: 'revenue',
+            replaceQuery('revenue', {
                 designer: revenueDesignerKey,
                 start: todayKey,
                 end: todayKey,
@@ -202,8 +187,7 @@ const Settings: NextPage<SettingsProps> = ({reservations, customers, history, st
         }
 
         const start = range === 'week' ? revenueWeekStartKey : revenue30DaysStartKey;
-        replaceQuery({
-            tab: 'revenue',
+        replaceQuery('revenue', {
             designer: revenueDesignerKey,
             start,
             end: todayKey,
@@ -239,14 +223,6 @@ const Settings: NextPage<SettingsProps> = ({reservations, customers, history, st
             <Head>
                 <title>TAS | 설정</title>
             </Head>
-            <StyledHeading>설정</StyledHeading>
-            <StyledPageTabs>
-                <StyledPageTab type="button" $active={tab === 'revenue'} onClick={() => setTab('revenue')}>매출</StyledPageTab>
-                <StyledPageTab type="button" $active={tab === 'point'} onClick={() => setTab('point')}>적립금 관리</StyledPageTab>
-                <StyledPageTab type="button" $active={tab === 'store'} onClick={() => setTab('store')}>매장관리</StyledPageTab>
-                <StyledPageTab type="button" $active={tab === 'service'} onClick={() => setTab('service')}>서비스 관리</StyledPageTab>
-                <StyledPageTab type="button" $active={tab === 'designer'} onClick={() => setTab('designer')}>디자이너 관리</StyledPageTab>
-            </StyledPageTabs>
             <StyledContent>
                 {tab === 'revenue' && <RevenueSection reservationMap={reservationMap}
                                                       designers={designers}
@@ -294,6 +270,33 @@ const Settings: NextPage<SettingsProps> = ({reservations, customers, history, st
 export default Settings;
 
 export const getServerSideProps: GetServerSideProps<SettingsProps> = async (ctx) => {
+    const routeTab = typeof ctx.params?.tab === 'string' ? ctx.params.tab : null;
+    const legacyTab = typeof ctx.query.tab === 'string' ? ctx.query.tab : null;
+    const resolvedTab = routeTab ?? legacyTab;
+
+    if (routeTab === null || !resolvedTab || !isSettingsTab(resolvedTab)) {
+        const query = new URLSearchParams();
+
+        Object.entries(ctx.query).forEach(([key, value]) => {
+            if (key === 'tab') return;
+            if (Array.isArray(value)) {
+                value.forEach((entry) => query.append(key, entry));
+                return;
+            }
+            if (typeof value === 'string')
+                query.set(key, value);
+        });
+
+        const destinationTab = isSettingsTab(resolvedTab ?? '') ? resolvedTab : 'revenue';
+        const destination = `/settings/${destinationTab}${query.toString() ? `?${query.toString()}` : ''}`;
+        return {
+            redirect: {
+                destination,
+                permanent: false,
+            }
+        };
+    }
+
     const session = await getPageSession(ctx);
     if (!session) {
         return {
@@ -328,42 +331,12 @@ const StyledSection = styled.section`
     box-sizing: border-box;
 `;
 
-const StyledHeading = styled.h2`
-    text-align: center;
-    font-size: var(--big-font);
-    font-weight: 600;
-    padding: 20px 10px 10px;
-`;
-
-const StyledPageTabs = styled.div`
-    display: flex;
-    margin: 0 10px;
-    border-bottom: 2px solid var(--light-gray-color);
-    position: sticky;
-    top: 0;
-    z-index: 20;
-    background: var(--white-color);
-`;
-
-const StyledPageTab = styled.button<{ $active: boolean }>`
-    flex: 1;
-    padding: 10px;
-    border: none;
-    border-bottom: 2px solid ${(p) => p.$active ? 'var(--blue-color)' : 'transparent'};
-    margin-bottom: -2px;
-    background: none;
-    font-size: 14px;
-    font-weight: ${(p) => p.$active ? '600' : '400'};
-    color: ${(p) => p.$active ? 'var(--blue-color)' : 'var(--dark-gray-color)'};
-    cursor: pointer;
-`;
-
 const StyledContent = styled.div`
     flex: 1;
     min-height: 0;
     display: flex;
     flex-direction: column;
-    padding: 0 10px 20px;
+    padding: 10px 10px 20px;
     overflow-y: auto;
     overscroll-behavior: auto;
 `;
