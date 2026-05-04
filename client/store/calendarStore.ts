@@ -533,7 +533,49 @@ export const useCalendarStore = create<CalendarState>((set) => ({
             method: 'PUT',
             headers: {'Content-Type': 'application/json'},
             body: JSON.stringify({prev, updated})
-        });
+        })
+            .then(async (response) => {
+                if (!response.ok) return null;
+                return response.json() as Promise<{reservation?: Reservation}>;
+            })
+            .then((data) => {
+                const savedReservation = data?.reservation;
+                if (!savedReservation) return;
+
+                set((state) => {
+                    const nextMap = {...state.reservationMap};
+                    const oldKey = prev.date;
+                    const newKey = savedReservation.date;
+
+                    if (nextMap[oldKey]) {
+                        nextMap[oldKey] = nextMap[oldKey].filter((reservation) => reservation.id !== prev.id);
+                        if (nextMap[oldKey].length === 0) delete nextMap[oldKey];
+                    }
+
+                    if (!nextMap[newKey]) nextMap[newKey] = [];
+                    const existingIndex = nextMap[newKey].findIndex((reservation) => reservation.id === savedReservation.id);
+                    if (existingIndex > -1) {
+                        nextMap[newKey][existingIndex] = savedReservation;
+                    } else {
+                        nextMap[newKey].push(savedReservation);
+                    }
+
+                    const nextSelectedReservations = state.selectedReservations.map((reservation) => (
+                        reservation.id === savedReservation.id ? savedReservation : reservation
+                    ));
+
+                    return {
+                        reservationMap: nextMap,
+                        selectedReservation: state.selectedReservation?.id === savedReservation.id
+                            ? savedReservation
+                            : state.selectedReservation,
+                        selectedReservations: nextSelectedReservations,
+                    };
+                });
+            })
+            .catch(() => {
+                // Preserve optimistic local UX if the sync request fails.
+            });
     },
 
     cancelReservation: (reservation, status = 'cancelled') => {
