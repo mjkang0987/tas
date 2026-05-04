@@ -129,7 +129,9 @@ const StyledViewAllButton = styled.button`
     color: var(--dark-gray-color);
     cursor: pointer;
 
-    &:hover {
+    @media (hover: hover) and (pointer: fine) {
+        &:hover {
         background-color: var(--light-gray-color);
+    }
     }
 `;

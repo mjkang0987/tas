@@ -93,8 +93,10 @@ const StyledSummary = styled.summary`
         font-weight: 600;
     }
 
-    &:hover > strong {
-        color: var(--blue-color);
+    @media (hover: hover) and (pointer: fine) {
+        &:hover > strong {
+            color: var(--blue-color);
+        }
     }
 
     @media (max-width: 600px) {

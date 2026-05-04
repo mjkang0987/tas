@@ -194,9 +194,14 @@ const StyledSuggestionItem = styled.li`
     color: var(--gray-color);
   }
 
-  &:hover,
   &[aria-selected="true"] {
     background-color: var(--black-color-10);
+  }
+
+  @media (hover: hover) and (pointer: fine) {
+    &:hover {
+      background-color: var(--black-color-10);
+    }
   }
 `;
 

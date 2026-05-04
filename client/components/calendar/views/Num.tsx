@@ -32,7 +32,9 @@ const StyledNum = styled.button <{ $isToday?: boolean; $compact?: boolean }>`
     background-color: var(--blue-color);
     color: #fff;
   `}
-  &:hover {
+  @media (hover: hover) and (pointer: fine) {
+        &:hover {
     background-color: var(--light-gray-color);
+  }
   }
 `;

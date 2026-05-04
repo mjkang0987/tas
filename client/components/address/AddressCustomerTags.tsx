@@ -169,8 +169,10 @@ const StyledTag = styled.span<{ $color: string }>`
         padding: 0;
         line-height: 1;
 
+        @media (hover: hover) and (pointer: fine) {
         &:hover {
             color: #fff;
+        }
         }
     }
 `;
@@ -200,8 +202,10 @@ const StyledColorDot = styled.button<{ $color: string; $active: boolean }>`
     padding: 0;
     box-sizing: border-box;
 
-    &:hover {
+    @media (hover: hover) and (pointer: fine) {
+        &:hover {
         opacity: 0.8;
+    }
     }
 `;
 
@@ -215,7 +219,9 @@ const StyledMemoButton = styled.button`
     font-size: var(--tiny-font);
     color: var(--dark-gray-color);
 
-    &:hover {
+    @media (hover: hover) and (pointer: fine) {
+        &:hover {
         background-color: var(--black-color-10);
+    }
     }
 `;

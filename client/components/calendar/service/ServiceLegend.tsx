@@ -134,7 +134,9 @@ const StyledToggle = styled.button<{ $open: boolean }>`
     cursor: pointer;
     transition: background-color 0.2s, color 0.2s;
 
-    &:hover {
+    @media (hover: hover) and (pointer: fine) {
+        &:hover {
         opacity: 0.85;
+    }
     }
 `;

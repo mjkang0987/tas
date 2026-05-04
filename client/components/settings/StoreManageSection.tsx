@@ -173,9 +173,11 @@ const actionButtonStyle = css`
     cursor: pointer;
     transition: transform 0.12s ease, box-shadow 0.15s ease, border-color 0.15s ease, background-color 0.15s ease;
 
-    &:hover {
+    @media (hover: hover) and (pointer: fine) {
+        &:hover {
         box-shadow: 0 6px 14px rgba(15, 23, 42, 0.08);
         transform: translateY(-1px);
+    }
     }
 `;
 
