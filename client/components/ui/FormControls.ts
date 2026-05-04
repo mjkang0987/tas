@@ -1,7 +1,7 @@
 import {css} from 'styled-components';
 
 export const formControlStyle = css`
-    height: 30px;
+    height: 32px;
     border: 1px solid var(--light-gray-color);
     border-radius: var(--radius-md);
     background: var(--white-color);

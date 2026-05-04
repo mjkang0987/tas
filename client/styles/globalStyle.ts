@@ -71,7 +71,9 @@ export const GlobalStyle = createGlobalStyle`
         height: 100%;
     }
 
-    body {
+    body,
+    input,
+    button {
         font-family: "SF Pro AR", "SF Pro Gulf", "SF Pro Display", "SF Pro Icons", "Helvetica Neue", "Helvetica", "Arial", sans-serif
     }
 
@@ -113,6 +115,13 @@ export const GlobalStyle = createGlobalStyle`
         font-size: var(--font);
         color: var(--black-color);
         box-sizing: border-box;
+        cursor: pointer;
+
+        @media (hover: hover) and (pointer: fine) {
+            &:hover {
+                opacity: .8;
+            }
+        }
     }
 
     button,

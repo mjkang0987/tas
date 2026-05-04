@@ -402,8 +402,7 @@ const actionButtonStyle = css`
 
     @media (hover: hover) and (pointer: fine) {
         &:hover {
-        box-shadow: 0 6px 14px rgba(15, 23, 42, 0.08);
-        transform: translateY(-1px);
+        
     }
     }
 `;
