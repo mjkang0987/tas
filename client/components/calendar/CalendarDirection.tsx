@@ -14,12 +14,8 @@ import {
 
 import {setRouter} from '../../utils/router';
 
-import {Icon} from '../ui/Icons';
 import {ButtonText} from '../ui/ButtonText';
-import {
-    ButtonCircle,
-    ButtonSquare
-} from '../ui/Buttons';
+import {ButtonSquare} from '../ui/Buttons';
 
 export const CalendarDirection = () => {
     const router = useRouter();
@@ -112,20 +108,51 @@ export const CalendarDirection = () => {
             }}>
                 <ButtonText a11y={false}>오늘</ButtonText>
             </ButtonSquare>}
-            <ButtonCircle onClick={() => controller({direction: 'prev'})}>
-                <Icon iconType="leftArrow"/>
+            <StyledDirectionButton type="button" onClick={() => controller({direction: 'prev'})}>
+                <DirectionIcon direction="left"/>
                 {type && <ButtonText a11y={true}>이전{A11Y_DIRECTION[type]}</ButtonText>}
-            </ButtonCircle>
-            <ButtonCircle onClick={() => controller({direction: 'next'})}>
-                <Icon iconType="rightArrow"/>
+            </StyledDirectionButton>
+            <StyledDirectionButton type="button" onClick={() => controller({direction: 'next'})}>
+                <DirectionIcon direction="right"/>
                 {type && <ButtonText a11y={true}>다음{A11Y_DIRECTION[type]}</ButtonText>}
-            </ButtonCircle>
+            </StyledDirectionButton>
         </StyledButtonWrap>
     );
 };
+
+const DirectionIcon = ({direction}: { direction: 'left' | 'right' }) => (
+    <svg
+        width="32"
+        height="32"
+        viewBox="0 0 32 32"
+        fill="none"
+        xmlns="http://www.w3.org/2000/svg"
+        aria-hidden="true"
+    >
+        <rect x="1" y="1" width="30" height="30" rx="8" stroke="#D1D5DB" fill="white"/>
+        <path
+            d={direction === 'left' ? 'M18.5 10.5L13 16L18.5 21.5' : 'M13.5 10.5L19 16L13.5 21.5'}
+            stroke="#111827"
+            strokeWidth="2.2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+        />
+    </svg>
+);
 
 const StyledButtonWrap = styled.span`
   display: flex;
   align-items: center;
   gap: 4px;
+`;
+
+const StyledDirectionButton = styled.button`
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  line-height: 0;
+  cursor: pointer;
 `;

@@ -22,25 +22,30 @@ interface AsideType {
 export const ASIDE: AsideType = {
     DAY: {
         id: 1,
-        title: '📅 일별',
+        title: '일별',
+        icon: 'day',
         move: 1
     },
     THREE: {
         id: 2,
-        title: '3️⃣ 일',
+        title: '3일',
+        icon: 'three',
         move: 3
     },
     WEEK: {
         id: 3,
+        icon: 'week',
         title: '주별',
         move: 7
     },
     MONTH: {
         id: 4,
-        title: '🗓️ 월별',
+        title: '월별',
+        icon: 'month',
     },
     YEAR: {
         id: 5,
+        icon: 'year',
         title: '연별'
     }
 };
@@ -117,4 +122,3 @@ export const isTodayValue = (today: Date | null, fullYear: number, month: number
     if (!today) return false;
     return [today.getFullYear(), today.getMonth(), today.getDate()].join(' ') === [fullYear, month, number].join(' ');
 };
-

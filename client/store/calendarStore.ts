@@ -62,7 +62,6 @@ export interface DateType {
 
 export interface AsideSlice {
     isVisible: boolean;
-    isTransitionEnd: boolean;
 }
 
 export interface ViewSlice {
@@ -180,8 +179,7 @@ export const useCalendarStore = create<CalendarState>((set) => ({
         day     : 0
     },
     aside: {
-        isVisible      : false,
-        isTransitionEnd: true
+        isVisible: false,
     },
     view: {
         type: 'week'
@@ -231,9 +229,13 @@ export const useCalendarStore = create<CalendarState>((set) => ({
     },
 
     setAside: (v) =>
-        set((state) => ({
-            aside: typeof v === 'function' ? v(state.aside) : v
-        })),
+        set((state) => {
+            const next = typeof v === 'function' ? v(state.aside) : v;
+            if (typeof window !== 'undefined') {
+                localStorage.setItem('aside-visible', String(next.isVisible));
+            }
+            return {aside: next};
+        }),
 
     setView: (v) =>
         set((state) => ({

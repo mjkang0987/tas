@@ -1,25 +1,34 @@
 import styled from 'styled-components';
 
-import {useSession, signOut} from 'next-auth/react';
+import {useRouter} from 'next/router';
 
 import {useCalendarStore} from '../../store/calendarStore';
 import {splitDesignersByStatus} from '../../utils/designers';
+import {isCalendar} from '../../utils/router';
 
 import {CalendarDirection} from '../calendar/CalendarDirection';
 import {CalendarHeading} from '../calendar/CalendarHeading';
-import {Icon} from '../ui/Icons';
-import {ButtonText} from '../ui/ButtonText';
 import {formControlStyle} from '../ui/FormControls';
 
+const PAGE_TITLES: Record<string, string> = {
+    '/address': '주소록',
+    '/mypage': '마이페이지',
+    '/settings': '설정',
+    '/logout': '로그아웃',
+};
 
 export const Header = () => {
-    const {data: session} = useSession();
+    const router = useRouter();
     const aside = useCalendarStore((s) => s.aside);
     const setAside = useCalendarStore((s) => s.setAside);
     const currValue = useCalendarStore((s) => s.target);
     const designers = useCalendarStore((s) => s.designers);
     const calendarDesignerId = useCalendarStore((s) => s.calendarDesignerId);
     const setCalendarDesignerId = useCalendarStore((s) => s.setCalendarDesignerId);
+    const pathSegments = router.asPath.split('?')[0].split('/');
+    const isRootPath = pathSegments.join('').length === 0;
+    const isCalendarPage = isRootPath || isCalendar(pathSegments);
+    const pageTitle = PAGE_TITLES[router.pathname] ?? 'TAS';
     const {
         active: activeDesigners,
         onLeave: onLeaveDesigners,
@@ -28,18 +37,26 @@ export const Header = () => {
 
     return (
         <StyledHeader>
-            <StyledButton type="button"
-                          onClick={() => setAside({isVisible: !aside.isVisible, isTransitionEnd: false})}>
-                <Icon iconType="hamburger" />
-                <ButtonText a11y={true}>보기 옵션 {aside.isVisible ? '닫기' : '열기'}</ButtonText>
-            </StyledButton>
-            {currValue.full !== null && <>
+            <StyledAsideToggle type="button"
+                              $open={aside.isVisible}
+                              onClick={() => setAside({isVisible: !aside.isVisible})}
+                              aria-label={aside.isVisible ? '사이드바 접기' : '사이드바 펼치기'}>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <rect x="3" y="3" width="18" height="18" rx="2" />
+                    <line x1="9" y1="3" x2="9" y2="21" />
+                    {aside.isVisible
+                        ? <polyline points="15,10 13,12 15,14" />
+                        : <polyline points="13,10 15,12 13,14" />
+                    }
+                </svg>
+            </StyledAsideToggle>
+            {isCalendarPage && currValue.full !== null && <>
                 <CalendarDirection />
                 <CalendarHeading />
                 <StyledDesignerFilter value={calendarDesignerId ?? ''}
                                       onChange={(e) => setCalendarDesignerId(e.target.value ? Number(e.target.value) : null)}
                                       aria-label="달력 디자이너 필터">
-                    <option value="">필터</option>
+                    <option value="">전체보기</option>
                     <option value="0" data-bg-color="#8E8E93">미지정</option>
                     {activeDesigners.map((designer) => (
                         <option key={designer.id}
@@ -68,15 +85,7 @@ export const Header = () => {
                     )}
                 </StyledDesignerFilter>
             </>}
-            {session?.user && (
-                <StyledUserArea>
-                    <StyledUserName>{session.user.name}</StyledUserName>
-                    <StyledLogoutButton type="button"
-                                        onClick={() => signOut({callbackUrl: '/login'})}>
-                        로그아웃
-                    </StyledLogoutButton>
-                </StyledUserArea>
-            )}
+            {!isCalendarPage && <StyledPageTitle>{pageTitle}</StyledPageTitle>}
         </StyledHeader>
     );
 };
@@ -86,7 +95,7 @@ const StyledHeader = styled.header`
     align-items: center;
     gap: 12px;
     width: 100%;
-    padding: 0 12px;
+    padding: 0 12px 0 0;
     height: 48px;
     box-sizing: border-box;
     background-color: var(--white-color);
@@ -99,7 +108,7 @@ const StyledHeader = styled.header`
     }
 `;
 
-const StyledButton = styled.button`
+const StyledAsideToggle = styled.button<{ $open: boolean }>`
     display: inline-flex;
     align-items: center;
     justify-content: center;
@@ -110,22 +119,48 @@ const StyledButton = styled.button`
     border: none;
     color: var(--dark-gray-color);
     flex-shrink: 0;
+    cursor: pointer;
+    
+    @media (hover: hover) and (pointer: fine) {
+        &:hover {
+            background-color: var(--gray-color2);
+        }
+    }
 
-    &:hover {
-        background-color: var(--gray-color2);
+    @media (max-width: 640px) {
+        position: fixed;
+        bottom: 20px;
+        left: ${(props) => props.$open ? 'calc(8px + var(--aside-width) + 8px)' : '16px'};
+        z-index: 210;
+        width: 36px;
+        height: 36px;
+        border-radius: 50%;
+        background-color: var(--aside-bg);
+        color: var(--aside-text);
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
+        opacity: .8;
+        transition: left 0.25s ease, background-color 0.1s;
+
+        @media (hover: hover) and (pointer: fine) {
+            &:hover {
+                background-color: var(--aside-hover);
+            }
+        }
     }
 `;
 
-const StyledUserArea = styled.div`
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    margin-left: auto;
+const StyledPageTitle = styled.h1`
+    flex: 1;
+    margin: 0;
+    font-size: var(--big-font);
+    font-weight: 700;
+    text-align: center;
+    color: var(--dark-gray-color);
 `;
 
 const StyledDesignerFilter = styled.select`
     min-width: 128px;
-    margin-left: 4px;
+    margin-left: auto;
     padding: 0 10px;
     ${formControlStyle};
     cursor: pointer;
@@ -135,7 +170,7 @@ const StyledDesignerFilter = styled.select`
 
     option {
         gap: 2px;
-        
+
         &::checkmark {
             display: none;
         }
@@ -165,31 +200,5 @@ const StyledDesignerFilter = styled.select`
 
     @media (max-width: 640px) {
         min-width: 96px;
-        margin-left: auto;
-    }
-`;
-
-const StyledUserName = styled.span`
-    font-size: var(--small-font);
-    color: var(--dark-gray-color2);
-
-    @media (max-width: 640px) {
-        display: none;
-    }
-`;
-
-const StyledLogoutButton = styled.button`
-    padding: 0 10px;
-    height: 28px;
-    border: 1px solid var(--border-color);
-    border-radius: var(--radius-md);
-    background-color: var(--white-color);
-    font-size: var(--small-font);
-    color: var(--dark-gray-color);
-    cursor: pointer;
-
-    &:hover {
-        background-color: var(--gray-color2);
-        border-color: var(--gray-color);
     }
 `;

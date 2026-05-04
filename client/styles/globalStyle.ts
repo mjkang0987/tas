@@ -50,6 +50,12 @@ export const GlobalStyle = createGlobalStyle`
         --dot-size: 10px;
 
         --bar-top: 56px;
+
+        --aside-width: 200px;
+        --aside-bg: #1c1c1e;
+        --aside-text: #f5f5f7;
+        --aside-hover: rgba(255, 255, 255, 0.08);
+        --aside-divider: rgba(255, 255, 255, 0.12);
     }
 
     @media (max-width: 640px) {
@@ -165,15 +171,6 @@ export const GlobalStyle = createGlobalStyle`
         }
         100% {
             transform: rotate(360deg);
-        }
-    }
-
-    @keyframes asideHide {
-        0% {
-            transform: translateX(0);
-        }
-        100% {
-            transform: translateX(-100%);
         }
     }
 

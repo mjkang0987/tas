@@ -8,11 +8,18 @@ import type {GetServerSideProps} from 'next';
 
 import styled from 'styled-components';
 
+import {AuthActionIcon} from '../components/ui/AuthActionIcon';
+
 type ProviderInfo = {id: string; label: string; bg: string; color: string; border: string};
 type LoginPageProps = {
     providerIds: string[];
     isDatabaseConfigured: boolean;
 };
+
+function getMonthEntryPath(): string {
+    const today = new Date();
+    return `/month/${today.getFullYear()}/${today.getMonth() + 1}`;
+}
 
 const ALL_PROVIDERS: ProviderInfo[] = [
     {id: 'google', label: 'Google 로그인', bg: '#fff', color: '#333', border: '#ddd'},
@@ -31,12 +38,13 @@ export default function LoginPage({providerIds, isDatabaseConfigured}: LoginPage
     const router = useRouter();
     const hasAccess = !!session?.user?.role && !!session.user?.storeId;
     const isAuthenticatedWithoutAccess = status === 'authenticated' && !hasAccess;
+    const monthEntryPath = getMonthEntryPath();
 
     useEffect(() => {
         if (hasAccess) {
-            router.replace('/');
+            router.replace(monthEntryPath);
         }
-    }, [hasAccess, router]);
+    }, [hasAccess, monthEntryPath, router]);
 
     if (hasAccess) {
         return null;
@@ -48,7 +56,7 @@ export default function LoginPage({providerIds, isDatabaseConfigured}: LoginPage
     return (
         <StyledWrapper>
             <StyledCard>
-                <StyledTitle>takeaseat</StyledTitle>
+                <StyledTitle>TAS</StyledTitle>
                 <StyledSubtitle>SNS 계정으로 로그인</StyledSubtitle>
                 {canStartLogin ? (
                     <StyledButtonGroup>
@@ -59,9 +67,10 @@ export default function LoginPage({providerIds, isDatabaseConfigured}: LoginPage
                                 $bg={p.bg}
                                 $color={p.color}
                                 $border={p.border}
-                                onClick={() => signIn(p.id, {callbackUrl: '/'})}
+                                onClick={() => signIn(p.id, {callbackUrl: monthEntryPath})}
                             >
-                                {p.label}
+                                <AuthActionIcon direction="login" />
+                                <span>{p.label}</span>
                             </StyledButton>
                         ))}
                         {status === 'loading' && (
@@ -77,7 +86,7 @@ export default function LoginPage({providerIds, isDatabaseConfigured}: LoginPage
                     </StyledEmptyState>
                 )}
                 <StyledSecondaryButton type="button" onClick={() => router.push('/')}>
-                    게스트로 사용하기
+                    <span>게스트로 사용하기</span>
                 </StyledSecondaryButton>
                 {!isDatabaseConfigured && (
                     <StyledNotice>
@@ -91,7 +100,8 @@ export default function LoginPage({providerIds, isDatabaseConfigured}: LoginPage
                 )}
                 {isAuthenticatedWithoutAccess && (
                     <StyledSecondaryButton type="button" onClick={() => signOut({callbackUrl: '/login'})}>
-                        다른 계정으로 로그인
+                        <AuthActionIcon direction="login" />
+                        <span>다른 계정으로 로그인</span>
                     </StyledSecondaryButton>
                 )}
             </StyledCard>
@@ -216,6 +226,10 @@ const StyledNotice = styled.p`
 
 const StyledButton = styled.button<{ $bg: string; $color: string; $border: string }>`
     width: 100%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
     padding: 12px;
     border-radius: 8px;
     border: 1px solid ${(props) => props.$border};
@@ -226,14 +240,20 @@ const StyledButton = styled.button<{ $bg: string; $color: string; $border: strin
     cursor: pointer;
     transition: opacity 0.15s;
 
-    &:hover {
+    @media (hover: hover) and (pointer: fine) {
+        &:hover {
         opacity: 0.85;
+    }
     }
 `;
 
 const StyledSecondaryButton = styled.button`
     width: 100%;
     margin-top: 12px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
     padding: 12px;
     border-radius: 8px;
     border: 1px solid var(--light-gray-color);

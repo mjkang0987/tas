@@ -9,8 +9,8 @@ import {useCalendarStore} from '../../store/calendarStore';
 import {scrollHintStyle, scrollContentStyle} from '../calendar/overlays/ModalStyles';
 import {formControlStyle} from '../ui/FormControls';
 
-import {Icon} from '../ui/Icons';
 import {ButtonText} from '../ui/ButtonText';
+import {CloseIconButton} from '../ui/CloseIconButton';
 
 export const Footer = () => {
     const [isSearchOpen, setIsSearchOpen] = useState(false);
@@ -18,13 +18,48 @@ export const Footer = () => {
     return (
         <StyledFooter>
             <StyledSearchButton type="button" onClick={() => setIsSearchOpen(true)}>
-                <Icon iconType="search"/>
+                <FooterIcon icon="search"/>
                 <ButtonText a11y={false}>고객검색</ButtonText>
             </StyledSearchButton>
-            <StyledFooterLink href="/address">고객명단</StyledFooterLink>
-            <StyledFooterLink href="/settings">설정</StyledFooterLink>
+            <StyledFooterLink href="/address">
+                <FooterIcon icon="customers"/>
+                <span>고객명단</span>
+            </StyledFooterLink>
+            <StyledFooterLink href="/settings">
+                <FooterIcon icon="settings"/>
+                <span>설정</span>
+            </StyledFooterLink>
             {isSearchOpen && <SearchLayer onClose={() => setIsSearchOpen(false)}/>}
         </StyledFooter>
+    );
+};
+
+const FooterIcon = ({icon}: { icon: 'search' | 'customers' | 'settings' }) => {
+    if (icon === 'search') {
+        return (
+            <StyledFooterIcon viewBox="0 0 24 24" aria-hidden="true">
+                <circle cx="11" cy="11" r="5.5" />
+                <path d="M15.2 15.2L19 19" />
+            </StyledFooterIcon>
+        );
+    }
+
+    if (icon === 'customers') {
+        return (
+            <StyledFooterIcon viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M8 7H19M8 12H19M8 17H19" />
+                <circle cx="5" cy="7" r="1" fill="currentColor" stroke="none" />
+                <circle cx="5" cy="12" r="1" fill="currentColor" stroke="none" />
+                <circle cx="5" cy="17" r="1" fill="currentColor" stroke="none" />
+            </StyledFooterIcon>
+        );
+    }
+
+    return (
+        <StyledFooterIcon viewBox="0 0 24 24" aria-hidden="true">
+            <circle cx="12" cy="12" r="3.2" />
+            <path d="M19.4 15A1.65 1.65 0 0 0 19.73 16.82L19.79 16.88A2 2 0 1 1 16.96 19.71L16.9 19.65A1.65 1.65 0 0 0 15.08 19.32A1.65 1.65 0 0 0 14.08 20.84V20.99A2 2 0 1 1 10.08 20.99V20.9A1.65 1.65 0 0 0 9 19.39A1.65 1.65 0 0 0 7.18 19.72L7.12 19.78A2 2 0 1 1 4.29 16.95L4.35 16.89A1.65 1.65 0 0 0 4.68 15.07A1.65 1.65 0 0 0 3.16 14.07H3.01A2 2 0 1 1 3.01 10.07H3.1A1.65 1.65 0 0 0 4.61 9A1.65 1.65 0 0 0 4.28 7.18L4.22 7.12A2 2 0 1 1 7.05 4.29L7.11 4.35A1.65 1.65 0 0 0 8.93 4.68A1.65 1.65 0 0 0 9.93 3.16V3.01A2 2 0 1 1 13.93 3.01V3.1A1.65 1.65 0 0 0 15 4.61A1.65 1.65 0 0 0 16.82 4.28L16.88 4.22A2 2 0 1 1 19.71 7.05L19.65 7.11A1.65 1.65 0 0 0 19.32 8.93A1.65 1.65 0 0 0 20.84 9.93H20.99A2 2 0 1 1 20.99 13.93H20.9A1.65 1.65 0 0 0 19.39 15Z" />
+        </StyledFooterIcon>
     );
 };
 
@@ -65,7 +100,7 @@ const SearchLayer = ({onClose}: { onClose: () => void }) => {
                                        placeholder="고객명 또는 연락처 검색"
                                        value={query}
                                        onChange={(e) => setQuery(e.target.value)}/>
-                    <button type="button" onClick={onClose} aria-label="닫기">닫기</button>
+                    <CloseIconButton onClick={onClose} />
                 </StyledSearchHeader>
                 <StyledResultListWrap><StyledResultList>
                     {query.trim() && filtered.length === 0 ? (
@@ -111,9 +146,11 @@ const navItemStyle = `
     transition: background-color 0.1s;
     color: var(--dark-gray-color);
 
-    &:hover {
+    @media (hover: hover) and (pointer: fine) {
+        &:hover {
         background-color: var(--gray-color2);
         color: var(--black-color);
+    }
     }
 `;
 
@@ -126,6 +163,17 @@ const StyledSearchButton = styled.button`
 const StyledFooterLink = styled(Link)`
     ${navItemStyle}
     text-decoration: none;
+`;
+
+const StyledFooterIcon = styled.svg`
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+  stroke: currentColor;
+  fill: none;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
 `;
 
 const StyledOverlay = styled.div`
@@ -160,7 +208,7 @@ const StyledSearchHeader = styled.div`
   padding: 12px 16px;
   border-bottom: 1px solid var(--light-gray-color);
 
-  > button {
+  > button:not([class]) {
     min-width: 44px;
     height: 30px;
     padding: 0 10px;
@@ -172,8 +220,10 @@ const StyledSearchHeader = styled.div`
     cursor: pointer;
     color: var(--dark-gray-color);
 
-    &:hover {
+    @media (hover: hover) and (pointer: fine) {
+        &:hover {
       background-color: var(--black-color-10);
+    }
     }
   }
 `;
@@ -218,8 +268,10 @@ const StyledResultItem = styled.li`
     color: var(--gray-color);
   }
 
-  &:hover {
+  @media (hover: hover) and (pointer: fine) {
+        &:hover {
     background-color: var(--black-color-10);
+  }
   }
 `;
 

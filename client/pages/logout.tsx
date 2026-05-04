@@ -6,6 +6,8 @@ import {signOut, useSession} from 'next-auth/react';
 
 import styled from 'styled-components';
 
+import {AuthActionIcon} from '../components/ui/AuthActionIcon';
+
 const LogoutPage: NextPage = () => {
     const {status} = useSession();
 
@@ -27,7 +29,8 @@ const LogoutPage: NextPage = () => {
                 <StyledButton type="button" onClick={() => {
                     void signOut({callbackUrl: '/login'});
                 }}>
-                    로그인 화면으로 이동
+                    <AuthActionIcon direction="login" />
+                    <span>로그인 화면으로 이동</span>
                 </StyledButton>
             </StyledCard>
         </StyledSection>
@@ -74,6 +77,10 @@ const StyledButton = styled.button`
     width: 100%;
     margin-top: 18px;
     height: 42px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
     border: none;
     border-radius: 12px;
     background: #111827;

@@ -6,6 +6,8 @@ import {signIn, signOut, useSession} from 'next-auth/react';
 
 import styled from 'styled-components';
 
+import {AuthActionIcon} from '../components/ui/AuthActionIcon';
+
 import {
     createDefaultLocalDbSnapshot,
     loadLocalDbSnapshot,
@@ -137,7 +139,8 @@ const MyPage: NextPage<MyPageProps> = ({providerIds}) => {
                     {!!session?.user && (
                         <StyledButtonRow>
                             <StyledActionButton type="button" onClick={() => signOut({callbackUrl: '/login'})}>
-                                로그아웃
+                                <AuthActionIcon direction="logout" />
+                                <span>로그아웃</span>
                             </StyledActionButton>
                         </StyledButtonRow>
                     )}

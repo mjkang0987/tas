@@ -16,14 +16,11 @@ import {useRouteChangeSync} from '../../hooks/useRouteChangeSync';
 import {NodeType} from '../../utils/types';
 import {isCalendar, setRouter} from '../../utils/router';
 import {ViewType} from '../../utils/constants';
-import {roundToHalfHour, pad} from '../../utils/timeRound';
-import {toDateKey} from '../../utils/reservations';
 
 import {Header} from './Header';
 import {Aside} from './Aside';
 import {Footer} from './Footer';
 import {Icon} from '../ui/Icons';
-import {ButtonText} from '../ui/ButtonText';
 import {ReservationCreate} from '../calendar/overlays/ReservationCreate';
 
 export default function LayoutComponent({children}: NodeType) {
@@ -40,8 +37,8 @@ export default function LayoutComponent({children}: NodeType) {
     const setCurr = useCalendarStore((s) => s.setTargetFromDate);
     const view = useCalendarStore((s) => s.view);
     const setView = useCalendarStore((s) => s.setView);
-    const setCreateReservationInitial = useCalendarStore((s) => s.setCreateReservationInitial);
     const createReservationInitial = useCalendarStore((s) => s.createReservationInitial);
+    const setCreateReservationInitial = useCalendarStore((s) => s.setCreateReservationInitial);
     const selectedReservations = useCalendarStore((s) => s.selectedReservations);
     const customerMap = useCalendarStore((s) => s.customerMap);
     const addReservation = useCalendarStore((s) => s.addReservation);
@@ -49,31 +46,6 @@ export default function LayoutComponent({children}: NodeType) {
     const isomorphicEffect = useIsomorphicEffect();
     const [initDate] = useState(() => new Date());
     const [initializedPath, setInitializedPath] = useState<string | null>(null);
-
-    const handleCreateReservation = () => {
-        const now = new Date();
-        const {hour, rounded} = roundToHalfHour(now.getHours(), now.getMinutes());
-        const date = toDateKey(now.getFullYear(), now.getMonth(), now.getDate());
-        const startTime = `${pad(hour)}:${pad(rounded)}`;
-
-        setCreateReservationInitial({date, startTime});
-    };
-
-    const closeModal = (e: React.MouseEvent) => {
-        const target = e.target as HTMLElement;
-        if (target.tagName === 'ASIDE' || target.tagName === 'INPUT') {
-            return;
-        }
-
-        if (!aside.isVisible) {
-            return;
-        }
-
-        setAside({
-            isTransitionEnd: false,
-            isVisible: false
-        })
-    };
 
     const array = useMemo(() => router.asPath.split('/'), [router.asPath]);
     const isRootPath = useMemo(() => array.join('').length === 0, [array]);
@@ -84,6 +56,18 @@ export default function LayoutComponent({children}: NodeType) {
             : new Date(Number(array[2]), Number(array[3]) - 1 || 1, Number(array[4]) || 1),
         [array, initDate, isCalendarPath, isRootPath]
     );
+
+    useEffect(() => {
+        const isMobile = window.matchMedia('(max-width: 640px)').matches;
+        if (isMobile) {
+            setAside({isVisible: false});
+            return;
+        }
+        const stored = localStorage.getItem('aside-visible');
+        if (stored !== null) {
+            setAside({isVisible: stored !== 'false'});
+        }
+    }, [setAside]);
 
     useRouteChangeSync({
         setRouterSlice
@@ -163,74 +147,53 @@ export default function LayoutComponent({children}: NodeType) {
         return <>{children}</>;
     }
 
-    return (<StyledWrapper onClick={(e: React.MouseEvent) => closeModal(e)}>
-            {!loading && <Icon iconType="loading"/>}
-            <Header/>
-            {currValue.full !== null && <>
-                <StyledMain>
-                    <StyledButton type="button"
-                                  $isVisible={aside.isVisible}
-                                  onClick={handleCreateReservation}>
-                        <Icon iconType="plus"/>
-                        {aside.isVisible && <ButtonText a11y={false}>일정추가</ButtonText>}
-                    </StyledButton>
-                    <Aside/>
-                    {children}
-                </StyledMain>
-                {createReservationInitial && selectedReservations.length === 0 && (
-                    <ReservationCreate initial={createReservationInitial}
-                                       customerMap={customerMap}
-                                       onClose={() => setCreateReservationInitial(null)}
-                                       onSave={addReservation}/>
-                )}
-                <Footer/>
-            </>}
+    return (<StyledWrapper>
+            <Aside/>
+            <StyledContent $asideOpen={aside.isVisible}>
+                {!loading && <Icon iconType="loading"/>}
+                <Header/>
+                {currValue.full !== null && <>
+                    <StyledMain>
+                        {children}
+                    </StyledMain>
+                    {createReservationInitial && selectedReservations.length === 0 && (
+                        <ReservationCreate initial={createReservationInitial}
+                                           customerMap={customerMap}
+                                           onClose={() => setCreateReservationInitial(null)}
+                                           onSave={addReservation}/>
+                    )}
+                    <Footer/>
+                </>}
+            </StyledContent>
         </StyledWrapper>
     );
 }
 
 const StyledWrapper = styled.div`
-  display: flex;
-  flex-direction: column;
-  height: 100%;
+    display: flex;
+    flex-direction: row;
+    height: 100%;
+    overflow: hidden;
+    padding: 8px;
+    box-sizing: border-box;
+    background-color: var(--aside-bg);
+`;
+
+const StyledContent = styled.div<{ $asideOpen: boolean }>`
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    overflow: hidden;
+    background-color: var(--white-color);
+    border-radius: 12px;
+    transition: border-radius 0.25s ease;
 `;
 
 const StyledMain = styled.main`
-  flex: 1;
-  overflow: hidden;
-  display: flex;
-  height: 100%;
-  position: relative;
+    flex: 1;
+    overflow: hidden;
+    display: flex;
+    height: 100%;
 `;
-const StyledButton = styled.button <{ $isVisible: boolean }>`
-  display: inline-flex;
-  position: absolute;
-  top: 10px;
-  left: 15px;
-  align-items: center;
-  justify-content: center;
-  width: ${props => props.$isVisible
-                    ? '89px'
-                    : 'auto'};
-  max-width: calc(80% - 30px);
-  height: 25px;
-  border: 1px solid #ccc;
-  background-color: ${props => props.$isVisible
-                               ? 'var(--white-color)'
-                               : 'rgb(255 255 255 / .6)'};
-  border-radius: ${props => props.$isVisible
-                            ? '5px'
-                            : '20px'};
-  box-shadow: ${props => props.$isVisible
-                         ? '0 0 10px 0 rgba(0, 0, 0, .1)'
-                         : '0 0 10px 0 rgba(0, 0, 0, .2)'};
-  font-size: var(--small-font);
-  z-index: 101;
-  transition: box-shadow .1s ease-in-out;
 
-  &:hover {
-    ${props => !props.$isVisible && `
-      box-shadow:  0 0 15px 0 rgba(0, 0, 0, .4);
-    `}
-  }
-`;
