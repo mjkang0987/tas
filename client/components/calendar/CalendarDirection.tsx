@@ -37,15 +37,11 @@ export const CalendarDirection = () => {
                 router
             });
 
-            return setUpdateCurr(`${+fullYear - (isPrev
-                                                 ? 1
-                                                 : -1)}, ${+month + 1}, ${+date}`);
+            return setUpdateCurr(new Date(+fullYear - (isPrev ? 1 : -1), +month, +date));
         },
         monthView(isPrev: boolean) {
-            const temporary = new Date(`${+fullYear}, ${+month + 1}, 1`);
-            const currentDate = new Date(temporary.setMonth(+month - (isPrev
-                                                                      ? 1
-                                                                      : -1)));
+            const temporary = new Date(+fullYear, +month, 1);
+            const currentDate = new Date(temporary.setMonth(+month - (isPrev ? 1 : -1)));
 
             setRouter({
                 type,
@@ -59,7 +55,7 @@ export const CalendarDirection = () => {
         },
         dayView(isPrev: boolean) {
             const move = Number(ASIDE[type.toUpperCase()].move);
-            const temporary = new Date(`${+fullYear}, ${+month + 1}, ${+date}`);
+            const temporary = new Date(+fullYear, +month, +date);
             const currentDate = new Date(temporary.setDate(+date - (isPrev ? move : -move) - (type === 'week' ? +day : 0)));
 
             setRouter({
