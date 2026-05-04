@@ -1,3 +1,5 @@
+import {AsyncLocalStorage} from 'node:async_hooks';
+
 import NextAuth from 'next-auth';
 import type {Provider} from 'next-auth/providers';
 import Google from 'next-auth/providers/google';
@@ -6,6 +8,9 @@ import Naver from 'next-auth/providers/naver';
 
 import {resolveUserMembership} from '../server/auth/resolve-user-membership';
 import {syncAuthUser} from '../server/auth/sync-auth-user';
+
+type AuthRequestContext = {inviteCode?: string | null};
+export const authRequestContext = new AsyncLocalStorage<AuthRequestContext>();
 
 type KakaoProfile = {
     id?: string | number;
@@ -79,10 +84,21 @@ export const {handlers, auth, signIn, signOut} = NextAuth({
             if (account) {
                 token.sub = account.providerAccountId;
                 token.provider = account.provider;
-                const syncedUser = await syncAuthUser({account, user});
-                token.userId = syncedUser?.id ?? token.userId;
-                token.name = syncedUser?.nickname ?? token.name;
-                token.picture = syncedUser?.image ?? token.picture;
+
+                const inviteCode = authRequestContext.getStore()?.inviteCode ?? null;
+
+                const syncedUser = await syncAuthUser({account, user, inviteCode});
+
+                if (!syncedUser) {
+                    token.loginError = 'no-account';
+                    return token;
+                }
+
+                token.userId = syncedUser.id;
+                token.name = syncedUser.nickname;
+                token.email = syncedUser.email;
+                token.picture = syncedUser.image;
+                token.loginError = undefined;
             }
 
             const membership = await resolveUserMembership((token.userId as string) ?? null);
@@ -95,10 +111,12 @@ export const {handlers, auth, signIn, signOut} = NextAuth({
             if (session.user) {
                 session.user.id = (token.userId as string) ?? token.sub ?? '';
                 session.user.name = token.name ?? session.user.name;
+                session.user.email = token.email ?? session.user.email;
                 session.user.image = (token.picture as string | null | undefined) ?? session.user.image;
                 session.user.provider = (token.provider as string) ?? '';
                 session.user.role = token.role as 'owner' | 'manager' | 'staff' | undefined;
                 session.user.storeId = token.storeId as string | undefined;
+                session.user.loginError = token.loginError as string | undefined;
             }
             return session;
         }
