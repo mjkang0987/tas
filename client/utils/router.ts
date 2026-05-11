@@ -23,8 +23,8 @@ export const setRouter = ({
     router
 }: RouterType) => {
     const arrayDate = [year, month, date];
-    const setLength = type === ViewType.Day ? arrayDate.length : 2;
-    const index = type === ViewType.Year ? 1 : setLength;
+    const shouldIncludeDate = type === ViewType.Day || type === ViewType.Week || type === ViewType.Three;
+    const index = type === ViewType.Year ? 1 : shouldIncludeDate ? arrayDate.length : 2;
     const isCalendarPath = isCalendar(['', type]);
     const resultPath = isCalendarPath ? `/${type}/${arrayDate.slice(0, index).join('/')}` : `/${type}`;
     if (router.asPath !== resultPath) {
