@@ -48,14 +48,18 @@ export const Aside = () => {
     };
 
     const setAsPath = (path: string) => {
-        const result: (string | number)[] = [path, currValue.fullYear];
+        const baseDate = currValue.full ? new Date(currValue.full) : new Date(currValue.fullYear, currValue.month, currValue.date || 1);
+        const weekStartDate = new Date(baseDate);
+        weekStartDate.setDate(baseDate.getDate() - Number(currValue.day));
+        const routeDate = path === ViewType.Week ? weekStartDate : baseDate;
+        const result: (string | number)[] = [path, routeDate.getFullYear()];
 
         if (path !== ViewType.Year) {
-            result.push(Number(currValue.month + 1));
+            result.push(routeDate.getMonth() + 1);
         }
 
-        if (path === ViewType.Day) {
-            result.push(Number(currValue.date));
+        if (path === ViewType.Day || path === ViewType.Week || path === ViewType.Three) {
+            result.push(routeDate.getDate());
         }
 
         return result;

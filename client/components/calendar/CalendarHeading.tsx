@@ -24,26 +24,28 @@ export const CalendarHeading = () => {
 
         if (curr) {
             const baseDate = new Date(+fullYear, +month, +date);
+            const startDate = new Date(baseDate);
             const endDate = new Date(baseDate);
 
             if (type === ViewType.Week) {
-                endDate.setDate(baseDate.getDate() - +day + 6);
+                startDate.setDate(baseDate.getDate() - +day);
+                endDate.setDate(startDate.getDate() + 6);
             } else {
                 endDate.setDate(baseDate.getDate() + 2);
             }
 
-            if (endDate.getMonth() !== +month || endDate.getFullYear() !== +fullYear) {
-                const calcYear = endDate.getFullYear() !== +fullYear
+            if (startDate.getMonth() !== endDate.getMonth() || startDate.getFullYear() !== endDate.getFullYear()) {
+                const startLabel = startDate.getFullYear() !== endDate.getFullYear()
+                    ? `${startDate.getFullYear()} / ${startDate.getMonth() + 1}`
+                    : startDate.getMonth() + 1;
+                const endLabel = endDate.getFullYear() !== startDate.getFullYear()
                     ? `${endDate.getFullYear()} / ${endDate.getMonth() + 1}`
                     : endDate.getMonth() + 1;
 
-                return `${+month + 1} - ${calcYear}`;
+                return `${startLabel} - ${endLabel}`;
             }
-        }
 
-        if (curr && +date + (type === ViewType.Week ? 6 : 2) > curr.monthLastNumber) {
-            const calcYear = month === 11 ? `${+fullYear + 1} / 1` : +month + 2;
-            return `${+month + 1} - ${calcYear}`;
+            return `${startDate.getMonth() + 1}`;
         }
 
         return `${+month + 1}`;

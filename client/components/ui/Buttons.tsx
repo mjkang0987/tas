@@ -176,7 +176,8 @@ const StyledReserveButton = styled.button <Props>`
 
     @media (hover: hover) and (pointer: fine) {
         &:hover {
-        max-height: ${props => props.$height}px;
+            height: auto;
+        max-height: 1000px;
         z-index: 10;
         box-shadow: 0 6px 16px rgba(15, 23, 42, 0.18);
     }

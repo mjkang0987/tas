@@ -50,10 +50,14 @@ export default function LayoutComponent({children}: NodeType) {
     const array = useMemo(() => router.asPath.split('/'), [router.asPath]);
     const isRootPath = useMemo(() => array.join('').length === 0, [array]);
     const isCalendarPath = useMemo(() => isCalendar(array), [array]);
+    const getMonthIndex = (rawMonth?: string) => {
+        const parsedMonth = Number(rawMonth);
+        return Number.isFinite(parsedMonth) && parsedMonth > 0 ? parsedMonth - 1 : 0;
+    };
     const currDate = useMemo(
         () => !isCalendarPath || isRootPath
             ? initDate
-            : new Date(Number(array[2]), Number(array[3]) - 1 || 1, Number(array[4]) || 1),
+            : new Date(Number(array[2]), getMonthIndex(array[3]), Number(array[4]) || 1),
         [array, initDate, isCalendarPath, isRootPath]
     );
 
@@ -98,7 +102,7 @@ export default function LayoutComponent({children}: NodeType) {
 
             const viewType = segments[1];
             const year = Number(segments[2]);
-            const month = (Number(segments[3]) - 1) || 0;
+            const month = getMonthIndex(segments[3]);
             const date = Number(segments[4]) || 1;
 
             setView({type: viewType});
@@ -119,13 +123,18 @@ export default function LayoutComponent({children}: NodeType) {
         }
 
         let changeRouter: Array<string | number> = [''];
+        const routeDate = new Date(currValue.fullYear, currValue.month, currValue.date);
 
-        if (view.type === ViewType.Year) {
-            changeRouter = [...changeRouter, ViewType.Month, currValue.month + 1];
+        if (view.type === ViewType.Week) {
+            routeDate.setDate(currValue.date - currValue.day);
         }
 
-        if (view.type !== ViewType.Year) {
-            changeRouter = [...changeRouter, ViewType.Day, currValue.fullYear, currValue.month + 1, currValue.date]
+        if (view.type === ViewType.Year) {
+            changeRouter = [...changeRouter, ViewType.Year, currValue.fullYear];
+        } else if (view.type === ViewType.Month) {
+            changeRouter = [...changeRouter, ViewType.Month, currValue.fullYear, currValue.month + 1];
+        } else {
+            changeRouter = [...changeRouter, view.type, routeDate.getFullYear(), routeDate.getMonth() + 1, routeDate.getDate()];
         }
 
         setRouterSlice({
@@ -136,9 +145,9 @@ export default function LayoutComponent({children}: NodeType) {
 
         setRouter({
             type : view.type,
-            year : currValue.fullYear,
-            month: currValue.month + 1,
-            date : currValue.date,
+            year : routeDate.getFullYear(),
+            month: routeDate.getMonth() + 1,
+            date : routeDate.getDate(),
             router
         });
     }, [currValue, isCalendarPath, isRootPath, router, setRouterSlice, view]);
@@ -196,4 +205,3 @@ const StyledMain = styled.main`
     display: flex;
     height: 100%;
 `;
-
