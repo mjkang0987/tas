@@ -1,19 +1,277 @@
 import {useMemo, useState, type DragEvent} from 'react';
+import {createPortal} from 'react-dom';
 
 import styled, {css} from 'styled-components';
 
 import {useCalendarStore} from '../../store/calendarStore';
 import {buildServiceColorMap, formatPrice, formatDuration, getCategoryBaseColor, getGroupedCatalog, getServiceColor} from '../../utils/services';
 import type {ServiceItem} from '../../utils/services';
+import {
+    StyledOverlay,
+    StyledDetail,
+    StyledHeader,
+    StyledFooter,
+    StyledActionButton,
+    StyledForm,
+    StyledFieldRow,
+    StyledInlineError,
+    useDialogAccessibility,
+    useLayerInstanceId,
+} from '../calendar/overlays/ModalStyles';
+import {CloseIconButton} from '../ui/CloseIconButton';
 import {formControlStyle} from '../ui/FormControls';
 
-interface EditState {
-    name: string;
-    durationMinutes: string;
-    price: string;
+/* ------------------------------------------------------------------ */
+/*  ServiceEditModal                                                   */
+/* ------------------------------------------------------------------ */
+
+interface ServiceEditModalProps {
+    item: ServiceItem;
+    serviceCatalog: ServiceItem[];
+    onSave: (original: ServiceItem, updated: ServiceItem) => void;
+    onDelete: (name: string) => void;
+    onClose: () => void;
 }
 
-const EMPTY_FORM = {name: '', category: '', durationMinutes: '', price: ''};
+const ServiceEditModal = ({item, serviceCatalog, onSave, onDelete, onClose}: ServiceEditModalProps) => {
+    const modalRoot = typeof document !== 'undefined' ? document.getElementById('modal-root') : null;
+    const {layerId, layerDataId} = useLayerInstanceId('service-edit');
+    const dialogRef = useDialogAccessibility<HTMLDivElement>(onClose);
+
+    const [name, setName] = useState(item.name);
+    const [durationMinutes, setDurationMinutes] = useState(String(item.durationMinutes));
+    const [price, setPrice] = useState(String(item.price));
+    const [error, setError] = useState('');
+
+    const handleSave = () => {
+        const nextName = name.trim();
+        if (!nextName) {
+            setError('시술명을 입력해 주세요.');
+            return;
+        }
+        if (serviceCatalog.some((s) => s.name === nextName && s.name !== item.name)) {
+            setError(`"${nextName}" 시술은 이미 등록되어 있습니다.`);
+            return;
+        }
+        onSave(item, {
+            name: nextName,
+            category: item.category,
+            durationMinutes: Number(durationMinutes) || 0,
+            price: Number(price) || 0,
+        });
+    };
+
+    const handleDelete = () => {
+        if (confirm(`"${item.name}" 항목을 삭제하시겠습니까?`)) {
+            onDelete(item.name);
+        }
+    };
+
+    if (!modalRoot) return null;
+
+    return createPortal(
+        <StyledServiceOverlay
+            onClick={onClose}
+            role="dialog"
+            aria-modal="true"
+            aria-label="시술 수정"
+            id={layerId}
+            data-layer-id={layerDataId}
+        >
+            <StyledServiceModal ref={dialogRef} tabIndex={-1} onClick={(e) => e.stopPropagation()}>
+                <StyledHeader>
+                    <h3>시술 수정</h3>
+                    <CloseIconButton onClick={onClose} />
+                </StyledHeader>
+                <StyledModalBody>
+                    <StyledForm>
+                        <StyledFieldRow>
+                            <strong>시술명</strong>
+                            <label>
+                                <input
+                                    value={name}
+                                    onChange={(e) => { setName(e.target.value); setError(''); }}
+                                    placeholder="시술명"
+                                />
+                            </label>
+                        </StyledFieldRow>
+                        <StyledFieldRow>
+                            <strong>소요시간 (분)</strong>
+                            <label>
+                                <input
+                                    type="number"
+                                    value={durationMinutes}
+                                    onChange={(e) => setDurationMinutes(e.target.value)}
+                                    placeholder="분"
+                                />
+                            </label>
+                        </StyledFieldRow>
+                        <StyledFieldRow>
+                            <strong>가격 (원)</strong>
+                            <label>
+                                <input
+                                    type="number"
+                                    value={price}
+                                    onChange={(e) => setPrice(e.target.value)}
+                                    placeholder="원"
+                                />
+                            </label>
+                        </StyledFieldRow>
+                        {error && <StyledInlineError>{error}</StyledInlineError>}
+                    </StyledForm>
+                </StyledModalBody>
+                <StyledFooter>
+                    <StyledActionButton type="button" $danger onClick={handleDelete}>삭제</StyledActionButton>
+                    <StyledActionButton type="button" onClick={onClose}>취소</StyledActionButton>
+                    <StyledActionButton type="button" $primary onClick={handleSave}>저장</StyledActionButton>
+                </StyledFooter>
+            </StyledServiceModal>
+        </StyledServiceOverlay>,
+        modalRoot
+    );
+};
+
+/* ------------------------------------------------------------------ */
+/*  ServiceAddModal                                                    */
+/* ------------------------------------------------------------------ */
+
+interface ServiceAddModalProps {
+    categories: string[];
+    serviceCatalog: ServiceItem[];
+    onAdd: (item: ServiceItem) => void;
+    onClose: () => void;
+}
+
+const EMPTY_ADD = {name: '', category: '', durationMinutes: '', price: ''};
+
+const ServiceAddModal = ({categories, serviceCatalog, onAdd, onClose}: ServiceAddModalProps) => {
+    const modalRoot = typeof document !== 'undefined' ? document.getElementById('modal-root') : null;
+    const {layerId, layerDataId} = useLayerInstanceId('service-add');
+    const dialogRef = useDialogAccessibility<HTMLDivElement>(onClose);
+
+    const [form, setForm] = useState(EMPTY_ADD);
+    const [newCategory, setNewCategory] = useState('');
+    const [error, setError] = useState('');
+
+    const handleAdd = () => {
+        const itemName = form.name.trim();
+        const category = form.category === '__new' ? newCategory.trim() : form.category.trim();
+
+        if (!category) {
+            setError(form.category === '__new'
+                ? '새 카테고리명을 입력해 주세요.'
+                : '카테고리를 선택하거나 새 카테고리를 추가해 주세요.');
+            return;
+        }
+        if (!itemName) {
+            setError('시술명을 입력해 주세요.');
+            return;
+        }
+        if (serviceCatalog.some((s) => s.name === itemName)) {
+            setError(`"${itemName}" 시술은 이미 등록되어 있습니다.`);
+            return;
+        }
+
+        onAdd({
+            name: itemName,
+            category,
+            durationMinutes: Number(form.durationMinutes) || 0,
+            price: Number(form.price) || 0,
+        });
+    };
+
+    if (!modalRoot) return null;
+
+    return createPortal(
+        <StyledServiceOverlay
+            onClick={onClose}
+            role="dialog"
+            aria-modal="true"
+            aria-label="시술 추가"
+            id={layerId}
+            data-layer-id={layerDataId}
+        >
+            <StyledServiceModal ref={dialogRef} tabIndex={-1} onClick={(e) => e.stopPropagation()}>
+                <StyledHeader>
+                    <h3>시술 추가</h3>
+                    <CloseIconButton onClick={onClose} />
+                </StyledHeader>
+                <StyledModalBody>
+                    <StyledForm>
+                        <StyledFieldRow>
+                            <strong>카테고리</strong>
+                            <label>
+                                <select
+                                    value={form.category}
+                                    aria-label="시술 카테고리"
+                                    onChange={(e) => {
+                                        setForm({...form, category: e.target.value});
+                                        setError('');
+                                    }}
+                                >
+                                    <option value="">카테고리 선택</option>
+                                    {categories.map((c) => <option key={c} value={c}>{c}</option>)}
+                                    <option value="__new">+ 새 카테고리</option>
+                                </select>
+                            </label>
+                            {form.category === '__new' && (
+                                <label>
+                                    <input
+                                        value={newCategory}
+                                        placeholder="새 카테고리명"
+                                        onChange={(e) => { setNewCategory(e.target.value); setError(''); }}
+                                    />
+                                </label>
+                            )}
+                        </StyledFieldRow>
+                        <StyledFieldRow>
+                            <strong>시술명</strong>
+                            <label>
+                                <input
+                                    value={form.name}
+                                    onChange={(e) => { setForm({...form, name: e.target.value}); setError(''); }}
+                                    placeholder="시술명"
+                                />
+                            </label>
+                        </StyledFieldRow>
+                        <StyledFieldRow>
+                            <strong>소요시간 (분)</strong>
+                            <label>
+                                <input
+                                    type="number"
+                                    value={form.durationMinutes}
+                                    onChange={(e) => setForm({...form, durationMinutes: e.target.value})}
+                                    placeholder="분"
+                                />
+                            </label>
+                        </StyledFieldRow>
+                        <StyledFieldRow>
+                            <strong>가격 (원)</strong>
+                            <label>
+                                <input
+                                    type="number"
+                                    value={form.price}
+                                    onChange={(e) => setForm({...form, price: e.target.value})}
+                                    placeholder="원"
+                                />
+                            </label>
+                        </StyledFieldRow>
+                        {error && <StyledInlineError>{error}</StyledInlineError>}
+                    </StyledForm>
+                </StyledModalBody>
+                <StyledFooter>
+                    <StyledActionButton type="button" onClick={onClose}>취소</StyledActionButton>
+                    <StyledActionButton type="button" $primary onClick={handleAdd}>추가</StyledActionButton>
+                </StyledFooter>
+            </StyledServiceModal>
+        </StyledServiceOverlay>,
+        modalRoot
+    );
+};
+
+/* ------------------------------------------------------------------ */
+/*  ServiceManageSection                                               */
+/* ------------------------------------------------------------------ */
 
 export const ServiceManageSection = () => {
     const serviceCatalog = useCalendarStore((s) => s.serviceCatalog);
@@ -33,74 +291,34 @@ export const ServiceManageSection = () => {
         [serviceCatalog, categoryBaseColorMap]
     );
 
-    const [editingName, setEditingName] = useState<string | null>(null);
-    const [editState, setEditState] = useState<EditState>({name: '', durationMinutes: '', price: ''});
-    const [form, setForm] = useState(EMPTY_FORM);
-    const [newCategory, setNewCategory] = useState('');
-    const [addError, setAddError] = useState('');
-    const [showAdd, setShowAdd] = useState(false);
+    const [editingItem, setEditingItem] = useState<ServiceItem | null>(null);
+    const [showAddModal, setShowAddModal] = useState(false);
     const [draggingName, setDraggingName] = useState<string | null>(null);
     const [dragOverName, setDragOverName] = useState<string | null>(null);
     const [draggingCategory, setDraggingCategory] = useState<string | null>(null);
     const [dragOverCategory, setDragOverCategory] = useState<string | null>(null);
     const [editingCategory, setEditingCategory] = useState<string | null>(null);
     const [editingCategoryName, setEditingCategoryName] = useState('');
+    const [manageError, setManageError] = useState('');
 
-    const startEdit = (item: ServiceItem) => {
-        setEditingName(item.name);
-        setEditState({
-            name: item.name,
-            durationMinutes: String(item.durationMinutes),
-            price: String(item.price),
-        });
-    };
-
-    const saveEdit = (original: ServiceItem) => {
-        const updated: ServiceItem = {
-            name: editState.name.trim() || original.name,
-            category: original.category,
-            durationMinutes: Number(editState.durationMinutes) || 0,
-            price: Number(editState.price) || 0,
-        };
+    const handleSaveEdit = (original: ServiceItem, updated: ServiceItem) => {
         updateService(original.name, updated);
-        setEditingName(null);
+        setEditingItem(null);
     };
 
     const handleDelete = (name: string) => {
-        if (confirm(`"${name}" 항목을 삭제하시겠습니까?`)) {
-            deleteService(name);
-            if (editingName === name) setEditingName(null);
-        }
+        deleteService(name);
+        setEditingItem(null);
     };
 
-    const handleAdd = () => {
-        const name = form.name.trim();
-        const category = form.category === '__new' ? newCategory.trim() : form.category.trim();
-        if (!category) {
-            setAddError(form.category === '__new'
-                ? '새 카테고리명을 입력해 주세요.'
-                : '카테고리를 선택하거나 새 카테고리를 추가해 주세요.');
-            return;
-        }
-        if (!name) return;
-        if (serviceCatalog.some((item) => item.name === name)) {
-            setAddError(`"${name}" 시술은 이미 등록되어 있습니다.`);
-            return;
-        }
-
-        addService({
-            name,
-            category,
-            durationMinutes: Number(form.durationMinutes) || 0,
-            price: Number(form.price) || 0,
-        });
-        setAddError('');
-        setForm(EMPTY_FORM);
-        setNewCategory('');
-        setShowAdd(false);
+    const handleAdd = (item: ServiceItem) => {
+        addService(item);
+        setShowAddModal(false);
     };
 
-    const handleDragStart = (name: string) => {
+    const handleDragStart = (e: DragEvent<HTMLDivElement>, name: string) => {
+        e.dataTransfer.effectAllowed = 'move';
+        e.dataTransfer.setData('text/plain', name);
         setDraggingName(name);
         setDragOverName(null);
     };
@@ -120,14 +338,16 @@ export const ServiceManageSection = () => {
         setDraggingName(null);
     };
 
-    const handleCategoryDragStart = (category: string) => {
+    const handleCategoryDragStart = (e: DragEvent<HTMLElement>, category: string) => {
+        e.dataTransfer.effectAllowed = 'move';
+        e.dataTransfer.setData('text/plain', category);
         setDraggingCategory(category);
         setDragOverCategory(null);
         setDraggingName(null);
         setDragOverName(null);
     };
 
-    const handleCategoryDragOver = (e: DragEvent<HTMLDivElement>, category: string) => {
+    const handleCategoryDragOver = (e: DragEvent<HTMLElement>, category: string) => {
         if (!draggingCategory || draggingCategory === category) return;
         e.preventDefault();
         setDragOverCategory(category);
@@ -150,12 +370,24 @@ export const ServiceManageSection = () => {
     const startCategoryEdit = (category: string) => {
         setEditingCategory(category);
         setEditingCategoryName(category);
+        setManageError('');
     };
 
     const saveCategoryEdit = (category: string) => {
         const nextName = editingCategoryName.trim();
-        if (!nextName) return;
+
+        if (!nextName) {
+            setManageError('카테고리명을 입력해 주세요.');
+            return;
+        }
+
+        if (categories.some((item) => item === nextName && item !== category)) {
+            setManageError(`"${nextName}" 카테고리는 이미 있습니다.`);
+            return;
+        }
+
         renameCategory(category, nextName);
+        setManageError('');
         setEditingCategory(null);
         setEditingCategoryName('');
     };
@@ -167,11 +399,17 @@ export const ServiceManageSection = () => {
                     <StyledGroup
                         key={category}
                         onDragOver={(e) => handleCategoryDragOver(e, category)}
+                        onDragLeave={() => {
+                            if (dragOverCategory === category) {
+                                setDragOverCategory(null);
+                            }
+                        }}
                         onDrop={() => handleCategoryDrop(category)}
                         onDragEnd={handleDragEnd}
                         $isCategoryDragging={draggingCategory === category}
-                        $isCategoryDragOver={dragOverCategory === category && draggingCategory !== category}
+                        $isCategoryDragOver={draggingCategory !== null && dragOverCategory === category && draggingCategory !== category}
                     >
+                        <StyledCategoryToggle open>
                         <StyledCategoryHeader>
                             {editingCategory === category ? (
                                 <StyledCategoryEditRow>
@@ -184,170 +422,130 @@ export const ServiceManageSection = () => {
                                     <StyledCancelBtn type="button" onClick={() => {
                                         setEditingCategory(null);
                                         setEditingCategoryName('');
+                                        setManageError('');
                                     }}>취소</StyledCancelBtn>
                                 </StyledCategoryEditRow>
                             ) : (
                                 <StyledCategoryLabel>
-                                    <StyledCategoryDragHandle
-                                        draggable
-                                        onDragStart={() => handleCategoryDragStart(category)}
-                                        title="카테고리 순서 이동"
-                                    >
-                                        ::
-                                    </StyledCategoryDragHandle>
-                                    <span>{category}</span>
+                                    <StyledCategoryNameChip>
+                                        <StyledCategoryDragHandle
+                                            draggable
+                                            onDragStart={(e) => handleCategoryDragStart(e, category)}
+                                            onClick={(e) => e.preventDefault()}
+                                            title="카테고리 순서 이동"
+                                            aria-label={`${category} 카테고리 순서 이동`}
+                                        >
+                                            <svg viewBox="0 0 16 16" aria-hidden="true">
+                                                <rect x="2.5" y="3" width="11" height="1.5" rx="0.75" />
+                                                <rect x="2.5" y="7.25" width="11" height="1.5" rx="0.75" />
+                                                <rect x="2.5" y="11.5" width="11" height="1.5" rx="0.75" />
+                                            </svg>
+                                        </StyledCategoryDragHandle>
+                                        <span>{category}</span>
+                                    </StyledCategoryNameChip>
                                 </StyledCategoryLabel>
                             )}
                             <StyledCategoryActions>
                                 {editingCategory !== category && (
                                     <StyledEditBtn type="button" onClick={() => startCategoryEdit(category)}>이름수정</StyledEditBtn>
                                 )}
-                                <StyledCategoryColorInput
-                                    type="color"
-                                    value={getCategoryBaseColor(category, categoryBaseColorMap)}
-                                    onChange={(e) => updateCategoryBaseColor(category, e.target.value)}
-                                    aria-label={`${category} 대표 컬러`}
-                                    title={`${category} 대표 컬러`}
-                                />
+                                <StyledColorField>
+                                    <StyledCategoryColorInput
+                                        type="color"
+                                        value={getCategoryBaseColor(category, categoryBaseColorMap)}
+                                        onChange={(e) => updateCategoryBaseColor(category, e.target.value)}
+                                        aria-label={`${category} 대표 컬러`}
+                                        title={`${category} 대표 컬러`}
+                                    />
+                                </StyledColorField>
                             </StyledCategoryActions>
                         </StyledCategoryHeader>
+                        <StyledCategoryBody>
                         {items.map((item) => (
                             <StyledItem
                                 key={item.name}
-                                draggable={editingName !== item.name && !draggingCategory}
-                                onDragStart={() => handleDragStart(item.name)}
+                                draggable={!draggingCategory}
+                                onDragStart={(e) => handleDragStart(e, item.name)}
                                 onDragOver={(e) => handleDragOver(e, item.name)}
+                                onDragLeave={() => {
+                                    if (dragOverName === item.name) {
+                                        setDragOverName(null);
+                                    }
+                                }}
                                 onDrop={() => handleDrop(item.name)}
                                 onDragEnd={handleDragEnd}
                                 $isDragging={draggingName === item.name}
-                                $isDragOver={dragOverName === item.name && draggingName !== item.name}
+                                $isDragOver={draggingName !== null && dragOverName === item.name && draggingName !== item.name}
+                                onClick={() => setEditingItem(item)}
                             >
-                                {editingName === item.name ? (
-                                    <StyledEditRow>
-                                        <StyledEditInput
-                                            value={editState.name}
-                                            onChange={(e) => setEditState({...editState, name: e.target.value})}
-                                            placeholder="시술명"
-                                        />
-                                        <StyledEditSmall
-                                            type="number"
-                                            value={editState.durationMinutes}
-                                            onChange={(e) => setEditState({...editState, durationMinutes: e.target.value})}
-                                            placeholder="분"
-                                        />
-                                        <StyledEditSmall
-                                            type="number"
-                                            value={editState.price}
-                                            onChange={(e) => setEditState({...editState, price: e.target.value})}
-                                            placeholder="원"
-                                        />
-                                        <StyledSaveBtn type="button" onClick={() => saveEdit(item)}>저장</StyledSaveBtn>
-                                        <StyledCancelBtn type="button" onClick={() => setEditingName(null)}>취소</StyledCancelBtn>
-                                    </StyledEditRow>
-                                ) : (
-                                    <StyledViewRow>
-                                        <StyledDragHandle>::</StyledDragHandle>
-                                        <StyledServiceContent>
-                                            <StyledServiceMainLine>
-                                                <StyledNameChip $color={getServiceColor(item.name, serviceColorMap)}>
-                                                    {item.name}
-                                                </StyledNameChip>
-                                                <StyledServiceActions>
-                                                    <StyledEditBtn type="button" onClick={() => startEdit(item)}>수정</StyledEditBtn>
-                                                    <StyledDeleteBtn type="button" onClick={() => handleDelete(item.name)}>삭제</StyledDeleteBtn>
-                                                </StyledServiceActions>
-                                            </StyledServiceMainLine>
-                                            <StyledMeta>
-                                                {formatDuration(item.durationMinutes)}
-                                                {item.price > 0 && ` / ${formatPrice(item.price)}`}
-                                            </StyledMeta>
-                                        </StyledServiceContent>
-                                    </StyledViewRow>
-                                )}
+                                <StyledViewRow>
+                                    <StyledDragHandle>::</StyledDragHandle>
+                                    <StyledServiceContent>
+                                        <StyledNameChip $color={getServiceColor(item.name, serviceColorMap)}>
+                                            {item.name}
+                                        </StyledNameChip>
+                                        <StyledMeta>
+                                            {formatDuration(item.durationMinutes)}
+                                            {item.price > 0 && ` / ${formatPrice(item.price)}`}
+                                        </StyledMeta>
+                                    </StyledServiceContent>
+                                </StyledViewRow>
                             </StyledItem>
                         ))}
+                        </StyledCategoryBody>
+                        </StyledCategoryToggle>
                     </StyledGroup>
                 ))}
             </StyledServiceBody>
+            {manageError && <StyledManageNotice>{manageError}</StyledManageNotice>}
 
             <StyledServiceFooter>
-                {showAdd ? (
-                    <StyledAddForm>
-                        <StyledAddRow>
-                            <select
-                                value={form.category}
-                                aria-label="시술 카테고리"
-                                onChange={(e) => {
-                                    setForm({...form, category: e.target.value});
-                                    setAddError('');
-                                }}
-                            >
-                                <option value="">카테고리</option>
-                                {categories.map((category) => <option key={category} value={category}>{category}</option>)}
-                                <option value="__new">+ 새 카테고리</option>
-                            </select>
-                            {form.category === '__new' && (
-                                <StyledAddInput
-                                    value={newCategory}
-                                    placeholder="카테고리명"
-                                    onChange={(e) => {
-                                        setNewCategory(e.target.value);
-                                        setAddError('');
-                                    }}
-                                />
-                            )}
-                        </StyledAddRow>
-                        {(addError || !form.category) && (
-                            <StyledAddNotice>
-                                {addError || '카테고리를 먼저 선택하거나 새 카테고리를 추가해 주세요.'}
-                            </StyledAddNotice>
-                        )}
-                        <StyledAddRow>
-                            <StyledAddInput
-                                value={form.name}
-                                onChange={(e) => {
-                                    setForm({...form, name: e.target.value});
-                                    setAddError('');
-                                }}
-                                placeholder="시술명"
-                            />
-                            <StyledAddSmall
-                                type="number"
-                                value={form.durationMinutes}
-                                onChange={(e) => setForm({...form, durationMinutes: e.target.value})}
-                                placeholder="소요시간(분)"
-                            />
-                            <StyledAddSmall
-                                type="number"
-                                value={form.price}
-                                onChange={(e) => setForm({...form, price: e.target.value})}
-                                placeholder="가격(원)"
-                            />
-                        </StyledAddRow>
-                        <StyledAddActions>
-                            <StyledSaveBtn type="button" onClick={handleAdd}>추가</StyledSaveBtn>
-                            <StyledCancelBtn type="button" onClick={() => {
-                                setShowAdd(false);
-                                setForm(EMPTY_FORM);
-                                setNewCategory('');
-                                setAddError('');
-                            }}>취소</StyledCancelBtn>
-                        </StyledAddActions>
-                    </StyledAddForm>
-                ) : (
-                    <StyledAddButton type="button" onClick={() => {
-                        setShowAdd(true);
-                        setAddError('');
-                    }}>+ 시술 추가</StyledAddButton>
-                )}
+                <StyledAddButton type="button" onClick={() => setShowAddModal(true)}>+ 시술 추가</StyledAddButton>
             </StyledServiceFooter>
+
+            {editingItem && (
+                <ServiceEditModal
+                    item={editingItem}
+                    serviceCatalog={serviceCatalog}
+                    onSave={handleSaveEdit}
+                    onDelete={handleDelete}
+                    onClose={() => setEditingItem(null)}
+                />
+            )}
+
+            {showAddModal && (
+                <ServiceAddModal
+                    categories={categories}
+                    serviceCatalog={serviceCatalog}
+                    onAdd={handleAdd}
+                    onClose={() => setShowAddModal(false)}
+                />
+            )}
         </>
     );
 };
 
-const compactInputStyle = css`
-    ${formControlStyle};
+/* ------------------------------------------------------------------ */
+/*  Styled – Modal                                                     */
+/* ------------------------------------------------------------------ */
+
+const StyledServiceOverlay = styled(StyledOverlay)`
+    z-index: 160;
 `;
+
+const StyledServiceModal = styled(StyledDetail)`
+    width: min(100%, 380px);
+    max-width: min(380px, 90vw);
+`;
+
+const StyledModalBody = styled.div`
+    padding: 16px;
+    overflow-y: auto;
+`;
+
+/* ------------------------------------------------------------------ */
+/*  Styled – List                                                      */
+/* ------------------------------------------------------------------ */
 
 const actionButtonStyle = css`
     flex-shrink: 0;
@@ -361,7 +559,7 @@ const actionButtonStyle = css`
 
     @media (hover: hover) and (pointer: fine) {
         &:hover {
-        
+
     }
     }
 `;
@@ -379,19 +577,59 @@ const StyledServiceBody = styled.div`
 `;
 
 const StyledGroup = styled.div<{ $isCategoryDragging: boolean; $isCategoryDragOver: boolean }>`
+    position: relative;
     opacity: ${(p) => p.$isCategoryDragging ? 0.5 : 1};
-    background-color: ${(p) => p.$isCategoryDragOver ? 'var(--black-color-10)' : 'transparent'};
+    background-color: ${(p) => p.$isCategoryDragOver ? 'rgba(19, 115, 51, 0.06)' : 'transparent'};
     border-radius: 4px;
+    box-shadow: ${(p) => p.$isCategoryDragOver ? '0 8px 20px rgba(19, 115, 51, 0.12)' : 'none'};
+    transition: background-color 0.16s ease, box-shadow 0.16s ease;
+
+    &::before {
+        content: ${(p) => p.$isCategoryDragOver ? "'여기로 이동'" : "''"};
+        position: absolute;
+        top: -10px;
+        right: 12px;
+        z-index: 4;
+        display: ${(p) => p.$isCategoryDragOver ? 'inline-flex' : 'none'};
+        align-items: center;
+        height: 22px;
+        padding: 0 8px;
+        border-radius: 999px;
+        background: #137333;
+        color: #fff;
+        font-size: 11px;
+        font-weight: 700;
+        letter-spacing: -0.01em;
+        box-shadow: 0 8px 18px rgba(19, 115, 51, 0.24);
+    }
+
+    &::after {
+        content: '';
+        position: absolute;
+        left: 12px;
+        right: 12px;
+        top: -2px;
+        height: 4px;
+        border-radius: 999px;
+        background: ${(p) => p.$isCategoryDragOver ? '#137333' : 'transparent'};
+        box-shadow: ${(p) => p.$isCategoryDragOver ? '0 0 0 3px rgba(19, 115, 51, 0.14)' : 'none'};
+    }
 
     & + & {
         margin-top: 4px;
     }
 `;
 
-const StyledCategoryHeader = styled.div`
+const StyledCategoryToggle = styled.details`
+    &[open] {
+        ${''}
+    }
+`;
+
+const StyledCategoryHeader = styled.summary`
+    list-style: none;
     display: flex;
     align-items: center;
-    justify-content: space-between;
     gap: 8px;
     font-size: var(--xsmall-font);
     font-weight: 600;
@@ -401,7 +639,37 @@ const StyledCategoryHeader = styled.div`
     position: sticky;
     top: 0;
     z-index: 2;
+    cursor: pointer;
+
+    &::-webkit-details-marker {
+        display: none;
+    }
+
+    &::after {
+        content: '';
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 22px;
+        height: 22px;
+        margin-left: 8px;
+        flex-shrink: 0;
+        border: 1px solid var(--light-gray-color);
+        border-radius: 999px;
+        background: var(--white-color);
+        background-image: url("data:image/svg+xml,%3Csvg width='10' height='10' viewBox='0 0 10 10' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M3 1.75L6.25 5L3 8.25' stroke='%23111827' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+        background-repeat: no-repeat;
+        background-position: center;
+        transition: transform 0.18s ease;
+        transform: rotate(270deg);
+    }
+
+    ${StyledCategoryToggle}[open] &::after {
+        transform: rotate(90deg);
+    }
 `;
+
+const StyledCategoryBody = styled.div``;
 
 const StyledCategoryLabel = styled.span`
     display: inline-flex;
@@ -410,14 +678,35 @@ const StyledCategoryLabel = styled.span`
     min-width: 0;
 `;
 
-const StyledCategoryActions = styled.div`
+const StyledCategoryNameChip = styled.span`
     display: inline-flex;
     align-items: center;
     gap: 6px;
-    flex-shrink: 0;
+    min-width: 0;
 `;
 
-const StyledCategoryEditRow = styled.div`
+const StyledCategoryActions = styled.span`
+    display: inline-flex;
+    align-items: center;
+    margin-left: auto;
+    gap: 6px;
+    flex-shrink: 0;
+
+    @media (max-width: 640px) {
+        flex-wrap: wrap;
+        justify-content: flex-end;
+    }
+`;
+
+const StyledColorField = styled.span`
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 11px;
+    color: var(--dark-gray-color2);
+`;
+
+const StyledCategoryEditRow = styled.span`
     display: flex;
     align-items: center;
     gap: 6px;
@@ -444,11 +733,26 @@ const StyledCategoryEditInput = styled.input`
 `;
 
 const StyledCategoryDragHandle = styled.span`
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 16px;
+    height: 16px;
     flex-shrink: 0;
     color: var(--dark-gray-color2);
     font-size: 12px;
     cursor: grab;
     user-select: none;
+
+    &:active {
+        cursor: grabbing;
+    }
+
+    svg {
+        width: 16px;
+        height: 16px;
+        fill: currentColor;
+    }
 `;
 
 const StyledCategoryColorInput = styled.input`
@@ -462,10 +766,35 @@ const StyledCategoryColorInput = styled.input`
 `;
 
 const StyledItem = styled.div<{ $isDragging: boolean; $isDragOver: boolean }>`
+    position: relative;
     padding: 0 16px;
     border-bottom: 1px solid var(--black-color-10);
     opacity: ${(p) => p.$isDragging ? 0.5 : 1};
-    background-color: ${(p) => p.$isDragOver ? 'var(--black-color-10)' : 'transparent'};
+    background-color: ${(p) => p.$isDragOver ? 'rgba(17, 24, 39, 0.05)' : 'transparent'};
+    box-shadow: ${(p) => p.$isDragOver ? 'inset 0 2px 0 #111827' : 'none'};
+    transition: background-color 0.16s ease, box-shadow 0.16s ease;
+    cursor: pointer;
+
+    @media (hover: hover) and (pointer: fine) {
+        &:hover {
+            background-color: var(--black-color-10);
+        }
+    }
+
+    &::before {
+        content: ${(p) => p.$isDragOver ? "'이 위치로 이동'" : "''"};
+        position: absolute;
+        top: 6px;
+        right: 16px;
+        display: ${(p) => p.$isDragOver ? 'inline-flex' : 'none'};
+        align-items: center;
+        padding: 2px 8px;
+        border-radius: 999px;
+        background: rgba(17, 24, 39, 0.86);
+        color: #fff;
+        font-size: 10px;
+        font-weight: 700;
+    }
 `;
 
 const StyledViewRow = styled.div`
@@ -484,29 +813,6 @@ const StyledServiceContent = styled.div`
     gap: 4px;
 `;
 
-const StyledServiceMainLine = styled.div`
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    min-width: 0;
-
-    @media (max-width: 640px) {
-        flex-wrap: wrap;
-        row-gap: 6px;
-    }
-`;
-
-const StyledServiceActions = styled.div`
-    display: flex;
-    flex-wrap: wrap;
-    gap: 6px;
-    margin-left: auto;
-
-    @media (max-width: 640px) {
-        margin-left: 0;
-    }
-`;
-
 const StyledDragHandle = styled.span`
     flex-shrink: 0;
     color: var(--dark-gray-color2);
@@ -518,8 +824,6 @@ const StyledDragHandle = styled.span`
 const StyledNameChip = styled.span<{ $color: string }>`
     display: inline-flex;
     align-items: center;
-    flex: 1;
-    min-width: 0;
     width: fit-content;
     max-width: 100%;
     padding: 4px 10px;
@@ -542,45 +846,7 @@ const StyledEditBtn = styled.button`
     background: none;
     font-size: 11px;
     color: var(--dark-gray-color);
-`;
-
-const StyledDeleteBtn = styled.button`
-    ${actionButtonStyle};
-    border: 1px solid var(--danger-border);
-    background: var(--danger-bg);
-    font-size: 11px;
-    color: var(--danger-color);
-`;
-
-const StyledEditRow = styled.div`
-    display: flex;
-    align-items: center;
-    gap: 4px;
-    padding: 6px 0;
-
-    @media (max-width: 640px) {
-        flex-wrap: wrap;
-    }
-`;
-
-const StyledEditInput = styled.input`
-    flex: 1;
-    min-width: 0;
-    ${compactInputStyle};
-    padding: 0 6px;
-`;
-
-const StyledEditSmall = styled.input`
-    width: 60px;
-    ${compactInputStyle};
-    padding: 0 4px;
-    text-align: right;
-
-    @media (max-width: 640px) {
-        flex: 1;
-        width: auto;
-        min-width: 0;
-    }
+    background-color: var(--white-color);
 `;
 
 const StyledSaveBtn = styled.button`
@@ -620,61 +886,10 @@ const StyledAddButton = styled.button`
     }
 `;
 
-const StyledAddForm = styled.div`
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
-`;
-
-const StyledAddRow = styled.div`
-    display: flex;
-    gap: 4px;
-
-    @media (max-width: 640px) {
-        flex-direction: column;
-    }
-
-    > select {
-        ${compactInputStyle};
-        padding: 0 4px;
-
-        @media (max-width: 640px) {
-            width: 100%;
-        }
-    }
-`;
-
-const StyledAddInput = styled.input`
-    flex: 1;
-    min-width: 0;
-    ${compactInputStyle};
-    padding: 0 6px;
-`;
-
-const StyledAddNotice = styled.p`
+const StyledManageNotice = styled.p`
     margin: 0;
+    padding: 8px 16px 0;
     font-size: 12px;
     line-height: 1.4;
     color: var(--red-color);
-`;
-
-const StyledAddSmall = styled.input`
-    width: 80px;
-    ${compactInputStyle};
-    padding: 0 4px;
-    text-align: right;
-
-    @media (max-width: 640px) {
-        width: 100%;
-    }
-`;
-
-const StyledAddActions = styled.div`
-    display: flex;
-    gap: 4px;
-    justify-content: flex-end;
-
-    @media (max-width: 640px) {
-        justify-content: stretch;
-    }
 `;
