@@ -20,7 +20,7 @@ import {CustomerDetail} from '../components/calendar/overlays/CustomerDetail';
 import {DesignerManageSection} from '../components/settings/DesignerManageSection';
 import {MemberSection} from '../components/settings/MemberSection';
 import {PointManageSection} from '../components/settings/PointManageSection';
-import {RevenueSection, type RevenueDesignerKey, type RevenueQuickRange} from '../components/settings/RevenueSection';
+import {RevenueSection, type RevenueDesignerKey, type RevenueQuickRange} from '../components/settings/revenue';
 import {ServiceManageSection} from '../components/settings/ServiceManageSection';
 import {StoreManageSection} from '../components/settings/StoreManageSection';
 
