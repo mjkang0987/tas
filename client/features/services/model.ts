@@ -119,7 +119,7 @@ export function getCategoryBaseColor(
     category: string,
     categoryBaseColorMap: Record<string, string> = CATEGORY_BASE_COLOR_MAP
 ): string {
-    return categoryBaseColorMap[category] || generateCategoryBaseColor(category);
+    return categoryBaseColorMap[category] || CATEGORY_BASE_COLOR_MAP[category] || generateCategoryBaseColor(category);
 }
 
 export function buildServiceColorMap(

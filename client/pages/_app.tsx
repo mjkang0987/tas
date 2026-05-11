@@ -61,7 +61,7 @@ function AppContent({Component, pageProps}: AppContentProps) {
                     setServiceCatalog(data.services);
                 }
 
-                if (data.categoryBaseColors && typeof data.categoryBaseColors === 'object') {
+                if (data.categoryBaseColors && typeof data.categoryBaseColors === 'object' && Object.keys(data.categoryBaseColors).length > 0) {
                     setCategoryBaseColorMap(data.categoryBaseColors);
                 }
             })
