@@ -56,11 +56,58 @@ export const GlobalStyle = createGlobalStyle`
         --aside-text: #f5f5f7;
         --aside-hover: rgba(255, 255, 255, 0.08);
         --aside-divider: rgba(255, 255, 255, 0.12);
+
+        --overlay-padding: 14px;
+        --overlay-backdrop-blur: 8px;
+
+        --modal-radius: 14px;
+        --modal-radius-mobile: 12px;
+        --modal-border: rgba(148, 163, 184, 0.22);
+        --modal-shadow:
+            0 24px 60px rgba(15, 23, 42, 0.18),
+            0 6px 18px rgba(15, 23, 42, 0.08);
+
+        --modal-header-gap: 10px;
+        --modal-header-padding: 12px 14px 10px;
+        --modal-header-border: rgba(148, 163, 184, 0.18);
+        --modal-body-padding: 8px 6px 16px;
+        --modal-content-padding: 12px;
+        --modal-footer-gap: 6px;
+        --modal-footer-padding: 10px 14px 14px;
+        --modal-footer-border: rgba(148, 163, 184, 0.16);
+
+        --modal-title-font: 16px;
+        --modal-subtitle-font: 12px;
+        --modal-message-font: 14px;
+        --modal-message-margin: 0 0 10px;
+
+        --modal-button-height: 32px;
+        --modal-button-padding-x: 12px;
+        --modal-button-radius: 8px;
+        --modal-button-font: 13px;
+
+        --info-grid-gap: 8px;
+        --info-grid-cell-gap: 8px;
+        --info-grid-cell-padding: 8px 10px;
+        --info-grid-cell-radius: 10px;
+
+        --list-gap: 10px;
+        --list-padding-x: 8px;
+        --card-gap: 12px;
+        --card-padding: 12px;
+        --card-radius: 14px;
+        --card-shadow: 0 8px 18px rgba(15, 23, 42, 0.05);
+        --card-shadow-hover: 0 14px 26px rgba(15, 23, 42, 0.08);
+        --chip-padding: 4px 8px;
+        --chip-radius: 999px;
     }
 
     @media (max-width: 640px) {
         :root {
             --timeline-col: 56px;
+            --modal-button-height: 30px;
+            --modal-button-padding-x: 10px;
+            --modal-button-radius: 7px;
         }
     }
 
@@ -171,6 +218,12 @@ export const GlobalStyle = createGlobalStyle`
         
         ~ [id*="customer-detail-layer"] {
             z-index: 190;
+        }
+    }
+
+    [id*="revenue-daily"] {
+        ~ [id*="reservation-detail-layer"] {
+            z-index: 170;
         }
     }
 

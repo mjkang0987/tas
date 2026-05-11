@@ -10,6 +10,9 @@ import {
     StyledDetail,
     StyledFooter,
     StyledHeader,
+    StyledHeaderTitleGroup,
+    StyledInfoGrid,
+    StyledModalContent,
     StyledModalMessage,
     StyledOverlay,
     useDialogAccessibility,
@@ -47,12 +50,15 @@ export const ReservationMoveConfirmModal = ({
                               data-layer-id={layerDataId}>
             <StyledConfirmModal ref={dialogRef} tabIndex={-1} onClick={(e) => e.stopPropagation()}>
                 <StyledHeader>
-                    <h3>예약 변경 전 확인</h3>
+                    <StyledHeaderTitleGroup>
+                        <h3>예약 변경 전 확인</h3>
+                        <p>이동할 예약 시간을 한 번 더 확인합니다.</p>
+                    </StyledHeaderTitleGroup>
                     <CloseIconButton onClick={onClose} />
                 </StyledHeader>
-                <StyledContent>
+                <StyledModalContent>
                     <StyledModalMessage>드래그한 예약 시간을 변경할까요?</StyledModalMessage>
-                    <StyledInfoList>
+                    <StyledInfoGrid>
                         <div>
                             <dt>시술</dt>
                             <dd>{reservation.service}</dd>
@@ -75,8 +81,8 @@ export const ReservationMoveConfirmModal = ({
                             <dt>변경 후</dt>
                             <dd>{nextReservation.startTime}~{nextReservation.endTime}</dd>
                         </div>
-                    </StyledInfoList>
-                </StyledContent>
+                    </StyledInfoGrid>
+                </StyledModalContent>
                 <StyledFooter>
                     <StyledActionButton type="button" onClick={onClose}>취소</StyledActionButton>
                     <StyledActionButton type="button" $primary onClick={onConfirm}>변경</StyledActionButton>
@@ -93,33 +99,4 @@ const StyledConfirmOverlay = styled(StyledOverlay)`
 
 const StyledConfirmModal = styled(StyledDetail)`
     width: min(360px, 90vw);
-`;
-
-const StyledContent = styled.div`
-    padding: 16px;
-`;
-
-const StyledInfoList = styled.dl`
-    display: grid;
-    gap: 10px;
-    margin: 0;
-
-    > div {
-        display: grid;
-        grid-template-columns: 56px 1fr;
-        gap: 8px;
-        align-items: center;
-        font-size: var(--small-font);
-    }
-
-    dt {
-        color: var(--gray-color);
-        font-weight: 500;
-    }
-
-    dd {
-        margin: 0;
-        color: var(--black-color);
-        font-weight: 600;
-    }
 `;

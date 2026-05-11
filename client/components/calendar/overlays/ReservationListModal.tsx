@@ -13,9 +13,12 @@ import {buildServiceColorMap, getServiceColor, parseServiceString} from '../../.
 
 import {
     OVERLAY_Z_INDEX,
+    StyledActionButton,
+    StyledFooter,
     StyledOverlay,
     StyledDetail,
     StyledHeader,
+    StyledHeaderTitleGroup,
     StyledBody,
     StyledBodyInner,
     useDialogAccessibility,
@@ -43,6 +46,7 @@ export const ReservationListModal = () => {
     const filter = useCalendarStore((s) => s.reservationListFilter);
     const setReservationListFilter = useCalendarStore((s) => s.setReservationListFilter);
     const openReservationDetail = useCalendarStore((s) => s.openReservationDetail);
+    const openCustomerDetail = useCalendarStore((s) => s.openCustomerDetail);
     const serviceCatalog = useCalendarStore((s) => s.serviceCatalog);
     const categoryBaseColorMap = useCalendarStore((s) => s.categoryBaseColorMap);
     const designers = useCalendarStore((s) => s.designers);
@@ -155,7 +159,10 @@ export const ReservationListModal = () => {
                                            data-layer-id={layerDataId}>
         <StyledListModal ref={dialogRef} tabIndex={-1} onClick={(e) => e.stopPropagation()}>
             <StyledHeader>
-                <h3>{title} 예약 ({reservations.length})</h3>
+                <StyledHeaderTitleGroup>
+                    <h3>{title} 예약 ({reservations.length})</h3>
+                    <p>예약을 누르면 상세 레이어가 열리고, 고객명은 바로 고객 상세로 이동합니다.</p>
+                </StyledHeaderTitleGroup>
                 <CloseIconButton onClick={handleClose} />
             </StyledHeader>
             <StyledListBody><StyledListBodyInner>
@@ -178,22 +185,37 @@ export const ReservationListModal = () => {
                                                     $inactive={isInactive}
                                                     onClick={() => handleClick(r)}>
                                             <StyledItemTop>
-                                                <StyledBadge $type={statusType}>{getStatusLabel(r)}</StyledBadge>
-                                                <StyledTime>{r.startTime}~{r.endTime}</StyledTime>
-                                                <StyledService>
-                                                    {parseServiceString(r.service).map((serviceName) => (
-                                                        <StyledServiceToken key={`${r.id}-${serviceName}`}>
-                                                            <StyledServiceText $color={getServiceColor(serviceName, serviceColorMap)}>{serviceName}</StyledServiceText>
-                                                        </StyledServiceToken>
-                                                    ))}
-                                                </StyledService>
+                                                <StyledTopMeta>
+                                                    <StyledBadge $type={statusType}>{getStatusLabel(r)}</StyledBadge>
+                                                    <StyledTime>{r.startTime}~{r.endTime}</StyledTime>
+                                                </StyledTopMeta>
+                                                <StyledPrice>{Number(r.price ?? 0).toLocaleString('ko-KR')}원</StyledPrice>
                                             </StyledItemTop>
+                                            <StyledService>
+                                                {parseServiceString(r.service).map((serviceName) => (
+                                                    <StyledServiceToken key={`${r.id}-${serviceName}`}>
+                                                        <StyledServiceText $color={getServiceColor(serviceName, serviceColorMap)}>{serviceName}</StyledServiceText>
+                                                    </StyledServiceToken>
+                                                ))}
+                                            </StyledService>
                                             <StyledMetaLine>
-                                                <StyledDesigner>디자이너: {designerName}</StyledDesigner>
+                                                <StyledDesigner>
+                                                    <StyledDesignerSwatch $color={r.designerId ? (designerColorMap[r.designerId] ?? '#8E8E93') : '#D1D5DB'} />
+                                                    <span>{designerName}</span>
+                                                </StyledDesigner>
                                                 <StyledCustomer>
-                                                    <span>고객:</span>
+                                                    <StyledCustomerLabel>고객</StyledCustomerLabel>
                                                     {isNewCustomerVisit(customer?.firstVisitDate, r.date) && <NewCustomerBadge>NEW</NewCustomerBadge>}
-                                                    <span>{customer?.name ?? '-'}</span>
+                                                    <StyledCustomerButton
+                                                        type="button"
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            if (!customer) return;
+                                                            openCustomerDetail(customer.id);
+                                                        }}
+                                                    >
+                                                        {customer?.name ?? '-'}
+                                                    </StyledCustomerButton>
                                                 </StyledCustomer>
                                             </StyledMetaLine>
                                         </StyledItem>
@@ -204,6 +226,12 @@ export const ReservationListModal = () => {
                     ))
                 )}
             </StyledListBodyInner></StyledListBody>
+            <StyledFooter>
+                <StyledFooterSummary>
+                    <span>총 {reservations.length}건</span>
+                </StyledFooterSummary>
+                <StyledActionButton type="button" onClick={handleClose}>닫기</StyledActionButton>
+            </StyledFooter>
         </StyledListModal>
     </StyledListOverlay>, modalRoot);
 };
@@ -213,14 +241,14 @@ const StyledListOverlay = styled(StyledOverlay)`
 `;
 
 const StyledListModal = styled(StyledDetail)`
-    max-width: 500px;
+    max-width: 560px;
     width: 100%;
 `;
 
 const StyledListBody = styled(StyledBody)``;
 
 const StyledListBodyInner = styled(StyledBodyInner)`
-    padding: 0 12px 30px;
+    padding: 6px 8px 18px;
 `;
 
 const StyledEmpty = styled.p`
@@ -233,12 +261,16 @@ const StyledEmpty = styled.p`
 const StyledList = styled.ul`
     display: flex;
     flex-direction: column;
-    gap: 4px;
+    gap: 8px;
 `;
 
 const StyledDateGroup = styled.div`
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+
     &:not(:first-child) {
-        margin-top: 8px;
+        margin-top: 14px;
     }
     
     &:last-child {
@@ -248,44 +280,65 @@ const StyledDateGroup = styled.div`
 
 const StyledDateTitle = styled.div`
     position: sticky;
-    top: 0;
-    z-index: 1;
-    padding: 12px 10px;
-    background-color: var(--white-color);
+    top: -2px;
+    z-index: 2;
+    display: inline-flex;
+    align-items: center;
+    align-self: flex-start;
+    min-height: 30px;
+    padding: 0 12px;
+    border: 1px solid rgba(148, 163, 184, 0.18);
+    border-radius: 999px;
+    background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.96) 0%, rgba(241, 245, 249, 0.96) 100%);
+    box-shadow: 0 8px 18px rgba(15, 23, 42, 0.06);
     font-size: 12px;
-    font-weight: 600;
-    color: var(--dark-gray-color);
+    font-weight: 700;
+    color: #0f172a;
+    letter-spacing: -0.01em;
 `;
 
 const StyledItem = styled.li<{ $color: string; $inactive: boolean }>`
     display: flex;
     flex-direction: column;
     gap: 8px;
-    padding: 8px 10px;
-    border: 1px solid ${(props) => props.$color};
+    padding: 12px;
+    border: 1px solid ${(props) => `${props.$color}55`};
     border-left-width: 4px;
-    border-radius: 8px;
-    background-color: ${(props) => `${props.$color}12`};
+    border-radius: 14px;
+    background:
+        linear-gradient(180deg, rgba(255,255,255,0.94) 0%, ${(props) => `${props.$color}10`} 100%);
     font-size: var(--small-font);
     cursor: pointer;
     opacity: ${(props) => props.$inactive ? 0.5 : 1};
+    box-shadow: 0 6px 16px rgba(15, 23, 42, 0.05);
+    transition: transform 0.14s ease, box-shadow 0.14s ease, background-color 0.14s ease;
 
     @media (hover: hover) and (pointer: fine) {
         &:hover {
-        background-color: ${(props) => `${props.$color}1d`};
-    }
+            transform: translateY(-1px);
+            box-shadow: 0 12px 22px rgba(15, 23, 42, 0.09);
+            background-color: ${(props) => `${props.$color}12`};
+        }
     }
 `;
 
 const StyledItemTop = styled.div`
     display: flex;
-    flex-wrap: wrap;
     align-items: center;
     gap: 8px;
+    justify-content: space-between;
+
+    @media (max-width: 640px) {
+        flex-wrap: wrap;
+    }
 `;
 
-const StyledTime = styled.span`
-    color: var(--dark-gray-color);
+const StyledTopMeta = styled.div`
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    min-width: 0;
 `;
 
 const StyledService = styled.span`
@@ -295,6 +348,24 @@ const StyledService = styled.span`
     gap: 6px;
     min-width: 0;
     font-weight: 500;
+    line-height: 1.5;
+`;
+
+const StyledTime = styled.span`
+    color: var(--dark-gray-color);
+    font-weight: 600;
+`;
+
+const StyledPrice = styled.span`
+    flex-shrink: 0;
+    font-size: 12px;
+    font-weight: 700;
+    color: #0f172a;
+
+    @media (max-width: 640px) {
+        width: 100%;
+        text-align: right;
+    }
 `;
 
 const StyledServiceToken = styled.span`
@@ -317,11 +388,16 @@ const StyledServiceText = styled.span<{ $color: string }>`
 const StyledCustomer = styled.span`
     display: inline-flex;
     align-items: center;
+    flex-wrap: wrap;
     gap: 4px;
     color: var(--dark-gray-color);
+    min-width: 0;
 `;
 
 const StyledDesigner = styled.span`
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
     color: var(--gray-color);
 `;
 
@@ -329,7 +405,54 @@ const StyledMetaLine = styled.div`
     display: flex;
     flex-wrap: wrap;
     gap: 12px;
-    font-size: var(--tiny-font);
+    align-items: center;
+    font-size: 11px;
+    row-gap: 8px;
+`;
+
+const StyledDesignerSwatch = styled.span<{ $color: string }>`
+    width: 10px;
+    height: 10px;
+    border-radius: 999px;
+    background: ${(props) => props.$color};
+    flex-shrink: 0;
+`;
+
+const StyledCustomerLabel = styled.span`
+    color: var(--dark-gray-color2);
+    font-weight: 600;
+`;
+
+const StyledCustomerButton = styled.button`
+    min-width: 0;
+    max-width: 100%;
+    border: 0;
+    padding: 0;
+    background: transparent;
+    font: inherit;
+    color: inherit;
+    text-align: left;
+    cursor: pointer;
+    font-weight: 700;
+    text-decoration: underline;
+    text-underline-offset: 2px;
+    color: #0f172a;
+    white-space: normal;
+    line-height: 1.35;
+    word-break: keep-all;
+
+    @media (hover: hover) and (pointer: fine) {
+        &:hover {
+            color: var(--blue-color);
+        }
+    }
+`;
+
+const StyledFooterSummary = styled.div`
+    margin-right: auto;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--dark-gray-color2);
 `;
 
 const StyledBadge = styled.span<{ $type: string }>`

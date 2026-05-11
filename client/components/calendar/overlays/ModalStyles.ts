@@ -127,8 +127,11 @@ export const StyledOverlay = styled.div`
     display: flex;
     align-items: center;
     justify-content: center;
-    padding: 20px;
-    background-color: rgba(0, 0, 0, 0.4);
+    padding: var(--overlay-padding);
+    background:
+        radial-gradient(circle at top, rgba(255, 255, 255, 0.14), transparent 38%),
+        rgba(15, 23, 42, 0.5);
+    backdrop-filter: blur(var(--overlay-backdrop-blur));
     box-sizing: border-box;
 `;
 
@@ -138,15 +141,18 @@ export const StyledDetail = styled.div<{ $width?: number | string }>`
     max-height: 80vh;
     display: flex;
     flex-direction: column;
-    background-color: var(--white-color);
-    border-radius: var(--radius-lg);
-    box-shadow: var(--shadow-md);
+    background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.98) 0%, rgba(248, 250, 252, 0.98) 100%);
+    border: 1px solid var(--modal-border);
+    border-radius: var(--modal-radius);
+    box-shadow: var(--modal-shadow);
     overflow: hidden;
 
     @media (max-width: 640px) {
         width: 100%;
         max-width: min(360px, 90vw);
         max-height: 90vh;
+        border-radius: var(--modal-radius-mobile);
     }
 `;
 
@@ -155,13 +161,19 @@ export const StyledHeader = styled.div`
     align-items: center;
     justify-content: space-between;
     flex-shrink: 0;
-    padding: 12px 16px;
-    border-bottom: 1px solid var(--light-gray-color);
+    gap: var(--modal-header-gap);
+    padding: var(--modal-header-padding);
+    border-bottom: 1px solid var(--modal-header-border);
+    background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.88) 0%, rgba(248, 250, 252, 0.92) 100%);
+    backdrop-filter: blur(10px);
 
     h3 {
         margin: 0;
-        font-size: 16px;
-        font-weight: 600;
+        font-size: var(--modal-title-font);
+        font-weight: 700;
+        letter-spacing: -0.02em;
+        color: #0f172a;
     }
 
     > button:not([class]) {
@@ -171,7 +183,7 @@ export const StyledHeader = styled.div`
         border: 1px solid var(--light-gray-color);
         border-radius: 8px;
         background: var(--white-color);
-        font-size: 12px;
+        font-size: var(--modal-subtitle-font);
         font-weight: 600;
         cursor: pointer;
         color: var(--dark-gray-color);
@@ -181,6 +193,21 @@ export const StyledHeader = styled.div`
             background-color: var(--black-color-10);
         }
         }
+    }
+`;
+
+export const StyledHeaderTitleGroup = styled.div`
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    min-width: 0;
+
+    > p {
+        margin: 0;
+        font-size: 12px;
+        line-height: 1.45;
+        color: var(--dark-gray-color2);
+        font-weight: 500;
     }
 `;
 
@@ -217,7 +244,7 @@ export const StyledBody = styled.div`
 
 export const StyledBodyInner = styled.div`
     ${scrollContentStyle};
-    padding: 8px 8px 30px 8px;
+    padding: var(--modal-body-padding);
 `;
 
 export const StyledForm = styled.div`
@@ -230,12 +257,6 @@ export const StyledForm = styled.div`
     }
 
     label {
-        span {
-            font-size: 13px;
-            color: var(--dark-gray-color);
-            font-weight: 500;
-        }
-
         input, select {
             ${formControlStyle};
             padding: 0 8px;
@@ -305,11 +326,46 @@ export const StyledStatusBadge = styled.span<{ $variant: 'danger' | 'warning' | 
 `;
 
 export const StyledModalMessage = styled.p<{ $color?: string }>`
-    margin: 0 0 12px;
-    font-size: var(--font);
+    margin: var(--modal-message-margin);
+    font-size: var(--modal-message-font);
     font-weight: 600;
-    text-align: center;
-    color: ${(p) => p.$color || 'var(--black-color)'};
+    line-height: 1.55;
+    text-align: left;
+    color: ${(p) => p.$color || '#111827'};
+`;
+
+export const StyledModalContent = styled.div`
+    padding: var(--modal-content-padding);
+`;
+
+export const StyledInfoGrid = styled.dl`
+    display: grid;
+    gap: var(--info-grid-gap);
+    margin: 0;
+
+    > div {
+        display: grid;
+        grid-template-columns: 64px 1fr;
+        gap: var(--info-grid-cell-gap);
+        align-items: start;
+        padding: var(--info-grid-cell-padding);
+        border-radius: var(--info-grid-cell-radius);
+        background: rgba(248, 250, 252, 0.9);
+        border: 1px solid rgba(226, 232, 240, 0.9);
+        font-size: 13px;
+    }
+
+    dt {
+        color: var(--gray-color);
+        font-weight: 600;
+    }
+
+    dd {
+        margin: 0;
+        color: #111827;
+        font-weight: 600;
+        line-height: 1.45;
+    }
 `;
 
 export const StyledDiffGrid = styled.dl`
@@ -348,33 +404,48 @@ export const StyledFooter = styled.div`
     display: flex;
     justify-content: flex-end;
     flex-shrink: 0;
-    gap: 8px;
-    padding: 0 16px 16px;
+    align-items: center;
+    gap: var(--modal-footer-gap);
+    padding: var(--modal-footer-padding);
+    border-top: 1px solid var(--modal-footer-border);
+    background:
+        linear-gradient(180deg, rgba(248, 250, 252, 0.72) 0%, rgba(255, 255, 255, 0.96) 100%);
 
     @media (max-width: 640px) {
         flex-wrap: wrap;
+        justify-content: flex-end;
 
         > button {
-            flex: 1;
-            min-height: 36px;
+            flex: 0 0 auto;
+            min-height: var(--modal-button-height);
         }
     }
 `;
 
 export const StyledActionButton = styled.button<{ $primary?: boolean; $danger?: boolean; $warning?: boolean }>`
-    min-height: 28px;
-    padding: 0 10px;
-    border: 1px solid ${(props) => props.$danger ? 'var(--danger-color)' : props.$warning ? 'var(--warning-color)' : props.$primary ? 'var(--blue-color)' : 'var(--border-color)'};
-    border-radius: var(--radius-sm);
-    background-color: ${(props) => props.$danger ? 'var(--danger-color)' : props.$warning ? 'var(--warning-color)' : props.$primary ? 'var(--blue-color)' : 'var(--white-color)'};
+    min-height: var(--modal-button-height);
+    padding: 0 var(--modal-button-padding-x);
+    border: 1px solid ${(props) => props.$danger ? 'var(--danger-color)' : props.$warning ? 'var(--warning-color)' : props.$primary ? 'var(--blue-color)' : 'rgba(148, 163, 184, 0.34)'};
+    border-radius: var(--modal-button-radius);
+    background-color: ${(props) => props.$danger ? 'var(--danger-color)' : props.$warning ? 'var(--warning-color)' : props.$primary ? 'var(--blue-color)' : 'rgba(255,255,255,0.88)'};
     color: ${(props) => (props.$danger || props.$primary || props.$warning) ? 'var(--white-color)' : 'var(--dark-gray-color)'};
-    font-size: var(--small-font);
-    font-weight: 500;
+    font-size: var(--modal-button-font);
+    font-weight: 600;
     cursor: pointer;
+    box-shadow: ${(props) => (props.$danger || props.$primary || props.$warning) ? '0 10px 20px rgba(15, 23, 42, 0.12)' : 'none'};
+    transition: transform 0.14s ease, opacity 0.14s ease, box-shadow 0.14s ease, background-color 0.14s ease;
 
     @media (hover: hover) and (pointer: fine) {
         &:hover {
-        opacity: 0.85;
+            opacity: 0.92;
+            transform: translateY(-1px);
+        }
     }
+
+    @media (max-width: 640px) {
+        min-height: var(--modal-button-height);
+        padding: 0 var(--modal-button-padding-x);
+        font-size: 12px;
+        border-radius: var(--modal-button-radius);
     }
 `;

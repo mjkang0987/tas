@@ -11,6 +11,7 @@ import {
     StyledDetail,
     StyledDiffGrid,
     StyledHeader,
+    StyledHeaderTitleGroup,
     StyledOverlay,
     useDialogAccessibility,
     useLayerInstanceId,
@@ -49,7 +50,10 @@ export function ReservationHistoryLayer({
         >
             <StyledHistoryPanel ref={dialogRef} tabIndex={-1} onClick={(e) => e.stopPropagation()} $width={400}>
                 <StyledHeader>
-                    <h3>변경 이력</h3>
+                    <StyledHeaderTitleGroup>
+                        <h3>변경 이력</h3>
+                        <p>예약 상태와 시간, 시술 변경 흐름을 시간순으로 보여줍니다.</p>
+                    </StyledHeaderTitleGroup>
                     <CloseIconButton onClick={onClose} />
                 </StyledHeader>
                 <StyledBody>
