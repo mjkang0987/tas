@@ -6,6 +6,7 @@ import {useCalendarStore} from '../../store/calendarStore';
 import type {Designer, DesignerStatus} from '../../utils/designers';
 import {WEEKDAY_LABELS, getDesignerColor, getDesignerStatus, getDesignerStatusMeta, splitDesignersByStatus} from '../../utils/designers';
 import {formControlStyle} from '../ui/FormControls';
+import {actionButtonStyle} from './revenue/revenue-styles';
 
 const DESIGNER_STATUS_OPTIONS: DesignerStatus[] = ['재직', '휴직', '퇴직'];
 
@@ -326,23 +327,6 @@ export const DesignerManageSection = () => {
 
 const compactInputStyle = css`
     ${formControlStyle};
-`;
-
-const actionButtonStyle = css`
-    flex-shrink: 0;
-    height: 30px;
-    padding: 0 12px;
-    border-radius: var(--radius-md);
-    font-size: 12px;
-    font-weight: 500;
-    cursor: pointer;
-    transition: transform 0.12s ease, box-shadow 0.15s ease, border-color 0.15s ease, background-color 0.15s ease;
-
-    @media (hover: hover) and (pointer: fine) {
-        &:hover {
-        
-    }
-    }
 `;
 
 const mobileStretchButtonStyle = css`
