@@ -27,17 +27,12 @@ import {
 import {CloseIconButton} from '../../ui/CloseIconButton';
 
 import type {Reservation} from '../../../utils/reservations';
+import {RESERVATION_STATUS_BADGE_STYLES} from '../../../utils/reservations';
+import {StyledServiceText, StyledServiceToken} from '../../ui/ServiceChip';
 
 const STATUS_LABELS: Record<string, string> = {
     cancelled: '취소',
     noshow: '노쇼',
-};
-
-const STATUS_BADGE_STYLES: Record<string, { bg: string; color: string }> = {
-    booked: {bg: '#E8F0FE', color: '#4285F4'},
-    cancelled: {bg: '#F1F1F1', color: '#999'},
-    completed: {bg: '#E6F4EA', color: '#34A853'},
-    noshow: {bg: '#FCE8E6', color: '#EA4335'},
 };
 
 export const ReservationListModal = () => {
@@ -305,7 +300,7 @@ const StyledItem = styled.li<{ $color: string; $inactive: boolean }>`
     padding: 12px;
     border: 1px solid ${(props) => `${props.$color}55`};
     border-left-width: 4px;
-    border-radius: 14px;
+    border-radius: 10px;
     background:
         linear-gradient(180deg, rgba(255,255,255,0.94) 0%, ${(props) => `${props.$color}10`} 100%);
     font-size: var(--small-font);
@@ -366,23 +361,6 @@ const StyledPrice = styled.span`
         width: 100%;
         text-align: right;
     }
-`;
-
-const StyledServiceToken = styled.span`
-    display: inline-flex;
-    align-items: center;
-    min-width: 0;
-`;
-
-const StyledServiceText = styled.span<{ $color: string }>`
-    display: inline-flex;
-    align-items: center;
-    padding: 3px 8px;
-    border-radius: 999px;
-    background-color: ${(props) => `${props.$color}18`};
-    color: ${(props) => props.$color};
-    font-size: 11px;
-    font-weight: 600;
 `;
 
 const StyledCustomer = styled.span`
@@ -463,6 +441,6 @@ const StyledBadge = styled.span<{ $type: string }>`
     font-weight: 600;
     text-align: center;
     white-space: nowrap;
-    background-color: ${(props) => STATUS_BADGE_STYLES[props.$type]?.bg || '#F1F1F1'};
-    color: ${(props) => STATUS_BADGE_STYLES[props.$type]?.color || '#999'};
+    background-color: ${(props) => RESERVATION_STATUS_BADGE_STYLES[props.$type]?.bg || '#F1F1F1'};
+    color: ${(props) => RESERVATION_STATUS_BADGE_STYLES[props.$type]?.color || '#999'};
 `;

@@ -91,3 +91,10 @@ export function isFirstVisitReservation(
 ): boolean {
     return firstVisitByCustomer.get(reservation.customerId) === reservation.date;
 }
+
+export const RESERVATION_STATUS_BADGE_STYLES: Record<string, { bg: string; color: string }> = {
+    booked: {bg: '#E8F0FE', color: '#4285F4'},
+    cancelled: {bg: '#F1F1F1', color: '#999'},
+    completed: {bg: '#E6F4EA', color: '#34A853'},
+    noshow: {bg: '#FCE8E6', color: '#EA4335'},
+};

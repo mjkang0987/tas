@@ -8,6 +8,7 @@ import {NewCustomerBadge} from '../../ui/NewCustomerBadge';
 import {isNewCustomerVisit} from '../../../utils/customers';
 import {getDesignerColor} from '../../../utils/designers';
 import {buildServiceColorMap, getServiceColor, parseServiceString} from '../../../utils/services';
+import {StyledServiceText as StyledServiceTextBase, StyledServiceToken as StyledServiceTokenBase} from '../../ui/ServiceChip';
 
 import type {Reservation} from '../../../utils/reservations';
 
@@ -131,25 +132,14 @@ const StyledServiceName = styled.span`
     min-width: 0;
 `;
 
-const StyledServiceToken = styled.span`
-    display: inline-flex;
-    align-items: center;
-    min-width: 0;
+const StyledServiceToken = styled(StyledServiceTokenBase)`
     @media (max-width: 640px) {
         flex-wrap: wrap;
     }
 `;
 
-const StyledServiceText = styled.strong<{ $color: string }>`
-    display: inline-flex;
-    align-items: center;
-    padding: 3px 8px;
-    border-radius: 999px;
-    background-color: ${(props) => `${props.$color}18`};
-    color: ${(props) => props.$color};
-    font-size: 11px;
-    font-weight: 600;
-`;
+const StyledServiceText = styled(StyledServiceTextBase).attrs({as: 'strong'})``;
+
 
 const StyledMeta = styled.span`
     display: inline-flex;

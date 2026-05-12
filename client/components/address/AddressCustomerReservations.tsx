@@ -3,14 +3,9 @@ import React from 'react';
 import styled from 'styled-components';
 
 import type {Reservation} from '../../utils/reservations';
+import {RESERVATION_STATUS_BADGE_STYLES} from '../../utils/reservations';
 import {getServiceColor, parseServiceString} from '../../utils/services';
-
-const RESERVATION_BADGE_STYLES: Record<string, { bg: string; color: string }> = {
-    booked: {bg: '#E8F0FE', color: '#4285F4'},
-    cancelled: {bg: '#F1F1F1', color: '#999'},
-    completed: {bg: '#E6F4EA', color: '#34A853'},
-    noshow: {bg: '#FCE8E6', color: '#EA4335'},
-};
+import {StyledServiceList as StyledServiceListBase, StyledServiceText, StyledServiceToken} from '../ui/ServiceChip';
 
 type AddressCustomerReservationsProps = {
     customerReservations: Reservation[];
@@ -151,30 +146,8 @@ const StyledReservationItemTop = styled.div`
     }
 `;
 
-const StyledServiceList = styled.span`
-    display: inline-flex;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: 6px;
-    min-width: 0;
+const StyledServiceList = styled(StyledServiceListBase)`
     font-weight: 500;
-`;
-
-const StyledServiceToken = styled.span`
-    display: inline-flex;
-    align-items: center;
-    min-width: 0;
-`;
-
-const StyledServiceText = styled.span<{ $color: string }>`
-    display: inline-flex;
-    align-items: center;
-    padding: 3px 8px;
-    border-radius: 999px;
-    background-color: ${(props) => `${props.$color}18`};
-    color: ${(props) => props.$color};
-    font-size: 11px;
-    font-weight: 600;
 `;
 
 const StyledReservationMetaLine = styled.div`
@@ -194,8 +167,8 @@ const StyledReservationBadge = styled.span<{ $type: string }>`
     font-size: var(--tiny-font);
     font-weight: 600;
     white-space: nowrap;
-    background-color: ${(props) => RESERVATION_BADGE_STYLES[props.$type]?.bg || '#F1F1F1'};
-    color: ${(props) => RESERVATION_BADGE_STYLES[props.$type]?.color || '#999'};
+    background-color: ${(props) => RESERVATION_STATUS_BADGE_STYLES[props.$type]?.bg || '#F1F1F1'};
+    color: ${(props) => RESERVATION_STATUS_BADGE_STYLES[props.$type]?.color || '#999'};
 `;
 
 const StyledEmpty = styled.p`

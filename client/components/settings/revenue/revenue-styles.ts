@@ -1,6 +1,7 @@
 import styled, {css} from 'styled-components';
 
 import {formControlStyle} from '../../ui/FormControls';
+import {StyledServiceText, StyledServiceToken} from '../../ui/ServiceChip';
 
 /* ── Shared action / filter button styles ── */
 
@@ -19,6 +20,7 @@ export const actionButtonStyle = css`
 
 export const StyledDateInput = styled.input`
     width: 100%;
+    min-width: 0;
     ${formControlStyle};
     padding: 0 8px;
 `;
@@ -190,22 +192,11 @@ export const StyledRevenueServiceName = styled.div`
     line-height: 1.5;
 `;
 
-export const StyledRevenueServiceChip = styled.span`
-    display: inline-flex;
-    align-items: center;
-    min-width: 0;
-`;
+export const StyledRevenueServiceChip = styled(StyledServiceToken)``;
 
-export const StyledRevenueServiceText = styled.strong<{ $color: string }>`
+export const StyledRevenueServiceText = styled(StyledServiceText).attrs({as: 'strong'})`
     min-width: 0;
-    display: inline-flex;
-    align-items: center;
-    padding: 3px 8px;
     border-radius: var(--chip-radius);
-    background-color: ${(p) => `${p.$color}18`};
-    color: ${(p) => p.$color};
-    font-size: 11px;
-    font-weight: 600;
     line-height: 1.35;
     word-break: keep-all;
 `;
@@ -216,7 +207,7 @@ export const StyledRevenueEmpty = styled.div`
     justify-content: center;
     padding: 54px 24px;
     border: 1px dashed rgba(148, 163, 184, 0.32);
-    border-radius: 16px;
+    border-radius: 10px;
     background: rgba(248, 250, 252, 0.78);
     font-size: 13px;
     color: var(--dark-gray-color2);

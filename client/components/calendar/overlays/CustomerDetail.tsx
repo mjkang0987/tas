@@ -22,6 +22,7 @@ import {getDesignerColor} from '../../../utils/designers';
 import {buildServiceColorMap, formatPrice, getServiceColor, parseServiceString} from '../../../utils/services';
 import {useCalendarStore} from '../../../store/calendarStore';
 import {CloseIconButton} from '../../ui/CloseIconButton';
+import {StyledServiceList as StyledServiceListBase, StyledServiceText, StyledServiceToken} from '../../ui/ServiceChip';
 
 const PAGE_SIZE = 5;
 
@@ -105,6 +106,7 @@ export const CustomerDetail = ({customer, reservationMap, onClose, onReservation
         return list;
     }, [reservationMap, customer.id]);
 
+    const noshowCount = useMemo(() => customerReservations.filter((r) => r.status === 'noshow').length, [customerReservations]);
     const visibleList = customerReservations.slice(0, visibleCount);
     const hasMore = visibleCount < customerReservations.length;
     const pointHistories = [...(customer.pointHistories ?? [])].reverse();
@@ -229,6 +231,8 @@ export const CustomerDetail = ({customer, reservationMap, onClose, onReservation
                             <dd>{customer.tel}</dd>
                             <dt>적립금</dt>
                             <dd>{formatPrice(customer.points ?? 0)}</dd>
+                            <dt>노쇼</dt>
+                            <dd><StyledNoshowCount $hasNoshow={noshowCount > 0}>{noshowCount}회</StyledNoshowCount></dd>
                         </dl>
                     )}
                 </StyledInfo>
@@ -398,6 +402,11 @@ const StyledInfo = styled.div`
     margin: 0;
     font-size: 13px;
   }
+`;
+
+const StyledNoshowCount = styled.span<{ $hasNoshow: boolean }>`
+  color: ${(p) => p.$hasNoshow ? '#EA4335' : 'inherit'};
+  font-weight: ${(p) => p.$hasNoshow ? 700 : 'inherit'};
 `;
 
 const StyledEditFields = styled.div`
@@ -709,30 +718,8 @@ const StyledItemTop = styled.div`
   gap: 8px;
 `;
 
-const StyledServiceList = styled.span`
-  display: inline-flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 6px;
-  min-width: 0;
+const StyledServiceList = styled(StyledServiceListBase)`
   font-weight: 500;
-`;
-
-const StyledServiceToken = styled.span`
-  display: inline-flex;
-  align-items: center;
-  min-width: 0;
-`;
-
-const StyledServiceText = styled.span<{ $color: string }>`
-  display: inline-flex;
-  align-items: center;
-  padding: 3px 8px;
-  border-radius: 999px;
-  background-color: ${(props) => `${props.$color}18`};
-  color: ${(props) => props.$color};
-  font-size: 11px;
-  font-weight: 600;
 `;
 
 const StyledMetaLine = styled.div`
