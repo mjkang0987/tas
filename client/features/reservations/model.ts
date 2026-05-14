@@ -21,6 +21,9 @@ export interface Reservation {
     paymentMethod?: PaymentMethod;
     paymentEntries?: PaymentEntry[];
     pointEarned?: number;
+    naverBookingId?: string;
+    naverBookingUrl?: string;
+    naverDeposit?: number;
 }
 
 export type ReservationMap = Record<string, Reservation[]>;

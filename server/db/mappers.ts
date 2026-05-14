@@ -177,6 +177,9 @@ type DbReservationRow = {
     memo: string | null;
     paymentCompleted: boolean;
     pointEarned: number;
+    naverBookingId: string | null;
+    naverBookingUrl: string | null;
+    naverDeposit: number | null;
     paymentEntries: Array<{
         method: DbPaymentMethod;
         amount: number;
@@ -203,6 +206,9 @@ export function dbReservationToFrontend(row: DbReservationRow): Reservation {
             amount: e.amount,
         })),
         pointEarned: row.pointEarned,
+        ...(row.naverBookingId != null && {naverBookingId: row.naverBookingId}),
+        ...(row.naverBookingUrl != null && {naverBookingUrl: row.naverBookingUrl}),
+        ...(row.naverDeposit != null && {naverDeposit: row.naverDeposit}),
     };
 }
 
