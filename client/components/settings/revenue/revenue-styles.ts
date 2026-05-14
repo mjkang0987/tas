@@ -1,7 +1,8 @@
 import styled, {css} from 'styled-components';
 
 import {formControlStyle} from '../../ui/FormControls';
-import {StyledServiceText, StyledServiceToken} from '../../ui/ServiceChip';
+import {Dot} from '../../ui/Dot';
+import {ServiceChipList, StyledServiceText, StyledServiceToken} from '../../ui/ServiceChip';
 
 /* ── Shared action / filter button styles ── */
 
@@ -31,7 +32,6 @@ export const StyledList = styled.div`
     display: flex;
     flex-direction: column;
     gap: var(--list-gap);
-    padding: 4px var(--list-padding-x) 0;
 `;
 
 export const StyledClickableRow = styled.div<{ $accentColor?: string; $showAccentBar?: boolean }>`
@@ -52,7 +52,6 @@ export const StyledClickableRow = styled.div<{ $accentColor?: string; $showAccen
 
     @media (hover: hover) and (pointer: fine) {
         &:hover {
-            transform: translateY(-1px);
             border-color: ${(props) => props.$accentColor ? `${props.$accentColor}66` : 'rgba(66, 133, 244, 0.28)'};
             box-shadow: var(--card-shadow-hover);
             background-color: ${(props) => props.$accentColor ? `${props.$accentColor}14` : 'rgba(248, 250, 252, 0.98)'};
@@ -138,12 +137,11 @@ export const StyledRevenueMetaLabel = styled.span`
     background: rgba(241, 245, 249, 0.92);
 `;
 
-export const StyledColorSwatch = styled.span<{ $color: string }>`
+export const StyledColorSwatch = styled(Dot).attrs<{ $color: string }>((props) => ({
+    color: props.$color,
+    size: 10,
+}))<{ $color: string }>`
     flex-shrink: 0;
-    width: 10px;
-    height: 10px;
-    border-radius: 50%;
-    background: ${(props) => props.$color};
 `;
 
 export const StyledCustomerName = styled.span`
@@ -183,12 +181,7 @@ export const StyledInlineCustomerButton = styled.button`
     }
 `;
 
-export const StyledRevenueServiceName = styled.div`
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    min-width: 0;
-    flex-wrap: wrap;
+export const StyledRevenueServiceName = styled(ServiceChipList)`
     line-height: 1.5;
 `;
 

@@ -342,9 +342,9 @@ const StyledChartCard = styled.div<{ $hero?: boolean; $autoHeight?: boolean }>`
     gap: 12px;
     min-height: ${(props) => props.$autoHeight ? 'auto' : props.$hero ? '320px' : '250px'};
     align-self: ${(props) => props.$autoHeight ? 'start' : 'stretch'};
-    padding: 16px;
+    padding: 10px;
     border: 1px solid var(--light-gray-color);
-    border-radius: 16px;
+    border-radius: 10px;
     background: var(--white-color);
     box-shadow: 0 10px 24px rgba(15, 23, 42, 0.05);
 
@@ -352,6 +352,7 @@ const StyledChartCard = styled.div<{ $hero?: boolean; $autoHeight?: boolean }>`
 
     @media (max-width: 640px) {
         grid-column: span 1;
+        min-height: auto;
     }
 `;
 
@@ -370,7 +371,7 @@ const StyledChartEmpty = styled.div`
     flex: 1;
     align-items: center;
     justify-content: center;
-    border-radius: 12px;
+    border-radius: 8px;
     background: var(--gray-color2);
     font-size: 12px;
     color: var(--dark-gray-color2);
@@ -382,6 +383,10 @@ const StyledLineChartBox = styled.div`
     flex-direction: column;
     gap: 4px;
     min-height: 236px;
+
+    @media (max-width: 640px) {
+        min-height: auto;
+    }
     padding: 14px 16px 4px;
     border: 1px solid rgba(45, 127, 249, 0.08);
     border-radius: 18px;
@@ -401,7 +406,7 @@ const StyledChartTooltip = styled.div<{ $leftRatio: number; $topRatio: number }>
     min-width: 116px;
     padding: 9px 11px;
     border: 1px solid rgba(45, 127, 249, 0.14);
-    border-radius: 12px;
+    border-radius: 8px;
     background: rgba(255, 255, 255, 0.96);
     box-shadow: 0 12px 28px rgba(15, 23, 42, 0.12);
     backdrop-filter: blur(6px);
@@ -446,7 +451,7 @@ const StyledYAxis = styled.div`
 const StyledLineChartStage = styled.div`
     position: relative;
     height: 190px;
-    border-radius: 14px;
+    border-radius: 10px;
     overflow: hidden;
     line-height: 0;
 `;
@@ -627,7 +632,7 @@ const StyledOperationSummary = styled.div`
     justify-content: space-between;
     gap: 8px;
     padding: 10px 12px;
-    border-radius: 12px;
+    border-radius: 8px;
     background: #f6f8fc;
 
     span { font-size: 12px; color: var(--dark-gray-color2); }
@@ -647,7 +652,7 @@ const StyledOperationRow = styled.div`
     gap: 12px;
     padding: 10px 12px;
     border: 1px solid var(--light-gray-color);
-    border-radius: 12px;
+    border-radius: 8px;
     background: var(--white-color);
 `;
 

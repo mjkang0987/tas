@@ -21,7 +21,13 @@ interface ServiceFieldsProps {
     idPrefix: string;
 }
 
-export const ServiceFields = ({selectedServices, onServiceToggle, totalDuration, totalPrice, idPrefix}: ServiceFieldsProps) => {
+export const ServiceFields = ({
+                                  selectedServices,
+                                  onServiceToggle,
+                                  totalDuration,
+                                  totalPrice,
+                                  idPrefix
+                              }: ServiceFieldsProps) => {
     const serviceCatalog = useCalendarStore((s) => s.serviceCatalog);
     const categoryBaseColorMap = useCalendarStore((s) => s.categoryBaseColorMap);
     const groupedCatalog = getGroupedCatalog(serviceCatalog);
@@ -38,11 +44,12 @@ export const ServiceFields = ({selectedServices, onServiceToggle, totalDuration,
                     <StyledServiceGroup key={category}>
                         <StyledCategoryHeader>{category}</StyledCategoryHeader>
                         {items.map((item) => (
-                            <StyledServiceCheckbox key={item.name} htmlFor={`${idPrefix}-service-${item.name}`}>
+                            <StyledServiceCheckbox key={item.name}
+                                                   htmlFor={`${idPrefix}-service-${item.name}`}>
                                 <input type="checkbox"
                                        id={`${idPrefix}-service-${item.name}`}
                                        checked={selectedServices.includes(item.name)}
-                                       onChange={() => onServiceToggle(item.name)}/>
+                                       onChange={() => onServiceToggle(item.name)} />
                                 <StyledServiceChip $color={getServiceColor(item.name, serviceColorMap)}>
                                     {item.name}
                                 </StyledServiceChip>
@@ -59,11 +66,13 @@ export const ServiceFields = ({selectedServices, onServiceToggle, totalDuration,
                 <StyledServiceSummary>
                     <StyledBadgeList>
                         {selectedServices.map((name) => (
-                            <StyledBadge key={name} $color={getServiceColor(name, serviceColorMap)}>
+                            <StyledBadge key={name}
+                                         $color={getServiceColor(name, serviceColorMap)}>
                                 <StyledServiceChip $color={getServiceColor(name, serviceColorMap)}>
                                     {name}
                                 </StyledServiceChip>
-                                {getServicePrice(name, catalogMap) > 0 && <StyledBadgePrice>{formatPrice(getServicePrice(name, catalogMap))}</StyledBadgePrice>}
+                                {getServicePrice(name, catalogMap) > 0 &&
+                                    <StyledBadgePrice>{formatPrice(getServicePrice(name, catalogMap))}</StyledBadgePrice>}
                             </StyledBadge>
                         ))}
                     </StyledBadgeList>
@@ -77,116 +86,117 @@ export const ServiceFields = ({selectedServices, onServiceToggle, totalDuration,
 };
 
 export const StyledServiceArea = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: var(--gap-md);
+    display: flex;
+    flex-direction: column;
+    gap: var(--gap-md);
 `;
 
 export const StyledServiceList = styled.div`
-  max-height: 200px;
-  overflow-y: auto;
-  overscroll-behavior: auto;
-  border: 1px solid var(--light-gray-color);
-  border-radius: var(--radius-sm);
-  display: flex;
-  flex-direction: column;
-  gap: var(--gap-md);
+    max-height: 200px;
+    overflow-y: auto;
+    overscroll-behavior: auto;
+    border: 1px solid var(--light-gray-color);
+    border-radius: var(--radius-sm);
+    display: flex;
+    flex-direction: column;
+    gap: var(--gap-md);
 `;
 
 export const StyledServiceGroup = styled.div`
-  display: flex;
-  flex-direction: column;
+    display: flex;
+    flex-direction: column;
 `;
 
 export const StyledCategoryHeader = styled.div`
-  font-size: var(--xsmall-font);
-  font-weight: 600;
-  color: var(--dark-gray-color);
-  padding: var(--gap-md);
-  border-bottom: 1px solid var(--light-gray-color);
-  position: sticky;
-  top: 0;
-  z-index: 2;
-  background-color: var(--white-color);
+    font-size: var(--xsmall-font);
+    font-weight: 600;
+    color: var(--dark-gray-color);
+    padding: var(--gap-md);
+    border-bottom: 1px solid var(--light-gray-color);
+    position: sticky;
+    top: 0;
+    z-index: 2;
+    background: rgba(255, 255, 255, .7); /* 살짝만 흰색 */
+    backdrop-filter: blur(.8px) saturate(180%);
 `;
 
 export const StyledServiceCheckbox = styled.label`
-  display: flex;
-  align-items: center;
-  gap: var(--gap-sm);
-  font-size: var(--small-font);
-  cursor: pointer;
-  padding: var(--gap-xs) var(--gap-md);
-
-  input[type="checkbox"] {
-    width: 14px;
-    height: 14px;
-    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: var(--gap-sm);
+    font-size: var(--small-font);
     cursor: pointer;
-  }
+    padding: var(--gap-xs) var(--gap-md);
+
+    input[type="checkbox"] {
+        width: 14px;
+        height: 14px;
+        margin: 0;
+        cursor: pointer;
+    }
 
 `;
 
 export const StyledServiceChip = styled.span<{ $color: string }>`
-  display: inline-flex;
-  align-items: center;
-  padding: 3px 10px;
-  border-radius: 999px;
-  font-size: var(--xsmall-font);
-  font-weight: 600;
-  color: ${(props) => props.$color};
-  background-color: ${(props) => `${props.$color}18`};
+    display: inline-flex;
+    align-items: center;
+    padding: 3px 7px;
+    border-radius: 999px;
+    font-size: var(--xsmall-font);
+    font-weight: 600;
+    color: ${(props) => props.$color};
+    background-color: ${(props) => `${props.$color}18`};
 `;
 
 const StyledItemMeta = styled.span`
-  display: flex;
-  align-items: center;
-  gap: var(--gap-sm);
-  margin-left: auto;
-  font-size: var(--xsmall-font);
-  color: var(--dark-gray-color);
+    display: flex;
+    align-items: center;
+    gap: var(--gap-sm);
+    margin-left: auto;
+    font-size: var(--xsmall-font);
+    color: var(--dark-gray-color);
 `;
 
 export const StyledDuration = styled.span`
-  font-size: var(--xsmall-font);
-  color: var(--dark-gray-color);
+    font-size: var(--xsmall-font);
+    color: var(--dark-gray-color);
 `;
 
 export const StyledServiceSummary = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: var(--gap-sm);
-  padding: var(--gap-sm) var(--gap-md);
-  background-color: var(--black-color-10);
-  border-radius: var(--radius-sm);
+    display: flex;
+    flex-direction: column;
+    gap: var(--gap-sm);
+    padding: var(--gap-sm) var(--gap-md);
+    background-color: var(--black-color-10);
+    border-radius: var(--radius-sm);
 `;
 
 const StyledBadgeList = styled.div`
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--gap-xs);
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--gap-xs);
 `;
 
 const StyledBadge = styled.span<{ $color: string }>`
-  display: inline-flex;
-  align-items: center;
-  gap: var(--gap-xs);
-  padding: 2px var(--gap-xs);
-  border-radius: var(--radius-sm);
-  font-size: var(--xsmall-font);
-  font-weight: 500;
-  color: var(--dark-gray-color);
-  background-color: var(--white-color);
-  border: 1px solid var(--light-gray-color);
+    display: inline-flex;
+    align-items: center;
+    gap: var(--gap-xs);
+    padding: 2px var(--gap-xs);
+    border-radius: var(--radius-sm);
+    font-size: var(--xsmall-font);
+    font-weight: 500;
+    color: var(--dark-gray-color);
+    background-color: var(--white-color);
+    border: 1px solid var(--light-gray-color);
 `;
 
 const StyledBadgePrice = styled.span`
-  font-size: var(--tiny-font);
-  color: var(--blue-color);
+    font-size: var(--tiny-font);
+    color: var(--blue-color);
 `;
 
 const StyledSummaryMeta = styled.span`
-  font-size: var(--xsmall-font);
-  color: var(--dark-gray-color);
-  font-weight: 500;
+    font-size: var(--xsmall-font);
+    color: var(--dark-gray-color);
+    font-weight: 500;
 `;

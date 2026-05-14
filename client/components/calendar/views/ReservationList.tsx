@@ -7,8 +7,8 @@ import {useCalendarStore} from '../../../store/calendarStore';
 import {NewCustomerBadge} from '../../ui/NewCustomerBadge';
 import {isNewCustomerVisit} from '../../../utils/customers';
 import {getDesignerColor} from '../../../utils/designers';
-import {buildServiceColorMap, getServiceColor, parseServiceString} from '../../../utils/services';
-import {StyledServiceText as StyledServiceTextBase, StyledServiceToken as StyledServiceTokenBase} from '../../ui/ServiceChip';
+import {buildServiceColorMap} from '../../../utils/services';
+import {ServiceChipList} from '../../ui/ServiceChip';
 
 import type {Reservation} from '../../../utils/reservations';
 
@@ -19,7 +19,11 @@ interface ReservationListProps {
     hideViewAll?: boolean;
 }
 
-export const ReservationList = ({reservations, variant, onViewAll, hideViewAll}: ReservationListProps) => {
+export const ReservationList = ({reservations: rawReservations, variant, onViewAll, hideViewAll}: ReservationListProps) => {
+    const reservations = useMemo(
+        () => [...rawReservations].sort((a, b) => a.startTime.localeCompare(b.startTime)),
+        [rawReservations]
+    );
     const customerMap = useCalendarStore((s) => s.customerMap);
     const openReservationDetail = useCalendarStore((s) => s.openReservationDetail);
     const setCreateReservationInitial = useCalendarStore((s) => s.setCreateReservationInitial);
@@ -54,14 +58,13 @@ export const ReservationList = ({reservations, variant, onViewAll, hideViewAll}:
                                     }}>
                             <StyledMeta>{variant === 'date' ? r.startTime : r.date.slice(5)}</StyledMeta>
                             <StyledServiceName>
-                                {parseServiceString(r.service).map((serviceName) => (
-                                    <StyledServiceToken key={`${r.id}-${serviceName}`}>
-                                        <StyledServiceText $color={getServiceColor(serviceName, serviceColorMap)}>{serviceName}</StyledServiceText>
-                                    </StyledServiceToken>
-                                ))}
+                                <ServiceChipList service={r.service}
+                                                 serviceColorMap={serviceColorMap}
+                                                 keyPrefix={r.id}
+                                                 textAs="strong" />
                             </StyledServiceName>
                             <StyledMeta>
-                                {isNewCustomerVisit(customer?.firstVisitDate, r.date) && <NewCustomerBadge>NEW</NewCustomerBadge>}
+                                {isNewCustomerVisit(customer?.firstVisitDate, r.date) && <NewCustomerBadge>N</NewCustomerBadge>}
                                 <span>{customer?.name ?? ''}</span>
                             </StyledMeta>
                         </StyledItem>
@@ -131,14 +134,6 @@ const StyledServiceName = styled.span`
     gap: var(--gap-xs);
     min-width: 0;
 `;
-
-const StyledServiceToken = styled(StyledServiceTokenBase)`
-    @media (max-width: 640px) {
-        flex-wrap: wrap;
-    }
-`;
-
-const StyledServiceText = styled(StyledServiceTextBase).attrs({as: 'strong'})``;
 
 
 const StyledMeta = styled.span`

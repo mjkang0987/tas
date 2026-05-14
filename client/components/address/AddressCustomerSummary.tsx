@@ -2,6 +2,7 @@ import React from 'react';
 
 import styled from 'styled-components';
 
+import {LabelBadge} from '../ui/LabelBadge';
 import type {Customer} from '../../utils/customers';
 import {formatPrice} from '../../utils/services';
 
@@ -124,7 +125,18 @@ const StyledStatusCounts = styled.div`
     flex-wrap: wrap;
 `;
 
-const StyledStatusBadge = styled.span<{ $type: string }>`
+const StyledStatusBadge = styled(LabelBadge).attrs<{ $type: string }>((props) => ({
+    $tone:
+        props.$type === 'completed'
+            ? 'success'
+            : props.$type === 'noshow'
+                ? 'danger'
+                : props.$type === 'booked'
+                    ? 'info'
+                    : 'neutral',
+    $shape: 'soft',
+    $size: 'sm',
+}))<{ $type: string }>`
     font-size: var(--tiny-font);
     font-weight: 500;
     color: ${(props) => STATUS_COLORS[props.$type] || 'var(--gray-color)'};

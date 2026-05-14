@@ -19,10 +19,10 @@ import {
 } from './ModalStyles';
 
 import {getDesignerColor} from '../../../utils/designers';
-import {buildServiceColorMap, formatPrice, getServiceColor, parseServiceString} from '../../../utils/services';
+import {buildServiceColorMap, formatPrice} from '../../../utils/services';
 import {useCalendarStore} from '../../../store/calendarStore';
 import {CloseIconButton} from '../../ui/CloseIconButton';
-import {StyledServiceList as StyledServiceListBase, StyledServiceText, StyledServiceToken} from '../../ui/ServiceChip';
+import {CustomerReservationCards} from '../../ui/CustomerReservationCards';
 
 const PAGE_SIZE = 5;
 
@@ -111,6 +111,10 @@ export const CustomerDetail = ({customer, reservationMap, onClose, onReservation
     const hasMore = visibleCount < customerReservations.length;
     const pointHistories = [...(customer.pointHistories ?? [])].reverse();
     const displayMemoTags = isEditing ? editForm.memoTags : (customer.memoTags ?? []);
+    const today = useMemo(() => {
+        const now = new Date();
+        return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+    }, []);
 
     const handleFieldChange = (field: keyof Omit<CustomerEditForm, 'memoTags'>, value: string) => {
         setEditForm((prev) => ({...prev, [field]: value}));
@@ -188,17 +192,23 @@ export const CustomerDetail = ({customer, reservationMap, onClose, onReservation
                                                aria-label="고객 정보"
                                                id={layerId}
                                                data-layer-id={layerDataId}>
-        <StyledCustomerDetail ref={dialogRef} tabIndex={-1} onClick={(e) => e.stopPropagation()}>
+        <StyledCustomerDetail ref={dialogRef}
+                              tabIndex={-1}
+                              onClick={(e) => e.stopPropagation()}>
             <StyledHeader>
                 <h3>{customer.name}</h3>
                 <StyledHeaderActions>
                     {isEditing ? (
                         <>
-                            <StyledHeaderActionButton type="button" onClick={handleCancelEdit}>취소</StyledHeaderActionButton>
-                            <StyledHeaderActionButton type="button" $primary onClick={handleSaveEdit}>저장</StyledHeaderActionButton>
+                            <StyledHeaderActionButton type="button"
+                                                      onClick={handleCancelEdit}>취소</StyledHeaderActionButton>
+                            <StyledHeaderActionButton type="button"
+                                                      $primary
+                                                      onClick={handleSaveEdit}>저장</StyledHeaderActionButton>
                         </>
                     ) : (
-                        <StyledHeaderActionButton type="button" onClick={handleStartEdit}>수정</StyledHeaderActionButton>
+                        <StyledHeaderActionButton type="button"
+                                                  onClick={handleStartEdit}>수정</StyledHeaderActionButton>
                     )}
                     <StyledHeaderCloseButton onClick={onClose} />
                 </StyledHeaderActions>
@@ -250,7 +260,9 @@ export const CustomerDetail = ({customer, reservationMap, onClose, onReservation
                                         setEditError('');
                                     }}
                                 />
-                                <button type="button" onClick={handleAddTag}>추가</button>
+                                <button type="button"
+                                        onClick={handleAddTag}>추가
+                                </button>
                             </StyledTagInputRow>
                             <StyledColorRow>
                                 {MEMO_TAG_COLORS.map((color) => (
@@ -270,10 +282,12 @@ export const CustomerDetail = ({customer, reservationMap, onClose, onReservation
                     ) : (
                         <StyledAddressMemoList>
                             {displayMemoTags.map((tag) => (
-                                <StyledAddressMemoItem key={`${customer.id}-${tag.text}`} $color={tag.color}>
+                                <StyledAddressMemoItem key={`${customer.id}-${tag.text}`}
+                                                       $color={tag.color}>
                                     <span>{tag.text}</span>
                                     {isEditing && (
-                                        <StyledTagRemoveButton type="button" onClick={() => handleRemoveTag(tag.text)}>삭제</StyledTagRemoveButton>
+                                        <StyledTagRemoveButton type="button"
+                                                               onClick={() => handleRemoveTag(tag.text)}>삭제</StyledTagRemoveButton>
                                     )}
                                 </StyledAddressMemoItem>
                             ))}
@@ -305,39 +319,17 @@ export const CustomerDetail = ({customer, reservationMap, onClose, onReservation
                 </StyledPointHistorySection>
                 <StyledReservationSection>
                     <StyledReservationScroll>
-                    <h4>예약 내역 ({customerReservations.length})</h4>
-                    <StyledReservationList>
-                        {visibleList.map((r) => {
-                            const designerColor = r.designerId ? (designerColorMap[r.designerId] ?? '#8E8E93') : '#8E8E93';
-                            const designerName = r.designerId ? (designerNameMap[r.designerId] ?? '미지정') : '미지정';
-                            return (
-                                <StyledReservationItem key={r.id}
-                                                       type="button"
-                                                       $clickable={!!onReservationClick}
-                                                       $color={designerColor}
-                                                       onClick={() => onReservationClick?.(r)}>
-                                    <StyledItemTop>
-                                        <span className="date">{r.date}</span>
-                                        <span className="time">{r.startTime}~{r.endTime}</span>
-                                        <StyledServiceList>
-                                            {parseServiceString(r.service).map((serviceName) => (
-                                                <StyledServiceToken key={`${r.id}-${serviceName}`}>
-                                                    <StyledServiceText $color={getServiceColor(serviceName, serviceColorMap)}>{serviceName}</StyledServiceText>
-                                                </StyledServiceToken>
-                                            ))}
-                                        </StyledServiceList>
-                                    </StyledItemTop>
-                                    <StyledMetaLine>
-                                        <span>디자이너: {designerName}</span>
-                                    </StyledMetaLine>
-                                </StyledReservationItem>
-                            );
-                        })}
-                    </StyledReservationList>
-                    {hasMore && <StyledMoreButton type="button"
-                                                  onClick={() => setVisibleCount((prev) => prev + PAGE_SIZE)}>
-                        더보기
-                    </StyledMoreButton>}
+                        <h4>예약 내역 ({customerReservations.length})</h4>
+                        <CustomerReservationCards reservations={visibleList}
+                                                  designerColorMap={designerColorMap}
+                                                  designerNameMap={designerNameMap}
+                                                  serviceColorMap={serviceColorMap}
+                                                  today={today}
+                                                  onReservationClick={onReservationClick} />
+                        {hasMore && <StyledMoreButton type="button"
+                                                      onClick={() => setVisibleCount((prev) => prev + PAGE_SIZE)}>
+                            더보기
+                        </StyledMoreButton>}
                     </StyledReservationScroll>
                 </StyledReservationSection>
             </StyledCustomerContent>
@@ -346,405 +338,353 @@ export const CustomerDetail = ({customer, reservationMap, onClose, onReservation
 };
 
 const StyledCustomerOverlay = styled(StyledOverlay)`
-  z-index: ${OVERLAY_Z_INDEX.childDetail};
+    z-index: ${OVERLAY_Z_INDEX.childDetail};
 `;
 
 const StyledCustomerDetail = styled(StyledDetail)`
-  width: 360px;
+    width: 360px;
 `;
 
 const StyledCustomerContent = styled.div`
-  ${scrollContentStyle};
-  display: flex;
-  flex-direction: column;
+    ${scrollContentStyle};
+    display: flex;
+    flex-direction: column;
 `;
 
 const StyledHeaderActions = styled.div`
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
 `;
 
 const StyledHeaderActionButton = styled.button<{ $primary?: boolean }>`
-  height: 30px;
-  padding: 0 10px;
-  border: 1px solid ${props => props.$primary ? 'var(--blue-color)' : 'var(--light-gray-color)'};
-  border-radius: 8px;
-  background: ${props => props.$primary ? 'var(--blue-color)' : 'var(--white-color)'};
-  color: ${props => props.$primary ? '#fff' : 'var(--dark-gray-color)'};
-  font-size: 12px;
-  font-weight: 600;
-  cursor: pointer;
-`;
-
-const StyledHeaderCloseButton = styled(CloseIconButton)`
-  flex-shrink: 0;
-`;
-
-const StyledInfo = styled.div`
-  padding: 12px 16px;
-  border-bottom: 1px solid var(--light-gray-color);
-
-  dl {
-    display: grid;
-    grid-template-columns: 60px 1fr;
-    gap: 4px 12px;
-    margin: 0;
-  }
-
-  dt {
-    font-size: 13px;
-    color: var(--gray-color);
-    font-weight: 500;
-  }
-
-  dd {
-    margin: 0;
-    font-size: 13px;
-  }
-`;
-
-const StyledNoshowCount = styled.span<{ $hasNoshow: boolean }>`
-  color: ${(p) => p.$hasNoshow ? '#EA4335' : 'inherit'};
-  font-weight: ${(p) => p.$hasNoshow ? 700 : 'inherit'};
-`;
-
-const StyledEditFields = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-
-  label {
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-  }
-
-  span {
-    font-size: 12px;
-    font-weight: 600;
-    color: var(--dark-gray-color);
-  }
-
-  input {
-    height: 34px;
+    height: 30px;
     padding: 0 10px;
-    border: 1px solid var(--light-gray-color);
+    border: 1px solid ${props => props.$primary ? 'var(--blue-color)' : 'var(--light-gray-color)'};
     border-radius: 8px;
-    font-size: 13px;
-  }
-`;
-
-const StyledPointInfo = styled.div`
-  font-size: 12px;
-  font-weight: 700;
-  color: var(--blue-color);
-`;
-
-const StyledNotesSection = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  padding: 12px 16px;
-  border-top: 1px solid var(--light-gray-color);
-  border-bottom: 1px solid var(--light-gray-color);
-
-  h4 {
-    margin: 0;
-    font-size: 14px;
-    font-weight: 600;
-  }
-`;
-
-const StyledNoteList = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-`;
-
-const StyledNoteItem = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-
-  strong {
-    font-size: 12px;
-    color: var(--dark-gray-color);
-  }
-
-  span {
-    font-size: 12px;
-    color: var(--dark-gray-color2);
-    white-space: pre-wrap;
-  }
-`;
-
-const StyledNoteEditor = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-
-  label {
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-  }
-
-  span {
-    font-size: 12px;
-    font-weight: 600;
-    color: var(--dark-gray-color);
-  }
-
-  input {
-    height: 34px;
-    padding: 0 10px;
-    border: 1px solid var(--light-gray-color);
-    border-radius: 8px;
-    font-size: 12px;
-    font-family: inherit;
-  }
-`;
-
-const StyledReservationSection = styled.div`
-  flex: 1;
-  ${scrollHintStyle};
-`;
-
-const StyledPointHistorySection = styled.div`
-  padding: 12px 16px;
-  border-top: 1px solid var(--light-gray-color);
-  border-bottom: 1px solid var(--light-gray-color);
-
-  h4 {
-    margin: 0 0 8px;
-    font-size: 14px;
-    font-weight: 600;
-  }
-`;
-
-const StyledAddressMemoSection = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  padding: 12px 16px;
-  border-top: 1px solid var(--light-gray-color);
-  border-bottom: 1px solid var(--light-gray-color);
-  
-  h4 {
-    margin: 0;
-    font-size: 14px;
-    font-weight: 600;
-  }
-`;
-
-const StyledAddressMemoList = styled.div`
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-`;
-
-const StyledTagEditor = styled.div`
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-`;
-
-const StyledTagInputRow = styled.div`
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  gap: 8px;
-
-  input {
-    height: 34px;
-    padding: 0 10px;
-    border: 1px solid var(--light-gray-color);
-    border-radius: 8px;
-    font-size: 12px;
-  }
-
-  button {
-    height: 34px;
-    padding: 0 12px;
-    border: 1px solid var(--blue-color);
-    border-radius: 8px;
-    background: var(--blue-color);
-    color: #fff;
+    background: ${props => props.$primary ? 'var(--blue-color)' : 'var(--white-color)'};
+    color: ${props => props.$primary ? '#fff' : 'var(--dark-gray-color)'};
     font-size: 12px;
     font-weight: 600;
     cursor: pointer;
-  }
 `;
 
-const StyledColorRow = styled.div`
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
+const StyledHeaderCloseButton = styled(CloseIconButton)`
+    flex-shrink: 0;
 `;
 
-const StyledColorButton = styled.button<{ $selected: boolean; $color: string }>`
-  width: 22px;
-  height: 22px;
-  border-radius: 999px;
-  border: 2px solid ${props => props.$selected ? 'var(--black-color)' : 'transparent'};
-  background: ${props => props.$color};
-  cursor: pointer;
+const StyledInfo = styled.div`
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--light-gray-color);
+
+    dl {
+        display: grid;
+        grid-template-columns: 60px 1fr;
+        gap: 4px 12px;
+        margin: 0;
+    }
+
+    dt {
+        font-size: 13px;
+        color: var(--gray-color);
+        font-weight: 500;
+    }
+
+    dd {
+        margin: 0;
+        font-size: 13px;
+    }
 `;
 
-const StyledAddressMemoItem = styled.span<{ $color: string }>`
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  min-height: 24px;
-  padding: 3px 10px;
-  border-radius: 999px;
-  background-color: ${(props) => props.$color};
-  color: #fff;
-  font-size: 12px;
-  font-weight: 600;
+const StyledNoshowCount = styled.span<{ $hasNoshow: boolean }>`
+    color: ${(p) => p.$hasNoshow ? '#EA4335' : 'inherit'};
+    font-weight: ${(p) => p.$hasNoshow ? 700 : 'inherit'};
 `;
 
-const StyledTagRemoveButton = styled.button`
-  border: none;
-  background: transparent;
-  color: inherit;
-  font-size: 11px;
-  font-weight: 700;
-  cursor: pointer;
+const StyledEditFields = styled.div`
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+
+    label {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+    }
+
+    span {
+        font-size: 12px;
+        font-weight: 600;
+        color: var(--dark-gray-color);
+    }
+
+    input {
+        height: 34px;
+        padding: 0 10px;
+        border: 1px solid var(--light-gray-color);
+        border-radius: 8px;
+        font-size: 13px;
+    }
 `;
 
-const StyledEditError = styled.p`
-  margin: 0;
-  font-size: 12px;
-  color: var(--danger-color);
-`;
-
-const StyledPointHistoryList = styled.ul`
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-`;
-
-const StyledPointHistoryItem = styled.li`
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  padding: 8px 10px;
-  border: 1px solid var(--light-gray-color);
-  border-radius: 8px;
-  background: var(--white-color);
-`;
-
-const StyledPointHistoryTop = styled.div`
-  display: flex;
-  justify-content: space-between;
-  gap: 8px;
-  align-items: center;
-
-  strong {
-    font-size: 12px;
-    font-weight: 600;
-  }
-
-  span {
+const StyledPointInfo = styled.div`
     font-size: 12px;
     font-weight: 700;
     color: var(--blue-color);
-  }
+`;
+
+const StyledNotesSection = styled.div`
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding: 12px 16px;
+    border-top: 1px solid var(--light-gray-color);
+    border-bottom: 1px solid var(--light-gray-color);
+
+    h4 {
+        margin: 0;
+        font-size: 14px;
+        font-weight: 600;
+    }
+`;
+
+const StyledNoteList = styled.div`
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+`;
+
+const StyledNoteItem = styled.div`
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+
+    strong {
+        font-size: 12px;
+        color: var(--dark-gray-color);
+    }
+
+    span {
+        font-size: 12px;
+        color: var(--dark-gray-color2);
+        white-space: pre-wrap;
+    }
+`;
+
+const StyledNoteEditor = styled.div`
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+
+    label {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+    }
+
+    span {
+        font-size: 12px;
+        font-weight: 600;
+        color: var(--dark-gray-color);
+    }
+
+    input {
+        height: 34px;
+        padding: 0 10px;
+        border: 1px solid var(--light-gray-color);
+        border-radius: 8px;
+        font-size: 12px;
+        font-family: inherit;
+    }
+`;
+
+const StyledReservationSection = styled.div`
+    flex: 1;
+    ${scrollHintStyle};
+`;
+
+const StyledPointHistorySection = styled.div`
+    padding: 12px 16px;
+    border-top: 1px solid var(--light-gray-color);
+    border-bottom: 1px solid var(--light-gray-color);
+
+    h4 {
+        margin: 0 0 8px;
+        font-size: 14px;
+        font-weight: 600;
+    }
+`;
+
+const StyledAddressMemoSection = styled.div`
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding: 12px 16px;
+    border-top: 1px solid var(--light-gray-color);
+    border-bottom: 1px solid var(--light-gray-color);
+
+    h4 {
+        margin: 0;
+        font-size: 14px;
+        font-weight: 600;
+    }
+`;
+
+const StyledAddressMemoList = styled.div`
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+`;
+
+const StyledTagEditor = styled.div`
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+`;
+
+const StyledTagInputRow = styled.div`
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 8px;
+
+    input {
+        height: 34px;
+        padding: 0 10px;
+        border: 1px solid var(--light-gray-color);
+        border-radius: 8px;
+        font-size: 12px;
+    }
+
+    button {
+        height: 34px;
+        padding: 0 12px;
+        border: 1px solid var(--blue-color);
+        border-radius: 8px;
+        background: var(--blue-color);
+        color: #fff;
+        font-size: 12px;
+        font-weight: 600;
+        cursor: pointer;
+    }
+`;
+
+const StyledColorRow = styled.div`
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+`;
+
+const StyledColorButton = styled.button<{ $selected: boolean; $color: string }>`
+    width: 22px;
+    height: 22px;
+    border-radius: 999px;
+    border: 2px solid ${props => props.$selected ? 'var(--black-color)' : 'transparent'};
+    background: ${props => props.$color};
+    cursor: pointer;
+`;
+
+const StyledAddressMemoItem = styled.span<{ $color: string }>`
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    min-height: 24px;
+    padding: 3px 7px;
+    border-radius: 999px;
+    background-color: ${(props) => props.$color};
+    color: #fff;
+    font-size: 12px;
+    font-weight: 600;
+`;
+
+const StyledTagRemoveButton = styled.button`
+    border: none;
+    background: transparent;
+    color: inherit;
+    font-size: 11px;
+    font-weight: 700;
+    cursor: pointer;
+`;
+
+const StyledEditError = styled.p`
+    margin: 0;
+    font-size: 12px;
+    color: var(--danger-color);
+`;
+
+const StyledPointHistoryList = styled.ul`
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+`;
+
+const StyledPointHistoryItem = styled.li`
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    padding: 8px 10px;
+    border: 1px solid var(--light-gray-color);
+    border-radius: 8px;
+    background: var(--white-color);
+`;
+
+const StyledPointHistoryTop = styled.div`
+    display: flex;
+    justify-content: space-between;
+    gap: 8px;
+    align-items: center;
+
+    strong {
+        font-size: 12px;
+        font-weight: 600;
+    }
+
+    span {
+        font-size: 12px;
+        font-weight: 700;
+        color: var(--blue-color);
+    }
 `;
 
 const StyledPointHistoryMeta = styled.div`
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px 12px;
-  font-size: 11px;
-  color: var(--dark-gray-color2);
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px 12px;
+    font-size: 11px;
+    color: var(--dark-gray-color2);
 `;
 
 const StyledEmptyText = styled.p`
-  margin: 0;
-  font-size: 12px;
-  color: var(--gray-color);
+    margin: 0;
+    font-size: 12px;
+    color: var(--gray-color);
 `;
 
 const StyledReservationScroll = styled.div`
-  ${scrollContentStyle};
-  padding: 12px 16px 30px;
+    ${scrollContentStyle};
+    padding: 12px 16px 30px;
 
-  h4 {
-    margin: 0 0 8px;
-    font-size: 14px;
-    font-weight: 600;
-  }
-`;
-
-const StyledReservationList = styled.ul`
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-`;
-
-const StyledReservationItem = styled.button<{ $color: string; $clickable: boolean }>`
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  width: 100%;
-  padding: 8px 10px;
-  border: 1px solid ${props => props.$color};
-  border-left-width: 4px;
-  border-radius: 8px;
-  background-color: ${props => `${props.$color}12`};
-  color: var(--dark-gray-color);
-  font-size: 12px;
-  text-align: left;
-  cursor: ${props => props.$clickable ? 'pointer' : 'default'};
-
-  .date, .time {
-    color: var(--dark-gray-color);
-    opacity: 0.9;
-  }
-
-  @media (hover: hover) and (pointer: fine) {
-        &:hover {
-    background-color: ${props => props.$clickable ? `${props.$color}1d` : `${props.$color}12`};
-  }
-  }
-`;
-
-const StyledItemTop = styled.div`
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 8px;
-`;
-
-const StyledServiceList = styled(StyledServiceListBase)`
-  font-weight: 500;
-`;
-
-const StyledMetaLine = styled.div`
-  display: flex;
-  flex-wrap: wrap;
-  gap: 12px;
-  font-size: var(--tiny-font);
-  color: var(--gray-color);
+    h4 {
+        margin: 0 0 8px;
+        font-size: 14px;
+        font-weight: 600;
+    }
 `;
 
 const StyledMoreButton = styled.button`
-  display: block;
-  width: 100%;
-  margin-top: 8px;
-  padding: 8px;
-  border: 1px solid var(--light-gray-color);
-  border-radius: 4px;
-  background: none;
-  font-size: 13px;
-  color: var(--gray-color);
-  cursor: pointer;
+    display: block;
+    width: 100%;
+    margin-top: 8px;
+    padding: 8px;
+    border: 1px solid var(--light-gray-color);
+    border-radius: 4px;
+    background: none;
+    font-size: 13px;
+    color: var(--gray-color);
+    cursor: pointer;
 
-  @media (hover: hover) and (pointer: fine) {
+    @media (hover: hover) and (pointer: fine) {
         &:hover {
-    background-color: var(--black-color-10);
-  }
-  }
+            background-color: var(--black-color-10);
+        }
+    }
 `;

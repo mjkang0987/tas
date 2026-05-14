@@ -17,6 +17,7 @@ import {
     useLayerInstanceId,
 } from './ModalStyles';
 import {CloseIconButton} from '../../ui/CloseIconButton';
+import {LabelBadge} from '../../ui/LabelBadge';
 
 interface ReservationHistoryLayerProps {
     history: ReservationHistoryEntry[];
@@ -134,19 +135,13 @@ const StyledHistoryDetailHeader = styled.div`
     }
 `;
 
-const HISTORY_BADGE_COLORS: Record<string, string> = {
-    cancelled: 'var(--danger-color)',
-    noshow: 'var(--warning-color)',
-};
-
-const StyledHistoryTypeBadge = styled.span<{ $type: string }>`
-    display: inline-block;
-    padding: 2px var(--gap-sm);
-    border-radius: var(--radius-sm);
+const StyledHistoryTypeBadge = styled(LabelBadge).attrs<{ $type: string }>((props) => ({
+    $tone: props.$type === 'cancelled' ? 'danger' : props.$type === 'noshow' ? 'warning' : props.$type === 'completed' ? 'success' : 'info',
+    $shape: 'soft',
+    $size: 'sm',
+}))<{ $type: string }>`
     font-size: var(--tiny-font);
     font-weight: 600;
-    background-color: ${(props) => HISTORY_BADGE_COLORS[props.$type] || 'var(--blue-color)'};
-    color: #fff;
 `;
 
 const StyledHistoryDetailDiffs = styled.div`

@@ -2,29 +2,16 @@ import {useState} from 'react';
 
 import styled from 'styled-components';
 
-import {formatPrice, getServiceColor, parseServiceString} from '../../../utils/services';
+import {formatPrice} from '../../../utils/services';
 import type {Designer} from '../../../utils/designers';
 import type {Reservation} from '../../../utils/reservations';
 import type {CustomerMap} from '../../../utils/customers';
-import {isNewCustomerVisit} from '../../../utils/customers';
-import {NewCustomerBadge} from '../../ui/NewCustomerBadge';
 import {
-    StyledClickableRow,
-    StyledColorSwatch,
-    StyledCustomerName,
-    StyledInlineCustomerButton,
     StyledList,
-    StyledPrice,
     StyledRevenueEmpty,
-    StyledRevenueMetaItem,
-    StyledRevenueMetaLabel,
-    StyledRevenueMetaList,
-    StyledRevenueRowBody,
-    StyledRevenueServiceChip,
-    StyledRevenueServiceName,
-    StyledRevenueServiceText,
     StyledSummary,
 } from './revenue-styles';
+import {RevenueReservationList} from './RevenueReservationList';
 
 interface DayEntry {
     dateKey: string;
@@ -111,47 +98,14 @@ export const RevenueDailyList = ({
                             </StyledDayHeader>
                             {isExpanded && reservations.length > 0 && (
                                 <StyledDayReservations>
-                                    {reservations.map((reservation) => (
-                                        <StyledClickableRow
-                                            key={reservation.id}
-                                            $accentColor={reservation.designerId
-                                                ? (designerMap[reservation.designerId]?.color ?? '#8E8E93')
-                                                : '#D1D5DB'}
-                                            $showAccentBar
-                                            onClick={() => onSelectReservation(reservation)}
-                                        >
-                                            <StyledRevenueRowBody>
-                                                <StyledRevenueMetaList>
-                                                    <StyledRevenueMetaItem>
-                                                        <StyledRevenueMetaLabel>
-                                                            <StyledColorSwatch $color={designerMap[reservation.designerId ?? -1]?.color ?? '#D1D5DB'} />
-                                                            <span>{designerMap[reservation.designerId ?? -1]?.name ?? '미지정'}</span>
-                                                        </StyledRevenueMetaLabel>
-                                                        <StyledCustomerName>
-                                                            {isNewCustomerVisit(customerMap[reservation.customerId]?.firstVisitDate, reservation.date) && <NewCustomerBadge>NEW</NewCustomerBadge>}
-                                                            <StyledInlineCustomerButton
-                                                                type="button"
-                                                                onClick={(e) => {
-                                                                    e.stopPropagation();
-                                                                    onSelectCustomer(reservation.customerId);
-                                                                }}
-                                                            >
-                                                                {customerMap[reservation.customerId]?.name ?? '고객 미지정'}
-                                                            </StyledInlineCustomerButton>
-                                                        </StyledCustomerName>
-                                                        <StyledRevenueServiceName>
-                                                            {parseServiceString(reservation.service).map((service) => (
-                                                                <StyledRevenueServiceChip key={`${reservation.id}-${service}`}>
-                                                                    <StyledRevenueServiceText $color={getServiceColor(service, serviceColorMap)}>{service}</StyledRevenueServiceText>
-                                                                </StyledRevenueServiceChip>
-                                                            ))}
-                                                        </StyledRevenueServiceName>
-                                                    </StyledRevenueMetaItem>
-                                                </StyledRevenueMetaList>
-                                            </StyledRevenueRowBody>
-                                            <StyledPrice>{formatPrice(reservation.price ?? 0)}</StyledPrice>
-                                        </StyledClickableRow>
-                                    ))}
+                                    <RevenueReservationList
+                                        reservations={reservations}
+                                        designerMap={designerMap}
+                                        customerMap={customerMap}
+                                        serviceColorMap={serviceColorMap}
+                                        onSelectReservation={onSelectReservation}
+                                        onSelectCustomer={onSelectCustomer}
+                                    />
                                 </StyledDayReservations>
                             )}
                         </StyledDayGroup>
@@ -182,8 +136,8 @@ const StyledDayHeader = styled.div`
 
     @media (hover: hover) and (pointer: fine) {
         &:hover {
-        background-color: var(--black-color-10);
-    }
+            background-color: var(--black-color-10);
+        }
     }
 `;
 
@@ -234,9 +188,7 @@ const StyledExpandIcon = styled.span<{ $expanded: boolean }>`
     transition: transform 0.2s ease;
 `;
 
-const StyledDayReservations = styled.div`
-    padding-left: 16px;
-`;
+const StyledDayReservations = styled.div``;
 
 const StyledRevenueSummary = styled(StyledSummary)`
     position: sticky;
@@ -246,5 +198,6 @@ const StyledRevenueSummary = styled(StyledSummary)`
     border: 1px solid var(--light-gray-color);
     border-radius: 10px;
     margin-top: 8px;
-    box-shadow: 0 -8px 18px rgba(0, 0, 0, 0.06);
+    background: rgba(255, 255, 255, .1);
+    backdrop-filter: blur(.8px) saturate(180%);
 `;

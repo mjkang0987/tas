@@ -3,6 +3,7 @@ import {useCallback, useEffect, useState} from 'react';
 import {useSession} from 'next-auth/react';
 
 import styled from 'styled-components';
+import {LabelBadge} from '../ui/LabelBadge';
 
 type Invite = {
     id: string;
@@ -229,7 +230,7 @@ const StyledCard = styled.div`
     margin-bottom: 14px;
     padding: 18px;
     border: 1px solid #e5e7eb;
-    border-radius: 14px;
+    border-radius: 10px;
     background: #fff;
 `;
 
@@ -313,12 +314,11 @@ const StyledCode = styled.span<{$dimmed?: boolean}>`
     color: ${(p) => p.$dimmed ? '#9ca3af' : '#1e40af'};
 `;
 
-const StyledBadge = styled.span`
-    padding: 2px 8px;
-    border-radius: 6px;
-    background: #e5e7eb;
-    font-size: 11px;
-    font-weight: 600;
+const StyledBadge = styled(LabelBadge).attrs({
+    $tone: 'neutral',
+    $shape: 'soft',
+    $size: 'sm',
+})`
     color: #374151;
 `;
 

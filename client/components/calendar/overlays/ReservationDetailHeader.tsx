@@ -2,8 +2,8 @@ import React from 'react';
 
 import styled from 'styled-components';
 
-import {getServiceColor, parseServiceString} from '../../../utils/services';
 import {CloseIconButton} from '../../ui/CloseIconButton';
+import {ServiceChipList} from '../../ui/ServiceChip';
 import {StyledHeader} from './ModalStyles';
 
 type ReservationDetailHeaderProps = {
@@ -22,16 +22,9 @@ export function ReservationDetailHeader({
     return (
         <StyledReservationHeader>
             <StyledReservationTitleGroup>
-                <StyledServiceBadgeList>
-                    {parseServiceString(service).map((serviceName) => (
-                        <StyledServiceBadge
-                            key={serviceName}
-                            $color={getServiceColor(serviceName, serviceColorMap)}
-                        >
-                            {serviceName}
-                        </StyledServiceBadge>
-                    ))}
-                </StyledServiceBadgeList>
+                <StyledServiceBadgeList service={service}
+                                        serviceColorMap={serviceColorMap}
+                                        keyPrefix={title} />
                 <h3>{title}</h3>
             </StyledReservationTitleGroup>
             <CloseIconButton onClick={onClose} />
@@ -51,19 +44,4 @@ const StyledReservationTitleGroup = styled.div`
     }
 `;
 
-const StyledServiceBadgeList = styled.div`
-    display: flex;
-    flex-wrap: wrap;
-    gap: 6px;
-`;
-
-const StyledServiceBadge = styled.span<{ $color: string }>`
-    display: inline-flex;
-    align-items: center;
-    padding: 4px 10px;
-    border-radius: 999px;
-    font-size: var(--xsmall-font);
-    font-weight: 600;
-    color: ${(props) => props.$color};
-    background-color: ${(props) => `${props.$color}18`};
-`;
+const StyledServiceBadgeList = styled(ServiceChipList)``;

@@ -1,6 +1,7 @@
 import React from 'react';
 
 import styled from 'styled-components';
+import {Dot} from '../../ui/Dot';
 
 import type {TimelineClusterData} from './TimelineClusterLayer';
 import {pad} from '../../../utils/timeRound';
@@ -102,10 +103,9 @@ const StyledOverlapDotList = styled.div`
     }
 `;
 
-const StyledOverlapDot = styled.span<{ $color: string }>`
-    width: 8px;
-    height: 8px;
-    border-radius: 50%;
-    background-color: ${(props) => props.$color};
+const StyledOverlapDot = styled(Dot).attrs<{ $color: string }>((props) => ({
+    color: props.$color,
+    size: 8,
+}))<{ $color: string }>`
     flex-shrink: 0;
 `;

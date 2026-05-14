@@ -4,9 +4,9 @@ import styled from 'styled-components';
 
 import {ButtonReserve} from '../../ui/Buttons';
 import {NewCustomerBadge} from '../../ui/NewCustomerBadge';
+import {ServiceChipList} from '../../ui/ServiceChip';
 import type {Customer} from '../../../utils/customers';
 import type {Reservation} from '../../../utils/reservations';
-import {getServiceColor, parseServiceString} from '../../../utils/services';
 import type {DragPreview} from './timelineDrag';
 
 type TimelineReservationCardProps = {
@@ -71,21 +71,15 @@ export function TimelineReservationCard({
                 </span>
             )}
             <strong className="highlight">
-                {parseServiceString(reservation.service).map((serviceName) => (
-                    <span className="service-token" key={`${reservation.id}-${serviceName}`}>
-                        <span className="service-chip"
-                              style={{
-                                  backgroundColor: `${getServiceColor(serviceName, serviceColorMap)}18`,
-                                  color: getServiceColor(serviceName, serviceColorMap),
-                              }}>{serviceName}</span>
-                    </span>
-                ))}
+                <StyledTimelineServiceList service={reservation.service}
+                                          serviceColorMap={serviceColorMap}
+                                          keyPrefix={reservation.id} />
                 {reservation.status === 'cancelled' ? ' (취소)' : reservation.status === 'noshow' ? ' (노쇼)' : reservation.status === 'completed' ? ' (완료)' : ''}
             </strong>
             {preview && <span className="sub">{preview.date} {preview.startTime}~{preview.endTime}</span>}
             {customerName && (
                 <span className="detail">
-                    {isNewCustomer && <NewCustomerBadge>NEW</NewCustomerBadge>}
+                    {isNewCustomer && <NewCustomerBadge>N</NewCustomerBadge>}
                     <span>{customerName}</span>
                 </span>
             )}
@@ -126,21 +120,15 @@ export function TimelineDragGhost({
             $cancelled={isCancelled}
         >
             <strong>
-                {parseServiceString(reservation.service).map((serviceName) => (
-                    <span className="service-token" key={`${reservation.id}-${serviceName}`}>
-                        <span className="service-chip"
-                              style={{
-                                  backgroundColor: `${getServiceColor(serviceName, serviceColorMap)}18`,
-                                  color: getServiceColor(serviceName, serviceColorMap),
-                              }}>{serviceName}</span>
-                    </span>
-                ))}
+                <StyledTimelineServiceList service={reservation.service}
+                                          serviceColorMap={serviceColorMap}
+                                          keyPrefix={`ghost-${reservation.id}`} />
                 {reservation.status === 'cancelled' ? ' (취소)' : reservation.status === 'noshow' ? ' (노쇼)' : reservation.status === 'completed' ? ' (완료)' : ''}
             </strong>
             <span className="sub">{preview.date} {preview.startTime}~{preview.endTime}</span>
             {customerName && (
                 <span className="detail">
-                    {isNewCustomer && <NewCustomerBadge>NEW</NewCustomerBadge>}
+                    {isNewCustomer && <NewCustomerBadge>N</NewCustomerBadge>}
                     <span>{customerName}</span>
                 </span>
             )}
@@ -204,22 +192,19 @@ const StyledDragGhost = styled.div<{
         }
     }
 
-    .service-token {
-        display: inline-flex;
-        align-items: center;
-        margin-right: 6px;
-        @media (max-width: 640px) {
-            flex-wrap: wrap;
-            gap: 4px;
-        }
+    .service-chip-text {
+        padding: 2px 7px;
+        font-size: 10px;
+    }
+`;
+
+const StyledTimelineServiceList = styled(ServiceChipList)`
+    @media (max-width: 640px) {
+        gap: 4px;
     }
 
-    .service-chip {
-        display: inline-flex;
-        align-items: center;
+    .service-chip-text {
         padding: 2px 7px;
-        border-radius: 999px;
         font-size: 10px;
-        font-weight: 600;
     }
 `;

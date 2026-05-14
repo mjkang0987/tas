@@ -111,10 +111,11 @@ const StyledReserveButton = styled.button <Props>`
         }
     }
 
-    .service-chip {
+    .service-chip,
+    .service-chip-text {
         display: inline-flex;
         align-items: center;
-        padding: 3px 8px;
+        padding: 3px 7px;
         border-radius: 999px;
         font-size: 11px;
         font-weight: 600;
@@ -176,8 +177,6 @@ const StyledReserveButton = styled.button <Props>`
 
     @media (hover: hover) and (pointer: fine) {
         &:hover {
-            height: auto;
-        max-height: 1000px;
         z-index: 10;
         box-shadow: 0 6px 16px rgba(15, 23, 42, 0.18);
     }

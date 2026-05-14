@@ -16,35 +16,24 @@ import {
 } from '../../calendar/overlays/ModalStyles';
 import {CloseIconButton} from '../../ui/CloseIconButton';
 import {NewCustomerBadge} from '../../ui/NewCustomerBadge';
-import {formatPrice, getServiceColor, parseServiceString} from '../../../utils/services';
+import {formatPrice} from '../../../utils/services';
 import type {Designer} from '../../../utils/designers';
 import type {Reservation} from '../../../utils/reservations';
 import type {CustomerMap} from '../../../utils/customers';
-import {isNewCustomerVisit} from '../../../utils/customers';
 import type {RevenueFilterMode} from '../../../utils/revenue';
 import type {RevenueMetricKey} from './RevenueKpiGrid';
 import {
-    StyledClickableRow,
-    StyledColorSwatch,
     StyledCustomerInfoGrid,
     StyledCustomerName,
-    StyledInlineCustomerButton,
     StyledList,
-    StyledPrice,
     StyledRevenueEmpty,
-    StyledRevenueMetaItem,
-    StyledRevenueMetaLabel,
-    StyledRevenueMetaList,
-    StyledRevenueRowBody,
-    StyledRevenueServiceChip,
-    StyledRevenueServiceName,
-    StyledRevenueServiceText,
-    StyledTime,
 } from './revenue-styles';
+import {RevenueReservationList} from './RevenueReservationList';
 
-interface CustomerEntry {
+export interface CustomerEntry {
     customer: {id: number; name: string; tel: string; points?: number | null};
     visitDate: string;
+    prevVisitDate?: string;
 }
 
 interface MetricLayer {
@@ -64,6 +53,18 @@ interface RevenueMetricModalProps {
     onClose: () => void;
     onSelectReservation: (reservation: Reservation) => void;
     onSelectCustomer: (customerId: number) => void;
+}
+
+function formatVisitGap(visitDate: string, prevVisitDate: string): string {
+    const visit = new Date(visitDate + 'T00:00:00');
+    const prev = new Date(prevVisitDate + 'T00:00:00');
+    const diffMs = visit.getTime() - prev.getTime();
+    const diffDays = Math.round(diffMs / 86400000);
+
+    if (diffDays < 7) return `${diffDays}일전`;
+    if (diffDays < 28) return `${Math.floor(diffDays / 7)}주전`;
+    if (diffDays < 365) return `${Math.floor(diffDays / 30)}달전`;
+    return `${Math.floor(diffDays / 365)}년전`;
 }
 
 export const RevenueMetricModal = ({
@@ -120,8 +121,11 @@ export const RevenueMetricModal = ({
                                     >
                                         <StyledCustomerRowHeader>
                                             <StyledCustomerName>
-                                                {metricLayerKey === 'new' && <NewCustomerBadge>NEW</NewCustomerBadge>}
+                                                {metricLayerKey === 'new' && <NewCustomerBadge>N</NewCustomerBadge>}
                                                 <StyledCustomerTitle>{item.customer.name}</StyledCustomerTitle>
+                                                {metricLayerKey === 'returning' && item.prevVisitDate && (
+                                                    <StyledVisitGapBadge>{formatVisitGap(item.visitDate, item.prevVisitDate)}</StyledVisitGapBadge>
+                                                )}
                                             </StyledCustomerName>
                                             <StyledCustomerVisitDate>{item.visitDate}</StyledCustomerVisitDate>
                                         </StyledCustomerRowHeader>
@@ -130,6 +134,9 @@ export const RevenueMetricModal = ({
                                             <span><strong>연락처</strong>{item.customer.tel}</span>
                                             <span><strong>적립금</strong>{formatPrice(item.customer.points ?? 0)}</span>
                                             <span><strong>방문일</strong>{item.visitDate}</span>
+                                            {metricLayerKey === 'returning' && item.prevVisitDate && (
+                                                <span><strong>이전 방문</strong>{item.prevVisitDate}</span>
+                                            )}
                                         </StyledCustomerInfoGrid>
                                     </StyledCustomerRow>
                                 ))}
@@ -138,53 +145,15 @@ export const RevenueMetricModal = ({
                     ) : metricLayer.reservations.length === 0 ? (
                         <StyledRevenueEmpty>내역이 없습니다.</StyledRevenueEmpty>
                     ) : (
-                        <StyledList>
-                            {metricLayer.reservations.map((reservation) => {
-                                const accentColor = reservation.designerId
-                                    ? (designerMap[reservation.designerId]?.color ?? '#8E8E93')
-                                    : '#D1D5DB';
-                                return (
-                                    <StyledClickableRow
-                                        key={`${metricLayerKey}-${reservation.id}`}
-                                        $accentColor={accentColor}
-                                        $showAccentBar
-                                        onClick={() => onSelectReservation(reservation)}
-                                    >
-                                        <StyledTime>{reservation.date} {reservation.startTime}</StyledTime>
-                                        <StyledRevenueRowBody>
-                                            <StyledRevenueMetaList>
-                                                <StyledRevenueMetaItem>
-                                                    <StyledRevenueMetaLabel>
-                                                        <StyledColorSwatch $color={accentColor} />
-                                                        <span>{designerMap[reservation.designerId ?? -1]?.name ?? '미지정'}</span>
-                                                    </StyledRevenueMetaLabel>
-                                                    <StyledCustomerName>
-                                                        {isNewCustomerVisit(customerMap[reservation.customerId]?.firstVisitDate, reservation.date) && <NewCustomerBadge>NEW</NewCustomerBadge>}
-                                                        <StyledInlineCustomerButton
-                                                            type="button"
-                                                            onClick={(e) => {
-                                                                e.stopPropagation();
-                                                                onSelectCustomer(reservation.customerId);
-                                                            }}
-                                                        >
-                                                            {customerMap[reservation.customerId]?.name ?? '고객 미지정'}
-                                                        </StyledInlineCustomerButton>
-                                                    </StyledCustomerName>
-                                                    <StyledRevenueServiceName>
-                                                        {parseServiceString(reservation.service).map((service) => (
-                                                            <StyledRevenueServiceChip key={`${metricLayerKey}-${reservation.id}-${service}`}>
-                                                                <StyledRevenueServiceText $color={getServiceColor(service, serviceColorMap)}>{service}</StyledRevenueServiceText>
-                                                            </StyledRevenueServiceChip>
-                                                        ))}
-                                                    </StyledRevenueServiceName>
-                                                </StyledRevenueMetaItem>
-                                            </StyledRevenueMetaList>
-                                        </StyledRevenueRowBody>
-                                        <StyledPrice>{formatPrice(reservation.price ?? 0)}</StyledPrice>
-                                    </StyledClickableRow>
-                                );
-                            })}
-                        </StyledList>
+                        <RevenueReservationList
+                            reservations={metricLayer.reservations}
+                            designerMap={designerMap}
+                            customerMap={customerMap}
+                            serviceColorMap={serviceColorMap}
+                            onSelectReservation={onSelectReservation}
+                            onSelectCustomer={onSelectCustomer}
+                            variant="compact"
+                        />
                     )}
                     </StyledMetricBodyInner>
                 </StyledMetricBody>
@@ -235,7 +204,7 @@ const StyledCustomerRow = styled.button`
     width: 100%;
     padding: 12px;
     border: 1px solid rgba(148, 163, 184, 0.18);
-    border-radius: 14px;
+    border-radius: 10px;
     background:
         linear-gradient(180deg, rgba(255, 255, 255, 0.96) 0%, rgba(248, 250, 252, 0.96) 100%);
     box-shadow: 0 8px 18px rgba(15, 23, 42, 0.05);
@@ -245,7 +214,6 @@ const StyledCustomerRow = styled.button`
 
     @media (hover: hover) and (pointer: fine) {
         &:hover {
-            transform: translateY(-1px);
             border-color: rgba(66, 133, 244, 0.28);
             box-shadow: 0 14px 26px rgba(15, 23, 42, 0.08);
         }
@@ -278,4 +246,14 @@ const StyledCustomerVisitDate = styled.span`
     font-size: 12px;
     font-weight: 600;
     color: var(--dark-gray-color2);
+`;
+
+const StyledVisitGapBadge = styled.span`
+    flex-shrink: 0;
+    padding: 2px 8px;
+    border-radius: 999px;
+    background: rgba(45, 127, 249, 0.1);
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--blue-color);
 `;

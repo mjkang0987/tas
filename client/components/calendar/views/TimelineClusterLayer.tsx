@@ -5,7 +5,6 @@ import styled from 'styled-components';
 import {NewCustomerBadge} from '../../ui/NewCustomerBadge';
 import {isNewCustomerVisit} from '../../../utils/customers';
 import type {Reservation} from '../../../utils/reservations';
-import {getServiceColor, parseServiceString} from '../../../utils/services';
 import {pad} from '../../../utils/timeRound';
 import {
     OVERLAY_Z_INDEX,
@@ -18,6 +17,8 @@ import {
     useLayerInstanceId,
 } from '../overlays/ModalStyles';
 import {CloseIconButton} from '../../ui/CloseIconButton';
+import {DesignerLabel, StyledDesignerLabel} from '../../ui/DesignerLabel';
+import {ServiceChipList} from '../../ui/ServiceChip';
 
 type TimelineClusterReservation = Reservation;
 
@@ -104,17 +105,9 @@ export function TimelineClusterLayer({
                                             }}
                                         >
                                             <span className="time">{reservation.startTime}~{reservation.endTime}</span>
-                                            <StyledClusterService>
-                                                {parseServiceString(reservation.service).map((serviceName) => (
-                                                    <span className="service-token"
-                                                          key={`${reservation.id}-${serviceName}`}>
-                                                        <span className="service-chip"
-                                                              style={{
-                                                                  backgroundColor: `${getServiceColor(serviceName, serviceColorMap)}18`,
-                                                                  color: getServiceColor(serviceName, serviceColorMap),
-                                                              }}>{serviceName}</span>
-                                                    </span>
-                                                ))}
+                                            <StyledClusterService service={reservation.service}
+                                                                  serviceColorMap={serviceColorMap}
+                                                                  keyPrefix={reservation.id}>
                                                 {reservation.status === 'cancelled' && (
                                                     <StyledStatusText $variant="cancelled">취소</StyledStatusText>
                                                 )}
@@ -128,14 +121,14 @@ export function TimelineClusterLayer({
                                             {customer && (
                                                 <span className="detail">
                                                     {isNewCustomerVisit(customer.firstVisitDate, reservation.date) &&
-                                                        <NewCustomerBadge>NEW</NewCustomerBadge>}
+                                                        <NewCustomerBadge>N</NewCustomerBadge>}
                                                     <span>{customer.name}</span>
                                                 </span>
                                             )}
                                             <StyledClusterItemTop>
                                                 <StyledClusterDesigner>
-                                                    <StyledClusterDot $color={designerColor} />
-                                                    <span>{designerNameById(reservation.designerId)}</span>
+                                                    <DesignerLabel color={designerColor}
+                                                                   name={designerNameById(reservation.designerId)} />
                                                 </StyledClusterDesigner>
                                             </StyledClusterItemTop>
                                         </StyledClusterItem>
@@ -180,7 +173,7 @@ const StyledClusterItem = styled.button<{ $color: string }>`
     display: flex;
     gap: 4px;
     width: 100%;
-    padding: 10px;
+    padding: 4px 8px;
     border: 1px solid ${(props) => props.$color};
     border-left-width: 4px;
     border-radius: 8px;
@@ -212,14 +205,6 @@ const StyledClusterItem = styled.button<{ $color: string }>`
         vertical-align: middle;
     }
 
-    .service-token {
-        display: inline-flex;
-        align-items: center;
-        margin-right: 6px;
-        @media (max-width: 640px) {
-            flex-wrap: wrap;
-        }
-    }
     .time {
         display: inline-flex;
         align-items: center;
@@ -244,36 +229,23 @@ const StyledClusterItemTop = styled.div`
 const StyledClusterDesigner = styled.span`
     display: inline-flex;
     align-items: center;
-    gap: 4px;
     font-weight: 600;
+
+    ${StyledDesignerLabel} {
+        gap: 4px;
+    }
 `;
 
-const StyledClusterDot = styled.span<{ $color: string }>`
-    width: 8px;
-    height: 8px;
-    border-radius: 50%;
-    background-color: ${(props) => props.$color};
-    flex-shrink: 0;
-`;
-
-const StyledClusterService = styled.div`
+const StyledClusterService = styled(ServiceChipList)`
     display: flex;
     flex-wrap: wrap;
     gap: 4px;
     font-size: var(--small-font);
     font-weight: 600;
 
-    .service-token {
+    .service-chip-text {
         padding: 2px 0;
-    }
-
-    .service-chip {
-        display: inline-flex;
-        align-items: center;
-        padding: 3px 8px;
-        border-radius: 999px;
         font-size: 11px;
-        font-weight: 600;
     }
 `;
 

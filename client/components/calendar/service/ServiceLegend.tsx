@@ -4,6 +4,7 @@ import styled from 'styled-components';
 
 import {useCalendarStore} from '../../../store/calendarStore';
 import {buildServiceColorMap, getGroupedCatalog, getServiceColor} from '../../../utils/services';
+import {Dot} from '../../ui/Dot';
 
 export const ServiceLegend = () => {
     const [open, setOpen] = useState(false);
@@ -25,7 +26,7 @@ export const ServiceLegend = () => {
                         <StyledItems>
                             {items.map((item) => (
                                 <StyledItem key={item.name}>
-                                    <StyledDot $color={getServiceColor(item.name, serviceColorMap)}/>
+                                    <StyledDot color={getServiceColor(item.name, serviceColorMap)} size={10} />
                                     <span>{item.name}</span>
                                 </StyledItem>
                             ))}
@@ -71,7 +72,7 @@ const StyledPanel = styled.div`
     display: flex;
     flex-direction: column;
     gap: 10px;
-    padding: 14px 16px;
+    padding: 10px 8px;
     background-color: #fff;
     border-radius: 8px;
     box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
@@ -112,12 +113,8 @@ const StyledItem = styled.li`
     color: var(--text-color, #333);
 `;
 
-const StyledDot = styled.span<{ $color: string }>`
+const StyledDot = styled(Dot)`
     flex-shrink: 0;
-    width: 10px;
-    height: 10px;
-    border-radius: 50%;
-    background-color: ${(props) => props.$color};
 `;
 
 const StyledToggle = styled.button<{ $open: boolean }>`

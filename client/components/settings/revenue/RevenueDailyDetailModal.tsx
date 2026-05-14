@@ -15,31 +15,13 @@ import {
     useLayerInstanceId,
 } from '../../calendar/overlays/ModalStyles';
 import {CloseIconButton} from '../../ui/CloseIconButton';
-import {NewCustomerBadge} from '../../ui/NewCustomerBadge';
-import {formatPrice, getServiceColor, parseServiceString} from '../../../utils/services';
+import {formatPrice} from '../../../utils/services';
 import type {Designer} from '../../../utils/designers';
 import type {Reservation, ReservationMap} from '../../../utils/reservations';
 import type {CustomerMap} from '../../../utils/customers';
-import {isNewCustomerVisit} from '../../../utils/customers';
 import type {DailyRevenue} from '../../../utils/revenue';
-import {
-    StyledClickableRow,
-    StyledColorSwatch,
-    StyledCustomerName,
-    StyledInlineCustomerButton,
-    StyledList,
-    StyledPrice,
-    StyledRevenueEmpty,
-    StyledRevenueMetaItem,
-    StyledRevenueMetaLabel,
-    StyledRevenueMetaList,
-    StyledRevenueRowBody,
-    StyledRevenueServiceChip,
-    StyledRevenueServiceName,
-    StyledRevenueServiceText,
-    StyledSummary,
-    StyledTime,
-} from './revenue-styles';
+import {StyledSummary} from './revenue-styles';
+import {RevenueReservationList} from './RevenueReservationList';
 
 const WEEKDAYS = ['일', '월', '화', '수', '목', '금', '토'];
 
@@ -93,62 +75,17 @@ export const RevenueDailyDetailModal = ({
                 </StyledHeader>
                 <StyledDailyBody>
                     <StyledDailyBodyInner>
-                    {daily.count === 0 ? (
-                        <StyledRevenueEmpty>예약 없음</StyledRevenueEmpty>
-                    ) : (
-                        <StyledList>
-                            {daily.items.map((item) => {
-                                const reservation = (reservationMap[dateKey] || []).find((r) => r.id === item.reservationId);
-                                const accentColor = reservation?.designerId
-                                    ? (designerMap[reservation.designerId]?.color ?? '#8E8E93')
-                                    : '#D1D5DB';
-                                return (
-                                    <StyledClickableRow
-                                        key={item.reservationId}
-                                        $accentColor={accentColor}
-                                        $showAccentBar
-                                        onClick={() => {
-                                            if (!reservation) return;
-                                            onSelectReservation(reservation);
-                                        }}
-                                    >
-                                        <StyledTime>{item.startTime}</StyledTime>
-                                        <StyledRevenueRowBody>
-                                            <StyledRevenueMetaList>
-                                                <StyledRevenueMetaItem>
-                                                    <StyledRevenueMetaLabel>
-                                                        <StyledColorSwatch $color={accentColor} />
-                                                        <span>{designerMap[reservation?.designerId ?? -1]?.name ?? '미지정'}</span>
-                                                    </StyledRevenueMetaLabel>
-                                                    <StyledCustomerName>
-                                                        {reservation && isNewCustomerVisit(customerMap[reservation.customerId]?.firstVisitDate, reservation.date) && <NewCustomerBadge>NEW</NewCustomerBadge>}
-                                                        <StyledInlineCustomerButton
-                                                            type="button"
-                                                            onClick={(e) => {
-                                                                e.stopPropagation();
-                                                                if (!reservation) return;
-                                                                onSelectCustomer(reservation.customerId);
-                                                            }}
-                                                        >
-                                                            {customerMap[reservation?.customerId ?? -1]?.name ?? '고객 미지정'}
-                                                        </StyledInlineCustomerButton>
-                                                    </StyledCustomerName>
-                                                    <StyledRevenueServiceName>
-                                                        {parseServiceString(item.service).map((service) => (
-                                                            <StyledRevenueServiceChip key={`${item.reservationId}-${service}`}>
-                                                                <StyledRevenueServiceText $color={getServiceColor(service, serviceColorMap)}>{service}</StyledRevenueServiceText>
-                                                            </StyledRevenueServiceChip>
-                                                        ))}
-                                                    </StyledRevenueServiceName>
-                                                </StyledRevenueMetaItem>
-                                            </StyledRevenueMetaList>
-                                        </StyledRevenueRowBody>
-                                        <StyledPrice>{formatPrice(item.price)}</StyledPrice>
-                                    </StyledClickableRow>
-                                );
-                            })}
-                        </StyledList>
-                    )}
+                    <RevenueReservationList
+                        reservations={daily.items
+                            .map((item) => (reservationMap[dateKey] || []).find((r) => r.id === item.reservationId))
+                            .filter((reservation): reservation is Reservation => !!reservation)}
+                        designerMap={designerMap}
+                        customerMap={customerMap}
+                        serviceColorMap={serviceColorMap}
+                        onSelectReservation={onSelectReservation}
+                        onSelectCustomer={onSelectCustomer}
+                        emptyText="예약 없음"
+                    />
                     </StyledDailyBodyInner>
                 </StyledDailyBody>
                 <StyledFooter>

@@ -2,6 +2,7 @@ import {useEffect, useRef, useState} from 'react';
 
 import styled, {css} from 'styled-components';
 import {formControlStyle} from '../../ui/FormControls';
+import {LabelBadge} from '../../ui/LabelBadge';
 
 export const OVERLAY_Z_INDEX = {
     base: 100,
@@ -128,9 +129,8 @@ export const StyledOverlay = styled.div`
     align-items: center;
     justify-content: center;
     padding: var(--overlay-padding);
-    background:
-        radial-gradient(circle at top, rgba(255, 255, 255, 0.14), transparent 38%),
-        rgba(15, 23, 42, 0.5);
+    background: radial-gradient(circle at top, rgba(255, 255, 255, 0.14), transparent 38%),
+    rgba(15, 23, 42, 0.5);
     backdrop-filter: blur(var(--overlay-backdrop-blur));
     box-sizing: border-box;
 `;
@@ -141,8 +141,7 @@ export const StyledDetail = styled.div<{ $width?: number | string }>`
     max-height: 80vh;
     display: flex;
     flex-direction: column;
-    background:
-        linear-gradient(180deg, rgba(255, 255, 255, 0.98) 0%, rgba(248, 250, 252, 0.98) 100%);
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.98) 0%, rgba(248, 250, 252, 0.98) 100%);
     border: 1px solid var(--modal-border);
     border-radius: var(--modal-radius);
     box-shadow: var(--modal-shadow);
@@ -164,8 +163,7 @@ export const StyledHeader = styled.div`
     gap: var(--modal-header-gap);
     padding: var(--modal-header-padding);
     border-bottom: 1px solid var(--modal-header-border);
-    background:
-        linear-gradient(180deg, rgba(255, 255, 255, 0.88) 0%, rgba(248, 250, 252, 0.92) 100%);
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.88) 0%, rgba(248, 250, 252, 0.92) 100%);
     backdrop-filter: blur(10px);
 
     h3 {
@@ -189,9 +187,9 @@ export const StyledHeader = styled.div`
         color: var(--dark-gray-color);
 
         @media (hover: hover) and (pointer: fine) {
-        &:hover {
-            background-color: var(--black-color-10);
-        }
+            &:hover {
+                background-color: var(--black-color-10);
+            }
         }
     }
 `;
@@ -314,15 +312,13 @@ export const StyledPriceUnit = styled.span`
     color: var(--dark-gray-color);
 `;
 
-export const StyledStatusBadge = styled.span<{ $variant: 'danger' | 'warning' | 'success' }>`
-    display: inline-block;
-    padding: 2px var(--gap-md);
-    background-color: ${(p) => p.$variant === 'danger' ? 'var(--danger-bg)' : p.$variant === 'warning' ? 'var(--warning-bg)' : '#E6F4EA'};
-    border: 1px solid ${(p) => p.$variant === 'danger' ? 'var(--danger-border)' : p.$variant === 'warning' ? 'var(--warning-border)' : '#CDEAD6'};
-    border-radius: var(--radius-sm);
+export const StyledStatusBadge = styled(LabelBadge).attrs<{ $variant: 'danger' | 'warning' | 'success' }>((props) => ({
+    $tone: props.$variant,
+    $size: 'md',
+    $shape: 'soft',
+}))<{ $variant: 'danger' | 'warning' | 'success' }>`
     font-size: var(--small-font);
     font-weight: 600;
-    color: ${(p) => p.$variant === 'danger' ? 'var(--danger-color)' : p.$variant === 'warning' ? 'var(--warning-color)' : '#137333'};
 `;
 
 export const StyledModalMessage = styled.p<{ $color?: string }>`
@@ -408,8 +404,7 @@ export const StyledFooter = styled.div`
     gap: var(--modal-footer-gap);
     padding: var(--modal-footer-padding);
     border-top: 1px solid var(--modal-footer-border);
-    background:
-        linear-gradient(180deg, rgba(248, 250, 252, 0.72) 0%, rgba(255, 255, 255, 0.96) 100%);
+    background: linear-gradient(180deg, rgba(248, 250, 252, 0.72) 0%, rgba(255, 255, 255, 0.96) 100%);
 
     @media (max-width: 640px) {
         flex-wrap: wrap;
@@ -438,7 +433,6 @@ export const StyledActionButton = styled.button<{ $primary?: boolean; $danger?: 
     @media (hover: hover) and (pointer: fine) {
         &:hover {
             opacity: 0.92;
-            transform: translateY(-1px);
         }
     }
 

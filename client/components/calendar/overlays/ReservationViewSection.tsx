@@ -3,11 +3,13 @@ import React from 'react';
 import styled from 'styled-components';
 
 import {NewCustomerBadge} from '../../ui/NewCustomerBadge';
+import {DesignerLabel} from '../../ui/DesignerLabel';
+import {LabelBadge} from '../../ui/LabelBadge';
+import {ServiceChipList} from '../../ui/ServiceChip';
 import type {CustomerMap} from '../../../utils/customers';
 import type {Reservation} from '../../../utils/reservations';
-import {formatPrice, getServiceColor, parseServiceString} from '../../../utils/services';
+import {formatPrice} from '../../../utils/services';
 import {StyledBody, StyledBodyInner, StyledStatusBadge} from './ModalStyles';
-import {StyledServiceChip} from '../service/ServiceFields';
 
 interface ReservationViewSectionProps {
     reservation: Reservation;
@@ -72,16 +74,9 @@ export function ReservationViewSection({
                     <dd>{reservation.startTime} ~ {reservation.endTime}</dd>
                     <dt>시술</dt>
                     <dd>
-                        <StyledServiceChipList>
-                            {parseServiceString(reservation.service).map((serviceName) => (
-                                <StyledServiceChip
-                                    key={`${reservation.id}-${serviceName}`}
-                                    $color={getServiceColor(serviceName, serviceColorMap)}
-                                >
-                                    {serviceName}
-                                </StyledServiceChip>
-                            ))}
-                        </StyledServiceChipList>
+                        <StyledServiceChipList service={reservation.service}
+                                              serviceColorMap={serviceColorMap}
+                                              keyPrefix={reservation.id} />
                     </dd>
                     <dt>가격</dt>
                     <dd>{formatPrice(displayPrice)}</dd>
@@ -95,11 +90,21 @@ export function ReservationViewSection({
                                 {paymentLines.map((line) => <span key={line}>{line}</span>)}
                             </StyledPaymentLineList>
                         </StyledPaymentValue>
+                        {reservation.naverBookingId && reservation.naverDeposit != null && reservation.naverDeposit > 0 && (
+                            <StyledNaverDepositLine>
+                                <StyledNaverLogo viewBox="0 0 20 20" width="14" height="14">
+                                    <rect width="20" height="20" rx="4" fill="#03C75A" />
+                                    <path d="M11.7 13.1L8.1 8.2V13.1H6V6h2.4l3.5 4.8V6H14v7.1h-2.3z" fill="#fff" />
+                                </StyledNaverLogo>
+                                <span>네이버 예약 확정 예약금</span>
+                                <span>{formatPrice(reservation.naverDeposit)}</span>
+                            </StyledNaverDepositLine>
+                        )}
                     </dd>
                     <dt>고객명</dt>
                     <dd>
                         <StyledCustomerButton type="button" onClick={() => onCustomerClick(reservation.customerId)}>
-                            {isNewCustomer && <NewCustomerBadge>NEW</NewCustomerBadge>}
+                            {isNewCustomer && <NewCustomerBadge>N</NewCustomerBadge>}
                             {customer?.name ?? '-'}
                         </StyledCustomerButton>
                     </dd>
@@ -129,11 +134,22 @@ export function ReservationViewSection({
                     <dd>{formatPrice(customer?.points ?? 0)}</dd>
                     <dt>디자이너</dt>
                     <dd>
-                        <StyledDesignerValue>
-                            <StyledDesignerDot $color={displayDesignerColor} />
-                            <span>{displayDesignerName}</span>
-                        </StyledDesignerValue>
+                        <DesignerLabel color={displayDesignerColor} name={displayDesignerName} />
                     </dd>
+                    {reservation.naverBookingId && (
+                        <>
+                            <dt>예약번호</dt>
+                            <dd>
+                                <StyledBookingInfo>
+                                    <StyledPlatformTag>네이버예약</StyledPlatformTag>
+                                    <span>{reservation.naverBookingId}</span>
+                                </StyledBookingInfo>
+                                <StyledBookingNotice>
+                                    네이버예약의 실제 변경/취소는 스마트플레이스 통해서 가능합니다.
+                                </StyledBookingNotice>
+                            </dd>
+                        </>
+                    )}
                 </dl>
                 {historyCount > 0 && (
                     <StyledHistorySection>
@@ -179,7 +195,6 @@ const StyledCustomerButton = styled.button`
     font-size: 13px;
     color: #4285F4;
     cursor: pointer;
-    text-decoration: underline;
 
     @media (hover: hover) and (pointer: fine) {
         &:hover {
@@ -188,22 +203,8 @@ const StyledCustomerButton = styled.button`
     }
 `;
 
-const StyledDesignerValue = styled.span`
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-`;
-
-const StyledDesignerDot = styled.span<{ $color: string }>`
-    width: 10px;
-    height: 10px;
-    border-radius: 50%;
-    background-color: ${(props) => props.$color};
-    flex-shrink: 0;
-`;
-
 const StyledPaymentValue = styled.span`
-    display: inline-flex;
+    display: flex;
     align-items: flex-start;
     gap: 8px;
     flex-wrap: wrap;
@@ -215,27 +216,32 @@ const StyledPaymentLineList = styled.span`
     gap: 2px;
 `;
 
-const StyledPaymentBadge = styled.span<{ $completed: boolean }>`
-    display: inline-block;
-    padding: 2px var(--gap-md);
-    border-radius: var(--radius-sm);
-    border: 1px solid ${(props) => props.$completed ? '#CDEAD6' : 'var(--light-gray-color)'};
-    background-color: ${(props) => props.$completed ? '#E6F4EA' : 'var(--black-color-10)'};
-    color: ${(props) => props.$completed ? '#137333' : 'var(--dark-gray-color2)'};
+const StyledPaymentBadge = styled(LabelBadge).attrs<{ $completed: boolean }>((props) => ({
+    $tone: props.$completed ? 'success' : 'neutral',
+    $shape: 'soft',
+    $size: 'md',
+}))<{ $completed: boolean }>`
     font-size: var(--small-font);
     font-weight: 600;
 `;
 
-const StyledServiceChipList = styled.div`
-    display: flex;
-    flex-wrap: wrap;
-    gap: 6px;
-`;
+const StyledServiceChipList = styled(ServiceChipList)``;
 
 const StyledMemoTagList = styled.div`
     display: flex;
     flex-wrap: wrap;
     gap: 6px;
+`;
+
+const StyledBookingNotice = styled.p`
+    margin: 8px 0 0;
+    padding: 9px 10px;
+    border-radius: 8px;
+    background: rgba(3, 199, 90, 0.08);
+    color: #0f5132;
+    font-size: 12px;
+    line-height: 1.45;
+    word-break: keep-all;
 `;
 
 const StyledMemoTag = styled.span<{ $color: string }>`
@@ -248,6 +254,37 @@ const StyledMemoTag = styled.span<{ $color: string }>`
     color: #fff;
     font-size: 11px;
     font-weight: 600;
+`;
+
+const StyledNaverDepositLine = styled.div`
+    display: inline-flex;
+    align-items: center;
+    gap: 2px;
+    padding: 3px 7px;
+    border-radius: 6px;
+    background: #f0faf4;
+    border: 1px solid #d4edda;
+    font-size: 12px;
+    font-weight: 600;
+    color: #333;
+`;
+
+const StyledNaverLogo = styled.svg`
+    flex-shrink: 0;
+`;
+
+const StyledBookingInfo = styled.span`
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+`;
+
+const StyledPlatformTag = styled(LabelBadge).attrs({
+    $tone: 'brand',
+    $shape: 'soft',
+    $size: 'sm',
+})`
+    font-size: 10px;
 `;
 
 const StyledHistorySection = styled.div`

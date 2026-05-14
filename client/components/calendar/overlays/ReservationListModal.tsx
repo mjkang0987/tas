@@ -6,10 +6,9 @@ import styled from 'styled-components';
 
 import {useCalendarStore} from '../../../store/calendarStore';
 
-import {NewCustomerBadge} from '../../ui/NewCustomerBadge';
 import {isNewCustomerVisit} from '../../../utils/customers';
 import {getDesignerColor} from '../../../utils/designers';
-import {buildServiceColorMap, getServiceColor, parseServiceString} from '../../../utils/services';
+import {buildServiceColorMap} from '../../../utils/services';
 
 import {
     OVERLAY_Z_INDEX,
@@ -25,10 +24,9 @@ import {
     useLayerInstanceId,
 } from './ModalStyles';
 import {CloseIconButton} from '../../ui/CloseIconButton';
+import {ReservationInfoCard} from '../../ui/ReservationInfoCard';
 
 import type {Reservation} from '../../../utils/reservations';
-import {RESERVATION_STATUS_BADGE_STYLES} from '../../../utils/reservations';
-import {StyledServiceText, StyledServiceToken} from '../../ui/ServiceChip';
 
 const STATUS_LABELS: Record<string, string> = {
     cancelled: '취소',
@@ -75,7 +73,11 @@ export const ReservationListModal = () => {
     }, []);
 
     const {title, reservations, grouped} = useMemo(() => {
-        if (!filter) return {title: '', reservations: [] as Reservation[], grouped: [] as { date: string; items: Reservation[] }[]};
+        if (!filter) return {
+            title: '',
+            reservations: [] as Reservation[],
+            grouped: [] as { date: string; items: Reservation[] }[]
+        };
 
         let list: Reservation[];
         let modalTitle: string;
@@ -152,7 +154,9 @@ export const ReservationListModal = () => {
                                            aria-label="예약 목록"
                                            id={layerId}
                                            data-layer-id={layerDataId}>
-        <StyledListModal ref={dialogRef} tabIndex={-1} onClick={(e) => e.stopPropagation()}>
+        <StyledListModal ref={dialogRef}
+                         tabIndex={-1}
+                         onClick={(e) => e.stopPropagation()}>
             <StyledHeader>
                 <StyledHeaderTitleGroup>
                     <h3>{title} 예약 ({reservations.length})</h3>
@@ -160,72 +164,56 @@ export const ReservationListModal = () => {
                 </StyledHeaderTitleGroup>
                 <CloseIconButton onClick={handleClose} />
             </StyledHeader>
-            <StyledListBody><StyledListBodyInner>
-                {reservations.length === 0 ? (
-                    <StyledEmpty>예약이 없습니다.</StyledEmpty>
-                ) : (
-                    grouped.map((group) => (
-                        <StyledDateGroup key={group.date}>
-                            <StyledDateTitle>{group.date} ({group.items.length})</StyledDateTitle>
-                            <StyledList>
-                                {group.items.map((r) => {
-                                    const customer = customerMap[r.customerId];
-                                    const designerName = r.designerId ? (designerNameMap[r.designerId] ?? '미지정') : '미지정';
-                                    const statusType = getStatusType(r);
-                                    const isInactive = statusType === 'cancelled' || statusType === 'noshow';
+            <StyledListBody>
+                <StyledListBodyInner>
+                    {reservations.length === 0 ? (
+                        <StyledEmpty>예약이 없습니다.</StyledEmpty>
+                    ) : (
+                        grouped.map((group) => (
+                            <StyledDateGroup key={group.date}>
+                                <StyledDateTitle>{group.date} ({group.items.length})</StyledDateTitle>
+                                <StyledList>
+                                    {group.items.map((r) => {
+                                        const customer = customerMap[r.customerId];
+                                        const designerName = r.designerId ? (designerNameMap[r.designerId] ?? '미지정') : '미지정';
+                                        const statusType = getStatusType(r);
+                                        const isInactive = statusType === 'cancelled' || statusType === 'noshow';
 
-                                    return (
-                                        <StyledItem key={r.id}
-                                                    $color={r.designerId ? (designerColorMap[r.designerId] ?? '#8E8E93') : '#8E8E93'}
-                                                    $inactive={isInactive}
-                                                    onClick={() => handleClick(r)}>
-                                            <StyledItemTop>
-                                                <StyledTopMeta>
-                                                    <StyledBadge $type={statusType}>{getStatusLabel(r)}</StyledBadge>
-                                                    <StyledTime>{r.startTime}~{r.endTime}</StyledTime>
-                                                </StyledTopMeta>
-                                                <StyledPrice>{Number(r.price ?? 0).toLocaleString('ko-KR')}원</StyledPrice>
-                                            </StyledItemTop>
-                                            <StyledService>
-                                                {parseServiceString(r.service).map((serviceName) => (
-                                                    <StyledServiceToken key={`${r.id}-${serviceName}`}>
-                                                        <StyledServiceText $color={getServiceColor(serviceName, serviceColorMap)}>{serviceName}</StyledServiceText>
-                                                    </StyledServiceToken>
-                                                ))}
-                                            </StyledService>
-                                            <StyledMetaLine>
-                                                <StyledDesigner>
-                                                    <StyledDesignerSwatch $color={r.designerId ? (designerColorMap[r.designerId] ?? '#8E8E93') : '#D1D5DB'} />
-                                                    <span>{designerName}</span>
-                                                </StyledDesigner>
-                                                <StyledCustomer>
-                                                    <StyledCustomerLabel>고객</StyledCustomerLabel>
-                                                    {isNewCustomerVisit(customer?.firstVisitDate, r.date) && <NewCustomerBadge>NEW</NewCustomerBadge>}
-                                                    <StyledCustomerButton
-                                                        type="button"
-                                                        onClick={(e) => {
-                                                            e.stopPropagation();
-                                                            if (!customer) return;
-                                                            openCustomerDetail(customer.id);
-                                                        }}
-                                                    >
-                                                        {customer?.name ?? '-'}
-                                                    </StyledCustomerButton>
-                                                </StyledCustomer>
-                                            </StyledMetaLine>
-                                        </StyledItem>
-                                    );
-                                })}
-                            </StyledList>
-                        </StyledDateGroup>
-                    ))
-                )}
-            </StyledListBodyInner></StyledListBody>
+                                        return (
+                                            <StyledItem key={r.id}>
+                                                <ReservationInfoCard
+                                                    reservation={r}
+                                                    serviceColorMap={serviceColorMap}
+                                                    designerColor={r.designerId ? (designerColorMap[r.designerId] ?? '#8E8E93') : '#D1D5DB'}
+                                                    designerName={designerName}
+                                                    customerName={customer?.name ?? '-'}
+                                                    today={today}
+                                                    isNewCustomer={isNewCustomerVisit(customer?.firstVisitDate, r.date)}
+                                                    onClick={handleClick}
+                                                    onCustomerClick={customer ? openCustomerDetail : undefined}
+                                                    showDate={false}
+                                                    showPrice
+                                                    showStatus
+                                                    timeMode="range"
+                                                    accentColor={r.designerId ? (designerColorMap[r.designerId] ?? '#8E8E93') : '#8E8E93'}
+                                                    accentBar
+                                                    className={isInactive ? 'inactive' : undefined}
+                                                />
+                                            </StyledItem>
+                                        );
+                                    })}
+                                </StyledList>
+                            </StyledDateGroup>
+                        ))
+                    )}
+                </StyledListBodyInner>
+            </StyledListBody>
             <StyledFooter>
                 <StyledFooterSummary>
                     <span>총 {reservations.length}건</span>
                 </StyledFooterSummary>
-                <StyledActionButton type="button" onClick={handleClose}>닫기</StyledActionButton>
+                <StyledActionButton type="button"
+                                    onClick={handleClose}>닫기</StyledActionButton>
             </StyledFooter>
         </StyledListModal>
     </StyledListOverlay>, modalRoot);
@@ -267,7 +255,7 @@ const StyledDateGroup = styled.div`
     &:not(:first-child) {
         margin-top: 14px;
     }
-    
+
     &:last-child {
         margin-bottom: 10px;
     }
@@ -277,152 +265,23 @@ const StyledDateTitle = styled.div`
     position: sticky;
     top: -2px;
     z-index: 2;
-    display: inline-flex;
+    display: flex;
     align-items: center;
-    align-self: flex-start;
     min-height: 30px;
     padding: 0 12px;
     border: 1px solid rgba(148, 163, 184, 0.18);
     border-radius: 999px;
-    background:
-        linear-gradient(180deg, rgba(255, 255, 255, 0.96) 0%, rgba(241, 245, 249, 0.96) 100%);
-    box-shadow: 0 8px 18px rgba(15, 23, 42, 0.06);
     font-size: 12px;
     font-weight: 700;
-    color: #0f172a;
+    color: #111;
     letter-spacing: -0.01em;
+    background: rgba(255, 255, 255, .1); /* 살짝만 흰색 */
+    backdrop-filter: blur(.8px) saturate(180%);
 `;
 
-const StyledItem = styled.li<{ $color: string; $inactive: boolean }>`
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-    padding: 12px;
-    border: 1px solid ${(props) => `${props.$color}55`};
-    border-left-width: 4px;
-    border-radius: 10px;
-    background:
-        linear-gradient(180deg, rgba(255,255,255,0.94) 0%, ${(props) => `${props.$color}10`} 100%);
-    font-size: var(--small-font);
-    cursor: pointer;
-    opacity: ${(props) => props.$inactive ? 0.5 : 1};
-    box-shadow: 0 6px 16px rgba(15, 23, 42, 0.05);
-    transition: transform 0.14s ease, box-shadow 0.14s ease, background-color 0.14s ease;
-
-    @media (hover: hover) and (pointer: fine) {
-        &:hover {
-            transform: translateY(-1px);
-            box-shadow: 0 12px 22px rgba(15, 23, 42, 0.09);
-            background-color: ${(props) => `${props.$color}12`};
-        }
-    }
-`;
-
-const StyledItemTop = styled.div`
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    justify-content: space-between;
-
-    @media (max-width: 640px) {
-        flex-wrap: wrap;
-    }
-`;
-
-const StyledTopMeta = styled.div`
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
-    min-width: 0;
-`;
-
-const StyledService = styled.span`
-    display: inline-flex;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: 6px;
-    min-width: 0;
-    font-weight: 500;
-    line-height: 1.5;
-`;
-
-const StyledTime = styled.span`
-    color: var(--dark-gray-color);
-    font-weight: 600;
-`;
-
-const StyledPrice = styled.span`
-    flex-shrink: 0;
-    font-size: 12px;
-    font-weight: 700;
-    color: #0f172a;
-
-    @media (max-width: 640px) {
-        width: 100%;
-        text-align: right;
-    }
-`;
-
-const StyledCustomer = styled.span`
-    display: inline-flex;
-    align-items: center;
-    flex-wrap: wrap;
-    gap: 4px;
-    color: var(--dark-gray-color);
-    min-width: 0;
-`;
-
-const StyledDesigner = styled.span`
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    color: var(--gray-color);
-`;
-
-const StyledMetaLine = styled.div`
-    display: flex;
-    flex-wrap: wrap;
-    gap: 12px;
-    align-items: center;
-    font-size: 11px;
-    row-gap: 8px;
-`;
-
-const StyledDesignerSwatch = styled.span<{ $color: string }>`
-    width: 10px;
-    height: 10px;
-    border-radius: 999px;
-    background: ${(props) => props.$color};
-    flex-shrink: 0;
-`;
-
-const StyledCustomerLabel = styled.span`
-    color: var(--dark-gray-color2);
-    font-weight: 600;
-`;
-
-const StyledCustomerButton = styled.button`
-    min-width: 0;
-    max-width: 100%;
-    border: 0;
-    padding: 0;
-    background: transparent;
-    font: inherit;
-    color: inherit;
-    text-align: left;
-    cursor: pointer;
-    font-weight: 700;
-    text-decoration: underline;
-    text-underline-offset: 2px;
-    color: #0f172a;
-    white-space: normal;
-    line-height: 1.35;
-    word-break: keep-all;
-
-    @media (hover: hover) and (pointer: fine) {
-        &:hover {
-            color: var(--blue-color);
-        }
+const StyledItem = styled.li`
+    .inactive {
+        opacity: 0.5;
     }
 `;
 
@@ -431,16 +290,4 @@ const StyledFooterSummary = styled.div`
     font-size: 12px;
     font-weight: 600;
     color: var(--dark-gray-color2);
-`;
-
-const StyledBadge = styled.span<{ $type: string }>`
-    display: inline-block;
-    padding: 2px 6px;
-    border-radius: 10px;
-    font-size: var(--tiny-font);
-    font-weight: 600;
-    text-align: center;
-    white-space: nowrap;
-    background-color: ${(props) => RESERVATION_STATUS_BADGE_STYLES[props.$type]?.bg || '#F1F1F1'};
-    color: ${(props) => RESERVATION_STATUS_BADGE_STYLES[props.$type]?.color || '#999'};
 `;
