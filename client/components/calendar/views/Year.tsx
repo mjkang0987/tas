@@ -1,5 +1,7 @@
 import {useMemo} from 'react';
 
+import {useRouter} from 'next/router';
+
 import styled from 'styled-components';
 
 import {
@@ -11,6 +13,7 @@ import type {Reservation} from '../../../utils/reservations';
 
 import {useCalendarStore} from '../../../store/calendarStore';
 
+import {setRouter} from '../../../utils/router';
 import {toDateKey} from '../../../utils/reservations';
 
 import {Num} from './Num';
@@ -18,6 +21,7 @@ import {ButtonAdd} from '../../ui/Buttons';
 import {ReservationList} from './ReservationList';
 
 export const Year = () => {
+    const router = useRouter();
     const today = useCalendarStore((s) => s.today);
     const currValue = useCalendarStore((s) => s.target);
     const setCurr = useCalendarStore((s) => s.setTargetFromDate);
@@ -51,8 +55,16 @@ export const Year = () => {
             <StyledMonth key={`${fullYear}_${m}`}>
                 <StyledMonthHeader>
                     <Num onClick={() => {
-                        setCurr(new Date(fullYear, m, 1));
+                        const monthDate = new Date(fullYear, m, 1);
+                        setCurr(monthDate);
                         setView({type: ViewType.Month});
+                        setRouter({
+                            type: ViewType.Month,
+                            year: monthDate.getFullYear(),
+                            month: monthDate.getMonth() + 1,
+                            date: 1,
+                            router,
+                        });
                     }}
                          isToday={isTodayValue(today, +fullYear, m, today.getDate())}>{m + 1}</Num>
                     <ButtonAdd onClick={() => setCreateReservationInitial({date: toDateKey(fullYear, m, 1), startTime: '10:00'})}

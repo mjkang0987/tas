@@ -132,6 +132,7 @@ export default function LayoutComponent({children}: NodeType) {
         if (view.type === ViewType.Year) {
             changeRouter = [...changeRouter, ViewType.Year, currValue.fullYear];
         } else if (view.type === ViewType.Month) {
+            routeDate.setFullYear(currValue.fullYear, currValue.month, 1);
             changeRouter = [...changeRouter, ViewType.Month, currValue.fullYear, currValue.month + 1];
         } else {
             changeRouter = [...changeRouter, view.type, routeDate.getFullYear(), routeDate.getMonth() + 1, routeDate.getDate()];
@@ -195,7 +196,7 @@ const StyledContent = styled.div<{ $asideOpen: boolean }>`
     height: 100%;
     overflow: hidden;
     background-color: var(--white-color);
-    border-radius: 12px;
+    border-radius: 8px;
     transition: border-radius 0.25s ease;
 `;
 

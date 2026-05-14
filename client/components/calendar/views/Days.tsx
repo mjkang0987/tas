@@ -49,13 +49,14 @@ export const Days = () => {
 };
 
 const StyledDays = styled.ul <DaysType>`
-  display: grid;
-  justify-content: center;
-  width: 100%;
-  background-color: var(--white-color-80);
-  z-index: 1;
-  
-  ${props => (props.type !== ViewType.Month) && `
+    display: grid;
+    justify-content: center;
+    width: 100%;
+    background: rgba(255, 255, 255, .1); /* 살짝만 흰색 */
+    backdrop-filter: blur(.8px) saturate(180%);
+    z-index: 13;
+    
+    ${props => (props.type !== ViewType.Month) && `
   position: sticky;
   top: 0;
   grid-row: 1 / 2;
@@ -64,7 +65,7 @@ const StyledDays = styled.ul <DaysType>`
     border: none;
   }
   `
-}
+    }
 `;
 
 const StyledDay = styled.li`

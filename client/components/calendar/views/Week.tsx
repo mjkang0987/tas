@@ -88,10 +88,11 @@ const StyledNumWrap = styled.span`
     display: flex;
     justify-content: center;
     position: sticky;
-    top: 30px;
+    top: 21px;
     width: 100%;
-    background-color: var(--white-color-80);
-    z-index: 1;
+    background: rgba(255, 255, 255, .1);
+    backdrop-filter: blur(.8px) saturate(180%);
+    z-index: 13;
 
     &:after {
         content: "";

@@ -2,7 +2,7 @@ import React, {useState} from 'react';
 
 import Link from 'next/link';
 import {useRouter} from 'next/router';
-import {signOut} from 'next-auth/react';
+import {signOut, useSession} from 'next-auth/react';
 
 import styled from 'styled-components';
 
@@ -30,6 +30,7 @@ const SETTINGS_SUBMENU = [
 
 export const Aside = () => {
     const router = useRouter();
+    const {data: session} = useSession();
     const aside = useCalendarStore((s) => s.aside);
     const setAside = useCalendarStore((s) => s.setAside);
     const setView = useCalendarStore((s) => s.setView);
@@ -85,7 +86,19 @@ export const Aside = () => {
     const isSettingsPage = router.pathname === '/settings' || router.pathname === '/settings/[tab]';
 
     return (<StyledAside $isVisible={aside.isVisible}>
-            <StyledBrand>TAS</StyledBrand>
+            <StyledBrandLink href="/" onClick={closeMobile}>
+                <StyledMenuIcon viewBox="0 0 24 24" aria-hidden="true">
+                    <path d="M3 9.5L12 4L21 9.5" />
+                    <path d="M5 9.5V18.5C5 19.05 5.45 19.5 6 19.5H18C18.55 19.5 19 19.05 19 18.5V9.5" />
+                </StyledMenuIcon>
+                <span>TAS</span>
+            </StyledBrandLink>
+            {session?.user && (
+                <StyledUserInfo>
+                    <StyledUserName>{session.user.name ?? '-'}</StyledUserName>
+                    <StyledUserEmail>{session.user.email ?? ''}</StyledUserEmail>
+                </StyledUserInfo>
+            )}
             <StyledScrollArea>
                 <StyledNav>
                     <StyledAccordionToggle type="button"
@@ -317,10 +330,11 @@ const StyledAside = styled.aside<{ $isVisible: boolean }>`
     }
 `;
 
-const StyledBrand = styled.div`
+const StyledBrandLink = styled(Link)`
     flex-shrink: 0;
     display: flex;
     align-items: center;
+    gap: 8px;
     height: 48px;
     padding: 0 20px;
     min-width: var(--aside-width);
@@ -330,6 +344,43 @@ const StyledBrand = styled.div`
     color: #fff;
     letter-spacing: 1px;
     white-space: nowrap;
+    text-decoration: none;
+    transition: opacity 0.1s;
+
+    @media (hover: hover) and (pointer: fine) {
+        &:hover {
+            opacity: 0.85;
+        }
+    }
+`;
+
+const StyledUserInfo = styled.div`
+    flex-shrink: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    padding: 0 20px 10px;
+    min-width: var(--aside-width);
+    box-sizing: border-box;
+    border-bottom: 1px solid var(--aside-divider);
+`;
+
+const StyledUserName = styled.span`
+    font-size: var(--small-font);
+    font-weight: 600;
+    color: #fff;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+`;
+
+const StyledUserEmail = styled.span`
+    font-size: 11px;
+    color: var(--aside-text);
+    opacity: 0.7;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 `;
 
 const StyledScrollArea = styled.div`
