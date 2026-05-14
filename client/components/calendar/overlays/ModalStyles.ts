@@ -312,11 +312,11 @@ export const StyledPriceUnit = styled.span`
     color: var(--dark-gray-color);
 `;
 
-export const StyledStatusBadge = styled(LabelBadge).attrs<{ $variant: 'danger' | 'warning' | 'success' }>((props) => ({
+export const StyledStatusBadge = styled(LabelBadge).attrs<{ $variant: 'neutral' | 'danger' | 'warning' | 'success' }>((props) => ({
     $tone: props.$variant,
     $size: 'md',
     $shape: 'soft',
-}))<{ $variant: 'danger' | 'warning' | 'success' }>`
+}))<{ $variant: 'neutral' | 'danger' | 'warning' | 'success' }>`
     font-size: var(--small-font);
     font-weight: 600;
 `;

@@ -111,8 +111,8 @@ const StyledHistoryDetailList = styled.div`
 `;
 
 const HISTORY_ITEM_STYLES: Record<string, { bg: string; border: string }> = {
-    cancelled: {bg: 'var(--danger-bg)', border: 'var(--danger-border)'},
-    noshow: {bg: 'var(--warning-bg)', border: 'var(--warning-border)'},
+    cancelled: {bg: 'rgba(241, 245, 249, 0.92)', border: 'rgba(203, 213, 225, 0.95)'},
+    noshow: {bg: 'var(--danger-bg)', border: 'var(--danger-border)'},
     completed: {bg: '#E6F4EA', border: '#CDEAD6'},
 };
 
@@ -136,7 +136,7 @@ const StyledHistoryDetailHeader = styled.div`
 `;
 
 const StyledHistoryTypeBadge = styled(LabelBadge).attrs<{ $type: string }>((props) => ({
-    $tone: props.$type === 'cancelled' ? 'danger' : props.$type === 'noshow' ? 'warning' : props.$type === 'completed' ? 'success' : 'info',
+    $tone: props.$type === 'cancelled' ? 'neutral' : props.$type === 'noshow' ? 'danger' : props.$type === 'completed' ? 'success' : 'info',
     $shape: 'soft',
     $size: 'sm',
 }))<{ $type: string }>`

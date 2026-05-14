@@ -181,11 +181,11 @@ export const ReservationListModal = () => {
 
                                         return (
                                             <StyledItem key={r.id}>
-                                                <ReservationInfoCard
-                                                    reservation={r}
-                                                    serviceColorMap={serviceColorMap}
-                                                    designerColor={r.designerId ? (designerColorMap[r.designerId] ?? '#8E8E93') : '#D1D5DB'}
-                                                    designerName={designerName}
+                                                    <ReservationInfoCard
+                                                        reservation={r}
+                                                        serviceColorMap={serviceColorMap}
+                                                        designerColor={r.designerId ? (designerColorMap[r.designerId] ?? '#8E8E93') : '#8E8E93'}
+                                                        designerName={designerName}
                                                     customerName={customer?.name ?? '-'}
                                                     today={today}
                                                     isNewCustomer={isNewCustomerVisit(customer?.firstVisitDate, r.date)}

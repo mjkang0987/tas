@@ -43,7 +43,7 @@ export function RevenueReservationList({
             {reservations.map((reservation) => {
                 const accentColor = reservation.designerId
                     ? (designerMap[reservation.designerId]?.color ?? '#8E8E93')
-                    : '#D1D5DB';
+                    : '#8E8E93';
                 const designerName = designerMap[reservation.designerId ?? -1]?.name ?? '미지정';
                 const customer = customerMap[reservation.customerId];
 
@@ -60,8 +60,8 @@ export function RevenueReservationList({
                         onCustomerClick={onSelectCustomer}
                         showDate={variant === 'default'}
                         showPrice
-                        showStatus={false}
-                        timeMode={variant === 'default' ? 'start' : 'range'}
+                        showStatus
+                        timeMode="range"
                         compactDate={variant === 'compact'}
                         accentColor={accentColor}
                         accentBar

@@ -53,13 +53,13 @@ export function ReservationViewSection({
                     {isCancelled && (
                         <>
                             <dt>상태</dt>
-                            <dd><StyledStatusBadge $variant="danger">취소됨</StyledStatusBadge></dd>
+                            <dd><StyledStatusBadge $variant="neutral">취소됨</StyledStatusBadge></dd>
                         </>
                     )}
                     {isNoshow && (
                         <>
                             <dt>상태</dt>
-                            <dd><StyledStatusBadge $variant="warning">노쇼</StyledStatusBadge></dd>
+                            <dd><StyledStatusBadge $variant="danger">노쇼</StyledStatusBadge></dd>
                         </>
                     )}
                     {isCompleted && (

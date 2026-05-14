@@ -75,6 +75,7 @@ export function ReservationInfoCard({
             $clickable={clickable}
             onClick={clickable ? () => onClick(reservation) : undefined}
         >
+            <StyledLeft>
             {!compactDate && timeMode !== 'none' && (
                 <StyledTime>{timeText}</StyledTime>
             )}
@@ -86,6 +87,7 @@ export function ReservationInfoCard({
             {!compactDate && showDate && (
                 <StyledDate>{reservation.date}</StyledDate>
             )}
+            </StyledLeft>
             <StyledBody>
                 {customerName && (
                     <StyledCustomerMeta>
@@ -141,6 +143,7 @@ const StyledCard = styled.div<{
 }>`
     display: flex;
     align-items: flex-start;
+    flex-wrap: wrap;
     gap: 10px;
     width: 100%;
     padding: 10px;
@@ -167,6 +170,10 @@ const StyledCard = styled.div<{
     }
 `;
 
+const StyledLeft = styled.strong`
+    font-weight: normal;
+`;
+
 const StyledTime = styled.span`
     flex-shrink: 0;
     width: 76px;
@@ -183,18 +190,17 @@ const StyledBody = styled.div`
     flex: 1;
     min-width: 0;
     display: flex;
+    flex-wrap: wrap;
     gap: 6px;
 `;
 
 const StyledCompactDate = styled.div`
     font-size: 11px;
-    font-weight: 600;
     color: var(--dark-gray-color2);
 `;
 
 const StyledDate = styled.div`
     font-size: 11px;
-    font-weight: 600;
     color: var(--dark-gray-color2);
 `;
 
@@ -216,7 +222,7 @@ const StyledDesignerMeta = styled.span`
     align-items: center;
     gap: 6px;
     min-width: 0;
-    color: var(--gray-color);
+    color: var(--dark-gray-color);
 
     ${StyledDesignerLabel} {
         gap: 4px;
@@ -261,19 +267,18 @@ const StyledCustomerButton = styled.button`
 
 const StyledTrailing = styled.div`
     display: flex;
-    flex-direction: column;
     align-items: flex-end;
     gap: 8px;
     margin-left: auto;
 
     @media (max-width: 640px) {
         width: 100%;
-        align-items: flex-end;
+        justify-content: space-between;
     }
 `;
 
 const StyledStatusBadge = styled(LabelBadge).attrs<{ $type: string }>((props) => ({
-    $tone: props.$type === 'completed' ? 'success' : props.$type === 'cancelled' ? 'danger' : props.$type === 'noshow' ? 'warning' : 'info',
+    $tone: props.$type === 'completed' ? 'success' : props.$type === 'cancelled' ? 'neutral' : props.$type === 'noshow' ? 'danger' : 'info',
     $shape: 'soft',
     $size: 'sm',
 }))<{ $type: string }>`
