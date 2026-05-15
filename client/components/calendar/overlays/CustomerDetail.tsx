@@ -23,6 +23,8 @@ import {buildServiceColorMap, formatPrice} from '../../../utils/services';
 import {useCalendarStore} from '../../../store/calendarStore';
 import {CloseIconButton} from '../../ui/CloseIconButton';
 import {CustomerReservationCards} from '../../ui/CustomerReservationCards';
+import {ColorTag} from '../../ui/ColorTag';
+import {ColorPickerButton} from '../../ui/ColorPickerButton';
 
 const PAGE_SIZE = 5;
 
@@ -266,11 +268,12 @@ export const CustomerDetail = ({customer, reservationMap, onClose, onReservation
                             </StyledTagInputRow>
                             <StyledColorRow>
                                 {MEMO_TAG_COLORS.map((color) => (
-                                    <StyledColorButton
+                                    <ColorPickerButton
                                         key={color}
                                         type="button"
                                         $selected={selectedTagColor === color}
                                         $color={color}
+                                        $size={22}
                                         onClick={() => setSelectedTagColor(color)}
                                     />
                                 ))}
@@ -285,6 +288,7 @@ export const CustomerDetail = ({customer, reservationMap, onClose, onReservation
                                 <StyledAddressMemoItem key={`${customer.id}-${tag.text}`}
                                                        $color={tag.color}>
                                     <span>{tag.text}</span>
+
                                     {isEditing && (
                                         <StyledTagRemoveButton type="button"
                                                                onClick={() => handleRemoveTag(tag.text)}>삭제</StyledTagRemoveButton>
@@ -574,26 +578,11 @@ const StyledColorRow = styled.div`
     gap: 8px;
 `;
 
-const StyledColorButton = styled.button<{ $selected: boolean; $color: string }>`
-    width: 22px;
-    height: 22px;
-    border-radius: 999px;
-    border: 2px solid ${props => props.$selected ? 'var(--black-color)' : 'transparent'};
-    background: ${props => props.$color};
-    cursor: pointer;
-`;
-
-const StyledAddressMemoItem = styled.span<{ $color: string }>`
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
+const StyledAddressMemoItem = styled(ColorTag)`
     min-height: 24px;
     padding: 3px 7px;
-    border-radius: 999px;
-    background-color: ${(props) => props.$color};
-    color: #fff;
     font-size: 12px;
-    font-weight: 600;
+    gap: 6px;
 `;
 
 const StyledTagRemoveButton = styled.button`
