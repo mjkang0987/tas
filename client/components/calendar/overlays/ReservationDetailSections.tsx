@@ -315,7 +315,7 @@ const StyledMemoSection = styled.div`
     padding: 10px 12px;
     border: 1px solid var(--light-gray-color);
     border-radius: 10px;
-    background: #fafbff;
+    background: rgba(248, 250, 252, 0.9);
 
     > strong {
         font-size: 12px;
@@ -336,7 +336,7 @@ const StyledMemoTag = styled.span<{ $color: string }>`
     padding: 2px 8px;
     border-radius: 999px;
     background-color: ${(props) => props.$color};
-    color: #fff;
+    color: var(--white-color);
     font-size: 11px;
     font-weight: 600;
 `;
@@ -345,11 +345,11 @@ const StyledDesignerPolicyNotice = styled.p`
     margin: 6px 0 0;
     font-size: 11px;
     line-height: 1.5;
-    color: #8a5a00;
+    color: var(--caution-color);
 `;
 
 const StyledTimeRow = styled.div`
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 8px;
+    gap: 10px;
 `;
