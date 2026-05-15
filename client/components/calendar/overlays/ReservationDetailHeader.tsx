@@ -36,11 +36,17 @@ const StyledReservationHeader = styled(StyledHeader)``;
 
 const StyledReservationTitleGroup = styled.div`
     display: flex;
-    gap: 4px;
+    flex-direction: column;
+    gap: 2px;
     min-width: 0;
+    flex: 1;
+    overflow: hidden;
 
     h3 {
         margin: 0;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
     }
 `;
 
