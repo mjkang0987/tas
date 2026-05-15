@@ -4,6 +4,7 @@ import type {ReactNode} from 'react';
 import type {Designer} from '../../../utils/designers';
 import {getDesignerStatus, isDesignerBookable} from '../../../utils/designers';
 import type {CustomerMemoTag} from '../../../utils/customers';
+import {ColorTag} from '../../ui/ColorTag';
 
 import {
     StyledBody,
@@ -215,9 +216,9 @@ export const ReservationEditSection = ({
                 <strong>고객 메모</strong>
                 <StyledMemoTagList>
                     {customerMemoTags.map((tag) => (
-                        <StyledMemoTag key={`${tag.color}-${tag.text}`} $color={tag.color}>
+                        <ColorTag key={`${tag.color}-${tag.text}`} $color={tag.color}>
                             {tag.text}
-                        </StyledMemoTag>
+                        </ColorTag>
                     ))}
                 </StyledMemoTagList>
             </StyledMemoSection>
@@ -327,18 +328,6 @@ const StyledMemoTagList = styled.div`
     display: flex;
     flex-wrap: wrap;
     gap: 6px;
-`;
-
-const StyledMemoTag = styled.span<{ $color: string }>`
-    display: inline-flex;
-    align-items: center;
-    min-height: 22px;
-    padding: 2px 8px;
-    border-radius: 999px;
-    background-color: ${(props) => props.$color};
-    color: var(--white-color);
-    font-size: 11px;
-    font-weight: 600;
 `;
 
 const StyledDesignerPolicyNotice = styled.p`
