@@ -4,6 +4,8 @@ import styled from 'styled-components';
 
 import type {CustomerMemoTag} from '../../utils/customers';
 import {formControlStyle} from '../ui/FormControls';
+import {ColorTag} from '../ui/ColorTag';
+import {ColorPickerButton} from '../ui/ColorPickerButton';
 
 type AddressCustomerTagsProps = {
     customerId: number;
@@ -55,10 +57,11 @@ export function AddressCustomerTags({
                     )}
                     <StyledPalette>
                         {tagColors.map((color) => (
-                            <StyledColorDot
+                            <ColorPickerButton
                                 key={color}
                                 $color={color}
-                                $active={selectedColor === color}
+                                $selected={selectedColor === color}
+                                $size={18}
                                 type="button"
                                 onClick={() => onSelectColor(color)}
                             />
@@ -149,16 +152,10 @@ const StyledTagList = styled.div`
     flex: 1;
 `;
 
-const StyledTag = styled.span<{ $color: string }>`
-    display: inline-flex;
-    align-items: center;
-    gap: 4px;
-    padding: 2px 6px;
-    background-color: ${(props) => props.$color};
-    color: #fff;
-    border-radius: 4px;
+const StyledTag = styled(ColorTag).attrs({ $shape: 'soft' as const })`
     font-size: var(--tiny-font);
     font-weight: 500;
+    padding: 2px 6px;
 
     > button {
         border: none;
@@ -170,21 +167,17 @@ const StyledTag = styled.span<{ $color: string }>`
         line-height: 1;
 
         @media (hover: hover) and (pointer: fine) {
-        &:hover {
-            color: #fff;
-        }
+            &:hover {
+                color: var(--white-color);
+            }
         }
     }
 `;
 
-const StyledTagReadonly = styled.span<{ $color: string }>`
-    display: inline-block;
-    padding: 2px 8px;
-    background-color: ${(props) => props.$color};
-    border-radius: 4px;
+const StyledTagReadonly = styled(ColorTag).attrs({ $shape: 'soft' as const })`
     font-size: var(--tiny-font);
     font-weight: 500;
-    color: #fff;
+    padding: 2px 8px;
 `;
 
 const StyledPalette = styled.div`
@@ -192,22 +185,6 @@ const StyledPalette = styled.div`
     gap: 4px;
 `;
 
-const StyledColorDot = styled.button<{ $color: string; $active: boolean }>`
-    width: 18px;
-    height: 18px;
-    border-radius: 50%;
-    border: 2px solid ${(props) => props.$active ? 'var(--dark-gray-color)' : 'transparent'};
-    background-color: ${(props) => props.$color};
-    cursor: pointer;
-    padding: 0;
-    box-sizing: border-box;
-
-    @media (hover: hover) and (pointer: fine) {
-        &:hover {
-        opacity: 0.8;
-    }
-    }
-`;
 
 const StyledMemoButton = styled.button`
     flex-shrink: 0;

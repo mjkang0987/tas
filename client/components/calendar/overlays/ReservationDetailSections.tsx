@@ -4,6 +4,7 @@ import type {ReactNode} from 'react';
 import type {Designer} from '../../../utils/designers';
 import {getDesignerStatus, isDesignerBookable} from '../../../utils/designers';
 import type {CustomerMemoTag} from '../../../utils/customers';
+import {ColorTag} from '../../ui/ColorTag';
 
 import {
     StyledBody,
@@ -215,9 +216,9 @@ export const ReservationEditSection = ({
                 <strong>고객 메모</strong>
                 <StyledMemoTagList>
                     {customerMemoTags.map((tag) => (
-                        <StyledMemoTag key={`${tag.color}-${tag.text}`} $color={tag.color}>
+                        <ColorTag key={`${tag.color}-${tag.text}`} $color={tag.color}>
                             {tag.text}
-                        </StyledMemoTag>
+                        </ColorTag>
                     ))}
                 </StyledMemoTagList>
             </StyledMemoSection>
@@ -315,7 +316,7 @@ const StyledMemoSection = styled.div`
     padding: 10px 12px;
     border: 1px solid var(--light-gray-color);
     border-radius: 10px;
-    background: #fafbff;
+    background: rgba(248, 250, 252, 0.9);
 
     > strong {
         font-size: 12px;
@@ -329,27 +330,15 @@ const StyledMemoTagList = styled.div`
     gap: 6px;
 `;
 
-const StyledMemoTag = styled.span<{ $color: string }>`
-    display: inline-flex;
-    align-items: center;
-    min-height: 22px;
-    padding: 2px 8px;
-    border-radius: 999px;
-    background-color: ${(props) => props.$color};
-    color: #fff;
-    font-size: 11px;
-    font-weight: 600;
-`;
-
 const StyledDesignerPolicyNotice = styled.p`
     margin: 6px 0 0;
     font-size: 11px;
     line-height: 1.5;
-    color: #8a5a00;
+    color: var(--caution-color);
 `;
 
 const StyledTimeRow = styled.div`
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 8px;
+    gap: 10px;
 `;

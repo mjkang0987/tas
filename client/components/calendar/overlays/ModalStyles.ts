@@ -171,7 +171,7 @@ export const StyledHeader = styled.div`
         font-size: var(--modal-title-font);
         font-weight: 700;
         letter-spacing: -0.02em;
-        color: #0f172a;
+        color: var(--black-color);
     }
 
     > button:not([class]) {
@@ -250,15 +250,24 @@ export const StyledForm = styled.div`
     flex-direction: column;
     gap: 10px;
 
-    strong {
-        padding-bottom: 4px;
-    }
-
     label {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+
+        > strong {
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--dark-gray-color);
+        }
+
         input, select {
             ${formControlStyle};
-            padding: 0 8px;
+            height: 36px;
+            padding: 0 10px;
             font-size: 13px;
+            color: var(--black-color);
+            width: 100%;
         }
     }
 `;

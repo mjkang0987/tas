@@ -65,19 +65,6 @@ export const StyledClickableRow = styled.div<{ $accentColor?: string; $showAccen
     }
 `;
 
-export const StyledTime = styled.span`
-    flex-shrink: 0;
-    width: 76px;
-    font-size: 12px;
-    font-weight: 700;
-    color: #0f172a;
-
-    @media (max-width: 640px) {
-        width: auto;
-        min-width: 0;
-    }
-`;
-
 export const StyledPrice = styled.span`
     flex-shrink: 0;
     margin-left: auto;
