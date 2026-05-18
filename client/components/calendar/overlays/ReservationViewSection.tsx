@@ -136,20 +136,27 @@ export function ReservationViewSection({
                     <dd>
                         <DesignerLabel color={displayDesignerColor} name={displayDesignerName} />
                     </dd>
-                    {reservation.naverBookingId && (
-                        <>
-                            <dt>예약번호</dt>
-                            <dd>
+                    <dt>예약경로</dt>
+                    <dd>
+                        {reservation.naverBookingId ? (
+                            <>
                                 <StyledBookingInfo>
                                     <StyledPlatformTag>네이버예약</StyledPlatformTag>
                                     <span>{reservation.naverBookingId}</span>
+                                    {reservation.naverBookingUrl && (
+                                        <StyledBookingLink href={reservation.naverBookingUrl} target="_blank" rel="noopener noreferrer">
+                                            바로가기 ↗
+                                        </StyledBookingLink>
+                                    )}
                                 </StyledBookingInfo>
                                 <StyledBookingNotice>
                                     네이버예약의 실제 변경/취소는 스마트플레이스 통해서 가능합니다.
                                 </StyledBookingNotice>
-                            </dd>
-                        </>
-                    )}
+                            </>
+                        ) : (
+                            <StyledChannelTag>{reservation.channel === '현장방문' ? '현장방문' : '전화예약'}</StyledChannelTag>
+                        )}
+                    </dd>
                 </dl>
                 {historyCount > 0 && (
                     <StyledHistorySection>
@@ -205,9 +212,10 @@ const StyledCustomerButton = styled.button`
 
 const StyledPaymentValue = styled.span`
     display: flex;
-    align-items: flex-start;
+    align-items: center;
     gap: 8px;
     flex-wrap: wrap;
+    padding-bottom: 2px;
 `;
 
 const StyledPaymentLineList = styled.span`
@@ -285,6 +293,27 @@ const StyledPlatformTag = styled(LabelBadge).attrs({
     $size: 'sm',
 })`
     font-size: 10px;
+`;
+
+const StyledChannelTag = styled(LabelBadge).attrs({
+    $tone: 'info',
+    $shape: 'soft',
+    $size: 'sm',
+})`
+    font-size: 10px;
+`;
+
+const StyledBookingLink = styled.a`
+    font-size: 11px;
+    color: #03C75A;
+    font-weight: 600;
+    text-decoration: none;
+
+    @media (hover: hover) and (pointer: fine) {
+        &:hover {
+            text-decoration: underline;
+        }
+    }
 `;
 
 const StyledHistorySection = styled.div`
