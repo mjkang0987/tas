@@ -233,6 +233,7 @@ async function createReservationFromBooking(
                 naverBookingId: booking.bookingId,
                 naverBookingUrl: booking.bookingUrl || null,
                 naverDeposit: booking.deposit || null,
+                channel: 'naver',
             },
         });
         return {status: 'created', legacyId: resLegacyId};

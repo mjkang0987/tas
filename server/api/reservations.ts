@@ -7,6 +7,7 @@ import {
     dbHistoryToFrontend,
     frontendReservationStatusToDb,
     frontendPaymentMethodToDb,
+    frontendChannelToDb,
 } from '../db/mappers';
 import type {Reservation, ReservationStatus} from '../../client/features/reservations/model';
 import {hasCompletedPayment} from '../../client/features/reservations/model';
@@ -90,6 +91,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                 memo: reservation.memo ?? null,
                 paymentCompleted: reservation.paymentCompleted ?? false,
                 pointEarned: reservation.pointEarned ?? 0,
+                ...(reservation.channel && { channel: frontendChannelToDb(reservation.channel) }),
                 paymentEntries: paymentEntries.length > 0
                     ? {createMany: {data: paymentEntries}}
                     : undefined,
