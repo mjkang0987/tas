@@ -175,6 +175,7 @@ model Reservation {
   naverBookingId   String?
   naverBookingUrl  String?
   naverDeposit     Int?
+  channel          ReservationChannel        @default(phone)
   createdAt        DateTime                  @default(now())
   updatedAt        DateTime                  @updatedAt
   pointHistories   CustomerPointHistory[]
@@ -282,6 +283,13 @@ enum PaymentMethod {
   local_currency_receipt
   voucher
   points
+  discount
+}
+
+enum ReservationChannel {
+  naver
+  walk_in
+  phone
 }
 
 enum PointHistoryType {

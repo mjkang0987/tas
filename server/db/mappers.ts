@@ -1,11 +1,12 @@
 import type {
     DesignerStatus as DbDesignerStatus,
     PaymentMethod as DbPaymentMethod,
+    ReservationChannel as DbReservationChannel,
     ReservationStatus as DbReservationStatus,
 } from '@prisma/client';
 import type {DesignerStatus} from '../../client/features/designers/model';
 import type {Customer, PointHistoryType} from '../../client/features/customers/model';
-import type {PaymentMethod, Reservation, ReservationHistoryEntry, ReservationStatus} from '../../client/features/reservations/model';
+import type {PaymentMethod, ReservationChannel, Reservation, ReservationHistoryEntry, ReservationStatus} from '../../client/features/reservations/model';
 
 // ── Designer Status ──
 
@@ -41,6 +42,7 @@ const DB_TO_FRONTEND_PAYMENT_METHOD: Record<DbPaymentMethod, PaymentMethod> = {
     local_currency_receipt: '지역화폐+현금영수증',
     voucher: '상품권',
     points: '적립금',
+    discount: '할인',
 };
 
 const FRONTEND_TO_DB_PAYMENT_METHOD: Record<string, DbPaymentMethod> = {
@@ -55,6 +57,7 @@ const FRONTEND_TO_DB_PAYMENT_METHOD: Record<string, DbPaymentMethod> = {
     '이용권': 'voucher',
     '상품권': 'voucher',
     '적립금': 'points',
+    '할인': 'discount',
 };
 
 export function dbPaymentMethodToFrontend(method: DbPaymentMethod): PaymentMethod {
@@ -63,6 +66,28 @@ export function dbPaymentMethodToFrontend(method: DbPaymentMethod): PaymentMetho
 
 export function frontendPaymentMethodToDb(method: string): DbPaymentMethod {
     return FRONTEND_TO_DB_PAYMENT_METHOD[method] ?? 'cash';
+}
+
+// ── Reservation Channel ──
+
+const DB_TO_FRONTEND_CHANNEL: Record<DbReservationChannel, ReservationChannel> = {
+    naver: '네이버예약',
+    walk_in: '현장방문',
+    phone: '전화예약',
+};
+
+const FRONTEND_TO_DB_CHANNEL: Record<ReservationChannel, DbReservationChannel> = {
+    '네이버예약': 'naver',
+    '현장방문': 'walk_in',
+    '전화예약': 'phone',
+};
+
+export function dbChannelToFrontend(channel: DbReservationChannel): ReservationChannel {
+    return DB_TO_FRONTEND_CHANNEL[channel];
+}
+
+export function frontendChannelToDb(channel: ReservationChannel): DbReservationChannel {
+    return FRONTEND_TO_DB_CHANNEL[channel] ?? 'phone';
 }
 
 // ── Reservation Status ──
@@ -180,6 +205,7 @@ type DbReservationRow = {
     naverBookingId: string | null;
     naverBookingUrl: string | null;
     naverDeposit: number | null;
+    channel: DbReservationChannel;
     paymentEntries: Array<{
         method: DbPaymentMethod;
         amount: number;
@@ -209,6 +235,7 @@ export function dbReservationToFrontend(row: DbReservationRow): Reservation {
         ...(row.naverBookingId != null && {naverBookingId: row.naverBookingId}),
         ...(row.naverBookingUrl != null && {naverBookingUrl: row.naverBookingUrl}),
         ...(row.naverDeposit != null && {naverDeposit: row.naverDeposit}),
+        channel: dbChannelToFrontend(row.channel),
     };
 }
 
