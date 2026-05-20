@@ -38,6 +38,8 @@ type AddressCustomerRowProps = {
     onStartEditing: (customerId: number) => void;
     onFinishEditing: () => void;
     onReservationClick: (reservation: Reservation) => void;
+    checked?: boolean;
+    onCheck?: (id: number) => void;
 };
 
 export function AddressCustomerRow({
@@ -60,11 +62,13 @@ export function AddressCustomerRow({
     onStartEditing,
     onFinishEditing,
     onReservationClick,
+    checked,
+    onCheck,
 }: AddressCustomerRowProps) {
     return (
         <StyledItem>
             <StyledDetails>
-                <AddressCustomerSummary customer={customer} stats={stats} />
+                <AddressCustomerSummary customer={customer} stats={stats} checked={checked} onCheck={onCheck} />
                 <AddressCustomerTags
                     customerId={customer.id}
                     customerTags={customerTags}

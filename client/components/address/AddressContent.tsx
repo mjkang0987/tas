@@ -1,4 +1,4 @@
-import React from 'react';
+import React, {useCallback, useState} from 'react';
 
 import styled from 'styled-components';
 
@@ -36,6 +36,7 @@ type AddressContentProps = {
     onStartEditing: (customerId: number) => void;
     onFinishEditing: () => void;
     onReservationClick: (reservation: Reservation) => void;
+    onMerge: (sourceId: number, targetId: number) => void;
 };
 
 export function AddressContent({
@@ -59,23 +60,89 @@ export function AddressContent({
     onStartEditing,
     onFinishEditing,
     onReservationClick,
+    onMerge,
 }: AddressContentProps) {
+    const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
+
+    const handleCheck = useCallback((id: number) => {
+        setSelectedIds((prev) => {
+            const next = new Set(prev);
+            if (next.has(id)) {
+                next.delete(id);
+            } else if (next.size < 2) {
+                next.add(id);
+            }
+            return next;
+        });
+    }, []);
+
+    const handleMerge = useCallback(() => {
+        if (selectedIds.size !== 2) return;
+        const [idA, idB] = [...selectedIds];
+        const customerA = filteredCustomers.find((c) => c.id === idA);
+        const customerB = filteredCustomers.find((c) => c.id === idB);
+        if (!customerA || !customerB) return;
+
+        const aIsMasked = customerA.name.includes('*');
+        const bIsMasked = customerB.name.includes('*');
+
+        let sourceId: number;
+        let targetId: number;
+
+        if (aIsMasked && !bIsMasked) {
+            sourceId = idA; targetId = idB;
+        } else if (!aIsMasked && bIsMasked) {
+            sourceId = idB; targetId = idA;
+        } else {
+            // 둘 다 같은 경우: 예약이 빠른 고객이 기준(target)
+            const aReservations = reservationsByCustomer[idA] ?? [];
+            const bReservations = reservationsByCustomer[idB] ?? [];
+            const aEarliest = aReservations.length > 0 ? aReservations.reduce((min, r) => r.date < min ? r.date : min, aReservations[0].date) : '9999';
+            const bEarliest = bReservations.length > 0 ? bReservations.reduce((min, r) => r.date < min ? r.date : min, bReservations[0].date) : '9999';
+            if (aEarliest <= bEarliest) {
+                targetId = idA; sourceId = idB;
+            } else {
+                targetId = idB; sourceId = idA;
+            }
+        }
+
+        const targetCustomer = filteredCustomers.find((c) => c.id === targetId);
+        const sourceCustomer = filteredCustomers.find((c) => c.id === sourceId);
+        if (!targetCustomer || !sourceCustomer) return;
+
+        const ok = window.confirm(
+            `"${sourceCustomer.name}"의 예약·적립금을 "${targetCustomer.name}"에게 병합합니다.\n\n"${sourceCustomer.name}" 고객은 삭제됩니다.\n\n계속하시겠습니까?`
+        );
+        if (!ok) return;
+
+        onMerge(sourceId, targetId);
+        setSelectedIds(new Set());
+    }, [selectedIds, filteredCustomers, reservationsByCustomer, onMerge]);
+
     return (
         <>
             <StyledSticky>
-                <StyledHeading>고객명단</StyledHeading>
-                <InputWrap htmlFor="filterSearch">
-                    <input
-                        type="search"
-                        id="filterSearch"
-                        value={searchInput}
-                        onChange={(e) => onSearchChange(e.target.value)}
-                        placeholder="고객명, 연락처, 메모 검색"
-                    />
-                </InputWrap>
+                <StyledSearchRow>
+                    <InputWrap htmlFor="filterSearch">
+                        <input
+                            type="search"
+                            id="filterSearch"
+                            value={searchInput}
+                            onChange={(e) => onSearchChange(e.target.value)}
+                            placeholder="고객명, 연락처, 메모 검색"
+                        />
+                    </InputWrap>
+                    {selectedIds.size === 2 && (
+                        <StyledMergeButton type="button" onClick={handleMerge}>병합</StyledMergeButton>
+                    )}
+                    {selectedIds.size === 1 && (
+                        <StyledMergeHint>병합할 고객 1명을 더 선택하세요</StyledMergeHint>
+                    )}
+                </StyledSearchRow>
             </StyledSticky>
             <StyledGrid>
                 <StyledHeaderRow>
+                    <span></span>
                     <span>이름</span>
                     <span>연락처</span>
                     <span>최근 시술</span>
@@ -113,6 +180,8 @@ export function AddressContent({
                                     onStartEditing={onStartEditing}
                                     onFinishEditing={onFinishEditing}
                                     onReservationClick={onReservationClick}
+                                    checked={selectedIds.has(customer.id)}
+                                    onCheck={handleCheck}
                                 />
                             );
                         })}
@@ -123,20 +192,50 @@ export function AddressContent({
     );
 }
 
-const StyledHeading = styled.h2`
-    text-align: center;
-    font-size: var(--big-font);
-    font-weight: 600;
-    margin-bottom: 5px;
-`;
-
 const StyledSticky = styled.div`
     position: sticky;
     top: 0;
     padding: 20px 10px;
     z-index: 1;
-    background: rgba(255, 255, 255, .1); /* 살짝만 흰색 */
+    background: rgba(255, 255, 255, .1);
     backdrop-filter: blur(.8px) saturate(180%);
+`;
+
+const StyledSearchRow = styled.div`
+    display: flex;
+    align-items: center;
+    gap: 8px;
+
+    > label {
+        flex: 1;
+    }
+`;
+
+const StyledMergeButton = styled.button`
+    flex-shrink: 0;
+    height: 32px;
+    padding: 0 16px;
+    border: none;
+    border-radius: var(--radius-md);
+    background-color: var(--blue-color);
+    color: #fff;
+    font-size: var(--small-font);
+    font-weight: 600;
+    cursor: pointer;
+    white-space: nowrap;
+
+    @media (hover: hover) and (pointer: fine) {
+        &:hover {
+            opacity: 0.85;
+        }
+    }
+`;
+
+const StyledMergeHint = styled.span`
+    flex-shrink: 0;
+    font-size: var(--small-font);
+    color: var(--dark-gray-color);
+    white-space: nowrap;
 `;
 
 const StyledGrid = styled.div`
@@ -146,7 +245,7 @@ const StyledGrid = styled.div`
 
 const StyledHeaderRow = styled.div`
     display: grid;
-    grid-template-columns: 80px 130px 1fr auto;
+    grid-template-columns: 24px 80px 130px 1fr auto;
     gap: 12px;
     position: sticky;
     top: 95px;

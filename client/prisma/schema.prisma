@@ -302,6 +302,19 @@ enum PointHistoryType {
   payment_adjust
 }
 
+model CustomerMergeHistory {
+  id                    String   @id @default(cuid())
+  storeId               String
+  sourceCustomerJson    Json
+  targetCustomerJson    Json
+  movedReservationIds   Json     @default("[]")
+  movedPointHistoryIds  Json     @default("[]")
+  addedMemoTagIds       Json     @default("[]")
+  createdAt             DateTime @default(now())
+
+  @@index([storeId])
+}
+
 enum DesignerStatus {
   active
   on_leave

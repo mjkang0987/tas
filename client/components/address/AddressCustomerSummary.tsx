@@ -24,11 +24,21 @@ type CustomerStats = {
 type AddressCustomerSummaryProps = {
     customer: Customer;
     stats?: CustomerStats;
+    checked?: boolean;
+    onCheck?: (id: number) => void;
 };
 
-export function AddressCustomerSummary({customer, stats}: AddressCustomerSummaryProps) {
+export function AddressCustomerSummary({customer, stats, checked, onCheck}: AddressCustomerSummaryProps) {
     return (
-        <StyledSummary>
+        <StyledSummary $hasCheckbox={!!onCheck}>
+            {onCheck && (
+                <StyledCheckbox
+                    type="checkbox"
+                    checked={checked ?? false}
+                    onChange={(e) => { e.stopPropagation(); onCheck(customer.id); }}
+                    onClick={(e) => e.stopPropagation()}
+                />
+            )}
             <strong>{customer.name}</strong>
             <span>{customer.tel.replace(/(\d{3})(\d{4})(\d{4})/, '$1-$2-$3')}</span>
             <span>{stats?.recentService || '-'}</span>
@@ -43,9 +53,16 @@ export function AddressCustomerSummary({customer, stats}: AddressCustomerSummary
     );
 }
 
-const StyledSummary = styled.summary`
+const StyledCheckbox = styled.input`
+    width: 16px;
+    height: 16px;
+    cursor: pointer;
+    flex-shrink: 0;
+`;
+
+const StyledSummary = styled.summary<{ $hasCheckbox?: boolean }>`
     display: grid;
-    grid-template-columns: 80px 130px 1fr 100px auto;
+    grid-template-columns: ${(props) => props.$hasCheckbox ? '24px ' : ''}80px 130px 1fr 100px auto;
     gap: 12px;
     align-items: center;
     padding: 10px 12px;

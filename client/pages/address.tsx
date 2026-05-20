@@ -57,6 +57,15 @@ const Address: NextPage<AddressProps> = ({customers, reservations, history, stor
     const [tagInput, setTagInput] = useState('');
     const [selectedColor, setSelectedColor] = useState(TAG_COLORS[0]);
     const [selectedReservations, setSelectedReservations] = useState<Reservation[]>([]);
+    const [lastMerge, setLastMerge] = useState<{mergeHistoryId: string; sourceName: string; targetName: string} | null>(() => {
+        if (typeof window === 'undefined') return null;
+        const saved = sessionStorage.getItem('lastMerge');
+        if (saved) {
+            sessionStorage.removeItem('lastMerge');
+            try { return JSON.parse(saved); } catch { return null; }
+        }
+        return null;
+    });
 
     const [searchInput, setSearchInput] = useState('');
     const [searchTerm, setSearchTerm] = useState('');
@@ -228,6 +237,61 @@ const Address: NextPage<AddressProps> = ({customers, reservations, history, stor
         });
     };
 
+    const handleMerge = useCallback(async (sourceId: number, targetId: number) => {
+        const sourceCustomer = customerList.find((c) => c.id === sourceId);
+        const targetCustomer = customerList.find((c) => c.id === targetId);
+
+        try {
+            const resp = await fetch('/api/customers/merge', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({sourceId, targetId}),
+            });
+
+            if (!resp.ok) {
+                const err = await resp.json().catch(() => null);
+                alert(err?.error || '병합에 실패했습니다.');
+                return;
+            }
+
+            const data = await resp.json();
+            const mergeInfo = {
+                mergeHistoryId: data.mergeHistoryId,
+                sourceName: sourceCustomer?.name ?? String(sourceId),
+                targetName: targetCustomer?.name ?? String(targetId),
+            };
+            sessionStorage.setItem('lastMerge', JSON.stringify(mergeInfo));
+
+            // 데이터 새로고침
+            window.location.reload();
+        } catch {
+            alert('병합 중 오류가 발생했습니다.');
+        }
+    }, [customerList]);
+
+    const handleUnmerge = useCallback(async () => {
+        if (!lastMerge) return;
+
+        try {
+            const resp = await fetch('/api/customers/unmerge', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({mergeHistoryId: lastMerge.mergeHistoryId}),
+            });
+
+            if (!resp.ok) {
+                const err = await resp.json().catch(() => null);
+                alert(err?.error || '병합 분리에 실패했습니다.');
+                return;
+            }
+
+            setLastMerge(null);
+            window.location.reload();
+        } catch {
+            alert('병합 분리 중 오류가 발생했습니다.');
+        }
+    }, [lastMerge]);
+
     return (
         <StyledSection>
             <Head>
@@ -262,7 +326,15 @@ const Address: NextPage<AddressProps> = ({customers, reservations, history, stor
                 onReservationClick={(reservation) => {
                     setSelectedReservations((prev) => [...prev, reservation]);
                 }}
+                onMerge={handleMerge}
             />
+            {lastMerge && (
+                <StyledUndoToast>
+                    <span>&quot;{lastMerge.sourceName}&quot; → &quot;{lastMerge.targetName}&quot; 병합 완료</span>
+                    <button type="button" onClick={handleUnmerge}>되돌리기</button>
+                    <button type="button" onClick={() => setLastMerge(null)}>✕</button>
+                </StyledUndoToast>
+            )}
             {selectedReservations.map((reservation, index) => (
                 <ReservationDetail key={`${reservation.id}-${index}`}
                                    reservation={reservation}
@@ -323,4 +395,42 @@ const StyledSection = styled.section`
     overflow-y: auto;
     overscroll-behavior: auto;
     box-sizing: border-box;
+`;
+
+const StyledUndoToast = styled.div`
+    position: fixed;
+    bottom: 24px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 16px;
+    background-color: var(--black-color);
+    color: #fff;
+    border-radius: var(--radius-md);
+    font-size: var(--small-font);
+    z-index: 100;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    white-space: nowrap;
+
+    > button:first-of-type {
+        padding: 4px 12px;
+        border: 1px solid rgba(255, 255, 255, 0.4);
+        border-radius: var(--radius-md);
+        background: transparent;
+        color: var(--blue-color);
+        font-size: var(--small-font);
+        font-weight: 600;
+        cursor: pointer;
+    }
+
+    > button:last-of-type {
+        padding: 2px 6px;
+        border: none;
+        background: transparent;
+        color: rgba(255, 255, 255, 0.6);
+        font-size: var(--font);
+        cursor: pointer;
+    }
 `;
