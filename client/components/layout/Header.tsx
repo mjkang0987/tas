@@ -17,7 +17,7 @@ import {NaverSyncConflictModal} from './NaverSyncConflictModal';
 import {formControlStyle} from '../ui/FormControls';
 
 const PAGE_TITLES: Record<string, string> = {
-    '/address': '주소록',
+    '/address': '고객명단',
     '/mypage': '마이페이지',
     '/logout': '로그아웃',
 };
@@ -55,7 +55,7 @@ export const Header = () => {
     const reservationMap = useCalendarStore((s) => s.reservationMap);
     const setReservationMap = useCalendarStore((s) => s.setReservationMap);
     const openReservationDetail = useCalendarStore((s) => s.openReservationDetail);
-    const {visibleNotifications, unreadCount, markRead, markAllRead, currentConflict, advanceConflict, deferConflict, openConflictByKey, sync, syncing, isActive} = useNaverBookingSync();
+    const {visibleNotifications, unreadCount, markRead, markAllRead, currentConflict, currentConflictStatus, advanceConflict, deferConflict, dismissConflicts, openConflictByKey, sync, syncing, isActive} = useNaverBookingSync();
 
     const handleConflictReservationClick = useCallback((reservation: Reservation) => {
         const dateReservations = reservationMap[reservation.date] ?? [];
@@ -151,8 +151,10 @@ export const Header = () => {
             </>}
             {currentConflict && (
                 <NaverSyncConflictModal conflict={currentConflict}
+                                        isConfirmed={currentConflictStatus === 'confirmed'}
                                         onAdvance={advanceConflict}
                                         onDefer={deferConflict}
+                                        onDismiss={dismissConflicts}
                                         onSelectReservation={handleConflictReservationClick} />
             )}
         </StyledHeader>

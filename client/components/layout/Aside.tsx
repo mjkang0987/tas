@@ -94,10 +94,10 @@ export const Aside = () => {
                 <span>TAS</span>
             </StyledBrandLink>
             {session?.user && (
-                <StyledUserInfo>
+                <StyledUserInfoLink href="/mypage" onClick={closeMobile}>
                     <StyledUserName>{session.user.name ?? '-'}</StyledUserName>
                     <StyledUserEmail>{session.user.email ?? ''}</StyledUserEmail>
-                </StyledUserInfo>
+                </StyledUserInfoLink>
             )}
             <StyledScrollArea>
                 <StyledNav>
@@ -133,6 +133,14 @@ export const Aside = () => {
                         <MenuIcon icon="create"/>
                         <ButtonText a11y={false}>예약추가</ButtonText>
                     </StyledCreateButton>
+                    <StyledNavLink href="/address"
+                                   $active={router.pathname === '/address'}
+                                   onClick={closeMobile}>
+                        <StyledMenuContent>
+                            <MenuIcon icon="customers"/>
+                            <span>고객명단</span>
+                        </StyledMenuContent>
+                    </StyledNavLink>
                     <StyledDivider />
                     <StyledAccordionToggle type="button"
                                            onClick={() => setSettingsOpen(!settingsOpen)}>
@@ -289,6 +297,17 @@ const MenuIcon = ({icon}: { icon: string }) => {
         );
     }
 
+    if (icon === 'customers') {
+        return (
+            <StyledMenuIcon viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M8 7H19M8 12H19M8 17H19" />
+                <circle cx="5" cy="7" r="1" fill="currentColor" stroke="none" />
+                <circle cx="5" cy="12" r="1" fill="currentColor" stroke="none" />
+                <circle cx="5" cy="17" r="1" fill="currentColor" stroke="none" />
+            </StyledMenuIcon>
+        );
+    }
+
     if (icon === 'member') {
         return (
             <StyledMenuIcon viewBox="0 0 24 24" aria-hidden="true">
@@ -354,7 +373,7 @@ const StyledBrandLink = styled(Link)`
     }
 `;
 
-const StyledUserInfo = styled.div`
+const StyledUserInfoLink = styled(Link)`
     flex-shrink: 0;
     display: flex;
     flex-direction: column;
@@ -363,6 +382,14 @@ const StyledUserInfo = styled.div`
     min-width: var(--aside-width);
     box-sizing: border-box;
     border-bottom: 1px solid var(--aside-divider);
+    text-decoration: none;
+    transition: opacity 0.1s;
+
+    @media (hover: hover) and (pointer: fine) {
+        &:hover {
+            opacity: 0.85;
+        }
+    }
 `;
 
 const StyledUserName = styled.span`
@@ -405,25 +432,27 @@ const StyledDivider = styled.hr`
     margin: 4px 8px;
 `;
 
-const StyledNavLink = styled(Link)`
+const StyledNavLink = styled(Link)<{ $active?: boolean }>`
     display: flex;
     align-items: center;
     width: 100%;
     height: 36px;
     padding: 0 8px;
     box-sizing: border-box;
-    background-color: transparent;
+    background-color: ${(props) => props.$active ? '#6526d9' : 'transparent'};
     border: none;
     border-radius: var(--radius-md);
     font-size: var(--small-font);
     font-weight: 500;
     text-decoration: none;
-    color: var(--aside-text);
+    color: ${(props) => props.$active ? '#ffffff' : 'var(--aside-text)'};
     white-space: nowrap;
-    transition: opacity 0.1s, filter 0.1s;
+    opacity: ${(props) => props.$active ? 1 : 0.8};
+    transition: background-color 0.1s, color 0.1s, opacity 0.1s, filter 0.1s;
 
     @media (hover: hover) and (pointer: fine) {
         &:hover {
+        opacity: 1;
         filter: brightness(1.18);
     }
     }

@@ -21,10 +21,6 @@ export const Footer = () => {
                 <FooterIcon icon="search"/>
                 <ButtonText a11y={false}>고객검색</ButtonText>
             </StyledSearchButton>
-            <StyledFooterLink href="/address">
-                <FooterIcon icon="customers"/>
-                <span>고객명단</span>
-            </StyledFooterLink>
             <StyledFooterLink href="/settings/revenue">
                 <FooterIcon icon="settings"/>
                 <span>설정</span>
@@ -34,23 +30,12 @@ export const Footer = () => {
     );
 };
 
-const FooterIcon = ({icon}: { icon: 'search' | 'customers' | 'settings' }) => {
+const FooterIcon = ({icon}: { icon: 'search' | 'settings' }) => {
     if (icon === 'search') {
         return (
             <StyledFooterIcon viewBox="0 0 24 24" aria-hidden="true">
                 <circle cx="11" cy="11" r="5.5" />
                 <path d="M15.2 15.2L19 19" />
-            </StyledFooterIcon>
-        );
-    }
-
-    if (icon === 'customers') {
-        return (
-            <StyledFooterIcon viewBox="0 0 24 24" aria-hidden="true">
-                <path d="M8 7H19M8 12H19M8 17H19" />
-                <circle cx="5" cy="7" r="1" fill="currentColor" stroke="none" />
-                <circle cx="5" cy="12" r="1" fill="currentColor" stroke="none" />
-                <circle cx="5" cy="17" r="1" fill="currentColor" stroke="none" />
             </StyledFooterIcon>
         );
     }
