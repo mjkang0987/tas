@@ -63,6 +63,7 @@ export function AddressContent({
     onMerge,
 }: AddressContentProps) {
     const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
+    const [mergePreview, setMergePreview] = useState<{customers: Customer[]; targetId: number} | null>(null);
 
     const handleCheck = useCallback((id: number) => {
         setSelectedIds((prev) => {
@@ -76,19 +77,19 @@ export function AddressContent({
         });
     }, []);
 
-    const handleMerge = useCallback(() => {
+    const getEarliest = useCallback((id: number) => {
+        const rList = reservationsByCustomer[id] ?? [];
+        return rList.length > 0 ? rList.reduce((min, r) => r.date < min ? r.date : min, rList[0].date) : '9999';
+    }, [reservationsByCustomer]);
+
+    const openMergePreview = useCallback(() => {
         if (selectedIds.size < 2) return;
 
         const ids = [...selectedIds];
         const customers = ids.map((id) => filteredCustomers.find((c) => c.id === id)).filter(Boolean) as Customer[];
         if (customers.length !== ids.length) return;
 
-        // 기준 고객 결정: 실명 고객 우선 → 예약이 가장 빠른 고객
-        const getEarliest = (id: number) => {
-            const rList = reservationsByCustomer[id] ?? [];
-            return rList.length > 0 ? rList.reduce((min, r) => r.date < min ? r.date : min, rList[0].date) : '9999';
-        };
-
+        // 기준 고객 자동 결정
         const realNames = customers.filter((c) => !c.name.includes('*'));
         let target: Customer;
 
@@ -101,17 +102,18 @@ export function AddressContent({
             );
         }
 
-        const sourceCustomers = customers.filter((c) => c.id !== target.id);
-        const sourceNames = sourceCustomers.map((c) => `"${c.name}"`).join(', ');
+        setMergePreview({customers, targetId: target.id});
+    }, [selectedIds, filteredCustomers, getEarliest]);
 
-        const ok = window.confirm(
-            `${sourceNames}의 예약·적립금을 "${target.name}"에게 병합합니다.\n\n${sourceCustomers.length}명의 고객이 삭제됩니다.\n\n계속하시겠습니까?`
-        );
-        if (!ok) return;
+    const confirmMerge = useCallback(() => {
+        if (!mergePreview) return;
+        const {customers, targetId} = mergePreview;
+        const sourceIds = customers.filter((c) => c.id !== targetId).map((c) => c.id);
 
-        onMerge(sourceCustomers.map((c) => c.id), target.id);
+        onMerge(sourceIds, targetId);
+        setMergePreview(null);
         setSelectedIds(new Set());
-    }, [selectedIds, filteredCustomers, reservationsByCustomer, onMerge]);
+    }, [mergePreview, onMerge]);
 
     return (
         <>
@@ -127,13 +129,45 @@ export function AddressContent({
                         />
                     </InputWrap>
                     {selectedIds.size >= 2 && (
-                        <StyledMergeButton type="button" onClick={handleMerge}>병합({selectedIds.size}명)</StyledMergeButton>
+                        <StyledMergeButton type="button" onClick={openMergePreview}>병합({selectedIds.size}명)</StyledMergeButton>
                     )}
                     {selectedIds.size === 1 && (
                         <StyledMergeHint>병합할 고객을 더 선택하세요</StyledMergeHint>
                     )}
                 </StyledSearchRow>
             </StyledSticky>
+            {mergePreview && (
+                <StyledMergePreview>
+                    <StyledPreviewTitle>기준 고객을 선택하세요</StyledPreviewTitle>
+                    <StyledPreviewDesc>기준 고객의 이름·연락처가 유지되고, 나머지 고객의 예약·적립금이 병합됩니다.</StyledPreviewDesc>
+                    <StyledPreviewList>
+                        {mergePreview.customers.map((c) => (
+                            <StyledPreviewItem
+                                key={c.id}
+                                $isTarget={c.id === mergePreview.targetId}
+                                onClick={() => setMergePreview((prev) => prev ? {...prev, targetId: c.id} : null)}
+                            >
+                                <StyledPreviewRadio
+                                    type="radio"
+                                    name="mergeTarget"
+                                    checked={c.id === mergePreview.targetId}
+                                    onChange={() => setMergePreview((prev) => prev ? {...prev, targetId: c.id} : null)}
+                                />
+                                <StyledPreviewName>{c.name}</StyledPreviewName>
+                                <StyledPreviewTel>{c.tel.replace(/(\d{3})(\d{4})(\d{4})/, '$1-$2-$3')}</StyledPreviewTel>
+                                {c.id === mergePreview.targetId
+                                    ? <StyledPreviewBadge $type="target">기준</StyledPreviewBadge>
+                                    : <StyledPreviewBadge $type="source">삭제</StyledPreviewBadge>
+                                }
+                            </StyledPreviewItem>
+                        ))}
+                    </StyledPreviewList>
+                    <StyledPreviewActions>
+                        <StyledPreviewCancel type="button" onClick={() => setMergePreview(null)}>취소</StyledPreviewCancel>
+                        <StyledMergeButton type="button" onClick={confirmMerge}>병합 실행</StyledMergeButton>
+                    </StyledPreviewActions>
+                </StyledMergePreview>
+            )}
             <StyledGrid>
                 <StyledHeaderRow>
                     <span></span>
@@ -269,4 +303,88 @@ const StyledEmpty = styled.p`
     text-align: center;
     background-color: var(--black-color-10);
     border-radius: 4px;
+`;
+
+const StyledMergePreview = styled.div`
+    position: sticky;
+    top: 72px;
+    z-index: 2;
+    margin: 0 10px;
+    padding: 16px;
+    background-color: #fff;
+    border: 1px solid var(--light-gray-color);
+    border-radius: var(--radius-md);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+`;
+
+const StyledPreviewTitle = styled.p`
+    font-size: var(--font);
+    font-weight: 600;
+    margin-bottom: 4px;
+`;
+
+const StyledPreviewDesc = styled.p`
+    font-size: var(--small-font);
+    color: var(--dark-gray-color);
+    margin-bottom: 12px;
+`;
+
+const StyledPreviewList = styled.ul`
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin-bottom: 12px;
+`;
+
+const StyledPreviewItem = styled.li<{ $isTarget: boolean }>`
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 12px;
+    border-radius: var(--radius-md);
+    border: 1.5px solid ${(p) => p.$isTarget ? 'var(--blue-color)' : 'var(--light-gray-color)'};
+    background-color: ${(p) => p.$isTarget ? '#f0f6ff' : '#fff'};
+    cursor: pointer;
+    transition: border-color 0.15s, background-color 0.15s;
+`;
+
+const StyledPreviewRadio = styled.input`
+    flex-shrink: 0;
+    cursor: pointer;
+`;
+
+const StyledPreviewName = styled.strong`
+    font-size: var(--font);
+    font-weight: 500;
+`;
+
+const StyledPreviewTel = styled.span`
+    font-size: var(--small-font);
+    color: var(--dark-gray-color);
+`;
+
+const StyledPreviewBadge = styled.span<{ $type: 'target' | 'source' }>`
+    margin-left: auto;
+    padding: 2px 8px;
+    border-radius: var(--radius-md);
+    font-size: var(--tiny-font);
+    font-weight: 600;
+    background-color: ${(p) => p.$type === 'target' ? 'var(--blue-color)' : '#eee'};
+    color: ${(p) => p.$type === 'target' ? '#fff' : 'var(--dark-gray-color)'};
+`;
+
+const StyledPreviewActions = styled.div`
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+`;
+
+const StyledPreviewCancel = styled.button`
+    height: 32px;
+    padding: 0 16px;
+    border: 1px solid var(--light-gray-color);
+    border-radius: var(--radius-md);
+    background-color: #fff;
+    font-size: var(--small-font);
+    cursor: pointer;
 `;
