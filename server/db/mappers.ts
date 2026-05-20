@@ -43,6 +43,7 @@ const DB_TO_FRONTEND_PAYMENT_METHOD: Record<DbPaymentMethod, PaymentMethod> = {
     voucher: '상품권',
     points: '적립금',
     discount: '할인',
+    naver_deposit: '네이버 예약금',
 };
 
 const FRONTEND_TO_DB_PAYMENT_METHOD: Record<string, DbPaymentMethod> = {
@@ -58,6 +59,7 @@ const FRONTEND_TO_DB_PAYMENT_METHOD: Record<string, DbPaymentMethod> = {
     '상품권': 'voucher',
     '적립금': 'points',
     '할인': 'discount',
+    '네이버 예약금': 'naver_deposit',
 };
 
 export function dbPaymentMethodToFrontend(method: DbPaymentMethod): PaymentMethod {

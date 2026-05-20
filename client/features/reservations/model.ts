@@ -1,6 +1,6 @@
 export type ReservationStatus = 'active' | 'completed' | 'cancelled' | 'noshow';
 export type ReservationChannel = '네이버예약' | '현장방문' | '전화예약';
-export type PaymentMethod = '현금' | '현금+현금영수증' | '카드' | '네이버페이' | '지역화폐' | '지역화폐+현금영수증' | '상품권' | '적립금' | '할인';
+export type PaymentMethod = '현금' | '현금+현금영수증' | '카드' | '네이버페이' | '지역화폐' | '지역화폐+현금영수증' | '상품권' | '적립금' | '할인' | '네이버 예약금';
 
 export interface PaymentEntry {
     method: PaymentMethod;

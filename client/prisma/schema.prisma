@@ -284,6 +284,7 @@ enum PaymentMethod {
   voucher
   points
   discount
+  naver_deposit
 }
 
 enum ReservationChannel {
