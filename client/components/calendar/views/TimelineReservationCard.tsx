@@ -191,20 +191,10 @@ const StyledDragGhost = styled.div<{
             display: none;
         }
     }
-
-    .service-chip-text {
-        padding: 2px 7px;
-        font-size: 10px;
-    }
 `;
 
 const StyledTimelineServiceList = styled(ServiceChipList)`
     @media (max-width: 640px) {
         gap: 4px;
-    }
-
-    .service-chip-text {
-        padding: 2px 7px;
-        font-size: 10px;
     }
 `;

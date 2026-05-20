@@ -138,6 +138,7 @@ export const StyledCustomerName = styled.span`
     gap: 6px;
     min-width: 0;
     max-width: 100%;
+    font-size: var(--small-font);
     padding: var(--chip-padding);
     border-radius: var(--chip-radius);
     background: rgba(248, 250, 252, 0.92);
@@ -149,8 +150,6 @@ export const StyledInlineCustomerButton = styled.button`
     border: 0;
     padding: 0;
     background: transparent;
-    font: inherit;
-    color: inherit;
     text-align: left;
     cursor: pointer;
     overflow: hidden;

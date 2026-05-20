@@ -1,4 +1,5 @@
 import styled from 'styled-components';
+import type {KeyboardEvent} from 'react';
 
 import type {Reservation} from '../../utils/reservations';
 import {RESERVATION_STATUS_BADGE_STYLES} from '../../utils/reservations';
@@ -64,16 +65,29 @@ export function ReservationInfoCard({
     const clickable = !!onClick;
     const state = getReservationState(reservation, today);
     const timeText = getTimeText(reservation, timeMode);
+    const handleActivate = () => {
+        if (onClick) {
+            onClick(reservation);
+        }
+    };
+    const handleKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
+        if (!clickable) return;
+        if (event.key !== 'Enter' && event.key !== ' ') return;
+
+        event.preventDefault();
+        handleActivate();
+    };
 
     return (
         <StyledCard
-            as={clickable ? 'button' : 'div'}
-            type={clickable ? 'button' : undefined}
             className={className}
             $accentColor={accentColor ?? designerColor}
             $accentBar={accentBar}
             $clickable={clickable}
-            onClick={clickable ? () => onClick(reservation) : undefined}
+            role={clickable ? 'button' : undefined}
+            tabIndex={clickable ? 0 : undefined}
+            onClick={clickable ? handleActivate : undefined}
+            onKeyDown={handleKeyDown}
         >
             <StyledLeft>
             {!compactDate && timeMode !== 'none' && (
@@ -146,7 +160,7 @@ const StyledCard = styled.div<{
     flex-wrap: wrap;
     gap: 10px;
     width: 100%;
-    padding: 10px;
+    padding: 6px;
     border: 1px solid ${(props) => `${props.$accentColor}44`};
     border-left-width: ${(props) => props.$accentBar ? '4px' : '1px'};
     border-left-color: ${(props) => props.$accentBar ? props.$accentColor : `${props.$accentColor}44`};
@@ -191,14 +205,13 @@ const StyledBody = styled.div`
     min-width: 0;
     display: flex;
     flex-wrap: wrap;
-    gap: 6px;
+    gap: 2px;
 `;
 
 const StyledCompactDate = styled.div`
     font-size: 11px;
     color: var(--dark-gray-color2);
 `;
-
 const StyledDate = styled.div`
     font-size: 11px;
     color: var(--dark-gray-color2);
@@ -233,7 +246,7 @@ const StyledCustomerMeta = styled.span`
     display: inline-flex;
     align-items: center;
     flex-wrap: wrap;
-    gap: 6px;
+    gap: 2px;
     min-width: 0;
 `;
 
@@ -243,6 +256,7 @@ const StyledCustomerName = styled.span`
     color: #0f172a;
     line-height: 1.35;
     word-break: keep-all;
+    font-size: var(--small-font);
 `;
 
 const StyledCustomerButton = styled.button`
@@ -250,13 +264,13 @@ const StyledCustomerButton = styled.button`
     border: 0;
     padding: 0;
     background: transparent;
-    font: inherit;
     font-weight: 700;
     color: #0f172a;
     text-align: left;
     cursor: pointer;
     line-height: 1.35;
     word-break: keep-all;
+    font-size: var(--small-font);
 
     @media (hover: hover) and (pointer: fine) {
         &:hover {
