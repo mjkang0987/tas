@@ -378,7 +378,7 @@ const StyledHeaderCloseButton = styled(CloseIconButton)`
 `;
 
 const StyledInfo = styled.div`
-    padding: 12px 16px;
+    padding: 8px;
     border-bottom: 1px solid var(--light-gray-color);
 
     dl {
@@ -442,7 +442,6 @@ const StyledNotesSection = styled.div`
     flex-direction: column;
     gap: 10px;
     padding: 12px 16px;
-    border-top: 1px solid var(--light-gray-color);
     border-bottom: 1px solid var(--light-gray-color);
 
     h4 {
@@ -508,8 +507,7 @@ const StyledReservationSection = styled.div`
 `;
 
 const StyledPointHistorySection = styled.div`
-    padding: 12px 16px;
-    border-top: 1px solid var(--light-gray-color);
+    padding: 8px;
     border-bottom: 1px solid var(--light-gray-color);
 
     h4 {
@@ -523,8 +521,7 @@ const StyledAddressMemoSection = styled.div`
     display: flex;
     flex-direction: column;
     gap: 10px;
-    padding: 12px 16px;
-    border-top: 1px solid var(--light-gray-color);
+    padding: 8px;
     border-bottom: 1px solid var(--light-gray-color);
 
     h4 {
@@ -650,7 +647,7 @@ const StyledEmptyText = styled.p`
 
 const StyledReservationScroll = styled.div`
     ${scrollContentStyle};
-    padding: 12px 16px 30px;
+    padding: 8px 8px 30px;
 
     h4 {
         margin: 0 0 8px;

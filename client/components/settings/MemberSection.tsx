@@ -287,7 +287,7 @@ const StyledError = styled.p`
 const StyledList = styled.div`
     display: flex;
     flex-direction: column;
-    gap: 8px;
+    gap: 4px;
 `;
 
 const StyledInviteItem = styled.div<{$dimmed?: boolean}>`

@@ -818,7 +818,7 @@ const StyledCustomerCard = styled.div`
 const StyledCustomerMeta = styled.div`
     display: flex;
     flex-direction: column;
-    gap: 4px;
+    gap: 2px;
 
     span {
         color: var(--dark-gray-color2);

@@ -244,7 +244,7 @@ const StyledEmpty = styled.p`
 const StyledList = styled.ul`
     display: flex;
     flex-direction: column;
-    gap: 8px;
+    gap: 2px;
 `;
 
 const StyledDateGroup = styled.div`
