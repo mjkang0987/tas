@@ -49,6 +49,7 @@ export function CustomerReservationCards({
                             onClick={onReservationClick}
                             showDate
                             showStatus
+                            showPrice
                             timeMode="range"
                             accentColor={designerColor}
                             accentBar
