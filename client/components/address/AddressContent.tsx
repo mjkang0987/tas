@@ -36,6 +36,7 @@ type AddressContentProps = {
     onStartEditing: (customerId: number) => void;
     onFinishEditing: () => void;
     onReservationClick: (reservation: Reservation) => void;
+    onCustomerClick: (customerId: number) => void;
     onMerge: (sourceIds: number[], targetId: number) => void;
 };
 
@@ -60,6 +61,7 @@ export function AddressContent({
     onStartEditing,
     onFinishEditing,
     onReservationClick,
+    onCustomerClick,
     onMerge,
 }: AddressContentProps) {
     const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
@@ -208,6 +210,7 @@ export function AddressContent({
                                     onStartEditing={onStartEditing}
                                     onFinishEditing={onFinishEditing}
                                     onReservationClick={onReservationClick}
+                                    onCustomerClick={onCustomerClick}
                                     checked={selectedIds.has(customer.id)}
                                     onCheck={handleCheck}
                                 />

@@ -26,9 +26,10 @@ type AddressCustomerSummaryProps = {
     stats?: CustomerStats;
     checked?: boolean;
     onCheck?: (id: number) => void;
+    onCustomerClick?: (customerId: number) => void;
 };
 
-export function AddressCustomerSummary({customer, stats, checked, onCheck}: AddressCustomerSummaryProps) {
+export function AddressCustomerSummary({customer, stats, checked, onCheck, onCustomerClick}: AddressCustomerSummaryProps) {
     return (
         <StyledSummary $hasCheckbox={!!onCheck}>
             {onCheck && (
@@ -39,7 +40,13 @@ export function AddressCustomerSummary({customer, stats, checked, onCheck}: Addr
                     onClick={(e) => e.stopPropagation()}
                 />
             )}
-            <strong>{customer.name}</strong>
+            {onCustomerClick ? (
+                <StyledNameButton type="button" onClick={(e) => { e.stopPropagation(); onCustomerClick(customer.id); }}>
+                    {customer.name}
+                </StyledNameButton>
+            ) : (
+                <strong>{customer.name}</strong>
+            )}
             <span>{customer.tel.replace(/(\d{3})(\d{4})(\d{4})/, '$1-$2-$3')}</span>
             <span>{stats?.recentService || '-'}</span>
             <span>{formatPrice(customer.points ?? 0)}</span>
@@ -52,6 +59,22 @@ export function AddressCustomerSummary({customer, stats, checked, onCheck}: Addr
         </StyledSummary>
     );
 }
+
+const StyledNameButton = styled.button`
+    all: unset;
+    font-size: var(--font);
+    font-weight: 500;
+    cursor: pointer;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+
+    @media (hover: hover) and (pointer: fine) {
+        &:hover {
+            color: var(--blue-color);
+        }
+    }
+`;
 
 const StyledCheckbox = styled.input`
     width: 16px;

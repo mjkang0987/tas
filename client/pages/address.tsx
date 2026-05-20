@@ -325,6 +325,7 @@ const Address: NextPage<AddressProps> = ({customers, reservations, history, stor
                 onReservationClick={(reservation) => {
                     setSelectedReservations((prev) => [...prev, reservation]);
                 }}
+                onCustomerClick={openCustomerDetail}
                 onMerge={handleMerge}
             />
             {lastMerge && (
