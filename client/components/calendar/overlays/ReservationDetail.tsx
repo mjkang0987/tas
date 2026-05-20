@@ -1,6 +1,7 @@
 import {useEffect, useMemo, useState} from 'react';
 
 import {createPortal} from 'react-dom';
+import {useRouter} from 'next/router';
 import styled from 'styled-components';
 
 import {useCalendarStore} from '../../../store/calendarStore';
@@ -17,6 +18,7 @@ import {
     sumPrice,
     calcEndTime,
     buildServiceColorMap,
+    formatPrice,
 } from '../../../utils/services';
 
 import {
@@ -49,7 +51,7 @@ import {
     getPointAmount,
 } from './reservationDetailUtils';
 
-const PAYMENT_METHOD_OPTIONS: PaymentMethod[] = ['현금', '현금+현금영수증', '카드', '네이버페이', '지역화폐', '지역화폐+현금영수증', '상품권', '적립금'];
+const PAYMENT_METHOD_OPTIONS: PaymentMethod[] = ['현금', '현금+현금영수증', '카드', '네이버페이', '네이버 예약금', '지역화폐', '지역화폐+현금영수증', '상품권', '적립금', '할인'];
 
 const MODE_LABELS: Partial<Record<ReservationDetailMode, string>> = {
     editing: '예약 수정',
@@ -141,6 +143,7 @@ export const ReservationDetail = ({
                                       onUpdate,
                                       onCancel
                                   }: ReservationDetailProps) => {
+    const router = useRouter();
     const storeReservationMap = useCalendarStore((s) => s.reservationMap);
     const effectiveReservationMap = useMemo(
         () => Object.keys(storeReservationMap).length > 0 ? storeReservationMap : reservationMapProp,
@@ -203,7 +206,7 @@ export const ReservationDetail = ({
     const draftReservation = buildDraftReservation(sourceReservation, form);
     const displayPrice = resolveReservationPrice(draftReservation);
     const [paymentEntries, setPaymentEntries] = useState<Array<{ method: PaymentMethod | ''; amount: string }>>(
-        () => getPaymentEntryDrafts(sourceReservation, displayPrice)
+        () => getPaymentEntryDrafts(sourceReservation, displayPrice, sourceReservation.naverDeposit ?? 0)
     );
     const [isPointAwardManual, setIsPointAwardManual] = useState(false);
     const [pointAward, setPointAward] = useState<PointAwardDraft>(() => ({
@@ -220,7 +223,7 @@ export const ReservationDetail = ({
         setSelectedServices(parseServiceString(sourceReservation.service));
         setIsEndTimeManual(false);
         setIsPriceManual(false);
-        setPaymentEntries(getPaymentEntryDrafts(sourceReservation, nextDisplayPrice));
+        setPaymentEntries(getPaymentEntryDrafts(sourceReservation, nextDisplayPrice, sourceReservation.naverDeposit ?? 0));
         setIsPointAwardManual(false);
         setPointAward({
             enabled: (sourceReservation.pointEarned ?? 0) > 0 || storeSettings.pointSettings.enableServiceRate,
@@ -411,6 +414,14 @@ export const ReservationDetail = ({
             return;
         }
 
+        const paymentTotal = normalizedEntries.reduce((sum, entry) => sum + entry.amount, 0);
+        const expectedAmount = displayPrice - (sourceReservation.naverDeposit ?? 0);
+
+        if (paymentTotal !== expectedAmount) {
+            setError(`결제 금액 합계(${formatPrice(paymentTotal)})가 시술 금액(${formatPrice(expectedAmount)})과 일치하지 않습니다.`);
+            return;
+        }
+
         const previousPointAmount = getPointAmount(getPaymentEntries(sourceReservation));
         const nextPointAmount = getPointAmount(normalizedEntries);
         const pointUsageDiff = nextPointAmount - previousPointAmount;
@@ -475,7 +486,7 @@ export const ReservationDetail = ({
         setIsEndTimeManual(false);
         setIsPriceManual(false);
         setIsHistoryOpen(false);
-        setPaymentEntries(getPaymentEntryDrafts(sourceReservation, nextDisplayPrice));
+        setPaymentEntries(getPaymentEntryDrafts(sourceReservation, nextDisplayPrice, sourceReservation.naverDeposit ?? 0));
         setIsPointAwardManual(false);
         setPointAward({
             enabled: (sourceReservation.pointEarned ?? 0) > 0 || storeSettings.pointSettings.enableServiceRate,
@@ -626,6 +637,8 @@ export const ReservationDetail = ({
                     showPointAward={showPointAward}
                     error={error}
                     paymentMethodOptions={PAYMENT_METHOD_OPTIONS}
+                    totalPrice={displayPrice}
+                    naverDeposit={sourceReservation.naverDeposit ?? 0}
                     onChangeEntryMethod={(index, value) => {
                         handlePaymentEntriesChange(paymentEntries.map((item, itemIndex) => (
                             itemIndex === index ? {...item, method: value} : item
@@ -660,6 +673,7 @@ export const ReservationDetail = ({
                         );
                     }}
                     onAddEntry={() => handlePaymentEntriesChange([...paymentEntries, {method: '', amount: ''}])}
+                    onNavigateToPoints={() => router.push('/settings/point')}
                 />
             )}
 
@@ -695,7 +709,7 @@ export const ReservationDetail = ({
                         onOpenCancelling={() => setMode('cancelling')}
                         onOpenNoshow={() => setMode('noshow')}
                         onOpenPayment={() => {
-                            setPaymentEntries(getPaymentEntryDrafts(sourceReservation, displayPrice));
+                            setPaymentEntries(getPaymentEntryDrafts(sourceReservation, displayPrice, sourceReservation.naverDeposit ?? 0));
                             setIsPointAwardManual(false);
                             setPointAward({
                                 enabled: (sourceReservation.pointEarned ?? 0) > 0 || storeSettings.pointSettings.enableServiceRate,

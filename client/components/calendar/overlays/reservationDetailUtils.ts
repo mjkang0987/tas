@@ -41,12 +41,24 @@ export function getPointAmount(entries: PaymentEntry[]): number {
 
 export function getPaymentEntryDrafts(
     reservation: Reservation,
-    fallbackAmount: number
+    fallbackAmount: number,
+    naverDeposit: number = 0,
 ): PaymentEntryDraft[] {
     const entries = getPaymentEntries(reservation);
-    return entries.length > 0
-        ? entries.map((entry) => ({method: entry.method, amount: String(entry.amount)}))
-        : [{method: '', amount: String(fallbackAmount)}];
+    if (entries.length > 0) {
+        return entries.map((entry) => ({method: entry.method, amount: String(entry.amount)}));
+    }
+
+    if (naverDeposit > 0) {
+        const remainder = fallbackAmount - naverDeposit;
+        const drafts: PaymentEntryDraft[] = [{method: '네이버 예약금', amount: String(naverDeposit)}];
+        if (remainder > 0) {
+            drafts.push({method: '', amount: String(remainder)});
+        }
+        return drafts;
+    }
+
+    return [{method: '', amount: String(fallbackAmount)}];
 }
 
 export function getChangedFields(
@@ -75,7 +87,7 @@ export function getChangedFields(
                     after: formatPrice(after.price)
                 });
             }
-        } else if (before[key] !== after[key]) {
+        } else if ((before[key] ?? '') !== (after[key] ?? '')) {
             fields.push({
                 label: FIELD_LABELS[key],
                 before: before[key] as string,
@@ -145,7 +157,7 @@ export function getHistoryDiffs(entry: ReservationHistoryEntry, designerNameMap:
                     after: formatPrice(afterPrice)
                 });
             }
-        } else if (entry.before[key] !== entry.after[key]) {
+        } else if ((entry.before[key] ?? '') !== (entry.after[key] ?? '')) {
             diffs.push({
                 label: FIELD_LABELS[key],
                 before: entry.before[key] as string,
