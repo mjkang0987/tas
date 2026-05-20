@@ -12,15 +12,17 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const session = await getApiSession(req, res);
     if (!requireRole(session, 'staff', res)) return;
 
-    const {sourceId, targetId} = req.body as { sourceId: number; targetId: number };
+    const body = req.body as { sourceId?: number; sourceIds?: number[]; targetId: number };
+    const sourceIds = body.sourceIds ?? (typeof body.sourceId === 'number' ? [body.sourceId] : []);
+    const {targetId} = body;
 
-    if (typeof sourceId !== 'number' || typeof targetId !== 'number' || sourceId === targetId) {
-        return res.status(400).json({error: 'Invalid sourceId or targetId'});
+    if (sourceIds.length === 0 || typeof targetId !== 'number' || sourceIds.includes(targetId)) {
+        return res.status(400).json({error: 'Invalid sourceIds or targetId'});
     }
 
-    const [source, target] = await Promise.all([
-        prisma.customer.findUnique({
-            where: {storeId_legacyId: {storeId: session.storeId, legacyId: sourceId}},
+    const [sources, target] = await Promise.all([
+        prisma.customer.findMany({
+            where: {storeId: session.storeId, legacyId: {in: sourceIds}},
             include: {memoTags: true},
         }),
         prisma.customer.findUnique({
@@ -29,101 +31,112 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         }),
     ]);
 
-    if (!source || !target) {
+    if (sources.length !== sourceIds.length || !target) {
         return res.status(404).json({error: 'Customer not found'});
     }
 
     const result = await prisma.$transaction(async (tx) => {
-        // 이동할 예약·포인트이력 ID 수집
-        const movedReservations = await tx.reservation.findMany({
-            where: {customerId: source.id},
-            select: {id: true},
-        });
-        const movedPointHistories = await tx.customerPointHistory.findMany({
-            where: {customerId: source.id},
-            select: {id: true},
-        });
+        const mergeHistoryIds: string[] = [];
+        let currentTargetPoints = target.points;
+        let currentTargetFirstVisit = target.firstVisitDate;
+        const currentTargetTagTexts = new Set(target.memoTags.map((t) => t.text));
 
-        // 1. 예약 이전
-        await tx.reservation.updateMany({
-            where: {customerId: source.id},
-            data: {customerId: target.id},
-        });
-
-        // 2. 포인트 이력 이전
-        await tx.customerPointHistory.updateMany({
-            where: {customerId: source.id},
-            data: {customerId: target.id},
-        });
-
-        // 3. 메모태그 병합 (source에만 있는 것 추가)
-        const targetTagTexts = new Set(target.memoTags.map((t) => t.text));
-        const newTags = source.memoTags.filter((t) => !targetTagTexts.has(t.text));
-        let addedTagIds: string[] = [];
-        if (newTags.length > 0) {
-            await tx.customerMemoTag.createMany({
-                data: newTags.map((t) => ({
-                    customerId: target.id,
-                    text: t.text,
-                    color: t.color,
-                })),
-            });
-            const created = await tx.customerMemoTag.findMany({
-                where: {
-                    customerId: target.id,
-                    text: {in: newTags.map((t) => t.text)},
-                },
+        for (const source of sources) {
+            // 이동할 예약·포인트이력 ID 수집
+            const movedReservations = await tx.reservation.findMany({
+                where: {customerId: source.id},
                 select: {id: true},
             });
-            addedTagIds = created.map((t) => t.id);
+            const movedPointHistories = await tx.customerPointHistory.findMany({
+                where: {customerId: source.id},
+                select: {id: true},
+            });
+
+            // 1. 예약 이전
+            await tx.reservation.updateMany({
+                where: {customerId: source.id},
+                data: {customerId: target.id},
+            });
+
+            // 2. 포인트 이력 이전
+            await tx.customerPointHistory.updateMany({
+                where: {customerId: source.id},
+                data: {customerId: target.id},
+            });
+
+            // 3. 메모태그 병합 (target에 없는 것만 추가)
+            const newTags = source.memoTags.filter((t) => !currentTargetTagTexts.has(t.text));
+            let addedTagIds: string[] = [];
+            if (newTags.length > 0) {
+                await tx.customerMemoTag.createMany({
+                    data: newTags.map((t) => ({
+                        customerId: target.id,
+                        text: t.text,
+                        color: t.color,
+                    })),
+                });
+                const created = await tx.customerMemoTag.findMany({
+                    where: {
+                        customerId: target.id,
+                        text: {in: newTags.map((t) => t.text)},
+                    },
+                    select: {id: true, text: true},
+                });
+                addedTagIds = created.map((t) => t.id);
+                for (const t of created) currentTargetTagTexts.add(t.text);
+            }
+
+            // 4. 병합 이력 저장 (분리 복원용) — target 스냅샷은 이 source 병합 직전 상태
+            const mergeHistory = await tx.customerMergeHistory.create({
+                data: {
+                    storeId: session.storeId,
+                    sourceCustomerJson: {
+                        id: source.id,
+                        legacyId: source.legacyId,
+                        name: source.name,
+                        tel: source.tel,
+                        points: source.points,
+                        firstVisitDate: source.firstVisitDate,
+                        allergyNote: source.allergyNote,
+                        claimNote: source.claimNote,
+                        preferenceNote: source.preferenceNote,
+                        memoTags: source.memoTags.map((t) => ({text: t.text, color: t.color})),
+                    },
+                    targetCustomerJson: {
+                        id: target.id,
+                        legacyId: target.legacyId,
+                        points: currentTargetPoints,
+                        firstVisitDate: currentTargetFirstVisit,
+                    },
+                    movedReservationIds: movedReservations.map((r) => r.id),
+                    movedPointHistoryIds: movedPointHistories.map((p) => p.id),
+                    addedMemoTagIds: addedTagIds,
+                },
+            });
+            mergeHistoryIds.push(mergeHistory.id);
+
+            // 5. 포인트 합산 + firstVisitDate 갱신
+            currentTargetPoints += source.points;
+            const earliestDate = source.firstVisitDate && currentTargetFirstVisit
+                ? (source.firstVisitDate < currentTargetFirstVisit ? source.firstVisitDate : currentTargetFirstVisit)
+                : source.firstVisitDate ?? currentTargetFirstVisit;
+            currentTargetFirstVisit = earliestDate;
+
+            // 6. source 고객 삭제
+            await tx.customer.delete({where: {id: source.id}});
         }
 
-        // 4. 포인트 합산 + firstVisitDate 갱신
-        const earliestDate = source.firstVisitDate && target.firstVisitDate
-            ? (source.firstVisitDate < target.firstVisitDate ? source.firstVisitDate : target.firstVisitDate)
-            : source.firstVisitDate ?? target.firstVisitDate;
-
+        // target 고객 최종 업데이트
         await tx.customer.update({
             where: {id: target.id},
             data: {
-                points: target.points + source.points,
-                ...(earliestDate && {firstVisitDate: earliestDate}),
+                points: currentTargetPoints,
+                ...(currentTargetFirstVisit && {firstVisitDate: currentTargetFirstVisit}),
             },
         });
 
-        // 5. 병합 이력 저장 (분리 복원용)
-        const mergeHistory = await tx.customerMergeHistory.create({
-            data: {
-                storeId: session.storeId,
-                sourceCustomerJson: {
-                    id: source.id,
-                    legacyId: source.legacyId,
-                    name: source.name,
-                    tel: source.tel,
-                    points: source.points,
-                    firstVisitDate: source.firstVisitDate,
-                    allergyNote: source.allergyNote,
-                    claimNote: source.claimNote,
-                    preferenceNote: source.preferenceNote,
-                    memoTags: source.memoTags.map((t) => ({text: t.text, color: t.color})),
-                },
-                targetCustomerJson: {
-                    id: target.id,
-                    legacyId: target.legacyId,
-                    points: target.points,
-                    firstVisitDate: target.firstVisitDate,
-                },
-                movedReservationIds: movedReservations.map((r) => r.id),
-                movedPointHistoryIds: movedPointHistories.map((p) => p.id),
-                addedMemoTagIds: addedTagIds,
-            },
-        });
-
-        // 6. source 고객 삭제 (memoTags cascade 삭제)
-        await tx.customer.delete({where: {id: source.id}});
-
-        return {mergeHistoryId: mergeHistory.id};
+        return {mergeHistoryIds};
     });
 
-    return res.status(200).json({merged: true, targetId, mergeHistoryId: result.mergeHistoryId});
+    return res.status(200).json({merged: true, targetId, mergeHistoryIds: result.mergeHistoryIds});
 }

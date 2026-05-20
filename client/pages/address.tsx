@@ -57,7 +57,7 @@ const Address: NextPage<AddressProps> = ({customers, reservations, history, stor
     const [tagInput, setTagInput] = useState('');
     const [selectedColor, setSelectedColor] = useState(TAG_COLORS[0]);
     const [selectedReservations, setSelectedReservations] = useState<Reservation[]>([]);
-    const [lastMerge, setLastMerge] = useState<{mergeHistoryId: string; sourceName: string; targetName: string} | null>(() => {
+    const [lastMerge, setLastMerge] = useState<{mergeHistoryIds: string[]; sourceNames: string[]; targetName: string} | null>(() => {
         if (typeof window === 'undefined') return null;
         const saved = sessionStorage.getItem('lastMerge');
         if (saved) {
@@ -237,15 +237,15 @@ const Address: NextPage<AddressProps> = ({customers, reservations, history, stor
         });
     };
 
-    const handleMerge = useCallback(async (sourceId: number, targetId: number) => {
-        const sourceCustomer = customerList.find((c) => c.id === sourceId);
+    const handleMerge = useCallback(async (sourceIds: number[], targetId: number) => {
+        const sourceCustomers = sourceIds.map((id) => customerList.find((c) => c.id === id));
         const targetCustomer = customerList.find((c) => c.id === targetId);
 
         try {
             const resp = await fetch('/api/customers/merge', {
                 method: 'POST',
                 headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({sourceId, targetId}),
+                body: JSON.stringify({sourceIds, targetId}),
             });
 
             if (!resp.ok) {
@@ -256,13 +256,12 @@ const Address: NextPage<AddressProps> = ({customers, reservations, history, stor
 
             const data = await resp.json();
             const mergeInfo = {
-                mergeHistoryId: data.mergeHistoryId,
-                sourceName: sourceCustomer?.name ?? String(sourceId),
+                mergeHistoryIds: data.mergeHistoryIds as string[],
+                sourceNames: sourceCustomers.map((c) => c?.name ?? '?'),
                 targetName: targetCustomer?.name ?? String(targetId),
             };
             sessionStorage.setItem('lastMerge', JSON.stringify(mergeInfo));
 
-            // 데이터 새로고침
             window.location.reload();
         } catch {
             alert('병합 중 오류가 발생했습니다.');
@@ -276,7 +275,7 @@ const Address: NextPage<AddressProps> = ({customers, reservations, history, stor
             const resp = await fetch('/api/customers/unmerge', {
                 method: 'POST',
                 headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({mergeHistoryId: lastMerge.mergeHistoryId}),
+                body: JSON.stringify({mergeHistoryIds: lastMerge.mergeHistoryIds}),
             });
 
             if (!resp.ok) {
@@ -330,7 +329,7 @@ const Address: NextPage<AddressProps> = ({customers, reservations, history, stor
             />
             {lastMerge && (
                 <StyledUndoToast>
-                    <span>&quot;{lastMerge.sourceName}&quot; → &quot;{lastMerge.targetName}&quot; 병합 완료</span>
+                    <span>{lastMerge.sourceNames.length}명 → &quot;{lastMerge.targetName}&quot; 병합 완료</span>
                     <button type="button" onClick={handleUnmerge}>되돌리기</button>
                     <button type="button" onClick={() => setLastMerge(null)}>✕</button>
                 </StyledUndoToast>

@@ -36,7 +36,7 @@ type AddressContentProps = {
     onStartEditing: (customerId: number) => void;
     onFinishEditing: () => void;
     onReservationClick: (reservation: Reservation) => void;
-    onMerge: (sourceId: number, targetId: number) => void;
+    onMerge: (sourceIds: number[], targetId: number) => void;
 };
 
 export function AddressContent({
@@ -69,7 +69,7 @@ export function AddressContent({
             const next = new Set(prev);
             if (next.has(id)) {
                 next.delete(id);
-            } else if (next.size < 2) {
+            } else {
                 next.add(id);
             }
             return next;
@@ -77,45 +77,39 @@ export function AddressContent({
     }, []);
 
     const handleMerge = useCallback(() => {
-        if (selectedIds.size !== 2) return;
-        const [idA, idB] = [...selectedIds];
-        const customerA = filteredCustomers.find((c) => c.id === idA);
-        const customerB = filteredCustomers.find((c) => c.id === idB);
-        if (!customerA || !customerB) return;
+        if (selectedIds.size < 2) return;
 
-        const aIsMasked = customerA.name.includes('*');
-        const bIsMasked = customerB.name.includes('*');
+        const ids = [...selectedIds];
+        const customers = ids.map((id) => filteredCustomers.find((c) => c.id === id)).filter(Boolean) as Customer[];
+        if (customers.length !== ids.length) return;
 
-        let sourceId: number;
-        let targetId: number;
+        // 기준 고객 결정: 실명 고객 우선 → 예약이 가장 빠른 고객
+        const getEarliest = (id: number) => {
+            const rList = reservationsByCustomer[id] ?? [];
+            return rList.length > 0 ? rList.reduce((min, r) => r.date < min ? r.date : min, rList[0].date) : '9999';
+        };
 
-        if (aIsMasked && !bIsMasked) {
-            sourceId = idA; targetId = idB;
-        } else if (!aIsMasked && bIsMasked) {
-            sourceId = idB; targetId = idA;
+        const realNames = customers.filter((c) => !c.name.includes('*'));
+        let target: Customer;
+
+        if (realNames.length === 1) {
+            target = realNames[0];
         } else {
-            // 둘 다 같은 경우: 예약이 빠른 고객이 기준(target)
-            const aReservations = reservationsByCustomer[idA] ?? [];
-            const bReservations = reservationsByCustomer[idB] ?? [];
-            const aEarliest = aReservations.length > 0 ? aReservations.reduce((min, r) => r.date < min ? r.date : min, aReservations[0].date) : '9999';
-            const bEarliest = bReservations.length > 0 ? bReservations.reduce((min, r) => r.date < min ? r.date : min, bReservations[0].date) : '9999';
-            if (aEarliest <= bEarliest) {
-                targetId = idA; sourceId = idB;
-            } else {
-                targetId = idB; sourceId = idA;
-            }
+            const pool = realNames.length > 0 ? realNames : customers;
+            target = pool.reduce((best, c) =>
+                getEarliest(c.id) <= getEarliest(best.id) ? c : best
+            );
         }
 
-        const targetCustomer = filteredCustomers.find((c) => c.id === targetId);
-        const sourceCustomer = filteredCustomers.find((c) => c.id === sourceId);
-        if (!targetCustomer || !sourceCustomer) return;
+        const sourceCustomers = customers.filter((c) => c.id !== target.id);
+        const sourceNames = sourceCustomers.map((c) => `"${c.name}"`).join(', ');
 
         const ok = window.confirm(
-            `"${sourceCustomer.name}"의 예약·적립금을 "${targetCustomer.name}"에게 병합합니다.\n\n"${sourceCustomer.name}" 고객은 삭제됩니다.\n\n계속하시겠습니까?`
+            `${sourceNames}의 예약·적립금을 "${target.name}"에게 병합합니다.\n\n${sourceCustomers.length}명의 고객이 삭제됩니다.\n\n계속하시겠습니까?`
         );
         if (!ok) return;
 
-        onMerge(sourceId, targetId);
+        onMerge(sourceCustomers.map((c) => c.id), target.id);
         setSelectedIds(new Set());
     }, [selectedIds, filteredCustomers, reservationsByCustomer, onMerge]);
 
@@ -132,11 +126,11 @@ export function AddressContent({
                             placeholder="고객명, 연락처, 메모 검색"
                         />
                     </InputWrap>
-                    {selectedIds.size === 2 && (
-                        <StyledMergeButton type="button" onClick={handleMerge}>병합</StyledMergeButton>
+                    {selectedIds.size >= 2 && (
+                        <StyledMergeButton type="button" onClick={handleMerge}>병합({selectedIds.size}명)</StyledMergeButton>
                     )}
                     {selectedIds.size === 1 && (
-                        <StyledMergeHint>병합할 고객 1명을 더 선택하세요</StyledMergeHint>
+                        <StyledMergeHint>병합할 고객을 더 선택하세요</StyledMergeHint>
                     )}
                 </StyledSearchRow>
             </StyledSticky>
