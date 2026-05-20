@@ -225,7 +225,8 @@ const StyledSticky = styled.div<{ $expanded?: boolean }>`
     top: 0;
     padding: 20px 10px 0;
     z-index: 2;
-    background-color: var(--bg-color, #fff);
+    background: rgba(255, 255, 255, .1);
+    backdrop-filter: blur(.8px) saturate(180%);
 `;
 
 const StyledSearchRow = styled.div`
