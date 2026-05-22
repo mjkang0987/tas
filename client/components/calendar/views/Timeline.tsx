@@ -237,6 +237,7 @@ export const Timeline = ({
                 designerNameById={designerNameById}
                 onClose={() => setOpenClusterState(null)}
                 onReservationClick={(reservation) => {
+                    setOpenClusterState(null);
                     openReservationDetail(reservation);
                 }}
             />
