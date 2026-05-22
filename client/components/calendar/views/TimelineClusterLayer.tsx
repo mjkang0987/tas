@@ -93,22 +93,26 @@ export function TimelineClusterLayer({
 
                                     return (
                                         <StyledClusterItem key={reservation.id}>
-                                            <ReservationInfoCard
-                                                reservation={reservation}
-                                                serviceColorMap={serviceColorMap}
-                                                designerColor={designerColor}
-                                                designerName={designerNameById(reservation.designerId)}
-                                                customerName={customer?.name ?? '-'}
-                                                today={today}
-                                                isNewCustomer={isNewCustomerVisit(customer?.firstVisitDate, reservation.date)}
-                                                onClick={onReservationClick}
-                                                showDate={false}
-                                                showStatus
-                                                timeMode="range"
-                                                accentColor={designerColor}
-                                                accentBar
-                                                className={isInactive ? 'inactive' : undefined}
-                                            />
+                                            <StyledClusterCardButton
+                                                type="button"
+                                                onClick={() => onReservationClick(reservation)}
+                                            >
+                                                <ReservationInfoCard
+                                                    reservation={reservation}
+                                                    serviceColorMap={serviceColorMap}
+                                                    designerColor={designerColor}
+                                                    designerName={designerNameById(reservation.designerId)}
+                                                    customerName={customer?.name ?? '-'}
+                                                    today={today}
+                                                    isNewCustomer={isNewCustomerVisit(customer?.firstVisitDate, reservation.date)}
+                                                    showDate={false}
+                                                    showStatus
+                                                    timeMode="range"
+                                                    accentColor={designerColor}
+                                                    accentBar
+                                                    className={isInactive ? 'inactive' : undefined}
+                                                />
+                                            </StyledClusterCardButton>
                                         </StyledClusterItem>
                                     );
                                 })}
@@ -151,4 +155,15 @@ const StyledClusterItem = styled.li`
     .inactive {
         opacity: 0.5;
     }
+`;
+
+const StyledClusterCardButton = styled.button`
+    display: block;
+    width: 100%;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    font: inherit;
+    text-align: left;
+    cursor: pointer;
 `;
