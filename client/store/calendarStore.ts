@@ -182,6 +182,7 @@ export interface CalendarState {
     addReservation: (reservation: Reservation) => void;
     updateReservation: (prev: Reservation, updated: Reservation) => void;
     cancelReservation: (reservation: Reservation, status?: ReservationStatus) => void;
+    restoreReservation: (reservation: Reservation) => void;
     addSyncNotifications: (items: SyncNotification[]) => void;
     markSyncNotificationRead: (id: string) => void;
     markSyncNotificationsRead: () => void;
@@ -648,6 +649,52 @@ export const useCalendarStore = create<CalendarState>((set) => ({
             method: 'PATCH',
             headers: {'Content-Type': 'application/json'},
             body: JSON.stringify({id: reservation.id, status})
+        });
+    },
+
+    restoreReservation: (reservation) => {
+        const updated: Reservation = {...reservation, status: 'active'};
+
+        let nextReservationMap: ReservationMap | null = null;
+        let nextHistory: ReservationHistoryEntry[] = [];
+
+        set((state) => {
+            const reservations = state.reservationMap[reservation.date] ?? [];
+            const nextDateReservations = reservations.map((r) =>
+                r.id === reservation.id ? updated : r
+            );
+            const nextMap = {...state.reservationMap, [reservation.date]: nextDateReservations};
+            const historyEntry: ReservationHistoryEntry = {
+                reservationId: reservation.id,
+                before: reservation,
+                after: updated,
+                timestamp: new Date().toISOString(),
+            };
+            nextHistory = [...state.reservationHistory, historyEntry];
+            nextReservationMap = nextMap;
+            const nextCustomerMap = syncCustomerFirstVisitDates(state.customerMap, nextMap);
+            if (Object.keys(nextCustomerMap).length > 0) {
+                syncCustomerSettings(Object.values(nextCustomerMap));
+            }
+            return {
+                reservationMap: nextMap,
+                reservationHistory: nextHistory,
+                customerMap: nextCustomerMap,
+            };
+        });
+
+        if (nextReservationMap) {
+            syncReservationState(nextReservationMap, nextHistory);
+        }
+
+        if (shouldUseLocalDb()) {
+            return;
+        }
+
+        fetch('/api/reservations', {
+            method: 'PATCH',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({id: reservation.id, status: 'active'})
         });
     },
 

@@ -63,6 +63,7 @@ export function ReservationInfoCard({
     className,
 }: ReservationInfoCardProps) {
     const clickable = !!onClick;
+    const isInactive = reservation.status === 'cancelled' || reservation.status === 'noshow';
     const state = getReservationState(reservation, today);
     const timeText = getTimeText(reservation, timeMode);
     const handleActivate = () => {
@@ -81,7 +82,7 @@ export function ReservationInfoCard({
     return (
         <StyledCard
             {...(clickable ? {as: 'button' as const, type: 'button' as const} : {})}
-            className={className}
+            className={[className, isInactive ? 'inactive' : ''].filter(Boolean).join(' ') || undefined}
             $accentColor={accentColor ?? designerColor}
             $accentBar={accentBar}
             $clickable={clickable}
@@ -108,10 +109,18 @@ export function ReservationInfoCard({
                         {isNewCustomer && <NewCustomerBadge>N</NewCustomerBadge>}
                         {onCustomerClick ? (
                             <StyledCustomerButton
-                                type="button"
+                                role="button"
+                                tabIndex={0}
                                 onClick={(event) => {
                                     event.stopPropagation();
                                     onCustomerClick(reservation.customerId);
+                                }}
+                                onKeyDown={(event) => {
+                                    if (event.key === 'Enter' || event.key === ' ') {
+                                        event.preventDefault();
+                                        event.stopPropagation();
+                                        onCustomerClick(reservation.customerId);
+                                    }
                                 }}
                             >
                                 {customerName}
@@ -182,6 +191,11 @@ const StyledCard = styled.div<{
 
     @media (max-width: 640px) {
         flex-wrap: wrap;
+    }
+
+    &.inactive {
+        filter: grayscale(.5);
+        opacity: 0.5;
     }
 `;
 
@@ -260,11 +274,8 @@ const StyledCustomerName = styled.span`
     font-size: var(--small-font);
 `;
 
-const StyledCustomerButton = styled.button`
+const StyledCustomerButton = styled.span`
     min-width: 0;
-    border: 0;
-    padding: 0;
-    background: transparent;
     font-weight: 700;
     color: #0f172a;
     text-align: left;

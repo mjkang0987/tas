@@ -82,16 +82,16 @@ export const PointManageSection = () => {
         <StyledWrap>
             <StyledStickyHeader>
                 <StyledTopBar>
-                    <StyledTotalCard>
-                        <span>전체 적립금 잔액</span>
+                    <StyledTabRow>
+                        <StyledTabButton type="button" $active={activeTab === 'history'} onClick={() => setActiveTab('history')}>내역</StyledTabButton>
+                        <StyledTabButton type="button" $active={activeTab === 'adjust'} onClick={() => setActiveTab('adjust')}>적립</StyledTabButton>
+                        <StyledTabButton type="button" $active={activeTab === 'settings'} onClick={() => setActiveTab('settings')}>설정</StyledTabButton>
+                    </StyledTabRow>
+                    <StyledTotalBadge>
+                        <span>전체 잔액</span>
                         <strong>{formatPrice(totalPoints)}</strong>
-                    </StyledTotalCard>
+                    </StyledTotalBadge>
                 </StyledTopBar>
-                <StyledTabRow>
-                    <StyledTabButton type="button" $active={activeTab === 'history'} onClick={() => setActiveTab('history')}>내역</StyledTabButton>
-                    <StyledTabButton type="button" $active={activeTab === 'adjust'} onClick={() => setActiveTab('adjust')}>적립</StyledTabButton>
-                    <StyledTabButton type="button" $active={activeTab === 'settings'} onClick={() => setActiveTab('settings')}>설정</StyledTabButton>
-                </StyledTabRow>
             </StyledStickyHeader>
             {activeTab === 'history' && (
                 <StyledHistorySection>
@@ -380,13 +380,10 @@ const StyledStickyHeader = styled.div`
     position: sticky;
     top: 0;
     z-index: 12;
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
     margin: 0 -10px;
-    padding: 0 10px 12px;
+    padding: 10px 10px;
     border-bottom: 1px solid rgba(15, 23, 42, 0.06);
-    background: rgba(255, 255, 255, .1); /* 살짝만 흰색 */
+    background: rgba(255, 255, 255, .1);
     backdrop-filter: blur(.8px) saturate(180%);
 `;
 
@@ -431,28 +428,24 @@ const StyledCancelBtn = styled.button`
 
 const StyledTopBar = styled.div`
     display: flex;
-    justify-content: flex-end;
-    gap: 16px;
-    align-items: flex-start;
-    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
 `;
 
-const StyledTotalCard = styled.div`
-    min-width: 180px;
-    padding: 12px 14px;
-    border: 1px solid var(--light-gray-color);
-    border-radius: 8px;
-    background: var(--white-color);
+const StyledTotalBadge = styled.div`
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-shrink: 0;
 
     span {
-        display: block;
-        margin-bottom: 6px;
-        color: var(--dark-gray-color2);
         font-size: 12px;
+        color: var(--dark-gray-color2);
     }
 
     strong {
-        font-size: 18px;
+        font-size: 14px;
     }
 `;
 

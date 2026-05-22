@@ -70,6 +70,7 @@ const StyledReserveButton = styled.button <Props>`
     box-sizing: border-box;
     z-index: 1;
     opacity: ${props => props.$cancelled ? 0.5 : 1};
+    filter: ${props => props.$cancelled ? 'grayscale(.5)' : 'none'};
     transition: max-height 0.2s ease, box-shadow 0.2s ease;
     text-align: left;
     @media (max-width: 640px) {

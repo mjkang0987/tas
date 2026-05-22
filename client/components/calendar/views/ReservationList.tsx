@@ -51,6 +51,7 @@ export const ReservationList = ({reservations: rawReservations, variant, onViewA
                     <li key={r.id}>
                         <StyledItem type="button"
                                     $color={r.designerId ? (designerColorMap[r.designerId] ?? '#8E8E93') : '#8E8E93'}
+                                    $inactive={r.status === 'cancelled' || r.status === 'noshow'}
                                     onClick={(e) => {
                                         e.stopPropagation();
                                         setCreateReservationInitial(null);
@@ -100,7 +101,7 @@ const StyledList = styled.ul<{ $variant: 'date' | 'month' }>`
     box-sizing: border-box;
 `;
 
-const StyledItem = styled.button<{ $color: string }>`
+const StyledItem = styled.button<{ $color: string; $inactive?: boolean }>`
     display: flex;
     flex-wrap: wrap;
     align-items: center;
@@ -115,6 +116,7 @@ const StyledItem = styled.button<{ $color: string }>`
     font-size: 11px;
     cursor: pointer;
     text-align: left;
+    ${(p) => p.$inactive && 'filter: grayscale(.5); opacity: 0.5;'}
 
     @media (hover: hover) and (pointer: fine) {
         &:hover {

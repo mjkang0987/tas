@@ -77,6 +77,7 @@ const Settings: NextPage<SettingsProps> = ({reservations, customers, history, st
     const designers = useCalendarStore((s) => s.designers);
     const updateReservation = useCalendarStore((s) => s.updateReservation);
     const cancelReservation = useCalendarStore((s) => s.cancelReservation);
+    const restoreReservation = useCalendarStore((s) => s.restoreReservation);
     const selectedReservationIds = useCalendarStore((s) => s.selectedReservations);
     const openReservationDetail = useCalendarStore((s) => s.openReservationDetail);
     const openReservationDetailFromCustomer = useCalendarStore((s) => s.openReservationDetailFromCustomer);
@@ -266,7 +267,8 @@ const Settings: NextPage<SettingsProps> = ({reservations, customers, history, st
                                    onClose={() => closeReservationDetail(index)}
                                    onCustomerClick={openCustomerDetail}
                                    onUpdate={updateReservation}
-                                   onCancel={cancelReservation}/>
+                                   onCancel={cancelReservation}
+                                   onRestore={restoreReservation}/>
             ))}
             {selectedCustomerId !== null && storeCustomerMap[selectedCustomerId] && (
                 <CustomerDetail customer={storeCustomerMap[selectedCustomerId]}

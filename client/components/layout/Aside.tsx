@@ -24,6 +24,7 @@ const SETTINGS_SUBMENU = [
     {tab: 'store', href: '/settings/store', label: '매장관리', icon: 'store'},
     {tab: 'service', href: '/settings/service', label: '서비스관리', icon: 'service'},
     {tab: 'designer', href: '/settings/designer', label: '디자이너관리', icon: 'designer'},
+    {tab: 'customers', href: '/address', label: '고객명단', icon: 'customers'},
     {tab: 'member', href: '/settings/member', label: '멤버관리', icon: 'member'},
     {tab: 'my', href: '/mypage', label: '계정관리', icon: 'account'},
 ];
@@ -40,19 +41,29 @@ export const Aside = () => {
     const [reservationOpen, setReservationOpen] = useState(true);
     const [settingsOpen, setSettingsOpen] = useState(true);
 
-    const setChangeView = ({viewType}: { viewType: string }) => {
-        setView({type: viewType.toLowerCase()});
+    const todayMidnight = () => {
+        const now = new Date();
+        return new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    };
 
-        if (viewType === ViewType.Week) {
-            setCurr(new Date(Number(currValue.fullYear), Number(currValue.month), Number(currValue.date) - Number(currValue.day)));
+    const setChangeView = ({viewType}: { viewType: string }) => {
+        const type = viewType.toLowerCase();
+        setView({type});
+
+        const today = todayMidnight();
+        if (type === ViewType.Week) {
+            today.setDate(today.getDate() - today.getDay());
         }
+        setCurr(today);
     };
 
     const setAsPath = (path: string) => {
-        const baseDate = currValue.full ? new Date(currValue.full) : new Date(currValue.fullYear, currValue.month, currValue.date || 1);
-        const weekStartDate = new Date(baseDate);
-        weekStartDate.setDate(baseDate.getDate() - Number(currValue.day));
-        const routeDate = path === ViewType.Week ? weekStartDate : baseDate;
+        const routeDate = todayMidnight();
+
+        if (path === ViewType.Week) {
+            routeDate.setDate(routeDate.getDate() - routeDate.getDay());
+        }
+
         const result: (string | number)[] = [path, routeDate.getFullYear()];
 
         if (path !== ViewType.Year) {
@@ -133,14 +144,6 @@ export const Aside = () => {
                         <MenuIcon icon="create"/>
                         <ButtonText a11y={false}>예약추가</ButtonText>
                     </StyledCreateButton>
-                    <StyledNavLink href="/address"
-                                   $active={router.pathname === '/address'}
-                                   onClick={closeMobile}>
-                        <StyledMenuContent>
-                            <MenuIcon icon="customers"/>
-                            <span>고객명단</span>
-                        </StyledMenuContent>
-                    </StyledNavLink>
                     <StyledDivider />
                     <StyledAccordionToggle type="button"
                                            onClick={() => setSettingsOpen(!settingsOpen)}>
@@ -160,7 +163,9 @@ export const Aside = () => {
                             <StyledSubNavLink href={item.href}
                                               $active={item.tab === 'my'
                                                   ? router.pathname === '/mypage'
-                                                  : isSettingsPage && activeSettingsTab === item.tab}
+                                                  : item.tab === 'customers'
+                                                      ? router.pathname === '/address'
+                                                      : isSettingsPage && activeSettingsTab === item.tab}
                                               key={item.tab}
                                               onClick={closeMobile}>
                                 <StyledMenuContent>

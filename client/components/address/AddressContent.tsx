@@ -228,8 +228,9 @@ const StyledSticky = styled.div<{ $expanded?: boolean }>`
     top: 0;
     padding: 20px 10px 0;
     z-index: 2;
-    background: rgba(255, 255, 255, .1);
-    backdrop-filter: blur(.8px) saturate(180%);
+    background: ${(p) => p.$expanded ? '#fff' : 'rgba(255, 255, 255, .1)'};
+    backdrop-filter: ${(p) => p.$expanded ? 'none' : 'blur(.8px) saturate(180%)'};
+    ${(p) => p.$expanded && 'box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);'}
 `;
 
 const StyledSearchRow = styled.div`
@@ -330,6 +331,8 @@ const StyledPreviewList = styled.ul`
     flex-direction: column;
     gap: 6px;
     margin-bottom: 12px;
+    max-height: 200px;
+    overflow-y: auto;
 `;
 
 const StyledPreviewItem = styled.li<{ $isTarget: boolean }>`
@@ -346,6 +349,8 @@ const StyledPreviewItem = styled.li<{ $isTarget: boolean }>`
 
 const StyledPreviewRadio = styled.input`
     flex-shrink: 0;
+    width: 16px;
+    height: 16px;
     cursor: pointer;
 `;
 

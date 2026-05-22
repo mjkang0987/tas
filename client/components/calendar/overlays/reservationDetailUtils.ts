@@ -117,6 +117,12 @@ export function getHistoryDiffs(entry: ReservationHistoryEntry, designerNameMap:
         return diffs;
     }
 
+    if (entry.after.status === 'active' && (entry.before.status === 'cancelled' || entry.before.status === 'noshow')) {
+        const beforeLabel = entry.before.status === 'cancelled' ? '취소됨' : '노쇼';
+        diffs.push({label: '상태', before: beforeLabel, after: '활성'});
+        return diffs;
+    }
+
     if ((entry.before.paymentCompleted ?? false) !== (entry.after.paymentCompleted ?? false)) {
         diffs.push({
             label: '결제상태',

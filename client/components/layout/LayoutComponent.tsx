@@ -19,7 +19,6 @@ import {ViewType} from '../../utils/constants';
 
 import {Header} from './Header';
 import {Aside} from './Aside';
-import {Footer} from './Footer';
 import {Icon} from '../ui/Icons';
 import {ReservationCreate} from '../calendar/overlays/ReservationCreate';
 
@@ -172,7 +171,6 @@ export default function LayoutComponent({children}: NodeType) {
                                            onClose={() => setCreateReservationInitial(null)}
                                            onSave={addReservation}/>
                     )}
-                    <Footer/>
                 </>}
             </StyledContent>
         </StyledWrapper>

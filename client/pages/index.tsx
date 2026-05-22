@@ -50,6 +50,7 @@ const Home: NextPage<HomeProps> = (props) => {
     const openReservationDetailFromCustomer = useCalendarStore((s) => s.openReservationDetailFromCustomer);
     const updateReservation = useCalendarStore((s) => s.updateReservation);
     const cancelReservation = useCalendarStore((s) => s.cancelReservation);
+    const restoreReservation = useCalendarStore((s) => s.restoreReservation);
     const reservationHistory = useCalendarStore((s) => s.reservationHistory);
     const setReservationHistory = useCalendarStore((s) => s.setReservationHistory);
     const customerMap = useCalendarStore((s) => s.customerMap);
@@ -100,7 +101,8 @@ const Home: NextPage<HomeProps> = (props) => {
                                    onClose={() => closeReservationDetail(index)}
                                    onCustomerClick={openCustomerDetail}
                                    onUpdate={updateReservation}
-                                   onCancel={cancelReservation}/>
+                                   onCancel={cancelReservation}
+                                   onRestore={restoreReservation}/>
             ))}
             {selectedCustomer && <CustomerDetail customer={selectedCustomer}
                                                  reservationMap={reservationMap}

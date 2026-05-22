@@ -72,6 +72,7 @@ interface ReservationDetailProps {
     onCustomerClick: (customerId: number) => void;
     onUpdate: (prev: Reservation, updated: Reservation) => void;
     onCancel: (reservation: Reservation, status?: ReservationStatus) => void;
+    onRestore: (reservation: Reservation) => void;
 }
 
 function resolveReservationPrice(reservation: Reservation): number {
@@ -141,7 +142,8 @@ export const ReservationDetail = ({
                                       onClose,
                                       onCustomerClick,
                                       onUpdate,
-                                      onCancel
+                                      onCancel,
+                                      onRestore
                                   }: ReservationDetailProps) => {
     const router = useRouter();
     const storeReservationMap = useCalendarStore((s) => s.reservationMap);
@@ -724,6 +726,7 @@ export const ReservationDetail = ({
                         onConfirmSave={handleConfirmSave}
                         onCancelReservation={() => onCancel(sourceReservation)}
                         onNoshowReservation={() => onCancel(sourceReservation, 'noshow')}
+                        onRestoreReservation={() => onRestore(sourceReservation)}
                         onPaymentSave={handlePaymentSave}
                         onBackToEditing={() => setMode('editing')}
                         onBackToView={() => setMode('view')}

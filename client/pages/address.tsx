@@ -192,18 +192,28 @@ const Address: NextPage<AddressProps> = ({customers, reservations, history, stor
         return stats;
     }, [reservationsByCustomer, today]);
 
+    const sortedCustomerList = useMemo(() => {
+        const isKorean = (s: string) => /^[가-힣]/.test(s);
+        return [...customerList].sort((a, b) => {
+            const aKo = isKorean(a.name);
+            const bKo = isKorean(b.name);
+            if (aKo !== bKo) return aKo ? 1 : -1;
+            return a.name.localeCompare(b.name, aKo ? 'ko' : 'en');
+        });
+    }, [customerList]);
+
     const filteredCustomers = useMemo(() => {
-        if (!searchTerm.trim()) return customerList;
+        if (!searchTerm.trim()) return sortedCustomerList;
 
         const term = searchTerm.trim().toLowerCase();
         const telTerm = term.replace(/-/g, '');
 
-        return customerList.filter((c) =>
+        return sortedCustomerList.filter((c) =>
             c.name.toLowerCase().includes(term) ||
             c.tel.includes(telTerm) ||
             (c.memoTags ?? []).some((t) => t.text.toLowerCase().includes(term))
         );
-    }, [customerList, searchTerm]);
+    }, [sortedCustomerList, searchTerm]);
 
     useEffect(() => {
         if (storageMode === 'local') {
@@ -348,7 +358,8 @@ const Address: NextPage<AddressProps> = ({customers, reservations, history, stor
                                    }}
                                    onCancel={(targetReservation) => {
                                        setSelectedReservations((prev) => prev.filter((item) => item.id !== targetReservation.id));
-                                   }}/>
+                                   }}
+                                   onRestore={useCalendarStore.getState().restoreReservation}/>
             ))}
             {selectedCustomerId !== null && storeCustomerMap[selectedCustomerId] && (
                 <CustomerDetail customer={storeCustomerMap[selectedCustomerId]}

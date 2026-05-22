@@ -1,4 +1,6 @@
-import {useCallback} from 'react';
+import {useCallback, useEffect, useRef, useState} from 'react';
+
+import {createPortal} from 'react-dom';
 
 import styled from 'styled-components';
 
@@ -15,6 +17,8 @@ import {CalendarHeading} from '../calendar/CalendarHeading';
 import {NaverSyncNotification} from './NaverSyncNotification';
 import {NaverSyncConflictModal} from './NaverSyncConflictModal';
 import {formControlStyle} from '../ui/FormControls';
+import {scrollHintStyle, scrollContentStyle} from '../calendar/overlays/ModalStyles';
+import {CloseIconButton} from '../ui/CloseIconButton';
 
 const PAGE_TITLES: Record<string, string> = {
     '/address': '고객명단',
@@ -32,6 +36,7 @@ const SETTINGS_TAB_TITLES: Record<string, string> = {
 };
 
 export const Header = () => {
+    const [isSearchOpen, setIsSearchOpen] = useState(false);
     const router = useRouter();
     const aside = useCalendarStore((s) => s.aside);
     const setAside = useCalendarStore((s) => s.setAside);
@@ -84,62 +89,78 @@ export const Header = () => {
                 </svg>
             </StyledAsideToggle>
             {isCalendarPage && currValue.full !== null && <>
-                <CalendarDirection />
-                <CalendarHeading />
-                <StyledDesignerFilter value={calendarDesignerId ?? ''}
-                                      onChange={(e) => setCalendarDesignerId(e.target.value ? Number(e.target.value) : null)}
-                                      aria-label="달력 디자이너 필터">
-                    <option value="">전체보기</option>
-                    <option value="0" data-bg-color="#8E8E93">미지정</option>
-                    {activeDesigners.map((designer) => (
-                        <option key={designer.id}
-                                value={designer.id}
-                                data-bg-color={designer.color}>
-                            {designer.name}
-                        </option>
-                    ))}
-                    {onLeaveDesigners.length > 0 && (
-                        <optgroup label="휴직자">
-                            {onLeaveDesigners.map((designer) => (
-                                <option key={designer.id}
-                                        value={designer.id}
-                                        data-bg-color={designer.color}>{designer.name}</option>
-                            ))}
-                        </optgroup>
+                <StyledCalendarRow>
+                    <CalendarDirection />
+                    <CalendarHeading />
+                    <StyledDesignerFilter value={calendarDesignerId ?? ''}
+                                          onChange={(e) => setCalendarDesignerId(e.target.value ? Number(e.target.value) : null)}
+                                          aria-label="달력 디자이너 필터">
+                        <option value="">전체보기</option>
+                        <option value="0" data-bg-color="#8E8E93">미지정</option>
+                        {activeDesigners.map((designer) => (
+                            <option key={designer.id}
+                                    value={designer.id}
+                                    data-bg-color={designer.color}>
+                                {designer.name}
+                            </option>
+                        ))}
+                        {onLeaveDesigners.length > 0 && (
+                            <optgroup label="휴직자">
+                                {onLeaveDesigners.map((designer) => (
+                                    <option key={designer.id}
+                                            value={designer.id}
+                                            data-bg-color={designer.color}>{designer.name}</option>
+                                ))}
+                            </optgroup>
+                        )}
+                        {resignedDesigners.length > 0 && (
+                            <optgroup label="퇴직자">
+                                {resignedDesigners.map((designer) => (
+                                    <option key={designer.id}
+                                            value={designer.id}
+                                            data-bg-color={designer.color}>{designer.name}</option>
+                                ))}
+                            </optgroup>
+                        )}
+                    </StyledDesignerFilter>
+                </StyledCalendarRow>
+                <StyledToolRow>
+                    {isActive && (
+                        <StyledSyncWrap>
+                            <StyledSyncButton type="button" onClick={sync} disabled={syncing} aria-label="네이버 예약 동기화">
+                                <StyledSyncIcon $syncing={syncing} width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                    <path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.3" />
+                                </StyledSyncIcon>
+                            </StyledSyncButton>
+                            {syncing && <StyledSyncToast>동기화 중입니다</StyledSyncToast>}
+                        </StyledSyncWrap>
                     )}
-                    {resignedDesigners.length > 0 && (
-                        <optgroup label="퇴직자">
-                            {resignedDesigners.map((designer) => (
-                                <option key={designer.id}
-                                        value={designer.id}
-                                        data-bg-color={designer.color}>{designer.name}</option>
-                            ))}
-                        </optgroup>
-                    )}
-                </StyledDesignerFilter>
-                {isActive && (
-                    <StyledSyncButton type="button" onClick={sync} disabled={syncing} aria-label="네이버 예약 동기화">
-                        <StyledSyncIcon $syncing={syncing} width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                            <path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.3" />
-                        </StyledSyncIcon>
-                    </StyledSyncButton>
-                )}
-                <NaverSyncNotification notifications={visibleNotifications}
-                                       unreadCount={unreadCount}
-                                       markRead={markRead}
-                                       markAllRead={markAllRead}
-                                       reservationMap={reservationMap}
-                                       onSelectReservation={openReservationDetail}
-                                       onSelectConflict={openConflictByKey} />
+                    <NaverSyncNotification notifications={visibleNotifications}
+                                           unreadCount={unreadCount}
+                                           markRead={markRead}
+                                           markAllRead={markAllRead}
+                                           reservationMap={reservationMap}
+                                           onSelectReservation={openReservationDetail}
+                                           onSelectConflict={openConflictByKey} />
+                    <StyledCustomerSearchButton type="button" onClick={() => setIsSearchOpen(true)} aria-label="고객검색">
+                        <StyledSearchIcon viewBox="0 0 24 24" aria-hidden="true">
+                            <circle cx="11" cy="11" r="5.5" />
+                            <path d="M15.2 15.2L19 19" />
+                        </StyledSearchIcon>
+                    </StyledCustomerSearchButton>
+                </StyledToolRow>
             </>}
             {!isCalendarPage && <>
                 <StyledPageTitle>{pageTitle}</StyledPageTitle>
                 {isActive && (
-                    <StyledSyncButton type="button" onClick={sync} disabled={syncing} aria-label="네이버 예약 동기화">
-                        <StyledSyncIcon $syncing={syncing} width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                            <path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.3" />
-                        </StyledSyncIcon>
-                    </StyledSyncButton>
+                    <StyledSyncWrap>
+                        <StyledSyncButton type="button" onClick={sync} disabled={syncing} aria-label="네이버 예약 동기화">
+                            <StyledSyncIcon $syncing={syncing} width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                <path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.3" />
+                            </StyledSyncIcon>
+                        </StyledSyncButton>
+                        {syncing && <StyledSyncToast>동기화 중입니다</StyledSyncToast>}
+                    </StyledSyncWrap>
                 )}
                 <NaverSyncNotification notifications={visibleNotifications}
                                        unreadCount={unreadCount}
@@ -148,6 +169,12 @@ export const Header = () => {
                                        reservationMap={reservationMap}
                                        onSelectReservation={openReservationDetail}
                                        onSelectConflict={openConflictByKey} />
+                <StyledCustomerSearchButton type="button" onClick={() => setIsSearchOpen(true)} aria-label="고객검색">
+                    <StyledSearchIcon viewBox="0 0 24 24" aria-hidden="true">
+                        <circle cx="11" cy="11" r="5.5" />
+                        <path d="M15.2 15.2L19 19" />
+                    </StyledSearchIcon>
+                </StyledCustomerSearchButton>
             </>}
             {currentConflict && (
                 <NaverSyncConflictModal conflict={currentConflict}
@@ -157,6 +184,7 @@ export const Header = () => {
                                         onDismiss={dismissConflicts}
                                         onSelectReservation={handleConflictReservationClick} />
             )}
+            {isSearchOpen && <SearchLayer onClose={() => setIsSearchOpen(false)} />}
         </StyledHeader>
     );
 };
@@ -164,18 +192,46 @@ export const Header = () => {
 const StyledHeader = styled.header`
     display: flex;
     align-items: center;
+    flex-wrap: wrap;
     gap: 4px;
     width: 100%;
     padding: 0 12px 0 0;
-    height: 48px;
+    min-height: 48px;
     box-sizing: border-box;
     background-color: var(--white-color);
     border-bottom: solid 1px var(--light-gray-color);
     flex-shrink: 0;
     @media (max-width: 640px) {
-        justify-content: space-between;
-        gap: 4px;
+        gap: 0;
         padding: 0 4px;
+    }
+`;
+
+const StyledCalendarRow = styled.div`
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    flex: 1;
+    min-width: 0;
+
+    @media (max-width: 640px) {
+        width: 100%;
+        height: 40px;
+        padding: 0 2px;
+    }
+`;
+
+const StyledToolRow = styled.div`
+    display: flex;
+    align-items: center;
+    gap: 4px;
+
+    @media (max-width: 640px) {
+        width: 100%;
+        height: 36px;
+        justify-content: flex-end;
+        padding: 0 2px;
+        border-top: 1px solid var(--light-gray-color);
     }
 `;
 
@@ -274,6 +330,27 @@ const StyledDesignerFilter = styled.select`
     }
 `;
 
+const StyledSyncWrap = styled.div`
+    position: relative;
+    flex-shrink: 0;
+`;
+
+const StyledSyncToast = styled.span`
+    position: absolute;
+    top: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    margin-top: 4px;
+    padding: 4px 10px;
+    border-radius: var(--radius-md);
+    background-color: var(--black-color);
+    color: #fff;
+    font-size: var(--tiny-font);
+    white-space: nowrap;
+    pointer-events: none;
+    z-index: 10;
+`;
+
 const StyledSyncButton = styled.button`
     display: inline-flex;
     align-items: center;
@@ -306,4 +383,181 @@ const StyledSyncIcon = styled.svg<{ $syncing: boolean }>`
     }
 
     ${(props) => props.$syncing && 'animation: spin 1s linear infinite;'}
+`;
+
+const StyledCustomerSearchButton = styled.button`
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    border-radius: var(--radius-md);
+    background-color: transparent;
+    border: none;
+    color: var(--dark-gray-color);
+    flex-shrink: 0;
+    cursor: pointer;
+
+    @media (hover: hover) and (pointer: fine) {
+        &:hover {
+            background-color: var(--gray-color2);
+        }
+    }
+`;
+
+const StyledSearchIcon = styled.svg`
+    width: 18px;
+    height: 18px;
+    flex-shrink: 0;
+    stroke: currentColor;
+    fill: none;
+    stroke-width: 2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+`;
+
+/* ── Customer Search Layer ── */
+
+const SearchLayer = ({onClose}: { onClose: () => void }) => {
+    const customerMap = useCalendarStore((s) => s.customerMap);
+    const setSelectedCustomerId = useCalendarStore((s) => s.setSelectedCustomerId);
+
+    const [query, setQuery] = useState('');
+    const inputRef = useRef<HTMLInputElement>(null);
+    const modalRoot = document.getElementById('modal-root');
+
+    const customers = Object.values(customerMap).sort((a, b) => a.name.localeCompare(b.name, 'ko'));
+    const filtered = query.trim()
+        ? customers.filter((c) => c.name.includes(query) || c.tel.includes(query))
+        : customers;
+
+    useEffect(() => {
+        inputRef.current?.focus();
+    }, []);
+
+    const handleSelect = (id: number) => {
+        setSelectedCustomerId(id);
+        onClose();
+    };
+
+    if (!modalRoot) return null;
+
+    return createPortal(
+        <StyledSearchOverlay onClick={onClose}
+                             role="dialog"
+                             aria-modal="true"
+                             aria-label="고객 검색">
+            <StyledSearchModal onClick={(e) => e.stopPropagation()}>
+                <StyledSearchHeader>
+                    <StyledSearchInput ref={inputRef}
+                                       type="search"
+                                       autoComplete="off"
+                                       placeholder="고객명 또는 연락처 검색"
+                                       value={query}
+                                       onChange={(e) => setQuery(e.target.value)} />
+                    <CloseIconButton onClick={onClose} />
+                </StyledSearchHeader>
+                <StyledResultListWrap><StyledResultList>
+                    {query.trim() && filtered.length === 0 ? (
+                        <StyledNoResult>검색 결과 없음</StyledNoResult>
+                    ) : (
+                        filtered.map((c) => (
+                            <StyledResultItem key={c.id} onClick={() => handleSelect(c.id)}>
+                                <span>{c.name}</span>
+                                <span>{c.tel}</span>
+                            </StyledResultItem>
+                        ))
+                    )}
+                </StyledResultList></StyledResultListWrap>
+            </StyledSearchModal>
+        </StyledSearchOverlay>,
+        modalRoot
+    );
+};
+
+const StyledSearchOverlay = styled.div`
+    position: fixed;
+    inset: 0;
+    z-index: 100;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    background-color: rgba(0, 0, 0, 0.4);
+    box-sizing: border-box;
+`;
+
+const StyledSearchModal = styled.div`
+    width: 100%;
+    max-width: 400px;
+    max-height: 70vh;
+    display: flex;
+    flex-direction: column;
+    background-color: #fff;
+    border-radius: 8px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+    overflow: hidden;
+`;
+
+const StyledSearchHeader = styled.div`
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-shrink: 0;
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--light-gray-color);
+`;
+
+const StyledSearchInput = styled.input`
+    flex: 1;
+    ${formControlStyle};
+    padding: 0 10px;
+
+    &[type="search"]::-webkit-search-cancel-button {
+        -webkit-appearance: none;
+        appearance: none;
+        width: 14px;
+        height: 14px;
+        margin-right: 4px;
+        background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 14 14'%3E%3Ccircle cx='7' cy='7' r='7' fill='%23999'/%3E%3Cpath d='M4.5 4.5L9.5 9.5M9.5 4.5L4.5 9.5' stroke='%23fff' stroke-width='1.5' stroke-linecap='round'/%3E%3C/svg%3E") no-repeat center / contain;
+        cursor: pointer;
+    }
+`;
+
+const StyledResultListWrap = styled.div`
+    flex: 1;
+    ${scrollHintStyle};
+`;
+
+const StyledResultList = styled.ul`
+    ${scrollContentStyle};
+    padding: 4px 0 30px;
+    list-style: none;
+`;
+
+const StyledResultItem = styled.li`
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 16px;
+    font-size: 14px;
+    cursor: pointer;
+
+    > span:last-child {
+        font-size: 12px;
+        color: var(--gray-color);
+    }
+
+    @media (hover: hover) and (pointer: fine) {
+        &:hover {
+            background-color: var(--black-color-10);
+        }
+    }
+`;
+
+const StyledNoResult = styled.li`
+    padding: 24px;
+    font-size: 13px;
+    color: var(--gray-color);
+    text-align: center;
 `;

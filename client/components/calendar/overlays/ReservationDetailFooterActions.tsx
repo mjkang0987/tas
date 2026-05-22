@@ -19,6 +19,7 @@ type ReservationDetailFooterActionsProps = {
     onConfirmSave: () => void;
     onCancelReservation: () => void;
     onNoshowReservation: () => void;
+    onRestoreReservation: () => void;
     onPaymentSave: () => void;
     onBackToEditing: () => void;
     onBackToView: () => void;
@@ -40,12 +41,19 @@ export function ReservationDetailFooterActions({
                                                    onConfirmSave,
                                                    onCancelReservation,
                                                    onNoshowReservation,
+                                                   onRestoreReservation,
                                                    onPaymentSave,
                                                    onBackToEditing,
                                                    onBackToView,
                                                }: ReservationDetailFooterActionsProps) {
     if (mode === 'view') {
-        if (isInactive) return null;
+        if (isInactive) {
+            return (
+                <StyledActionButton type="button"
+                                    $primary
+                                    onClick={onRestoreReservation}>예약전환</StyledActionButton>
+            );
+        }
 
         return (
             <>
@@ -59,12 +67,16 @@ export function ReservationDetailFooterActions({
                                         $primary
                                         onClick={onOpenCompleting}>예약완료</StyledActionButton>
                 )}
-                <StyledActionButton type="button"
-                                    $danger
-                                    onClick={onOpenCancelling}>예약취소</StyledActionButton>
-                <StyledActionButton type="button"
-                                    $warning
-                                    onClick={onOpenNoshow}>노쇼</StyledActionButton>
+                {!paymentCompleted && (
+                    <StyledActionButton type="button"
+                                        $danger
+                                        onClick={onOpenCancelling}>예약취소</StyledActionButton>
+                )}
+                {!paymentCompleted && (
+                    <StyledActionButton type="button"
+                                        $warning
+                                        onClick={onOpenNoshow}>노쇼</StyledActionButton>
+                )}
                 <StyledActionButton type="button"
                                     $primary
                                     onClick={onOpenEditing}>변경</StyledActionButton>

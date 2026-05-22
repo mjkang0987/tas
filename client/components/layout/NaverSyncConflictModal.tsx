@@ -1,4 +1,4 @@
-import {useCallback, useState} from 'react';
+import React, {useCallback, useState} from 'react';
 import {createPortal} from 'react-dom';
 
 import styled from 'styled-components';
@@ -47,6 +47,35 @@ function findCurrentReservation(reservationMap: ReservationMap, original: Reserv
     return undefined;
 }
 
+function findAllOverlapping(reservationMap: ReservationMap, ...seeds: Reservation[]): Reservation[] {
+    const dateKey = seeds[0]?.date;
+    if (!dateKey) return seeds;
+
+    const dateReservations = reservationMap[dateKey] ?? [];
+    const designerId = seeds[0]?.designerId;
+
+    // 같은 날짜, 같은 디자이너에서 seeds 중 하나라도 시간이 겹치는 예약을 모두 수집
+    const ids = new Set(seeds.map((s) => s.id));
+    const result = [...seeds];
+
+    for (const r of dateReservations) {
+        if (ids.has(r.id)) continue;
+        if (r.status === 'cancelled' || r.status === 'noshow') continue;
+        if (designerId != null && r.designerId !== designerId) continue;
+
+        // seeds 또는 기존 result 중 하나와 겹치는지 확인
+        const overlaps = result.some((s) =>
+            s.startTime < r.endTime && s.endTime > r.startTime
+        );
+        if (overlaps) {
+            ids.add(r.id);
+            result.push(r);
+        }
+    }
+
+    return result;
+}
+
 export const NaverSyncConflictModal = ({
                                            conflict,
                                            isConfirmed = false,
@@ -90,9 +119,20 @@ export const NaverSyncConflictModal = ({
         return <StyledChangedTag>(변경)</StyledChangedTag>;
     };
 
+    const getChannelLabel = (r: Reservation) => {
+        if (r.channel === '네이버예약') return '네이버예약';
+        if (r.channel === '현장방문') return '현장방문';
+        return '전화예약';
+    };
+
     const renderReservation = (reservation: Reservation, isDangerTime: boolean, isDangerDesigner: boolean, changedFields: Set<string>) => {
         return (
             <StyledReservationDl>
+                <dt>예약경로</dt>
+                <dd>
+                    <StyledConflictLabel $existing={reservation.channel !== '네이버예약'}>{getChannelLabel(reservation)}</StyledConflictLabel>
+                </dd>
+
                 <dt>고객명</dt>
                 <dd>
                     <StyledCustomerValue>{getCustomerName(reservation)}</StyledCustomerValue>
@@ -148,9 +188,12 @@ export const NaverSyncConflictModal = ({
     const currentNew = findCurrentReservation(reservationMap, conflict.newReservation) ?? conflict.newReservation;
     const currentExisting = findCurrentReservation(reservationMap, conflict.existingReservation) ?? conflict.existingReservation;
 
+    // 같은 날짜/디자이너에서 시간이 겹치는 모든 예약을 수집
+    const allOverlapping = findAllOverlapping(reservationMap, currentNew, currentExisting);
+
     // 취소/노쇼 감지
     const cancelledReservations: Array<{ reservation: Reservation; statusLabel: string }> = [];
-    for (const current of [currentNew, currentExisting]) {
+    for (const current of allOverlapping) {
         if (current.status === 'cancelled') {
             cancelledReservations.push({reservation: current, statusLabel: '취소'});
         } else if (current.status === 'noshow') {
@@ -159,15 +202,11 @@ export const NaverSyncConflictModal = ({
     }
     const isConflictDismissed = cancelledReservations.length > 0;
 
-    const stillOverlapping =
-        !isConflictDismissed
-        && currentNew.startTime < currentExisting.endTime
-        && currentNew.endTime > currentExisting.startTime
-        && currentNew.date === currentExisting.date;
+    const activeOverlapping = allOverlapping.filter((r) => r.status !== 'cancelled' && r.status !== 'noshow');
+    const stillOverlapping = !isConflictDismissed && activeOverlapping.length >= 2;
     const sameDesigner =
         stillOverlapping
-        && currentNew.designerId != null
-        && currentNew.designerId === currentExisting.designerId;
+        && activeOverlapping.every((r) => r.designerId != null && r.designerId === activeOverlapping[0].designerId);
 
     const isCancelledNew = currentNew.status === 'cancelled' || currentNew.status === 'noshow';
     const isCancelledExisting = currentExisting.status === 'cancelled' || currentExisting.status === 'noshow';
@@ -200,6 +239,9 @@ export const NaverSyncConflictModal = ({
     }
 
     const isUnresolved = stillOverlapping && !isConflictDismissed;
+
+    // 원래 pair에 포함되지 않은 추가 겹침 예약
+    const extraOverlapping = allOverlapping.filter((r) => r.id !== currentNew.id && r.id !== currentExisting.id);
 
     const handleAdvanceClick = () => {
         if (isUnresolved) {
@@ -260,19 +302,28 @@ export const NaverSyncConflictModal = ({
                             네이버예약의 실제 변경/취소는 스마트플레이스 통해서 가능합니다.
                         </StyledGuideNotice>
                         <StyledConflictCard>
-                            <StyledConflictLabel>네이버 예약</StyledConflictLabel>
                             <StyledCancelledWrapper $cancelled={isCancelledNew}>
                                 <StyledClickableInfo onClick={() => onSelectReservation(currentNew)}>
                                     {renderReservation(currentNew, stillOverlapping, sameDesigner, changedFieldsNew)}
                                 </StyledClickableInfo>
                             </StyledCancelledWrapper>
 
-                            <StyledConflictLabel $existing>전화 예약</StyledConflictLabel>
                             <StyledCancelledWrapper $cancelled={isCancelledExisting}>
                                 <StyledClickableInfo onClick={() => onSelectReservation(currentExisting)}>
                                     {renderReservation(currentExisting, stillOverlapping, sameDesigner, changedFieldsExisting)}
                                 </StyledClickableInfo>
                             </StyledCancelledWrapper>
+
+                            {extraOverlapping.map((extra) => {
+                                const isCancelledExtra = extra.status === 'cancelled' || extra.status === 'noshow';
+                                return (
+                                    <StyledCancelledWrapper key={extra.id} $cancelled={isCancelledExtra}>
+                                        <StyledClickableInfo onClick={() => onSelectReservation(extra)}>
+                                            {renderReservation(extra, stillOverlapping, sameDesigner, new Set())}
+                                        </StyledClickableInfo>
+                                    </StyledCancelledWrapper>
+                                );
+                            })}
                         </StyledConflictCard>
                     </StyledModalContent>
                 </StyledScrollArea>

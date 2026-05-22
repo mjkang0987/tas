@@ -137,7 +137,7 @@ async function createReservationFromBooking(
         }
         if ((!existing.serviceSummary || existing.serviceSummary === booking.designerName) && booking.services.length > 0) {
             const names = booking.services.map((s) => s.name);
-            updates.serviceSummary = names.join(', ');
+            updates.serviceSummary = names.join('+');
         }
         if (Object.keys(updates).length > 0) {
             await prisma.reservation.update({
@@ -197,7 +197,7 @@ async function createReservationFromBooking(
 
     const endTime = calcEndTime(booking.appointmentTime, totalDuration);
     const totalPrice = booking.services.reduce((sum, s) => sum + s.price, 0);
-    const serviceSummary = serviceNames.join(', ') || booking.designerName;
+    const serviceSummary = serviceNames.join('+') || booking.designerName;
 
     // Create customer with legacyId
     const maxCustomerLegacy = await prisma.customer.findFirst({
@@ -274,6 +274,15 @@ async function cancelReservationByBookingId(
     if (reservation.status === 'cancelled' || reservation.status === 'noshow') {
         return {status: 'skipped'};
     }
+
+    // 이미 한 번 취소 처리된 후 수동 복귀된 예약은 재취소하지 않음
+    const cancelHistory = await prisma.reservationHistory.findFirst({
+        where: {
+            reservationId: reservation.id,
+            afterJson: {path: ['status'], equals: 'cancelled'},
+        },
+    });
+    if (cancelHistory) return {status: 'skipped'};
 
     const before = dbReservationToFrontend(reservation);
 

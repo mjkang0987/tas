@@ -163,6 +163,7 @@ const StyledDragGhost = styled.div<{
     box-shadow: 0 12px 28px rgba(15, 23, 42, 0.28);
     color: ${(props) => props.$cancelled ? 'var(--white-color)' : 'var(--dark-gray-color)'};
     opacity: 0.72;
+    filter: ${(props) => props.$cancelled ? 'grayscale(.5)' : 'none'};
     pointer-events: none;
     @media (max-width: 640px) {
         padding: 2px;

@@ -153,7 +153,6 @@ const StyledClusterList = styled.ul`
 
 const StyledClusterItem = styled.li`
     .inactive {
-        opacity: 0.5;
     }
 `;
 

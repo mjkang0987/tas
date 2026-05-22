@@ -176,9 +176,6 @@ export const ReservationListModal = () => {
                                     {group.items.map((r) => {
                                         const customer = customerMap[r.customerId];
                                         const designerName = r.designerId ? (designerNameMap[r.designerId] ?? '미지정') : '미지정';
-                                        const statusType = getStatusType(r);
-                                        const isInactive = statusType === 'cancelled' || statusType === 'noshow';
-
                                         return (
                                             <StyledItem key={r.id}>
                                                     <ReservationInfoCard
@@ -197,7 +194,6 @@ export const ReservationListModal = () => {
                                                     timeMode="range"
                                                     accentColor={r.designerId ? (designerColorMap[r.designerId] ?? '#8E8E93') : '#8E8E93'}
                                                     accentBar
-                                                    className={isInactive ? 'inactive' : undefined}
                                                 />
                                             </StyledItem>
                                         );
@@ -279,11 +275,7 @@ const StyledDateTitle = styled.div`
     backdrop-filter: blur(.8px) saturate(180%);
 `;
 
-const StyledItem = styled.li`
-    .inactive {
-        opacity: 0.5;
-    }
-`;
+const StyledItem = styled.li``;
 
 const StyledFooterSummary = styled.div`
     margin-right: auto;
