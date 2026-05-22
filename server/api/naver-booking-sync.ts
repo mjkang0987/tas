@@ -128,13 +128,21 @@ async function createReservationFromBooking(
     // Check if reservation already exists before doing any work
     const existing = await prisma.reservation.findFirst({
         where: {storeId, naverBookingId: booking.bookingId},
-        select: {id: true, naverBookingUrl: true},
+        select: {id: true, naverBookingUrl: true, serviceSummary: true},
     });
     if (existing) {
+        const updates: Record<string, string> = {};
         if (booking.bookingUrl && !existing.naverBookingUrl && booking.bookingUrl.includes('partner.booking.naver.com')) {
+            updates.naverBookingUrl = booking.bookingUrl;
+        }
+        if ((!existing.serviceSummary || existing.serviceSummary === booking.designerName) && booking.services.length > 0) {
+            const names = booking.services.map((s) => s.name);
+            updates.serviceSummary = names.join(', ');
+        }
+        if (Object.keys(updates).length > 0) {
             await prisma.reservation.update({
                 where: {id: existing.id},
-                data: {naverBookingUrl: booking.bookingUrl},
+                data: updates,
             });
         }
         return {status: 'skipped'};

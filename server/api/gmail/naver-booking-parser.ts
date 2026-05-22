@@ -111,8 +111,8 @@ function parseServices(html: string): {services: Array<{name: string; price: num
     let deposit = 0;
 
     // Global match: "서비스명 금액원" (optionally followed by "= 예약금원")
-    // Service names may contain parentheses, e.g. "전체염색(멋내기)"
-    const pattern = /([가-힣a-zA-Z\s()]+?)\s+([\d,]+)원(?:\s*=\s*([\d,]+)원)?/g;
+    // Service names may contain any characters (numbers, +, /, -, · etc.)
+    const pattern = /(.+?)\s+([\d,]+)원(?:\s*=\s*([\d,]+)원)?/g;
     let match;
     while ((match = pattern.exec(menuSection)) !== null) {
         services.push({
