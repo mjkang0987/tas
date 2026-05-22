@@ -238,7 +238,7 @@ export const Timeline = ({
                 onClose={() => setOpenClusterState(null)}
                 onReservationClick={(reservation) => {
                     setOpenClusterState(null);
-                    openReservationDetail(reservation);
+                    setTimeout(() => openReservationDetail(reservation), 0);
                 }}
             />
         )}
