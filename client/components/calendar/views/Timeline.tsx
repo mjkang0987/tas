@@ -16,6 +16,7 @@ import {getDesignerColor} from '../../../utils/designers';
 import {isNewCustomerVisit} from '../../../utils/customers';
 import {buildServiceColorMap} from '../../../utils/services';
 
+import type {Reservation} from '../../../utils/reservations';
 import {toDateKey} from '../../../utils/reservations';
 import {TimelineCluster} from './TimelineCluster';
 import {TimelineClusterLayer, type TimelineClusterData} from './TimelineClusterLayer';
@@ -84,6 +85,7 @@ export const Timeline = ({
     const timelineRef = useRef<HTMLDivElement | null>(null);
     const [isTouchDevice, setIsTouchDevice] = useState(false);
     const [openClusterState, setOpenClusterState] = useState<{ dateKey: string; cluster: TimelineClusterData } | null>(null);
+    const pendingClusterReservationRef = useRef<Reservation | null>(null);
     const [confirmedOffDayMoveState, setConfirmedOffDayMoveState] = useState<{ dateKey: string; move: PendingMove } | null>(null);
     const {
         dragPreview,
@@ -108,6 +110,14 @@ export const Timeline = ({
 
     const openCluster = openClusterState?.dateKey === dateKey ? openClusterState.cluster : null;
     const confirmedOffDayMove = confirmedOffDayMoveState?.dateKey === dateKey ? confirmedOffDayMoveState.move : null;
+
+    useEffect(() => {
+        if (!openCluster && pendingClusterReservationRef.current) {
+            const reservation = pendingClusterReservationRef.current;
+            pendingClusterReservationRef.current = null;
+            openReservationDetail(reservation);
+        }
+    }, [openCluster, openReservationDetail]);
 
     useEffect(() => {
         if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return;
@@ -237,8 +247,8 @@ export const Timeline = ({
                 designerNameById={designerNameById}
                 onClose={() => setOpenClusterState(null)}
                 onReservationClick={(reservation) => {
+                    pendingClusterReservationRef.current = reservation;
                     setOpenClusterState(null);
-                    setTimeout(() => openReservationDetail(reservation), 0);
                 }}
             />
         )}
