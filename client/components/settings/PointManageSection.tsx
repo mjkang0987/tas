@@ -382,9 +382,9 @@ const StyledStickyHeader = styled.div`
     z-index: 12;
     margin: 0 -10px;
     padding: 10px 10px;
-    border-bottom: 1px solid rgba(15, 23, 42, 0.06);
-    background: rgba(255, 255, 255, .1);
-    backdrop-filter: blur(.8px) saturate(180%);
+    border-bottom: 1px solid var(--light-gray-color);
+    background: rgba(255, 255, 255, 0.72);
+    backdrop-filter: blur(8px) saturate(180%);
 `;
 
 const actionButtonStyle = css`
@@ -395,12 +395,12 @@ const actionButtonStyle = css`
     font-size: 12px;
     font-weight: 500;
     cursor: pointer;
-    transition: transform 0.12s ease, box-shadow 0.15s ease, border-color 0.15s ease, background-color 0.15s ease;
+    transition: opacity 0.15s ease, background-color 0.15s ease, border-color 0.15s ease;
 
     @media (hover: hover) and (pointer: fine) {
         &:hover {
-        
-    }
+            opacity: 0.85;
+        }
     }
 `;
 
@@ -416,7 +416,7 @@ const StyledSaveBtn = styled.button`
     ${actionButtonStyle};
     border: 1px solid var(--blue-color);
     background-color: var(--blue-color);
-    color: #fff;
+    color: var(--white-color);
 `;
 
 const StyledCancelBtn = styled.button`
@@ -475,7 +475,7 @@ const StyledHistorySection = styled.section`
     padding: 14px;
     border: 1px solid var(--light-gray-color);
     border-radius: 8px;
-    background: #fbfcff;
+    background: rgba(248, 250, 252, 0.88);
 `;
 
 const StyledHistoryHeader = styled.div`
@@ -522,7 +522,7 @@ const StyledHistoryCustomerCard = styled.div`
     flex-direction: column;
     gap: 10px;
     padding: 12px;
-    border: 1px solid rgba(15, 23, 42, 0.08);
+    border: 1px solid var(--light-gray-color);
     border-radius: 8px;
     background: var(--white-color);
 `;
@@ -567,7 +567,7 @@ const StyledHistoryItem = styled.li`
     gap: 4px;
     padding: 10px 12px;
     border-radius: 10px;
-    background: #f6f8fc;
+    background: var(--gray-color2);
 `;
 
 const StyledHistoryTop = styled.div`
@@ -643,9 +643,9 @@ const StyledPolicyBlock = styled.div`
     flex-direction: column;
     gap: 10px;
     padding: 12px;
-    border: 1px solid var(--black-color-10);
+    border: 1px solid var(--light-gray-color);
     border-radius: 10px;
-    background: #fafafa;
+    background: var(--gray-color2);
 `;
 
 const StyledPolicyOption = styled.label`
@@ -832,8 +832,8 @@ const StyledCustomerNameButton = styled.button`
 
     @media (hover: hover) and (pointer: fine) {
         &:hover {
-        color: var(--blue-color);
-    }
+            color: var(--blue-color);
+        }
     }
 `;
 
