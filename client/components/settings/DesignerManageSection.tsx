@@ -365,7 +365,7 @@ const StyledSaveBtn = styled.button`
     ${mobileStretchButtonStyle};
     border: 1px solid var(--blue-color);
     background-color: var(--blue-color);
-    color: #fff;
+    color: var(--white-color);
 `;
 
 const StyledCancelBtn = styled.button`
@@ -530,7 +530,7 @@ const StyledScheduleCollapsedNotice = styled.div<{ $status: DesignerStatus }>`
     border-radius: 8px;
     border: 1px dashed ${({$status}) => getDesignerStatusMeta($status).border};
     color: ${({$status}) => getDesignerStatusMeta($status).accent};
-    background: rgba(255, 255, 255, 0.55);
+    background: var(--white-color-60);
     font-size: 12px;
     line-height: 1.5;
 `;
