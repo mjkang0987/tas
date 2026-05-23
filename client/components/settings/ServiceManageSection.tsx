@@ -555,12 +555,12 @@ const actionButtonStyle = css`
     font-size: 12px;
     font-weight: 500;
     cursor: pointer;
-    transition: transform 0.12s ease, box-shadow 0.15s ease, border-color 0.15s ease, background-color 0.15s ease;
+    transition: opacity 0.15s ease, background-color 0.15s ease, border-color 0.15s ease;
 
     @media (hover: hover) and (pointer: fine) {
         &:hover {
-
-    }
+            opacity: 0.85;
+        }
     }
 `;
 
@@ -579,9 +579,9 @@ const StyledServiceBody = styled.div`
 const StyledGroup = styled.div<{ $isCategoryDragging: boolean; $isCategoryDragOver: boolean }>`
     position: relative;
     opacity: ${(p) => p.$isCategoryDragging ? 0.5 : 1};
-    background-color: ${(p) => p.$isCategoryDragOver ? 'rgba(19, 115, 51, 0.06)' : 'transparent'};
+    background-color: ${(p) => p.$isCategoryDragOver ? 'rgba(36, 117, 58, 0.06)' : 'transparent'};
     border-radius: 4px;
-    box-shadow: ${(p) => p.$isCategoryDragOver ? '0 8px 20px rgba(19, 115, 51, 0.12)' : 'none'};
+    box-shadow: ${(p) => p.$isCategoryDragOver ? '0 8px 20px rgba(36, 117, 58, 0.12)' : 'none'};
     transition: background-color 0.16s ease, box-shadow 0.16s ease;
 
     &::before {
@@ -595,12 +595,12 @@ const StyledGroup = styled.div<{ $isCategoryDragging: boolean; $isCategoryDragOv
         height: 22px;
         padding: 0 8px;
         border-radius: 999px;
-        background: #137333;
-        color: #fff;
+        background: var(--success-color);
+        color: var(--white-color);
         font-size: 11px;
         font-weight: 700;
         letter-spacing: -0.01em;
-        box-shadow: 0 8px 18px rgba(19, 115, 51, 0.24);
+        box-shadow: 0 8px 18px rgba(36, 117, 58, 0.24);
     }
 
     &::after {
@@ -611,8 +611,8 @@ const StyledGroup = styled.div<{ $isCategoryDragging: boolean; $isCategoryDragOv
         top: -2px;
         height: 4px;
         border-radius: 999px;
-        background: ${(p) => p.$isCategoryDragOver ? '#137333' : 'transparent'};
-        box-shadow: ${(p) => p.$isCategoryDragOver ? '0 0 0 3px rgba(19, 115, 51, 0.14)' : 'none'};
+        background: ${(p) => p.$isCategoryDragOver ? 'var(--success-color)' : 'transparent'};
+        box-shadow: ${(p) => p.$isCategoryDragOver ? '0 0 0 3px rgba(36, 117, 58, 0.14)' : 'none'};
     }
 
     & + & {
@@ -620,11 +620,7 @@ const StyledGroup = styled.div<{ $isCategoryDragging: boolean; $isCategoryDragOv
     }
 `;
 
-const StyledCategoryToggle = styled.details`
-    &[open] {
-        ${''}
-    }
-`;
+const StyledCategoryToggle = styled.details``;
 
 const StyledCategoryHeader = styled.summary`
     list-style: none;
@@ -639,8 +635,8 @@ const StyledCategoryHeader = styled.summary`
     top: 0;
     z-index: 2;
     cursor: pointer;
-    background: rgba(255, 255, 255, .1); /* 살짝만 흰색 */
-    backdrop-filter: blur(.8px) saturate(180%);
+    background: rgba(255, 255, 255, 0.72);
+    backdrop-filter: blur(8px) saturate(180%);
 
     &::-webkit-details-marker {
         display: none;
@@ -769,16 +765,16 @@ const StyledCategoryColorInput = styled.input`
 const StyledItem = styled.div<{ $isDragging: boolean; $isDragOver: boolean }>`
     position: relative;
     padding: 0 16px;
-    border-bottom: 1px solid var(--black-color-10);
+    border-bottom: 1px solid var(--light-gray-color);
     opacity: ${(p) => p.$isDragging ? 0.5 : 1};
-    background-color: ${(p) => p.$isDragOver ? 'rgba(17, 24, 39, 0.05)' : 'transparent'};
-    box-shadow: ${(p) => p.$isDragOver ? 'inset 0 2px 0 #111827' : 'none'};
+    background-color: ${(p) => p.$isDragOver ? 'var(--gray-color2)' : 'transparent'};
+    box-shadow: ${(p) => p.$isDragOver ? 'inset 0 2px 0 var(--dark-gray-color)' : 'none'};
     transition: background-color 0.16s ease, box-shadow 0.16s ease;
     cursor: pointer;
 
     @media (hover: hover) and (pointer: fine) {
         &:hover {
-            background-color: var(--black-color-10);
+            background-color: var(--gray-color2);
         }
     }
 
@@ -791,8 +787,8 @@ const StyledItem = styled.div<{ $isDragging: boolean; $isDragOver: boolean }>`
         align-items: center;
         padding: 2px 8px;
         border-radius: 999px;
-        background: rgba(17, 24, 39, 0.86);
-        color: #fff;
+        background: var(--dark-gray-color);
+        color: var(--white-color);
         font-size: 10px;
         font-weight: 700;
     }
@@ -855,7 +851,7 @@ const StyledSaveBtn = styled.button`
     ${mobileStretchButtonStyle};
     border: 1px solid var(--blue-color);
     background-color: var(--blue-color);
-    color: #fff;
+    color: var(--white-color);
 `;
 
 const StyledCancelBtn = styled.button`
@@ -881,9 +877,10 @@ const StyledAddButton = styled.button`
 
     @media (hover: hover) and (pointer: fine) {
         &:hover {
-        border-color: var(--blue-color);
-        color: var(--blue-color);
-    }
+            opacity: 1;
+            border-color: var(--blue-color);
+            color: var(--blue-color);
+        }
     }
 `;
 
