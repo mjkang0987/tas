@@ -142,10 +142,7 @@ const StyledReserveButton = styled.button <Props>`
         z-index: 2;
         transform: translateY(-50%);
         @media (max-width: 640px) {
-            top: 5px;
-            right: 0;
-            left: 50%;
-            transform: translate(-50%, 0);
+            display: none;
         }
 
         &::before {
