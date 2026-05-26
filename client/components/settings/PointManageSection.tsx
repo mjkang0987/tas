@@ -535,9 +535,15 @@ const StyledHistoryCustomerHead = styled.div`
 
     div {
         display: flex;
-        flex-direction: column;
-        gap: 4px;
+        align-items: center;
+        gap: 8px;
         min-width: 0;
+
+        @media (max-width: 640px) {
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 2px;
+        }
     }
 
     span {
@@ -810,12 +816,18 @@ const StyledCustomerCard = styled.div`
 
 const StyledCustomerMeta = styled.div`
     display: flex;
-    flex-direction: column;
-    gap: 2px;
+    align-items: center;
+    gap: 8px;
 
     span {
         color: var(--dark-gray-color2);
         font-size: 12px;
+    }
+
+    @media (max-width: 640px) {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 2px;
     }
 `;
 
