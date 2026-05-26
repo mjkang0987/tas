@@ -456,6 +456,10 @@ const StyledTabRow = styled.div`
     gap: 8px;
     overflow-x: auto;
     overscroll-behavior: auto;
+
+    @media (max-width: 640px) {
+        flex-wrap: wrap;
+    }
 `;
 
 const StyledTabButton = styled.button<{ $active: boolean }>`
