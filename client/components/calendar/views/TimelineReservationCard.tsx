@@ -7,6 +7,7 @@ import {NewCustomerBadge} from '../../ui/NewCustomerBadge';
 import {ServiceChipList} from '../../ui/ServiceChip';
 import type {Customer} from '../../../utils/customers';
 import type {Reservation} from '../../../utils/reservations';
+import {hasCompletedPayment} from '../../../utils/reservations';
 import type {DragPreview} from './timelineDrag';
 
 type TimelineReservationCardProps = {
@@ -74,7 +75,7 @@ export function TimelineReservationCard({
                 <StyledTimelineServiceList service={reservation.service}
                                           serviceColorMap={serviceColorMap}
                                           keyPrefix={reservation.id} />
-                {reservation.status === 'cancelled' ? ' (취소)' : reservation.status === 'noshow' ? ' (노쇼)' : reservation.status === 'completed' ? ' (완료)' : ''}
+                {reservation.status === 'cancelled' ? ' (취소)' : reservation.status === 'noshow' ? ' (노쇼)' : hasCompletedPayment(reservation) ? ' (결제완료)' : ''}
             </strong>
             {preview && <span className="sub">{preview.date} {preview.startTime}~{preview.endTime}</span>}
             {customerName && (
@@ -123,7 +124,7 @@ export function TimelineDragGhost({
                 <StyledTimelineServiceList service={reservation.service}
                                           serviceColorMap={serviceColorMap}
                                           keyPrefix={`ghost-${reservation.id}`} />
-                {reservation.status === 'cancelled' ? ' (취소)' : reservation.status === 'noshow' ? ' (노쇼)' : reservation.status === 'completed' ? ' (완료)' : ''}
+                {reservation.status === 'cancelled' ? ' (취소)' : reservation.status === 'noshow' ? ' (노쇼)' : hasCompletedPayment(reservation) ? ' (결제완료)' : ''}
             </strong>
             <span className="sub">{preview.date} {preview.startTime}~{preview.endTime}</span>
             {customerName && (

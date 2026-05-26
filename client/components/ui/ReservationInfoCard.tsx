@@ -2,7 +2,7 @@ import styled from 'styled-components';
 import type {KeyboardEvent} from 'react';
 
 import type {Reservation} from '../../utils/reservations';
-import {RESERVATION_STATUS_BADGE_STYLES} from '../../utils/reservations';
+import {RESERVATION_STATUS_BADGE_STYLES, hasCompletedPayment} from '../../utils/reservations';
 import {formatPrice} from '../../utils/services';
 import {DesignerLabel, StyledDesignerLabel} from './DesignerLabel';
 import {LabelBadge} from './LabelBadge';
@@ -32,8 +32,7 @@ type ReservationInfoCardProps = {
 function getReservationState(reservation: Reservation, today?: string) {
     if (reservation.status === 'cancelled') return {type: 'cancelled', label: '취소'};
     if (reservation.status === 'noshow') return {type: 'noshow', label: '노쇼'};
-    if (reservation.status === 'completed') return {type: 'completed', label: '완료'};
-    if (today && reservation.date < today) return {type: 'completed', label: '완료'};
+    if (hasCompletedPayment(reservation)) return {type: 'paid', label: '결제완료'};
     return {type: 'booked', label: '예약'};
 }
 
@@ -304,7 +303,7 @@ const StyledTrailing = styled.div`
 `;
 
 const StyledStatusBadge = styled(LabelBadge).attrs<{ $type: string }>((props) => ({
-    $tone: props.$type === 'completed' ? 'success' : props.$type === 'cancelled' ? 'neutral' : props.$type === 'noshow' ? 'danger' : 'info',
+    $tone: (props.$type === 'completed' || props.$type === 'paid') ? 'success' : props.$type === 'cancelled' ? 'neutral' : props.$type === 'noshow' ? 'danger' : 'info',
     $shape: 'soft',
     $size: 'sm',
 }))<{ $type: string }>`

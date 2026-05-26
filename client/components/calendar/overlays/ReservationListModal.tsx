@@ -27,6 +27,7 @@ import {CloseIconButton} from '../../ui/CloseIconButton';
 import {ReservationInfoCard} from '../../ui/ReservationInfoCard';
 
 import type {Reservation} from '../../../utils/reservations';
+import {hasCompletedPayment} from '../../../utils/reservations';
 
 const STATUS_LABELS: Record<string, string> = {
     cancelled: '취소',
@@ -130,15 +131,14 @@ export const ReservationListModal = () => {
     const getStatusType = (r: Reservation) => {
         if (r.status === 'cancelled') return 'cancelled';
         if (r.status === 'noshow') return 'noshow';
-        if (r.status === 'completed') return 'completed';
-        if (r.date < today) return 'completed';
+        if (hasCompletedPayment(r)) return 'paid';
         return 'booked';
     };
 
     const getStatusLabel = (r: Reservation) => {
         const type = getStatusType(r);
+        if (type === 'paid') return '결제완료';
         if (type === 'booked') return '예약';
-        if (type === 'completed') return '완료';
         return STATUS_LABELS[type] || '예약';
     };
 
