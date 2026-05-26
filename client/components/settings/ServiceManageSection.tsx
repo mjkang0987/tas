@@ -481,13 +481,13 @@ export const ServiceManageSection = () => {
                                 <StyledViewRow>
                                     <StyledDragHandle>::</StyledDragHandle>
                                     <StyledServiceContent>
-                                        <StyledNameChip $color={getServiceColor(item.name, serviceColorMap)}>
-                                            {item.name}
-                                        </StyledNameChip>
-                                        <StyledMeta>
-                                            {formatDuration(item.durationMinutes)}
-                                            {item.price > 0 && ` / ${formatPrice(item.price)}`}
-                                        </StyledMeta>
+                                        <StyledServiceLeft>
+                                            <StyledNameChip $color={getServiceColor(item.name, serviceColorMap)}>
+                                                {item.name}
+                                            </StyledNameChip>
+                                            <StyledDuration>{formatDuration(item.durationMinutes)}</StyledDuration>
+                                        </StyledServiceLeft>
+                                        {item.price > 0 && <StyledPrice>{formatPrice(item.price)}</StyledPrice>}
                                     </StyledServiceContent>
                                 </StyledViewRow>
                             </StyledItem>
@@ -806,8 +806,12 @@ const StyledServiceContent = styled.div`
     flex: 1;
     min-width: 0;
     display: flex;
-    flex-direction: column;
-    gap: 4px;
+    align-items: center;
+    gap: 8px;
+
+    @media (max-width: 640px) {
+        flex-wrap: wrap;
+    }
 `;
 
 const StyledDragHandle = styled.span`
@@ -831,10 +835,29 @@ const StyledNameChip = styled.span<{ $color: string }>`
     background-color: ${(p) => `${p.$color}18`};
 `;
 
-const StyledMeta = styled.span`
-    display: block;
+const StyledServiceLeft = styled.span`
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    min-width: 0;
+`;
+
+const StyledDuration = styled.span`
+    flex-shrink: 0;
     font-size: 11px;
     color: var(--dark-gray-color2);
+`;
+
+const StyledPrice = styled.span`
+    flex-shrink: 0;
+    margin-left: auto;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--dark-gray-color);
+
+    @media (max-width: 640px) {
+        margin-left: 0;
+    }
 `;
 
 const StyledEditBtn = styled.button`
