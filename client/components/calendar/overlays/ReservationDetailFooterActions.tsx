@@ -146,18 +146,6 @@ export function ReservationDetailFooterActions({
         );
     }
 
-    if (mode === 'restoring') {
-        return (
-            <>
-                <StyledActionButton type="button"
-                                    onClick={onBackToView}>취소</StyledActionButton>
-                <StyledActionButton type="button"
-                                    $primary
-                                    onClick={onRestoreReservation}>확인</StyledActionButton>
-            </>
-        );
-    }
-
     if (mode === 'payment') {
         return (
             <>

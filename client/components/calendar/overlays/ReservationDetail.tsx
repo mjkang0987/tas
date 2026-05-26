@@ -25,9 +25,13 @@ import {
     OVERLAY_Z_INDEX,
     StyledOverlay,
     StyledDetail,
+    StyledHeader,
+    StyledFooter,
+    StyledActionButton,
     useDialogAccessibility,
     useLayerInstanceId,
 } from './ModalStyles';
+import {CloseIconButton} from '../../ui/CloseIconButton';
 import {
     ReservationDiffSection,
     ReservationEditSection,
@@ -60,7 +64,6 @@ const MODE_LABELS: Partial<Record<ReservationDetailMode, string>> = {
     completing: '예약 완료',
     cancelling: '예약 취소',
     noshow: '노쇼 처리',
-    restoring: '예약 전환',
     payment: '결제 처리',
 };
 
@@ -197,6 +200,7 @@ export const ReservationDetail = ({
 
     const [mode, setMode] = useState<ReservationDetailMode>('view');
     const [isHistoryOpen, setIsHistoryOpen] = useState(false);
+    const [isRestoringOpen, setIsRestoringOpen] = useState(false);
     const initialForm = buildReservationFormState(sourceReservation);
     const [form, setForm] = useState<ReservationDetailFormState>(initialForm);
     const [priceInputValue, setPriceInputValue] = useState(initialForm.price === 0 ? '' : String(initialForm.price));
@@ -506,7 +510,7 @@ export const ReservationDetail = ({
 
         if (mode === 'confirming' || mode === 'pastConfirm') {
             setMode('editing');
-        } else if (mode === 'editing' || mode === 'cancelling' || mode === 'noshow' || mode === 'restoring' || mode === 'payment') {
+        } else if (mode === 'editing' || mode === 'cancelling' || mode === 'noshow' || mode === 'payment') {
             handleCancel();
         } else {
             onClose();
@@ -527,7 +531,7 @@ export const ReservationDetail = ({
 
     if (!modalRoot) return null;
 
-    return createPortal(<StyledReservationOverlay onClick={handleBack}
+    return createPortal(<><StyledReservationOverlay onClick={handleBack}
                                                   role="dialog"
                                                   aria-modal="true"
                                                   aria-label={dialogLabel}
@@ -693,19 +697,6 @@ export const ReservationDetail = ({
                 />
             )}
 
-            {mode === 'restoring' && (
-                <ReservationStaticDiffSection
-                    message="취소된 예약을 되돌리시겠습니까?"
-                    color="var(--blue-color)"
-                    items={[
-                        {label: '시술', value: reservation.service},
-                        {label: '날짜', value: reservation.date},
-                        {label: '시간', value: `${reservation.startTime} ~ ${reservation.endTime}`},
-                        {label: '고객명', value: customer?.name ?? '-'},
-                    ]}
-                />
-            )}
-
             <ReservationFooter
                 actions={(
                     <ReservationDetailFooterActions
@@ -740,7 +731,7 @@ export const ReservationDetail = ({
                         onConfirmSave={handleConfirmSave}
                         onCancelReservation={() => onCancel(sourceReservation)}
                         onNoshowReservation={() => onCancel(sourceReservation, 'noshow')}
-                        onOpenRestoring={() => setMode('restoring')}
+                        onOpenRestoring={() => setIsRestoringOpen(true)}
                         onRestoreReservation={() => onRestore(sourceReservation)}
                         onPaymentSave={handlePaymentSave}
                         onBackToEditing={() => setMode('editing')}
@@ -757,9 +748,77 @@ export const ReservationDetail = ({
             isOpen={isHistoryOpen}
             onClose={() => setIsHistoryOpen(false)}
         />
-    </StyledReservationOverlay>, modalRoot);
+    </StyledReservationOverlay>
+    {isRestoringOpen && (
+        <StyledRestoreOverlay onClick={() => setIsRestoringOpen(false)}>
+            <StyledRestoreModal onClick={(e) => e.stopPropagation()}>
+                <StyledHeader>
+                    <h3>예약 전환</h3>
+                    <CloseIconButton onClick={() => setIsRestoringOpen(false)} />
+                </StyledHeader>
+                <StyledRestoreBody>
+                    <StyledRestoreMessage>취소된 예약을 되돌리시겠습니까?</StyledRestoreMessage>
+                    <dl>
+                        <dt>시술</dt>
+                        <dd>{reservation.service}</dd>
+                        <dt>날짜</dt>
+                        <dd>{reservation.date}</dd>
+                        <dt>시간</dt>
+                        <dd>{reservation.startTime} ~ {reservation.endTime}</dd>
+                        <dt>고객명</dt>
+                        <dd>{customer?.name ?? '-'}</dd>
+                    </dl>
+                </StyledRestoreBody>
+                <StyledFooter>
+                    <StyledActionButton type="button" onClick={() => setIsRestoringOpen(false)}>취소</StyledActionButton>
+                    <StyledActionButton type="button" $primary onClick={() => {
+                        setIsRestoringOpen(false);
+                        onRestore(sourceReservation);
+                    }}>확인</StyledActionButton>
+                </StyledFooter>
+            </StyledRestoreModal>
+        </StyledRestoreOverlay>
+    )}
+    </>, modalRoot);
 };
 
 const StyledReservationOverlay = styled(StyledOverlay)<{ $stacked: boolean }>`
     z-index: ${(props) => props.$stacked ? OVERLAY_Z_INDEX.confirm : OVERLAY_Z_INDEX.detail};
+`;
+
+const StyledRestoreOverlay = styled(StyledOverlay)`
+    z-index: ${OVERLAY_Z_INDEX.confirm};
+`;
+
+const StyledRestoreModal = styled(StyledDetail)`
+    width: min(360px, 90vw);
+`;
+
+const StyledRestoreBody = styled.div`
+    padding: var(--modal-body-padding);
+
+    dl {
+        display: grid;
+        grid-template-columns: 60px 1fr;
+        gap: 8px 12px;
+        margin: 0;
+    }
+
+    dt {
+        font-size: 13px;
+        color: var(--dark-gray-color);
+        font-weight: 500;
+    }
+
+    dd {
+        margin: 0;
+        font-size: 13px;
+    }
+`;
+
+const StyledRestoreMessage = styled.p`
+    margin: 0 0 16px;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--blue-color);
 `;

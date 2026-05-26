@@ -8,7 +8,6 @@ export type ReservationDetailMode =
     | 'completing'
     | 'cancelling'
     | 'noshow'
-    | 'restoring'
     | 'payment';
 
 export type ReservationDiffItem = {
