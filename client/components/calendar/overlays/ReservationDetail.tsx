@@ -545,7 +545,7 @@ export const ReservationDetail = ({
                 onClose={handleBack}
             />
 
-            {(mode === 'view' || mode === 'restoring') && (
+            {mode === 'view' && (
                 <ReservationViewSection
                     reservation={draftReservation}
                     customerMap={customerMap}
