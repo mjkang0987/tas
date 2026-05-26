@@ -19,6 +19,7 @@ type ReservationDetailFooterActionsProps = {
     onConfirmSave: () => void;
     onCancelReservation: () => void;
     onNoshowReservation: () => void;
+    onOpenRestoring: () => void;
     onRestoreReservation: () => void;
     onPaymentSave: () => void;
     onBackToEditing: () => void;
@@ -41,6 +42,7 @@ export function ReservationDetailFooterActions({
                                                    onConfirmSave,
                                                    onCancelReservation,
                                                    onNoshowReservation,
+                                                   onOpenRestoring,
                                                    onRestoreReservation,
                                                    onPaymentSave,
                                                    onBackToEditing,
@@ -51,7 +53,7 @@ export function ReservationDetailFooterActions({
             return (
                 <StyledActionButton type="button"
                                     $primary
-                                    onClick={onRestoreReservation}>예약전환</StyledActionButton>
+                                    onClick={onOpenRestoring}>예약전환</StyledActionButton>
             );
         }
 
@@ -96,26 +98,14 @@ export function ReservationDetailFooterActions({
         );
     }
 
-    if (mode === 'confirming') {
+    if (mode === 'confirming' || mode === 'pastConfirm') {
         return (
             <>
                 <StyledActionButton type="button"
-                                    onClick={onBackToEditing}>돌아가기</StyledActionButton>
+                                    onClick={onBackToEditing}>취소</StyledActionButton>
                 <StyledActionButton type="button"
                                     $primary
                                     onClick={onConfirmSave}>확인</StyledActionButton>
-            </>
-        );
-    }
-
-    if (mode === 'pastConfirm') {
-        return (
-            <>
-                <StyledActionButton type="button"
-                                    onClick={onBackToEditing}>아니오</StyledActionButton>
-                <StyledActionButton type="button"
-                                    $primary
-                                    onClick={onConfirmSave}>네</StyledActionButton>
             </>
         );
     }
@@ -124,10 +114,10 @@ export function ReservationDetailFooterActions({
         return (
             <>
                 <StyledActionButton type="button"
-                                    onClick={onBackToView}>돌아가기</StyledActionButton>
+                                    onClick={onBackToView}>취소</StyledActionButton>
                 <StyledActionButton type="button"
-                                    $danger
-                                    onClick={onCancelReservation}>예약취소</StyledActionButton>
+                                    $primary
+                                    onClick={onCancelReservation}>확인</StyledActionButton>
             </>
         );
     }
@@ -136,10 +126,10 @@ export function ReservationDetailFooterActions({
         return (
             <>
                 <StyledActionButton type="button"
-                                    onClick={onBackToView}>돌아가기</StyledActionButton>
+                                    onClick={onBackToView}>취소</StyledActionButton>
                 <StyledActionButton type="button"
                                     $primary
-                                    onClick={onConfirmSave}>완료 처리</StyledActionButton>
+                                    onClick={onConfirmSave}>확인</StyledActionButton>
             </>
         );
     }
@@ -148,10 +138,22 @@ export function ReservationDetailFooterActions({
         return (
             <>
                 <StyledActionButton type="button"
-                                    onClick={onBackToView}>돌아가기</StyledActionButton>
+                                    onClick={onBackToView}>취소</StyledActionButton>
                 <StyledActionButton type="button"
-                                    $warning
-                                    onClick={onNoshowReservation}>노쇼 처리</StyledActionButton>
+                                    $primary
+                                    onClick={onNoshowReservation}>확인</StyledActionButton>
+            </>
+        );
+    }
+
+    if (mode === 'restoring') {
+        return (
+            <>
+                <StyledActionButton type="button"
+                                    onClick={onBackToView}>취소</StyledActionButton>
+                <StyledActionButton type="button"
+                                    $primary
+                                    onClick={onRestoreReservation}>확인</StyledActionButton>
             </>
         );
     }

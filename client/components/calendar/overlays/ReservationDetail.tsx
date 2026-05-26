@@ -60,6 +60,7 @@ const MODE_LABELS: Partial<Record<ReservationDetailMode, string>> = {
     completing: '예약 완료',
     cancelling: '예약 취소',
     noshow: '노쇼 처리',
+    restoring: '예약 전환',
     payment: '결제 처리',
 };
 
@@ -505,7 +506,7 @@ export const ReservationDetail = ({
 
         if (mode === 'confirming' || mode === 'pastConfirm') {
             setMode('editing');
-        } else if (mode === 'editing' || mode === 'cancelling' || mode === 'noshow' || mode === 'payment') {
+        } else if (mode === 'editing' || mode === 'cancelling' || mode === 'noshow' || mode === 'restoring' || mode === 'payment') {
             handleCancel();
         } else {
             onClose();
@@ -692,6 +693,19 @@ export const ReservationDetail = ({
                 />
             )}
 
+            {mode === 'restoring' && (
+                <ReservationStaticDiffSection
+                    message="취소된 예약을 되돌리시겠습니까?"
+                    color="var(--blue-color)"
+                    items={[
+                        {label: '시술', value: reservation.service},
+                        {label: '날짜', value: reservation.date},
+                        {label: '시간', value: `${reservation.startTime} ~ ${reservation.endTime}`},
+                        {label: '고객명', value: customer?.name ?? '-'},
+                    ]}
+                />
+            )}
+
             <ReservationFooter
                 actions={(
                     <ReservationDetailFooterActions
@@ -726,6 +740,7 @@ export const ReservationDetail = ({
                         onConfirmSave={handleConfirmSave}
                         onCancelReservation={() => onCancel(sourceReservation)}
                         onNoshowReservation={() => onCancel(sourceReservation, 'noshow')}
+                        onOpenRestoring={() => setMode('restoring')}
                         onRestoreReservation={() => onRestore(sourceReservation)}
                         onPaymentSave={handlePaymentSave}
                         onBackToEditing={() => setMode('editing')}
