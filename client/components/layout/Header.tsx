@@ -92,6 +92,8 @@ export const Header = () => {
                 <StyledCalendarRow>
                     <CalendarDirection />
                     <CalendarHeading />
+                </StyledCalendarRow>
+                <StyledToolRow>
                     <StyledDesignerFilter value={calendarDesignerId ?? ''}
                                           onChange={(e) => setCalendarDesignerId(e.target.value ? Number(e.target.value) : null)}
                                           aria-label="달력 디자이너 필터">
@@ -123,8 +125,6 @@ export const Header = () => {
                             </optgroup>
                         )}
                     </StyledDesignerFilter>
-                </StyledCalendarRow>
-                <StyledToolRow>
                     {isActive && (
                         <StyledSyncWrap>
                             <StyledSyncButton type="button" onClick={sync} disabled={syncing} aria-label="네이버 예약 동기화">
@@ -215,7 +215,6 @@ const StyledCalendarRow = styled.div`
     min-width: 0;
 
     @media (max-width: 640px) {
-        flex-wrap: wrap;
         width: 100%;
         padding: 0 2px;
     }
@@ -229,7 +228,6 @@ const StyledToolRow = styled.div`
     @media (max-width: 640px) {
         width: 100%;
         height: 36px;
-        justify-content: flex-end;
         padding: 0 2px;
         border-top: 1px solid var(--light-gray-color);
     }
@@ -287,7 +285,7 @@ const StyledPageTitle = styled.h1`
 
 const StyledDesignerFilter = styled.select`
     min-width: 128px;
-    margin-left: auto;
+    margin-right: auto;
     padding: 0 10px;
     ${formControlStyle};
     cursor: pointer;
