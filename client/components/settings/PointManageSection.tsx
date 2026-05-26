@@ -463,6 +463,7 @@ const StyledTabRow = styled.div`
 
     @media (max-width: 640px) {
         flex-wrap: wrap;
+        overflow-x: visible;
     }
 `;
 
