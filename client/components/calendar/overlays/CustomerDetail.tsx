@@ -62,6 +62,7 @@ function buildCustomerEditForm(customer: Customer): CustomerEditForm {
 
 export const CustomerDetail = ({customer, reservationMap, onClose, onReservationClick}: CustomerDetailProps) => {
     const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
+    const [isPointHistoryOpen, setIsPointHistoryOpen] = useState(false);
     const [isEditing, setIsEditing] = useState(false);
     const [editForm, setEditForm] = useState<CustomerEditForm>(() => buildCustomerEditForm(customer));
     const [newTagText, setNewTagText] = useState('');
@@ -188,7 +189,7 @@ export const CustomerDetail = ({customer, reservationMap, onClose, onReservation
 
     if (!modalRoot) return null;
 
-    return createPortal(<StyledCustomerOverlay onClick={onClose}
+    return createPortal(<><StyledCustomerOverlay onClick={onClose}
                                                role="dialog"
                                                aria-modal="true"
                                                aria-label="고객 정보"
@@ -300,24 +301,29 @@ export const CustomerDetail = ({customer, reservationMap, onClose, onReservation
                     {isEditing && editError && <StyledEditError>{editError}</StyledEditError>}
                 </StyledAddressMemoSection>
                 <StyledPointHistorySection>
-                    <h4>적립금 이력 ({pointHistories.length})</h4>
+                    <StyledPointHistoryHeader>
+                        <h4>적립금 이력 ({pointHistories.length})</h4>
+                        {pointHistories.length > 1 && (
+                            <StyledPointHistoryMoreButton type="button" onClick={() => setIsPointHistoryOpen(true)}>
+                                더보기
+                            </StyledPointHistoryMoreButton>
+                        )}
+                    </StyledPointHistoryHeader>
                     {pointHistories.length === 0 ? (
                         <StyledEmptyText>적립금 이력이 없습니다.</StyledEmptyText>
                     ) : (
                         <StyledPointHistoryList>
-                            {pointHistories.map((history) => (
-                                <StyledPointHistoryItem key={history.id}>
-                                    <StyledPointHistoryTop>
-                                        <strong>{POINT_HISTORY_LABELS[history.type]}</strong>
-                                        <span>{history.delta > 0 ? '+' : ''}{formatPrice(history.delta)}</span>
-                                    </StyledPointHistoryTop>
-                                    <StyledPointHistoryMeta>
-                                        <span>{history.description}</span>
-                                        <span>잔액 {formatPrice(history.balance)}</span>
-                                        <span>{history.createdAt.slice(0, 16).replace('T', ' ')}</span>
-                                    </StyledPointHistoryMeta>
-                                </StyledPointHistoryItem>
-                            ))}
+                            <StyledPointHistoryItem>
+                                <StyledPointHistoryTop>
+                                    <strong>{POINT_HISTORY_LABELS[pointHistories[0].type]}</strong>
+                                    <span>{pointHistories[0].delta > 0 ? '+' : ''}{formatPrice(pointHistories[0].delta)}</span>
+                                </StyledPointHistoryTop>
+                                <StyledPointHistoryMeta>
+                                    <span>{pointHistories[0].description}</span>
+                                    <span>잔액 {formatPrice(pointHistories[0].balance)}</span>
+                                    <span>{pointHistories[0].createdAt.slice(0, 16).replace('T', ' ')}</span>
+                                </StyledPointHistoryMeta>
+                            </StyledPointHistoryItem>
                         </StyledPointHistoryList>
                     )}
                 </StyledPointHistorySection>
@@ -338,7 +344,35 @@ export const CustomerDetail = ({customer, reservationMap, onClose, onReservation
                 </StyledReservationSection>
             </StyledCustomerContent>
         </StyledCustomerDetail>
-    </StyledCustomerOverlay>, modalRoot);
+    </StyledCustomerOverlay>
+    {isPointHistoryOpen && pointHistories.length > 0 && (
+        <StyledPointHistoryOverlay onClick={() => setIsPointHistoryOpen(false)}>
+            <StyledPointHistoryModal onClick={(e) => e.stopPropagation()}>
+                <StyledHeader>
+                    <h3>적립금 이력 ({pointHistories.length})</h3>
+                    <CloseIconButton onClick={() => setIsPointHistoryOpen(false)} />
+                </StyledHeader>
+                <StyledPointHistoryModalContent>
+                    <StyledPointHistoryList>
+                        {pointHistories.map((history) => (
+                            <StyledPointHistoryItem key={history.id}>
+                                <StyledPointHistoryTop>
+                                    <strong>{POINT_HISTORY_LABELS[history.type]}</strong>
+                                    <span>{history.delta > 0 ? '+' : ''}{formatPrice(history.delta)}</span>
+                                </StyledPointHistoryTop>
+                                <StyledPointHistoryMeta>
+                                    <span>{history.description}</span>
+                                    <span>잔액 {formatPrice(history.balance)}</span>
+                                    <span>{history.createdAt.slice(0, 16).replace('T', ' ')}</span>
+                                </StyledPointHistoryMeta>
+                            </StyledPointHistoryItem>
+                        ))}
+                    </StyledPointHistoryList>
+                </StyledPointHistoryModalContent>
+            </StyledPointHistoryModal>
+        </StyledPointHistoryOverlay>
+    )}
+    </>, modalRoot);
 };
 
 const StyledCustomerOverlay = styled(StyledOverlay)`
@@ -511,10 +545,41 @@ const StyledPointHistorySection = styled.div`
     border-bottom: 1px solid var(--light-gray-color);
 
     h4 {
-        margin: 0 0 8px;
+        margin: 0;
         font-size: 14px;
         font-weight: 600;
     }
+`;
+
+const StyledPointHistoryHeader = styled.div`
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 8px;
+`;
+
+const StyledPointHistoryMoreButton = styled.button`
+    border: none;
+    background: none;
+    font-size: 12px;
+    color: var(--blue-color);
+    font-weight: 600;
+    cursor: pointer;
+    padding: 0;
+`;
+
+const StyledPointHistoryOverlay = styled(StyledOverlay)`
+    z-index: ${OVERLAY_Z_INDEX.confirm};
+`;
+
+const StyledPointHistoryModal = styled(StyledDetail)`
+    width: min(360px, 90vw);
+    max-height: 70vh;
+`;
+
+const StyledPointHistoryModalContent = styled.div`
+    ${scrollContentStyle};
+    padding: 8px;
 `;
 
 const StyledAddressMemoSection = styled.div`
