@@ -307,13 +307,6 @@ const StyledTimelineWrap = styled.div<{
         animation: down ${props => props.$timing ? props.$timing : 10 * 3600}s linear;
     }
 
-    ${props => props.$type === ViewType.Day ? `
-        @media (max-width: 640px) {
-            .detail {
-                display: block;
-            }
-        }
-    ` : ''}
 `;
 
 const StyledTimelineBackground = styled.button`

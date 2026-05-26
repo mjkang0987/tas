@@ -45,6 +45,7 @@
         "@types/styled-components": "^5.1.36",
         "eslint": "10.1.0",
         "eslint-config-next": "16.2.4",
+        "fsevents": "^2.3.3",
         "prisma": "^6.7.0",
         "typescript": "6.0.2"
     },

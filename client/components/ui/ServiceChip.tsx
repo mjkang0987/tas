@@ -12,6 +12,7 @@ export const StyledServiceText = styled.span<{ $color: string }>`
     color: ${(props) => props.$color};
     font-size: 11px;
     font-weight: 600;
+    line-height: 1.2;
 `;
 
 export const StyledServiceToken = styled.span`

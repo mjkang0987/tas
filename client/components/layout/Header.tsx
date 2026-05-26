@@ -87,6 +87,7 @@ export const Header = () => {
                         : <polyline points="13,10 15,12 13,14" />
                     }
                 </svg>
+
             </StyledAsideToggle>
             {isCalendarPage && currValue.full !== null && <>
                 <StyledCalendarRow>
@@ -227,8 +228,7 @@ const StyledToolRow = styled.div`
 
     @media (max-width: 640px) {
         width: 100%;
-        height: 36px;
-        padding: 0 2px;
+        padding: 4px 2px;
         border-top: 1px solid var(--light-gray-color);
     }
 `;
@@ -299,9 +299,11 @@ const StyledDesignerFilter = styled.select`
         &::checkmark {
             display: none;
         }
+
         &[value]:not([value=""]) {
             padding-left: 14px;
         }
+
         &[data-bg-color]::before {
             content: '';
             display: inline-block;
@@ -310,7 +312,7 @@ const StyledDesignerFilter = styled.select`
             margin-right: 2px;
             border-radius: 50%;
             vertical-align: middle;
-            background-color: attr(data-bg-color type(<color>), transparent);
+            background-color: attr(data-bg-color type(< color >), transparent);
         }
     }
 
@@ -321,6 +323,9 @@ const StyledDesignerFilter = styled.select`
         border: 1px solid #e0e0e0;
         border-radius: var(--radius-md);
         margin-top: 4px;
+        @media (max-width: 640px) {
+            margin-top: 0;
+        }
     }
 
     @media (max-width: 640px) {

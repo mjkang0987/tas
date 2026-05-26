@@ -213,7 +213,7 @@ const StyledCustomerButton = styled.button`
 const StyledPaymentValue = styled.span`
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 4px;
     flex-wrap: wrap;
     padding-bottom: 2px;
 `;

@@ -78,7 +78,7 @@ const StyledReserveButton = styled.button <Props>`
     }
 
     .highlight {
-        display: block;
+        display: inline;
         font-weight: 600;
         font-size: var(--small-font);
         text-decoration: ${props => props.$cancelled ? 'line-through' : 'none'};
@@ -95,12 +95,9 @@ const StyledReserveButton = styled.button <Props>`
     }
 
     .detail {
-        display: block;
-        margin-top: 2px;
+        display: inline;
+        margin-left: 4px;
         font-size: var(--tiny-font);
-        @media (max-width: 640px) {
-            display: none;
-        }
     }
 
     .service-token {
@@ -110,17 +107,6 @@ const StyledReserveButton = styled.button <Props>`
             flex-wrap: wrap;
             gap: 4px;
         }
-    }
-
-    .service-chip,
-    .service-chip-text {
-        display: inline-flex;
-        align-items: center;
-        padding: 3px 7px;
-        border-radius: 999px;
-        font-size: 11px;
-        font-weight: 600;
-        line-height: 1.2;
     }
 
     .drag-handle {
@@ -216,3 +202,4 @@ interface AddProps {
 export const ButtonAdd: React.FC<AddProps> = (props) => {
     return <StyledAddButton type="button" {...props}>&#x2b;</StyledAddButton>;
 }
+
