@@ -389,6 +389,8 @@ export const StyledDiffGrid = styled.dl`
         display: flex;
         align-items: center;
         gap: var(--gap-md);
+        margin: 0;
+        font-size: 13px;
     }
 
     del {
