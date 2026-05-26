@@ -431,6 +431,10 @@ const StyledTopBar = styled.div`
     align-items: center;
     justify-content: space-between;
     gap: 10px;
+
+    @media (max-width: 640px) {
+        flex-wrap: wrap;
+    }
 `;
 
 const StyledTotalBadge = styled.div`
