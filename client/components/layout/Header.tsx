@@ -328,7 +328,6 @@ const StyledDesignerFilter = styled.select`
     @media (max-width: 640px) {
         min-width: 96px;
         margin-left: 0;
-        flex-basis: 100%;
     }
 `;
 
