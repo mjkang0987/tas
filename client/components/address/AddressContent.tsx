@@ -149,6 +149,7 @@ export function AddressContent({
                                     onClick={() => setMergePreview((prev) => prev ? {...prev, targetId: c.id} : null)}
                                 >
                                     <StyledPreviewRadio
+                                        id={`merge-target-${c.id}`}
                                         type="radio"
                                         name="mergeTarget"
                                         checked={c.id === mergePreview.targetId}

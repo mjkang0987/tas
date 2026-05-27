@@ -1,9 +1,10 @@
 import {useMemo, useState, type DragEvent} from 'react';
 import {createPortal} from 'react-dom';
 
-import styled, {css} from 'styled-components';
+import styled from 'styled-components';
 
 import {useCalendarStore} from '../../store/calendarStore';
+import {actionButtonStyle, StyledEditBtn as StyledEditBtnBase, StyledSaveBtn, StyledCancelBtn, StyledServiceFooter} from './settings-styles';
 import {buildServiceColorMap, formatPrice, formatDuration, getCategoryBaseColor, getGroupedCatalog, getServiceColor} from '../../utils/services';
 import type {ServiceItem} from '../../utils/services';
 import {
@@ -87,8 +88,9 @@ const ServiceEditModal = ({item, serviceCatalog, onSave, onDelete, onClose}: Ser
                     <StyledForm>
                         <StyledFieldRow>
                             <strong>시술명</strong>
-                            <label>
+                            <label htmlFor="service-edit-name">
                                 <input
+                                    id="service-edit-name"
                                     value={name}
                                     onChange={(e) => { setName(e.target.value); setError(''); }}
                                     placeholder="시술명"
@@ -97,8 +99,9 @@ const ServiceEditModal = ({item, serviceCatalog, onSave, onDelete, onClose}: Ser
                         </StyledFieldRow>
                         <StyledFieldRow>
                             <strong>소요시간 (분)</strong>
-                            <label>
+                            <label htmlFor="service-edit-duration">
                                 <input
+                                    id="service-edit-duration"
                                     type="number"
                                     value={durationMinutes}
                                     onChange={(e) => setDurationMinutes(e.target.value)}
@@ -108,8 +111,9 @@ const ServiceEditModal = ({item, serviceCatalog, onSave, onDelete, onClose}: Ser
                         </StyledFieldRow>
                         <StyledFieldRow>
                             <strong>가격 (원)</strong>
-                            <label>
+                            <label htmlFor="service-edit-price">
                                 <input
+                                    id="service-edit-price"
                                     type="number"
                                     value={price}
                                     onChange={(e) => setPrice(e.target.value)}
@@ -200,10 +204,10 @@ const ServiceAddModal = ({categories, serviceCatalog, onAdd, onClose}: ServiceAd
                     <StyledForm>
                         <StyledFieldRow>
                             <strong>카테고리</strong>
-                            <label>
+                            <label htmlFor="service-add-category">
                                 <select
+                                    id="service-add-category"
                                     value={form.category}
-                                    aria-label="시술 카테고리"
                                     onChange={(e) => {
                                         setForm({...form, category: e.target.value});
                                         setError('');
@@ -215,8 +219,9 @@ const ServiceAddModal = ({categories, serviceCatalog, onAdd, onClose}: ServiceAd
                                 </select>
                             </label>
                             {form.category === '__new' && (
-                                <label>
+                                <label htmlFor="service-add-new-category">
                                     <input
+                                        id="service-add-new-category"
                                         value={newCategory}
                                         placeholder="새 카테고리명"
                                         onChange={(e) => { setNewCategory(e.target.value); setError(''); }}
@@ -226,8 +231,9 @@ const ServiceAddModal = ({categories, serviceCatalog, onAdd, onClose}: ServiceAd
                         </StyledFieldRow>
                         <StyledFieldRow>
                             <strong>시술명</strong>
-                            <label>
+                            <label htmlFor="service-add-name">
                                 <input
+                                    id="service-add-name"
                                     value={form.name}
                                     onChange={(e) => { setForm({...form, name: e.target.value}); setError(''); }}
                                     placeholder="시술명"
@@ -236,8 +242,9 @@ const ServiceAddModal = ({categories, serviceCatalog, onAdd, onClose}: ServiceAd
                         </StyledFieldRow>
                         <StyledFieldRow>
                             <strong>소요시간 (분)</strong>
-                            <label>
+                            <label htmlFor="service-add-duration">
                                 <input
+                                    id="service-add-duration"
                                     type="number"
                                     value={form.durationMinutes}
                                     onChange={(e) => setForm({...form, durationMinutes: e.target.value})}
@@ -247,8 +254,9 @@ const ServiceAddModal = ({categories, serviceCatalog, onAdd, onClose}: ServiceAd
                         </StyledFieldRow>
                         <StyledFieldRow>
                             <strong>가격 (원)</strong>
-                            <label>
+                            <label htmlFor="service-add-price">
                                 <input
+                                    id="service-add-price"
                                     type="number"
                                     value={form.price}
                                     onChange={(e) => setForm({...form, price: e.target.value})}
@@ -414,6 +422,7 @@ export const ServiceManageSection = () => {
                             {editingCategory === category ? (
                                 <StyledCategoryEditRow>
                                     <StyledCategoryEditInput
+                                        id="service-category-edit"
                                         value={editingCategoryName}
                                         onChange={(e) => setEditingCategoryName(e.target.value)}
                                         placeholder="카테고리명"
@@ -451,6 +460,7 @@ export const ServiceManageSection = () => {
                                 )}
                                 <StyledColorField>
                                     <StyledCategoryColorInput
+                                        id={`service-category-color-${category}`}
                                         type="color"
                                         value={getCategoryBaseColor(category, categoryBaseColorMap)}
                                         onChange={(e) => updateCategoryBaseColor(category, e.target.value)}
@@ -547,28 +557,6 @@ const StyledModalBody = styled.div`
 /*  Styled – List                                                      */
 /* ------------------------------------------------------------------ */
 
-const actionButtonStyle = css`
-    flex-shrink: 0;
-    height: 30px;
-    padding: 0 12px;
-    border-radius: var(--radius-md);
-    font-size: 12px;
-    font-weight: 500;
-    cursor: pointer;
-    transition: opacity 0.15s ease, background-color 0.15s ease, border-color 0.15s ease;
-
-    @media (hover: hover) and (pointer: fine) {
-        &:hover {
-            opacity: 0.85;
-        }
-    }
-`;
-
-const mobileStretchButtonStyle = css`
-    @media (max-width: 640px) {
-        flex: 1;
-    }
-`;
 
 const StyledServiceBody = styled.div`
     overflow-y: auto;
@@ -860,34 +848,8 @@ const StyledPrice = styled.span`
     }
 `;
 
-const StyledEditBtn = styled.button`
-    ${actionButtonStyle};
-    border: 1px solid var(--light-gray-color);
-    background: none;
-    font-size: 11px;
-    color: var(--dark-gray-color);
+const StyledEditBtn = styled(StyledEditBtnBase)`
     background-color: var(--white-color);
-`;
-
-const StyledSaveBtn = styled.button`
-    ${actionButtonStyle};
-    ${mobileStretchButtonStyle};
-    border: 1px solid var(--blue-color);
-    background-color: var(--blue-color);
-    color: var(--white-color);
-`;
-
-const StyledCancelBtn = styled.button`
-    ${actionButtonStyle};
-    ${mobileStretchButtonStyle};
-    border: 1px solid var(--light-gray-color);
-    background: none;
-    color: var(--dark-gray-color);
-`;
-
-const StyledServiceFooter = styled.div`
-    padding: 12px 16px;
-    border-top: 1px solid var(--light-gray-color);
 `;
 
 const StyledAddButton = styled.button`

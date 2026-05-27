@@ -65,6 +65,7 @@ export function ReservationDetailPaymentLayer({
                         {paymentEntries.map((entry, index) => (
                             <StyledPaymentEntryRow key={`payment-entry-${index}`}>
                                 <select
+                                    id={`payment-entry-${index}-method`}
                                     value={entry.method}
                                     onChange={(e) => onChangeEntryMethod(index, e.target.value as PaymentMethod | '')}
                                 >
@@ -74,6 +75,7 @@ export function ReservationDetailPaymentLayer({
                                     ))}
                                 </select>
                                 <input
+                                    id={`payment-entry-${index}-amount`}
                                     type="text"
                                     inputMode="numeric"
                                     value={entry.amount}
@@ -94,8 +96,9 @@ export function ReservationDetailPaymentLayer({
                     </StyledPaymentAddButton>
                     {showPointAward && (
                         <StyledPointAwardBox>
-                            <StyledPointAwardToggle>
+                            <StyledPointAwardToggle htmlFor="payment-point-award-toggle">
                                 <input
+                                    id="payment-point-award-toggle"
                                     type="checkbox"
                                     checked={pointAward.enabled}
                                     onChange={(e) => onTogglePointAward(e.target.checked)}
@@ -103,6 +106,7 @@ export function ReservationDetailPaymentLayer({
                                 <span>적립 적용</span>
                             </StyledPointAwardToggle>
                             <StyledPointAwardInput
+                                id="payment-point-award-amount"
                                 type="text"
                                 inputMode="numeric"
                                 value={pointAward.amount}

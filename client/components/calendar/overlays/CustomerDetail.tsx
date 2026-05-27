@@ -220,17 +220,19 @@ export const CustomerDetail = ({customer, reservationMap, onClose, onReservation
                 <StyledInfo>
                     {isEditing ? (
                         <StyledEditFields>
-                            <label>
+                            <label htmlFor="customer-edit-name">
                                 <span>고객명</span>
                                 <input
+                                    id="customer-edit-name"
                                     type="text"
                                     value={editForm.name}
                                     onChange={(e) => handleFieldChange('name', e.target.value)}
                                 />
                             </label>
-                            <label>
+                            <label htmlFor="customer-edit-tel">
                                 <span>연락처</span>
                                 <input
+                                    id="customer-edit-tel"
                                     type="text"
                                     value={editForm.tel}
                                     onChange={(e) => handleFieldChange('tel', e.target.value)}
@@ -255,6 +257,7 @@ export const CustomerDetail = ({customer, reservationMap, onClose, onReservation
                         <StyledTagEditor>
                             <StyledTagInputRow>
                                 <input
+                                    id="customer-edit-memo-tag"
                                     type="text"
                                     value={newTagText}
                                     placeholder="메모 태그 입력"

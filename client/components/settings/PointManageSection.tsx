@@ -1,11 +1,12 @@
 import {useMemo, useState} from 'react';
 
-import styled, {css} from 'styled-components';
+import styled from 'styled-components';
 
 import {useCalendarStore} from '../../store/calendarStore';
 import type {PointHistoryEntry} from '../../utils/customers';
 import {formatPrice} from '../../utils/services';
 import {formControlStyle} from '../ui/FormControls';
+import {actionButtonStyle, StyledEditBtn, StyledSaveBtn, StyledCancelBtn} from './settings-styles';
 
 const POINT_HISTORY_LABELS: Record<PointHistoryEntry['type'], string> = {
     manual_add: '수동 적립',
@@ -150,6 +151,7 @@ export const PointManageSection = () => {
                 <>
                     <StyledSearchRow>
                         <StyledSearchInput
+                            id="point-search"
                             type="search"
                             value={search}
                             placeholder="고객명 또는 연락처 검색"
@@ -168,6 +170,7 @@ export const PointManageSection = () => {
                                 <StyledPointValue>{formatPrice(customer.points ?? 0)}</StyledPointValue>
                                 <StyledAdjustRow>
                                     <StyledAmountInput
+                                        id={`point-adjust-${customer.id}`}
                                         type="text"
                                         inputMode="numeric"
                                         value={amountByCustomer[customer.id] ?? ''}
@@ -210,8 +213,9 @@ export const PointManageSection = () => {
                     </StyledPolicyHeader>
                     <StyledPolicyOptions>
                         <StyledPolicyBlock>
-                            <StyledPolicyOption>
+                            <StyledPolicyOption htmlFor="point-enable-service-rate">
                                 <input
+                                    id="point-enable-service-rate"
                                     type="checkbox"
                                     checked={pointSettingsDraft.enableServiceRate}
                                     disabled={!isEditingPolicy}
@@ -225,8 +229,9 @@ export const PointManageSection = () => {
                             {pointSettingsDraft.enableServiceRate && (
                                 <StyledPolicyBody>
                                     <StyledRateRow>
-                                        <span>적립 퍼센트</span>
+                                        <label htmlFor="point-service-rate">적립 퍼센트</label>
                                         <StyledRateInput
+                                            id="point-service-rate"
                                             type="text"
                                             inputMode="numeric"
                                             value={String(pointSettingsDraft.serviceRate)}
@@ -245,8 +250,9 @@ export const PointManageSection = () => {
                             )}
                         </StyledPolicyBlock>
                         <StyledPolicyBlock>
-                            <StyledPolicyOption>
+                            <StyledPolicyOption htmlFor="point-enable-recharge">
                                 <input
+                                    id="point-enable-recharge"
                                     type="checkbox"
                                     checked={pointSettingsDraft.enableRecharge}
                                     disabled={!isEditingPolicy}
@@ -281,9 +287,10 @@ export const PointManageSection = () => {
                                 <StyledRechargeList>
                                     {pointSettingsDraft.rechargeRules.map((rule, index) => (
                                         <StyledRechargeRow key={`recharge-rule-${index}`}>
-                                            <StyledRechargeField>
+                                            <StyledRechargeField htmlFor={`point-recharge-${index}-base`}>
                                                 <span>기준금액</span>
                                                 <StyledRateInput
+                                                    id={`point-recharge-${index}-base`}
                                                     type="text"
                                                     inputMode="numeric"
                                                     value={String(rule.baseAmount || '')}
@@ -301,9 +308,10 @@ export const PointManageSection = () => {
                                                 />
                                             </StyledRechargeField>
                                             <StyledRechargePlus>+</StyledRechargePlus>
-                                            <StyledRechargeField>
+                                            <StyledRechargeField htmlFor={`point-recharge-${index}-bonus`}>
                                                 <span>추가금</span>
                                                 <StyledRateInput
+                                                    id={`point-recharge-${index}-bonus`}
                                                     type="text"
                                                     inputMode="numeric"
                                                     value={String(rule.bonusAmount || '')}
@@ -387,44 +395,6 @@ const StyledStickyHeader = styled.div`
     backdrop-filter: blur(8px) saturate(180%);
 `;
 
-const actionButtonStyle = css`
-    flex-shrink: 0;
-    height: 30px;
-    padding: 0 12px;
-    border-radius: var(--radius-md);
-    font-size: 12px;
-    font-weight: 500;
-    cursor: pointer;
-    transition: opacity 0.15s ease, background-color 0.15s ease, border-color 0.15s ease;
-
-    @media (hover: hover) and (pointer: fine) {
-        &:hover {
-            opacity: 0.85;
-        }
-    }
-`;
-
-const StyledEditBtn = styled.button`
-    ${actionButtonStyle};
-    border: 1px solid var(--light-gray-color);
-    background: none;
-    font-size: 11px;
-    color: var(--dark-gray-color);
-`;
-
-const StyledSaveBtn = styled.button`
-    ${actionButtonStyle};
-    border: 1px solid var(--blue-color);
-    background-color: var(--blue-color);
-    color: var(--white-color);
-`;
-
-const StyledCancelBtn = styled.button`
-    ${actionButtonStyle};
-    border: 1px solid var(--light-gray-color);
-    background: none;
-    color: var(--dark-gray-color);
-`;
 
 const StyledTopBar = styled.div`
     display: flex;
@@ -698,7 +668,7 @@ const StyledRateRow = styled.div`
     gap: 8px;
     align-items: center;
 
-    span, em {
+    span, em, label {
         font-size: 12px;
         color: var(--dark-gray-color);
         font-style: normal;
