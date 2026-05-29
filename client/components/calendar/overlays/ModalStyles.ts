@@ -407,7 +407,7 @@ export const StyledDiffGrid = styled.dl`
 
         &::before {
             content: "\\2192\\00a0";
-            color: var(--gray-color);
+            color: var(--dark-gray-color);
             font-weight: 400;
         }
     }

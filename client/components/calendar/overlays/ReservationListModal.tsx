@@ -272,7 +272,7 @@ const StyledDateTitle = styled.div`
     color: #111;
     letter-spacing: -0.01em;
     background: rgba(255, 255, 255, .1); /* 살짝만 흰색 */
-    backdrop-filter: blur(.8px) saturate(180%);
+    backdrop-filter: var(--sticky-backdrop);
 `;
 
 const StyledItem = styled.li``;

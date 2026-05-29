@@ -16,6 +16,7 @@ import {buildServiceColorMap} from '../utils/services';
 import {ReservationDetail} from '../components/calendar/overlays/ReservationDetail';
 import {CustomerDetail} from '../components/calendar/overlays/CustomerDetail';
 import {AddressContent} from '../components/address/AddressContent';
+import {PageHero} from '../components/ui/PageHero';
 
 import {useCalendarStore} from '../store/calendarStore';
 
@@ -306,6 +307,7 @@ const Address: NextPage<AddressProps> = ({customers, reservations, history, stor
             <Head>
                 <title>TAS | 고객명단</title>
             </Head>
+            <PageHero eyebrow="CUSTOMER" title="고객 명단" subtitle="고객 정보, 예약 이력, 메모 태그를 관리합니다." />
             <AddressContent
                 filteredCustomers={filteredCustomers}
                 reservationsByCustomer={reservationsByCustomer}
@@ -402,10 +404,13 @@ const StyledSection = styled.section`
     flex: 1;
     display: flex;
     flex-direction: column;
+    align-self: flex-start;
     min-height: 100%;
-    overflow-y: auto;
-    overscroll-behavior: auto;
+    width: 100%;
+    max-width: 880px;
+    margin: 0 auto;
     box-sizing: border-box;
+    padding: 8px 10px 0;
 `;
 
 const StyledUndoToast = styled.div`

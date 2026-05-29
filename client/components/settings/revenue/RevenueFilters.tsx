@@ -3,6 +3,7 @@ import {useState} from 'react';
 import styled from 'styled-components';
 
 import type {Designer} from '../../../utils/designers';
+import {sortDesigners} from '../../../utils/designers';
 import type {RevenueFilterMode} from '../../../utils/revenue';
 import {DirectionIcon} from '../../ui/DirectionIcon';
 import {actionButtonStyle, StyledDateInput} from './revenue-styles';
@@ -75,7 +76,7 @@ export const RevenueFilters = ({
             {/* Row 2: Designer tabs — horizontal scroll */}
             <StyledDesignerTabs>
                 <StyledDesignerTab type="button" $active={designerKey === 'all'} onClick={() => setDesignerKey('all')}>전체</StyledDesignerTab>
-                {designers.map((designer) => (
+                {sortDesigners(designers).map((designer) => (
                     <StyledDesignerTab
                         key={designer.id}
                         type="button"
@@ -91,8 +92,8 @@ export const RevenueFilters = ({
             <StyledRow3>
                 <StyledTabGroup>
                     <StyledViewTab type="button" $active={revenueViewTab === 'all'} onClick={() => setRevenueViewTab('all')}>전체</StyledViewTab>
-                    <StyledViewTab type="button" $active={revenueViewTab === 'chart'} onClick={() => setRevenueViewTab('chart')}>그래프</StyledViewTab>
-                    <StyledViewTab type="button" $active={revenueViewTab === 'list'} onClick={() => setRevenueViewTab('list')}>일별목록</StyledViewTab>
+                    <StyledViewTab type="button" $active={revenueViewTab === 'chart'} onClick={() => setRevenueViewTab('chart')}>매출 그래프</StyledViewTab>
+                    <StyledViewTab type="button" $active={revenueViewTab === 'list'} onClick={() => setRevenueViewTab('list')}>매출 일별목록</StyledViewTab>
                 </StyledTabGroup>
                 <StyledTabGroup>
                     <StyledFilterModeTab
@@ -100,7 +101,7 @@ export const RevenueFilters = ({
                         $active={revenueFilterMode === 'completed'}
                         onClick={() => setRevenueFilterMode('completed')}
                     >
-                        예약완료
+                        예약완료매출
                     </StyledFilterModeTab>
                     <StyledFilterModeTab
                         type="button"
@@ -141,7 +142,7 @@ const StyledStickyArea = styled.div`
     gap: 6px;
     padding-top: 8px;
     background: rgba(255, 255, 255, .1); /* 살짝만 흰색 */
-    backdrop-filter: blur(.8px) saturate(180%);
+    backdrop-filter: var(--sticky-backdrop);
 `;
 
 const StyledRow1 = styled.div`

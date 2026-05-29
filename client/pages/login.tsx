@@ -178,7 +178,6 @@ const StyledWrapper = styled.div`
     height: 100%;
     padding: 10px;
     box-sizing: border-box;
-    background-color: var(--gray-color2);
 `;
 
 const StyledCard = styled.div`

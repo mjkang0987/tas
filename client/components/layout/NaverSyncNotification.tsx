@@ -23,6 +23,7 @@ interface Props {
 const SEVEN_DAYS_MS = 7 * 24 * 60 * 60 * 1000;
 
 function formatDate(dateStr: string): string {
+    if (!dateStr || !dateStr.includes('-')) return dateStr || '-';
     const [, m, d] = dateStr.split('-');
     return `${Number(m)}/${Number(d)}`;
 }
@@ -342,9 +343,6 @@ const NotificationModal = ({notifications, designers, reservationMap, markRead, 
                     </StyledModalBodyInner>
                 </StyledBody>
                 <StyledFooter>
-                    {unreadNotifications.length > 0 && (
-                        <button type="button" onClick={markAllRead}>모두 읽음</button>
-                    )}
                     <StyledActionButton type="button" onClick={onClose}>닫기</StyledActionButton>
                 </StyledFooter>
             </StyledModalDetail>
@@ -457,7 +455,7 @@ const StyledSectionLabel = styled.div`
     color: var(--dark-gray-color2);
     letter-spacing: 0.02em;
     background: rgba(255, 255, 255, .1); /* 살짝만 흰색 */
-    backdrop-filter: blur(.8px) saturate(180%);
+    backdrop-filter: var(--sticky-backdrop);
 `;
 
 const StyledUnreadDot = styled.span`
@@ -475,7 +473,8 @@ const StyledFlag = styled.span`
     justify-content: center;
     align-items: center;
     color: var(--dark-gray-color);
-    font-size: var(--small-font);
+    font-size: var(--tiny-font);
+    white-space: nowrap;
 `;
 
 const StyledEmpty = styled.div`

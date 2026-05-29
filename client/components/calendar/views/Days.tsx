@@ -53,7 +53,7 @@ const StyledDays = styled.ul <DaysType>`
     justify-content: center;
     width: 100%;
     background: rgba(255, 255, 255, .1); /* 살짝만 흰색 */
-    backdrop-filter: blur(.8px) saturate(180%);
+    backdrop-filter: var(--sticky-backdrop);
     z-index: 13;
     
     ${props => (props.type !== ViewType.Month) && `

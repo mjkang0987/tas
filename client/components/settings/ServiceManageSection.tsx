@@ -4,7 +4,8 @@ import {createPortal} from 'react-dom';
 import styled from 'styled-components';
 
 import {useCalendarStore} from '../../store/calendarStore';
-import {actionButtonStyle, StyledEditBtn as StyledEditBtnBase, StyledSaveBtn, StyledCancelBtn, StyledServiceFooter} from './settings-styles';
+import {PageHero} from '../ui/PageHero';
+import {actionButtonStyle, StyledEditBtn as StyledEditBtnBase, StyledSaveBtn, StyledCancelBtn, StyledServiceFooter, StyledEmpty} from './settings-styles';
 import {buildServiceColorMap, formatPrice, formatDuration, getCategoryBaseColor, getGroupedCatalog, getServiceColor} from '../../utils/services';
 import type {ServiceItem} from '../../utils/services';
 import {
@@ -402,7 +403,9 @@ export const ServiceManageSection = () => {
 
     return (
         <>
+            <PageHero eyebrow="SERVICE" title="서비스 관리" subtitle="시술 카테고리와 메뉴를 등록하고 가격을 설정합니다." />
             <StyledServiceBody>
+                {grouped.size === 0 && <StyledEmpty>내역이 없습니다.</StyledEmpty>}
                 {Array.from(grouped.entries()).map(([category, items]) => (
                     <StyledGroup
                         key={category}
@@ -561,7 +564,6 @@ const StyledModalBody = styled.div`
 const StyledServiceBody = styled.div`
     overflow-y: auto;
     overscroll-behavior: auto;
-    padding: 8px 0;
 `;
 
 const StyledGroup = styled.div<{ $isCategoryDragging: boolean; $isCategoryDragOver: boolean }>`
@@ -623,7 +625,6 @@ const StyledCategoryHeader = styled.summary`
     top: 0;
     z-index: 2;
     cursor: pointer;
-    background: rgba(255, 255, 255, 0.72);
     backdrop-filter: blur(8px) saturate(180%);
 
     &::-webkit-details-marker {

@@ -50,7 +50,7 @@ export const RevenueKpiGrid = ({
 const StyledKpiGrid = styled.div`
     display: grid;
     grid-template-columns: repeat(5, minmax(0, 1fr));
-    gap: 10px;
+    gap: 4px;
 
     @media (max-width: 1080px) {
         grid-template-columns: repeat(3, minmax(0, 1fr));

@@ -92,6 +92,7 @@ function buildReservationFormState(reservation: Reservation): ReservationDetailF
         designerId: reservation.designerId ?? 0,
         price: resolveReservationPrice(reservation),
         memo: reservation.memo ?? '',
+        channel: reservation.channel ?? '전화예약',
     };
 }
 

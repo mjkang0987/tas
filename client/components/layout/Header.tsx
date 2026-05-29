@@ -11,6 +11,7 @@ import {useNaverBookingSync} from '../../hooks/useNaverBookingSync';
 import {splitDesignersByStatus} from '../../utils/designers';
 import {isCalendar} from '../../utils/router';
 import type {Reservation} from '../../utils/reservations';
+import {formatTel} from '../../utils/customers';
 
 import {CalendarDirection} from '../calendar/CalendarDirection';
 import {CalendarHeading} from '../calendar/CalendarHeading';
@@ -60,7 +61,21 @@ export const Header = () => {
     const reservationMap = useCalendarStore((s) => s.reservationMap);
     const setReservationMap = useCalendarStore((s) => s.setReservationMap);
     const openReservationDetail = useCalendarStore((s) => s.openReservationDetail);
-    const {visibleNotifications, unreadCount, markRead, markAllRead, currentConflict, currentConflictStatus, advanceConflict, deferConflict, dismissConflicts, openConflictByKey, sync, syncing, isActive} = useNaverBookingSync();
+    const {
+        visibleNotifications,
+        unreadCount,
+        markRead,
+        markAllRead,
+        currentConflict,
+        currentConflictStatus,
+        advanceConflict,
+        deferConflict,
+        dismissConflicts,
+        openConflictByKey,
+        sync,
+        syncing,
+        isActive
+    } = useNaverBookingSync();
 
     const handleConflictReservationClick = useCallback((reservation: Reservation) => {
         const dateReservations = reservationMap[reservation.date] ?? [];
@@ -76,12 +91,26 @@ export const Header = () => {
     return (
         <StyledHeader>
             <StyledAsideToggle type="button"
-                              $open={aside.isVisible}
-                              onClick={() => setAside({isVisible: !aside.isVisible})}
-                              aria-label={aside.isVisible ? '사이드바 접기' : '사이드바 펼치기'}>
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <rect x="3" y="3" width="18" height="18" rx="2" />
-                    <line x1="9" y1="3" x2="9" y2="21" />
+                               $open={aside.isVisible}
+                               onClick={() => setAside({isVisible: !aside.isVisible})}
+                               aria-label={aside.isVisible ? '사이드바 접기' : '사이드바 펼치기'}>
+                <svg width="18"
+                     height="18"
+                     viewBox="0 0 24 24"
+                     fill="none"
+                     stroke="currentColor"
+                     strokeWidth="2"
+                     strokeLinecap="round"
+                     strokeLinejoin="round">
+                    <rect x="3"
+                          y="3"
+                          width="18"
+                          height="18"
+                          rx="2" />
+                    <line x1="9"
+                          y1="3"
+                          x2="9"
+                          y2="21" />
                     {aside.isVisible
                         ? <polyline points="15,10 13,12 15,14" />
                         : <polyline points="13,10 15,12 13,14" />
@@ -99,7 +128,9 @@ export const Header = () => {
                                           onChange={(e) => setCalendarDesignerId(e.target.value ? Number(e.target.value) : null)}
                                           aria-label="달력 디자이너 필터">
                         <option value="">전체보기</option>
-                        <option value="0" data-bg-color="#8E8E93">미지정</option>
+                        <option value="0"
+                                data-bg-color="#8E8E93">미지정
+                        </option>
                         {activeDesigners.map((designer) => (
                             <option key={designer.id}
                                     value={designer.id}
@@ -128,8 +159,19 @@ export const Header = () => {
                     </StyledDesignerFilter>
                     {isActive && (
                         <StyledSyncWrap>
-                            <StyledSyncButton type="button" onClick={sync} disabled={syncing} aria-label="네이버 예약 동기화">
-                                <StyledSyncIcon $syncing={syncing} width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <StyledSyncButton type="button"
+                                              onClick={sync}
+                                              disabled={syncing}
+                                              aria-label="네이버 예약 동기화">
+                                <StyledSyncIcon $syncing={syncing}
+                                                width="16"
+                                                height="16"
+                                                viewBox="0 0 24 24"
+                                                fill="none"
+                                                stroke="currentColor"
+                                                strokeWidth="2"
+                                                strokeLinecap="round"
+                                                strokeLinejoin="round">
                                     <path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.3" />
                                 </StyledSyncIcon>
                             </StyledSyncButton>
@@ -143,9 +185,14 @@ export const Header = () => {
                                            reservationMap={reservationMap}
                                            onSelectReservation={openReservationDetail}
                                            onSelectConflict={openConflictByKey} />
-                    <StyledCustomerSearchButton type="button" onClick={() => setIsSearchOpen(true)} aria-label="고객검색">
-                        <StyledSearchIcon viewBox="0 0 24 24" aria-hidden="true">
-                            <circle cx="11" cy="11" r="5.5" />
+                    <StyledCustomerSearchButton type="button"
+                                                onClick={() => setIsSearchOpen(true)}
+                                                aria-label="고객검색">
+                        <StyledSearchIcon viewBox="0 0 24 24"
+                                          aria-hidden="true">
+                            <circle cx="11"
+                                    cy="11"
+                                    r="5.5" />
                             <path d="M15.2 15.2L19 19" />
                         </StyledSearchIcon>
                     </StyledCustomerSearchButton>
@@ -155,8 +202,19 @@ export const Header = () => {
                 <StyledPageTitle>{pageTitle}</StyledPageTitle>
                 {isActive && (
                     <StyledSyncWrap>
-                        <StyledSyncButton type="button" onClick={sync} disabled={syncing} aria-label="네이버 예약 동기화">
-                            <StyledSyncIcon $syncing={syncing} width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <StyledSyncButton type="button"
+                                          onClick={sync}
+                                          disabled={syncing}
+                                          aria-label="네이버 예약 동기화">
+                            <StyledSyncIcon $syncing={syncing}
+                                            width="16"
+                                            height="16"
+                                            viewBox="0 0 24 24"
+                                            fill="none"
+                                            stroke="currentColor"
+                                            strokeWidth="2"
+                                            strokeLinecap="round"
+                                            strokeLinejoin="round">
                                 <path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.3" />
                             </StyledSyncIcon>
                         </StyledSyncButton>
@@ -170,9 +228,14 @@ export const Header = () => {
                                        reservationMap={reservationMap}
                                        onSelectReservation={openReservationDetail}
                                        onSelectConflict={openConflictByKey} />
-                <StyledCustomerSearchButton type="button" onClick={() => setIsSearchOpen(true)} aria-label="고객검색">
-                    <StyledSearchIcon viewBox="0 0 24 24" aria-hidden="true">
-                        <circle cx="11" cy="11" r="5.5" />
+                <StyledCustomerSearchButton type="button"
+                                            onClick={() => setIsSearchOpen(true)}
+                                            aria-label="고객검색">
+                    <StyledSearchIcon viewBox="0 0 24 24"
+                                      aria-hidden="true">
+                        <circle cx="11"
+                                cy="11"
+                                r="5.5" />
                         <path d="M15.2 15.2L19 19" />
                     </StyledSearchIcon>
                 </StyledCustomerSearchButton>
@@ -191,6 +254,8 @@ export const Header = () => {
 };
 
 const StyledHeader = styled.header`
+    position: relative;
+    z-index: 20;
     display: flex;
     align-items: center;
     flex-wrap: wrap;
@@ -204,7 +269,7 @@ const StyledHeader = styled.header`
     flex-shrink: 0;
     @media (max-width: 640px) {
         gap: 0;
-        padding: 0 4px;
+        padding: 0 0 0 8px;
     }
 `;
 
@@ -245,7 +310,7 @@ const StyledAsideToggle = styled.button<{ $open: boolean }>`
     color: var(--dark-gray-color);
     flex-shrink: 0;
     cursor: pointer;
-    
+
     @media (hover: hover) and (pointer: fine) {
         &:hover {
             background-color: var(--gray-color2);
@@ -281,6 +346,10 @@ const StyledPageTitle = styled.h1`
     font-weight: 700;
     text-align: center;
     color: var(--dark-gray-color);
+
+    @media (max-width: 640px) {
+        text-align: left;
+    }
 `;
 
 const StyledDesignerFilter = styled.select`
@@ -382,8 +451,12 @@ const StyledSyncButton = styled.button`
 
 const StyledSyncIcon = styled.svg<{ $syncing: boolean }>`
     @keyframes spin {
-        from { transform: rotate(0deg); }
-        to { transform: rotate(360deg); }
+        from {
+            transform: rotate(0deg);
+        }
+        to {
+            transform: rotate(360deg);
+        }
     }
 
     ${(props) => props.$syncing && 'animation: spin 1s linear infinite;'}
@@ -424,7 +497,7 @@ const StyledSearchIcon = styled.svg`
 
 const SearchLayer = ({onClose}: { onClose: () => void }) => {
     const customerMap = useCalendarStore((s) => s.customerMap);
-    const setSelectedCustomerId = useCalendarStore((s) => s.setSelectedCustomerId);
+    const openCustomerDetail = useCalendarStore((s) => s.openCustomerDetail);
 
     const [query, setQuery] = useState('');
     const inputRef = useRef<HTMLInputElement>(null);
@@ -440,7 +513,7 @@ const SearchLayer = ({onClose}: { onClose: () => void }) => {
     }, []);
 
     const handleSelect = (id: number) => {
-        setSelectedCustomerId(id);
+        openCustomerDetail(id);
         onClose();
     };
 
@@ -466,9 +539,10 @@ const SearchLayer = ({onClose}: { onClose: () => void }) => {
                         <StyledNoResult>검색 결과 없음</StyledNoResult>
                     ) : (
                         filtered.map((c) => (
-                            <StyledResultItem key={c.id} onClick={() => handleSelect(c.id)}>
+                            <StyledResultItem key={c.id}
+                                              onClick={() => handleSelect(c.id)}>
                                 <span>{c.name}</span>
-                                <span>{c.tel}</span>
+                                <span>{formatTel(c.tel)}</span>
                             </StyledResultItem>
                         ))
                     )}
@@ -508,7 +582,7 @@ const StyledSearchHeader = styled.div`
     align-items: center;
     gap: 8px;
     flex-shrink: 0;
-    padding: 12px 16px;
+    padding: 8px;
     border-bottom: 1px solid var(--light-gray-color);
 `;
 

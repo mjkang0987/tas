@@ -159,7 +159,7 @@ export default function LayoutComponent({children}: NodeType) {
     return (<StyledWrapper>
             <Aside/>
             <StyledContent $asideOpen={aside.isVisible}>
-                {!loading && <Icon iconType="loading"/>}
+                {currValue.full === null && <Icon iconType="loading"/>}
                 <Header/>
                 {currValue.full !== null && <>
                     <StyledMain>
@@ -200,7 +200,11 @@ const StyledContent = styled.div<{ $asideOpen: boolean }>`
 
 const StyledMain = styled.main`
     flex: 1;
-    overflow: hidden;
+    overflow: auto;
+    overscroll-behavior: auto;
     display: flex;
     height: 100%;
+    background:
+        radial-gradient(circle at top left, rgba(45, 127, 249, 0.12), transparent 32%),
+        linear-gradient(180deg, #f8fbff 0%, #ffffff 52%);
 `;

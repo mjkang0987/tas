@@ -72,7 +72,7 @@ export const RevenueDailyList = ({
     };
 
     if (days.length === 0) {
-        return <StyledRevenueEmpty>매출 없음</StyledRevenueEmpty>;
+        return <StyledRevenueEmpty>내역이 없습니다.</StyledRevenueEmpty>;
     }
 
     return (
@@ -199,5 +199,5 @@ const StyledRevenueSummary = styled(StyledSummary)`
     border-radius: 10px;
     margin-top: 8px;
     background: rgba(255, 255, 255, .1);
-    backdrop-filter: blur(.8px) saturate(180%);
+    backdrop-filter: var(--sticky-backdrop);
 `;

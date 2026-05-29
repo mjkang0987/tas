@@ -87,7 +87,7 @@ const StyledRechargeWrap = styled.div`
     display: flex;
     flex-direction: column;
     gap: 8px;
-    padding: 10px 0 12px 12px;
+    padding: 10px 0 12px;
     border-top: 1px dashed var(--light-gray-color);
 `;
 

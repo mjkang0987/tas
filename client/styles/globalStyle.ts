@@ -49,6 +49,8 @@ export const GlobalStyle = createGlobalStyle`
 
         --dot-size: 10px;
 
+        --sticky-backdrop: blur(.8px) saturate(180%);
+
         --bar-top: 56px;
 
         --aside-width: 200px;

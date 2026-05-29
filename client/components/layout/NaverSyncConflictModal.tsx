@@ -388,8 +388,8 @@ const StyledScrollArea = styled.div`
 `;
 
 const StyledResolvedNotice = styled.div`
-    margin: 0 0 12px;
-    padding: 10px 12px;
+    margin: 0 0 8px;
+    padding: 8px;
     border-radius: 8px;
     background: rgba(220, 38, 38, 0.06);
     border: 1px solid rgba(220, 38, 38, 0.2);
@@ -401,7 +401,10 @@ const StyledResolvedNotice = styled.div`
     strong {
         display: block;
         font-weight: 700;
-        margin-bottom: 6px;
+
+        + ul {
+            margin-top: 6px;
+        }
     }
 
     ul {

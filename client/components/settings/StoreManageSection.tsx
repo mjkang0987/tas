@@ -5,6 +5,7 @@ import styled from 'styled-components';
 import {StyledEditBtn, StyledDeleteBtn, StyledSaveBtn, StyledCancelBtn, StyledEmpty} from './settings-styles';
 
 import {useCalendarStore} from '../../store/calendarStore';
+import {PageHero} from '../ui/PageHero';
 import {formControlStyle} from '../ui/FormControls';
 
 interface StoreManageSectionProps {
@@ -59,6 +60,7 @@ export const StoreManageSection = ({formatDateLabel}: StoreManageSectionProps) =
 
     return (
         <StyledStoreSection>
+            <PageHero eyebrow="STORE" title="매장 관리" subtitle="영업시간과 휴업일을 설정합니다." />
             <StyledStoreCard>
                 <StyledStoreCardHeader>
                     <StyledStoreCardTitle>영업시간</StyledStoreCardTitle>
@@ -167,10 +169,15 @@ export const StoreManageSection = ({formatDateLabel}: StoreManageSectionProps) =
 
 
 const StyledStoreSection = styled.div`
-    display: flex;
-    flex-direction: column;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
     gap: 12px;
-    padding: 12px 0;
+
+    > :first-child { grid-column: 1 / -1; }
+
+    @media (max-width: 640px) {
+        grid-template-columns: 1fr;
+    }
 `;
 
 const StyledStoreCard = styled.div`

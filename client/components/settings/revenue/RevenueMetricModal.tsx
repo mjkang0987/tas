@@ -20,6 +20,7 @@ import {formatPrice} from '../../../utils/services';
 import type {Designer} from '../../../utils/designers';
 import type {Reservation} from '../../../utils/reservations';
 import type {CustomerMap} from '../../../utils/customers';
+import {formatTel} from '../../../utils/customers';
 import type {RevenueFilterMode} from '../../../utils/revenue';
 import type {RevenueMetricKey} from './RevenueKpiGrid';
 import {
@@ -130,10 +131,9 @@ export const RevenueMetricModal = ({
                                             <StyledCustomerVisitDate>{item.visitDate}</StyledCustomerVisitDate>
                                         </StyledCustomerRowHeader>
                                         <StyledCustomerInfoGrid>
-                                            <span><strong>이름</strong>{item.customer.name}</span>
-                                            <span><strong>연락처</strong>{item.customer.tel}</span>
+                                            <span><strong>연락처</strong>{item.customer.tel ? <StyledTelLink href={`tel:${item.customer.tel}`}>{formatTel(item.customer.tel)}</StyledTelLink> : '-'}</span>
                                             <span><strong>적립금</strong>{formatPrice(item.customer.points ?? 0)}</span>
-                                            <span><strong>방문일</strong>{item.visitDate}</span>
+                                            <span><strong>최근 방문일</strong>{item.visitDate}</span>
                                             {metricLayerKey === 'returning' && item.prevVisitDate && (
                                                 <span><strong>이전 방문</strong>{item.prevVisitDate}</span>
                                             )}
@@ -200,9 +200,9 @@ const StyledCustomerList = styled(StyledList)`
 const StyledCustomerRow = styled.button`
     display: flex;
     flex-direction: column;
-    gap: 10px;
+    gap: 8px;
     width: 100%;
-    padding: 12px;
+    padding: 8px;
     border: 1px solid rgba(148, 163, 184, 0.18);
     border-radius: 10px;
     background:
@@ -246,6 +246,15 @@ const StyledCustomerVisitDate = styled.span`
     font-size: 12px;
     font-weight: 600;
     color: var(--dark-gray-color2);
+`;
+
+const StyledTelLink = styled.a`
+    color: inherit;
+    text-decoration: none;
+
+    @media (hover: hover) and (pointer: fine) {
+        &:hover { text-decoration: underline; }
+    }
 `;
 
 const StyledVisitGapBadge = styled.span`

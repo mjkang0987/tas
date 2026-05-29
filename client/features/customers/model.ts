@@ -32,6 +32,13 @@ export interface Customer {
 
 export type CustomerMap = Record<number, Customer>;
 
+export function formatTel(tel: string): string {
+    const digits = tel.replace(/\D/g, '');
+    if (digits.length === 11) return digits.replace(/(\d{3})(\d{4})(\d{4})/, '$1-$2-$3');
+    if (digits.length === 10) return digits.replace(/(\d{3})(\d{3})(\d{4})/, '$1-$2-$3');
+    return tel;
+}
+
 export function toCustomerMap(list: Customer[]): CustomerMap {
     const map: CustomerMap = {};
 

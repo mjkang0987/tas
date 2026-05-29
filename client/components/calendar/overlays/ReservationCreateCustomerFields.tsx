@@ -3,6 +3,7 @@ import React from 'react';
 import styled from 'styled-components';
 
 import type {Customer} from '../../../utils/customers';
+import {formatTel} from '../../../utils/customers';
 import {scrollContentStyle, scrollHintStyle, StyledInlineError} from './ModalStyles';
 
 type CustomerMode = 'existing' | 'new';
@@ -86,7 +87,7 @@ export function ReservationCreateCustomerFields({
                                         onMouseDown={() => onSelectCustomer(customer.id)}
                                     >
                                         <span>{customer.name}</span>
-                                        <span>{customer.tel}</span>
+                                        <span>{formatTel(customer.tel)}</span>
                                     </StyledSuggestionItem>
                                 ))}
                             </StyledSuggestionList>

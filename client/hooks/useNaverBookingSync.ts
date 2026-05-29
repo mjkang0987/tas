@@ -41,6 +41,10 @@ interface SyncedEntry {
 interface CancelledEntry {
     bookingId: string;
     reservationId: number;
+    appointmentDate?: string;
+    appointmentTime?: string;
+    customerName?: string;
+    designerName?: string;
 }
 
 function conflictKey(c: ConflictInfo): string {
@@ -237,10 +241,10 @@ export function useNaverBookingSync() {
             const cancelNotifications: SyncNotification[] = data.cancelled.map((entry, i) => ({
                 id: `${Date.now()}-cancel-${i}`,
                 bookingId: entry.bookingId,
-                customerName: '',
-                designerName: '',
-                appointmentDate: '',
-                appointmentTime: '',
+                customerName: entry.customerName ?? '',
+                designerName: entry.designerName ?? '미지정',
+                appointmentDate: entry.appointmentDate ?? '',
+                appointmentTime: entry.appointmentTime ?? '',
                 reservationId: entry.reservationId,
                 timestamp: now,
                 read: false,

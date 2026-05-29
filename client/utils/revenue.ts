@@ -1,4 +1,4 @@
-import type {PaymentMethod, Reservation, ReservationMap} from './reservations';
+import type {PaymentMethod, Reservation, ReservationChannel, ReservationMap} from './reservations';
 import {parseServiceString, sumPrice} from './services';
 
 interface RevenueItem {
@@ -49,10 +49,16 @@ export interface RevenuePaymentEntry {
     total: number;
 }
 
+export interface RevenueChannelEntry {
+    channel: ReservationChannel;
+    count: number;
+}
+
 export interface RevenueInsights {
     series: RevenueSeriesEntry[];
     designers: RevenueDesignerEntry[];
     payments: RevenuePaymentEntry[];
+    channels: RevenueChannelEntry[];
     paidTotal: number;
     averagePrice: number;
     newCustomerCount: number;
@@ -211,6 +217,7 @@ export function getRevenueInsights(
     const series: RevenueSeriesEntry[] = [];
     const designerTotals = new Map<number | null, RevenueDesignerEntry>();
     const paymentTotals = new Map<PaymentMethod, number>();
+    const channelTotals = new Map<ReservationChannel, number>();
     const firstVisitByCustomer = new Map<number, string>();
     const customerIdsInRange = new Set<number>();
     let total = 0;
@@ -258,6 +265,9 @@ export function getRevenueInsights(
                 });
             }
 
+            const ch = reservation.channel ?? '전화예약';
+            channelTotals.set(ch, (channelTotals.get(ch) ?? 0) + 1);
+
             for (const paymentEntry of resolvePaymentEntries(reservation)) {
                 paymentTotals.set(paymentEntry.method, (paymentTotals.get(paymentEntry.method) ?? 0) + paymentEntry.total);
                 paidTotal += paymentEntry.total;
@@ -287,6 +297,9 @@ export function getRevenueInsights(
         payments: [...paymentTotals.entries()]
             .map(([method, methodTotal]) => ({method, total: methodTotal}))
             .sort((a, b) => b.total - a.total),
+        channels: [...channelTotals.entries()]
+            .map(([channel, channelCount]) => ({channel, count: channelCount}))
+            .sort((a, b) => b.count - a.count),
         paidTotal,
         averagePrice: count > 0 ? Math.round(total / count) : 0,
         newCustomerCount,

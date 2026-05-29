@@ -7,6 +7,7 @@ import {DesignerLabel} from '../../ui/DesignerLabel';
 import {LabelBadge} from '../../ui/LabelBadge';
 import {ServiceChipList} from '../../ui/ServiceChip';
 import type {CustomerMap} from '../../../utils/customers';
+import {formatTel} from '../../../utils/customers';
 import type {Reservation} from '../../../utils/reservations';
 import {formatPrice} from '../../../utils/services';
 import {StyledBody, StyledBodyInner, StyledStatusBadge} from './ModalStyles';
@@ -109,7 +110,7 @@ export function ReservationViewSection({
                         </StyledCustomerButton>
                     </dd>
                     <dt>연락처</dt>
-                    <dd>{customer?.tel ?? '-'}</dd>
+                    <dd>{customer?.tel ? <StyledTelLink href={`tel:${customer.tel}`}>{formatTel(customer.tel)}</StyledTelLink> : '-'}</dd>
                     {customerMemoTags.length > 0 && (
                         <>
                             <dt>고객 메모</dt>
@@ -189,6 +190,15 @@ const StyledDetailBodyInner = styled(StyledBodyInner)`
     dd {
         margin: 0;
         font-size: 13px;
+    }
+`;
+
+const StyledTelLink = styled.a`
+    color: inherit;
+    text-decoration: none;
+
+    @media (hover: hover) and (pointer: fine) {
+        &:hover { text-decoration: underline; }
     }
 `;
 

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, {useState} from 'react';
 
 import styled from 'styled-components';
 
@@ -67,61 +67,58 @@ export function AddressCustomerRow({
     checked,
     onCheck,
 }: AddressCustomerRowProps) {
+    const [open, setOpen] = useState(false);
+
     return (
-        <StyledItem>
-            <StyledDetails>
-                <AddressCustomerSummary customer={customer} stats={stats} checked={checked} onCheck={onCheck} onCustomerClick={onCustomerClick} />
-                <AddressCustomerTags
-                    customerId={customer.id}
-                    customerTags={customerTags}
-                    isEditing={isEditing}
-                    tagColors={tagColors}
-                    tagInput={tagInput}
-                    selectedColor={selectedColor}
-                    onTagInputChange={onTagInputChange}
-                    onSelectColor={onSelectColor}
-                    onAddTag={onAddTag}
-                    onRemoveTag={onRemoveTag}
-                    onStartEditing={onStartEditing}
-                    onFinishEditing={onFinishEditing}
-                />
-                <AddressCustomerRecharge customer={customer} />
-                <AddressCustomerReservations
-                    customerReservations={customerReservations}
-                    designerColorMap={designerColorMap}
-                    designerNameMap={designerNameMap}
-                    serviceColorMap={serviceColorMap}
-                    today={today}
-                    onReservationClick={onReservationClick}
-                />
-            </StyledDetails>
+        <StyledItem $open={open}>
+            <AddressCustomerSummary
+                customer={customer}
+                stats={stats}
+                serviceColorMap={serviceColorMap}
+                checked={checked}
+                onCheck={onCheck}
+                onCustomerClick={onCustomerClick}
+                onToggle={() => setOpen((prev) => !prev)}
+                open={open}
+            />
+            {open && (
+                <StyledExpandedContent>
+                    <AddressCustomerTags
+                        customerId={customer.id}
+                        customerTags={customerTags}
+                        isEditing={isEditing}
+                        tagColors={tagColors}
+                        tagInput={tagInput}
+                        selectedColor={selectedColor}
+                        onTagInputChange={onTagInputChange}
+                        onSelectColor={onSelectColor}
+                        onAddTag={onAddTag}
+                        onRemoveTag={onRemoveTag}
+                        onStartEditing={onStartEditing}
+                        onFinishEditing={onFinishEditing}
+                    />
+                    <AddressCustomerRecharge customer={customer} />
+                    <AddressCustomerReservations
+                        customerReservations={customerReservations}
+                        designerColorMap={designerColorMap}
+                        designerNameMap={designerNameMap}
+                        serviceColorMap={serviceColorMap}
+                        today={today}
+                        onReservationClick={onReservationClick}
+                    />
+                </StyledExpandedContent>
+            )}
         </StyledItem>
     );
 }
 
-const StyledItem = styled.li`
+const StyledItem = styled.li<{ $open: boolean }>`
     border-bottom: 1px solid var(--light-gray-color);
+    ${(p) => p.$open && `
+        border-bottom: 2px solid var(--black-color);
+    `}
 `;
 
-const StyledDetails = styled.details`
-    padding-right: 20px;
-
-    > summary {
-        position: relative;
-
-        &::before {
-            left: auto;
-            right: -10px;
-            transform: rotate(90deg);
-        }
-    }
-
-    &[open] {
-        background-color: #fff9f2;
-        border-bottom: 2px solid var(--black-color);
-
-        > summary::before {
-            transform: rotate(-90deg);
-        }
-    }
+const StyledExpandedContent = styled.div`
+    padding: 0 0 12px;
 `;

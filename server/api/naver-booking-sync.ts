@@ -26,6 +26,10 @@ interface SyncedEntry {
 interface CancelledEntry {
     bookingId: string;
     reservationId: number;
+    appointmentDate: string;
+    appointmentTime: string;
+    customerName: string;
+    designerName: string;
 }
 
 interface SyncContext {
@@ -184,6 +188,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                 cancelled.push({
                     bookingId: cancellation.bookingId,
                     reservationId: result.legacyId,
+                    appointmentDate: result.appointmentDate,
+                    appointmentTime: result.appointmentTime,
+                    customerName: result.customerName,
+                    designerName: result.designerName,
                 });
             } else {
                 skipped.push(cancellation.bookingId);
@@ -273,6 +281,11 @@ async function createReservationFromBooking(
             serviceNames.push(dbService.name);
             totalDuration += dbService.duration;
         } else {
+            // 등록되지 않은 서비스 → "네이버예약" 카테고리로 자동 추가
+            await prisma.service.create({
+                data: {storeId, name: svc.name, duration: DEFAULT_DURATION, category: '네이버예약', price: svc.price},
+            });
+            serviceMap.set(svc.name, {name: svc.name, duration: DEFAULT_DURATION});
             serviceNames.push(svc.name);
             totalDuration += DEFAULT_DURATION;
         }
@@ -338,14 +351,14 @@ async function createReservationFromBooking(
 
 const reservationInclude = {
     paymentEntries: true,
-    customer: {select: {legacyId: true}},
-    designer: {select: {legacyId: true}},
+    customer: {select: {legacyId: true, name: true}},
+    designer: {select: {legacyId: true, name: true}},
 } as const;
 
 async function cancelReservationByBookingId(
     storeId: string,
     bookingId: string,
-): Promise<{status: 'cancelled'; legacyId: number} | {status: 'skipped'}> {
+): Promise<{status: 'cancelled'; legacyId: number; appointmentDate: string; appointmentTime: string; customerName: string; designerName: string} | {status: 'skipped'}> {
     const reservation = await prisma.reservation.findFirst({
         where: {storeId, naverBookingId: bookingId},
         include: reservationInclude,
@@ -384,5 +397,12 @@ async function cancelReservationByBookingId(
         },
     });
 
-    return {status: 'cancelled', legacyId: reservation.legacyId!};
+    return {
+        status: 'cancelled',
+        legacyId: reservation.legacyId!,
+        appointmentDate: before.date,
+        appointmentTime: before.startTime,
+        customerName: reservation.customer.name,
+        designerName: reservation.designer?.name ?? '미지정',
+    };
 }

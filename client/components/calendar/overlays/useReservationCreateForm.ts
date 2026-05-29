@@ -1,7 +1,7 @@
 import {useRef, useState} from 'react';
 
 import type {CreateReservationInitial} from '../../../store/calendarStore';
-import type {Reservation} from '../../../utils/reservations';
+import type {Reservation, ReservationChannel} from '../../../utils/reservations';
 import {findOverlap} from '../../../utils/reservations';
 import type {Customer, CustomerMap} from '../../../utils/customers';
 import type {Designer} from '../../../utils/designers';
@@ -61,6 +61,7 @@ export function useReservationCreateForm({
         designerId: defaultDesignerId,
         price: 0,
         memo: '',
+        channel: '전화예약' as ReservationChannel,
     });
     const [isEndTimeManual, setIsEndTimeManual] = useState(false);
     const [error, setError] = useState('');
@@ -214,6 +215,7 @@ export function useReservationCreateForm({
             status: 'active',
             price: form.price,
             ...(form.memo.trim() && {memo: form.memo.trim()}),
+            channel: form.channel,
         };
 
         onSave(reservation);

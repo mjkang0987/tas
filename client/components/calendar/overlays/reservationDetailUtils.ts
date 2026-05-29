@@ -10,7 +10,8 @@ const FIELD_LABELS: Record<keyof ReservationDetailFormState, string> = {
     startTime: '시작시간',
     endTime: '종료시간',
     price: '가격',
-    memo: '요청사항'
+    memo: '요청사항',
+    channel: '예약경로'
 };
 
 export function getPaymentEntries(reservation: Reservation): PaymentEntry[] {

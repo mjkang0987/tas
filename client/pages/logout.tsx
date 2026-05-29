@@ -46,7 +46,6 @@ const StyledSection = styled.section`
     justify-content: center;
     padding: 20px;
     box-sizing: border-box;
-    background: linear-gradient(180deg, #f8fbff 0%, #ffffff 100%);
 `;
 
 const StyledCard = styled.div`

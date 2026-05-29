@@ -118,7 +118,7 @@ export function AddressContent({
     }, [mergePreview, onMerge]);
 
     return (
-        <>
+        <StyledTable>
             <StyledSticky $expanded={!!mergePreview}>
                 <StyledSearchRow>
                     <InputWrap htmlFor="filterSearch">
@@ -171,66 +171,70 @@ export function AddressContent({
                     </StyledMergePreview>
                 )}
                 <StyledHeaderRow>
-                    <span></span>
-                    <span>이름</span>
-                    <span>연락처</span>
-                    <span>최근 시술</span>
-                    <span>예약현황</span>
+                    <strong>선택</strong>
+                    <strong>이름</strong>
+                    <strong>연락처</strong>
+                    <strong>최근 시술</strong>
+                    <strong>적립금</strong>
+                    <strong>예약현황</strong>
                 </StyledHeaderRow>
             </StyledSticky>
-            <StyledGrid>
-                {filteredCustomers.length === 0 ? (
-                    <StyledEmpty>검색 결과가 없습니다.</StyledEmpty>
-                ) : (
-                    <StyledItems>
-                        {filteredCustomers.map((customer) => {
-                            const customerReservations = reservationsByCustomer[customer.id] || [];
-                            const isEditing = editingId === customer.id;
-                            const customerTags = customer.memoTags ?? [];
-                            const stats = customerStats[customer.id];
+            {filteredCustomers.length === 0 ? (
+                <StyledEmpty>검색 결과가 없습니다.</StyledEmpty>
+            ) : (
+                <StyledItems>
+                    {filteredCustomers.map((customer) => {
+                        const customerReservations = reservationsByCustomer[customer.id] || [];
+                        const isEditing = editingId === customer.id;
+                        const customerTags = customer.memoTags ?? [];
+                        const stats = customerStats[customer.id];
 
-                            return (
-                                <AddressCustomerRow
-                                    key={customer.id}
-                                    customer={customer}
-                                    customerReservations={customerReservations}
-                                    customerTags={customerTags}
-                                    isEditing={isEditing}
-                                    stats={stats}
-                                    tagColors={tagColors}
-                                    tagInput={tagInput}
-                                    selectedColor={selectedColor}
-                                    serviceColorMap={serviceColorMap}
-                                    designerColorMap={designerColorMap}
-                                    designerNameMap={designerNameMap}
-                                    today={today}
-                                    onTagInputChange={onTagInputChange}
-                                    onSelectColor={onSelectColor}
-                                    onAddTag={onAddTag}
-                                    onRemoveTag={onRemoveTag}
-                                    onStartEditing={onStartEditing}
-                                    onFinishEditing={onFinishEditing}
-                                    onReservationClick={onReservationClick}
-                                    onCustomerClick={onCustomerClick}
-                                    checked={selectedIds.has(customer.id)}
-                                    onCheck={handleCheck}
-                                />
-                            );
-                        })}
-                    </StyledItems>
-                )}
-            </StyledGrid>
-        </>
+                        return (
+                            <AddressCustomerRow
+                                key={customer.id}
+                                customer={customer}
+                                customerReservations={customerReservations}
+                                customerTags={customerTags}
+                                isEditing={isEditing}
+                                stats={stats}
+                                tagColors={tagColors}
+                                tagInput={tagInput}
+                                selectedColor={selectedColor}
+                                serviceColorMap={serviceColorMap}
+                                designerColorMap={designerColorMap}
+                                designerNameMap={designerNameMap}
+                                today={today}
+                                onTagInputChange={onTagInputChange}
+                                onSelectColor={onSelectColor}
+                                onAddTag={onAddTag}
+                                onRemoveTag={onRemoveTag}
+                                onStartEditing={onStartEditing}
+                                onFinishEditing={onFinishEditing}
+                                onReservationClick={onReservationClick}
+                                onCustomerClick={onCustomerClick}
+                                checked={selectedIds.has(customer.id)}
+                                onCheck={handleCheck}
+                            />
+                        );
+                    })}
+                </StyledItems>
+            )}
+        </StyledTable>
     );
 }
+
+const StyledTable = styled.div`
+    display: flex;
+    flex-direction: column;
+    padding: 0 10px 10px;
+`;
 
 const StyledSticky = styled.div<{ $expanded?: boolean }>`
     position: sticky;
     top: 0;
-    padding: 20px 10px 0;
+    padding: 20px 0 0;
     z-index: 2;
-    background: ${(p) => p.$expanded ? '#fff' : 'rgba(255, 255, 255, .1)'};
-    backdrop-filter: ${(p) => p.$expanded ? 'none' : 'blur(.8px) saturate(180%)'};
+    backdrop-filter: var(--sticky-backdrop);
     ${(p) => p.$expanded && 'box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);'}
 `;
 
@@ -271,30 +275,14 @@ const StyledMergeHint = styled.span`
     white-space: nowrap;
 `;
 
-const StyledGrid = styled.div`
-    flex: 1;
-    padding: 0 10px 10px;
-`;
-
 const StyledHeaderRow = styled.div`
-    display: grid;
-    grid-template-columns: 24px 80px 130px 1fr auto;
-    gap: 12px;
-    padding: 10px 10px;
-    margin-top: 10px;
-    border-bottom: 2px solid var(--black-color);
-    font-size: var(--small-font);
-    font-weight: 600;
-    color: var(--dark-gray-color);
-
-    @media (max-width: 600px) {
-        display: none;
-    }
+    display: none;
 `;
 
 const StyledItems = styled.ul`
-    position: relative;
-    z-index: 0;
+    list-style: none;
+    margin: 0;
+    padding: 0;
 `;
 
 const StyledEmpty = styled.p`
@@ -307,7 +295,7 @@ const StyledEmpty = styled.p`
 `;
 
 const StyledMergePreview = styled.div`
-    margin-top: 12px;
+    margin: 12px 0 0;
     padding: 16px;
     background-color: #fff;
     border: 1px solid var(--light-gray-color);

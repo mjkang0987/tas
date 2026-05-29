@@ -130,7 +130,6 @@ export const StyledCustomerName = styled.span`
     min-width: 0;
     max-width: 100%;
     font-size: var(--small-font);
-    padding: var(--chip-padding);
     border-radius: var(--chip-radius);
     background: rgba(248, 250, 252, 0.92);
 `;
@@ -204,15 +203,14 @@ export const StyledSummary = styled.div`
 /* ── Customer info grid (metric modal) ── */
 
 export const StyledCustomerInfoGrid = styled.div`
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 8px 12px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
     width: 100%;
 
     span {
         display: flex;
         gap: 6px;
-        padding: 8px 10px;
         border-radius: 10px;
         background: rgba(248, 250, 252, 0.92);
         font-size: 12px;

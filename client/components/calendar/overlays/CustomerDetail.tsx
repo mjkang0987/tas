@@ -20,6 +20,7 @@ import {
 
 import {getDesignerColor} from '../../../utils/designers';
 import {buildServiceColorMap, formatPrice} from '../../../utils/services';
+import {formatTel} from '../../../utils/customers';
 import {useCalendarStore} from '../../../store/calendarStore';
 import {CloseIconButton} from '../../ui/CloseIconButton';
 import {CustomerReservationCards} from '../../ui/CustomerReservationCards';
@@ -243,7 +244,7 @@ export const CustomerDetail = ({customer, reservationMap, onClose, onReservation
                     ) : (
                         <dl>
                             <dt>연락처</dt>
-                            <dd>{customer.tel}</dd>
+                            <dd><StyledTelLink href={`tel:${customer.tel}`}>{formatTel(customer.tel)}</StyledTelLink></dd>
                             <dt>적립금</dt>
                             <dd>{formatPrice(customer.points ?? 0)}</dd>
                             <dt>노쇼</dt>
@@ -427,13 +428,22 @@ const StyledInfo = styled.div`
 
     dt {
         font-size: 13px;
-        color: var(--gray-color);
+        color: var(--dark-gray-color);
         font-weight: 500;
     }
 
     dd {
         margin: 0;
         font-size: 13px;
+    }
+`;
+
+const StyledTelLink = styled.a`
+    color: inherit;
+    text-decoration: none;
+
+    @media (hover: hover) and (pointer: fine) {
+        &:hover { text-decoration: underline; }
     }
 `;
 
