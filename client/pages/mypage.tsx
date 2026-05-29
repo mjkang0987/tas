@@ -7,6 +7,10 @@ import {signOut, useSession} from 'next-auth/react';
 import styled from 'styled-components';
 
 import {AuthActionIcon} from '../components/ui/AuthActionIcon';
+import {PageHero} from '../components/ui/PageHero';
+import {CustomerDetail} from '../components/calendar/overlays/CustomerDetail';
+import {ReservationDetail} from '../components/calendar/overlays/ReservationDetail';
+import {useCalendarStore} from '../store/calendarStore';
 import {auth} from '../auth';
 import {prisma} from '../lib/prisma';
 
@@ -32,6 +36,24 @@ type MyPageProps = {
 const MyPage: NextPage<MyPageProps> = ({linkedProvider}) => {
     const {data: session, status} = useSession();
     const isLocalMode = status !== 'authenticated' && shouldUseLocalDb();
+    const storeCustomerMap = useCalendarStore((s) => s.customerMap);
+    const storeReservationMap = useCalendarStore((s) => s.reservationMap);
+    const selectedCustomerId = useCalendarStore((s) => s.selectedCustomerId);
+    const setSelectedCustomerId = useCalendarStore((s) => s.setSelectedCustomerId);
+    const openReservationDetailFromCustomer = useCalendarStore((s) => s.openReservationDetailFromCustomer);
+    const selectedReservationIds = useCalendarStore((s) => s.selectedReservations);
+    const closeReservationDetail = useCalendarStore((s) => s.closeReservationDetail);
+    const openCustomerDetail = useCalendarStore((s) => s.openCustomerDetail);
+    const updateReservation = useCalendarStore((s) => s.updateReservation);
+    const cancelReservation = useCalendarStore((s) => s.cancelReservation);
+    const restoreReservation = useCalendarStore((s) => s.restoreReservation);
+    const storeHistory = useCalendarStore((s) => s.reservationHistory);
+    const selectedReservations = useMemo(() => {
+        const all = Object.values(storeReservationMap).flat();
+        return selectedReservationIds
+            .map((id) => all.find((r) => r.id === id) ?? null)
+            .filter((r): r is NonNullable<typeof r> => r !== null);
+    }, [selectedReservationIds, storeReservationMap]);
     const [localSnapshot, setLocalSnapshot] = useState<LocalDbSnapshot | null>(() => (
         isLocalMode ? loadLocalDbSnapshot() : null
     ));
@@ -45,7 +67,7 @@ const MyPage: NextPage<MyPageProps> = ({linkedProvider}) => {
     }, [isLocalMode, status]);
 
     const effectiveLocalSnapshot = isLocalMode ? localSnapshot : null;
-    const storageModeLabel = isLocalMode ? '게스트 로컬 저장 모드' : '로그인 계정 모드';
+    const storageModeLabel = isLocalMode ? '게스트 회원' : '로그인 회원';
 
     const localSummary = useMemo(() => ({
         customers: effectiveLocalSnapshot?.customers.length ?? 0,
@@ -57,16 +79,13 @@ const MyPage: NextPage<MyPageProps> = ({linkedProvider}) => {
 
     const resetGuestData = () => {
         saveLocalDbSnapshot(createDefaultLocalDbSnapshot());
+        window.location.reload();
     };
 
     return (
         <StyledSection>
             <StyledContainer>
-                <StyledHero>
-                    <StyledEyebrow>MY PAGE</StyledEyebrow>
-                    <StyledTitle>내 정보</StyledTitle>
-                    <StyledSubtitle>{storageModeLabel}</StyledSubtitle>
-                </StyledHero>
+                <PageHero eyebrow="MY PAGE" title="계정 관리" subtitle={storageModeLabel} />
 
                 <StyledCard>
                     <StyledCardTitle>사용 상태</StyledCardTitle>
@@ -75,7 +94,7 @@ const MyPage: NextPage<MyPageProps> = ({linkedProvider}) => {
                         <StyledValue>{status}</StyledValue>
                     </StyledRow>
                     <StyledRow>
-                        <StyledLabel>이름</StyledLabel>
+                        <StyledLabel>별명</StyledLabel>
                         <StyledValue>{session?.user?.name ?? '게스트'}</StyledValue>
                     </StyledRow>
                     <StyledRow>
@@ -145,7 +164,26 @@ const MyPage: NextPage<MyPageProps> = ({linkedProvider}) => {
                         </StyledDangerButton>
                     </StyledCard>
                 )}
+                <StyledFooterCs>Take a seat CS: <a href="mailto:takeaseat.cs@gmail.com">takeaseat.cs@gmail.com</a></StyledFooterCs>
             </StyledContainer>
+            {selectedReservations.map((reservation, index) => (
+                <ReservationDetail key={`${reservation.id}-${index}`}
+                                   reservation={reservation}
+                                   customerMap={storeCustomerMap}
+                                   reservationMap={storeReservationMap}
+                                   history={storeHistory}
+                                   onClose={() => closeReservationDetail(index)}
+                                   onCustomerClick={openCustomerDetail}
+                                   onUpdate={updateReservation}
+                                   onCancel={cancelReservation}
+                                   onRestore={restoreReservation}/>
+            ))}
+            {selectedCustomerId !== null && storeCustomerMap[selectedCustomerId] && (
+                <CustomerDetail customer={storeCustomerMap[selectedCustomerId]}
+                                reservationMap={storeReservationMap}
+                                onReservationClick={openReservationDetailFromCustomer}
+                                onClose={() => setSelectedCustomerId(null)}/>
+            )}
         </StyledSection>
     );
 };
@@ -173,51 +211,23 @@ export const getServerSideProps: GetServerSideProps<MyPageProps> = async (ctx) =
 
 const StyledSection = styled.section`
     flex: 1;
-    overflow-y: auto;
     box-sizing: border-box;
-    background:
-        radial-gradient(circle at top left, rgba(45, 127, 249, 0.12), transparent 32%),
-        linear-gradient(180deg, #f8fbff 0%, #ffffff 52%);
 `;
 
 const StyledContainer = styled.div`
     width: 100%;
     max-width: 880px;
     margin: 0 auto;
-    padding: 28px 16px 48px;
+    padding: 8px;
     box-sizing: border-box;
 `;
 
-const StyledHero = styled.div`
-    margin-bottom: 18px;
-`;
-
-const StyledEyebrow = styled.p`
-    margin: 0 0 8px;
-    font-size: 11px;
-    font-weight: 700;
-    letter-spacing: 0.18em;
-    color: #2d7ff9;
-`;
-
-const StyledTitle = styled.h1`
-    margin: 0;
-    font-size: 32px;
-    line-height: 1.1;
-    color: #111827;
-`;
-
-const StyledSubtitle = styled.p`
-    margin: 10px 0 0;
-    color: #4b5563;
-    font-size: 15px;
-`;
 
 const StyledCard = styled.div`
-    margin-top: 14px;
-    padding: 20px;
+    margin-top: 8px;
+    padding: 10px;
     border: 1px solid #e5e7eb;
-    border-radius: 18px;
+    border-radius: var(--card-radius);
     background: rgba(255, 255, 255, 0.92);
     box-shadow: 0 10px 30px rgba(15, 23, 42, 0.05);
 `;
@@ -322,4 +332,22 @@ const StyledDangerButton = styled.button`
     border: 1px solid #fecaca;
     background: #fff1f2;
     color: #be123c;
+`;
+
+const StyledFooterCs = styled.p`
+    margin: auto 0 0;
+    padding: 24px 0 0;
+    text-align: center;
+    font-size: 12px;
+    color: var(--dark-gray-color2);
+
+    a {
+        color: inherit;
+        text-decoration: none;
+        font-weight: 600;
+
+        @media (hover: hover) and (pointer: fine) {
+            &:hover { text-decoration: underline; }
+        }
+    }
 `;

@@ -257,6 +257,7 @@ const Settings: NextPage<SettingsProps> = ({reservations, customers, history, st
                 {tab === 'service' && <ServiceManageSection/>}
                 {tab === 'designer' && <DesignerManageSection/>}
                 {tab === 'member' && <MemberSection/>}
+                <StyledFooterCs>Take a seat CS: <a href="mailto:takeaseat.cs@gmail.com">takeaseat.cs@gmail.com</a></StyledFooterCs>
             </StyledContent>
             {selectedReservations.map((reservation, index) => (
                 <ReservationDetail key={`${reservation.id}-${index}`}
@@ -340,16 +341,36 @@ const StyledSection = styled.section`
     flex: 1;
     display: flex;
     flex-direction: column;
-    min-height: 0;
+    align-self: flex-start;
+    min-height: 100%;
     box-sizing: border-box;
 `;
 
 const StyledContent = styled.div`
     flex: 1;
-    min-height: 0;
     display: flex;
     flex-direction: column;
-    padding: 0 10px 20px;
-    overflow-y: auto;
-    overscroll-behavior: auto;
+    width: 100%;
+    max-width: 880px;
+    margin: 0 auto;
+    padding: 8px 10px 20px;
+    box-sizing: border-box;
+`;
+
+const StyledFooterCs = styled.p`
+    margin: auto 0 0;
+    padding: 24px 0 0;
+    text-align: center;
+    font-size: 12px;
+    color: var(--dark-gray-color2);
+
+    a {
+        color: inherit;
+        text-decoration: none;
+        font-weight: 600;
+
+        @media (hover: hover) and (pointer: fine) {
+            &:hover { text-decoration: underline; }
+        }
+    }
 `;
