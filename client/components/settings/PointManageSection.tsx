@@ -592,6 +592,7 @@ const StyledHistoryMeta = styled.div`
 `;
 
 const StyledHistoryEmpty = styled.div`
+    padding: 12px 0;
     font-size: 12px;
     color: var(--dark-gray-color2);
 `;
