@@ -34,7 +34,7 @@ interface CancelledEntry {
 
 interface SyncContext {
     storeId: string;
-    existingBookingMap: Map<string, {id: string; naverBookingUrl: string | null; serviceSummary: string | null}>;
+    existingBookingMap: Map<string, {id: string; naverBookingUrl: string | null; serviceSummary: string | null; designerId: string | null}>;
     designerMap: Map<string, {id: string; legacyId: number}>;
     serviceMap: Map<string, {name: string; duration: number}>;
     nextCustomerLegacyId: number;
@@ -81,7 +81,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         ]),
         prisma.reservation.findMany({
             where: {storeId, naverBookingId: {not: null}},
-            select: {naverBookingId: true, id: true, naverBookingUrl: true, serviceSummary: true},
+            select: {naverBookingId: true, id: true, naverBookingUrl: true, serviceSummary: true, designerId: true},
         }),
         prisma.designer.findMany({
             where: {storeId},
@@ -117,7 +117,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         existingBookingMap: new Map(
             existingBookings
                 .filter((r) => r.naverBookingId)
-                .map((r) => [r.naverBookingId!, {id: r.id, naverBookingUrl: r.naverBookingUrl, serviceSummary: r.serviceSummary}])
+                .map((r) => [r.naverBookingId!, {id: r.id, naverBookingUrl: r.naverBookingUrl, serviceSummary: r.serviceSummary, designerId: r.designerId}])
         ),
         designerMap: new Map(
             allDesigners.map((d) => [d.name, {id: d.id, legacyId: d.legacyId ?? 0}])
@@ -253,13 +253,20 @@ async function createReservationFromBooking(
     // 중복 확인 — DB 조회 없이 메모리에서 처리
     const existing = existingBookingMap.get(booking.bookingId);
     if (existing) {
-        const updates: Record<string, string> = {};
+        const updates: Record<string, string | null> = {};
         if (booking.bookingUrl && !existing.naverBookingUrl && booking.bookingUrl.includes('partner.booking.naver.com')) {
             updates.naverBookingUrl = booking.bookingUrl;
         }
         if ((!existing.serviceSummary || existing.serviceSummary === booking.designerName) && booking.services.length > 0) {
             const names = booking.services.map((s) => s.name);
             updates.serviceSummary = names.join('+');
+        }
+        // 디자이너 미매칭 상태면 이메일에서 파싱한 디자이너명으로 매칭
+        if (!existing.designerId && booking.designerName) {
+            const designer = findByNameContains(designerMap, booking.designerName);
+            if (designer) {
+                updates.designerId = designer.id;
+            }
         }
         if (Object.keys(updates).length > 0) {
             await prisma.reservation.update({
