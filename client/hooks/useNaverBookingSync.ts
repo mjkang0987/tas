@@ -134,11 +134,11 @@ export function useNaverBookingSync() {
     const patchNotificationNames = useCalendarStore((s) => s.patchNotificationNames);
     const conflictDetectedRef = useRef(false);
 
-    // 빈 고객명 알림 보정 (데이터 로드 후)
+    // 빈 고객명·디자이너명 알림 보정 (데이터 로드 후)
     useEffect(() => {
         if (Object.keys(customerMap).length === 0) return;
         patchNotificationNames();
-    }, [customerMap, patchNotificationNames]);
+    }, [customerMap, reservationMap, patchNotificationNames]);
 
     // 자동 중복 감지 (예약 데이터 로드 시)
     useEffect(() => {

@@ -776,15 +776,21 @@ export const useCalendarStore = create<CalendarState>((set) => ({
 
     patchNotificationNames: () =>
         set((state) => {
-            const needsPatch = state.syncNotifications.some((n) =>
-                !n.customerName || !n.appointmentDate || !n.appointmentTime
-            );
+            const designerById = new Map(state.designers.map((d) => [d.id, d.name]));
+            const allReservations = Object.values(state.reservationMap).flat();
+
+            const needsPatch = state.syncNotifications.some((n) => {
+                if (!n.customerName || !n.appointmentDate || !n.appointmentTime) return true;
+                if (!n.designerName || n.designerName === '미지정') {
+                    const reservation = allReservations.find((r) => r.id === n.reservationId);
+                    if (reservation?.designerId && designerById.has(reservation.designerId)) return true;
+                }
+                return false;
+            });
             if (!needsPatch) return {};
 
-            const allReservations = Object.values(state.reservationMap).flat();
             let changed = false;
             const next = state.syncNotifications.map((n) => {
-                if (n.customerName && n.appointmentDate && n.appointmentTime) return n;
                 const reservation = allReservations.find((r) => r.id === n.reservationId);
                 if (!reservation) return n;
                 const customer = state.customerMap[reservation.customerId];
@@ -792,6 +798,10 @@ export const useCalendarStore = create<CalendarState>((set) => ({
                 if (!n.customerName && customer?.name) patch.customerName = customer.name;
                 if (!n.appointmentDate && reservation.date) patch.appointmentDate = reservation.date;
                 if (!n.appointmentTime && reservation.startTime) patch.appointmentTime = reservation.startTime;
+                if ((!n.designerName || n.designerName === '미지정') && reservation.designerId) {
+                    const name = designerById.get(reservation.designerId);
+                    if (name) patch.designerName = name;
+                }
                 if (Object.keys(patch).length === 0) return n;
                 changed = true;
                 return {...n, ...patch};
