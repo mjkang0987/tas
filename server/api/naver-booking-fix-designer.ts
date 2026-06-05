@@ -39,8 +39,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     });
     const designerMap = new Map(allDesigners.map((d) => [d.name, d]));
 
-    const fixed: Array<{reservationId: number; naverBookingId: string; designerName: string}> = [];
-    const errors: Array<{reservationId: number; error: string}> = [];
+    const fixed: Array<{reservationId: number | string; naverBookingId: string; designerName: string}> = [];
+    const errors: Array<{reservationId: number | string; error: string}> = [];
 
     for (const reservationId of reservationIds) {
         const idStr = String(reservationId);
