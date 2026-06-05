@@ -3,6 +3,7 @@ import type {Designer} from '../utils/designers';
 import type {ServiceItem} from '../utils/services';
 import type {StoreSettings} from '../utils/storeSettings';
 import type {ReservationHistoryEntry, ReservationMap} from '../utils/reservations';
+import type {LocalDbSnapshot} from '../lib/local-db';
 import {
     flattenReservationMap,
     shouldUseLocalDb,
@@ -83,58 +84,35 @@ export function syncServiceSettings(services: ServiceItem[], categoryBaseColors:
         });
 }
 
-export function syncDesignerSettings(designers: Designer[]): void {
+function syncToServer(
+    endpoint: string,
+    payload: unknown,
+    localDbUpdater: (current: LocalDbSnapshot) => LocalDbSnapshot,
+): void {
     if (shouldUseLocalDb()) {
-        updateLocalDbSnapshot((current) => ({
-            ...current,
-            designers,
-        }));
+        updateLocalDbSnapshot(localDbUpdater);
         return;
     }
 
-    fetch('/api/designers', {
+    fetch(endpoint, {
         method: 'PUT',
         headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({designers})
+        body: JSON.stringify(payload),
     }).catch(() => {
         // Preserve local UX even if sync fails; server data can be retried later.
     });
+}
+
+export function syncDesignerSettings(designers: Designer[]): void {
+    syncToServer('/api/designers', {designers}, (c) => ({...c, designers}));
 }
 
 export function syncCustomerSettings(customers: Customer[]): void {
-    if (shouldUseLocalDb()) {
-        updateLocalDbSnapshot((current) => ({
-            ...current,
-            customers,
-        }));
-        return;
-    }
-
-    fetch('/api/customers', {
-        method: 'PUT',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({customers})
-    }).catch(() => {
-        // Preserve local UX even if sync fails; server data can be retried later.
-    });
+    syncToServer('/api/customers', {customers}, (c) => ({...c, customers}));
 }
 
 export function syncStoreSettings(storeSettings: StoreSettings): void {
-    if (shouldUseLocalDb()) {
-        updateLocalDbSnapshot((current) => ({
-            ...current,
-            storeSettings,
-        }));
-        return;
-    }
-
-    fetch('/api/store', {
-        method: 'PUT',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify(storeSettings)
-    }).catch(() => {
-        // Preserve local UX even if sync fails; server data can be retried later.
-    });
+    syncToServer('/api/store', storeSettings, (c) => ({...c, storeSettings}));
 }
 
 export function syncReservationState(reservationMap: ReservationMap, history: ReservationHistoryEntry[]): void {
