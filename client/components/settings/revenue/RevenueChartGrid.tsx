@@ -4,6 +4,7 @@ import styled from 'styled-components';
 
 import {formatPrice} from '../../../utils/services';
 import type {CustomerMap} from '../../../utils/customers';
+import {compareDesignerName} from '../../../utils/designers';
 import {StyledColorSwatch} from './revenue-styles';
 
 const REVENUE_CHART_WIDTH = 320;
@@ -47,12 +48,19 @@ interface CustomerNoshowItem {
     customer: CustomerMap[number] | undefined;
 }
 
+interface ChannelChartItem {
+    channel: string;
+    count: number;
+    color: string;
+}
+
 export type ChartDetailKey =
     | {kind: 'date'; dateKey: string}
     | {kind: 'payment'; method: string}
     | {kind: 'designer'; designerId: number}
     | {kind: 'cancellation'; designerId: number | null}
-    | {kind: 'noshow'; customerId: number};
+    | {kind: 'noshow'; customerId: number}
+    | {kind: 'channel'; channel: string};
 
 interface RevenueChartGridProps {
     fromDateKey: string;
@@ -65,13 +73,15 @@ interface RevenueChartGridProps {
     paymentDonutGradient: string;
     paymentChartItems: PaymentChartItem[];
     designerChartItems: DesignerChartItem[];
-    designerBarValueWidthCh: number;
     designerCancellationItems: DesignerCancellationItem[];
     customerNoshowItems: CustomerNoshowItem[];
     totalCancelledCount: number;
     totalCancelledRate: number;
     totalNoshowCount: number;
     totalNoshowRate: number;
+    channelChartItems: ChannelChartItem[];
+    channelDonutGradient: string;
+    channelTotalCount: number;
     onSelectCustomer: (customerId: number) => void;
     onChartDetailClick: (key: ChartDetailKey) => void;
     seriesLength: number;
@@ -88,13 +98,15 @@ export const RevenueChartGrid = ({
     paymentDonutGradient,
     paymentChartItems,
     designerChartItems,
-    designerBarValueWidthCh,
     designerCancellationItems,
     customerNoshowItems,
     totalCancelledCount,
     totalCancelledRate,
     totalNoshowCount,
     totalNoshowRate,
+    channelChartItems,
+    channelDonutGradient,
+    channelTotalCount,
     onSelectCustomer,
     onChartDetailClick,
     seriesLength,
@@ -111,7 +123,7 @@ export const RevenueChartGrid = ({
                     <span>{fromDateKey} ~ {toDateKeyValue}</span>
                 </StyledChartHeader>
                 {seriesLength === 0 ? (
-                    <StyledChartEmpty>집계할 매출이 없습니다.</StyledChartEmpty>
+                    <StyledChartEmpty>내역이 없습니다.</StyledChartEmpty>
                 ) : (
                     <>
                         <StyledLineChartBox>
@@ -170,13 +182,13 @@ export const RevenueChartGrid = ({
             </StyledChartCard>
 
             {/* Payment donut */}
-            <StyledChartCard $autoHeight>
+            <StyledChartCard $autoHeight $hero>
                 <StyledChartHeader>
                     <strong>결제수단 비중</strong>
                     <span>결제완료 기준</span>
                 </StyledChartHeader>
                 {paymentChartItems.length === 0 ? (
-                    <StyledChartEmpty>결제 데이터가 없습니다.</StyledChartEmpty>
+                    <StyledChartEmpty>내역이 없습니다.</StyledChartEmpty>
                 ) : (
                     <StyledPaymentChartWrap>
                         <StyledDonutChart $gradient={paymentDonutGradient}>
@@ -207,6 +219,44 @@ export const RevenueChartGrid = ({
                 )}
             </StyledChartCard>
 
+            {/* Channel donut */}
+            <StyledChartCard>
+                <StyledChartHeader>
+                    <strong>예약비중</strong>
+                    <span>전화 · 방문 · 네이버</span>
+                </StyledChartHeader>
+                {channelTotalCount === 0 ? (
+                    <StyledChartEmpty>내역이 없습니다.</StyledChartEmpty>
+                ) : (
+                    <StyledDonutColumnWrap>
+                        <StyledDonutChart $gradient={channelDonutGradient}>
+                            <div>
+                                <strong>{channelTotalCount}건</strong>
+                                <span>전체예약</span>
+                            </div>
+                        </StyledDonutChart>
+                        <StyledLegendList>
+                            {channelChartItems.map((item) => {
+                                const percent = channelTotalCount > 0 ? Math.round((item.count / channelTotalCount) * 100) : 0;
+                                return (
+                                    <StyledLegendItem
+                                        key={item.channel}
+                                        onClick={() => onChartDetailClick({kind: 'channel', channel: item.channel})}
+                                    >
+                                        <StyledLegendInlineLabel>
+                                            <StyledColorSwatch $color={item.color} />
+                                            <span>{item.channel}</span>
+                                            <strong>{item.count}건</strong>
+                                            <span>{percent}%</span>
+                                        </StyledLegendInlineLabel>
+                                    </StyledLegendItem>
+                                );
+                            })}
+                        </StyledLegendList>
+                    </StyledDonutColumnWrap>
+                )}
+            </StyledChartCard>
+
             {/* Designer bar */}
             <StyledChartCard>
                 <StyledChartHeader>
@@ -214,31 +264,59 @@ export const RevenueChartGrid = ({
                     <span>{designerKey === 'all' ? '전체 기준' : '선택 디자이너 기준'}</span>
                 </StyledChartHeader>
                 {designerChartItems.length === 0 ? (
-                    <StyledChartEmpty>디자이너 매출이 없습니다.</StyledChartEmpty>
+                    <StyledChartEmpty>내역이 없습니다.</StyledChartEmpty>
                 ) : (
-                    <StyledBarChartList>
-                        {designerChartItems.map((item) => {
-                            const maxTotal = Math.max(...designerChartItems.map((e) => e.total), 1);
-                            const ratio = (item.total / maxTotal) * 100;
+                    <>
+                        {(() => {
+                            const sumTotal = designerChartItems.reduce((sum, e) => sum + e.total, 0);
+                            const withPct = [...designerChartItems]
+                                .map((item) => ({...item, pct: sumTotal > 0 ? (item.total / sumTotal) * 100 : 0}))
+                                .sort((a, b) => compareDesignerName(a.name, b.name));
                             return (
-                                <StyledBarRow
-                                    key={`${item.designerId ?? 'none'}-${item.name}`}
-                                    $valueWidthCh={designerBarValueWidthCh}
-                                    onClick={() => item.designerId != null && onChartDetailClick({kind: 'designer', designerId: item.designerId})}
-                                    style={item.designerId != null ? {cursor: 'pointer'} : undefined}
-                                >
-                                    <StyledBarLabel>
-                                        <StyledColorSwatch $color={item.color} />
-                                        <span>{item.name}</span>
-                                    </StyledBarLabel>
-                                    <StyledBarTrack>
-                                        <StyledBarFill $color={item.color} $width={ratio} />
-                                    </StyledBarTrack>
-                                    <StyledBarValue>{formatPrice(item.total)}</StyledBarValue>
-                                </StyledBarRow>
+                                <StyledShareSection>
+                                    <StyledShareSectionTitle>전체비율</StyledShareSectionTitle>
+                                    <StyledShareLegend>
+                                        {withPct.map((item) => (
+                                            <StyledShareLegendItem key={`legend-${item.designerId ?? 'none'}`}>
+                                                <StyledColorSwatch $color={item.color} />
+                                                <span>{item.name}</span>
+                                                <strong>{Math.round(item.pct)}%</strong>
+                                            </StyledShareLegendItem>
+                                        ))}
+                                    </StyledShareLegend>
+                                    <StyledShareBar>
+                                        {withPct.filter((item) => item.pct > 0).map((item) => (
+                                            <StyledShareSegment key={`share-${item.designerId ?? 'none'}`} $color={item.color} $width={item.pct} title={`${item.name} ${Math.round(item.pct)}%`} />
+                                        ))}
+                                    </StyledShareBar>
+                                </StyledShareSection>
                             );
-                        })}
-                    </StyledBarChartList>
+                        })()}
+                        <StyledBarChartList>
+                            {[...designerChartItems].sort((a, b) => compareDesignerName(a.name, b.name)).map((item) => {
+                                const sumTotal = designerChartItems.reduce((sum, e) => sum + e.total, 0) || 1;
+                                const barRatio = (item.total / sumTotal) * 100;
+                                return (
+                                    <StyledBarRow
+                                        key={`${item.designerId ?? 'none'}-${item.name}`}
+                                        onClick={() => item.designerId != null && onChartDetailClick({kind: 'designer', designerId: item.designerId})}
+                                        style={item.designerId != null ? {cursor: 'pointer'} : undefined}
+                                    >
+                                        <StyledBarHeaderRow>
+                                            <StyledBarLabel>
+                                                <StyledColorSwatch $color={item.color} />
+                                                <span>{item.name}</span>
+                                            </StyledBarLabel>
+                                            <StyledBarValue>{formatPrice(item.total)}</StyledBarValue>
+                                        </StyledBarHeaderRow>
+                                        <StyledBarTrack>
+                                            <StyledBarFill $color={item.color} $width={barRatio} />
+                                        </StyledBarTrack>
+                                    </StyledBarRow>
+                                );
+                            })}
+                        </StyledBarChartList>
+                    </>
                 )}
             </StyledChartCard>
 
@@ -253,10 +331,10 @@ export const RevenueChartGrid = ({
                     <strong>{totalCancelledRate}%</strong>
                 </StyledOperationSummary>
                 {designerCancellationItems.length === 0 ? (
-                    <StyledChartEmpty>취소 데이터가 없습니다.</StyledChartEmpty>
+                    <StyledChartEmpty>내역이 없습니다.</StyledChartEmpty>
                 ) : (
                     <StyledOperationList>
-                        {designerCancellationItems.map((item) => (
+                        {[...designerCancellationItems].sort((a, b) => compareDesignerName(a.name, b.name)).map((item) => (
                             <StyledClickableOperationRow
                                 key={`cancel-${item.designerId ?? 'none'}`}
                                 onClick={() => onChartDetailClick({kind: 'cancellation', designerId: item.designerId})}
@@ -286,7 +364,7 @@ export const RevenueChartGrid = ({
                     <strong>{totalNoshowRate}%</strong>
                 </StyledOperationSummary>
                 {customerNoshowItems.length === 0 ? (
-                    <StyledChartEmpty>노쇼 데이터가 없습니다.</StyledChartEmpty>
+                    <StyledChartEmpty>내역이 없습니다.</StyledChartEmpty>
                 ) : (
                     <StyledOperationList>
                         {customerNoshowItems.map((item) => (
@@ -324,14 +402,14 @@ export const RevenueChartGrid = ({
 
 const StyledChartGrid = styled.div`
     display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 12px;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
 
     @media (max-width: 1080px) {
         grid-template-columns: 1fr 1fr;
     }
 
-    @media (max-width: 640px) {
+    @media (max-width: 900px) {
         grid-template-columns: 1fr;
     }
 `;
@@ -350,7 +428,7 @@ const StyledChartCard = styled.div<{ $hero?: boolean; $autoHeight?: boolean }>`
 
     ${(props) => props.$hero && `grid-column: span 2;`};
 
-    @media (max-width: 640px) {
+    @media (max-width: 900px) {
         grid-column: span 1;
         min-height: auto;
     }
@@ -409,7 +487,7 @@ const StyledChartTooltip = styled.div<{ $leftRatio: number; $topRatio: number }>
     border-radius: 8px;
     background: rgba(255, 255, 255, 0.96);
     box-shadow: 0 12px 28px rgba(15, 23, 42, 0.12);
-    backdrop-filter: blur(6px);
+    backdrop-filter: var(--sticky-backdrop);
     transform: translateZ(0);
 
     &::after {
@@ -506,7 +584,6 @@ const StyledChartPointButton = styled.button<{ $active: boolean; $leftRatio: num
     background: ${(p) => p.$active ? 'var(--orange-color)' : 'var(--blue-color)'};
     box-shadow: 0 2px 8px rgba(15, 23, 42, 0.14);
     transform: translate(-50%, -50%);
-    cursor: pointer;
 `;
 
 const StyledChartAxis = styled.div`
@@ -524,11 +601,17 @@ const StyledBarChartList = styled.div`
     gap: 10px;
 `;
 
-const StyledBarRow = styled.div<{ $valueWidthCh: number }>`
-    display: grid;
-    grid-template-columns: minmax(0, 88px) minmax(0, 1fr) minmax(${(p) => `${p.$valueWidthCh}ch`}, max-content);
+const StyledBarRow = styled.div`
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+`;
+
+const StyledBarHeaderRow = styled.div`
+    display: flex;
     align-items: center;
-    gap: 10px;
+    justify-content: space-between;
+    gap: 8px;
 `;
 
 const StyledBarLabel = styled.div`
@@ -541,9 +624,16 @@ const StyledBarLabel = styled.div`
     > span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 `;
 
+const StyledBarValue = styled.span`
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--black-color);
+    white-space: nowrap;
+`;
+
 const StyledBarTrack = styled.div`
     position: relative;
-    height: 10px;
+    height: 20px;
     border-radius: 999px;
     background: #edf2f7;
     overflow: hidden;
@@ -556,23 +646,80 @@ const StyledBarFill = styled.div<{ $color: string; $width: number }>`
     background: ${(p) => p.$color};
 `;
 
-const StyledBarValue = styled.span`
-    font-size: 12px;
-    font-weight: 600;
-    color: var(--black-color);
+const StyledShareSection = styled.div`
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
 `;
 
-const StyledPaymentChartWrap = styled.div`
+const StyledShareSectionTitle = styled.span`
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--dark-gray-color2);
+`;
+
+const StyledShareBar = styled.div`
+    display: flex;
+    height: 20px;
+    border-radius: 999px;
+    overflow: hidden;
+    background: #edf2f7;
+    margin-top: 4px;
+`;
+
+const StyledShareSegment = styled.div<{ $color: string; $width: number }>`
+    width: ${(p) => `${p.$width}%`};
+    height: 100%;
+    background: ${(p) => p.$color};
+`;
+
+const StyledShareLegend = styled.div`
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px 12px;
+`;
+
+const StyledShareLegendItem = styled.span`
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 11px;
+    color: var(--dark-gray-color);
+
+    > strong {
+        font-weight: 600;
+        color: var(--black-color);
+    }
+`;
+
+const StyledDonutColumnWrap = styled.div`
     display: flex;
     flex-direction: column;
     gap: 16px;
     align-items: center;
 `;
 
+const StyledPaymentChartWrap = styled.div`
+    display: flex;
+    gap: 16px;
+    align-items: center;
+
+    @media (max-width: 900px) {
+        flex-direction: column;
+        gap: 16px;
+    }
+`;
+
 const StyledDonutChart = styled.div<{ $gradient: string }>`
     position: relative;
     width: 150px; height: 150px;
+    flex-shrink: 0;
+    margin: 25px 50px;
     border-radius: 50%;
+
+    @media (max-width: 900px) {
+        margin: 10px;
+    }
     background: ${(p) => p.$gradient};
 
     &::after {
@@ -692,7 +839,6 @@ const StyledOperationCustomerButton = styled.button`
     font-weight: 600;
     color: var(--dark-gray-color);
     text-align: left;
-    cursor: pointer;
 `;
 
 const StyledOperationRate = styled.strong`

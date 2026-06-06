@@ -87,10 +87,11 @@ export function isDesignerBookable(designer: Designer | null | undefined): boole
 }
 
 export function splitDesignersByStatus(designers: Designer[]) {
+    const sorted = sortDesigners(designers);
     return {
-        active: designers.filter((designer) => getDesignerStatus(designer) === '재직'),
-        onLeave: designers.filter((designer) => getDesignerStatus(designer) === '휴직'),
-        resigned: designers.filter((designer) => getDesignerStatus(designer) === '퇴직'),
+        active: sorted.filter((designer) => getDesignerStatus(designer) === '재직'),
+        onLeave: sorted.filter((designer) => getDesignerStatus(designer) === '휴직'),
+        resigned: sorted.filter((designer) => getDesignerStatus(designer) === '퇴직'),
     };
 }
 
@@ -156,6 +157,33 @@ export function getDesignerAvailabilityError(
 ): string {
     const availability = getDesignerAvailabilityState(designers, designerId, date, startTime, endTime);
     return availability.kind === 'available' ? '' : availability.message;
+}
+
+const designerNameOrder = (name: string) => /^[a-zA-Z]/.test(name) ? 0 : /^[가-힣ㄱ-ㅎㅏ-ㅣ]/.test(name) ? 1 : 2;
+
+export function compareDesignerName(a: string, b: string): number {
+    const oa = designerNameOrder(a), ob = designerNameOrder(b);
+    return oa !== ob ? oa - ob : a.localeCompare(b, 'ko');
+}
+
+export function sortDesigners<T extends { name: string }>(list: T[]): T[] {
+    return [...list].sort((a, b) => compareDesignerName(a.name, b.name));
+}
+
+export function buildDesignerNameMap(designers: Designer[], includeUnassigned?: boolean): Record<number, string> {
+    const map: Record<number, string> = includeUnassigned ? {0: '미지정'} : {};
+    for (const designer of designers) {
+        map[designer.id] = designer.name;
+    }
+    return map;
+}
+
+export function buildDesignerColorMap(designers: Designer[]): Record<number, string> {
+    const map: Record<number, string> = {};
+    for (const designer of designers) {
+        map[designer.id] = getDesignerColor(designer);
+    }
+    return map;
 }
 
 export const DEFAULT_DESIGNERS: Designer[] = [

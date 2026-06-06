@@ -1,6 +1,7 @@
 import {useEffect, useMemo, useState} from 'react';
 
 import {createPortal} from 'react-dom';
+import {useRouter} from 'next/router';
 import styled from 'styled-components';
 
 import {useCalendarStore} from '../../../store/calendarStore';
@@ -9,7 +10,7 @@ import type {PaymentEntry, PaymentMethod, Reservation, ReservationHistoryEntry, 
 import {findOverlap, hasCompletedPayment} from '../../../utils/reservations';
 import {isNewCustomerVisit} from '../../../utils/customers';
 import type {CustomerMap} from '../../../utils/customers';
-import {getDesignerAvailabilityError, getDesignerColor, splitDesignersByStatus} from '../../../utils/designers';
+import {buildDesignerNameMap, getDesignerAvailabilityError, getDesignerColor, splitDesignersByStatus} from '../../../utils/designers';
 import {
     parseServiceString,
     joinServiceNames,
@@ -17,15 +18,20 @@ import {
     sumPrice,
     calcEndTime,
     buildServiceColorMap,
+    formatPrice,
 } from '../../../utils/services';
 
 import {
     OVERLAY_Z_INDEX,
     StyledOverlay,
     StyledDetail,
+    StyledHeader,
+    StyledFooter,
+    StyledActionButton,
     useDialogAccessibility,
     useLayerInstanceId,
 } from './ModalStyles';
+import {CloseIconButton} from '../../ui/CloseIconButton';
 import {
     ReservationDiffSection,
     ReservationEditSection,
@@ -49,7 +55,7 @@ import {
     getPointAmount,
 } from './reservationDetailUtils';
 
-const PAYMENT_METHOD_OPTIONS: PaymentMethod[] = ['현금', '현금+현금영수증', '카드', '네이버페이', '지역화폐', '지역화폐+현금영수증', '상품권', '적립금'];
+const PAYMENT_METHOD_OPTIONS: PaymentMethod[] = ['현금', '현금+현금영수증', '카드', '네이버페이', '네이버 예약금', '지역화폐', '지역화폐+현금영수증', '상품권', '적립금', '할인'];
 
 const MODE_LABELS: Partial<Record<ReservationDetailMode, string>> = {
     editing: '예약 수정',
@@ -70,6 +76,7 @@ interface ReservationDetailProps {
     onCustomerClick: (customerId: number) => void;
     onUpdate: (prev: Reservation, updated: Reservation) => void;
     onCancel: (reservation: Reservation, status?: ReservationStatus) => void;
+    onRestore: (reservation: Reservation) => void;
 }
 
 function resolveReservationPrice(reservation: Reservation): number {
@@ -85,6 +92,7 @@ function buildReservationFormState(reservation: Reservation): ReservationDetailF
         designerId: reservation.designerId ?? 0,
         price: resolveReservationPrice(reservation),
         memo: reservation.memo ?? '',
+        channel: reservation.channel ?? '전화예약',
     };
 }
 
@@ -139,8 +147,10 @@ export const ReservationDetail = ({
                                       onClose,
                                       onCustomerClick,
                                       onUpdate,
-                                      onCancel
+                                      onCancel,
+                                      onRestore
                                   }: ReservationDetailProps) => {
+    const router = useRouter();
     const storeReservationMap = useCalendarStore((s) => s.reservationMap);
     const effectiveReservationMap = useMemo(
         () => Object.keys(storeReservationMap).length > 0 ? storeReservationMap : reservationMapProp,
@@ -172,11 +182,9 @@ export const ReservationDetail = ({
     const currentDesigner = sourceReservation.designerId
         ? designers.find((designer) => designer.id === sourceReservation.designerId) ?? null
         : null;
-    const designerNameMap = designers.reduce<Record<number, string>>((acc, designer) => {
-        acc[designer.id] = designer.name;
-        return acc;
-    }, {0: '미지정'});
+    const designerNameMap = buildDesignerNameMap(designers, true);
     const serviceColorMap = buildServiceColorMap(serviceCatalog, categoryBaseColorMap);
+    const knownServiceNames = useMemo(() => new Set(Object.keys(serviceColorMap)), [serviceColorMap]);
     const modalRoot = document.getElementById('modal-root');
     const {layerId, layerDataId} = useLayerInstanceId('reservation-detail');
     const getDefaultPointAwardAmount = (baseAmount: number) => Math.floor((baseAmount * storeSettings.pointSettings.serviceRate) / 100);
@@ -191,19 +199,20 @@ export const ReservationDetail = ({
 
     const [mode, setMode] = useState<ReservationDetailMode>('view');
     const [isHistoryOpen, setIsHistoryOpen] = useState(false);
+    const [isRestoringOpen, setIsRestoringOpen] = useState(false);
     const initialForm = buildReservationFormState(sourceReservation);
     const [form, setForm] = useState<ReservationDetailFormState>(initialForm);
     const [priceInputValue, setPriceInputValue] = useState(initialForm.price === 0 ? '' : String(initialForm.price));
     const [error, setError] = useState('');
     const [selectedServices, setSelectedServices] = useState<string[]>(
-        () => parseServiceString(sourceReservation.service)
+        () => parseServiceString(sourceReservation.service, knownServiceNames)
     );
     const [isEndTimeManual, setIsEndTimeManual] = useState(false);
     const [isPriceManual, setIsPriceManual] = useState(false);
     const draftReservation = buildDraftReservation(sourceReservation, form);
     const displayPrice = resolveReservationPrice(draftReservation);
     const [paymentEntries, setPaymentEntries] = useState<Array<{ method: PaymentMethod | ''; amount: string }>>(
-        () => getPaymentEntryDrafts(sourceReservation, displayPrice)
+        () => getPaymentEntryDrafts(sourceReservation, displayPrice, sourceReservation.naverDeposit ?? 0)
     );
     const [isPointAwardManual, setIsPointAwardManual] = useState(false);
     const [pointAward, setPointAward] = useState<PointAwardDraft>(() => ({
@@ -217,10 +226,10 @@ export const ReservationDetail = ({
 
         setForm(nextForm);
         setPriceInputValue(nextForm.price === 0 ? '' : String(nextForm.price));
-        setSelectedServices(parseServiceString(sourceReservation.service));
+        setSelectedServices(parseServiceString(sourceReservation.service, knownServiceNames));
         setIsEndTimeManual(false);
         setIsPriceManual(false);
-        setPaymentEntries(getPaymentEntryDrafts(sourceReservation, nextDisplayPrice));
+        setPaymentEntries(getPaymentEntryDrafts(sourceReservation, nextDisplayPrice, sourceReservation.naverDeposit ?? 0));
         setIsPointAwardManual(false);
         setPointAward({
             enabled: (sourceReservation.pointEarned ?? 0) > 0 || storeSettings.pointSettings.enableServiceRate,
@@ -309,7 +318,7 @@ export const ReservationDetail = ({
 
     const validateForm = (): string => {
         if (activeDesigners.length > 0 && !form.designerId) return '디자이너를 선택해주세요.';
-        if (!form.service.trim()) return '시술을 선택해주세요.';
+        if (!form.service.trim()) return '서비스를 선택해주세요.';
         if (!form.date) return '날짜를 선택해주세요.';
         if (!form.startTime) return '시작 시간을 입력해주세요.';
         if (!form.endTime) return '종료 시간을 입력해주세요.';
@@ -411,6 +420,14 @@ export const ReservationDetail = ({
             return;
         }
 
+        const paymentTotal = normalizedEntries.reduce((sum, entry) => sum + entry.amount, 0);
+        const expectedAmount = displayPrice - (sourceReservation.naverDeposit ?? 0);
+
+        if (paymentTotal !== expectedAmount) {
+            setError(`결제 금액 합계(${formatPrice(paymentTotal)})가 서비스 금액(${formatPrice(expectedAmount)})과 일치하지 않습니다.`);
+            return;
+        }
+
         const previousPointAmount = getPointAmount(getPaymentEntries(sourceReservation));
         const nextPointAmount = getPointAmount(normalizedEntries);
         const pointUsageDiff = nextPointAmount - previousPointAmount;
@@ -471,11 +488,11 @@ export const ReservationDetail = ({
 
         setForm(nextForm);
         setPriceInputValue(nextForm.price === 0 ? '' : String(nextForm.price));
-        setSelectedServices(parseServiceString(sourceReservation.service));
+        setSelectedServices(parseServiceString(sourceReservation.service, knownServiceNames));
         setIsEndTimeManual(false);
         setIsPriceManual(false);
         setIsHistoryOpen(false);
-        setPaymentEntries(getPaymentEntryDrafts(sourceReservation, nextDisplayPrice));
+        setPaymentEntries(getPaymentEntryDrafts(sourceReservation, nextDisplayPrice, sourceReservation.naverDeposit ?? 0));
         setIsPointAwardManual(false);
         setPointAward({
             enabled: (sourceReservation.pointEarned ?? 0) > 0 || storeSettings.pointSettings.enableServiceRate,
@@ -513,7 +530,7 @@ export const ReservationDetail = ({
 
     if (!modalRoot) return null;
 
-    return createPortal(<StyledReservationOverlay onClick={handleBack}
+    return createPortal(<><StyledReservationOverlay onClick={handleBack}
                                                   role="dialog"
                                                   aria-modal="true"
                                                   aria-label={dialogLabel}
@@ -597,7 +614,7 @@ export const ReservationDetail = ({
                     message="이 예약을 취소하시겠습니까?"
                     color="var(--danger-color)"
                     items={[
-                        {label: '시술', value: reservation.service},
+                        {label: '서비스', value: reservation.service},
                         {label: '날짜', value: reservation.date},
                         {label: '시간', value: `${reservation.startTime} ~ ${reservation.endTime}`},
                         {label: '고객명', value: customer?.name ?? '-'},
@@ -610,7 +627,7 @@ export const ReservationDetail = ({
                     message="이 예약을 완료 처리하시겠습니까?"
                     color="var(--blue-color)"
                     items={[
-                        {label: '시술', value: reservation.service},
+                        {label: '서비스', value: reservation.service},
                         {label: '날짜', value: reservation.date},
                         {label: '시간', value: `${reservation.startTime} ~ ${reservation.endTime}`},
                         {label: '고객명', value: customer?.name ?? '-'},
@@ -626,6 +643,8 @@ export const ReservationDetail = ({
                     showPointAward={showPointAward}
                     error={error}
                     paymentMethodOptions={PAYMENT_METHOD_OPTIONS}
+                    totalPrice={displayPrice}
+                    naverDeposit={sourceReservation.naverDeposit ?? 0}
                     onChangeEntryMethod={(index, value) => {
                         handlePaymentEntriesChange(paymentEntries.map((item, itemIndex) => (
                             itemIndex === index ? {...item, method: value} : item
@@ -660,6 +679,7 @@ export const ReservationDetail = ({
                         );
                     }}
                     onAddEntry={() => handlePaymentEntriesChange([...paymentEntries, {method: '', amount: ''}])}
+                    onNavigateToPoints={() => router.push('/settings/point')}
                 />
             )}
 
@@ -668,7 +688,7 @@ export const ReservationDetail = ({
                     message="이 예약을 노쇼 처리하시겠습니까?"
                     color="var(--warning-color)"
                     items={[
-                        {label: '시술', value: reservation.service},
+                        {label: '서비스', value: reservation.service},
                         {label: '날짜', value: reservation.date},
                         {label: '시간', value: `${reservation.startTime} ~ ${reservation.endTime}`},
                         {label: '고객명', value: customer?.name ?? '-'},
@@ -695,7 +715,7 @@ export const ReservationDetail = ({
                         onOpenCancelling={() => setMode('cancelling')}
                         onOpenNoshow={() => setMode('noshow')}
                         onOpenPayment={() => {
-                            setPaymentEntries(getPaymentEntryDrafts(sourceReservation, displayPrice));
+                            setPaymentEntries(getPaymentEntryDrafts(sourceReservation, displayPrice, sourceReservation.naverDeposit ?? 0));
                             setIsPointAwardManual(false);
                             setPointAward({
                                 enabled: (sourceReservation.pointEarned ?? 0) > 0 || storeSettings.pointSettings.enableServiceRate,
@@ -710,6 +730,8 @@ export const ReservationDetail = ({
                         onConfirmSave={handleConfirmSave}
                         onCancelReservation={() => onCancel(sourceReservation)}
                         onNoshowReservation={() => onCancel(sourceReservation, 'noshow')}
+                        onOpenRestoring={() => setIsRestoringOpen(true)}
+                        onRestoreReservation={() => onRestore(sourceReservation)}
                         onPaymentSave={handlePaymentSave}
                         onBackToEditing={() => setMode('editing')}
                         onBackToView={() => setMode('view')}
@@ -725,9 +747,77 @@ export const ReservationDetail = ({
             isOpen={isHistoryOpen}
             onClose={() => setIsHistoryOpen(false)}
         />
-    </StyledReservationOverlay>, modalRoot);
+    </StyledReservationOverlay>
+    {isRestoringOpen && (
+        <StyledRestoreOverlay onClick={() => setIsRestoringOpen(false)}>
+            <StyledRestoreModal onClick={(e) => e.stopPropagation()}>
+                <StyledHeader>
+                    <h3>예약 전환</h3>
+                    <CloseIconButton onClick={() => setIsRestoringOpen(false)} />
+                </StyledHeader>
+                <StyledRestoreBody>
+                    <StyledRestoreMessage>취소된 예약을 되돌리시겠습니까?</StyledRestoreMessage>
+                    <dl>
+                        <dt>서비스</dt>
+                        <dd>{reservation.service}</dd>
+                        <dt>날짜</dt>
+                        <dd>{reservation.date}</dd>
+                        <dt>시간</dt>
+                        <dd>{reservation.startTime} ~ {reservation.endTime}</dd>
+                        <dt>고객명</dt>
+                        <dd>{customer?.name ?? '-'}</dd>
+                    </dl>
+                </StyledRestoreBody>
+                <StyledFooter>
+                    <StyledActionButton type="button" onClick={() => setIsRestoringOpen(false)}>취소</StyledActionButton>
+                    <StyledActionButton type="button" $primary onClick={() => {
+                        setIsRestoringOpen(false);
+                        onRestore(sourceReservation);
+                    }}>확인</StyledActionButton>
+                </StyledFooter>
+            </StyledRestoreModal>
+        </StyledRestoreOverlay>
+    )}
+    </>, modalRoot);
 };
 
 const StyledReservationOverlay = styled(StyledOverlay)<{ $stacked: boolean }>`
     z-index: ${(props) => props.$stacked ? OVERLAY_Z_INDEX.confirm : OVERLAY_Z_INDEX.detail};
+`;
+
+const StyledRestoreOverlay = styled(StyledOverlay)`
+    z-index: ${OVERLAY_Z_INDEX.confirm};
+`;
+
+const StyledRestoreModal = styled(StyledDetail)`
+    width: min(360px, 90vw);
+`;
+
+const StyledRestoreBody = styled.div`
+    padding: var(--modal-body-padding);
+
+    dl {
+        display: grid;
+        grid-template-columns: 60px 1fr;
+        gap: 8px 12px;
+        margin: 0;
+    }
+
+    dt {
+        font-size: 13px;
+        color: var(--dark-gray-color);
+        font-weight: 500;
+    }
+
+    dd {
+        margin: 0;
+        font-size: 13px;
+    }
+`;
+
+const StyledRestoreMessage = styled.p`
+    margin: 0 0 16px;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--blue-color);
 `;

@@ -2,6 +2,7 @@ import {useMemo, useState} from 'react';
 
 import styled from 'styled-components';
 
+import {PageHero} from '../../ui/PageHero';
 import {
     getDailyRevenue,
     getOperationInsights,
@@ -13,17 +14,19 @@ import {
 } from '../../../utils/revenue';
 import {formatPrice, getServiceColor, parseServiceString} from '../../../utils/services';
 import type {Designer} from '../../../utils/designers';
-import {getDesignerColor} from '../../../utils/designers';
+import {getDesignerColor, getDesignerStatus} from '../../../utils/designers';
 import type {PaymentMethod, Reservation, ReservationMap} from '../../../utils/reservations';
 import {toDateKey} from '../../../utils/reservations';
 import type {CustomerMap} from '../../../utils/customers';
 
+import {exportRevenueToExcel} from '../../../utils/revenue-export';
 import {RevenueFilters, type RevenueViewTab} from './RevenueFilters';
 import {RevenueKpiGrid, type RevenueMetricKey} from './RevenueKpiGrid';
 import {RevenueChartGrid, type ChartDetailKey} from './RevenueChartGrid';
 import {RevenueDailyList} from './RevenueDailyList';
 import {RevenueDailyDetailModal} from './RevenueDailyDetailModal';
 import {RevenueMetricModal} from './RevenueMetricModal';
+import {StyledRevenueEmpty} from './revenue-styles';
 
 export type RevenueDesignerKey = 'all' | `${number}`;
 export type RevenueQuickRange = 'month' | 'week' | 'today';
@@ -48,6 +51,8 @@ interface RevenueSectionProps {
     setQuickRange: (range: RevenueQuickRange) => void;
 }
 
+const CHANNEL_ORDER = ['전화예약', '현장방문', '네이버예약'] as const;
+const CHANNEL_COLORS: Record<string, string> = {'전화예약': '#FB8C00', '현장방문': '#4285F4', '네이버예약': '#2DB400'};
 const PAYMENT_METHOD_COLORS = ['#2D7FF9', '#00A896', '#FB8C00', '#E85D75', '#7E57C2', '#4C6EF5', '#8E8E93', '#34A853'] as const;
 const PAYMENT_METHOD_ORDER: PaymentMethod[] = ['현금', '현금+현금영수증', '카드', '네이버페이', '지역화폐', '지역화폐+현금영수증', '상품권', '적립금'];
 const REVENUE_CHART_WIDTH = 320;
@@ -119,7 +124,7 @@ export const RevenueSection = ({
     const [metricLayerKey, setMetricLayerKey] = useState<RevenueMetricKey | null>(null);
     const [chartDetailKey, setChartDetailKey] = useState<ChartDetailKey | null>(null);
     const [revenueViewTab, setRevenueViewTab] = useState<RevenueViewTab>('all');
-    const [revenueFilterMode, setRevenueFilterMode] = useState<RevenueFilterMode>('completed');
+    const [revenueFilterMode, setRevenueFilterMode] = useState<RevenueFilterMode>('booked');
 
     const selectedDesignerId = designerKey === 'all' ? null : Number(designerKey);
     const designerMap = useMemo(
@@ -174,21 +179,23 @@ export const RevenueSection = ({
         const baseDesigners = selectedDesignerId == null
             ? designers
             : designers.filter((designer) => designer.id === selectedDesignerId);
-        return baseDesigners.map((designer) => {
-            const matchedRevenue = designerRevenueMap.get(designer.id);
-            return {
-                designerId: designer.id,
-                total: matchedRevenue?.total ?? 0,
-                count: matchedRevenue?.count ?? 0,
-                name: designer.name,
-                color: getDesignerColor(designer),
-            };
-        });
+        return baseDesigners
+            .filter((designer) => {
+                const matchedRevenue = designerRevenueMap.get(designer.id);
+                if (getDesignerStatus(designer) === '퇴직' && (!matchedRevenue || matchedRevenue.total === 0)) return false;
+                return true;
+            })
+            .map((designer) => {
+                const matchedRevenue = designerRevenueMap.get(designer.id);
+                return {
+                    designerId: designer.id,
+                    total: matchedRevenue?.total ?? 0,
+                    count: matchedRevenue?.count ?? 0,
+                    name: designer.name,
+                    color: getDesignerColor(designer),
+                };
+            });
     }, [designers, designerRevenueMap, selectedDesignerId]);
-    const designerBarValueWidthCh = useMemo(
-        () => Math.max(...designerChartItems.map((item) => formatPrice(item.total).length), formatPrice(0).length),
-        [designerChartItems]
-    );
     const customerNoshowItems = useMemo(
         () => operationInsights.customerNoshowRates.slice(0, 5).map((item) => ({
             ...item,
@@ -219,6 +226,22 @@ export const RevenueSection = ({
     const paymentDonutGradient = buildPaymentDonutGradient(
         paymentChartItems.map((item) => item.color),
         paymentChartItems.map((item) => item.total)
+    );
+    const channelChartItems = useMemo(
+        () => CHANNEL_ORDER.map((channel) => ({
+            channel,
+            count: revenueInsights.channels.find((c) => c.channel === channel)?.count ?? 0,
+            color: CHANNEL_COLORS[channel],
+        })),
+        [revenueInsights.channels]
+    );
+    const channelTotalCount = useMemo(
+        () => channelChartItems.reduce((sum, item) => sum + item.count, 0),
+        [channelChartItems]
+    );
+    const channelDonutGradient = buildPaymentDonutGradient(
+        channelChartItems.map((item) => item.color),
+        channelChartItems.map((item) => item.count)
     );
 
     // Metric modal data
@@ -396,6 +419,17 @@ export const RevenueSection = ({
                     customers: [],
                 };
             }
+            case 'channel': {
+                const ch = chartDetailKey.channel;
+                const filtered = metricReservations.filter((r) => (r.channel ?? '전화예약') === ch);
+                const total = filtered.reduce((sum, r) => sum + (r.price ?? 0), 0);
+                return {
+                    title: `${ch} 상세`,
+                    summary: `${filtered.length}건 · ${formatPrice(total)}`,
+                    reservations: filtered,
+                    customers: [],
+                };
+            }
             default:
                 return null;
         }
@@ -453,6 +487,7 @@ export const RevenueSection = ({
 
     return (
         <>
+            <PageHero eyebrow="REVENUE" title="매출" subtitle="기간별 매출 현황과 디자이너별 실적을 확인합니다." />
             <RevenueFilters
                 startDateKey={startDateKey}
                 endDateKey={endDateKey}
@@ -468,6 +503,15 @@ export const RevenueSection = ({
                 setRevenueViewTab={setRevenueViewTab}
                 revenueFilterMode={revenueFilterMode}
                 setRevenueFilterMode={setRevenueFilterMode}
+                onExport={() => exportRevenueToExcel({
+                    reservationMap,
+                    customerMap,
+                    designers,
+                    startDateKey: fromDateKey,
+                    endDateKey: toDateKeyValue,
+                    designerId: selectedDesignerId,
+                    filterMode: revenueFilterMode,
+                })}
             />
 
             {(revenueViewTab === 'all' || revenueViewTab === 'chart') && (
@@ -491,9 +535,11 @@ export const RevenueSection = ({
                         paymentDonutGradient={paymentDonutGradient}
                         paymentChartItems={paymentChartItems}
                         designerChartItems={designerChartItems}
-                        designerBarValueWidthCh={designerBarValueWidthCh}
                         designerCancellationItems={designerCancellationItems}
                         customerNoshowItems={customerNoshowItems}
+                        channelChartItems={channelChartItems}
+                        channelDonutGradient={channelDonutGradient}
+                        channelTotalCount={channelTotalCount}
                         totalCancelledCount={operationInsights.totalCancelledCount}
                         totalCancelledRate={operationInsights.totalCancelledRate}
                         totalNoshowCount={operationInsights.totalNoshowCount}
@@ -506,21 +552,23 @@ export const RevenueSection = ({
             )}
 
             {(revenueViewTab === 'all' || revenueViewTab === 'list') && (
-                <RevenueDailyList
-                    days={days}
-                    dayReservationMap={dayReservationMap}
-                    designerMap={designerMap}
-                    customerMap={customerMap}
-                    serviceColorMap={serviceColorMap}
-                    onSelectCustomer={onSelectCustomer}
-                    onSelectReservation={onSelectReservation}
-                    onDayClick={(dateKey) => {
-                        setSelectedDateKey(dateKey);
-                        setDetailDateKey(dateKey);
-                    }}
-                    rangeTotal={rangeRevenue.total}
-                    rangeCount={rangeRevenue.count}
-                />
+                <StyledDailyCard>
+                    <RevenueDailyList
+                        days={days}
+                        dayReservationMap={dayReservationMap}
+                        designerMap={designerMap}
+                        customerMap={customerMap}
+                        serviceColorMap={serviceColorMap}
+                        onSelectCustomer={onSelectCustomer}
+                        onSelectReservation={onSelectReservation}
+                        onDayClick={(dateKey) => {
+                            setSelectedDateKey(dateKey);
+                            setDetailDateKey(dateKey);
+                        }}
+                        rangeTotal={rangeRevenue.total}
+                        rangeCount={rangeRevenue.count}
+                    />
+                </StyledDailyCard>
             )}
 
             {openedDateKey && layerDaily && (
@@ -574,5 +622,13 @@ const StyledDashboard = styled.div`
     display: flex;
     flex-direction: column;
     gap: 12px;
-    padding: 12px 0;
+    padding: 8px 0;
+`;
+
+const StyledDailyCard = styled.div`
+    padding: 10px;
+    border: 1px solid var(--light-gray-color);
+    border-radius: 10px;
+    background: var(--white-color);
+    box-shadow: 0 10px 24px rgba(15, 23, 42, 0.05);
 `;

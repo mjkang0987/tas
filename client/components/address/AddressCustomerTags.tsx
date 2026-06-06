@@ -117,7 +117,7 @@ const StyledMemoCell = styled.div`
     display: flex;
     align-items: flex-start;
     gap: 8px;
-    padding: 10px 0 12px 12px;
+    padding: 10px 0 12px;
 `;
 
 const StyledMemoText = styled.span<{ $isEmpty: boolean }>`

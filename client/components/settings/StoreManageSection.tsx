@@ -1,8 +1,11 @@
 import {useEffect, useState} from 'react';
 
-import styled, {css} from 'styled-components';
+import styled from 'styled-components';
+
+import {StyledEditBtn, StyledDeleteBtn, StyledSaveBtn, StyledCancelBtn, StyledEmpty} from './settings-styles';
 
 import {useCalendarStore} from '../../store/calendarStore';
+import {PageHero} from '../ui/PageHero';
 import {formControlStyle} from '../ui/FormControls';
 
 interface StoreManageSectionProps {
@@ -57,6 +60,7 @@ export const StoreManageSection = ({formatDateLabel}: StoreManageSectionProps) =
 
     return (
         <StyledStoreSection>
+            <PageHero eyebrow="STORE" title="매장 관리" subtitle="영업시간과 휴업일을 설정합니다." />
             <StyledStoreCard>
                 <StyledStoreCardHeader>
                     <StyledStoreCardTitle>영업시간</StyledStoreCardTitle>
@@ -163,34 +167,17 @@ export const StoreManageSection = ({formatDateLabel}: StoreManageSectionProps) =
     );
 };
 
-const actionButtonStyle = css`
-    flex-shrink: 0;
-    height: 30px;
-    padding: 0 12px;
-    border-radius: var(--radius-md);
-    font-size: 12px;
-    font-weight: 500;
-    cursor: pointer;
-    transition: transform 0.12s ease, box-shadow 0.15s ease, border-color 0.15s ease, background-color 0.15s ease;
-
-    @media (hover: hover) and (pointer: fine) {
-        &:hover {
-        
-    }
-    }
-`;
-
-const mobileStretchButtonStyle = css`
-    @media (max-width: 640px) {
-        flex: 1;
-    }
-`;
 
 const StyledStoreSection = styled.div`
-    display: flex;
-    flex-direction: column;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
     gap: 12px;
-    padding: 12px 0;
+
+    > :first-child { grid-column: 1 / -1; }
+
+    @media (max-width: 640px) {
+        grid-template-columns: 1fr;
+    }
 `;
 
 const StyledStoreCard = styled.div`
@@ -229,10 +216,6 @@ const StyledStoreActionRow = styled.div`
     display: flex;
     justify-content: flex-end;
     gap: 8px;
-
-    @media (max-width: 640px) {
-        justify-content: stretch;
-    }
 `;
 
 const StyledClosedDateAddRow = styled.div`
@@ -285,43 +268,3 @@ const StyledAddNotice = styled.p`
     color: var(--red-color);
 `;
 
-const StyledEmpty = styled.div`
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 40px;
-    font-size: 13px;
-    color: var(--dark-gray-color2);
-`;
-
-const StyledEditBtn = styled.button`
-    ${actionButtonStyle};
-    border: 1px solid var(--light-gray-color);
-    background: none;
-    font-size: 11px;
-    color: var(--dark-gray-color);
-`;
-
-const StyledDeleteBtn = styled.button`
-    ${actionButtonStyle};
-    border: 1px solid var(--danger-border);
-    background: var(--danger-bg);
-    font-size: 11px;
-    color: var(--danger-color);
-`;
-
-const StyledSaveBtn = styled.button`
-    ${actionButtonStyle};
-    ${mobileStretchButtonStyle};
-    border: 1px solid var(--blue-color);
-    background-color: var(--blue-color);
-    color: #fff;
-`;
-
-const StyledCancelBtn = styled.button`
-    ${actionButtonStyle};
-    ${mobileStretchButtonStyle};
-    border: 1px solid var(--light-gray-color);
-    background: none;
-    color: var(--dark-gray-color);
-`;

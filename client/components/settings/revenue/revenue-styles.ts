@@ -1,4 +1,4 @@
-import styled, {css} from 'styled-components';
+import styled from 'styled-components';
 
 import {formControlStyle} from '../../ui/FormControls';
 import {Dot} from '../../ui/Dot';
@@ -6,16 +6,7 @@ import {ServiceChipList, StyledServiceText, StyledServiceToken} from '../../ui/S
 
 /* ── Shared action / filter button styles ── */
 
-export const actionButtonStyle = css`
-    flex-shrink: 0;
-    height: 30px;
-    padding: 0 12px;
-    border-radius: var(--radius-md);
-    font-size: 12px;
-    font-weight: 500;
-    cursor: pointer;
-    transition: transform 0.12s ease, box-shadow 0.15s ease, border-color 0.15s ease, background-color 0.15s ease;
-`;
+export {actionButtonStyle} from '../settings-styles';
 
 /* ── Form / input helpers ── */
 
@@ -138,7 +129,7 @@ export const StyledCustomerName = styled.span`
     gap: 6px;
     min-width: 0;
     max-width: 100%;
-    padding: var(--chip-padding);
+    font-size: var(--small-font);
     border-radius: var(--chip-radius);
     background: rgba(248, 250, 252, 0.92);
 `;
@@ -149,10 +140,7 @@ export const StyledInlineCustomerButton = styled.button`
     border: 0;
     padding: 0;
     background: transparent;
-    font: inherit;
-    color: inherit;
     text-align: left;
-    cursor: pointer;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: normal;
@@ -214,15 +202,14 @@ export const StyledSummary = styled.div`
 /* ── Customer info grid (metric modal) ── */
 
 export const StyledCustomerInfoGrid = styled.div`
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 8px 12px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
     width: 100%;
 
     span {
         display: flex;
         gap: 6px;
-        padding: 8px 10px;
         border-radius: 10px;
         background: rgba(248, 250, 252, 0.92);
         font-size: 12px;

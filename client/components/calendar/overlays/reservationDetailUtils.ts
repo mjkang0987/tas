@@ -4,13 +4,14 @@ import type {ReservationDetailFormState} from './ReservationDetailSections';
 import type {PaymentEntryDraft, ReservationDiffItem} from './reservationDetailTypes';
 
 const FIELD_LABELS: Record<keyof ReservationDetailFormState, string> = {
-    service: '시술',
+    service: '서비스',
     designerId: '디자이너',
     date: '날짜',
     startTime: '시작시간',
     endTime: '종료시간',
     price: '가격',
-    memo: '요청사항'
+    memo: '요청사항',
+    channel: '예약경로'
 };
 
 export function getPaymentEntries(reservation: Reservation): PaymentEntry[] {
@@ -41,12 +42,24 @@ export function getPointAmount(entries: PaymentEntry[]): number {
 
 export function getPaymentEntryDrafts(
     reservation: Reservation,
-    fallbackAmount: number
+    fallbackAmount: number,
+    naverDeposit: number = 0,
 ): PaymentEntryDraft[] {
     const entries = getPaymentEntries(reservation);
-    return entries.length > 0
-        ? entries.map((entry) => ({method: entry.method, amount: String(entry.amount)}))
-        : [{method: '', amount: String(fallbackAmount)}];
+    if (entries.length > 0) {
+        return entries.map((entry) => ({method: entry.method, amount: String(entry.amount)}));
+    }
+
+    if (naverDeposit > 0) {
+        const remainder = fallbackAmount - naverDeposit;
+        const drafts: PaymentEntryDraft[] = [{method: '네이버 예약금', amount: String(naverDeposit)}];
+        if (remainder > 0) {
+            drafts.push({method: '', amount: String(remainder)});
+        }
+        return drafts;
+    }
+
+    return [{method: '', amount: String(fallbackAmount)}];
 }
 
 export function getChangedFields(
@@ -75,7 +88,7 @@ export function getChangedFields(
                     after: formatPrice(after.price)
                 });
             }
-        } else if (before[key] !== after[key]) {
+        } else if ((before[key] ?? '') !== (after[key] ?? '')) {
             fields.push({
                 label: FIELD_LABELS[key],
                 before: before[key] as string,
@@ -91,17 +104,23 @@ export function getHistoryDiffs(entry: ReservationHistoryEntry, designerNameMap:
     const diffs: ReservationDiffItem[] = [];
 
     if (entry.after.status === 'cancelled' && entry.before.status !== 'cancelled') {
-        diffs.push({label: '상태', before: '활성', after: '취소됨'});
+        diffs.push({label: '상태', before: '예약', after: '예약취소'});
         return diffs;
     }
 
     if (entry.after.status === 'noshow' && entry.before.status !== 'noshow') {
-        diffs.push({label: '상태', before: '활성', after: '노쇼'});
+        diffs.push({label: '상태', before: '예약', after: '노쇼'});
         return diffs;
     }
 
     if (entry.after.status === 'completed' && entry.before.status !== 'completed') {
-        diffs.push({label: '상태', before: '활성', after: '완료'});
+        diffs.push({label: '상태', before: '예약', after: '완료'});
+        return diffs;
+    }
+
+    if (entry.after.status === 'active' && (entry.before.status === 'cancelled' || entry.before.status === 'noshow')) {
+        const beforeLabel = entry.before.status === 'cancelled' ? '예약취소' : '노쇼';
+        diffs.push({label: '상태', before: beforeLabel, after: '예약'});
         return diffs;
     }
 
@@ -145,7 +164,7 @@ export function getHistoryDiffs(entry: ReservationHistoryEntry, designerNameMap:
                     after: formatPrice(afterPrice)
                 });
             }
-        } else if (entry.before[key] !== entry.after[key]) {
+        } else if ((entry.before[key] ?? '') !== (entry.after[key] ?? '')) {
             diffs.push({
                 label: FIELD_LABELS[key],
                 before: entry.before[key] as string,

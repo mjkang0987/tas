@@ -10,7 +10,6 @@ export const ColorPickerButton = styled.button<{
     border-radius: 50%;
     border: 2px solid ${(p) => p.$selected ? 'var(--dark-gray-color)' : 'transparent'};
     background-color: ${(p) => p.$color};
-    cursor: pointer;
     padding: 0;
     box-sizing: border-box;
     flex-shrink: 0;

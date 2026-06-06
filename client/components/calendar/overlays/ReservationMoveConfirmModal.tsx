@@ -5,16 +5,15 @@ import styled from 'styled-components';
 import type {Reservation} from '../../../utils/reservations';
 
 import {
-    OVERLAY_Z_INDEX,
     StyledActionButton,
-    StyledDetail,
+    StyledArrow,
+    StyledChangeRow,
+    StyledConfirmModal,
+    StyledConfirmOverlay,
     StyledFooter,
     StyledHeader,
     StyledHeaderTitleGroup,
-    StyledInfoGrid,
-    StyledModalContent,
-    StyledModalMessage,
-    StyledOverlay,
+    StyledNewTime,
     useDialogAccessibility,
     useLayerInstanceId,
 } from './ModalStyles';
@@ -39,6 +38,8 @@ export const ReservationMoveConfirmModal = ({
     const {layerId, layerDataId} = useLayerInstanceId('reservation-move-confirm');
     const dialogRef = useDialogAccessibility<HTMLDivElement>(onClose);
 
+    const dateChanged = reservation.date !== nextReservation.date;
+
     if (!modalRoot) return null;
 
     return createPortal(
@@ -56,33 +57,44 @@ export const ReservationMoveConfirmModal = ({
                     </StyledHeaderTitleGroup>
                     <CloseIconButton onClick={onClose} />
                 </StyledHeader>
-                <StyledModalContent>
-                    <StyledModalMessage>드래그한 예약 시간을 변경할까요?</StyledModalMessage>
-                    <StyledInfoGrid>
-                        <div>
-                            <dt>시술</dt>
-                            <dd>{reservation.service}</dd>
-                        </div>
+                <StyledConfirmContent>
+                    <dl>
+                        <dt>서비스</dt>
+                        <dd>{reservation.service}</dd>
                         {customerName && (
-                            <div>
+                            <>
                                 <dt>고객</dt>
                                 <dd>{customerName}</dd>
-                            </div>
+                            </>
                         )}
-                        <div>
-                            <dt>날짜</dt>
-                            <dd>{reservation.date} {'->'} {nextReservation.date}</dd>
-                        </div>
-                        <div>
-                            <dt>변경 전</dt>
-                            <dd>{reservation.startTime}~{reservation.endTime}</dd>
-                        </div>
-                        <div>
-                            <dt>변경 후</dt>
-                            <dd>{nextReservation.startTime}~{nextReservation.endTime}</dd>
-                        </div>
-                    </StyledInfoGrid>
-                </StyledModalContent>
+                        {dateChanged && (
+                            <>
+                                <dt>날짜</dt>
+                                <dd>
+                                    <StyledChangeRow>
+                                        <span>{reservation.date}</span>
+                                        <StyledArrow>→</StyledArrow>
+                                        <span>{nextReservation.date}</span>
+                                    </StyledChangeRow>
+                                </dd>
+                            </>
+                        )}
+                        {!dateChanged && (
+                            <>
+                                <dt>날짜</dt>
+                                <dd>{reservation.date}</dd>
+                            </>
+                        )}
+                        <dt>변경 전</dt>
+                        <dd>
+                            <StyledOldTime>{reservation.startTime} ~ {reservation.endTime}</StyledOldTime>
+                        </dd>
+                        <dt>변경 후</dt>
+                        <dd>
+                            <StyledNewTime>{nextReservation.startTime} ~ {nextReservation.endTime}</StyledNewTime>
+                        </dd>
+                    </dl>
+                </StyledConfirmContent>
                 <StyledFooter>
                     <StyledActionButton type="button" onClick={onClose}>취소</StyledActionButton>
                     <StyledActionButton type="button" $primary onClick={onConfirm}>변경</StyledActionButton>
@@ -93,10 +105,35 @@ export const ReservationMoveConfirmModal = ({
     );
 };
 
-const StyledConfirmOverlay = styled(StyledOverlay)`
-    z-index: ${OVERLAY_Z_INDEX.confirm};
+const StyledConfirmContent = styled.div`
+    padding: var(--modal-body-padding);
+
+    dl {
+        display: grid;
+        grid-template-columns: 60px 1fr;
+        gap: 8px 12px;
+        margin: 0;
+    }
+
+    dt {
+        font-size: 13px;
+        color: var(--dark-gray-color);
+        font-weight: 500;
+    }
+
+    dd {
+        margin: 0;
+        font-size: 13px;
+    }
 `;
 
-const StyledConfirmModal = styled(StyledDetail)`
-    width: min(360px, 90vw);
+const StyledOldTime = styled.span`
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: var(--radius-md);
+    background: var(--gray-color2);
+    font-size: 13px;
+    color: var(--dark-gray-color2);
+    text-decoration: line-through;
 `;
+

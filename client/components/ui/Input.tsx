@@ -29,7 +29,7 @@ const StyledInput = styled.label<StyledProps>`
         color: var(--gray-color);
     }
 
-    input {
+    .input-field {
         height: 100%;
         flex: 1;
         border: none;
@@ -59,7 +59,7 @@ const StyledInput = styled.label<StyledProps>`
     }
 
     ${props => props.$inputIcon === 'search' && `
-    button {
+    .search-btn {
       display: flex;
       align-items: center;
       justify-content: center;
@@ -76,7 +76,7 @@ const StyledInput = styled.label<StyledProps>`
 export const InputWrap:React.FC <Props> = ({children, inputIcon, htmlFor}) => {
     return <StyledInput htmlFor={htmlFor} $inputIcon={inputIcon}>
         {children}
-        {(inputIcon && inputIcon === 'search') && <button type="button">
+        {(inputIcon && inputIcon === 'search') && <button type="button" className="search-btn">
             <Icon iconType="search"/>
             <ButtonText a11y={true}>검색</ButtonText>
         </button> }

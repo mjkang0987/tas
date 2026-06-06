@@ -6,24 +6,24 @@ type LabelBadgeSize = 'sm' | 'md';
 
 const toneStyles: Record<LabelBadgeTone, ReturnType<typeof css>> = {
     neutral: css`
-        background: rgba(241, 245, 249, 0.92);
-        border-color: rgba(203, 213, 225, 0.95);
-        color: #475569;
+        background: var(--neutral-bg);
+        border-color: var(--neutral-border);
+        color: var(--neutral-text);
     `,
     brand: css`
-        background: #2DB400;
-        border-color: #269900;
+        background: var(--naver-color);
+        border-color: var(--naver-color-dark);
         color: var(--white-color);
     `,
     info: css`
-        background: rgba(45, 127, 249, 0.1);
-        border-color: rgba(45, 127, 249, 0.2);
-        color: var(--blue-color);
+        background: var(--info-bg);
+        border-color: var(--info-border);
+        color: var(--info-color);
     `,
     warning: css`
-        background: #FEF3C7;
-        border-color: #FCD34D;
-        color: #92400E;
+        background: var(--warning-bg-soft);
+        border-color: var(--warning-border-soft);
+        color: var(--warning-text);
     `,
     danger: css`
         background: var(--danger-bg);
@@ -31,9 +31,9 @@ const toneStyles: Record<LabelBadgeTone, ReturnType<typeof css>> = {
         color: var(--danger-color);
     `,
     success: css`
-        background: rgba(34, 197, 94, 0.12);
-        border-color: rgba(34, 197, 94, 0.2);
-        color: #15803d;
+        background: var(--success-bg);
+        border-color: var(--success-border);
+        color: var(--success-text);
     `,
 };
 

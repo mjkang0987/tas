@@ -7,6 +7,7 @@ import {NewCustomerBadge} from '../../ui/NewCustomerBadge';
 import {ServiceChipList} from '../../ui/ServiceChip';
 import type {Customer} from '../../../utils/customers';
 import type {Reservation} from '../../../utils/reservations';
+import {hasCompletedPayment} from '../../../utils/reservations';
 import type {DragPreview} from './timelineDrag';
 
 type TimelineReservationCardProps = {
@@ -74,7 +75,7 @@ export function TimelineReservationCard({
                 <StyledTimelineServiceList service={reservation.service}
                                           serviceColorMap={serviceColorMap}
                                           keyPrefix={reservation.id} />
-                {reservation.status === 'cancelled' ? ' (취소)' : reservation.status === 'noshow' ? ' (노쇼)' : reservation.status === 'completed' ? ' (완료)' : ''}
+                {reservation.status === 'cancelled' ? ' (예약취소)' : reservation.status === 'noshow' ? ' (노쇼)' : hasCompletedPayment(reservation) ? ' (결제완료)' : ''}
             </strong>
             {preview && <span className="sub">{preview.date} {preview.startTime}~{preview.endTime}</span>}
             {customerName && (
@@ -123,7 +124,7 @@ export function TimelineDragGhost({
                 <StyledTimelineServiceList service={reservation.service}
                                           serviceColorMap={serviceColorMap}
                                           keyPrefix={`ghost-${reservation.id}`} />
-                {reservation.status === 'cancelled' ? ' (취소)' : reservation.status === 'noshow' ? ' (노쇼)' : reservation.status === 'completed' ? ' (완료)' : ''}
+                {reservation.status === 'cancelled' ? ' (예약취소)' : reservation.status === 'noshow' ? ' (노쇼)' : hasCompletedPayment(reservation) ? ' (결제완료)' : ''}
             </strong>
             <span className="sub">{preview.date} {preview.startTime}~{preview.endTime}</span>
             {customerName && (
@@ -148,8 +149,8 @@ const StyledDragGhost = styled.div<{
     left: ${(props) => props.$left}px;
     top: ${(props) => props.$top}px;
     width: ${(props) => props.$width}px;
-    height: ${(props) => props.$height}px;
-    max-height: ${(props) => props.$height}px;
+    height: auto;
+    max-height: none;
     z-index: 30;
     display: flex;
     flex-direction: column;
@@ -163,6 +164,7 @@ const StyledDragGhost = styled.div<{
     box-shadow: 0 12px 28px rgba(15, 23, 42, 0.28);
     color: ${(props) => props.$cancelled ? 'var(--white-color)' : 'var(--dark-gray-color)'};
     opacity: 0.72;
+    filter: ${(props) => props.$cancelled ? 'grayscale(.5)' : 'none'};
     pointer-events: none;
     @media (max-width: 640px) {
         padding: 2px;
@@ -191,20 +193,10 @@ const StyledDragGhost = styled.div<{
             display: none;
         }
     }
-
-    .service-chip-text {
-        padding: 2px 7px;
-        font-size: 10px;
-    }
 `;
 
 const StyledTimelineServiceList = styled(ServiceChipList)`
     @media (max-width: 640px) {
         gap: 4px;
-    }
-
-    .service-chip-text {
-        padding: 2px 7px;
-        font-size: 10px;
     }
 `;

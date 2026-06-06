@@ -153,5 +153,4 @@ const StyledDirectionButton = styled.button`
   border: 0;
   background: transparent;
   line-height: 0;
-  cursor: pointer;
 `;

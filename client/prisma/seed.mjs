@@ -489,6 +489,7 @@ async function seedReservations() {
                 memo: reservation.memo ?? null,
                 paymentCompleted: !!reservation.paymentCompleted,
                 pointEarned: Number(reservation.pointEarned ?? 0),
+                channel: reservation.naverBookingId ? 'naver' : 'phone',
             },
             create: {
                 storeId,
@@ -504,6 +505,7 @@ async function seedReservations() {
                 memo: reservation.memo ?? null,
                 paymentCompleted: !!reservation.paymentCompleted,
                 pointEarned: Number(reservation.pointEarned ?? 0),
+                channel: reservation.naverBookingId ? 'naver' : 'phone',
             },
         });
 
@@ -557,6 +559,13 @@ async function seedReservations() {
     console.log(`[seed] Reservations seeded: ${(reservationData.reservations ?? []).length}`);
 }
 
+function resolveTestDate(reservation) {
+    if (reservation.date) return reservation.date;
+    const today = new Date();
+    today.setDate(today.getDate() + (reservation.dateOffset ?? 0));
+    return today.toISOString().slice(0, 10);
+}
+
 async function seedTestConflicts() {
     const testData = await readJson(seedDataPath('test-conflicts.json'));
     const storeId = await getDefaultStoreIdOrThrow('Default store must exist before seeding test conflicts.');
@@ -567,6 +576,8 @@ async function seedTestConflicts() {
     );
 
     for (const reservation of testData.reservations ?? []) {
+        const date = resolveTestDate(reservation);
+
         const customer = await prisma.customer.findUnique({
             where: {storeId_legacyId: {storeId, legacyId: reservation.customerId}},
             select: {id: true},
@@ -589,24 +600,26 @@ async function seedTestConflicts() {
             update: {
                 customerId: customer.id,
                 designerId: designer?.id ?? null,
-                date: new Date(`${reservation.date}T00:00:00`),
+                date: new Date(`${date}T00:00:00`),
                 startTime: reservation.startTime,
                 endTime: reservation.endTime,
                 serviceSummary: reservation.service,
                 status: mapReservationStatus(reservation.status),
                 naverBookingId: reservation.naverBookingId ?? null,
+                channel: reservation.naverBookingId ? 'naver' : 'phone',
             },
             create: {
                 storeId,
                 legacyId: reservation.id,
                 customerId: customer.id,
                 designerId: designer?.id ?? null,
-                date: new Date(`${reservation.date}T00:00:00`),
+                date: new Date(`${date}T00:00:00`),
                 startTime: reservation.startTime,
                 endTime: reservation.endTime,
                 serviceSummary: reservation.service,
                 status: mapReservationStatus(reservation.status),
                 naverBookingId: reservation.naverBookingId ?? null,
+                channel: reservation.naverBookingId ? 'naver' : 'phone',
             },
         });
     }

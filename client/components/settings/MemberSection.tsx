@@ -4,6 +4,8 @@ import {useSession} from 'next-auth/react';
 
 import styled from 'styled-components';
 import {LabelBadge} from '../ui/LabelBadge';
+import {PageHero} from '../ui/PageHero';
+import {StyledEmpty} from './settings-styles';
 
 type Invite = {
     id: string;
@@ -44,6 +46,22 @@ function formatExpiry(expiresAt: string): string {
     return `${minutes}분 남음`;
 }
 
+function CopyButton({text}: {text: string}) {
+    const [copied, setCopied] = useState(false);
+
+    const handleCopy = async () => {
+        await navigator.clipboard.writeText(text).catch(() => {});
+        setCopied(true);
+        setTimeout(() => setCopied(false), 1500);
+    };
+
+    return (
+        <StyledCopyButton type="button" onClick={handleCopy} aria-label="코드 복사">
+            {copied ? '복사됨' : '복사'}
+        </StyledCopyButton>
+    );
+}
+
 export const MemberSection = () => {
     const {data: session} = useSession();
     const [invites, setInvites] = useState<Invite[]>([]);
@@ -55,23 +73,15 @@ export const MemberSection = () => {
     const loadInvites = useCallback(async () => {
         try {
             const res = await fetch('/api/invites');
-            if (res.ok) {
-                setInvites(await res.json());
-            }
-        } catch {
-            // ignore
-        }
+            if (res.ok) setInvites(await res.json());
+        } catch { /* ignore */ }
     }, []);
 
     const loadMembers = useCallback(async () => {
         try {
             const res = await fetch('/api/members');
-            if (res.ok) {
-                setMembers(await res.json());
-            }
-        } catch {
-            // ignore
-        }
+            if (res.ok) setMembers(await res.json());
+        } catch { /* ignore */ }
     }, []);
 
     useEffect(() => {
@@ -109,23 +119,35 @@ export const MemberSection = () => {
                 headers: {'Content-Type': 'application/json'},
                 body: JSON.stringify({id}),
             });
-
-            if (res.ok) {
-                await loadInvites();
-            }
-        } catch {
-            // ignore
-        }
+            if (res.ok) await loadInvites();
+        } catch { /* ignore */ }
     };
 
     const activeInvites = invites.filter((inv) => !inv.usedAt && new Date(inv.expiresAt) > new Date());
     const usedOrExpiredInvites = invites.filter((inv) => inv.usedAt || new Date(inv.expiresAt) <= new Date());
+    const isGuest = !session?.user;
     const isManager = session?.user?.role === 'owner' || session?.user?.role === 'manager';
+
+    if (isGuest) {
+        return (
+            <StyledContainer>
+                <PageHero eyebrow="MEMBER" title="멤버 관리" subtitle="초대코드를 생성하고 매장 멤버를 관리합니다." />
+                <StyledGuestCard>
+                    <StyledGuestTitle>게스트 모드</StyledGuestTitle>
+                    <StyledGuestDesc>
+                        멤버 관리 기능은 로그인 후 이용할 수 있습니다.
+                        매장 오너 또는 매니저 권한이 있는 계정으로 로그인하면
+                        초대코드 생성, 멤버 조회 등의 기능을 사용할 수 있습니다.
+                    </StyledGuestDesc>
+                </StyledGuestCard>
+            </StyledContainer>
+        );
+    }
 
     if (!isManager) {
         return (
             <StyledContainer>
-                <StyledSectionTitle>멤버 관리</StyledSectionTitle>
+                <PageHero eyebrow="MEMBER" title="멤버 관리" subtitle="초대코드를 생성하고 매장 멤버를 관리합니다." />
                 <StyledHint>멤버 관리는 오너 또는 매니저만 가능합니다.</StyledHint>
             </StyledContainer>
         );
@@ -133,12 +155,15 @@ export const MemberSection = () => {
 
     return (
         <StyledContainer>
-            <StyledSectionTitle>멤버 관리</StyledSectionTitle>
+            <PageHero eyebrow="MEMBER" title="멤버 관리" subtitle="초대코드를 생성하고 매장 멤버를 관리합니다." />
 
             <StyledCard>
                 <StyledCardTitle>초대코드 생성</StyledCardTitle>
                 <StyledCreateRow>
-                    <StyledSelect value={newRole} onChange={(e) => setNewRole(e.target.value)}>
+                    <StyledSelect
+                        value={newRole}
+                        onChange={(e) => setNewRole(e.target.value)}
+                    >
                         {ROLE_OPTIONS.map((opt) => (
                             <option key={opt.value} value={opt.value}>{opt.label}</option>
                         ))}
@@ -150,9 +175,9 @@ export const MemberSection = () => {
                 {error && <StyledError>{error}</StyledError>}
             </StyledCard>
 
-            {activeInvites.length > 0 && (
-                <StyledCard>
-                    <StyledCardTitle>활성 초대코드</StyledCardTitle>
+            <StyledCard>
+                <StyledCardTitle>사용 가능한 초대코드</StyledCardTitle>
+                {activeInvites.length > 0 ? (
                     <StyledList>
                         {activeInvites.map((inv) => (
                             <StyledInviteItem key={inv.id}>
@@ -160,34 +185,39 @@ export const MemberSection = () => {
                                     <StyledCode>{inv.code}</StyledCode>
                                     <StyledBadge>{ROLE_LABELS[inv.role] ?? inv.role}</StyledBadge>
                                 </StyledCodeBlock>
-                                <StyledInviteMeta>
-                                    <span>{formatExpiry(inv.expiresAt)}</span>
+                                <StyledInviteActions>
+                                    <StyledExpiry>{formatExpiry(inv.expiresAt)}</StyledExpiry>
+                                    <CopyButton text={inv.code} />
                                     <StyledDeleteButton type="button" onClick={() => deleteInvite(inv.id)}>
                                         취소
                                     </StyledDeleteButton>
-                                </StyledInviteMeta>
+                                </StyledInviteActions>
                             </StyledInviteItem>
                         ))}
                     </StyledList>
-                </StyledCard>
-            )}
+                ) : (
+                    <StyledEmpty>내역이 없습니다.</StyledEmpty>
+                )}
+            </StyledCard>
 
-            {members.length > 0 && (
-                <StyledCard>
-                    <StyledCardTitle>현재 멤버</StyledCardTitle>
+            <StyledCard>
+                <StyledCardTitle>현재 멤버</StyledCardTitle>
+                {members.length > 0 ? (
                     <StyledList>
                         {members.map((m) => (
                             <StyledMemberItem key={m.id}>
                                 <StyledMemberName>{m.user.nickname}</StyledMemberName>
                                 <StyledMemberMeta>
-                                    {m.user.email && <span>{m.user.email}</span>}
+                                    {m.user.email && <StyledMemberEmail>{m.user.email}</StyledMemberEmail>}
                                     <StyledBadge>{ROLE_LABELS[m.role] ?? m.role}</StyledBadge>
                                 </StyledMemberMeta>
                             </StyledMemberItem>
                         ))}
                     </StyledList>
-                </StyledCard>
-            )}
+                ) : (
+                    <StyledEmpty>내역이 없습니다.</StyledEmpty>
+                )}
+            </StyledCard>
 
             {usedOrExpiredInvites.length > 0 && (
                 <StyledCard>
@@ -199,13 +229,11 @@ export const MemberSection = () => {
                                     <StyledCode $dimmed>{inv.code}</StyledCode>
                                     <StyledBadge>{ROLE_LABELS[inv.role] ?? inv.role}</StyledBadge>
                                 </StyledCodeBlock>
-                                <StyledInviteMeta>
-                                    <span>
-                                        {inv.usedAt
-                                            ? `사용됨${inv.usedByUser ? ` (${inv.usedByUser.nickname})` : ''}`
-                                            : '만료됨'}
-                                    </span>
-                                </StyledInviteMeta>
+                                <StyledExpiry>
+                                    {inv.usedAt
+                                        ? `사용됨${inv.usedByUser ? ` (${inv.usedByUser.nickname})` : ''}`
+                                        : '만료됨'}
+                                </StyledExpiry>
                             </StyledInviteItem>
                         ))}
                     </StyledList>
@@ -216,155 +244,251 @@ export const MemberSection = () => {
 };
 
 const StyledContainer = styled.div`
-    padding: 20px 0;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
 `;
 
-const StyledSectionTitle = styled.h2`
-    margin: 0 0 16px;
-    font-size: 20px;
-    font-weight: 700;
-    color: #111827;
-`;
 
 const StyledCard = styled.div`
-    margin-bottom: 14px;
-    padding: 18px;
-    border: 1px solid #e5e7eb;
-    border-radius: 10px;
-    background: #fff;
+    padding: 14px;
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-lg);
+    background: var(--white-color);
+    box-shadow: var(--shadow-sm);
 `;
 
 const StyledCardTitle = styled.h3`
-    margin: 0 0 12px;
-    font-size: 15px;
+    margin: 0 0 10px;
+    font-size: 13px;
     font-weight: 600;
-    color: #374151;
+    color: var(--dark-gray-color);
 `;
 
 const StyledCreateRow = styled.div`
     display: flex;
-    gap: 10px;
+    gap: 8px;
     align-items: center;
+
+    @media (max-width: 640px) {
+        flex-wrap: wrap;
+
+        > * {
+            flex: 1;
+            min-width: 0;
+        }
+    }
 `;
 
 const StyledSelect = styled.select`
-    padding: 8px 12px;
-    border: 1px solid #d1d5db;
-    border-radius: 8px;
-    font-size: 14px;
-    background: #fff;
+    height: 36px;
+    padding: 0 10px;
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    font-size: 13px;
+    background: var(--white-color);
+    color: var(--black-color);
     cursor: pointer;
+    outline: none;
+    transition: border-color 0.15s;
+
+    &:focus {
+        border-color: var(--blue-color);
+        box-shadow: 0 0 0 3px rgba(0, 169, 230, 0.14);
+    }
 `;
 
 const StyledPrimaryButton = styled.button`
-    padding: 8px 18px;
+    height: 36px;
+    padding: 0 16px;
     border: none;
-    border-radius: 8px;
-    background: #2d7ff9;
-    color: #fff;
-    font-size: 14px;
+    border-radius: var(--radius-md);
+    background: var(--blue-color);
+    color: var(--white-color);
+    font-size: 13px;
     font-weight: 600;
-    cursor: pointer;
+    white-space: nowrap;
+    transition: opacity 0.15s;
 
     &:disabled {
-        opacity: 0.6;
+        opacity: 0.5;
         cursor: default;
     }
 
     @media (hover: hover) and (pointer: fine) {
         &:hover:not(:disabled) {
-            background: #1a6ddf;
+            opacity: 0.85;
         }
     }
 `;
 
 const StyledError = styled.p`
-    margin: 10px 0 0;
-    color: #dc2626;
-    font-size: 13px;
+    margin: 8px 0 0;
+    padding: 8px 10px;
+    border-radius: var(--radius-md);
+    background: var(--danger-bg);
+    border: 1px solid var(--danger-border);
+    color: var(--danger-color);
+    font-size: 12px;
 `;
 
 const StyledList = styled.div`
     display: flex;
     flex-direction: column;
-    gap: 8px;
+    gap: 6px;
 `;
 
 const StyledInviteItem = styled.div<{$dimmed?: boolean}>`
     display: flex;
     justify-content: space-between;
     align-items: center;
+    gap: 10px;
     padding: 10px 12px;
-    border-radius: 10px;
-    background: ${(p) => p.$dimmed ? '#f9fafb' : '#f0f7ff'};
-    opacity: ${(p) => p.$dimmed ? 0.7 : 1};
+    border-radius: var(--radius-md);
+    background: ${(p) => p.$dimmed ? 'var(--gray-color2)' : 'rgba(0, 169, 230, 0.06)'};
+    border: 1px solid ${(p) => p.$dimmed ? 'var(--border-color)' : 'rgba(0, 169, 230, 0.18)'};
+    opacity: ${(p) => p.$dimmed ? 0.65 : 1};
+
+    @media (max-width: 640px) {
+        flex-direction: column;
+        align-items: flex-start;
+    }
 `;
 
 const StyledCodeBlock = styled.div`
     display: flex;
     align-items: center;
     gap: 8px;
+    min-width: 0;
 `;
 
 const StyledCode = styled.span<{$dimmed?: boolean}>`
-    font-family: monospace;
-    font-size: 18px;
+    font-family: 'SF Mono', 'Fira Code', monospace;
+    font-size: 17px;
     font-weight: 700;
-    letter-spacing: 2px;
-    color: ${(p) => p.$dimmed ? '#9ca3af' : '#1e40af'};
+    letter-spacing: 3px;
+    color: ${(p) => p.$dimmed ? 'var(--dark-gray-color2)' : 'var(--blue-color)'};
+    user-select: all;
 `;
 
 const StyledBadge = styled(LabelBadge).attrs({
     $tone: 'neutral',
     $shape: 'soft',
     $size: 'sm',
-})`
-    color: #374151;
-`;
+})``;
 
-const StyledInviteMeta = styled.div`
+const StyledInviteActions = styled.div`
     display: flex;
     align-items: center;
-    gap: 10px;
+    gap: 8px;
+    flex-shrink: 0;
+
+    @media (max-width: 640px) {
+        width: 100%;
+        justify-content: flex-end;
+    }
+`;
+
+const StyledExpiry = styled.span`
     font-size: 12px;
-    color: #6b7280;
+    color: var(--dark-gray-color2);
+    white-space: nowrap;
+`;
+
+const StyledCopyButton = styled.button`
+    height: 26px;
+    padding: 0 10px;
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    background: var(--white-color);
+    color: var(--dark-gray-color);
+    font-size: 11px;
+    font-weight: 600;
+    transition: background-color 0.15s, border-color 0.15s;
+
+    @media (hover: hover) and (pointer: fine) {
+        &:hover {
+            background: var(--gray-color2);
+            border-color: var(--dark-gray-color2);
+        }
+    }
 `;
 
 const StyledDeleteButton = styled.button`
-    padding: 4px 10px;
-    border: 1px solid #fecaca;
-    border-radius: 6px;
-    background: #fff;
-    color: #dc2626;
-    font-size: 12px;
+    height: 26px;
+    padding: 0 10px;
+    border: 1px solid var(--danger-border);
+    border-radius: var(--radius-md);
+    background: var(--danger-bg);
+    color: var(--danger-color);
+    font-size: 11px;
     font-weight: 600;
-    cursor: pointer;
+    transition: opacity 0.15s;
+
+    @media (hover: hover) and (pointer: fine) {
+        &:hover {
+            opacity: 0.8;
+        }
+    }
 `;
 
 const StyledMemberItem = styled.div`
     display: flex;
     justify-content: space-between;
     align-items: center;
+    gap: 10px;
     padding: 10px 12px;
-    border-radius: 10px;
-    background: #f9fafb;
+    border-radius: var(--radius-md);
+    background: var(--gray-color2);
+    border: 1px solid var(--border-color);
+
+    @media (max-width: 640px) {
+        flex-direction: column;
+        align-items: flex-start;
+    }
 `;
 
 const StyledMemberName = styled.span`
     font-size: 14px;
     font-weight: 600;
-    color: #111827;
+    color: var(--black-color);
 `;
 
 const StyledMemberMeta = styled.div`
     display: flex;
     align-items: center;
     gap: 8px;
+`;
+
+const StyledMemberEmail = styled.span`
     font-size: 12px;
-    color: #6b7280;
+    color: var(--dark-gray-color2);
 `;
 
 const StyledHint = styled.p`
-    color: #6b7280;
+    margin: 0;
+    font-size: 13px;
+    color: var(--dark-gray-color2);
+`;
+
+const StyledGuestCard = styled.div`
+    padding: 14px;
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-lg);
+    background: var(--white-color);
+    box-shadow: var(--shadow-sm);
+`;
+
+const StyledGuestTitle = styled.h3`
+    margin: 0 0 8px;
     font-size: 14px;
+    font-weight: 600;
+    color: var(--dark-gray-color);
+`;
+
+const StyledGuestDesc = styled.p`
+    margin: 0;
+    font-size: 13px;
+    line-height: 1.7;
+    color: var(--dark-gray-color2);
 `;

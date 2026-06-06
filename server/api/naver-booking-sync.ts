@@ -4,14 +4,45 @@ import {Prisma} from '@prisma/client';
 
 import {prisma} from '../db/prisma';
 import {getApiSession, requireRole} from '../auth/api-session';
-import {getValidAccessToken} from './gmail/token-manager';
+import {getValidAccessTokenWithReason} from './gmail/token-manager';
 import {listNaverBookingEmails, listNaverCancellationEmails, getEmailContent} from './gmail/gmail-client';
 import {parseNaverBookingEmail, parseNaverCancellationEmail} from './gmail/naver-booking-parser';
 import type {NaverBookingData} from './gmail/naver-booking-parser';
 import {dbReservationToFrontend} from '../db/mappers';
+import {reservationIncludeWithNames} from '../db/prisma-includes';
 import {calcEndTime, getLastNaverSyncTimestamp} from './gmail/helpers';
+import {findByNameContains} from '../utils/string-matching';
 
 const DEFAULT_DURATION = 30;
+const EMAIL_FETCH_CONCURRENCY = 10;
+
+interface SyncedEntry {
+    bookingId: string;
+    customerName: string;
+    designerName: string;
+    appointmentDate: string;
+    appointmentTime: string;
+    reservationId: number;
+}
+
+interface CancelledEntry {
+    bookingId: string;
+    reservationId: number;
+    appointmentDate: string;
+    appointmentTime: string;
+    customerName: string;
+    designerName: string;
+}
+
+interface SyncContext {
+    storeId: string;
+    existingBookingMap: Map<string, {id: string; naverBookingUrl: string | null; serviceSummary: string | null; designerId: string | null}>;
+    designerMap: Map<string, {id: string; legacyId: number}>;
+    serviceMap: Map<string, {name: string; duration: number}>;
+    nextCustomerLegacyId: number;
+    nextReservationLegacyId: number;
+    nextDesignerLegacyId: number;
+}
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
     if (req.method !== 'POST') {
@@ -22,10 +53,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const session = await getApiSession(req, res);
     if (!requireRole(session, 'manager', res)) return;
 
-    const accessToken = await getValidAccessToken(session.userId);
+    const {token: accessToken, reason: tokenFailReason} = await getValidAccessTokenWithReason(session.userId);
     if (!accessToken) {
         return res.status(200).json({
-            error: 'gmail_not_connected',
+            error: tokenFailReason === 'token_expired' ? 'gmail_token_expired' : 'gmail_not_connected',
             synced: [],
             cancelled: [],
             skipped: [],
@@ -34,42 +65,98 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
 
     const afterTimestamp = await getLastNaverSyncTimestamp(session.storeId);
-    const messageIds = await listNaverBookingEmails(accessToken, afterTimestamp);
+    const storeId = session.storeId;
 
-    interface SyncedEntry {
-        bookingId: string;
-        customerName: string;
-        designerName: string;
-        appointmentDate: string;
-        appointmentTime: string;
-        reservationId: number;
-    }
+    // 이메일 목록 조회 + 참조 데이터 DB 로드를 병렬 실행
+    const [
+        [messageIds, cancelMessageIds],
+        existingBookings,
+        allDesigners,
+        allServices,
+        maxCustomerLegacy,
+        maxReservationLegacy,
+        maxDesignerLegacy,
+    ] = await Promise.all([
+        Promise.all([
+            listNaverBookingEmails(accessToken, afterTimestamp),
+            listNaverCancellationEmails(accessToken, afterTimestamp),
+        ]),
+        prisma.reservation.findMany({
+            where: {storeId, naverBookingId: {not: null}},
+            select: {naverBookingId: true, id: true, naverBookingUrl: true, serviceSummary: true, designerId: true},
+        }),
+        prisma.designer.findMany({
+            where: {storeId},
+            select: {id: true, name: true, legacyId: true},
+        }),
+        prisma.service.findMany({
+            where: {storeId},
+            select: {name: true, duration: true},
+        }),
+        prisma.customer.findFirst({
+            where: {storeId},
+            orderBy: {legacyId: 'desc'},
+            select: {legacyId: true},
+        }),
+        prisma.reservation.findFirst({
+            where: {storeId},
+            orderBy: {legacyId: 'desc'},
+            select: {legacyId: true},
+        }),
+        prisma.designer.findFirst({
+            where: {storeId},
+            orderBy: {legacyId: 'desc'},
+            select: {legacyId: true},
+        }),
+    ]);
 
-    interface CancelledEntry {
-        bookingId: string;
-        reservationId: number;
-    }
+    // 취소 이메일이 예약 확정 쿼리에도 매칭되는 경우 제거
+    const cancelIdSet = new Set(cancelMessageIds);
+    const bookingMessageIds = messageIds.filter((id) => !cancelIdSet.has(id));
+
+    const ctx: SyncContext = {
+        storeId,
+        existingBookingMap: new Map(
+            existingBookings
+                .filter((r) => r.naverBookingId)
+                .map((r) => [r.naverBookingId!, {id: r.id, naverBookingUrl: r.naverBookingUrl, serviceSummary: r.serviceSummary, designerId: r.designerId}])
+        ),
+        designerMap: new Map(
+            allDesigners.map((d) => [d.name, {id: d.id, legacyId: d.legacyId ?? 0}])
+        ),
+        serviceMap: new Map(allServices.map((s) => [s.name, s])),
+        nextCustomerLegacyId: (maxCustomerLegacy?.legacyId ?? 0) + 1,
+        nextReservationLegacyId: (maxReservationLegacy?.legacyId ?? 0) + 1,
+        nextDesignerLegacyId: (maxDesignerLegacy?.legacyId ?? 0) + 1,
+    };
 
     const synced: SyncedEntry[] = [];
     const cancelled: CancelledEntry[] = [];
     const skipped: string[] = [];
     const errors: string[] = [];
 
-    for (const messageId of messageIds) {
+    // 이메일 본문을 배치로 병렬 fetch
+    const [bookingContents, cancellationContents] = await Promise.all([
+        fetchEmailContentsInBatches(accessToken, bookingMessageIds),
+        fetchEmailContentsInBatches(accessToken, cancelMessageIds),
+    ]);
+
+    // 예약 이메일 처리 (DB 쓰기는 순차 유지)
+    for (let i = 0; i < bookingMessageIds.length; i++) {
+        const html = bookingContents[i];
+        if (!html) {
+            errors.push(`Failed to fetch email ${bookingMessageIds[i]}`);
+            continue;
+        }
+
+        const booking = parseNaverBookingEmail(html);
+        if (!booking) {
+            errors.push(`Failed to parse email ${bookingMessageIds[i]}`);
+            continue;
+        }
+
         try {
-            const html = await getEmailContent(accessToken, messageId);
-            if (!html) {
-                errors.push(`Failed to fetch email ${messageId}`);
-                continue;
-            }
-
-            const booking = parseNaverBookingEmail(html);
-            if (!booking) {
-                errors.push(`Failed to parse email ${messageId}`);
-                continue;
-            }
-
-            const result = await createReservationFromBooking(session.storeId, booking);
+            const result = await createReservationFromBooking(ctx, booking);
             if (result.status === 'created') {
                 synced.push({
                     bookingId: booking.bookingId,
@@ -83,140 +170,151 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                 skipped.push(booking.bookingId);
             }
         } catch (err) {
-            errors.push(`Error processing email ${messageId}: ${String(err)}`);
+            errors.push(`Error processing email ${bookingMessageIds[i]}: ${String(err)}`);
         }
     }
 
-    // Process cancellation emails
-    const cancelMessageIds = await listNaverCancellationEmails(accessToken, afterTimestamp);
+    // 취소 이메일 처리
+    for (let i = 0; i < cancelMessageIds.length; i++) {
+        const html = cancellationContents[i];
+        if (!html) {
+            errors.push(`Failed to fetch cancellation email ${cancelMessageIds[i]}`);
+            continue;
+        }
 
-    for (const messageId of cancelMessageIds) {
+        const cancellation = parseNaverCancellationEmail(html);
+        if (!cancellation) {
+            errors.push(`Failed to parse cancellation email ${cancelMessageIds[i]}`);
+            continue;
+        }
+
         try {
-            const html = await getEmailContent(accessToken, messageId);
-            if (!html) {
-                errors.push(`Failed to fetch cancellation email ${messageId}`);
-                continue;
-            }
-
-            const cancellation = parseNaverCancellationEmail(html);
-            if (!cancellation) {
-                errors.push(`Failed to parse cancellation email ${messageId}`);
-                continue;
-            }
-
-            const result = await cancelReservationByBookingId(session.storeId, cancellation.bookingId);
+            const result = await cancelReservationByBookingId(storeId, cancellation.bookingId);
             if (result.status === 'cancelled') {
                 cancelled.push({
                     bookingId: cancellation.bookingId,
                     reservationId: result.legacyId,
+                    appointmentDate: result.appointmentDate,
+                    appointmentTime: result.appointmentTime,
+                    customerName: result.customerName,
+                    designerName: result.designerName,
                 });
             } else {
                 skipped.push(cancellation.bookingId);
             }
         } catch (err) {
-            errors.push(`Error processing cancellation email ${messageId}: ${String(err)}`);
+            errors.push(`Error processing cancellation email ${cancelMessageIds[i]}: ${String(err)}`);
         }
     }
 
     return res.status(200).json({synced, cancelled, skipped, errors});
 }
 
+async function fetchEmailContentsInBatches(
+    accessToken: string,
+    messageIds: string[],
+): Promise<Array<string | null>> {
+    const results: Array<string | null> = [];
+
+    for (let i = 0; i < messageIds.length; i += EMAIL_FETCH_CONCURRENCY) {
+        const batch = messageIds.slice(i, i + EMAIL_FETCH_CONCURRENCY);
+        const batchResults = await Promise.allSettled(
+            batch.map((id) => getEmailContent(accessToken, id))
+        );
+        for (const result of batchResults) {
+            results.push(result.status === 'fulfilled' ? result.value : null);
+        }
+    }
+
+    return results;
+}
+
+
 async function createReservationFromBooking(
-    storeId: string,
+    ctx: SyncContext,
     booking: NaverBookingData,
 ): Promise<{status: 'created'; legacyId: number} | {status: 'skipped'}> {
-    // Check if reservation already exists before doing any work
-    const existing = await prisma.reservation.findFirst({
-        where: {storeId, naverBookingId: booking.bookingId},
-        select: {id: true, naverBookingUrl: true},
-    });
+    const {storeId, existingBookingMap, designerMap, serviceMap} = ctx;
+
+    // 중복 확인 — DB 조회 없이 메모리에서 처리
+    const existing = existingBookingMap.get(booking.bookingId);
     if (existing) {
+        const updates: Record<string, string | null> = {};
         if (booking.bookingUrl && !existing.naverBookingUrl && booking.bookingUrl.includes('partner.booking.naver.com')) {
+            updates.naverBookingUrl = booking.bookingUrl;
+        }
+        if ((!existing.serviceSummary || existing.serviceSummary === booking.designerName) && booking.services.length > 0) {
+            const names = booking.services.map((s) => s.name);
+            updates.serviceSummary = names.join('+');
+        }
+        // 디자이너 미매칭 상태면 이메일에서 파싱한 디자이너명으로 매칭
+        if (!existing.designerId && booking.designerName) {
+            const designer = findByNameContains(designerMap, booking.designerName);
+            if (designer) {
+                updates.designerId = designer.id;
+            }
+        }
+        if (Object.keys(updates).length > 0) {
             await prisma.reservation.update({
                 where: {id: existing.id},
-                data: {naverBookingUrl: booking.bookingUrl},
+                data: updates,
             });
         }
         return {status: 'skipped'};
     }
 
-    // Match designer by name, create if not found
-    let designer = await prisma.designer.findFirst({
-        where: {storeId, name: {contains: booking.designerName}},
-        select: {id: true},
-    });
-
+    // 디자이너 매칭 — 메모리에서 처리, 없으면 생성 후 맵 업데이트
+    let designer = findByNameContains(designerMap, booking.designerName);
     if (!designer && booking.designerName) {
-        const maxLegacy = await prisma.designer.findFirst({
-            where: {storeId},
-            orderBy: {legacyId: 'desc'},
-            select: {legacyId: true},
-        });
-        designer = await prisma.designer.create({
-            data: {
-                storeId,
-                name: booking.designerName,
-                status: 'active',
-                color: '#8E8E93',
-                legacyId: (maxLegacy?.legacyId ?? 0) + 1,
-            },
+        const legacyId = ctx.nextDesignerLegacyId++;
+        const created = await prisma.designer.create({
+            data: {storeId, name: booking.designerName, status: 'active', color: '#8E8E93', legacyId},
             select: {id: true},
         });
+        designer = {id: created.id, legacyId};
+        designerMap.set(booking.designerName, designer);
     }
 
-    // Match services and calculate duration
+    // 서비스 매칭 — 메모리에서 처리
     let totalDuration = 0;
     const serviceNames: string[] = [];
 
     for (const svc of booking.services) {
-        const dbService = await prisma.service.findFirst({
-            where: {storeId, name: {contains: svc.name}},
-            select: {name: true, duration: true},
-        });
-
+        const dbService = findByNameContains(serviceMap, svc.name);
         if (dbService) {
             serviceNames.push(dbService.name);
             totalDuration += dbService.duration;
         } else {
+            // 등록되지 않은 서비스 → "네이버예약" 카테고리로 자동 추가
+            await prisma.service.create({
+                data: {storeId, name: svc.name, duration: DEFAULT_DURATION, category: '네이버예약', price: svc.price},
+            });
+            serviceMap.set(svc.name, {name: svc.name, duration: DEFAULT_DURATION});
             serviceNames.push(svc.name);
             totalDuration += DEFAULT_DURATION;
         }
     }
 
-    if (totalDuration === 0) {
-        totalDuration = DEFAULT_DURATION;
-    }
+    if (totalDuration === 0) totalDuration = DEFAULT_DURATION;
 
     const endTime = calcEndTime(booking.appointmentTime, totalDuration);
     const totalPrice = booking.services.reduce((sum, s) => sum + s.price, 0);
-    const serviceSummary = serviceNames.join(', ') || booking.designerName;
+    const serviceSummary = serviceNames.join('+') || booking.designerName;
 
-    // Create customer with legacyId
-    const maxCustomerLegacy = await prisma.customer.findFirst({
-        where: {storeId},
-        orderBy: {legacyId: 'desc'},
-        select: {legacyId: true},
-    });
+    // legacyId 메모리 카운터 사용 — DB findFirst 불필요
     const customer = await prisma.customer.create({
         data: {
             storeId,
             name: booking.customerName,
             tel: '',
-            legacyId: (maxCustomerLegacy?.legacyId ?? 0) + 1,
+            legacyId: ctx.nextCustomerLegacyId++,
         },
     });
 
-    // Create reservation with legacyId
-    const maxResLegacy = await prisma.reservation.findFirst({
-        where: {storeId},
-        orderBy: {legacyId: 'desc'},
-        select: {legacyId: true},
-    });
-
-    const resLegacyId = (maxResLegacy?.legacyId ?? 0) + 1;
+    const resLegacyId = ctx.nextReservationLegacyId++;
 
     try {
-        await prisma.reservation.create({
+        const created = await prisma.reservation.create({
             data: {
                 storeId,
                 customerId: customer.id,
@@ -233,12 +331,22 @@ async function createReservationFromBooking(
                 naverBookingId: booking.bookingId,
                 naverBookingUrl: booking.bookingUrl || null,
                 naverDeposit: booking.deposit || null,
+                channel: 'naver',
             },
+            select: {id: true},
         });
+
+        // 이후 중복 체크를 위해 메모리 맵 업데이트
+        existingBookingMap.set(booking.bookingId, {
+            id: created.id,
+            naverBookingUrl: booking.bookingUrl || null,
+            serviceSummary,
+            designerId: designer?.id ?? null,
+        });
+
         return {status: 'created', legacyId: resLegacyId};
     } catch (err) {
         if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === 'P2002') {
-            // Duplicate naverBookingId — clean up the customer we just created
             await prisma.customer.delete({where: {id: customer.id}}).catch(() => {});
             return {status: 'skipped'};
         }
@@ -246,19 +354,13 @@ async function createReservationFromBooking(
     }
 }
 
-const reservationInclude = {
-    paymentEntries: true,
-    customer: {select: {legacyId: true}},
-    designer: {select: {legacyId: true}},
-} as const;
-
 async function cancelReservationByBookingId(
     storeId: string,
     bookingId: string,
-): Promise<{status: 'cancelled'; legacyId: number} | {status: 'skipped'}> {
+): Promise<{status: 'cancelled'; legacyId: number; appointmentDate: string; appointmentTime: string; customerName: string; designerName: string} | {status: 'skipped'}> {
     const reservation = await prisma.reservation.findFirst({
         where: {storeId, naverBookingId: bookingId},
-        include: reservationInclude,
+        include: reservationIncludeWithNames,
     });
 
     if (!reservation) return {status: 'skipped'};
@@ -266,12 +368,21 @@ async function cancelReservationByBookingId(
         return {status: 'skipped'};
     }
 
+    // 이미 한 번 취소 처리된 후 수동 복귀된 예약은 재취소하지 않음
+    const cancelHistory = await prisma.reservationHistory.findFirst({
+        where: {
+            reservationId: reservation.id,
+            afterJson: {path: ['status'], equals: 'cancelled'},
+        },
+    });
+    if (cancelHistory) return {status: 'skipped'};
+
     const before = dbReservationToFrontend(reservation);
 
     const updatedReservation = await prisma.reservation.update({
         where: {id: reservation.id},
         data: {status: 'cancelled'},
-        include: reservationInclude,
+        include: reservationIncludeWithNames,
     });
 
     const after = dbReservationToFrontend(updatedReservation);
@@ -285,5 +396,12 @@ async function cancelReservationByBookingId(
         },
     });
 
-    return {status: 'cancelled', legacyId: reservation.legacyId!};
+    return {
+        status: 'cancelled',
+        legacyId: reservation.legacyId!,
+        appointmentDate: before.date,
+        appointmentTime: before.startTime,
+        customerName: reservation.customer?.name || '고객',
+        designerName: reservation.designer?.name || '미지정',
+    };
 }

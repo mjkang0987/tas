@@ -22,7 +22,14 @@ export async function saveGoogleTokens(userId: string, tokens: GoogleTokens): Pr
     });
 }
 
+type TokenFailReason = 'not_google' | 'no_refresh_token' | 'token_expired';
+
 export async function getValidAccessToken(userId: string): Promise<string | null> {
+    const result = await getValidAccessTokenWithReason(userId);
+    return result.token;
+}
+
+export async function getValidAccessTokenWithReason(userId: string): Promise<{token: string | null; reason: TokenFailReason | null}> {
     const account = await prisma.authAccount.findUnique({
         where: {userId},
         select: {
@@ -34,7 +41,7 @@ export async function getValidAccessToken(userId: string): Promise<string | null
     });
 
     if (!account || account.provider !== 'google' || !account.accessToken) {
-        return null;
+        return {token: null, reason: 'not_google'};
     }
 
     const now = new Date();
@@ -43,16 +50,16 @@ export async function getValidAccessToken(userId: string): Promise<string | null
         && account.tokenExpiresAt.getTime() - bufferMs < now.getTime();
 
     if (!isExpired) {
-        return account.accessToken;
+        return {token: account.accessToken, reason: null};
     }
 
     if (!account.refreshToken) {
-        return null;
+        return {token: null, reason: 'no_refresh_token'};
     }
 
     const refreshed = await refreshAccessToken(account.refreshToken);
     if (!refreshed) {
-        return null;
+        return {token: null, reason: 'token_expired'};
     }
 
     await saveGoogleTokens(userId, {
@@ -61,7 +68,7 @@ export async function getValidAccessToken(userId: string): Promise<string | null
         expiresAt: refreshed.expiresAt,
     });
 
-    return refreshed.accessToken;
+    return {token: refreshed.accessToken, reason: null};
 }
 
 async function refreshAccessToken(

@@ -1,0 +1,1104 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Take a Seat — Design Guide</title>
+<style>
+  :root {
+    --big-font: 18px;
+    --font: 14px;
+    --small-font: 12px;
+    --xsmall-font: 11px;
+    --tiny-font: 10px;
+
+    --black-color: hsl(0, 0%, 13%);
+    --gray-color: hsl(0, 0%, 86%);
+    --gray-color2: hsl(0, 0%, 96%);
+    --dark-gray-color: hsl(0, 0%, 32%);
+    --dark-gray-color2: hsl(0, 0%, 65%);
+    --light-gray-color: hsl(0, 0%, 89%);
+    --white-color: hsl(0, 0%, 100%);
+    --border-color: hsl(0, 0%, 80%);
+    --blue-color: hsl(196, 100%, 45%);
+    --orange-color: hsl(27, 100%, 50%);
+
+    --brand-color: #6526d9;
+
+    --danger-color: #c93a30;
+    --danger-bg: #fef2f2;
+    --danger-border: #fecaca;
+    --warning-color: #EA4335;
+    --warning-bg: #FCE8E6;
+    --warning-border: #f5c6c2;
+    --warning-text: #92400E;
+    --warning-bg-soft: #FEF3C7;
+    --warning-border-soft: #FCD34D;
+    --success-color: #24753a;
+    --success-text: #15803d;
+    --success-bg: rgba(34, 197, 94, 0.12);
+    --success-border: rgba(34, 197, 94, 0.2);
+    --caution-color: #a88417;
+
+    --neutral-text: #475569;
+    --neutral-bg: rgba(241, 245, 249, 0.92);
+    --neutral-border: rgba(203, 213, 225, 0.95);
+
+    --info-color: #2d7ff9;
+    --info-bg: rgba(45, 127, 249, 0.1);
+    --info-border: rgba(45, 127, 249, 0.2);
+
+    --naver-color: #2DB400;
+    --naver-color-dark: #269900;
+
+    --new-customer-bg: #ffd651;
+    --unassigned-color: #8E8E93;
+
+    --notification-unread-bg: #f0f8ff;
+    --notification-unread-bg-hover: #e3f1fc;
+    --notification-text: #111827;
+
+    --toast-bg: #1e293b;
+    --link-color-light: #60a5fa;
+    --muted-text: #94a3b8;
+
+    --radius-sm: 4px;
+    --radius-md: 6px;
+    --radius-lg: 8px;
+
+    --gap-xs: 4px;
+    --gap-sm: 6px;
+    --gap-md: 8px;
+    --gap-lg: 10px;
+
+    --shadow-sm: 0 1px 4px rgba(0,0,0,.08);
+    --shadow-md: 0 4px 16px rgba(0,0,0,.12);
+    --card-shadow: 0 8px 18px rgba(15,23,42,.05);
+    --card-shadow-hover: 0 14px 26px rgba(15,23,42,.08);
+    --modal-shadow: 0 24px 60px rgba(15,23,42,.18), 0 6px 18px rgba(15,23,42,.08);
+
+    --aside-width: 200px;
+    --aside-bg: #1c1c1e;
+    --aside-text: #f5f5f7;
+    --aside-hover: rgba(255,255,255,0.08);
+    --aside-divider: rgba(255,255,255,0.12);
+
+    --modal-radius: 10px;
+    --modal-button-height: 32px;
+    --modal-button-font: 13px;
+    --chip-padding: 4px 8px;
+    --chip-radius: 999px;
+
+    --cancelled-color: hsl(220, 9%, 62%);
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: "SF Pro Display", "Helvetica Neue", Arial, sans-serif;
+    font-size: var(--font);
+    color: var(--black-color);
+    background: #f8f8f8;
+    padding: 32px;
+    line-height: 1.5;
+  }
+
+  /* ── Page layout ─────────────────────────────────────── */
+  .page-header {
+    margin-bottom: 48px;
+    padding-bottom: 24px;
+    border-bottom: 2px solid var(--black-color);
+  }
+  .page-header h1 {
+    font-size: 28px;
+    font-weight: 800;
+    letter-spacing: -0.5px;
+  }
+  .page-header p {
+    margin-top: 6px;
+    color: var(--dark-gray-color2);
+    font-size: 13px;
+  }
+
+  section { margin-bottom: 56px; }
+
+  .section-title {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 1.2px;
+    text-transform: uppercase;
+    color: var(--dark-gray-color2);
+    margin-bottom: 20px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--gray-color);
+  }
+
+  .subsection-title {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--dark-gray-color);
+    margin: 24px 0 12px;
+  }
+
+  /* ── Grid helpers ─────────────────────────────────────── */
+  .grid { display: flex; flex-wrap: wrap; gap: 12px; align-items: flex-start; }
+  .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+  .grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
+  .grid-5 { display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px; }
+
+  /* ── Color swatch ─────────────────────────────────────── */
+  .swatch-group { display: flex; flex-direction: column; gap: 2px; }
+  .swatch {
+    display: flex;
+    flex-direction: column;
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: var(--shadow-sm);
+    border: 1px solid rgba(0,0,0,0.06);
+  }
+  .swatch-color {
+    height: 72px;
+    width: 100%;
+  }
+  .swatch-info {
+    padding: 8px 10px;
+    background: var(--white-color);
+  }
+  .swatch-name {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--black-color);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .swatch-value {
+    font-size: 10px;
+    color: var(--dark-gray-color2);
+    margin-top: 2px;
+    font-family: monospace;
+  }
+
+  /* ── Typography ───────────────────────────────────────── */
+  .type-row {
+    display: flex;
+    align-items: baseline;
+    gap: 16px;
+    padding: 10px 0;
+    border-bottom: 1px solid var(--gray-color2);
+  }
+  .type-meta {
+    width: 120px;
+    flex-shrink: 0;
+    font-size: 11px;
+    color: var(--dark-gray-color2);
+    font-family: monospace;
+  }
+  .type-sample { color: var(--black-color); }
+
+  /* ── Spacing ──────────────────────────────────────────── */
+  .spacing-row {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 6px 0;
+  }
+  .spacing-bar {
+    background: var(--brand-color);
+    height: 16px;
+    border-radius: 2px;
+    flex-shrink: 0;
+    opacity: 0.7;
+  }
+  .spacing-meta { font-size: 11px; color: var(--dark-gray-color2); font-family: monospace; }
+
+  /* ── Radius ───────────────────────────────────────────── */
+  .radius-box {
+    width: 64px;
+    height: 64px;
+    background: var(--brand-color);
+    opacity: 0.15;
+    border: 2px solid var(--brand-color);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .radius-label { font-size: 10px; color: var(--dark-gray-color2); text-align: center; margin-top: 6px; font-family: monospace; }
+
+  /* ── Shadow ───────────────────────────────────────────── */
+  .shadow-card {
+    background: var(--white-color);
+    border-radius: 10px;
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .shadow-name { font-size: 11px; font-weight: 600; color: var(--black-color); }
+  .shadow-value { font-size: 10px; color: var(--dark-gray-color2); font-family: monospace; line-height: 1.4; word-break: break-all; }
+
+  /* ── Badge / Chip ─────────────────────────────────────── */
+  .badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: fit-content;
+    padding: 3px 6px;
+    border: 1px solid transparent;
+    border-radius: 6px;
+    font-size: 11px;
+    font-weight: 700;
+    line-height: 1.2;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+  .badge.pill { border-radius: 999px; }
+
+  .badge-neutral { background: var(--neutral-bg); border-color: var(--neutral-border); color: var(--neutral-text); }
+  .badge-brand   { background: var(--naver-color); border-color: var(--naver-color-dark); color: white; }
+  .badge-info    { background: var(--info-bg); border-color: var(--info-border); color: var(--info-color); }
+  .badge-warning { background: var(--warning-bg-soft); border-color: var(--warning-border-soft); color: var(--warning-text); }
+  .badge-danger  { background: var(--danger-bg); border-color: var(--danger-border); color: var(--danger-color); }
+  .badge-success { background: var(--success-bg); border-color: var(--success-border); color: var(--success-text); }
+
+  .new-customer {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 14px;
+    height: 14px;
+    padding: 0 4px;
+    border-radius: 999px;
+    color: var(--black-color);
+    background: var(--new-customer-bg);
+    font-size: 8px;
+    font-weight: 700;
+    line-height: 1;
+    flex-shrink: 0;
+  }
+
+  .service-chip {
+    display: inline-flex;
+    align-items: center;
+    padding: 3px 7px;
+    border-radius: 999px;
+    font-size: 11px;
+    font-weight: 600;
+    line-height: 1.2;
+  }
+
+  .color-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 2px 8px;
+    border-radius: 999px;
+    color: white;
+    font-size: 11px;
+    font-weight: 600;
+  }
+
+  /* ── Reservation status badges ────────────────────────── */
+  .res-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 3px 8px;
+    border-radius: 4px;
+    font-size: 11px;
+    font-weight: 600;
+  }
+
+  /* ── Buttons ──────────────────────────────────────────── */
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    font-size: var(--small-font);
+    font-family: inherit;
+  }
+  .btn-square {
+    min-height: 32px;
+    padding: 0 8px;
+    border: 1px solid var(--border-color);
+    background: var(--white-color);
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-sm);
+  }
+  .btn-circle {
+    width: 20px; height: 20px;
+    border: 1px solid var(--border-color);
+    background: var(--white-color);
+    border-radius: 50%;
+    box-shadow: var(--shadow-sm);
+    font-size: 14px;
+    color: var(--dark-gray-color);
+  }
+  .btn-add {
+    width: 18px; height: 18px;
+    border: none;
+    background: transparent;
+    border-radius: 50%;
+    color: var(--gray-color);
+    font-size: 16px;
+  }
+  .btn-primary {
+    min-height: var(--modal-button-height);
+    padding: 0 12px;
+    border: none;
+    background: var(--brand-color);
+    color: white;
+    border-radius: 8px;
+    font-size: var(--modal-button-font);
+    font-weight: 600;
+    box-shadow: var(--shadow-sm);
+  }
+  .btn-secondary {
+    min-height: var(--modal-button-height);
+    padding: 0 12px;
+    border: 1px solid var(--border-color);
+    background: var(--white-color);
+    color: var(--dark-gray-color);
+    border-radius: 8px;
+    font-size: var(--modal-button-font);
+    font-weight: 500;
+    box-shadow: var(--shadow-sm);
+  }
+  .btn-danger {
+    min-height: var(--modal-button-height);
+    padding: 0 12px;
+    border: none;
+    background: var(--danger-color);
+    color: white;
+    border-radius: 8px;
+    font-size: var(--modal-button-font);
+    font-weight: 600;
+  }
+
+  /* ── Component demo cards ─────────────────────────────── */
+  .demo-card {
+    background: var(--white-color);
+    border-radius: 10px;
+    padding: 20px;
+    box-shadow: var(--shadow-sm);
+    border: 1px solid var(--gray-color);
+  }
+  .demo-label {
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: var(--dark-gray-color2);
+    margin-bottom: 12px;
+  }
+  .demo-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+  }
+
+  /* ── Aside preview ────────────────────────────────────── */
+  .aside-preview {
+    background: var(--aside-bg);
+    border-radius: 10px;
+    padding: 16px 10px;
+    width: 200px;
+    flex-shrink: 0;
+  }
+  .aside-brand {
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--aside-text);
+    letter-spacing: 1px;
+    padding: 0 8px;
+    margin-bottom: 16px;
+  }
+  .aside-link {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    height: 36px;
+    padding: 0 8px;
+    border-radius: var(--radius-md);
+    font-size: var(--small-font);
+    font-weight: 500;
+    color: var(--aside-text);
+    opacity: 0.8;
+    margin-bottom: 2px;
+  }
+  .aside-link.active {
+    background: var(--brand-color);
+    color: white;
+    opacity: 1;
+  }
+  .aside-divider {
+    height: 1px;
+    background: var(--aside-divider);
+    margin: 8px 0;
+  }
+  .aside-icon { font-size: 14px; }
+
+  /* ── Notification item ────────────────────────────────── */
+  .notif-item {
+    padding: 10px 12px;
+    border-radius: var(--radius-md);
+    background: var(--notification-unread-bg);
+    margin-bottom: 4px;
+    font-size: var(--small-font);
+  }
+  .notif-item.read { background: var(--white-color); border: 1px solid var(--gray-color2); }
+  .notif-title { font-weight: 700; color: var(--notification-text); font-size: 12px; }
+  .notif-meta { color: var(--dark-gray-color2); font-size: 11px; margin-top: 2px; }
+
+  /* ── Toast ────────────────────────────────────────────── */
+  .toast {
+    display: inline-flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 16px;
+    border-radius: 10px;
+    background: var(--toast-bg);
+    color: white;
+    font-size: 13px;
+    box-shadow: var(--modal-shadow);
+  }
+  .toast-action { color: var(--link-color-light); font-weight: 600; font-size: 13px; }
+  .toast-close { color: var(--muted-text); font-size: 14px; }
+
+  /* ── Conflict banner ──────────────────────────────────── */
+  .conflict-banner {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    height: 34px;
+    padding: 0 12px;
+    background: var(--danger-bg);
+    border-bottom: 1px solid var(--danger-border);
+    color: var(--danger-color);
+    font-size: 12px;
+    border-radius: var(--radius-md);
+    cursor: pointer;
+  }
+
+  /* ── Reservation block (ButtonReserve) ────────────────── */
+  .res-block {
+    position: relative;
+    height: 80px;
+    border-left-width: 4px;
+    border-left-style: solid;
+    border-top: 1px solid;
+    border-right: 1px solid;
+    border-bottom: 1px solid;
+    border-radius: var(--radius-sm);
+    padding: 4px 6px;
+    font-size: 11px;
+    text-align: left;
+    overflow: hidden;
+  }
+  .res-block-name { font-weight: 600; font-size: 12px; }
+  .res-block-service { font-size: 10px; margin-top: 2px; }
+
+  /* ── Section nav ──────────────────────────────────────── */
+  .toc {
+    position: sticky;
+    top: 20px;
+    background: white;
+    border-radius: 10px;
+    padding: 16px;
+    box-shadow: var(--shadow-sm);
+    border: 1px solid var(--gray-color);
+    font-size: 12px;
+    width: 180px;
+    flex-shrink: 0;
+  }
+  .toc a {
+    display: block;
+    padding: 4px 0;
+    color: var(--dark-gray-color);
+    text-decoration: none;
+    border-radius: 4px;
+  }
+  .toc a:hover { color: var(--brand-color); }
+  .toc-title { font-weight: 700; font-size: 11px; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; color: var(--dark-gray-color2); }
+
+  .layout { display: flex; gap: 32px; align-items: flex-start; }
+  .content { flex: 1; min-width: 0; }
+
+  code { font-family: monospace; font-size: 11px; background: var(--gray-color2); padding: 1px 5px; border-radius: 3px; }
+</style>
+</head>
+<body>
+
+<div class="layout">
+
+<!-- TOC -->
+<nav class="toc">
+  <div class="toc-title">목차</div>
+  <a href="#colors">색상</a>
+  <a href="#typography">타이포그래피</a>
+  <a href="#spacing">간격</a>
+  <a href="#radius">반경</a>
+  <a href="#shadows">그림자</a>
+  <a href="#buttons">버튼</a>
+  <a href="#badges">배지 / 칩</a>
+  <a href="#reservation">예약 카드</a>
+  <a href="#layout-comp">레이아웃</a>
+  <a href="#notifications">알림</a>
+</nav>
+
+<div class="content">
+
+<header class="page-header">
+  <h1>Take a Seat — Design Guide</h1>
+  <p>공통 디자인 토큰 및 컴포넌트 시각화 가이드. 소스: <code>styles/globalStyle.ts</code></p>
+</header>
+
+
+<!-- ═══════════════════════════════ COLORS ══════════════════════════════ -->
+<section id="colors">
+  <h2 class="section-title">색상 (Color Tokens)</h2>
+
+  <p class="subsection-title">기본 팔레트</p>
+  <div class="grid-5" style="margin-bottom:24px">
+    <div class="swatch">
+      <div class="swatch-color" style="background:hsl(0,0%,13%)"></div>
+      <div class="swatch-info">
+        <div class="swatch-name">--black-color</div>
+        <div class="swatch-value">hsl(0, 0%, 13%)</div>
+      </div>
+    </div>
+    <div class="swatch">
+      <div class="swatch-color" style="background:hsl(0,0%,32%)"></div>
+      <div class="swatch-info">
+        <div class="swatch-name">--dark-gray-color</div>
+        <div class="swatch-value">hsl(0, 0%, 32%)</div>
+      </div>
+    </div>
+    <div class="swatch">
+      <div class="swatch-color" style="background:hsl(0,0%,65%)"></div>
+      <div class="swatch-info">
+        <div class="swatch-name">--dark-gray-color2</div>
+        <div class="swatch-value">hsl(0, 0%, 65%)</div>
+      </div>
+    </div>
+    <div class="swatch">
+      <div class="swatch-color" style="background:hsl(0,0%,80%); border:1px solid #ddd"></div>
+      <div class="swatch-info">
+        <div class="swatch-name">--border-color</div>
+        <div class="swatch-value">hsl(0, 0%, 80%)</div>
+      </div>
+    </div>
+    <div class="swatch">
+      <div class="swatch-color" style="background:hsl(0,0%,86%); border:1px solid #ddd"></div>
+      <div class="swatch-info">
+        <div class="swatch-name">--gray-color</div>
+        <div class="swatch-value">hsl(0, 0%, 86%)</div>
+      </div>
+    </div>
+    <div class="swatch">
+      <div class="swatch-color" style="background:hsl(0,0%,89%); border:1px solid #ddd"></div>
+      <div class="swatch-info">
+        <div class="swatch-name">--light-gray-color</div>
+        <div class="swatch-value">hsl(0, 0%, 89%)</div>
+      </div>
+    </div>
+    <div class="swatch">
+      <div class="swatch-color" style="background:hsl(0,0%,96%); border:1px solid #ddd"></div>
+      <div class="swatch-info">
+        <div class="swatch-name">--gray-color2</div>
+        <div class="swatch-value">hsl(0, 0%, 96%)</div>
+      </div>
+    </div>
+    <div class="swatch">
+      <div class="swatch-color" style="background:white; border:1px solid #ddd"></div>
+      <div class="swatch-info">
+        <div class="swatch-name">--white-color</div>
+        <div class="swatch-value">hsl(0, 0%, 100%)</div>
+      </div>
+    </div>
+    <div class="swatch">
+      <div class="swatch-color" style="background:hsl(196,100%,45%)"></div>
+      <div class="swatch-info">
+        <div class="swatch-name">--blue-color</div>
+        <div class="swatch-value">hsl(196, 100%, 45%)</div>
+      </div>
+    </div>
+    <div class="swatch">
+      <div class="swatch-color" style="background:hsl(27,100%,50%)"></div>
+      <div class="swatch-info">
+        <div class="swatch-name">--orange-color</div>
+        <div class="swatch-value">hsl(27, 100%, 50%)</div>
+      </div>
+    </div>
+  </div>
+
+  <p class="subsection-title">브랜드 색상</p>
+  <div class="grid-4" style="margin-bottom:24px">
+    <div class="swatch">
+      <div class="swatch-color" style="background:#6526d9"></div>
+      <div class="swatch-info">
+        <div class="swatch-name">--brand-color</div>
+        <div class="swatch-value">#6526d9</div>
+      </div>
+    </div>
+    <div class="swatch">
+      <div class="swatch-color" style="background:#2DB400"></div>
+      <div class="swatch-info">
+        <div class="swatch-name">--naver-color</div>
+        <div class="swatch-value">#2DB400</div>
+      </div>
+    </div>
+    <div class="swatch">
+      <div class="swatch-color" style="background:#269900"></div>
+      <div class="swatch-info">
+        <div class="swatch-name">--naver-color-dark</div>
+        <div class="swatch-value">#269900</div>
+      </div>
+    </div>
+    <div class="swatch">
+      <div class="swatch-color" style="background:#ffd651; border:1px solid #ddd"></div>
+      <div class="swatch-info">
+        <div class="swatch-name">--new-customer-bg</div>
+        <div class="swatch-value">#ffd651</div>
+      </div>
+    </div>
+  </div>
+
+  <p class="subsection-title">시맨틱 색상 (Semantic)</p>
+  <div class="grid-4" style="margin-bottom:8px">
+    <div class="swatch">
+      <div class="swatch-color" style="background:#c93a30"></div>
+      <div class="swatch-info"><div class="swatch-name">--danger-color</div><div class="swatch-value">#c93a30</div></div>
+    </div>
+    <div class="swatch">
+      <div class="swatch-color" style="background:#fef2f2; border:1px solid #fecaca"></div>
+      <div class="swatch-info"><div class="swatch-name">--danger-bg</div><div class="swatch-value">#fef2f2</div></div>
+    </div>
+    <div class="swatch">
+      <div class="swatch-color" style="background:#fecaca; border:1px solid #ddd"></div>
+      <div class="swatch-info"><div class="swatch-name">--danger-border</div><div class="swatch-value">#fecaca</div></div>
+    </div>
+    <div style></div>
+    <div class="swatch">
+      <div class="swatch-color" style="background:#92400E"></div>
+      <div class="swatch-info"><div class="swatch-name">--warning-text</div><div class="swatch-value">#92400E</div></div>
+    </div>
+    <div class="swatch">
+      <div class="swatch-color" style="background:#FEF3C7; border:1px solid #FCD34D"></div>
+      <div class="swatch-info"><div class="swatch-name">--warning-bg-soft</div><div class="swatch-value">#FEF3C7</div></div>
+    </div>
+    <div class="swatch">
+      <div class="swatch-color" style="background:#FCD34D; border:1px solid #ddd"></div>
+      <div class="swatch-info"><div class="swatch-name">--warning-border-soft</div><div class="swatch-value">#FCD34D</div></div>
+    </div>
+    <div style></div>
+    <div class="swatch">
+      <div class="swatch-color" style="background:#15803d"></div>
+      <div class="swatch-info"><div class="swatch-name">--success-text</div><div class="swatch-value">#15803d</div></div>
+    </div>
+    <div class="swatch">
+      <div class="swatch-color" style="background:rgba(34,197,94,0.12); border:1px solid rgba(34,197,94,0.2)"></div>
+      <div class="swatch-info"><div class="swatch-name">--success-bg</div><div class="swatch-value">rgba(34,197,94,.12)</div></div>
+    </div>
+    <div class="swatch">
+      <div class="swatch-color" style="background:rgba(34,197,94,0.2); border:1px solid #ddd"></div>
+      <div class="swatch-info"><div class="swatch-name">--success-border</div><div class="swatch-value">rgba(34,197,94,.2)</div></div>
+    </div>
+    <div style></div>
+    <div class="swatch">
+      <div class="swatch-color" style="background:#2d7ff9"></div>
+      <div class="swatch-info"><div class="swatch-name">--info-color</div><div class="swatch-value">#2d7ff9</div></div>
+    </div>
+    <div class="swatch">
+      <div class="swatch-color" style="background:rgba(45,127,249,0.1); border:1px solid rgba(45,127,249,0.2)"></div>
+      <div class="swatch-info"><div class="swatch-name">--info-bg</div><div class="swatch-value">rgba(45,127,249,.1)</div></div>
+    </div>
+    <div class="swatch">
+      <div class="swatch-color" style="background:#475569"></div>
+      <div class="swatch-info"><div class="swatch-name">--neutral-text</div><div class="swatch-value">#475569</div></div>
+    </div>
+    <div class="swatch">
+      <div class="swatch-color" style="background:rgba(241,245,249,0.92); border:1px solid rgba(203,213,225,0.95)"></div>
+      <div class="swatch-info"><div class="swatch-name">--neutral-bg</div><div class="swatch-value">rgba(241,245,249,.92)</div></div>
+    </div>
+  </div>
+
+  <p class="subsection-title">기타</p>
+  <div class="grid-4">
+    <div class="swatch">
+      <div class="swatch-color" style="background:#1e293b"></div>
+      <div class="swatch-info"><div class="swatch-name">--toast-bg</div><div class="swatch-value">#1e293b</div></div>
+    </div>
+    <div class="swatch">
+      <div class="swatch-color" style="background:#60a5fa"></div>
+      <div class="swatch-info"><div class="swatch-name">--link-color-light</div><div class="swatch-value">#60a5fa</div></div>
+    </div>
+    <div class="swatch">
+      <div class="swatch-color" style="background:#94a3b8"></div>
+      <div class="swatch-info"><div class="swatch-name">--muted-text</div><div class="swatch-value">#94a3b8</div></div>
+    </div>
+    <div class="swatch">
+      <div class="swatch-color" style="background:#8E8E93"></div>
+      <div class="swatch-info"><div class="swatch-name">--unassigned-color</div><div class="swatch-value">#8E8E93</div></div>
+    </div>
+  </div>
+</section>
+
+
+<!-- ═══════════════════════════════ TYPOGRAPHY ══════════════════════════ -->
+<section id="typography">
+  <h2 class="section-title">타이포그래피 (Typography)</h2>
+  <p style="font-size:11px;color:var(--dark-gray-color2);margin-bottom:16px">폰트: SF Pro Display → Helvetica Neue → Arial → sans-serif</p>
+
+  <div class="type-row">
+    <div class="type-meta">--big-font / 18px</div>
+    <div class="type-sample" style="font-size:18px;font-weight:600">페이지 제목 / 대형 수치</div>
+  </div>
+  <div class="type-row">
+    <div class="type-meta">--font / 14px</div>
+    <div class="type-sample" style="font-size:14px">기본 본문 텍스트 (default)</div>
+  </div>
+  <div class="type-row">
+    <div class="type-meta">--small-font / 12px</div>
+    <div class="type-sample" style="font-size:12px">보조 텍스트, 레이블, 버튼</div>
+  </div>
+  <div class="type-row">
+    <div class="type-meta">--xsmall-font / 11px</div>
+    <div class="type-sample" style="font-size:11px">메타 정보, 칩, 배지 내부</div>
+  </div>
+  <div class="type-row">
+    <div class="type-meta">--tiny-font / 10px</div>
+    <div class="type-sample" style="font-size:10px">뱃지, 타임스탬프, 보조 레이블</div>
+  </div>
+</section>
+
+
+<!-- ═══════════════════════════════ SPACING ═════════════════════════════ -->
+<section id="spacing">
+  <h2 class="section-title">간격 (Spacing)</h2>
+  <div class="spacing-row">
+    <div class="spacing-meta">--gap-xs / 4px</div>
+    <div class="spacing-bar" style="width:4px"></div>
+    <span style="font-size:11px;color:var(--dark-gray-color2)">아이콘-텍스트, 인라인 요소</span>
+  </div>
+  <div class="spacing-row">
+    <div class="spacing-meta">--gap-sm / 6px</div>
+    <div class="spacing-bar" style="width:6px"></div>
+    <span style="font-size:11px;color:var(--dark-gray-color2)">서비스 칩 간격</span>
+  </div>
+  <div class="spacing-row">
+    <div class="spacing-meta">--gap-md / 8px</div>
+    <div class="spacing-bar" style="width:8px"></div>
+    <span style="font-size:11px;color:var(--dark-gray-color2)">기본 요소 간격</span>
+  </div>
+  <div class="spacing-row">
+    <div class="spacing-meta">--gap-lg / 10px</div>
+    <div class="spacing-bar" style="width:10px"></div>
+    <span style="font-size:11px;color:var(--dark-gray-color2)">섹션 내 항목</span>
+  </div>
+  <div class="spacing-row">
+    <div class="spacing-meta">--list-gap / 10px</div>
+    <div class="spacing-bar" style="width:10px"></div>
+    <span style="font-size:11px;color:var(--dark-gray-color2)">목록 아이템</span>
+  </div>
+  <div class="spacing-row">
+    <div class="spacing-meta">--card-gap / 12px</div>
+    <div class="spacing-bar" style="width:12px"></div>
+    <span style="font-size:11px;color:var(--dark-gray-color2)">카드 내부</span>
+  </div>
+  <div class="spacing-row">
+    <div class="spacing-meta">--overlay-padding / 14px</div>
+    <div class="spacing-bar" style="width:14px"></div>
+    <span style="font-size:11px;color:var(--dark-gray-color2)">모달/오버레이 패딩</span>
+  </div>
+</section>
+
+
+<!-- ═══════════════════════════════ RADIUS ══════════════════════════════ -->
+<section id="radius">
+  <h2 class="section-title">반경 (Border Radius)</h2>
+  <div class="grid" style="align-items:flex-start">
+    <div style="text-align:center">
+      <div class="radius-box" style="border-radius:4px"></div>
+      <div class="radius-label">--radius-sm<br>4px</div>
+    </div>
+    <div style="text-align:center">
+      <div class="radius-box" style="border-radius:6px"></div>
+      <div class="radius-label">--radius-md<br>6px</div>
+    </div>
+    <div style="text-align:center">
+      <div class="radius-box" style="border-radius:8px"></div>
+      <div class="radius-label">--radius-lg / --card-radius<br>8px</div>
+    </div>
+    <div style="text-align:center">
+      <div class="radius-box" style="border-radius:10px"></div>
+      <div class="radius-label">--modal-radius<br>10px</div>
+    </div>
+    <div style="text-align:center">
+      <div class="radius-box" style="border-radius:999px; width:64px"></div>
+      <div class="radius-label">--chip-radius<br>999px (pill)</div>
+    </div>
+  </div>
+</section>
+
+
+<!-- ═══════════════════════════════ SHADOWS ═════════════════════════════ -->
+<section id="shadows">
+  <h2 class="section-title">그림자 (Shadows)</h2>
+  <div class="grid-3">
+    <div class="shadow-card" style="box-shadow:0 1px 4px rgba(0,0,0,.08)">
+      <div class="shadow-name">--shadow-sm</div>
+      <div class="shadow-value">0 1px 4px rgba(0,0,0,.08)</div>
+      <div style="font-size:11px;color:var(--dark-gray-color2)">버튼, 인풋, 드롭다운</div>
+    </div>
+    <div class="shadow-card" style="box-shadow:0 4px 16px rgba(0,0,0,.12)">
+      <div class="shadow-name">--shadow-md</div>
+      <div class="shadow-value">0 4px 16px rgba(0,0,0,.12)</div>
+      <div style="font-size:11px;color:var(--dark-gray-color2)">플로팅 패널, 알림 패널</div>
+    </div>
+    <div class="shadow-card" style="box-shadow:0 8px 18px rgba(15,23,42,.05)">
+      <div class="shadow-name">--card-shadow</div>
+      <div class="shadow-value">0 8px 18px rgba(15,23,42,.05)</div>
+      <div style="font-size:11px;color:var(--dark-gray-color2)">카드 기본</div>
+    </div>
+    <div class="shadow-card" style="box-shadow:0 14px 26px rgba(15,23,42,.08)">
+      <div class="shadow-name">--card-shadow-hover</div>
+      <div class="shadow-value">0 14px 26px rgba(15,23,42,.08)</div>
+      <div style="font-size:11px;color:var(--dark-gray-color2)">카드 hover</div>
+    </div>
+    <div class="shadow-card" style="box-shadow:0 24px 60px rgba(15,23,42,.18),0 6px 18px rgba(15,23,42,.08)">
+      <div class="shadow-name">--modal-shadow</div>
+      <div class="shadow-value">0 24px 60px rgba(15,23,42,.18), 0 6px 18px rgba(15,23,42,.08)</div>
+      <div style="font-size:11px;color:var(--dark-gray-color2)">모달, 토스트</div>
+    </div>
+  </div>
+</section>
+
+
+<!-- ═══════════════════════════════ BUTTONS ═════════════════════════════ -->
+<section id="buttons">
+  <h2 class="section-title">버튼 (Buttons)</h2>
+
+  <div class="demo-card" style="margin-bottom:12px">
+    <div class="demo-label">공통 버튼 (모달/액션)</div>
+    <div class="demo-row">
+      <button class="btn btn-primary">저장</button>
+      <button class="btn btn-primary" style="background:var(--brand-color)">확인</button>
+      <button class="btn btn-secondary">취소</button>
+      <button class="btn btn-danger">삭제</button>
+      <button class="btn btn-secondary" style="border-color:var(--danger-border);color:var(--danger-color)">예약 취소</button>
+    </div>
+  </div>
+
+  <div class="demo-card" style="margin-bottom:12px">
+    <div class="demo-label">ButtonSquare — 작은 인라인 버튼</div>
+    <div class="demo-row">
+      <button class="btn btn-square">주간</button>
+      <button class="btn btn-square">타임라인</button>
+      <button class="btn btn-square">월간</button>
+      <button class="btn btn-square" style="background:var(--gray-color2)">오늘</button>
+    </div>
+  </div>
+
+  <div class="demo-card">
+    <div class="demo-label">ButtonCircle / ButtonAdd</div>
+    <div class="demo-row">
+      <button class="btn btn-circle">‹</button>
+      <button class="btn btn-circle">›</button>
+      <button class="btn btn-add" style="background:transparent;color:var(--gray-color)">＋</button>
+    </div>
+  </div>
+</section>
+
+
+<!-- ═══════════════════════════════ BADGES / CHIPS ══════════════════════ -->
+<section id="badges">
+  <h2 class="section-title">배지 / 칩 / 태그</h2>
+
+  <div class="demo-card" style="margin-bottom:12px">
+    <div class="demo-label">LabelBadge — tone × shape</div>
+    <div class="demo-row" style="margin-bottom:8px">
+      <span style="font-size:10px;color:var(--dark-gray-color2);width:60px">soft (6px)</span>
+      <span class="badge badge-neutral">neutral</span>
+      <span class="badge badge-brand">brand</span>
+      <span class="badge badge-info">info</span>
+      <span class="badge badge-warning">warning</span>
+      <span class="badge badge-danger">danger</span>
+      <span class="badge badge-success">success</span>
+    </div>
+    <div class="demo-row">
+      <span style="font-size:10px;color:var(--dark-gray-color2);width:60px">pill (999px)</span>
+      <span class="badge badge-neutral pill">neutral</span>
+      <span class="badge badge-brand pill">brand</span>
+      <span class="badge badge-info pill">info</span>
+      <span class="badge badge-warning pill">warning</span>
+      <span class="badge badge-danger pill">danger</span>
+      <span class="badge badge-success pill">success</span>
+    </div>
+  </div>
+
+  <div class="demo-card" style="margin-bottom:12px">
+    <div class="demo-label">예약 상태 배지</div>
+    <div class="demo-row">
+      <span class="res-badge" style="background:#E8F0FE;color:#4285F4">예약됨</span>
+      <span class="res-badge" style="background:#E6F4EA;color:#34A853">완료</span>
+      <span class="res-badge" style="background:#E6F4EA;color:#34A853">결제완료</span>
+      <span class="res-badge" style="background:#F1F1F1;color:#999">취소</span>
+      <span class="res-badge" style="background:#FCE8E6;color:#EA4335">노쇼</span>
+    </div>
+  </div>
+
+  <div class="demo-card" style="margin-bottom:12px">
+    <div class="demo-label">ServiceChip — 서비스 칩 (색상은 카테고리별 동적 적용)</div>
+    <div class="demo-row">
+      <span class="service-chip" style="background:rgba(66,133,244,0.09);color:#4285F4">커트</span>
+      <span class="service-chip" style="background:rgba(168,85,247,0.09);color:#a855f7">펌</span>
+      <span class="service-chip" style="background:rgba(249,115,22,0.09);color:#f97316">컬러</span>
+      <span class="service-chip" style="background:rgba(34,197,94,0.09);color:#22c55e">크리닉</span>
+      <span class="service-chip" style="background:rgba(14,165,233,0.09);color:#0ea5e9">드라이</span>
+      <span class="service-chip" style="background:rgba(100,116,139,0.09);color:#64748b">기타</span>
+    </div>
+  </div>
+
+  <div class="demo-card" style="margin-bottom:12px">
+    <div class="demo-label">ColorTag — 디자이너 / 카테고리 태그</div>
+    <div class="demo-row">
+      <span class="color-tag" style="background:#6526d9">이준혁</span>
+      <span class="color-tag" style="background:#0ea5e9">김민지</span>
+      <span class="color-tag" style="background:#f97316">박서연</span>
+      <span class="color-tag" style="background:#22c55e">최지호</span>
+      <span class="color-tag" style="background:#8E8E93">미지정</span>
+    </div>
+  </div>
+
+  <div class="demo-card">
+    <div class="demo-label">NewCustomerBadge — 신규 고객</div>
+    <div class="demo-row">
+      <span style="font-size:14px;font-weight:600">홍길동</span>
+      <span class="new-customer">N</span>
+      <span style="font-size:11px;color:var(--dark-gray-color2)">첫 방문 고객에 표시</span>
+    </div>
+  </div>
+</section>
+
+
+<!-- ═══════════════════════════════ RESERVATION CARD ════════════════════ -->
+<section id="reservation">
+  <h2 class="section-title">예약 블록 (ButtonReserve)</h2>
+  <p style="font-size:11px;color:var(--dark-gray-color2);margin-bottom:16px">캘린더 타임슬롯에 표시되는 예약 블록. 색상은 서비스 카테고리 기반 동적 적용.</p>
+
+  <div class="grid" style="align-items:flex-start">
+    <div>
+      <div class="demo-label" style="margin-bottom:6px">active</div>
+      <div class="res-block" style="width:140px;background:rgba(66,133,244,0.07);border-color:#4285F4">
+        <div class="res-block-name">홍길동</div>
+        <div class="res-block-service">커트 · 블로우드라이</div>
+        <div style="font-size:10px;color:var(--dark-gray-color2);margin-top:4px">10:00 – 11:00</div>
+      </div>
+    </div>
+    <div>
+      <div class="demo-label" style="margin-bottom:6px">completed (결제완료)</div>
+      <div class="res-block" style="width:140px;background:rgba(34,197,94,0.07);border-color:#22c55e">
+        <div class="res-block-name">김민지</div>
+        <div class="res-block-service">펌</div>
+        <div style="font-size:10px;color:var(--dark-gray-color2);margin-top:4px">11:00 – 13:00</div>
+      </div>
+    </div>
+    <div>
+      <div class="demo-label" style="margin-bottom:6px">cancelled (opacity 0.5 + grayscale)</div>
+      <div class="res-block" style="width:140px;background:rgba(100,116,139,0.07);border-color:#64748b;opacity:0.5;filter:grayscale(.5)">
+        <div class="res-block-name" style="text-decoration:line-through">박서연</div>
+        <div class="res-block-service">컬러</div>
+        <div style="font-size:10px;color:var(--dark-gray-color2);margin-top:4px">14:00 – 15:30</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+
+<!-- ═══════════════════════════════ LAYOUT ══════════════════════════════ -->
+<section id="layout-comp">
+  <h2 class="section-title">레이아웃 컴포넌트</h2>
+
+  <p class="subsection-title">사이드바 (Aside)</p>
+  <div style="display:flex;gap:24px;align-items:flex-start;margin-bottom:24px">
+    <div class="aside-preview">
+      <div class="aside-brand">TAS</div>
+      <div class="aside-divider"></div>
+      <div class="aside-link active">
+        <span class="aside-icon">📅</span> 예약
+      </div>
+      <div class="aside-link">
+        <span class="aside-icon">👥</span> 주소록
+      </div>
+      <div class="aside-link">
+        <span class="aside-icon">⚙️</span> 설정
+      </div>
+      <div class="aside-divider"></div>
+      <div class="aside-link">
+        <span class="aside-icon">👤</span> 마이페이지
+      </div>
+    </div>
+    <div style="font-size:11px;color:var(--dark-gray-color2);line-height:1.8">
+      <div><code>--aside-bg</code>: #1c1c1e (다크)</div>
+      <div><code>--aside-text</code>: #f5f5f7</div>
+      <div><code>--aside-hover</code>: rgba(255,255,255,0.08)</div>
+      <div><code>--aside-divider</code>: rgba(255,255,255,0.12)</div>
+      <div><code>--brand-color</code>: #6526d9 → 활성 nav 배경</div>
+      <div><code>--aside-width</code>: 200px</div>
+    </div>
+  </div>
+
+  <p class="subsection-title">충돌 배너 (ConflictBanner)</p>
+  <div style="max-width:480px;margin-bottom:24px">
+    <div class="conflict-banner">
+      <span>중복예약 <strong>2건</strong>이 있습니다</span>
+      <span>확인하기 →</span>
+    </div>
+  </div>
+  <div style="font-size:11px;color:var(--dark-gray-color2);margin-bottom:24px;line-height:1.8">
+    height: 34px &nbsp;·&nbsp; background: <code>--danger-bg</code> &nbsp;·&nbsp; border-bottom: <code>--danger-border</code> &nbsp;·&nbsp; color: <code>--danger-color</code>
+  </div>
+</section>
+
+
+<!-- ═══════════════════════════════ NOTIFICATIONS ══════════════════════ -->
+<section id="notifications">
+  <h2 class="section-title">알림 / 토스트</h2>
+
+  <p class="subsection-title">알림 아이템</p>
+  <div style="max-width:320px;margin-bottom:24px">
+    <div class="notif-item">
+      <div class="notif-title">🔴 중복예약 — 홍길동 / 10:00</div>
+      <div class="notif-meta">6/6 · 미확인</div>
+    </div>
+    <div class="notif-item">
+      <div class="notif-title">✅ 네이버 예약 동기화 완료</div>
+      <div class="notif-meta">6/5 · 김민지 · 이준혁</div>
+    </div>
+    <div class="notif-item read">
+      <div class="notif-title" style="color:var(--dark-gray-color2)">예약 취소 알림</div>
+      <div class="notif-meta">6/1 · 박서연 · 읽음</div>
+    </div>
+  </div>
+
+  <p class="subsection-title">토스트 (Google 토큰 만료)</p>
+  <div style="margin-bottom:8px">
+    <div class="toast">
+      <span>Google 연결이 만료되었습니다</span>
+      <button class="toast-action" style="border:none;background:none;cursor:pointer">재연결</button>
+      <button class="toast-close" style="border:none;background:none;cursor:pointer">✕</button>
+    </div>
+  </div>
+  <div style="font-size:11px;color:var(--dark-gray-color2);line-height:1.8">
+    background: <code>--toast-bg</code> (#1e293b) &nbsp;·&nbsp; action: <code>--link-color-light</code> &nbsp;·&nbsp; close: <code>--muted-text</code>
+  </div>
+</section>
+
+
+</div><!-- .content -->
+</div><!-- .layout -->
+
+</body>
+</html>

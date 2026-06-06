@@ -1,0 +1,47 @@
+name: 기본 서비스 평균가 업데이트
+
+on:
+  schedule:
+    # 매년 1월 1일 00:00 KST (= 12월 31일 15:00 UTC)
+    - cron: '0 15 31 12 *'
+    # 매년 7월 1일 00:00 KST (= 6월 30일 15:00 UTC)
+    - cron: '0 15 30 6 *'
+  workflow_dispatch:  # 수동 실행 가능
+
+jobs:
+  update-prices:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: 체크아웃
+        uses: actions/checkout@v4
+        with:
+          ref: develop
+
+      - name: Node.js 설정
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Anthropic SDK 설치
+        run: npm install @anthropic-ai/sdk
+
+      - name: 가격 업데이트 스크립트 실행
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        run: node scripts/update-default-prices.mjs
+
+      - name: 변경사항 커밋 & 푸시
+        run: |
+          git config --global user.name 'github-actions[bot]'
+          git config --global user.email 'github-actions[bot]@users.noreply.github.com'
+          git add server/api/onboarding.ts
+          if git diff --staged --quiet; then
+            echo "변경 없음 — 커밋 스킵"
+          else
+            MONTH=$(date '+%Y-%m')
+            git commit -m "chore: 기본 서비스 평균가 업데이트 (${MONTH})"
+            git push origin develop
+          fi

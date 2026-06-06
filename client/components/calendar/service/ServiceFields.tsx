@@ -117,7 +117,7 @@ export const StyledCategoryHeader = styled.div`
     top: 0;
     z-index: 2;
     background: rgba(255, 255, 255, .7); /* 살짝만 흰색 */
-    backdrop-filter: blur(.8px) saturate(180%);
+    backdrop-filter: var(--sticky-backdrop);
 `;
 
 export const StyledServiceCheckbox = styled.label`

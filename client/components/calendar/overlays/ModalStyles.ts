@@ -130,7 +130,7 @@ export const StyledOverlay = styled.div`
     justify-content: center;
     padding: var(--overlay-padding);
     background: radial-gradient(circle at top, rgba(255, 255, 255, 0.14), transparent 38%),
-    rgba(15, 23, 42, 0.5);
+    rgba(15, 23, 42, 0.1);
     backdrop-filter: blur(var(--overlay-backdrop-blur));
     box-sizing: border-box;
 `;
@@ -250,7 +250,7 @@ export const StyledForm = styled.div`
     flex-direction: column;
     gap: 10px;
 
-    label {
+    label:not(:has(input[type="checkbox"])) {
         display: flex;
         flex-direction: column;
         gap: 4px;
@@ -379,10 +379,18 @@ export const StyledDiffGrid = styled.dl`
     gap: var(--gap-xs) var(--gap-lg);
     margin: 0;
 
+    dt {
+        font-size: 13px;
+        color: var(--dark-gray-color);
+        font-weight: 500;
+    }
+
     dd {
         display: flex;
         align-items: center;
         gap: var(--gap-md);
+        margin: 0;
+        font-size: 13px;
     }
 
     del {
@@ -399,7 +407,7 @@ export const StyledDiffGrid = styled.dl`
 
         &::before {
             content: "\\2192\\00a0";
-            color: var(--gray-color);
+            color: var(--dark-gray-color);
             font-weight: 400;
         }
     }
@@ -426,6 +434,37 @@ export const StyledFooter = styled.div`
     }
 `;
 
+export const StyledConfirmOverlay = styled(StyledOverlay)`
+    z-index: ${OVERLAY_Z_INDEX.confirm};
+`;
+
+export const StyledConfirmModal = styled(StyledDetail)`
+    width: min(360px, 90vw);
+`;
+
+export const StyledChangeRow = styled.span`
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    flex-wrap: wrap;
+`;
+
+export const StyledArrow = styled.span`
+    font-size: 12px;
+    color: var(--dark-gray-color2);
+`;
+
+export const StyledNewTime = styled.span`
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: var(--radius-md);
+    background: rgba(0, 169, 230, 0.08);
+    border: 1px solid rgba(0, 169, 230, 0.2);
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--blue-color);
+`;
+
 export const StyledActionButton = styled.button<{ $primary?: boolean; $danger?: boolean; $warning?: boolean }>`
     min-height: var(--modal-button-height);
     padding: 0 var(--modal-button-padding-x);
@@ -435,7 +474,6 @@ export const StyledActionButton = styled.button<{ $primary?: boolean; $danger?: 
     color: ${(props) => (props.$danger || props.$primary || props.$warning) ? 'var(--white-color)' : 'var(--dark-gray-color)'};
     font-size: var(--modal-button-font);
     font-weight: 600;
-    cursor: pointer;
     box-shadow: ${(props) => (props.$danger || props.$primary || props.$warning) ? '0 10px 20px rgba(15, 23, 42, 0.12)' : 'none'};
     transition: transform 0.14s ease, opacity 0.14s ease, box-shadow 0.14s ease, background-color 0.14s ease;
 

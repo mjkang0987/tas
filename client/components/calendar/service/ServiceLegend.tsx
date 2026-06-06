@@ -36,7 +36,7 @@ export const ServiceLegend = () => {
             </StyledPanel>}
             <StyledToggle type="button"
                           onClick={() => setOpen((prev) => !prev)}
-                          aria-label="시술 범례 토글"
+                          aria-label="서비스 범례 토글"
                           $open={open}>
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
                      strokeLinecap="round" strokeLinejoin="round">
@@ -128,7 +128,6 @@ const StyledToggle = styled.button<{ $open: boolean }>`
     background-color: ${(props) => props.$open ? 'var(--dark-gray-color)' : '#fff'};
     color: ${(props) => props.$open ? '#fff' : 'var(--dark-gray-color)'};
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
-    cursor: pointer;
     transition: background-color 0.2s, color 0.2s;
 
     @media (hover: hover) and (pointer: fine) {

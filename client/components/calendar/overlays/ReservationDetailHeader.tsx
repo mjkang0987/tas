@@ -3,7 +3,6 @@ import React from 'react';
 import styled from 'styled-components';
 
 import {CloseIconButton} from '../../ui/CloseIconButton';
-import {ServiceChipList} from '../../ui/ServiceChip';
 import {StyledHeader} from './ModalStyles';
 
 type ReservationDetailHeaderProps = {
@@ -22,9 +21,6 @@ export function ReservationDetailHeader({
     return (
         <StyledReservationHeader>
             <StyledReservationTitleGroup>
-                <StyledServiceBadgeList service={service}
-                                        serviceColorMap={serviceColorMap}
-                                        keyPrefix={title} />
                 <h3>{title}</h3>
             </StyledReservationTitleGroup>
             <CloseIconButton onClick={onClose} />
@@ -49,5 +45,3 @@ const StyledReservationTitleGroup = styled.div`
         text-overflow: ellipsis;
     }
 `;
-
-const StyledServiceBadgeList = styled(ServiceChipList)``;

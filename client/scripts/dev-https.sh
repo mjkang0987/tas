@@ -29,6 +29,8 @@ if [ -z "$HTTPS_KEY_PATH" ] || [ -z "$HTTPS_CERT_PATH" ]; then
     exit 1
 fi
 
+export WATCHPACK_POLLING=200
+
 set -- pnpm exec next dev --webpack \
     --hostname "$DEV_HOSTNAME" \
     --port "$DEV_PORT" \

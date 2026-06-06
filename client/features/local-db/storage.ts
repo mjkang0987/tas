@@ -30,9 +30,9 @@ export function createDefaultLocalDbSnapshot(): LocalDbSnapshot {
         customers: [],
         reservations: [],
         history: [],
-        services: SERVICE_CATALOG,
-        categoryBaseColors: CATEGORY_BASE_COLOR_MAP,
-        designers: DEFAULT_DESIGNERS,
+        services: [],
+        categoryBaseColors: {},
+        designers: [],
         storeSettings: DEFAULT_STORE_SETTINGS,
     });
 }
@@ -60,6 +60,10 @@ export function loadLocalDbSnapshot(): LocalDbSnapshot {
 
     const raw = window.localStorage.getItem(LOCAL_DB_KEY);
     if (!raw) {
+        // 로컬DB가 새로 생성될 때 관련 상태도 초기화하여 알림·중복감지가 새로 동작하도록 함
+        window.localStorage.removeItem('sync-notifications');
+        window.localStorage.removeItem('naver-sync-deferred-conflicts');
+        window.localStorage.removeItem('naver-sync-active-conflicts');
         const snapshot = createDefaultLocalDbSnapshot();
         saveLocalDbSnapshot(snapshot);
         return snapshot;

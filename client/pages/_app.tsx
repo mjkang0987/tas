@@ -1,6 +1,7 @@
-import React, {useEffect, useState} from 'react';
+import React, {useEffect, useRef, useState} from 'react';
 
 import Head from 'next/head';
+import Link from 'next/link';
 import Router from 'next/router';
 
 import type {
@@ -34,6 +35,21 @@ function AppContent({Component, pageProps}: AppContentProps) {
     const setCustomerMap = useCalendarStore((s) => s.setCustomerMap);
     const setReservationHistory = useCalendarStore((s) => s.setReservationHistory);
     const hasApiAccess = status === 'authenticated' && !!session?.user?.role && !!session.user?.storeId;
+
+    const [sessionExpired, setSessionExpired] = useState(false);
+    const hadSessionRef = useRef(
+        typeof sessionStorage !== 'undefined' && sessionStorage.getItem('takeaseat.authenticated') === '1'
+    );
+
+    useEffect(() => {
+        if (status === 'authenticated') {
+            hadSessionRef.current = true;
+        }
+        if (status === 'unauthenticated' && hadSessionRef.current) {
+            setSessionExpired(true);
+            hadSessionRef.current = false;
+        }
+    }, [status]);
 
     useEffect(() => {
         setAuthenticated(hasApiAccess);
@@ -142,16 +158,16 @@ function AppContent({Component, pageProps}: AppContentProps) {
                                 enableRecharge: typeof rawPointSettings.enableRecharge === 'boolean'
                                     ? rawPointSettings.enableRecharge
                                     : rawPointSettings.mode === 'recharge',
-                                serviceRate: rawPointSettings.serviceRate ?? 5,
+                                serviceRate: rawPointSettings.serviceRate ?? 0,
                                 rechargeRules: Array.isArray(rawPointSettings.rechargeRules)
                                     ? rawPointSettings.rechargeRules
-                                    : [{baseAmount: 100000, bonusAmount: 5000}],
+                                    : [{baseAmount: 0, bonusAmount: 0}],
                             }
                             : {
-                                enableServiceRate: true,
-                                enableRecharge: true,
-                                serviceRate: 5,
-                                rechargeRules: [{baseAmount: 100000, bonusAmount: 5000}],
+                                enableServiceRate: false,
+                                enableRecharge: false,
+                                serviceRate: 0,
+                                rechargeRules: [{baseAmount: 0, bonusAmount: 0}],
                             },
                     });
                 }
@@ -182,6 +198,17 @@ function AppContent({Component, pageProps}: AppContentProps) {
             <LayoutComponent>
                 <Component {...pageProps} />
             </LayoutComponent>
+            {sessionExpired && (
+                <StyledSessionExpiredToast>
+                    <span>로그인 세션이 만료되었습니다.</span>
+                    <StyledSessionExpiredLink href="/login" onClick={() => setSessionExpired(false)}>
+                        다시 로그인
+                    </StyledSessionExpiredLink>
+                    <StyledSessionExpiredClose type="button" onClick={() => setSessionExpired(false)}>
+                        ✕
+                    </StyledSessionExpiredClose>
+                </StyledSessionExpiredToast>
+            )}
         </>
     );
 }
@@ -249,6 +276,43 @@ const StyledSpinner = styled.div`
     border-top-color: var(--blue-color);
     border-radius: 50%;
     animation: ${spin} 0.6s linear infinite;
+`;
+
+const StyledSessionExpiredToast = styled.div`
+    position: fixed;
+    bottom: 24px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 16px;
+    border-radius: 10px;
+    background: #1e293b;
+    color: #fff;
+    font-size: 13px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+    z-index: 10000;
+    white-space: nowrap;
+`;
+
+const StyledSessionExpiredLink = styled(Link)`
+    color: #60a5fa;
+    font-weight: 600;
+    text-decoration: none;
+
+    @media (hover: hover) and (pointer: fine) {
+        &:hover { text-decoration: underline; }
+    }
+`;
+
+const StyledSessionExpiredClose = styled.button`
+    padding: 0;
+    border: none;
+    background: none;
+    color: #94a3b8;
+    font-size: 14px;
+    line-height: 1;
 `;
 
 function App({Component, pageProps: {session, ...pageProps}}: AppProps) {

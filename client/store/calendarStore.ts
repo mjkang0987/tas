@@ -61,7 +61,14 @@ function loadSyncNotifications(): SyncNotification[] {
         const raw = localStorage.getItem(SYNC_NOTIFICATIONS_KEY);
         if (!raw) return [];
         const parsed = JSON.parse(raw) as Array<SyncNotification & {timestamp: string}>;
-        return parsed.map((n) => ({...n, timestamp: new Date(n.timestamp)}));
+        const seenIds = new Set<string>();
+        const deduped: SyncNotification[] = [];
+        for (const n of parsed) {
+            if (seenIds.has(n.id)) continue;
+            seenIds.add(n.id);
+            deduped.push({...n, timestamp: new Date(n.timestamp)});
+        }
+        return deduped;
     } catch {
         return [];
     }
@@ -182,12 +189,14 @@ export interface CalendarState {
     addReservation: (reservation: Reservation) => void;
     updateReservation: (prev: Reservation, updated: Reservation) => void;
     cancelReservation: (reservation: Reservation, status?: ReservationStatus) => void;
+    restoreReservation: (reservation: Reservation) => void;
     addSyncNotifications: (items: SyncNotification[]) => void;
     markSyncNotificationRead: (id: string) => void;
     markSyncNotificationsRead: () => void;
     updateConflictNotificationStatus: (conflictKey: string, status: 'pending' | 'deferred' | 'confirmed') => void;
     replaceMockConflictNotifications: (items: SyncNotification[]) => void;
     clearSyncNotifications: () => void;
+    patchNotificationNames: () => void;
 }
 
 type ServiceSettingsState = Pick<CalendarState, 'serviceCatalog' | 'categoryBaseColorMap'>;
@@ -651,9 +660,76 @@ export const useCalendarStore = create<CalendarState>((set) => ({
         });
     },
 
+    restoreReservation: (reservation) => {
+        const updated: Reservation = {...reservation, status: 'active'};
+
+        let nextReservationMap: ReservationMap | null = null;
+        let nextHistory: ReservationHistoryEntry[] = [];
+
+        set((state) => {
+            const reservations = state.reservationMap[reservation.date] ?? [];
+            const nextDateReservations = reservations.map((r) =>
+                r.id === reservation.id ? updated : r
+            );
+            const nextMap = {...state.reservationMap, [reservation.date]: nextDateReservations};
+            const historyEntry: ReservationHistoryEntry = {
+                reservationId: reservation.id,
+                before: reservation,
+                after: updated,
+                timestamp: new Date().toISOString(),
+            };
+            nextHistory = [...state.reservationHistory, historyEntry];
+            nextReservationMap = nextMap;
+            const nextCustomerMap = syncCustomerFirstVisitDates(state.customerMap, nextMap);
+            if (Object.keys(nextCustomerMap).length > 0) {
+                syncCustomerSettings(Object.values(nextCustomerMap));
+            }
+            return {
+                reservationMap: nextMap,
+                reservationHistory: nextHistory,
+                customerMap: nextCustomerMap,
+            };
+        });
+
+        if (nextReservationMap) {
+            syncReservationState(nextReservationMap, nextHistory);
+        }
+
+        if (shouldUseLocalDb()) {
+            return;
+        }
+
+        fetch('/api/reservations', {
+            method: 'PATCH',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({id: reservation.id, status: 'active'})
+        });
+    },
+
     addSyncNotifications: (items) =>
         set((state) => {
-            const next = [...items, ...state.syncNotifications].slice(0, 50);
+            const existingIds = new Set(state.syncNotifications.map((n) => n.id));
+            const existingConflictKeys = new Set(
+                state.syncNotifications.filter((n) => n.conflictKey).map((n) => n.conflictKey)
+            );
+            const newItems = items.filter((item) => {
+                if (existingIds.has(item.id)) return false;
+                if (item.conflictKey && existingConflictKeys.has(item.conflictKey)) return false;
+                return true;
+            });
+            if (newItems.length === 0) return {};
+
+            // 취소 알림이 추가될 때, 같은 bookingId의 기존 확정 알림을 읽음 처리
+            const cancelledBookingIds = new Set(
+                newItems.filter((n) => n.type === 'cancel').map((n) => n.bookingId)
+            );
+            const existing = cancelledBookingIds.size > 0
+                ? state.syncNotifications.map((n) =>
+                    !n.type && cancelledBookingIds.has(n.bookingId) ? {...n, read: true} : n
+                )
+                : state.syncNotifications;
+
+            const next = [...newItems, ...existing].slice(0, 50);
             saveSyncNotifications(next);
             return {syncNotifications: next};
         }),
@@ -667,18 +743,23 @@ export const useCalendarStore = create<CalendarState>((set) => ({
 
     markSyncNotificationsRead: () =>
         set((state) => {
-            const next = state.syncNotifications.map((n) => ({...n, read: true}));
+            const next = state.syncNotifications.map((n) =>
+                n.type === 'conflict' && n.conflictStatus === 'deferred' ? n : {...n, read: true}
+            );
             saveSyncNotifications(next);
             return {syncNotifications: next};
         }),
 
     updateConflictNotificationStatus: (conflictKey, status) =>
         set((state) => {
-            const next = state.syncNotifications.map((notification) => (
-                notification.conflictKey === conflictKey
-                    ? {...notification, conflictStatus: status}
-                    : notification
-            ));
+            const next = state.syncNotifications.map((notification) => {
+                if (notification.conflictKey !== conflictKey) return notification;
+                return {
+                    ...notification,
+                    conflictStatus: status,
+                    ...(status === 'confirmed' ? {read: true} : {}),
+                };
+            });
             saveSyncNotifications(next);
             return {syncNotifications: next};
         }),
@@ -695,4 +776,41 @@ export const useCalendarStore = create<CalendarState>((set) => ({
         saveSyncNotifications([]);
         set({syncNotifications: []});
     },
+
+    patchNotificationNames: () =>
+        set((state) => {
+            const designerById = new Map(state.designers.map((d) => [d.id, d.name]));
+            const allReservations = Object.values(state.reservationMap).flat();
+
+            const needsPatch = state.syncNotifications.some((n) => {
+                if (!n.customerName || !n.appointmentDate || !n.appointmentTime) return true;
+                if (!n.designerName || n.designerName === '미지정') {
+                    const reservation = allReservations.find((r) => r.id === n.reservationId);
+                    if (reservation?.designerId && designerById.has(reservation.designerId)) return true;
+                }
+                return false;
+            });
+            if (!needsPatch) return {};
+
+            let changed = false;
+            const next = state.syncNotifications.map((n) => {
+                const reservation = allReservations.find((r) => r.id === n.reservationId);
+                if (!reservation) return n;
+                const customer = state.customerMap[reservation.customerId];
+                const patch: Partial<typeof n> = {};
+                if (!n.customerName && customer?.name) patch.customerName = customer.name;
+                if (!n.appointmentDate && reservation.date) patch.appointmentDate = reservation.date;
+                if (!n.appointmentTime && reservation.startTime) patch.appointmentTime = reservation.startTime;
+                if ((!n.designerName || n.designerName === '미지정') && reservation.designerId) {
+                    const name = designerById.get(reservation.designerId);
+                    if (name) patch.designerName = name;
+                }
+                if (Object.keys(patch).length === 0) return n;
+                changed = true;
+                return {...n, ...patch};
+            });
+            if (!changed) return {};
+            saveSyncNotifications(next);
+            return {syncNotifications: next};
+        }),
 }));

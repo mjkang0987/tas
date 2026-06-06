@@ -12,10 +12,11 @@ import {
     ViewType,
 } from '../../../utils/constants';
 
-import {getDesignerColor} from '../../../utils/designers';
+import {buildDesignerColorMap} from '../../../utils/designers';
 import {isNewCustomerVisit} from '../../../utils/customers';
 import {buildServiceColorMap} from '../../../utils/services';
 
+import type {Reservation} from '../../../utils/reservations';
 import {toDateKey} from '../../../utils/reservations';
 import {TimelineCluster} from './TimelineCluster';
 import {TimelineClusterLayer, type TimelineClusterData} from './TimelineClusterLayer';
@@ -58,13 +59,7 @@ export const Timeline = ({
         () => buildServiceColorMap(serviceCatalog, categoryBaseColorMap),
         [serviceCatalog, categoryBaseColorMap]
     );
-    const designerColorMap = useMemo(
-        () => designers.reduce<Record<number, string>>((acc, designer) => {
-            acc[designer.id] = getDesignerColor(designer);
-            return acc;
-        }, {}),
-        [designers]
-    );
+    const designerColorMap = useMemo(() => buildDesignerColorMap(designers), [designers]);
     const designerNameById = (designerId?: number) => (
         designerId
             ? (designers.find((designer) => designer.id === designerId)?.name ?? '미지정')
@@ -84,6 +79,7 @@ export const Timeline = ({
     const timelineRef = useRef<HTMLDivElement | null>(null);
     const [isTouchDevice, setIsTouchDevice] = useState(false);
     const [openClusterState, setOpenClusterState] = useState<{ dateKey: string; cluster: TimelineClusterData } | null>(null);
+    const pendingClusterReservationRef = useRef<Reservation | null>(null);
     const [confirmedOffDayMoveState, setConfirmedOffDayMoveState] = useState<{ dateKey: string; move: PendingMove } | null>(null);
     const {
         dragPreview,
@@ -108,6 +104,14 @@ export const Timeline = ({
 
     const openCluster = openClusterState?.dateKey === dateKey ? openClusterState.cluster : null;
     const confirmedOffDayMove = confirmedOffDayMoveState?.dateKey === dateKey ? confirmedOffDayMoveState.move : null;
+
+    useEffect(() => {
+        if (!openCluster && pendingClusterReservationRef.current) {
+            const reservation = pendingClusterReservationRef.current;
+            pendingClusterReservationRef.current = null;
+            openReservationDetail(reservation);
+        }
+    }, [openCluster, openReservationDetail]);
 
     useEffect(() => {
         if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return;
@@ -164,7 +168,7 @@ export const Timeline = ({
                 onClick={setMousePositionHandler}
             />
         )}
-        {isToday && <StyledBar />}
+        {isToday && <StyledBar className="time-bar" />}
         {timelineEntries.map((entry) => {
             if (entry.kind === 'cluster') {
                 const {cluster} = entry;
@@ -237,7 +241,8 @@ export const Timeline = ({
                 designerNameById={designerNameById}
                 onClose={() => setOpenClusterState(null)}
                 onReservationClick={(reservation) => {
-                    openReservationDetail(reservation);
+                    pendingClusterReservationRef.current = reservation;
+                    setOpenClusterState(null);
                 }}
             />
         )}
@@ -291,10 +296,11 @@ const StyledTimelineWrap = styled.div<{
     box-sizing: border-box;
     user-select: none;
 
-    > span {
+    .time-bar {
         top: ${props => props.$type === ViewType.Day ? 50 : 20}px;
         animation: down ${props => props.$timing ? props.$timing : 10 * 3600}s linear;
     }
+
 `;
 
 const StyledTimelineBackground = styled.button`
@@ -304,7 +310,6 @@ const StyledTimelineBackground = styled.button`
     background: transparent;
     padding: 0;
     margin: 0;
-    cursor: pointer;
     z-index: 0;
 `;
 

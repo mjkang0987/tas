@@ -2,7 +2,8 @@ import styled from 'styled-components';
 import type {ReactNode} from 'react';
 
 import type {Designer} from '../../../utils/designers';
-import {getDesignerStatus, isDesignerBookable} from '../../../utils/designers';
+import {getDesignerStatus, isDesignerBookable, sortDesigners} from '../../../utils/designers';
+import type {ReservationChannel} from '../../../utils/reservations';
 import type {CustomerMemoTag} from '../../../utils/customers';
 import {ColorTag} from '../../ui/ColorTag';
 
@@ -32,6 +33,7 @@ export interface ReservationDetailFormState {
     designerId: number;
     price: number;
     memo: string;
+    channel: ReservationChannel;
 }
 
 interface ReservationFormFieldsProps {
@@ -77,7 +79,7 @@ export const ReservationFormFields = ({
 }: ReservationFormFieldsProps) => (
     <StyledForm>
         <StyledFieldRow role="group" aria-labelledby={`${idPrefix}-service-label`}>
-            <strong id={`${idPrefix}-service-label`}>시술</strong>
+            <strong id={`${idPrefix}-service-label`}>서비스</strong>
             <ServiceFields
                 idPrefix={idPrefix}
                 selectedServices={selectedServices}
@@ -114,7 +116,7 @@ export const ReservationFormFields = ({
                             {currentDesigner.name} ({getDesignerStatus(currentDesigner)} · 신규 선택 불가)
                         </option>
                     )}
-                    {activeDesigners.map((designer) => (
+                    {sortDesigners(activeDesigners).map((designer) => (
                         <option key={designer.id} value={designer.id}>{designer.name}</option>
                     ))}
                 </select>
@@ -157,6 +159,18 @@ export const ReservationFormFields = ({
                 />
             </label>
         </StyledTimeRow>
+        <label htmlFor={`${idPrefix}-channel`}>
+            <strong>예약경로</strong>
+            <select
+                id={`${idPrefix}-channel`}
+                value={form.channel}
+                onChange={(e) => onFieldChange('channel', e.target.value)}
+            >
+                <option value="전화예약">전화예약</option>
+                <option value="현장방문">현장방문</option>
+                <option value="네이버예약">네이버예약</option>
+            </select>
+        </label>
         <label htmlFor={`${idPrefix}-memo`}>
             <strong>요청사항</strong>
             <input

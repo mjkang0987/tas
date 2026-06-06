@@ -1,10 +1,11 @@
 {
+    "_comment": "dates are placeholders; seed.mjs replaces them with today/tomorrow/dayAfter",
     "reservations": [
         {
             "id": 90001,
             "customerId": 1,
-            "designerId": 1775183550311,
-            "date": "2026-06-15",
+            "designerId": 1,
+            "dateOffset": 0,
             "startTime": "10:30",
             "endTime": "13:30",
             "service": "여자 매직",
@@ -14,8 +15,8 @@
         {
             "id": 90002,
             "customerId": 2,
-            "designerId": 1775183550311,
-            "date": "2026-06-15",
+            "designerId": 1,
+            "dateOffset": 0,
             "startTime": "10:30",
             "endTime": "11:00",
             "service": "남성커트",
@@ -24,8 +25,8 @@
         {
             "id": 90003,
             "customerId": 3,
-            "designerId": 1775183559011,
-            "date": "2026-06-16",
+            "designerId": 2,
+            "dateOffset": 0,
             "startTime": "14:00",
             "endTime": "16:00",
             "service": "여성커트",
@@ -35,8 +36,8 @@
         {
             "id": 90004,
             "customerId": 4,
-            "designerId": 1775183559011,
-            "date": "2026-06-16",
+            "designerId": 2,
+            "dateOffset": 0,
             "startTime": "15:00",
             "endTime": "16:30",
             "service": "남자 일반펌",
@@ -45,8 +46,8 @@
         {
             "id": 90005,
             "customerId": 5,
-            "designerId": 1775183550311,
-            "date": "2026-06-17",
+            "designerId": 3,
+            "dateOffset": 1,
             "startTime": "11:30",
             "endTime": "12:30",
             "service": "여성커트",
@@ -56,8 +57,8 @@
         {
             "id": 90006,
             "customerId": 6,
-            "designerId": 1775183550311,
-            "date": "2026-06-17",
+            "designerId": 3,
+            "dateOffset": 1,
             "startTime": "11:00",
             "endTime": "12:00",
             "service": "전체염색(멋내기)",

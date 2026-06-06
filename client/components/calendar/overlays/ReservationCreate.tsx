@@ -86,7 +86,7 @@ export const ReservationCreate = ({initial, customerMap, onClose, onSave}: Reser
         || error === '신규 고객 연락처를 입력해주세요.'
         || error === '신규 고객 연락처 형식을 확인해주세요.'
     ) ? error : '';
-    const serviceErrorMessage = error === '시술을 선택해주세요.' ? error : '';
+    const serviceErrorMessage = error === '서비스를 선택해주세요.' ? error : '';
 
     if (!modalRoot) return null;
 

@@ -6,6 +6,7 @@ import Google from 'next-auth/providers/google';
 import Kakao from 'next-auth/providers/kakao';
 import Naver from 'next-auth/providers/naver';
 
+import {prisma} from '../server/db/prisma';
 import {resolveUserMembership} from '../server/auth/resolve-user-membership';
 import {syncAuthUser} from '../server/auth/sync-auth-user';
 import {saveGoogleTokens} from '../server/api/gmail/token-manager';
@@ -123,6 +124,16 @@ export const {handlers, auth, signIn, signOut} = NextAuth({
             token.role = membership?.role;
             token.storeId = membership?.storeId;
 
+            if (membership?.storeId) {
+                const store = await prisma.store.findUnique({
+                    where: {id: membership.storeId},
+                    select: {onboarded: true},
+                });
+                token.onboarded = store?.onboarded ?? false;
+            } else {
+                token.onboarded = false;
+            }
+
             return token;
         },
         session({session, token}) {
@@ -134,6 +145,7 @@ export const {handlers, auth, signIn, signOut} = NextAuth({
                 session.user.provider = (token.provider as string) ?? '';
                 session.user.role = token.role as 'owner' | 'manager' | 'staff' | undefined;
                 session.user.storeId = token.storeId as string | undefined;
+                session.user.onboarded = token.onboarded as boolean | undefined;
                 session.user.loginError = token.loginError as string | undefined;
             }
             return session;

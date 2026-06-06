@@ -19,17 +19,18 @@ interface Props {
     onSelectReservation: (reservation: Reservation) => void;
     onSelectConflict: (conflictKey: string) => void;
 }
-
-const SEVEN_DAYS_MS = 7 * 24 * 60 * 60 * 1000;
+const SEVEN_DAYS_MS  = 7  * 24 * 60 * 60 * 1000;
+const THIRTY_DAYS_MS = 30 * 24 * 60 * 60 * 1000;
 
 function formatDate(dateStr: string): string {
+    if (!dateStr || !dateStr.includes('-')) return dateStr || '-';
     const [, m, d] = dateStr.split('-');
     return `${Number(m)}/${Number(d)}`;
 }
 
 function getDesignerColor(designerName: string, designers: Designer[]): string {
     const designer = designers.find((d) => d.name === designerName);
-    return designer?.color ?? '#8E8E93';
+    return designer?.color ?? 'var(--unassigned-color)';
 }
 
 function getConflictStatusLabel(status?: SyncNotification['conflictStatus']): string {
@@ -75,9 +76,15 @@ export const NaverSyncNotification = ({
     }, [open]);
 
     const now = Date.now();
-    const recentUnread = notifications.filter(
-        (n) => !n.read && now - n.timestamp.getTime() < SEVEN_DAYS_MS,
+    // 미해결 중복예약: read 여부·날짜 무관
+    const pendingConflicts = notifications.filter(
+        (n) => n.type === 'conflict' && n.conflictStatus !== 'confirmed',
     );
+    // 안읽은 일반 알림: 30일 이내
+    const recentUnread = notifications.filter(
+        (n) => n.type !== 'conflict' && !n.read && now - n.timestamp.getTime() <= THIRTY_DAYS_MS,
+    );
+    const panelItems = [...pendingConflicts, ...recentUnread];
 
     const handleNotificationClick = (n: SyncNotification) => {
         markRead(n.id);
@@ -124,10 +131,10 @@ export const NaverSyncNotification = ({
                         </StyledPanelHeader>
 
                         <StyledPanelBody>
-                            {recentUnread.length === 0 && (
+                            {panelItems.length === 0 && (
                                 <StyledEmpty>새 알림이 없습니다</StyledEmpty>
                             )}
-                            {recentUnread.map((n) => (
+                            {panelItems.map((n) => (
                                 <StyledItem key={n.id}
                                             onClick={() => handleNotificationClick(n)}>
                                     {n.type === 'conflict' ? (
@@ -151,8 +158,10 @@ export const NaverSyncNotification = ({
                                             <span className="time">{n.appointmentTime}</span>
                                             <span className="name">{n.customerName}</span>
                                             <span className="suffix">고객님</span>
-                                            <StyledNaverTag>네이버예약</StyledNaverTag>
-                                            <span className="suffix">예약 확정</span>
+                                            {n.type === 'cancel'
+                                                ? <StyledCancelTag>예약취소</StyledCancelTag>
+                                                : <><StyledNaverTag>네이버예약</StyledNaverTag><span className="suffix">확정</span></>
+                                            }
                                         </StyledItemText>
                                     )}
                                     <StyledDesignerMeta>
@@ -221,8 +230,23 @@ interface ModalProps {
 const NotificationModal = ({notifications, designers, reservationMap, markRead, markAllRead, onSelectReservation, onSelectConflict, onClose}: ModalProps) => {
     const dialogRef = useDialogAccessibility<HTMLDivElement>(onClose);
 
-    const unreadNotifications = notifications.filter((n) => !n.read);
-    const readNotifications = notifications.filter((n) => n.read);
+    const now = Date.now();
+    // 중복예약: 미해결은 항상, 확인된 건 7일 이내
+    const conflictNotifications = notifications.filter((n) =>
+        n.type === 'conflict' && (
+            n.conflictStatus !== 'confirmed' ||
+            now - n.timestamp.getTime() <= SEVEN_DAYS_MS
+        ),
+    );
+    // 안읽은 일반: 30일 이내
+    const unreadNotifications = notifications.filter((n) =>
+        !n.read && n.type !== 'conflict' && now - n.timestamp.getTime() <= THIRTY_DAYS_MS,
+    );
+    // 읽은 일반: 7일 이내
+    const readNotifications = notifications.filter((n) =>
+        n.read && n.type !== 'conflict' && now - n.timestamp.getTime() <= SEVEN_DAYS_MS,
+    );
+    const isEmpty = conflictNotifications.length === 0 && unreadNotifications.length === 0 && readNotifications.length === 0;
 
     const handleClick = (n: SyncNotification) => {
         markRead(n.id);
@@ -238,6 +262,51 @@ const NotificationModal = ({notifications, designers, reservationMap, markRead, 
         }
     };
 
+    const renderConflictItem = (n: SyncNotification) => (
+        <StyledModalItem key={n.id}
+                         $unread={n.conflictStatus !== 'confirmed'}
+                         onClick={() => handleClick(n)}>
+            <StyledConflictItemText>
+                <span className="message">
+                    <span className="date">{formatDate(n.appointmentDate)}</span>{' '}
+                    <span className="time">{n.appointmentTime}</span>{' '}
+                    <span className="name">{n.customerName || '고객'}</span>{' '}
+                    <span className="suffix">고객님</span>{' '}
+                    <span className="name">{n.designerName || '미지정'}</span>{' '}
+                    <span className="suffix">디자이너로 중복 예약 발생했습니다.</span>{' '}
+                    <StyledConflictTag>중복예약</StyledConflictTag>{' '}
+                    <StyledStatusTag $status={n.conflictStatus}>{getConflictStatusLabel(n.conflictStatus)}</StyledStatusTag>
+                </span>
+            </StyledConflictItemText>
+            <StyledDesignerMeta>
+                <span>디자이너</span>
+                <DesignerLabel color={getDesignerColor(n.designerName, designers)} name={n.designerName} />
+            </StyledDesignerMeta>
+        </StyledModalItem>
+    );
+
+    const renderRegularItem = (n: SyncNotification, flag: string) => (
+        <StyledModalItem key={n.id}
+                         $unread={!n.read}
+                         onClick={() => handleClick(n)}>
+            <StyledItemText>
+                <span className="date">{formatDate(n.appointmentDate)}</span>
+                <span className="time">{n.appointmentTime}</span>
+                <span className="name">{n.customerName}</span>
+                <span className="suffix">고객님</span>
+                {n.type === 'cancel'
+                    ? <StyledCancelTag>예약취소</StyledCancelTag>
+                    : <><StyledNaverTag>네이버예약</StyledNaverTag><span className="suffix">확정</span></>
+                }
+            </StyledItemText>
+            <StyledDesignerMeta>
+                <span>디자이너</span>
+                <DesignerLabel color={getDesignerColor(n.designerName, designers)} name={n.designerName} />
+            </StyledDesignerMeta>
+            <StyledFlag>{flag}</StyledFlag>
+        </StyledModalItem>
+    );
+
     const modalRoot = typeof document !== 'undefined'
         ? document.getElementById('modal-root')
         : null;
@@ -248,7 +317,7 @@ const NotificationModal = ({notifications, designers, reservationMap, markRead, 
             <StyledModalDetail ref={dialogRef} onClick={(e) => e.stopPropagation()}>
                 <StyledHeader>
                     <StyledHeaderTitleGroup>
-                        <h3>전체 알림(최근 7일)</h3>
+                        <h3>전체 알림</h3>
                     </StyledHeaderTitleGroup>
                     {unreadNotifications.length > 0 && (
                         <button type="button" onClick={markAllRead}>모두 읽음</button>
@@ -256,95 +325,33 @@ const NotificationModal = ({notifications, designers, reservationMap, markRead, 
                 </StyledHeader>
                 <StyledBody>
                     <StyledModalBodyInner>
-                        {notifications.length === 0 && (
+                        {isEmpty && (
                             <StyledEmpty>알림이 없습니다</StyledEmpty>
                         )}
-                        {unreadNotifications.length > 0 && (
-                            <>
-                                <StyledSectionLabel>미확인 알림</StyledSectionLabel>
-                                {unreadNotifications.map((n) => (
-                                    <StyledModalItem key={n.id}
-                                                     $unread
-                                                     onClick={() => handleClick(n)}>
-                                        {n.type === 'conflict' ? (
-                                            <StyledConflictItemText>
-                                                <span className="message">
-                                                    <span className="date">{formatDate(n.appointmentDate)}</span>{' '}
-                                                    <span className="time">{n.appointmentTime}</span>{' '}
-                                                    <span className="name">{n.customerName || '고객'}</span>{' '}
-                                                    <span className="suffix">고객님</span>{' '}
-                                                    <span className="name">{n.designerName || '미지정'}</span>{' '}
-                                                    <span className="suffix">디자이너로 중복 예약 발생했습니다.</span>{' '}
-                                                    <StyledConflictTag>중복예약</StyledConflictTag>{' '}
-                                                    <StyledStatusTag $status={n.conflictStatus}>{getConflictStatusLabel(n.conflictStatus)}</StyledStatusTag>
-                                                </span>
-                                            </StyledConflictItemText>
-                                        ) : (
-                                            <StyledItemText>
-                                                <span className="date">{formatDate(n.appointmentDate)}</span>
-                                                <span className="time">{n.appointmentTime}</span>
-                                                <span className="name">{n.customerName}</span>
-                                                <span className="suffix">고객님</span>
-                                                <StyledNaverTag>네이버예약</StyledNaverTag>
-                                                <span className="suffix">완료</span>
-                                            </StyledItemText>
-                                        )}
-                                        <StyledDesignerMeta>
-                                            <span>디자이너</span>
-                                            <DesignerLabel color={getDesignerColor(n.designerName, designers)}
-                                                           name={n.designerName} />
-                                        </StyledDesignerMeta>
-                                        <StyledFlag>안읽음</StyledFlag>
-                                    </StyledModalItem>
-                                ))}
-                            </>
+
+                        {conflictNotifications.length > 0 && (
+                            <StyledSection>
+                                <StyledSectionLabel>중복예약</StyledSectionLabel>
+                                {conflictNotifications.map(renderConflictItem)}
+                            </StyledSection>
                         )}
+
+                        {unreadNotifications.length > 0 && (
+                            <StyledSection>
+                                <StyledSectionLabel>미확인 알람</StyledSectionLabel>
+                                {unreadNotifications.map((n) => renderRegularItem(n, '안읽음'))}
+                            </StyledSection>
+                        )}
+
                         {readNotifications.length > 0 && (
-                            <>
-                                <StyledSectionLabel>확인한 알림</StyledSectionLabel>
-                                {readNotifications.map((n) => (
-                                    <StyledModalItem key={n.id}
-                                                     $unread={false}
-                                                     onClick={() => handleClick(n)}>
-                                        {n.type === 'conflict' ? (
-                                            <StyledConflictItemText>
-                                                <span className="message">
-                                                    <span className="date">{formatDate(n.appointmentDate)}</span>{' '}
-                                                    <span className="time">{n.appointmentTime}</span>{' '}
-                                                    <span className="name">{n.customerName || '고객'}</span>{' '}
-                                                    <span className="suffix">고객님</span>{' '}
-                                                    <span className="name">{n.designerName || '미지정'}</span>{' '}
-                                                    <span className="suffix">디자이너로 중복 예약 발생했습니다.</span>{' '}
-                                                    <StyledConflictTag>중복예약</StyledConflictTag>{' '}
-                                                    <StyledStatusTag $status={n.conflictStatus}>{getConflictStatusLabel(n.conflictStatus)}</StyledStatusTag>
-                                                </span>
-                                            </StyledConflictItemText>
-                                        ) : (
-                                            <StyledItemText>
-                                                <span className="date">{formatDate(n.appointmentDate)}</span>
-                                                <span className="time">{n.appointmentTime}</span>
-                                                <span className="name">{n.customerName}</span>
-                                                <span className="suffix">고객님</span>
-                                                <StyledNaverTag>네이버예약</StyledNaverTag>
-                                                <span className="suffix">완료</span>
-                                            </StyledItemText>
-                                        )}
-                                        <StyledDesignerMeta>
-                                            <span>디자이너</span>
-                                            <DesignerLabel color={getDesignerColor(n.designerName, designers)}
-                                                           name={n.designerName} />
-                                        </StyledDesignerMeta>
-                                        <StyledFlag>읽음</StyledFlag>
-                                    </StyledModalItem>
-                                ))}
-                            </>
+                            <StyledSection>
+                                <StyledSectionLabel>확인 알람</StyledSectionLabel>
+                                {readNotifications.map((n) => renderRegularItem(n, '읽음'))}
+                            </StyledSection>
                         )}
                     </StyledModalBodyInner>
                 </StyledBody>
                 <StyledFooter>
-                    {unreadNotifications.length > 0 && (
-                        <button type="button" onClick={markAllRead}>모두 읽음</button>
-                    )}
                     <StyledActionButton type="button" onClick={onClose}>닫기</StyledActionButton>
                 </StyledFooter>
             </StyledModalDetail>
@@ -374,7 +381,6 @@ const StyledBellButton = styled.button`
     border: none;
     color: var(--dark-gray-color);
     flex-shrink: 0;
-    cursor: pointer;
 
     @media (hover: hover) and (pointer: fine) {
         &:hover {
@@ -395,7 +401,7 @@ const StyledBadge = styled.span`
     padding: 0 4px;
     box-sizing: border-box;
     border-radius: 999px;
-    color: #fff;
+    color: var(--white-color);
     background: var(--danger-color);
     font-size: 10px;
     font-weight: 700;
@@ -438,7 +444,6 @@ const StyledMarkReadButton = styled.button`
     border: none;
     color: var(--blue-color);
     font-size: var(--small-font);
-    cursor: pointer;
     padding: 0;
 `;
 
@@ -448,16 +453,19 @@ const StyledPanelBody = styled.div`
     min-height: 0;
 `;
 
+const StyledSection = styled.div``;
+
 const StyledSectionLabel = styled.div`
     position: sticky;
     top: 0;
+    z-index: 1;
     padding: 6px 12px;
     font-size: 11px;
     font-weight: 700;
     color: var(--dark-gray-color2);
     letter-spacing: 0.02em;
-    background: rgba(255, 255, 255, .1); /* 살짝만 흰색 */
-    backdrop-filter: blur(.8px) saturate(180%);
+    background: var(--white-color);
+    border-bottom: 1px solid var(--gray-color2);
 `;
 
 const StyledUnreadDot = styled.span`
@@ -475,7 +483,8 @@ const StyledFlag = styled.span`
     justify-content: center;
     align-items: center;
     color: var(--dark-gray-color);
-    font-size: var(--small-font);
+    font-size: var(--tiny-font);
+    white-space: nowrap;
 `;
 
 const StyledEmpty = styled.div`
@@ -490,13 +499,13 @@ const StyledItem = styled.div`
     flex-direction: column;
     gap: 4px;
     padding: 10px 12px;
-    background-color: #f0f8ff;
+    background-color: var(--notification-unread-bg);
     border-bottom: 1px solid var(--gray-color2);
     cursor: pointer;
 
     @media (hover: hover) and (pointer: fine) {
         &:hover {
-            background-color: #e3f1fc;
+            background-color: var(--notification-unread-bg-hover);
         }
     }
 
@@ -547,7 +556,7 @@ const StyledConflictItemText = styled.div`
 
     .date {
         font-weight: 800;
-        color: #111827;
+        color: var(--notification-text);
     }
 
     .time {
@@ -556,7 +565,7 @@ const StyledConflictItemText = styled.div`
 
     .name {
         font-weight: 700;
-        color: #111827;
+        color: var(--notification-text);
     }
 
     .suffix {
@@ -566,6 +575,14 @@ const StyledConflictItemText = styled.div`
 
 const StyledNaverTag = styled(LabelBadge).attrs({
     $tone: 'brand',
+    $shape: 'soft',
+    $size: 'sm',
+})`
+    font-size: 10px;
+`;
+
+const StyledCancelTag = styled(LabelBadge).attrs({
+    $tone: 'neutral',
     $shape: 'soft',
     $size: 'sm',
 })`
@@ -614,7 +631,6 @@ const StyledShowAllButton = styled.button`
     color: var(--blue-color);
     font-size: var(--small-font);
     font-weight: 600;
-    cursor: pointer;
     padding: 0;
 `;
 
@@ -628,7 +644,7 @@ const StyledModalDetail = styled(StyledDetail)`
 `;
 
 const StyledModalBodyInner = styled(StyledBodyInner)`
-    padding: 0;
+    padding: 0 0 30px 0;
 `;
 
 const StyledModalItem = styled.div<{ $unread: boolean }>`
@@ -638,13 +654,13 @@ const StyledModalItem = styled.div<{ $unread: boolean }>`
     width: 100%;
     box-sizing: border-box;
     padding: 4px 8px;
-    background-color: ${(props) => props.$unread ? '#f0f8ff' : 'transparent'};
+    background-color: ${(props) => props.$unread ? 'var(--notification-unread-bg)' : 'transparent'};
     border-bottom: 1px solid var(--gray-color2);
     cursor: pointer;
 
     @media (hover: hover) and (pointer: fine) {
         &:hover {
-            background-color: ${(props) => props.$unread ? '#e3f1fc' : 'var(--gray-color2)'};
+            background-color: ${(props) => props.$unread ? 'var(--notification-unread-bg-hover)' : 'var(--gray-color2)'};
         }
     }
 

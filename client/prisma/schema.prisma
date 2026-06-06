@@ -10,6 +10,7 @@ datasource db {
 model Store {
   id                     String               @id @default(cuid())
   name                   String
+  onboarded              Boolean              @default(false)
   categoryBaseColorsJson Json                 @default("{}")
   createdAt              DateTime             @default(now())
   updatedAt              DateTime             @updatedAt
@@ -175,6 +176,7 @@ model Reservation {
   naverBookingId   String?
   naverBookingUrl  String?
   naverDeposit     Int?
+  channel          ReservationChannel        @default(phone)
   createdAt        DateTime                  @default(now())
   updatedAt        DateTime                  @updatedAt
   pointHistories   CustomerPointHistory[]
@@ -282,6 +284,14 @@ enum PaymentMethod {
   local_currency_receipt
   voucher
   points
+  discount
+  naver_deposit
+}
+
+enum ReservationChannel {
+  naver
+  walk_in
+  phone
 }
 
 enum PointHistoryType {
@@ -291,6 +301,28 @@ enum PointHistoryType {
   payment_use
   payment_earn
   payment_adjust
+}
+
+model CustomerMergeHistory {
+  id                    String   @id @default(cuid())
+  storeId               String
+  sourceCustomerJson    Json
+  targetCustomerJson    Json
+  movedReservationIds   Json     @default("[]")
+  movedPointHistoryIds  Json     @default("[]")
+  addedMemoTagIds       Json     @default("[]")
+  createdAt             DateTime @default(now())
+
+  @@index([storeId])
+}
+
+model Inquiry {
+  id        String   @id @default(cuid())
+  storeId   String?
+  name      String
+  email     String   @default("")
+  content   String
+  createdAt DateTime @default(now())
 }
 
 enum DesignerStatus {

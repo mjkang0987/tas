@@ -15,7 +15,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             where: {storeId: session.storeId},
             include: {
                 memoTags: true,
-                pointHistories: {orderBy: {createdAt: 'asc'}},
+                pointHistories: {
+                    orderBy: {createdAt: 'asc'},
+                    include: {relatedReservation: {select: {legacyId: true}}},
+                },
             },
             orderBy: {legacyId: 'asc'},
         });
@@ -81,6 +84,21 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                 const newHistories = (customer.pointHistories ?? []).filter((h) => !existingHistoryIds.has(h.id));
 
                 if (newHistories.length > 0) {
+                    const relatedLegacyIds = newHistories
+                        .filter((h) => h.relatedReservationId)
+                        .map((h) => h.relatedReservationId!);
+
+                    const legacyToCuidMap = new Map<number, string>();
+                    if (relatedLegacyIds.length > 0) {
+                        const relatedReservations = await tx.reservation.findMany({
+                            where: {storeId: session.storeId, legacyId: {in: relatedLegacyIds}},
+                            select: {id: true, legacyId: true},
+                        });
+                        for (const r of relatedReservations) {
+                            if (r.legacyId != null) legacyToCuidMap.set(r.legacyId, r.id);
+                        }
+                    }
+
                     await tx.customerPointHistory.createMany({
                         data: newHistories.map((h) => ({
                             id: h.id,
@@ -90,6 +108,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                             balance: h.balance,
                             description: h.description,
                             createdAt: h.createdAt ? new Date(h.createdAt) : new Date(),
+                            relatedReservationId: h.relatedReservationId
+                                ? legacyToCuidMap.get(h.relatedReservationId) ?? null
+                                : null,
                         })),
                     });
                 }

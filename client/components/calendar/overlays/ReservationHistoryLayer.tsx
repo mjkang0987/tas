@@ -53,7 +53,7 @@ export function ReservationHistoryLayer({
                 <StyledHeader>
                     <StyledHeaderTitleGroup>
                         <h3>변경 이력</h3>
-                        <p>예약 상태와 시간, 시술 변경 흐름을 시간순으로 보여줍니다.</p>
+                        <p>예약 상태와 시간, 서비스 변경 흐름을 시간순으로 보여줍니다.</p>
                     </StyledHeaderTitleGroup>
                     <CloseIconButton onClick={onClose} />
                 </StyledHeader>
@@ -65,14 +65,15 @@ export function ReservationHistoryLayer({
                                 const isCancelEntry = entry.after.status === 'cancelled' && entry.before.status !== 'cancelled';
                                 const isNoshowEntry = entry.after.status === 'noshow' && entry.before.status !== 'noshow';
                                 const isCompleteEntry = entry.after.status === 'completed' && entry.before.status !== 'completed';
-                                const entryType = isCancelEntry ? 'cancelled' : isNoshowEntry ? 'noshow' : isCompleteEntry ? 'completed' : 'edit';
+                                const isRestoreEntry = entry.after.status === 'active' && (entry.before.status === 'cancelled' || entry.before.status === 'noshow');
+                                const entryType = isCancelEntry ? 'cancelled' : isNoshowEntry ? 'noshow' : isCompleteEntry ? 'completed' : isRestoreEntry ? 'restored' : 'edit';
 
                                 return (
                                     <StyledHistoryDetailItem key={index} $type={entryType}>
                                         <StyledHistoryDetailHeader>
                                             <time dateTime={entry.timestamp}>{formatTimestamp(entry.timestamp)}</time>
                                             <StyledHistoryTypeBadge $type={entryType}>
-                                                {isCancelEntry ? '예약취소' : isNoshowEntry ? '노쇼' : isCompleteEntry ? '예약완료' : '변경'}
+                                                {isCancelEntry ? '예약취소' : isNoshowEntry ? '노쇼' : isCompleteEntry ? '예약완료' : isRestoreEntry ? '예약전환' : '변경'}
                                             </StyledHistoryTypeBadge>
                                         </StyledHistoryDetailHeader>
                                         <StyledHistoryDetailDiffs>
@@ -114,6 +115,7 @@ const HISTORY_ITEM_STYLES: Record<string, { bg: string; border: string }> = {
     cancelled: {bg: 'rgba(241, 245, 249, 0.92)', border: 'rgba(203, 213, 225, 0.95)'},
     noshow: {bg: 'var(--danger-bg)', border: 'var(--danger-border)'},
     completed: {bg: '#E6F4EA', border: '#CDEAD6'},
+    restored: {bg: '#EFF6FF', border: '#BFDBFE'},
 };
 
 const StyledHistoryDetailItem = styled.div<{ $type: string }>`
@@ -136,7 +138,7 @@ const StyledHistoryDetailHeader = styled.div`
 `;
 
 const StyledHistoryTypeBadge = styled(LabelBadge).attrs<{ $type: string }>((props) => ({
-    $tone: props.$type === 'cancelled' ? 'neutral' : props.$type === 'noshow' ? 'danger' : props.$type === 'completed' ? 'success' : 'info',
+    $tone: props.$type === 'cancelled' ? 'neutral' : props.$type === 'noshow' ? 'danger' : props.$type === 'completed' ? 'success' : props.$type === 'restored' ? 'brand' : 'info',
     $shape: 'soft',
     $size: 'sm',
 }))<{ $type: string }>`

@@ -65,7 +65,8 @@ export const Month = ({
                         setView({type: ViewType.Day});
                     }}
                          isToday={isTodayDate}
-                         compact={isAdjacentMonth}>{dateLabel}</Num>
+                         compact={isAdjacentMonth}
+                         className={isAdjacentMonth ? 'faded' : undefined}>{dateLabel}</Num>
                     <ButtonAdd onClick={() => setCreateReservationInitial({date: toDateKey(fullYear, currMonth, val), startTime: '10:00'})}
                                aria-label={`${normalizedDate.getMonth() + 1}월 ${normalizedDate.getDate()}일 예약 추가`}/>
                 </StyledDateHeader>
@@ -111,9 +112,8 @@ const StyledDate = styled.li<{ type: string }>`
         border-top: none;
     }
 
-    ${props => (props.type === 'prev' || props.type === 'next') && `button {
-    color: var(--gray-color);
-  }
+    ${props => (props.type === 'prev' || props.type === 'next') && `
+    .faded { color: var(--gray-color); }
   `}
 `;
 
@@ -127,7 +127,6 @@ const StyledViewAllButton = styled.button`
     font-size: 9px;
     font-weight: 600;
     color: var(--dark-gray-color);
-    cursor: pointer;
 
     @media (hover: hover) and (pointer: fine) {
         &:hover {

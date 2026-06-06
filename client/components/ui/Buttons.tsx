@@ -58,18 +58,19 @@ const StyledReserveButton = styled.button <Props>`
     width: calc(100% - 10px);
     height: ${props => props.$height}px;
     max-height: ${props => props.$height}px;
-    background-color: ${props => props.$cancelled ? 'var(--cancelled-color)' : `${props.$color}12`};
-    border: 1px solid ${props => props.$cancelled ? 'var(--cancelled-color)' : props.$color};
+    background-color: ${props => `${props.$color}12`};
+    border: 1px solid ${props => props.$color};
     border-left-width: 4px;
     border-radius: var(--radius-sm);
     padding: 2px 6px;
-    color: ${props => props.$cancelled ? 'var(--white-color)' : 'var(--dark-gray-color)'};
+    color: ${props => 'var(--dark-gray-color)'};
     font-size: 12px;
     overflow: hidden;
     cursor: pointer;
     box-sizing: border-box;
     z-index: 1;
     opacity: ${props => props.$cancelled ? 0.5 : 1};
+    filter: ${props => props.$cancelled ? 'grayscale(.5)' : 'none'};
     transition: max-height 0.2s ease, box-shadow 0.2s ease;
     text-align: left;
     @media (max-width: 640px) {
@@ -77,7 +78,7 @@ const StyledReserveButton = styled.button <Props>`
     }
 
     .highlight {
-        display: block;
+        display: inline;
         font-weight: 600;
         font-size: var(--small-font);
         text-decoration: ${props => props.$cancelled ? 'line-through' : 'none'};
@@ -94,12 +95,9 @@ const StyledReserveButton = styled.button <Props>`
     }
 
     .detail {
-        display: block;
-        margin-top: 2px;
+        display: inline;
+        margin-left: 4px;
         font-size: var(--tiny-font);
-        @media (max-width: 640px) {
-            display: none;
-        }
     }
 
     .service-token {
@@ -109,17 +107,6 @@ const StyledReserveButton = styled.button <Props>`
             flex-wrap: wrap;
             gap: 4px;
         }
-    }
-
-    .service-chip,
-    .service-chip-text {
-        display: inline-flex;
-        align-items: center;
-        padding: 3px 7px;
-        border-radius: 999px;
-        font-size: 11px;
-        font-weight: 600;
-        line-height: 1.2;
     }
 
     .drag-handle {
@@ -141,10 +128,7 @@ const StyledReserveButton = styled.button <Props>`
         z-index: 2;
         transform: translateY(-50%);
         @media (max-width: 640px) {
-            top: 5px;
-            right: 0;
-            left: 50%;
-            transform: translate(-50%, 0);
+            display: none;
         }
 
         &::before {
@@ -200,7 +184,6 @@ const StyledAddButton = styled.button`
     color: var(--gray-color);
     font-size: 16px;
     line-height: 1;
-    cursor: pointer;
 
     @media (hover: hover) and (pointer: fine) {
         &:hover {
@@ -218,3 +201,5 @@ interface AddProps {
 export const ButtonAdd: React.FC<AddProps> = (props) => {
     return <StyledAddButton type="button" {...props}>&#x2b;</StyledAddButton>;
 }
+
+

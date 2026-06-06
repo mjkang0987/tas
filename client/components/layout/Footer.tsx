@@ -21,10 +21,6 @@ export const Footer = () => {
                 <FooterIcon icon="search"/>
                 <ButtonText a11y={false}>고객검색</ButtonText>
             </StyledSearchButton>
-            <StyledFooterLink href="/address">
-                <FooterIcon icon="customers"/>
-                <span>고객명단</span>
-            </StyledFooterLink>
             <StyledFooterLink href="/settings/revenue">
                 <FooterIcon icon="settings"/>
                 <span>설정</span>
@@ -34,23 +30,12 @@ export const Footer = () => {
     );
 };
 
-const FooterIcon = ({icon}: { icon: 'search' | 'customers' | 'settings' }) => {
+const FooterIcon = ({icon}: { icon: 'search' | 'settings' }) => {
     if (icon === 'search') {
         return (
             <StyledFooterIcon viewBox="0 0 24 24" aria-hidden="true">
                 <circle cx="11" cy="11" r="5.5" />
                 <path d="M15.2 15.2L19 19" />
-            </StyledFooterIcon>
-        );
-    }
-
-    if (icon === 'customers') {
-        return (
-            <StyledFooterIcon viewBox="0 0 24 24" aria-hidden="true">
-                <path d="M8 7H19M8 12H19M8 17H19" />
-                <circle cx="5" cy="7" r="1" fill="currentColor" stroke="none" />
-                <circle cx="5" cy="12" r="1" fill="currentColor" stroke="none" />
-                <circle cx="5" cy="17" r="1" fill="currentColor" stroke="none" />
             </StyledFooterIcon>
         );
     }
@@ -240,7 +225,6 @@ const StyledSearchInput = styled.input`
     height: 14px;
     margin-right: 4px;
     background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 14 14'%3E%3Ccircle cx='7' cy='7' r='7' fill='%23999'/%3E%3Cpath d='M4.5 4.5L9.5 9.5M9.5 4.5L4.5 9.5' stroke='%23fff' stroke-width='1.5' stroke-linecap='round'/%3E%3C/svg%3E") no-repeat center / contain;
-    cursor: pointer;
   }
 `;
 

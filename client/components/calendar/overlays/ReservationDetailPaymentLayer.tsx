@@ -14,12 +14,15 @@ type ReservationDetailPaymentLayerProps = {
     showPointAward: boolean;
     error: string;
     paymentMethodOptions: PaymentMethod[];
+    totalPrice: number;
+    naverDeposit: number;
     onChangeEntryMethod: (index: number, value: PaymentMethod | '') => void;
     onChangeEntryAmount: (index: number, value: string) => void;
     onTogglePointAward: (enabled: boolean) => void;
     onChangePointAwardAmount: (value: string) => void;
     onRemoveEntry: (index: number) => void;
     onAddEntry: () => void;
+    onNavigateToPoints: () => void;
 };
 
 export function ReservationDetailPaymentLayer({
@@ -29,25 +32,40 @@ export function ReservationDetailPaymentLayer({
     showPointAward,
     error,
     paymentMethodOptions,
+    totalPrice,
+    naverDeposit,
     onChangeEntryMethod,
     onChangeEntryAmount,
     onTogglePointAward,
     onChangePointAwardAmount,
     onRemoveEntry,
     onAddEntry,
+    onNavigateToPoints,
 }: ReservationDetailPaymentLayerProps) {
+    const expectedAmount = totalPrice - naverDeposit;
+
     return (
         <StyledBody>
             <StyledBodyInner>
                 <StyledPaymentLayer>
                     <StyledPaymentSummary>
                         <StyledPaymentMessage>결제 종류와 금액을 입력해 주세요.</StyledPaymentMessage>
-                        <StyledPointBalance>보유 적립금 {formatPrice(customerPoints)}</StyledPointBalance>
+                        <StyledPointBalance type="button" onClick={onNavigateToPoints}>보유 적립금 {formatPrice(customerPoints)}</StyledPointBalance>
                     </StyledPaymentSummary>
+                    <StyledExpectedAmount>
+                        <span>서비스 금액 {formatPrice(totalPrice)}</span>
+                        {naverDeposit > 0 && (
+                            <>
+                                <StyledNaverDeposit>네이버 예약금 -{formatPrice(naverDeposit)}</StyledNaverDeposit>
+                                <StyledExpectedTotal>실결제 {formatPrice(expectedAmount)}</StyledExpectedTotal>
+                            </>
+                        )}
+                    </StyledExpectedAmount>
                     <StyledPaymentEntryList>
                         {paymentEntries.map((entry, index) => (
                             <StyledPaymentEntryRow key={`payment-entry-${index}`}>
                                 <select
+                                    id={`payment-entry-${index}-method`}
                                     value={entry.method}
                                     onChange={(e) => onChangeEntryMethod(index, e.target.value as PaymentMethod | '')}
                                 >
@@ -57,6 +75,7 @@ export function ReservationDetailPaymentLayer({
                                     ))}
                                 </select>
                                 <input
+                                    id={`payment-entry-${index}-amount`}
                                     type="text"
                                     inputMode="numeric"
                                     value={entry.amount}
@@ -77,8 +96,9 @@ export function ReservationDetailPaymentLayer({
                     </StyledPaymentAddButton>
                     {showPointAward && (
                         <StyledPointAwardBox>
-                            <StyledPointAwardToggle>
+                            <StyledPointAwardToggle htmlFor="payment-point-award-toggle">
                                 <input
+                                    id="payment-point-award-toggle"
                                     type="checkbox"
                                     checked={pointAward.enabled}
                                     onChange={(e) => onTogglePointAward(e.target.checked)}
@@ -86,6 +106,7 @@ export function ReservationDetailPaymentLayer({
                                 <span>적립 적용</span>
                             </StyledPointAwardToggle>
                             <StyledPointAwardInput
+                                id="payment-point-award-amount"
                                 type="text"
                                 inputMode="numeric"
                                 value={pointAward.amount}
@@ -122,16 +143,23 @@ const StyledPaymentSummary = styled.div`
     flex-wrap: wrap;
 `;
 
-const StyledPointBalance = styled.span`
+const StyledPointBalance = styled.button`
     display: inline-flex;
     align-items: center;
     min-height: 28px;
     padding: 0 10px;
+    border: none;
     border-radius: 999px;
     background: #f5efe3;
     color: #8a5a00;
     font-size: 12px;
     font-weight: 700;
+
+    @media (hover: hover) and (pointer: fine) {
+        &:hover {
+            background: #efe5d4;
+        }
+    }
 `;
 
 const StyledPaymentEntryList = styled.div`
@@ -142,15 +170,15 @@ const StyledPaymentEntryList = styled.div`
 
 const StyledPaymentEntryRow = styled.div`
     display: grid;
-    grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr) auto;
-    gap: 8px;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    gap: 4px;
 
     select,
     input {
         height: 30px;
-        padding: 0 10px;
+        padding: 0 10px 0 4px;
         border: 1px solid var(--light-gray-color);
-        border-radius: 8px;
+        border-radius: 4px;
         background: var(--white-color);
         font-size: 12px;
         color: var(--dark-gray-color);
@@ -170,7 +198,6 @@ const StyledPaymentAddButton = styled.button`
     color: var(--dark-gray-color);
     font-size: 12px;
     font-weight: 600;
-    cursor: pointer;
 `;
 
 const StyledPaymentRemoveButton = styled.button`
@@ -178,11 +205,10 @@ const StyledPaymentRemoveButton = styled.button`
     height: 30px;
     padding: 0 10px;
     border: 1px solid var(--danger-border);
-    border-radius: 8px;
+    border-radius: 4px;
     background: var(--danger-bg);
     color: var(--danger-color);
     font-size: 12px;
-    cursor: pointer;
 `;
 
 const StyledPaymentError = styled.p`
@@ -220,4 +246,38 @@ const StyledPointAwardInput = styled.input`
     font-size: 12px;
     color: var(--dark-gray-color);
     box-sizing: border-box;
+`;
+
+const StyledExpectedAmount = styled.div`
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+    font-size: 12px;
+    color: var(--dark-gray-color);
+    font-weight: 600;
+`;
+
+const StyledNaverDeposit = styled.span`
+    display: inline-flex;
+    align-items: center;
+    min-height: 24px;
+    padding: 0 8px;
+    border-radius: 999px;
+    background: #e8f5e9;
+    color: #2e7d32;
+    font-size: 11px;
+    font-weight: 700;
+`;
+
+const StyledExpectedTotal = styled.span`
+    display: inline-flex;
+    align-items: center;
+    min-height: 24px;
+    padding: 0 8px;
+    border-radius: 999px;
+    background: #e3f2fd;
+    color: #1565c0;
+    font-size: 11px;
+    font-weight: 700;
 `;

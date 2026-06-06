@@ -1,9 +1,11 @@
 import {useMemo, useState, type DragEvent} from 'react';
 import {createPortal} from 'react-dom';
 
-import styled, {css} from 'styled-components';
+import styled from 'styled-components';
 
 import {useCalendarStore} from '../../store/calendarStore';
+import {PageHero} from '../ui/PageHero';
+import {actionButtonStyle, StyledEditBtn as StyledEditBtnBase, StyledSaveBtn, StyledCancelBtn, StyledServiceFooter, StyledEmpty} from './settings-styles';
 import {buildServiceColorMap, formatPrice, formatDuration, getCategoryBaseColor, getGroupedCatalog, getServiceColor} from '../../utils/services';
 import type {ServiceItem} from '../../utils/services';
 import {
@@ -46,11 +48,11 @@ const ServiceEditModal = ({item, serviceCatalog, onSave, onDelete, onClose}: Ser
     const handleSave = () => {
         const nextName = name.trim();
         if (!nextName) {
-            setError('시술명을 입력해 주세요.');
+            setError('서비스명을 입력해 주세요.');
             return;
         }
         if (serviceCatalog.some((s) => s.name === nextName && s.name !== item.name)) {
-            setError(`"${nextName}" 시술은 이미 등록되어 있습니다.`);
+            setError(`"${nextName}" 서비스는 이미 등록되어 있습니다.`);
             return;
         }
         onSave(item, {
@@ -74,31 +76,33 @@ const ServiceEditModal = ({item, serviceCatalog, onSave, onDelete, onClose}: Ser
             onClick={onClose}
             role="dialog"
             aria-modal="true"
-            aria-label="시술 수정"
+            aria-label="서비스 수정"
             id={layerId}
             data-layer-id={layerDataId}
         >
             <StyledServiceModal ref={dialogRef} tabIndex={-1} onClick={(e) => e.stopPropagation()}>
                 <StyledHeader>
-                    <h3>시술 수정</h3>
+                    <h3>서비스 수정</h3>
                     <CloseIconButton onClick={onClose} />
                 </StyledHeader>
                 <StyledModalBody>
                     <StyledForm>
                         <StyledFieldRow>
-                            <strong>시술명</strong>
-                            <label>
+                            <strong>서비스명</strong>
+                            <label htmlFor="service-edit-name">
                                 <input
+                                    id="service-edit-name"
                                     value={name}
                                     onChange={(e) => { setName(e.target.value); setError(''); }}
-                                    placeholder="시술명"
+                                    placeholder="서비스명"
                                 />
                             </label>
                         </StyledFieldRow>
                         <StyledFieldRow>
                             <strong>소요시간 (분)</strong>
-                            <label>
+                            <label htmlFor="service-edit-duration">
                                 <input
+                                    id="service-edit-duration"
                                     type="number"
                                     value={durationMinutes}
                                     onChange={(e) => setDurationMinutes(e.target.value)}
@@ -108,8 +112,9 @@ const ServiceEditModal = ({item, serviceCatalog, onSave, onDelete, onClose}: Ser
                         </StyledFieldRow>
                         <StyledFieldRow>
                             <strong>가격 (원)</strong>
-                            <label>
+                            <label htmlFor="service-edit-price">
                                 <input
+                                    id="service-edit-price"
                                     type="number"
                                     value={price}
                                     onChange={(e) => setPrice(e.target.value)}
@@ -164,11 +169,11 @@ const ServiceAddModal = ({categories, serviceCatalog, onAdd, onClose}: ServiceAd
             return;
         }
         if (!itemName) {
-            setError('시술명을 입력해 주세요.');
+            setError('서비스명을 입력해 주세요.');
             return;
         }
         if (serviceCatalog.some((s) => s.name === itemName)) {
-            setError(`"${itemName}" 시술은 이미 등록되어 있습니다.`);
+            setError(`"${itemName}" 서비스는 이미 등록되어 있습니다.`);
             return;
         }
 
@@ -187,23 +192,23 @@ const ServiceAddModal = ({categories, serviceCatalog, onAdd, onClose}: ServiceAd
             onClick={onClose}
             role="dialog"
             aria-modal="true"
-            aria-label="시술 추가"
+            aria-label="서비스 추가"
             id={layerId}
             data-layer-id={layerDataId}
         >
             <StyledServiceModal ref={dialogRef} tabIndex={-1} onClick={(e) => e.stopPropagation()}>
                 <StyledHeader>
-                    <h3>시술 추가</h3>
+                    <h3>서비스 추가</h3>
                     <CloseIconButton onClick={onClose} />
                 </StyledHeader>
                 <StyledModalBody>
                     <StyledForm>
                         <StyledFieldRow>
                             <strong>카테고리</strong>
-                            <label>
+                            <label htmlFor="service-add-category">
                                 <select
+                                    id="service-add-category"
                                     value={form.category}
-                                    aria-label="시술 카테고리"
                                     onChange={(e) => {
                                         setForm({...form, category: e.target.value});
                                         setError('');
@@ -215,8 +220,9 @@ const ServiceAddModal = ({categories, serviceCatalog, onAdd, onClose}: ServiceAd
                                 </select>
                             </label>
                             {form.category === '__new' && (
-                                <label>
+                                <label htmlFor="service-add-new-category">
                                     <input
+                                        id="service-add-new-category"
                                         value={newCategory}
                                         placeholder="새 카테고리명"
                                         onChange={(e) => { setNewCategory(e.target.value); setError(''); }}
@@ -225,19 +231,21 @@ const ServiceAddModal = ({categories, serviceCatalog, onAdd, onClose}: ServiceAd
                             )}
                         </StyledFieldRow>
                         <StyledFieldRow>
-                            <strong>시술명</strong>
-                            <label>
+                            <strong>서비스명</strong>
+                            <label htmlFor="service-add-name">
                                 <input
+                                    id="service-add-name"
                                     value={form.name}
                                     onChange={(e) => { setForm({...form, name: e.target.value}); setError(''); }}
-                                    placeholder="시술명"
+                                    placeholder="서비스명"
                                 />
                             </label>
                         </StyledFieldRow>
                         <StyledFieldRow>
                             <strong>소요시간 (분)</strong>
-                            <label>
+                            <label htmlFor="service-add-duration">
                                 <input
+                                    id="service-add-duration"
                                     type="number"
                                     value={form.durationMinutes}
                                     onChange={(e) => setForm({...form, durationMinutes: e.target.value})}
@@ -247,8 +255,9 @@ const ServiceAddModal = ({categories, serviceCatalog, onAdd, onClose}: ServiceAd
                         </StyledFieldRow>
                         <StyledFieldRow>
                             <strong>가격 (원)</strong>
-                            <label>
+                            <label htmlFor="service-add-price">
                                 <input
+                                    id="service-add-price"
                                     type="number"
                                     value={form.price}
                                     onChange={(e) => setForm({...form, price: e.target.value})}
@@ -394,7 +403,9 @@ export const ServiceManageSection = () => {
 
     return (
         <>
+            <PageHero eyebrow="SERVICE" title="서비스 관리" subtitle="서비스 카테고리와 메뉴를 등록하고 가격을 설정합니다." />
             <StyledServiceBody>
+                {grouped.size === 0 && <StyledEmpty>내역이 없습니다.</StyledEmpty>}
                 {Array.from(grouped.entries()).map(([category, items]) => (
                     <StyledGroup
                         key={category}
@@ -411,46 +422,36 @@ export const ServiceManageSection = () => {
                     >
                         <StyledCategoryToggle open>
                         <StyledCategoryHeader>
-                            {editingCategory === category ? (
-                                <StyledCategoryEditRow>
-                                    <StyledCategoryEditInput
-                                        value={editingCategoryName}
-                                        onChange={(e) => setEditingCategoryName(e.target.value)}
-                                        placeholder="카테고리명"
-                                    />
-                                    <StyledSaveBtn type="button" onClick={() => saveCategoryEdit(category)}>저장</StyledSaveBtn>
-                                    <StyledCancelBtn type="button" onClick={() => {
-                                        setEditingCategory(null);
-                                        setEditingCategoryName('');
-                                        setManageError('');
-                                    }}>취소</StyledCancelBtn>
-                                </StyledCategoryEditRow>
-                            ) : (
-                                <StyledCategoryLabel>
-                                    <StyledCategoryNameChip>
-                                        <StyledCategoryDragHandle
-                                            draggable
-                                            onDragStart={(e) => handleCategoryDragStart(e, category)}
-                                            onClick={(e) => e.preventDefault()}
-                                            title="카테고리 순서 이동"
-                                            aria-label={`${category} 카테고리 순서 이동`}
-                                        >
-                                            <svg viewBox="0 0 16 16" aria-hidden="true">
-                                                <rect x="2.5" y="3" width="11" height="1.5" rx="0.75" />
-                                                <rect x="2.5" y="7.25" width="11" height="1.5" rx="0.75" />
-                                                <rect x="2.5" y="11.5" width="11" height="1.5" rx="0.75" />
-                                            </svg>
-                                        </StyledCategoryDragHandle>
-                                        <span>{category}</span>
-                                    </StyledCategoryNameChip>
-                                </StyledCategoryLabel>
-                            )}
-                            <StyledCategoryActions>
-                                {editingCategory !== category && (
-                                    <StyledEditBtn type="button" onClick={() => startCategoryEdit(category)}>이름수정</StyledEditBtn>
-                                )}
+                            <StyledCategoryLabel>
+                                <StyledCategoryNameChip>
+                                    <StyledCategoryDragHandle
+                                        draggable
+                                        onDragStart={(e) => handleCategoryDragStart(e, category)}
+                                        onClick={(e) => e.preventDefault()}
+                                        title="카테고리 순서 이동"
+                                        aria-label={`${category} 카테고리 순서 이동`}
+                                    >
+                                        <svg viewBox="0 0 16 16" aria-hidden="true">
+                                            <rect x="2.5" y="3" width="11" height="1.5" rx="0.75" />
+                                            <rect x="2.5" y="7.25" width="11" height="1.5" rx="0.75" />
+                                            <rect x="2.5" y="11.5" width="11" height="1.5" rx="0.75" />
+                                        </svg>
+                                    </StyledCategoryDragHandle>
+                                    <span>{category}</span>
+                                </StyledCategoryNameChip>
+                            </StyledCategoryLabel>
+                        </StyledCategoryHeader>
+                        {editingCategory === category && (
+                            <StyledCategoryEditRow>
+                                <StyledCategoryEditInput
+                                    id="service-category-edit"
+                                    value={editingCategoryName}
+                                    onChange={(e) => setEditingCategoryName(e.target.value)}
+                                    placeholder="카테고리명"
+                                />
                                 <StyledColorField>
                                     <StyledCategoryColorInput
+                                        id={`service-category-color-${category}`}
                                         type="color"
                                         value={getCategoryBaseColor(category, categoryBaseColorMap)}
                                         onChange={(e) => updateCategoryBaseColor(category, e.target.value)}
@@ -458,8 +459,14 @@ export const ServiceManageSection = () => {
                                         title={`${category} 대표 컬러`}
                                     />
                                 </StyledColorField>
-                            </StyledCategoryActions>
-                        </StyledCategoryHeader>
+                                <StyledSaveBtn type="button" onClick={() => saveCategoryEdit(category)}>저장</StyledSaveBtn>
+                                <StyledCancelBtn type="button" onClick={() => {
+                                    setEditingCategory(null);
+                                    setEditingCategoryName('');
+                                    setManageError('');
+                                }}>취소</StyledCancelBtn>
+                            </StyledCategoryEditRow>
+                        )}
                         <StyledCategoryBody>
                         {items.map((item) => (
                             <StyledItem
@@ -481,26 +488,31 @@ export const ServiceManageSection = () => {
                                 <StyledViewRow>
                                     <StyledDragHandle>::</StyledDragHandle>
                                     <StyledServiceContent>
-                                        <StyledNameChip $color={getServiceColor(item.name, serviceColorMap)}>
-                                            {item.name}
-                                        </StyledNameChip>
-                                        <StyledMeta>
-                                            {formatDuration(item.durationMinutes)}
-                                            {item.price > 0 && ` / ${formatPrice(item.price)}`}
-                                        </StyledMeta>
+                                        <StyledServiceLeft>
+                                            <StyledNameChip $color={getServiceColor(item.name, serviceColorMap)}>
+                                                {item.name}
+                                            </StyledNameChip>
+                                            <StyledDuration>{formatDuration(item.durationMinutes)}</StyledDuration>
+                                        </StyledServiceLeft>
+                                        {item.price > 0 && <StyledPrice>{formatPrice(item.price)}</StyledPrice>}
                                     </StyledServiceContent>
                                 </StyledViewRow>
                             </StyledItem>
                         ))}
                         </StyledCategoryBody>
                         </StyledCategoryToggle>
+                        {editingCategory !== category && (
+                            <StyledCategoryActions>
+                                <StyledEditBtn type="button" onClick={() => startCategoryEdit(category)}>수정</StyledEditBtn>
+                            </StyledCategoryActions>
+                        )}
                     </StyledGroup>
                 ))}
             </StyledServiceBody>
             {manageError && <StyledManageNotice>{manageError}</StyledManageNotice>}
 
             <StyledServiceFooter>
-                <StyledAddButton type="button" onClick={() => setShowAddModal(true)}>+ 시술 추가</StyledAddButton>
+                <StyledAddButton type="button" onClick={() => setShowAddModal(true)}>+ 서비스 추가</StyledAddButton>
             </StyledServiceFooter>
 
             {editingItem && (
@@ -547,41 +559,16 @@ const StyledModalBody = styled.div`
 /*  Styled – List                                                      */
 /* ------------------------------------------------------------------ */
 
-const actionButtonStyle = css`
-    flex-shrink: 0;
-    height: 30px;
-    padding: 0 12px;
-    border-radius: var(--radius-md);
-    font-size: 12px;
-    font-weight: 500;
-    cursor: pointer;
-    transition: transform 0.12s ease, box-shadow 0.15s ease, border-color 0.15s ease, background-color 0.15s ease;
-
-    @media (hover: hover) and (pointer: fine) {
-        &:hover {
-
-    }
-    }
-`;
-
-const mobileStretchButtonStyle = css`
-    @media (max-width: 640px) {
-        flex: 1;
-    }
-`;
 
 const StyledServiceBody = styled.div`
-    overflow-y: auto;
-    overscroll-behavior: auto;
-    padding: 8px 0;
 `;
 
 const StyledGroup = styled.div<{ $isCategoryDragging: boolean; $isCategoryDragOver: boolean }>`
     position: relative;
     opacity: ${(p) => p.$isCategoryDragging ? 0.5 : 1};
-    background-color: ${(p) => p.$isCategoryDragOver ? 'rgba(19, 115, 51, 0.06)' : 'transparent'};
+    background-color: ${(p) => p.$isCategoryDragOver ? 'rgba(36, 117, 58, 0.06)' : 'transparent'};
     border-radius: 4px;
-    box-shadow: ${(p) => p.$isCategoryDragOver ? '0 8px 20px rgba(19, 115, 51, 0.12)' : 'none'};
+    box-shadow: ${(p) => p.$isCategoryDragOver ? '0 8px 20px rgba(36, 117, 58, 0.12)' : 'none'};
     transition: background-color 0.16s ease, box-shadow 0.16s ease;
 
     &::before {
@@ -595,12 +582,12 @@ const StyledGroup = styled.div<{ $isCategoryDragging: boolean; $isCategoryDragOv
         height: 22px;
         padding: 0 8px;
         border-radius: 999px;
-        background: #137333;
-        color: #fff;
+        background: var(--success-color);
+        color: var(--white-color);
         font-size: 11px;
         font-weight: 700;
         letter-spacing: -0.01em;
-        box-shadow: 0 8px 18px rgba(19, 115, 51, 0.24);
+        box-shadow: 0 8px 18px rgba(36, 117, 58, 0.24);
     }
 
     &::after {
@@ -611,8 +598,8 @@ const StyledGroup = styled.div<{ $isCategoryDragging: boolean; $isCategoryDragOv
         top: -2px;
         height: 4px;
         border-radius: 999px;
-        background: ${(p) => p.$isCategoryDragOver ? '#137333' : 'transparent'};
-        box-shadow: ${(p) => p.$isCategoryDragOver ? '0 0 0 3px rgba(19, 115, 51, 0.14)' : 'none'};
+        background: ${(p) => p.$isCategoryDragOver ? 'var(--success-color)' : 'transparent'};
+        box-shadow: ${(p) => p.$isCategoryDragOver ? '0 0 0 3px rgba(36, 117, 58, 0.14)' : 'none'};
     }
 
     & + & {
@@ -620,11 +607,7 @@ const StyledGroup = styled.div<{ $isCategoryDragging: boolean; $isCategoryDragOv
     }
 `;
 
-const StyledCategoryToggle = styled.details`
-    &[open] {
-        ${''}
-    }
-`;
+const StyledCategoryToggle = styled.details``;
 
 const StyledCategoryHeader = styled.summary`
     list-style: none;
@@ -634,13 +617,12 @@ const StyledCategoryHeader = styled.summary`
     font-size: var(--xsmall-font);
     font-weight: 600;
     color: var(--dark-gray-color);
-    padding: 6px 16px;
+    padding: 6px 0;
     position: sticky;
     top: 0;
     z-index: 2;
     cursor: pointer;
-    background: rgba(255, 255, 255, .1); /* 살짝만 흰색 */
-    backdrop-filter: blur(.8px) saturate(180%);
+    backdrop-filter: blur(8px) saturate(180%);
 
     &::-webkit-details-marker {
         display: none;
@@ -686,17 +668,14 @@ const StyledCategoryNameChip = styled.span`
     min-width: 0;
 `;
 
-const StyledCategoryActions = styled.span`
+const StyledCategoryActions = styled.div`
+    position: absolute;
+    top: 6px;
+    right: 0;
+    z-index: 3;
     display: inline-flex;
     align-items: center;
-    margin-left: auto;
     gap: 6px;
-    flex-shrink: 0;
-
-    @media (max-width: 640px) {
-        flex-wrap: wrap;
-        justify-content: flex-end;
-    }
 `;
 
 const StyledColorField = styled.span`
@@ -707,12 +686,11 @@ const StyledColorField = styled.span`
     color: var(--dark-gray-color2);
 `;
 
-const StyledCategoryEditRow = styled.span`
+const StyledCategoryEditRow = styled.div`
     display: flex;
     align-items: center;
     gap: 6px;
-    flex: 1;
-    min-width: 0;
+    padding: 0 0 6px;
 `;
 
 const StyledCategoryEditInput = styled.input`
@@ -757,28 +735,26 @@ const StyledCategoryDragHandle = styled.span`
 `;
 
 const StyledCategoryColorInput = styled.input`
-    width: 24px;
-    height: 20px;
+    width: 30px;
+    height: 30px;
     padding: 0;
     border: 1px solid var(--light-gray-color);
     border-radius: 4px;
     background: none;
-    cursor: pointer;
 `;
 
 const StyledItem = styled.div<{ $isDragging: boolean; $isDragOver: boolean }>`
     position: relative;
-    padding: 0 16px;
-    border-bottom: 1px solid var(--black-color-10);
+    border-bottom: 1px solid var(--light-gray-color);
     opacity: ${(p) => p.$isDragging ? 0.5 : 1};
-    background-color: ${(p) => p.$isDragOver ? 'rgba(17, 24, 39, 0.05)' : 'transparent'};
-    box-shadow: ${(p) => p.$isDragOver ? 'inset 0 2px 0 #111827' : 'none'};
+    background-color: ${(p) => p.$isDragOver ? 'var(--gray-color2)' : 'transparent'};
+    box-shadow: ${(p) => p.$isDragOver ? 'inset 0 2px 0 var(--dark-gray-color)' : 'none'};
     transition: background-color 0.16s ease, box-shadow 0.16s ease;
     cursor: pointer;
 
     @media (hover: hover) and (pointer: fine) {
         &:hover {
-            background-color: var(--black-color-10);
+            background-color: var(--gray-color2);
         }
     }
 
@@ -791,8 +767,8 @@ const StyledItem = styled.div<{ $isDragging: boolean; $isDragOver: boolean }>`
         align-items: center;
         padding: 2px 8px;
         border-radius: 999px;
-        background: rgba(17, 24, 39, 0.86);
-        color: #fff;
+        background: var(--dark-gray-color);
+        color: var(--white-color);
         font-size: 10px;
         font-weight: 700;
     }
@@ -810,8 +786,12 @@ const StyledServiceContent = styled.div`
     flex: 1;
     min-width: 0;
     display: flex;
-    flex-direction: column;
-    gap: 4px;
+    align-items: center;
+    gap: 8px;
+
+    @media (max-width: 640px) {
+        flex-wrap: wrap;
+    }
 `;
 
 const StyledDragHandle = styled.span`
@@ -835,40 +815,33 @@ const StyledNameChip = styled.span<{ $color: string }>`
     background-color: ${(p) => `${p.$color}18`};
 `;
 
-const StyledMeta = styled.span`
-    display: block;
+const StyledServiceLeft = styled.span`
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    min-width: 0;
+`;
+
+const StyledDuration = styled.span`
+    flex-shrink: 0;
     font-size: 11px;
     color: var(--dark-gray-color2);
 `;
 
-const StyledEditBtn = styled.button`
-    ${actionButtonStyle};
-    border: 1px solid var(--light-gray-color);
-    background: none;
-    font-size: 11px;
+const StyledPrice = styled.span`
+    flex-shrink: 0;
+    margin-left: auto;
+    font-size: 12px;
+    font-weight: 600;
     color: var(--dark-gray-color);
+
+    @media (max-width: 640px) {
+        margin-left: 0;
+    }
+`;
+
+const StyledEditBtn = styled(StyledEditBtnBase)`
     background-color: var(--white-color);
-`;
-
-const StyledSaveBtn = styled.button`
-    ${actionButtonStyle};
-    ${mobileStretchButtonStyle};
-    border: 1px solid var(--blue-color);
-    background-color: var(--blue-color);
-    color: #fff;
-`;
-
-const StyledCancelBtn = styled.button`
-    ${actionButtonStyle};
-    ${mobileStretchButtonStyle};
-    border: 1px solid var(--light-gray-color);
-    background: none;
-    color: var(--dark-gray-color);
-`;
-
-const StyledServiceFooter = styled.div`
-    padding: 12px 16px;
-    border-top: 1px solid var(--light-gray-color);
 `;
 
 const StyledAddButton = styled.button`
@@ -881,9 +854,10 @@ const StyledAddButton = styled.button`
 
     @media (hover: hover) and (pointer: fine) {
         &:hover {
-        border-color: var(--blue-color);
-        color: var(--blue-color);
-    }
+            opacity: 1;
+            border-color: var(--blue-color);
+            color: var(--blue-color);
+        }
     }
 `;
 

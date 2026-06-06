@@ -91,7 +91,7 @@ const StyledNumWrap = styled.span`
     top: 21px;
     width: 100%;
     background: rgba(255, 255, 255, .1);
-    backdrop-filter: blur(.8px) saturate(180%);
+    backdrop-filter: var(--sticky-backdrop);
     z-index: 13;
 
     &:after {

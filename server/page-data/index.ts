@@ -22,6 +22,7 @@ export async function getPageSession(ctx: GetServerSidePropsContext) {
         userId: (decoded.userId as string) ?? '',
         storeId: decoded.storeId as string,
         role: decoded.role as string,
+        onboarded: (decoded.onboarded as boolean) ?? false,
     };
 }
 
@@ -39,7 +40,10 @@ export async function loadPageData(storeId: string) {
             where: {storeId},
             include: {
                 memoTags: true,
-                pointHistories: {orderBy: {createdAt: 'asc'}},
+                pointHistories: {
+                    orderBy: {createdAt: 'asc'},
+                    include: {relatedReservation: {select: {legacyId: true}}},
+                },
             },
         }),
         prisma.reservationHistory.findMany({

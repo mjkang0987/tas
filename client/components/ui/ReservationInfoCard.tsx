@@ -1,7 +1,8 @@
 import styled from 'styled-components';
+import type {KeyboardEvent} from 'react';
 
 import type {Reservation} from '../../utils/reservations';
-import {RESERVATION_STATUS_BADGE_STYLES} from '../../utils/reservations';
+import {RESERVATION_STATUS_BADGE_STYLES, hasCompletedPayment} from '../../utils/reservations';
 import {formatPrice} from '../../utils/services';
 import {DesignerLabel, StyledDesignerLabel} from './DesignerLabel';
 import {LabelBadge} from './LabelBadge';
@@ -29,10 +30,9 @@ type ReservationInfoCardProps = {
 };
 
 function getReservationState(reservation: Reservation, today?: string) {
-    if (reservation.status === 'cancelled') return {type: 'cancelled', label: '취소'};
+    if (reservation.status === 'cancelled') return {type: 'cancelled', label: '예약취소'};
     if (reservation.status === 'noshow') return {type: 'noshow', label: '노쇼'};
-    if (reservation.status === 'completed') return {type: 'completed', label: '완료'};
-    if (today && reservation.date < today) return {type: 'completed', label: '완료'};
+    if (hasCompletedPayment(reservation)) return {type: 'paid', label: '결제완료'};
     return {type: 'booked', label: '예약'};
 }
 
@@ -62,18 +62,32 @@ export function ReservationInfoCard({
     className,
 }: ReservationInfoCardProps) {
     const clickable = !!onClick;
+    const isInactive = reservation.status === 'cancelled' || reservation.status === 'noshow';
     const state = getReservationState(reservation, today);
     const timeText = getTimeText(reservation, timeMode);
+    const handleActivate = () => {
+        if (onClick) {
+            onClick(reservation);
+        }
+    };
+    const handleKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
+        if (!clickable) return;
+        if (event.key !== 'Enter' && event.key !== ' ') return;
+
+        event.preventDefault();
+        handleActivate();
+    };
 
     return (
         <StyledCard
-            as={clickable ? 'button' : 'div'}
-            type={clickable ? 'button' : undefined}
-            className={className}
+            {...(clickable ? {as: 'button' as const, type: 'button' as const} : {})}
+            className={[className, isInactive ? 'inactive' : ''].filter(Boolean).join(' ') || undefined}
             $accentColor={accentColor ?? designerColor}
             $accentBar={accentBar}
             $clickable={clickable}
-            onClick={clickable ? () => onClick(reservation) : undefined}
+            tabIndex={clickable ? 0 : undefined}
+            onClick={clickable ? handleActivate : undefined}
+            onKeyDown={handleKeyDown}
         >
             <StyledLeft>
             {!compactDate && timeMode !== 'none' && (
@@ -94,10 +108,18 @@ export function ReservationInfoCard({
                         {isNewCustomer && <NewCustomerBadge>N</NewCustomerBadge>}
                         {onCustomerClick ? (
                             <StyledCustomerButton
-                                type="button"
+                                role="button"
+                                tabIndex={0}
                                 onClick={(event) => {
                                     event.stopPropagation();
                                     onCustomerClick(reservation.customerId);
+                                }}
+                                onKeyDown={(event) => {
+                                    if (event.key === 'Enter' || event.key === ' ') {
+                                        event.preventDefault();
+                                        event.stopPropagation();
+                                        onCustomerClick(reservation.customerId);
+                                    }
                                 }}
                             >
                                 {customerName}
@@ -146,7 +168,7 @@ const StyledCard = styled.div<{
     flex-wrap: wrap;
     gap: 10px;
     width: 100%;
-    padding: 10px;
+    padding: 6px;
     border: 1px solid ${(props) => `${props.$accentColor}44`};
     border-left-width: ${(props) => props.$accentBar ? '4px' : '1px'};
     border-left-color: ${(props) => props.$accentBar ? props.$accentColor : `${props.$accentColor}44`};
@@ -155,7 +177,7 @@ const StyledCard = styled.div<{
     color: var(--dark-gray-color);
     box-sizing: border-box;
     text-align: left;
-    cursor: ${(props) => props.$clickable ? 'pointer' : 'default'};
+    font: inherit;
     transition: border-color 0.14s ease, background-color 0.14s ease, box-shadow 0.14s ease;
 
     @media (hover: hover) and (pointer: fine) {
@@ -191,14 +213,13 @@ const StyledBody = styled.div`
     min-width: 0;
     display: flex;
     flex-wrap: wrap;
-    gap: 6px;
+    gap: 2px;
 `;
 
 const StyledCompactDate = styled.div`
     font-size: 11px;
     color: var(--dark-gray-color2);
 `;
-
 const StyledDate = styled.div`
     font-size: 11px;
     color: var(--dark-gray-color2);
@@ -233,7 +254,7 @@ const StyledCustomerMeta = styled.span`
     display: inline-flex;
     align-items: center;
     flex-wrap: wrap;
-    gap: 6px;
+    gap: 2px;
     min-width: 0;
 `;
 
@@ -243,20 +264,18 @@ const StyledCustomerName = styled.span`
     color: #0f172a;
     line-height: 1.35;
     word-break: keep-all;
+    font-size: var(--small-font);
 `;
 
-const StyledCustomerButton = styled.button`
+const StyledCustomerButton = styled.span`
     min-width: 0;
-    border: 0;
-    padding: 0;
-    background: transparent;
-    font: inherit;
     font-weight: 700;
     color: #0f172a;
     text-align: left;
     cursor: pointer;
     line-height: 1.35;
     word-break: keep-all;
+    font-size: var(--small-font);
 
     @media (hover: hover) and (pointer: fine) {
         &:hover {
@@ -278,7 +297,7 @@ const StyledTrailing = styled.div`
 `;
 
 const StyledStatusBadge = styled(LabelBadge).attrs<{ $type: string }>((props) => ({
-    $tone: props.$type === 'completed' ? 'success' : props.$type === 'cancelled' ? 'neutral' : props.$type === 'noshow' ? 'danger' : 'info',
+    $tone: (props.$type === 'completed' || props.$type === 'paid') ? 'success' : props.$type === 'cancelled' ? 'neutral' : props.$type === 'noshow' ? 'danger' : 'info',
     $shape: 'soft',
     $size: 'sm',
 }))<{ $type: string }>`

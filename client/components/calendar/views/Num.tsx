@@ -7,6 +7,7 @@ interface Props {
     children: React.ReactNode | string;
     isToday?: boolean;
     compact?: boolean;
+    className?: string;
 }
 
 export const Num: React.FC<Props> = ({children, isToday, compact, ...props}) => {
@@ -30,7 +31,7 @@ const StyledNum = styled.button <{ $isToday?: boolean; $compact?: boolean }>`
 
   ${props => props.$isToday && `
     background-color: var(--blue-color);
-    color: #fff;
+    color: var(--white-color);
   `}
   @media (hover: hover) and (pointer: fine) {
         &:hover {

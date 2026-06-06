@@ -26,7 +26,6 @@ const StyledCloseIconButton = styled.button`
     border-radius: 8px;
     background: var(--white-color);
     color: var(--dark-gray-color);
-    cursor: pointer;
 
     @media (hover: hover) and (pointer: fine) {
         &:hover {

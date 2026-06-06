@@ -1,4 +1,4 @@
-const GMAIL_API = 'https://www.googleapis.com/gmail/v1/users/me';
+export const GMAIL_API = 'https://www.googleapis.com/gmail/v1/users/me';
 
 let rateLimitUntil = 0;
 
@@ -45,7 +45,7 @@ export async function listNaverCancellationEmails(
 ): Promise<string[]> {
     if (isRateLimited()) return [];
 
-    const query = `from:naverbooking_noreply@navercorp.com 예약 취소 after:${afterTimestamp}`;
+    const query = `from:naverbooking_noreply@navercorp.com 취소 after:${afterTimestamp}`;
 
     const url = new URL(`${GMAIL_API}/messages`);
     url.searchParams.set('q', query);

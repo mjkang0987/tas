@@ -7,6 +7,7 @@ import {DesignerLabel} from '../../ui/DesignerLabel';
 import {LabelBadge} from '../../ui/LabelBadge';
 import {ServiceChipList} from '../../ui/ServiceChip';
 import type {CustomerMap} from '../../../utils/customers';
+import {formatTel} from '../../../utils/customers';
 import type {Reservation} from '../../../utils/reservations';
 import {formatPrice} from '../../../utils/services';
 import {StyledBody, StyledBodyInner, StyledStatusBadge} from './ModalStyles';
@@ -53,7 +54,7 @@ export function ReservationViewSection({
                     {isCancelled && (
                         <>
                             <dt>상태</dt>
-                            <dd><StyledStatusBadge $variant="neutral">취소됨</StyledStatusBadge></dd>
+                            <dd><StyledStatusBadge $variant="neutral">예약취소</StyledStatusBadge></dd>
                         </>
                     )}
                     {isNoshow && (
@@ -72,7 +73,7 @@ export function ReservationViewSection({
                     <dd>{reservation.date}</dd>
                     <dt>시간</dt>
                     <dd>{reservation.startTime} ~ {reservation.endTime}</dd>
-                    <dt>시술</dt>
+                    <dt>서비스</dt>
                     <dd>
                         <StyledServiceChipList service={reservation.service}
                                               serviceColorMap={serviceColorMap}
@@ -109,7 +110,7 @@ export function ReservationViewSection({
                         </StyledCustomerButton>
                     </dd>
                     <dt>연락처</dt>
-                    <dd>{customer?.tel ?? '-'}</dd>
+                    <dd>{customer?.tel ? <StyledTelLink href={`tel:${customer.tel}`}>{formatTel(customer.tel)}</StyledTelLink> : '-'}</dd>
                     {customerMemoTags.length > 0 && (
                         <>
                             <dt>고객 메모</dt>
@@ -136,20 +137,27 @@ export function ReservationViewSection({
                     <dd>
                         <DesignerLabel color={displayDesignerColor} name={displayDesignerName} />
                     </dd>
-                    {reservation.naverBookingId && (
-                        <>
-                            <dt>예약번호</dt>
-                            <dd>
+                    <dt>예약경로</dt>
+                    <dd>
+                        {reservation.naverBookingId ? (
+                            <>
                                 <StyledBookingInfo>
                                     <StyledPlatformTag>네이버예약</StyledPlatformTag>
                                     <span>{reservation.naverBookingId}</span>
+                                    {reservation.naverBookingUrl && (
+                                        <StyledBookingLink href={reservation.naverBookingUrl} target="_blank" rel="noopener noreferrer">
+                                            바로가기 ↗
+                                        </StyledBookingLink>
+                                    )}
                                 </StyledBookingInfo>
                                 <StyledBookingNotice>
                                     네이버예약의 실제 변경/취소는 스마트플레이스 통해서 가능합니다.
                                 </StyledBookingNotice>
-                            </dd>
-                        </>
-                    )}
+                            </>
+                        ) : (
+                            <StyledChannelTag>{reservation.channel === '현장방문' ? '현장방문' : '전화예약'}</StyledChannelTag>
+                        )}
+                    </dd>
                 </dl>
                 {historyCount > 0 && (
                     <StyledHistorySection>
@@ -185,6 +193,15 @@ const StyledDetailBodyInner = styled(StyledBodyInner)`
     }
 `;
 
+const StyledTelLink = styled.a`
+    color: inherit;
+    text-decoration: none;
+
+    @media (hover: hover) and (pointer: fine) {
+        &:hover { text-decoration: underline; }
+    }
+`;
+
 const StyledCustomerButton = styled.button`
     display: inline-flex;
     align-items: center;
@@ -194,7 +211,6 @@ const StyledCustomerButton = styled.button`
     padding: 0;
     font-size: 13px;
     color: #4285F4;
-    cursor: pointer;
 
     @media (hover: hover) and (pointer: fine) {
         &:hover {
@@ -205,9 +221,10 @@ const StyledCustomerButton = styled.button`
 
 const StyledPaymentValue = styled.span`
     display: flex;
-    align-items: flex-start;
-    gap: 8px;
+    align-items: center;
+    gap: 4px;
     flex-wrap: wrap;
+    padding-bottom: 2px;
 `;
 
 const StyledPaymentLineList = styled.span`
@@ -217,7 +234,7 @@ const StyledPaymentLineList = styled.span`
 `;
 
 const StyledPaymentBadge = styled(LabelBadge).attrs<{ $completed: boolean }>((props) => ({
-    $tone: props.$completed ? 'success' : 'neutral',
+    $tone: props.$completed ? 'success' : 'warning',
     $shape: 'soft',
     $size: 'md',
 }))<{ $completed: boolean }>`
@@ -287,6 +304,27 @@ const StyledPlatformTag = styled(LabelBadge).attrs({
     font-size: 10px;
 `;
 
+const StyledChannelTag = styled(LabelBadge).attrs({
+    $tone: 'info',
+    $shape: 'soft',
+    $size: 'sm',
+})`
+    font-size: 10px;
+`;
+
+const StyledBookingLink = styled.a`
+    font-size: 11px;
+    color: #03C75A;
+    font-weight: 600;
+    text-decoration: none;
+
+    @media (hover: hover) and (pointer: fine) {
+        &:hover {
+            text-decoration: underline;
+        }
+    }
+`;
+
 const StyledHistorySection = styled.div`
     margin-top: 16px;
     border-top: 1px solid var(--light-gray-color);
@@ -302,7 +340,6 @@ const StyledHistoryButton = styled.button`
     font-size: 12px;
     font-weight: 600;
     color: var(--dark-gray-color);
-    cursor: pointer;
     text-align: left;
 
     &::after {

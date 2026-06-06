@@ -1,7 +1,7 @@
 import {useRef, useState} from 'react';
 
 import type {CreateReservationInitial} from '../../../store/calendarStore';
-import type {Reservation} from '../../../utils/reservations';
+import type {Reservation, ReservationChannel} from '../../../utils/reservations';
 import {findOverlap} from '../../../utils/reservations';
 import type {Customer, CustomerMap} from '../../../utils/customers';
 import type {Designer} from '../../../utils/designers';
@@ -61,6 +61,7 @@ export function useReservationCreateForm({
         designerId: defaultDesignerId,
         price: 0,
         memo: '',
+        channel: '전화예약' as ReservationChannel,
     });
     const [isEndTimeManual, setIsEndTimeManual] = useState(false);
     const [error, setError] = useState('');
@@ -157,7 +158,7 @@ export function useReservationCreateForm({
         if (customerMode === 'new' && !KOREAN_MOBILE_PHONE_PATTERN.test(normalizedNewCustomerTel)) {
             return '신규 고객 연락처 형식을 확인해주세요.';
         }
-        if (selectedServices.length === 0) return '시술을 선택해주세요.';
+        if (selectedServices.length === 0) return '서비스를 선택해주세요.';
         if (!form.date) return '날짜를 선택해주세요.';
         if (!form.startTime) return '시작 시간을 입력해주세요.';
         if (!form.endTime) return '종료 시간을 입력해주세요.';
@@ -214,6 +215,7 @@ export function useReservationCreateForm({
             status: 'active',
             price: form.price,
             ...(form.memo.trim() && {memo: form.memo.trim()}),
+            channel: form.channel,
         };
 
         onSave(reservation);

@@ -47,7 +47,7 @@ export const CATEGORY_BASE_COLOR_MAP: Record<string, string> = {
     '기타': '#8E8E93',
 };
 
-// 하위호환: 기존 예약 데이터의 옛 시술명 → 현재 카탈로그 매핑
+// 하위호환: 기존 예약 데이터의 옛 서비스명 → 현재 카탈로그 매핑
 const LEGACY_NAME_MAP: Record<string, string> = {
     '남자 일반펌': '일반펌',
     '남자 디자인펌': '디자인펌',
@@ -194,9 +194,31 @@ export function getGroupedCatalog(catalog: ServiceItem[] = SERVICE_CATALOG): Map
     return grouped;
 }
 
-export function parseServiceString(str: string): string[] {
+export function parseServiceString(str: string, knownNames?: Set<string>): string[] {
     if (!str.trim()) return [];
-    return str.split('+').map((s) => s.trim()).filter(Boolean);
+    const parts = str.split('+').map((s) => s.trim()).filter(Boolean);
+    if (!knownNames || parts.length <= 1) return parts;
+
+    // '+' 포함 서비스명 보존 (greedy: 가장 긴 조합 우선)
+    const result: string[] = [];
+    let i = 0;
+    while (i < parts.length) {
+        let matched = false;
+        for (let j = parts.length; j > i + 1; j--) {
+            const combined = parts.slice(i, j).join('+');
+            if (knownNames.has(combined)) {
+                result.push(combined);
+                i = j;
+                matched = true;
+                break;
+            }
+        }
+        if (!matched) {
+            result.push(parts[i]);
+            i++;
+        }
+    }
+    return result;
 }
 
 export function joinServiceNames(names: string[]): string {

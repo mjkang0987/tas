@@ -7,7 +7,7 @@ import styled from 'styled-components';
 import {useCalendarStore} from '../../../store/calendarStore';
 
 import {isNewCustomerVisit} from '../../../utils/customers';
-import {getDesignerColor} from '../../../utils/designers';
+import {buildDesignerColorMap, buildDesignerNameMap} from '../../../utils/designers';
 import {buildServiceColorMap} from '../../../utils/services';
 
 import {
@@ -27,9 +27,10 @@ import {CloseIconButton} from '../../ui/CloseIconButton';
 import {ReservationInfoCard} from '../../ui/ReservationInfoCard';
 
 import type {Reservation} from '../../../utils/reservations';
+import {hasCompletedPayment} from '../../../utils/reservations';
 
 const STATUS_LABELS: Record<string, string> = {
-    cancelled: '취소',
+    cancelled: '예약취소',
     noshow: '노쇼',
 };
 
@@ -52,20 +53,8 @@ export const ReservationListModal = () => {
         () => buildServiceColorMap(serviceCatalog, categoryBaseColorMap),
         [serviceCatalog, categoryBaseColorMap]
     );
-    const designerNameMap = useMemo(
-        () => designers.reduce<Record<number, string>>((acc, designer) => {
-            acc[designer.id] = designer.name;
-            return acc;
-        }, {0: '미지정'}),
-        [designers]
-    );
-    const designerColorMap = useMemo(
-        () => designers.reduce<Record<number, string>>((acc, designer) => {
-            acc[designer.id] = getDesignerColor(designer);
-            return acc;
-        }, {}),
-        [designers]
-    );
+    const designerNameMap = useMemo(() => buildDesignerNameMap(designers, true), [designers]);
+    const designerColorMap = useMemo(() => buildDesignerColorMap(designers), [designers]);
 
     const today = useMemo(() => {
         const d = new Date();
@@ -130,15 +119,14 @@ export const ReservationListModal = () => {
     const getStatusType = (r: Reservation) => {
         if (r.status === 'cancelled') return 'cancelled';
         if (r.status === 'noshow') return 'noshow';
-        if (r.status === 'completed') return 'completed';
-        if (r.date < today) return 'completed';
+        if (hasCompletedPayment(r)) return 'paid';
         return 'booked';
     };
 
     const getStatusLabel = (r: Reservation) => {
         const type = getStatusType(r);
+        if (type === 'paid') return '결제완료';
         if (type === 'booked') return '예약';
-        if (type === 'completed') return '완료';
         return STATUS_LABELS[type] || '예약';
     };
 
@@ -176,9 +164,6 @@ export const ReservationListModal = () => {
                                     {group.items.map((r) => {
                                         const customer = customerMap[r.customerId];
                                         const designerName = r.designerId ? (designerNameMap[r.designerId] ?? '미지정') : '미지정';
-                                        const statusType = getStatusType(r);
-                                        const isInactive = statusType === 'cancelled' || statusType === 'noshow';
-
                                         return (
                                             <StyledItem key={r.id}>
                                                     <ReservationInfoCard
@@ -197,7 +182,6 @@ export const ReservationListModal = () => {
                                                     timeMode="range"
                                                     accentColor={r.designerId ? (designerColorMap[r.designerId] ?? '#8E8E93') : '#8E8E93'}
                                                     accentBar
-                                                    className={isInactive ? 'inactive' : undefined}
                                                 />
                                             </StyledItem>
                                         );
@@ -244,7 +228,7 @@ const StyledEmpty = styled.p`
 const StyledList = styled.ul`
     display: flex;
     flex-direction: column;
-    gap: 8px;
+    gap: 2px;
 `;
 
 const StyledDateGroup = styled.div`
@@ -276,14 +260,10 @@ const StyledDateTitle = styled.div`
     color: #111;
     letter-spacing: -0.01em;
     background: rgba(255, 255, 255, .1); /* 살짝만 흰색 */
-    backdrop-filter: blur(.8px) saturate(180%);
+    backdrop-filter: var(--sticky-backdrop);
 `;
 
-const StyledItem = styled.li`
-    .inactive {
-        opacity: 0.5;
-    }
-`;
+const StyledItem = styled.li``;
 
 const StyledFooterSummary = styled.div`
     margin-right: auto;

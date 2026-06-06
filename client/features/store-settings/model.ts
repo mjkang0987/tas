@@ -28,11 +28,11 @@ export const DEFAULT_STORE_SETTINGS: StoreSettings = {
     },
     closedDates: [],
     pointSettings: {
-        enableServiceRate: true,
-        enableRecharge: true,
-        serviceRate: 5,
+        enableServiceRate: false,
+        enableRecharge: false,
+        serviceRate: 0,
         rechargeRules: [
-            {baseAmount: 100000, bonusAmount: 5000},
+            {baseAmount: 0, bonusAmount: 0},
         ],
     },
 };

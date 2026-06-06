@@ -7,6 +7,7 @@ declare module 'next-auth' {
             provider: string;
             role?: 'owner' | 'manager' | 'staff';
             storeId?: string;
+            onboarded?: boolean;
             loginError?: string;
         } & DefaultSession['user'];
     }
@@ -18,6 +19,7 @@ declare module 'next-auth/jwt' {
         provider?: string;
         role?: 'owner' | 'manager' | 'staff';
         storeId?: string;
+        onboarded?: boolean;
         loginError?: string;
     }
 }
