@@ -19,7 +19,8 @@ interface Props {
     onSelectReservation: (reservation: Reservation) => void;
     onSelectConflict: (conflictKey: string) => void;
 }
-
+const SEVEN_DAYS_MS  = 7  * 24 * 60 * 60 * 1000;
+const THIRTY_DAYS_MS = 30 * 24 * 60 * 60 * 1000;
 
 function formatDate(dateStr: string): string {
     if (!dateStr || !dateStr.includes('-')) return dateStr || '-';
@@ -74,13 +75,14 @@ export const NaverSyncNotification = ({
         return () => document.removeEventListener('mousedown', handleClick);
     }, [open]);
 
-    // 미해결 중복예약: read 여부·날짜 무관하게 항상 노출
+    const now = Date.now();
+    // 미해결 중복예약: read 여부·날짜 무관
     const pendingConflicts = notifications.filter(
         (n) => n.type === 'conflict' && n.conflictStatus !== 'confirmed',
     );
-    // 일반 미확인 알림: 읽지 않은 것 전부
+    // 안읽은 일반 알림: 30일 이내
     const recentUnread = notifications.filter(
-        (n) => n.type !== 'conflict' && !n.read,
+        (n) => n.type !== 'conflict' && !n.read && now - n.timestamp.getTime() <= THIRTY_DAYS_MS,
     );
     const panelItems = [...pendingConflicts, ...recentUnread];
 
@@ -228,9 +230,23 @@ interface ModalProps {
 const NotificationModal = ({notifications, designers, reservationMap, markRead, markAllRead, onSelectReservation, onSelectConflict, onClose}: ModalProps) => {
     const dialogRef = useDialogAccessibility<HTMLDivElement>(onClose);
 
-    const conflictNotifications = notifications.filter((n) => n.type === 'conflict');
-    const unreadNotifications = notifications.filter((n) => !n.read && n.type !== 'conflict');
-    const readNotifications = notifications.filter((n) => n.read && n.type !== 'conflict');
+    const now = Date.now();
+    // 중복예약: 미해결은 항상, 확인된 건 7일 이내
+    const conflictNotifications = notifications.filter((n) =>
+        n.type === 'conflict' && (
+            n.conflictStatus !== 'confirmed' ||
+            now - n.timestamp.getTime() <= SEVEN_DAYS_MS
+        ),
+    );
+    // 안읽은 일반: 30일 이내
+    const unreadNotifications = notifications.filter((n) =>
+        !n.read && n.type !== 'conflict' && now - n.timestamp.getTime() <= THIRTY_DAYS_MS,
+    );
+    // 읽은 일반: 7일 이내
+    const readNotifications = notifications.filter((n) =>
+        n.read && n.type !== 'conflict' && now - n.timestamp.getTime() <= SEVEN_DAYS_MS,
+    );
+    const isEmpty = conflictNotifications.length === 0 && unreadNotifications.length === 0 && readNotifications.length === 0;
 
     const handleClick = (n: SyncNotification) => {
         markRead(n.id);
@@ -301,7 +317,7 @@ const NotificationModal = ({notifications, designers, reservationMap, markRead, 
             <StyledModalDetail ref={dialogRef} onClick={(e) => e.stopPropagation()}>
                 <StyledHeader>
                     <StyledHeaderTitleGroup>
-                        <h3>전체 알림(최근 7일)</h3>
+                        <h3>전체 알림</h3>
                     </StyledHeaderTitleGroup>
                     {unreadNotifications.length > 0 && (
                         <button type="button" onClick={markAllRead}>모두 읽음</button>
@@ -309,7 +325,7 @@ const NotificationModal = ({notifications, designers, reservationMap, markRead, 
                 </StyledHeader>
                 <StyledBody>
                     <StyledModalBodyInner>
-                        {notifications.length === 0 && (
+                        {isEmpty && (
                             <StyledEmpty>알림이 없습니다</StyledEmpty>
                         )}
 
