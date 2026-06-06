@@ -752,11 +752,14 @@ export const useCalendarStore = create<CalendarState>((set) => ({
 
     updateConflictNotificationStatus: (conflictKey, status) =>
         set((state) => {
-            const next = state.syncNotifications.map((notification) => (
-                notification.conflictKey === conflictKey
-                    ? {...notification, conflictStatus: status}
-                    : notification
-            ));
+            const next = state.syncNotifications.map((notification) => {
+                if (notification.conflictKey !== conflictKey) return notification;
+                return {
+                    ...notification,
+                    conflictStatus: status,
+                    ...(status === 'confirmed' ? {read: true} : {}),
+                };
+            });
             saveSyncNotifications(next);
             return {syncNotifications: next};
         }),

@@ -355,7 +355,7 @@ export function useNaverBookingSync() {
 
     const visibleNotifications = notifications;
     const unreadCount = visibleNotifications.filter((n) =>
-        !n.read || (n.type === 'conflict' && n.conflictStatus !== 'confirmed')
+        n.type === 'conflict' ? n.conflictStatus !== 'confirmed' : !n.read
     ).length;
 
     const activeQueue = conflictQueue.filter((c) => !deferredIds.has(conflictKey(c)));
