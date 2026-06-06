@@ -123,6 +123,7 @@ export function AddressContent({
                 <StyledSearchRow>
                     <InputWrap htmlFor="filterSearch">
                         <input
+                            className="input-field"
                             type="search"
                             id="filterSearch"
                             value={searchInput}

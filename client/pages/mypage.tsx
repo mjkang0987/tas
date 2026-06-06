@@ -144,13 +144,13 @@ const MyPage: NextPage<MyPageProps> = ({linkedProvider}) => {
                                     네이버 스마트플레이스에서 예약 알림 이메일을 이 Google 계정({session.user.email})으로 설정하면 예약이 자동으로 등록됩니다.
                                 </StyledHint>
                                 <StyledStepList>
-                                    <li>
-                                        <strong>네이버 스마트플레이스</strong> 접속 → 예약 관리 → 알림 설정
+                                    <li className="step">
+                                        <strong className="step-em">네이버 스마트플레이스</strong> 접속 → 예약 관리 → 알림 설정
                                     </li>
-                                    <li>
-                                        이메일 알림 주소를 <strong>{session.user.email}</strong> 로 설정
+                                    <li className="step">
+                                        이메일 알림 주소를 <strong className="step-em">{session.user.email}</strong> 로 설정
                                     </li>
-                                    <li>
+                                    <li className="step">
                                         이후 예약/취소 발생 시 앱 상단 🔔 아이콘에서 확인 가능
                                     </li>
                                 </StyledStepList>
@@ -165,13 +165,13 @@ const MyPage: NextPage<MyPageProps> = ({linkedProvider}) => {
                                     네이버 예약 자동 동기화는 Gmail 읽기 권한이 필요합니다. 아래 버튼으로 Google 계정을 연결하세요.
                                 </StyledHint>
                                 <StyledStepList>
-                                    <li>
-                                        <strong>네이버 스마트플레이스</strong> → 예약 관리 → 알림 설정에서 Gmail 주소 등록
+                                    <li className="step">
+                                        <strong className="step-em">네이버 스마트플레이스</strong> → 예약 관리 → 알림 설정에서 Gmail 주소 등록
                                     </li>
-                                    <li>
+                                    <li className="step">
                                         아래 버튼으로 Google 계정 로그인 (Gmail 읽기 권한 허용)
                                     </li>
-                                    <li>
+                                    <li className="step">
                                         이후 예약/취소 발생 시 앱 상단 🔔 에서 자동 확인 가능
                                     </li>
                                 </StyledStepList>
@@ -196,24 +196,24 @@ const MyPage: NextPage<MyPageProps> = ({linkedProvider}) => {
                         <StyledCardTitle>게스트 저장 데이터</StyledCardTitle>
                         <StyledGrid>
                             <StyledMetric>
-                                <strong>{localSummary.customers}</strong>
-                                <span>고객</span>
+                                <strong className="value">{localSummary.customers}</strong>
+                                <span className="label">고객</span>
                             </StyledMetric>
                             <StyledMetric>
-                                <strong>{localSummary.reservations}</strong>
-                                <span>예약</span>
+                                <strong className="value">{localSummary.reservations}</strong>
+                                <span className="label">예약</span>
                             </StyledMetric>
                             <StyledMetric>
-                                <strong>{localSummary.history}</strong>
-                                <span>이력</span>
+                                <strong className="value">{localSummary.history}</strong>
+                                <span className="label">이력</span>
                             </StyledMetric>
                             <StyledMetric>
-                                <strong>{localSummary.services}</strong>
-                                <span>서비스</span>
+                                <strong className="value">{localSummary.services}</strong>
+                                <span className="label">서비스</span>
                             </StyledMetric>
                             <StyledMetric>
-                                <strong>{localSummary.designers}</strong>
-                                <span>디자이너</span>
+                                <strong className="value">{localSummary.designers}</strong>
+                                <span className="label">디자이너</span>
                             </StyledMetric>
                         </StyledGrid>
                         <StyledHint>
@@ -224,7 +224,7 @@ const MyPage: NextPage<MyPageProps> = ({linkedProvider}) => {
                         </StyledDangerButton>
                     </StyledCard>
                 )}
-                <StyledFooterCs>Take a seat CS: <a href="mailto:takeaseat.cs@gmail.com">takeaseat.cs@gmail.com</a></StyledFooterCs>
+                <StyledFooterCs>Take a seat CS: <a className="link" href="mailto:takeaseat.cs@gmail.com">takeaseat.cs@gmail.com</a></StyledFooterCs>
             </StyledContainer>
             {selectedReservations.map((reservation, index) => (
                 <ReservationDetail key={`${reservation.id}-${index}`}
@@ -369,13 +369,13 @@ const StyledMetric = styled.div`
     background: var(--gray-color2);
     text-align: center;
 
-    strong {
+    .value {
         display: block;
         font-size: 22px;
         color: var(--black-color);
     }
 
-    span {
+    .label {
         display: block;
         margin-top: 4px;
         font-size: 12px;
@@ -426,13 +426,13 @@ const StyledStepList = styled.ol`
     flex-direction: column;
     gap: 6px;
 
-    li {
+    .step {
         font-size: 13px;
         color: var(--dark-gray-color);
         line-height: 1.55;
     }
 
-    strong {
+    .step-em {
         font-weight: 600;
         color: var(--black-color);
     }
@@ -465,7 +465,7 @@ const StyledFooterCs = styled.p`
     font-size: 12px;
     color: var(--dark-gray-color2);
 
-    a {
+    .link {
         color: inherit;
         text-decoration: none;
         font-weight: 600;

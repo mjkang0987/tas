@@ -273,10 +273,10 @@ export const NaverSyncConflictModal = ({
                             <StyledResolvedNotice>
                                 {cancelledReservations.map(({reservation, statusLabel}) => (
                                     <div key={reservation.id}>
-                                        <strong>{getCustomerName(reservation)}님 예약이 {statusLabel} 되었습니다.</strong>
+                                        <strong className="notice-title">{getCustomerName(reservation)}님 예약이 {statusLabel} 되었습니다.</strong>
                                         {!isConfirmed && (
-                                            <ul>
-                                                <li>확인을 누르시면 해당 예약 중복이 더이상 노출되지 않습니다.</li>
+                                            <ul className="notice-list">
+                                                <li className="notice-item">확인을 누르시면 해당 예약 중복이 더이상 노출되지 않습니다.</li>
                                             </ul>
                                         )}
                                     </div>
@@ -287,11 +287,11 @@ export const NaverSyncConflictModal = ({
                             <StyledResolvedNotice>
                                 {resolvedChanges.map(({reservation, lines}) => (
                                     <div key={reservation.id}>
-                                        <strong>{getCustomerName(reservation)}님의 예약 변경으로 예약 시간 중복이 해결되었습니다.</strong>
-                                        <ul>
-                                            {lines.map((line) => <li key={line}>{line}</li>)}
+                                        <strong className="notice-title">{getCustomerName(reservation)}님의 예약 변경으로 예약 시간 중복이 해결되었습니다.</strong>
+                                        <ul className="notice-list">
+                                            {lines.map((line) => <li className="notice-item" key={line}>{line}</li>)}
                                             {!isConfirmed && (
-                                                <li>확인을 누르시면 해당 예약 중복이 더이상 노출되지 않습니다.</li>
+                                                <li className="notice-item">확인을 누르시면 해당 예약 중복이 더이상 노출되지 않습니다.</li>
                                             )}
                                         </ul>
                                     </div>
@@ -398,25 +398,25 @@ const StyledResolvedNotice = styled.div`
     line-height: 1.5;
     word-break: keep-all;
 
-    strong {
+    .notice-title {
         display: block;
         font-weight: 700;
 
-        + ul {
+        + .notice-list {
             margin-top: 6px;
         }
     }
 
-    ul {
+    .notice-list {
         margin: 0;
         padding-left: 16px;
     }
 
-    li {
+    .notice-item {
         margin-bottom: 2px;
     }
 
-    li:last-child {
+    .notice-item:last-child {
         margin-top: 6px;
         font-weight: 600;
         color: #7f1d1d;

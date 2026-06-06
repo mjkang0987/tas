@@ -323,8 +323,8 @@ export const Header = () => {
         </StyledHeader>
         {conflictCount > 0 && firstConflictKey && (
             <StyledConflictBanner type="button" onClick={() => openConflictByKey(firstConflictKey)}>
-                <span>중복예약 <strong>{conflictCount}건</strong>이 있습니다</span>
-                <span>확인하기 →</span>
+                <span>중복예약 <strong className="count">{conflictCount}건</strong>이 있습니다</span>
+                <span className="cta">확인하기 →</span>
             </StyledConflictBanner>
         )}
         </>
@@ -348,9 +348,9 @@ const StyledConflictBanner = styled.button`
     cursor: pointer;
     text-align: left;
 
-    strong { font-weight: 700; }
+    .count { font-weight: 700; }
 
-    span:last-child {
+    .cta {
         font-weight: 600;
         white-space: nowrap;
     }

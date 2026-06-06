@@ -168,7 +168,7 @@ export const Timeline = ({
                 onClick={setMousePositionHandler}
             />
         )}
-        {isToday && <StyledBar />}
+        {isToday && <StyledBar className="time-bar" />}
         {timelineEntries.map((entry) => {
             if (entry.kind === 'cluster') {
                 const {cluster} = entry;
@@ -296,7 +296,7 @@ const StyledTimelineWrap = styled.div<{
     box-sizing: border-box;
     user-select: none;
 
-    > span {
+    .time-bar {
         top: ${props => props.$type === ViewType.Day ? 50 : 20}px;
         animation: down ${props => props.$timing ? props.$timing : 10 * 3600}s linear;
     }
