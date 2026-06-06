@@ -2,7 +2,7 @@ import {useEffect, useMemo, useState} from 'react';
 
 import type {GetServerSideProps, NextPage} from 'next';
 
-import {signOut, useSession} from 'next-auth/react';
+import {signIn, signOut, useSession} from 'next-auth/react';
 
 import styled from 'styled-components';
 
@@ -130,6 +130,66 @@ const MyPage: NextPage<MyPageProps> = ({linkedProvider}) => {
                         </StyledButtonRow>
                     )}
                 </StyledCard>
+
+                {!!session?.user && (
+                    <StyledCard>
+                        <StyledCardTitle>네이버 예약 연동</StyledCardTitle>
+                        {linkedProvider === 'google' ? (
+                            <>
+                                <StyledSyncStatus $connected>
+                                    <StyledSyncDot />
+                                    Gmail 연동 활성화됨 — 네이버 예약 자동 동기화 중
+                                </StyledSyncStatus>
+                                <StyledHint>
+                                    네이버 스마트플레이스에서 예약 알림 이메일을 이 Google 계정({session.user.email})으로 설정하면 예약이 자동으로 등록됩니다.
+                                </StyledHint>
+                                <StyledStepList>
+                                    <li>
+                                        <strong>네이버 스마트플레이스</strong> 접속 → 예약 관리 → 알림 설정
+                                    </li>
+                                    <li>
+                                        이메일 알림 주소를 <strong>{session.user.email}</strong> 로 설정
+                                    </li>
+                                    <li>
+                                        이후 예약/취소 발생 시 앱 상단 🔔 아이콘에서 확인 가능
+                                    </li>
+                                </StyledStepList>
+                            </>
+                        ) : (
+                            <>
+                                <StyledSyncStatus $connected={false}>
+                                    <StyledSyncDot />
+                                    Gmail 미연동 — Google 계정으로 로그인해야 활성화됩니다
+                                </StyledSyncStatus>
+                                <StyledHint>
+                                    네이버 예약 자동 동기화는 Gmail 읽기 권한이 필요합니다. 아래 버튼으로 Google 계정을 연결하세요.
+                                </StyledHint>
+                                <StyledStepList>
+                                    <li>
+                                        <strong>네이버 스마트플레이스</strong> → 예약 관리 → 알림 설정에서 Gmail 주소 등록
+                                    </li>
+                                    <li>
+                                        아래 버튼으로 Google 계정 로그인 (Gmail 읽기 권한 허용)
+                                    </li>
+                                    <li>
+                                        이후 예약/취소 발생 시 앱 상단 🔔 에서 자동 확인 가능
+                                    </li>
+                                </StyledStepList>
+                                <StyledButtonRow>
+                                    <StyledGoogleButton type="button" onClick={() => signIn('google')}>
+                                        <svg width="18" height="18" viewBox="0 0 18 18" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                                            <path d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844c-.209 1.125-.843 2.078-1.796 2.717v2.258h2.908c1.702-1.567 2.684-3.874 2.684-6.615z" fill="#4285F4"/>
+                                            <path d="M9 18c2.43 0 4.467-.806 5.956-2.18l-2.908-2.259c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332C2.438 15.983 5.482 18 9 18z" fill="#34A853"/>
+                                            <path d="M3.964 10.71c-.18-.54-.282-1.117-.282-1.71s.102-1.17.282-1.71V4.958H.957C.347 6.173 0 7.548 0 9s.348 2.827.957 4.042l3.007-2.332z" fill="#FBBC05"/>
+                                            <path d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0 5.482 0 2.438 2.017.957 4.958L3.964 7.29C4.672 5.163 6.656 3.58 9 3.58z" fill="#EA4335"/>
+                                        </svg>
+                                        <span>Google로 연결하기</span>
+                                    </StyledGoogleButton>
+                                </StyledButtonRow>
+                            </>
+                        )}
+                    </StyledCard>
+                )}
 
                 {isLocalMode && effectiveLocalSnapshot && (
                     <StyledCard>
@@ -332,6 +392,66 @@ const StyledDangerButton = styled.button`
     border: 1px solid #fecaca;
     background: #fff1f2;
     color: #be123c;
+`;
+
+const StyledSyncStatus = styled.div<{$connected: boolean}>`
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 12px;
+    border-radius: var(--radius-md);
+    font-size: 13px;
+    font-weight: 500;
+    background: ${(p) => p.$connected ? 'rgba(36,117,58,0.07)' : 'rgba(168,132,23,0.07)'};
+    color: ${(p) => p.$connected ? 'var(--success-color)' : 'var(--caution-color)'};
+    border: 1px solid ${(p) => p.$connected ? 'rgba(36,117,58,0.2)' : 'rgba(168,132,23,0.2)'};
+`;
+
+const StyledSyncDot = styled.span`
+    flex-shrink: 0;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: currentColor;
+`;
+
+const StyledStepList = styled.ol`
+    margin: 12px 0 0;
+    padding: 0 0 0 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+
+    li {
+        font-size: 13px;
+        color: var(--dark-gray-color);
+        line-height: 1.55;
+    }
+
+    strong {
+        font-weight: 600;
+        color: var(--black-color);
+    }
+`;
+
+const StyledGoogleButton = styled.button`
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    height: 42px;
+    padding: 0 16px;
+    border: 1px solid #ddd;
+    border-radius: var(--radius-md);
+    background: var(--white-color);
+    font-size: 14px;
+    font-weight: 600;
+    color: #333;
+    cursor: pointer;
+    transition: opacity 0.15s;
+
+    @media (hover: hover) and (pointer: fine) {
+        &:hover { opacity: 0.85; }
+    }
 `;
 
 const StyledFooterCs = styled.p`
