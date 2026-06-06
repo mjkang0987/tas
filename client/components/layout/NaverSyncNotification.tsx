@@ -76,9 +76,15 @@ export const NaverSyncNotification = ({
     }, [open]);
 
     const now = Date.now();
-    const recentUnread = notifications.filter(
-        (n) => !n.read && now - n.timestamp.getTime() < SEVEN_DAYS_MS,
+    // 미해결 중복예약: read 여부·날짜 무관하게 항상 노출
+    const pendingConflicts = notifications.filter(
+        (n) => n.type === 'conflict' && n.conflictStatus !== 'confirmed',
     );
+    // 일반 미확인 알림: 7일 이내만
+    const recentUnread = notifications.filter(
+        (n) => n.type !== 'conflict' && !n.read && now - n.timestamp.getTime() < SEVEN_DAYS_MS,
+    );
+    const panelItems = [...pendingConflicts, ...recentUnread];
 
     const handleNotificationClick = (n: SyncNotification) => {
         markRead(n.id);
@@ -125,10 +131,10 @@ export const NaverSyncNotification = ({
                         </StyledPanelHeader>
 
                         <StyledPanelBody>
-                            {recentUnread.length === 0 && (
+                            {panelItems.length === 0 && (
                                 <StyledEmpty>새 알림이 없습니다</StyledEmpty>
                             )}
-                            {recentUnread.map((n) => (
+                            {panelItems.map((n) => (
                                 <StyledItem key={n.id}
                                             onClick={() => handleNotificationClick(n)}>
                                     {n.type === 'conflict' ? (
