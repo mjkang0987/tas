@@ -20,7 +20,6 @@ interface Props {
     onSelectConflict: (conflictKey: string) => void;
 }
 
-const SEVEN_DAYS_MS = 7 * 24 * 60 * 60 * 1000;
 
 function formatDate(dateStr: string): string {
     if (!dateStr || !dateStr.includes('-')) return dateStr || '-';
@@ -75,14 +74,13 @@ export const NaverSyncNotification = ({
         return () => document.removeEventListener('mousedown', handleClick);
     }, [open]);
 
-    const now = Date.now();
     // 미해결 중복예약: read 여부·날짜 무관하게 항상 노출
     const pendingConflicts = notifications.filter(
         (n) => n.type === 'conflict' && n.conflictStatus !== 'confirmed',
     );
-    // 일반 미확인 알림: 7일 이내만
+    // 일반 미확인 알림: 읽지 않은 것 전부
     const recentUnread = notifications.filter(
-        (n) => n.type !== 'conflict' && !n.read && now - n.timestamp.getTime() < SEVEN_DAYS_MS,
+        (n) => n.type !== 'conflict' && !n.read,
     );
     const panelItems = [...pendingConflicts, ...recentUnread];
 
