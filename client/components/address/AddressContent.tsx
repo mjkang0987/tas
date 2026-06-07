@@ -181,7 +181,17 @@ export function AddressContent({
                 </StyledHeaderRow>
             </StyledSticky>
             {filteredCustomers.length === 0 ? (
-                <StyledEmpty>검색 결과가 없습니다.</StyledEmpty>
+                searchInput.trim().length === 0 ? (
+                    <StyledEmpty>
+                        <StyledEmptyTitle>등록된 고객이 없습니다</StyledEmptyTitle>
+                        <StyledEmptyDesc>예약을 생성하면 고객이 자동으로 등록됩니다.</StyledEmptyDesc>
+                    </StyledEmpty>
+                ) : (
+                    <StyledEmpty>
+                        <StyledEmptyTitle>검색 결과가 없습니다</StyledEmptyTitle>
+                        <StyledEmptyDesc>&apos;{searchInput.trim()}&apos;에 해당하는 고객을 찾을 수 없습니다.</StyledEmptyDesc>
+                    </StyledEmpty>
+                )
             ) : (
                 <StyledItems>
                     {filteredCustomers.map((customer) => {
@@ -285,13 +295,23 @@ const StyledItems = styled.ul`
     padding: 0;
 `;
 
-const StyledEmpty = styled.p`
-    padding: 16px 10px;
-    font-size: var(--small-font);
-    color: var(--gray-color);
+const StyledEmpty = styled.div`
+    padding: 32px 16px;
     text-align: center;
     background-color: var(--black-color-10);
     border-radius: 4px;
+`;
+
+const StyledEmptyTitle = styled.p`
+    font-size: var(--font);
+    font-weight: 600;
+    color: var(--black-color);
+    margin-bottom: 6px;
+`;
+
+const StyledEmptyDesc = styled.p`
+    font-size: var(--small-font);
+    color: var(--gray-color);
 `;
 
 const StyledMergePreview = styled.div`
