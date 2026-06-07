@@ -124,6 +124,7 @@ export const Header = () => {
                                $open={aside.isVisible}
                                onClick={() => setAside({isVisible: !aside.isVisible})}
                                aria-label={aside.isVisible ? '사이드바 접기' : '사이드바 펼치기'}>
+                <StyledAsideToggleLabel className="menu-label">{aside.isVisible ? '닫기' : '메뉴'}</StyledAsideToggleLabel>
                 <svg width="18"
                      height="18"
                      viewBox="0 0 24 24"
@@ -417,6 +418,8 @@ const StyledAsideToggle = styled.button<{ $open: boolean }>`
     color: var(--dark-gray-color);
     flex-shrink: 0;
 
+    .menu-label { display: none; }
+
     @media (hover: hover) and (pointer: fine) {
         &:hover {
             background-color: var(--gray-color2);
@@ -428,14 +431,20 @@ const StyledAsideToggle = styled.button<{ $open: boolean }>`
         bottom: 20px;
         left: ${(props) => props.$open ? 'calc(8px + var(--aside-width) + 8px)' : '16px'};
         z-index: 210;
-        width: 36px;
-        height: 36px;
-        border-radius: 50%;
+        flex-direction: column;
+        gap: 3px;
+        width: auto;
+        min-width: 44px;
+        height: auto;
+        padding: 8px 10px;
+        border-radius: 20px;
         background-color: var(--aside-bg);
         color: var(--aside-text);
-        box-shadow: var(--shadow-md);
-        opacity: .8;
+        box-shadow: 0 4px 16px rgba(0,0,0,0.22);
+        opacity: 1;
         transition: left 0.25s ease, background-color 0.1s;
+
+        .menu-label { display: block; }
 
         @media (hover: hover) and (pointer: fine) {
             &:hover {
@@ -443,6 +452,13 @@ const StyledAsideToggle = styled.button<{ $open: boolean }>`
             }
         }
     }
+`;
+
+const StyledAsideToggleLabel = styled.span`
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    line-height: 1;
 `;
 
 const StyledPageTitle = styled.h1`

@@ -12,23 +12,24 @@ export const TimelineTitle = () => {
 
     const setTimes = () => {
         const arr = new Array((end - start + 1)).fill(start);
-        const result = [];
+        const result: { full: string; compact: string }[] = [];
 
         for (let i = 0; i < arr.length; i++) {
             const num = start + i;
 
-            const isMorning = num < 12
-                              ? '오전'
-                              : '오후';
-            const isHalf = num > 12
-                           ? num - 12
-                           : num;
-            const isSingle = String(isHalf + 1).length < 2
-                             ? 0
-                             : '';
+            const isMorning = num < 12 ? '오전' : '오후';
+            const isHalf = num > 12 ? num - 12 : num;
+            const isSingle = String(isHalf + 1).length < 2 ? 0 : '';
 
-            result.push(`${isMorning} ${isSingle}${isHalf}:00`);
-            result.push(`${isMorning} ${isSingle}${isHalf}:30`);
+            const hour = isHalf === 0 ? 12 : isHalf;
+            result.push({
+                full: `${isMorning} ${isSingle}${isHalf}:00`,
+                compact: `${hour}:00`,
+            });
+            result.push({
+                full: `${isMorning} ${isSingle}${isHalf}:30`,
+                compact: `${hour}:30`,
+            });
         }
 
         return result;
@@ -36,8 +37,11 @@ export const TimelineTitle = () => {
 
     return (<StyledTimelineTitle>
             <StyledTimes>
-                {setTimes().map((t: string) => <StyledTime key={`time_${t}`}>
-                    <StyledNum>{t}</StyledNum>
+                {setTimes().map((t) => <StyledTime key={`time_${t.full}`}>
+                    <StyledNum>
+                        <span className="full">{t.full}</span>
+                        <span className="compact">{t.compact}</span>
+                    </StyledNum>
                 </StyledTime>)}
             </StyledTimes>
         </StyledTimelineTitle>
@@ -82,4 +86,12 @@ const StyledNum = styled.span`
   padding: 0 10px;
   font-size: var(--tiny-font);
   color: var(--gray-color);
+
+  .compact { display: none; }
+
+  @media (max-width: 640px) {
+    padding: 0 4px;
+    .full { display: none; }
+    .compact { display: block; }
+  }
 `;

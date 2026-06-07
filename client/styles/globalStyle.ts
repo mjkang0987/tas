@@ -135,7 +135,7 @@ export const GlobalStyle = createGlobalStyle`
 
     @media (max-width: 640px) {
         :root {
-            --timeline-col: 56px;
+            --timeline-col: 44px;
             --modal-button-height: 30px;
             --modal-button-padding-x: 10px;
             --modal-button-radius: 7px;
