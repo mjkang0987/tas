@@ -183,11 +183,23 @@ export function AddressContent({
             {filteredCustomers.length === 0 ? (
                 searchInput.trim().length === 0 ? (
                     <StyledEmpty>
+                        <StyledEmptyIcon>
+                            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <circle cx="12" cy="8" r="4" stroke="currentColor" strokeWidth="1.5"/>
+                                <path d="M4 20c0-4 3.582-7 8-7s8 3 8 7" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+                            </svg>
+                        </StyledEmptyIcon>
                         <StyledEmptyTitle>등록된 고객이 없습니다</StyledEmptyTitle>
                         <StyledEmptyDesc>예약을 생성하면 고객이 자동으로 등록됩니다.</StyledEmptyDesc>
                     </StyledEmpty>
                 ) : (
                     <StyledEmpty>
+                        <StyledEmptyIcon>
+                            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <circle cx="11" cy="11" r="7" stroke="currentColor" strokeWidth="1.5"/>
+                                <path d="M16.5 16.5L21 21" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+                            </svg>
+                        </StyledEmptyIcon>
                         <StyledEmptyTitle>검색 결과가 없습니다</StyledEmptyTitle>
                         <StyledEmptyDesc>&apos;{searchInput.trim()}&apos;에 해당하는 고객을 찾을 수 없습니다.</StyledEmptyDesc>
                     </StyledEmpty>
@@ -296,10 +308,27 @@ const StyledItems = styled.ul`
 `;
 
 const StyledEmpty = styled.div`
-    padding: 32px 16px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 48px 24px 56px;
     text-align: center;
     background-color: var(--black-color-10);
-    border-radius: 4px;
+    border-radius: 8px;
+    margin-top: 8px;
+`;
+
+const StyledEmptyIcon = styled.div`
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 52px;
+    height: 52px;
+    border-radius: 50%;
+    background-color: var(--white-color);
+    border: 1px solid var(--light-gray-color);
+    color: var(--dark-gray-color);
+    margin-bottom: 16px;
 `;
 
 const StyledEmptyTitle = styled.p`
@@ -312,6 +341,7 @@ const StyledEmptyTitle = styled.p`
 const StyledEmptyDesc = styled.p`
     font-size: var(--small-font);
     color: var(--gray-color);
+    line-height: 1.5;
 `;
 
 const StyledMergePreview = styled.div`
