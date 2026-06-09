@@ -488,6 +488,8 @@ const OnboardingPage: NextPage<{guest?: boolean}> = ({guest}) => {
                             ))}
                         </StyledDesignerList>
 
+                        {!showAddDesigner && <FieldError variant="inline">{step3Error}</FieldError>}
+
                         {showAddDesigner ? (
                             <StyledAddForm>
                                 <StyledAddFormRow>
