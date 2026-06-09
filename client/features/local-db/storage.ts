@@ -22,7 +22,6 @@ export interface LocalDbSnapshot {
     onboarded?: boolean;
     storeName?: string;
     shopType?: string;
-    nickname?: string;
 }
 
 function cloneSnapshot(snapshot: LocalDbSnapshot): LocalDbSnapshot {
