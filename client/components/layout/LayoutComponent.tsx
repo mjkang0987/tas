@@ -1,6 +1,7 @@
 import React, {
     useEffect,
     useMemo,
+    useRef,
     useState
 } from 'react';
 
@@ -21,6 +22,7 @@ import {Header} from './Header';
 import {Aside} from './Aside';
 import {Icon} from '../ui/Icons';
 import {ReservationCreate} from '../calendar/overlays/ReservationCreate';
+import {AdBanner} from '../ad/AdBanner';
 
 export default function LayoutComponent({children}: NodeType) {
     const router = useRouter();
@@ -45,6 +47,8 @@ export default function LayoutComponent({children}: NodeType) {
     const isomorphicEffect = useIsomorphicEffect();
     const [initDate] = useState(() => new Date());
     const [initializedPath, setInitializedPath] = useState<string | null>(null);
+    const routerRef = useRef(router);
+    routerRef.current = router;
 
     const array = useMemo(() => router.asPath.split('/'), [router.asPath]);
     const isRootPath = useMemo(() => array.join('').length === 0, [array]);
@@ -117,9 +121,15 @@ export default function LayoutComponent({children}: NodeType) {
             return;
         }
 
-        if (!isCalendarPath && !isRootPath) {
+        const currentRouter = routerRef.current;
+        const segments = currentRouter.asPath.split('?')[0].split('/');
+        const isCalPath = isCalendar(segments) || segments.join('').length === 0;
+
+        if (!isCalPath) {
             return;
         }
+
+        const isRoot = segments.join('').length === 0;
 
         let changeRouter: Array<string | number> = [''];
         const routeDate = new Date(currValue.fullYear, currValue.month, currValue.date);
@@ -139,8 +149,8 @@ export default function LayoutComponent({children}: NodeType) {
 
         setRouterSlice({
             arrayRouter: changeRouter,
-            isRootPath,
-            isCalendarPath
+            isRootPath: isRoot,
+            isCalendarPath: !isRoot
         });
 
         setRouter({
@@ -148,9 +158,9 @@ export default function LayoutComponent({children}: NodeType) {
             year : routeDate.getFullYear(),
             month: routeDate.getMonth() + 1,
             date : routeDate.getDate(),
-            router
+            router: currentRouter
         });
-    }, [currValue, isCalendarPath, isRootPath, router, setRouterSlice, view]);
+    }, [currValue, setRouterSlice, view]);
 
     if (isLoginPage) {
         return <>{children}</>;
@@ -165,6 +175,9 @@ export default function LayoutComponent({children}: NodeType) {
                     <StyledMain>
                         {children}
                     </StyledMain>
+                    <StyledFooterAd>
+                        <AdBanner adSlot="FOOTER_SLOT_ID" adFormat="horizontal" />
+                    </StyledFooterAd>
                     {createReservationInitial && selectedReservations.length === 0 && (
                         <ReservationCreate initial={createReservationInitial}
                                            customerMap={customerMap}
@@ -207,4 +220,15 @@ const StyledMain = styled.main`
     background:
         radial-gradient(circle at top left, rgba(45, 127, 249, 0.12), transparent 32%),
         linear-gradient(180deg, #f8fbff 0%, #ffffff 52%);
+`;
+
+const StyledFooterAd = styled.div`
+    flex-shrink: 0;
+    padding: 6px 12px;
+    border-top: 1px solid var(--light-gray-color);
+    background-color: var(--white-color);
+
+    @media (max-width: 640px) {
+        display: none;
+    }
 `;

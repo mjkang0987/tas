@@ -34,12 +34,18 @@ function AppContent({Component, pageProps}: AppContentProps) {
     const setReservationMap = useCalendarStore((s) => s.setReservationMap);
     const setCustomerMap = useCalendarStore((s) => s.setCustomerMap);
     const setReservationHistory = useCalendarStore((s) => s.setReservationHistory);
+    const initSyncNotifications = useCalendarStore((s) => s.initSyncNotifications);
     const hasApiAccess = status === 'authenticated' && !!session?.user?.role && !!session.user?.storeId;
 
     const [sessionExpired, setSessionExpired] = useState(false);
-    const hadSessionRef = useRef(
-        typeof sessionStorage !== 'undefined' && sessionStorage.getItem('takeaseat.authenticated') === '1'
-    );
+    const hadSessionRef = useRef(false);
+
+    useEffect(() => {
+        if (typeof sessionStorage !== 'undefined' && sessionStorage.getItem('takeaseat.authenticated') === '1') {
+            hadSessionRef.current = true;
+        }
+        initSyncNotifications();
+    }, [initSyncNotifications]);
 
     useEffect(() => {
         if (status === 'authenticated') {
@@ -288,16 +294,16 @@ const StyledSessionExpiredToast = styled.div`
     gap: 12px;
     padding: 12px 16px;
     border-radius: 10px;
-    background: #1e293b;
-    color: #fff;
+    background: var(--toast-bg);
+    color: var(--white-color);
     font-size: 13px;
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+    box-shadow: var(--modal-shadow);
     z-index: 10000;
     white-space: nowrap;
 `;
 
 const StyledSessionExpiredLink = styled(Link)`
-    color: #60a5fa;
+    color: var(--link-color-light);
     font-weight: 600;
     text-decoration: none;
 
@@ -310,7 +316,7 @@ const StyledSessionExpiredClose = styled.button`
     padding: 0;
     border: none;
     background: none;
-    color: #94a3b8;
+    color: var(--muted-text);
     font-size: 14px;
     line-height: 1;
 `;

@@ -196,6 +196,7 @@ export interface CalendarState {
     updateConflictNotificationStatus: (conflictKey: string, status: 'pending' | 'deferred' | 'confirmed') => void;
     replaceMockConflictNotifications: (items: SyncNotification[]) => void;
     clearSyncNotifications: () => void;
+    initSyncNotifications: () => void;
     patchNotificationNames: () => void;
 }
 
@@ -254,7 +255,7 @@ export const useCalendarStore = create<CalendarState>((set) => ({
     categoryBaseColorMap: CATEGORY_BASE_COLOR_MAP,
     designers: DEFAULT_DESIGNERS,
     storeSettings: DEFAULT_STORE_SETTINGS,
-    syncNotifications: loadSyncNotifications(),
+    syncNotifications: [],
 
     setToday: (today) => set({today}),
 
@@ -775,6 +776,10 @@ export const useCalendarStore = create<CalendarState>((set) => ({
     clearSyncNotifications: () => {
         saveSyncNotifications([]);
         set({syncNotifications: []});
+    },
+
+    initSyncNotifications: () => {
+        set({syncNotifications: loadSyncNotifications()});
     },
 
     patchNotificationNames: () =>

@@ -64,7 +64,6 @@ export const Header = () => {
     } = splitDesignersByStatus(designers);
     const reservationMap = useCalendarStore((s) => s.reservationMap);
     const setReservationMap = useCalendarStore((s) => s.setReservationMap);
-    const openReservationDetail = useCalendarStore((s) => s.openReservationDetail);
     const {
         visibleNotifications,
         unreadCount,
@@ -108,8 +107,8 @@ export const Header = () => {
                 [reservation.date]: [...dateReservations, reservation],
             });
         }
-        openReservationDetail(reservation);
-    }, [reservationMap, setReservationMap, openReservationDetail]);
+        setHeaderReservations((prev) => [...prev, reservation]);
+    }, [reservationMap, setReservationMap]);
 
     const unresolvedConflicts = visibleNotifications.filter(
         (n) => n.type === 'conflict' && n.conflictStatus !== 'confirmed',
@@ -214,7 +213,7 @@ export const Header = () => {
                                            markRead={markRead}
                                            markAllRead={markAllRead}
                                            reservationMap={reservationMap}
-                                           onSelectReservation={openReservationDetail}
+                                           onSelectReservation={handleHeaderReservationClick}
                                            onSelectConflict={openConflictByKey} />
                     <StyledCustomerSearchButton type="button"
                                                 onClick={() => setIsSearchOpen(true)}
@@ -257,7 +256,7 @@ export const Header = () => {
                                        markRead={markRead}
                                        markAllRead={markAllRead}
                                        reservationMap={reservationMap}
-                                       onSelectReservation={openReservationDetail}
+                                       onSelectReservation={handleHeaderReservationClick}
                                        onSelectConflict={openConflictByKey} />
                 <StyledCustomerSearchButton type="button"
                                             onClick={() => setIsSearchOpen(true)}
