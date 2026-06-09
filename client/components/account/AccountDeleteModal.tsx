@@ -17,6 +17,7 @@ import {
 } from '../calendar/overlays/ModalStyles';
 import {CloseIconButton} from '../ui/CloseIconButton';
 import {formControlStyle} from '../ui/FormControls';
+import {FieldError} from '../ui/FieldError';
 
 interface AccountDeleteModalProps {
     role: string | undefined;
@@ -83,7 +84,7 @@ export const AccountDeleteModal = ({role, onClose}: AccountDeleteModalProps) => 
                                  placeholder={CONFIRM_TEXT}
                                  value={input}
                                  onChange={(e) => setInput(e.target.value)} />
-                    {error && <StyledError>{error}</StyledError>}
+                    <FieldError variant="inline">{error}</FieldError>
                 </StyledModalContent>
                 <StyledFooter>
                     <BaseActionButton type="button" onClick={onClose}>
@@ -126,8 +127,3 @@ const StyledDangerButton = styled(BaseActionButton)`
     }
 `;
 
-const StyledError = styled.p`
-    margin: 8px 0 0;
-    font-size: 12px;
-    color: #be123c;
-`;

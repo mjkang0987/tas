@@ -6,6 +6,7 @@ import styled from 'styled-components';
 import {LabelBadge} from '../ui/LabelBadge';
 import {PageHero} from '../ui/PageHero';
 import {StyledEmpty} from './settings-styles';
+import {FieldError} from '../ui/FieldError';
 
 type Invite = {
     id: string;
@@ -172,7 +173,7 @@ export const MemberSection = () => {
                         {creating ? '생성 중...' : '코드 생성'}
                     </StyledPrimaryButton>
                 </StyledCreateRow>
-                {error && <StyledError>{error}</StyledError>}
+                <FieldError>{error}</FieldError>
             </StyledCard>
 
             <StyledCard>
@@ -322,15 +323,6 @@ const StyledPrimaryButton = styled.button`
     }
 `;
 
-const StyledError = styled.p`
-    margin: 8px 0 0;
-    padding: 8px 10px;
-    border-radius: var(--radius-md);
-    background: var(--danger-bg);
-    border: 1px solid var(--danger-border);
-    color: var(--danger-color);
-    font-size: 12px;
-`;
 
 const StyledList = styled.div`
     display: flex;
