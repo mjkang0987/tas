@@ -16,12 +16,12 @@ import {
     StyledActionButton,
     StyledForm,
     StyledFieldRow,
-    StyledInlineError,
     useDialogAccessibility,
     useLayerInstanceId,
 } from '../calendar/overlays/ModalStyles';
 import {CloseIconButton} from '../ui/CloseIconButton';
 import {formControlStyle} from '../ui/FormControls';
+import {FieldError} from '../ui/FieldError';
 
 /* ------------------------------------------------------------------ */
 /*  ServiceEditModal                                                   */
@@ -122,7 +122,7 @@ const ServiceEditModal = ({item, serviceCatalog, onSave, onDelete, onClose}: Ser
                                 />
                             </label>
                         </StyledFieldRow>
-                        {error && <StyledInlineError>{error}</StyledInlineError>}
+                        <FieldError>{error}</FieldError>
                     </StyledForm>
                 </StyledModalBody>
                 <StyledFooter>
@@ -265,7 +265,7 @@ const ServiceAddModal = ({categories, serviceCatalog, onAdd, onClose}: ServiceAd
                                 />
                             </label>
                         </StyledFieldRow>
-                        {error && <StyledInlineError>{error}</StyledInlineError>}
+                        <FieldError>{error}</FieldError>
                     </StyledForm>
                 </StyledModalBody>
                 <StyledFooter>
@@ -509,7 +509,7 @@ export const ServiceManageSection = () => {
                     </StyledGroup>
                 ))}
             </StyledServiceBody>
-            {manageError && <StyledManageNotice>{manageError}</StyledManageNotice>}
+            <FieldError variant="inline">{manageError}</FieldError>
 
             <StyledServiceFooter>
                 <StyledAddButton type="button" onClick={() => setShowAddModal(true)}>+ 서비스 추가</StyledAddButton>
@@ -861,10 +861,3 @@ const StyledAddButton = styled.button`
     }
 `;
 
-const StyledManageNotice = styled.p`
-    margin: 0;
-    padding: 8px 16px 0;
-    font-size: 12px;
-    line-height: 1.4;
-    color: var(--red-color);
-`;

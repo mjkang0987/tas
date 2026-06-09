@@ -3,6 +3,7 @@ import {useEffect, useRef, useState} from 'react';
 import styled, {css} from 'styled-components';
 import {formControlStyle} from '../../ui/FormControls';
 import {LabelBadge} from '../../ui/LabelBadge';
+import {FieldError} from '../../ui/FieldError';
 
 export const OVERLAY_Z_INDEX = {
     base: 100,
@@ -285,24 +286,7 @@ export const StyledFieldRow = styled.div`
     }
 `;
 
-const errorMessageStyle = css`
-    width: 100%;
-    padding: var(--gap-md) var(--gap-lg);
-    background-color: var(--danger-bg);
-    border: 1px solid var(--danger-border);
-    border-radius: var(--radius-sm);
-    font-size: var(--small-font);
-    color: var(--danger-color);
-`;
-
-export const StyledError = styled.p`
-    margin: 10px 0 0;
-    ${errorMessageStyle};
-`;
-
-export const StyledInlineError = styled(StyledError)`
-    margin-top: 8px;
-`;
+export {FieldError as StyledError, FieldError as StyledInlineError};
 
 export const StyledPriceRow = styled.div`
     display: flex;

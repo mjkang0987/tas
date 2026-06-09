@@ -6,6 +6,7 @@ import styled from 'styled-components';
 
 import {PageHero} from '../components/ui/PageHero';
 import {actionButtonStyle} from '../components/settings/settings-styles';
+import {FieldError} from '../components/ui/FieldError';
 
 type InquiryTab = 'form' | 'history';
 
@@ -147,7 +148,7 @@ const InquiryPage: NextPage = () => {
                                             onChange={(e) => setContent(e.target.value)}
                                         />
                                     </StyledFieldGroup>
-                                    {error && <StyledError>{error}</StyledError>}
+                                    <FieldError>{error}</FieldError>
                                     <StyledSubmitButton type="submit" disabled={submitting}>
                                         {submitting ? '전송 중...' : '문의 전송'}
                                     </StyledSubmitButton>
@@ -295,14 +296,6 @@ const StyledTextarea = styled.textarea`
     }
 `;
 
-const StyledError = styled.div`
-    padding: 10px 12px;
-    border: 1px solid #fecaca;
-    border-radius: var(--radius-md);
-    background: #fff1f2;
-    color: #9f1239;
-    font-size: 13px;
-`;
 
 const StyledSubmitButton = styled.button`
     display: flex;

@@ -7,6 +7,7 @@ import Head from 'next/head';
 import styled from 'styled-components';
 
 import {getPageSession} from '../lib/page-data';
+import {FieldError} from '../components/ui/FieldError';
 import {DEFAULT_SERVICES, SHOP_CATEGORY_COLOR_MAP} from '../features/services/default-services';
 import type {ShopType} from '../features/services/default-services';
 import {createDefaultSchedule, getDesignerColor} from '../utils/designers';
@@ -139,7 +140,7 @@ const OnboardingPage: NextPage<{guest?: boolean}> = ({guest}) => {
                     </StyledTypeGrid>
                 </StyledSection>
 
-                {error && <StyledError>{error}</StyledError>}
+                <FieldError>{error}</FieldError>
 
                 <StyledSubmitBtn
                     type="button"
@@ -306,15 +307,6 @@ const StyledTypeDesc = styled.span`
     line-height: 1.4;
 `;
 
-const StyledError = styled.p`
-    margin: 0;
-    padding: 10px 14px;
-    font-size: 13px;
-    color: var(--danger-color);
-    background: var(--danger-bg);
-    border: 1px solid var(--danger-border);
-    border-radius: var(--radius-md);
-`;
 
 const StyledSubmitBtn = styled.button`
     height: 48px;
