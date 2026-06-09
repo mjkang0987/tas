@@ -265,6 +265,7 @@ const NotificationModal = ({notifications, designers, reservationMap, markRead, 
     const renderConflictItem = (n: SyncNotification) => (
         <StyledModalItem key={n.id}
                          $unread={n.conflictStatus !== 'confirmed'}
+                         $isConflict
                          onClick={() => handleClick(n)}>
             <StyledConflictItemText>
                 <span className="message">
@@ -641,20 +642,20 @@ const StyledModalBodyInner = styled(StyledBodyInner)`
     padding: 0 0 30px 0;
 `;
 
-const StyledModalItem = styled.div<{ $unread: boolean }>`
+const StyledModalItem = styled.div<{ $unread: boolean; $isConflict?: boolean }>`
     display: grid;
-    grid-template-columns: 1fr 30px;
+    grid-template-columns: ${({$isConflict}) => $isConflict ? '1fr' : '1fr 30px'};
     gap: 4px;
     width: 100%;
     box-sizing: border-box;
     padding: 4px 8px;
-    background-color: ${(props) => props.$unread ? 'var(--notification-unread-bg)' : 'transparent'};
+    background-color: ${({$unread}) => $unread ? 'var(--notification-unread-bg)' : 'transparent'};
     border-bottom: 1px solid var(--gray-color2);
     cursor: pointer;
 
     @media (hover: hover) and (pointer: fine) {
         &:hover {
-            background-color: ${(props) => props.$unread ? 'var(--notification-unread-bg-hover)' : 'var(--gray-color2)'};
+            background-color: ${({$unread}) => $unread ? 'var(--notification-unread-bg-hover)' : 'var(--gray-color2)'};
         }
     }
 

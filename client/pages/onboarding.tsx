@@ -78,6 +78,11 @@ const OnboardingPage: NextPage<{guest?: boolean}> = ({guest}) => {
         getDesignerColor({id: DEFAULT_DESIGNER_ID_START + 1})
     );
     const [step3Error, setStep3Error] = useState('');
+    const [editingDesignerId, setEditingDesignerId] = useState<number | null>(null);
+    const [editingDesignerName, setEditingDesignerName] = useState('');
+
+    // ── Step 5 ──
+    const [finalError, setFinalError] = useState('');
 
     // ── Step 4 ──
     const [naverChoice, setNaverChoice] = useState<'yes' | 'no' | null>(null);
@@ -179,16 +184,29 @@ const OnboardingPage: NextPage<{guest?: boolean}> = ({guest}) => {
     };
 
     const handleRemoveDesigner = (id: number) => {
-        if (localDesigners.length <= 1) {
-            setStep3Error('최소 1명의 디자이너가 필요합니다.');
-            return;
-        }
         setLocalDesigners((prev) => prev.filter((d) => d.id !== id));
         setStep3Error('');
     };
 
     const handleUpdateDesignerColor = (id: number, color: string) => {
         setLocalDesigners((prev) => prev.map((d) => d.id === id ? {...d, color} : d));
+    };
+
+    const handleStartEditDesignerName = (d: LocalDesigner) => {
+        setEditingDesignerId(d.id);
+        setEditingDesignerName(d.name);
+        setStep3Error('');
+    };
+
+    const handleSaveDesignerName = (id: number) => {
+        const name = editingDesignerName.trim();
+        if (!name) { setStep3Error('디자이너 이름을 입력해 주세요.'); return; }
+        if (localDesigners.some((d) => d.name === name && d.id !== id)) {
+            setStep3Error(`"${name}" 디자이너는 이미 있습니다.`); return;
+        }
+        setLocalDesigners((prev) => prev.map((d) => d.id === id ? {...d, name} : d));
+        setEditingDesignerId(null);
+        setStep3Error('');
     };
 
     // ── Final submit ──
@@ -233,15 +251,13 @@ const OnboardingPage: NextPage<{guest?: boolean}> = ({guest}) => {
 
             if (!res.ok) {
                 const data = await res.json().catch(() => ({}));
-                setStep1Error(data.error ?? '오류가 발생했습니다.');
-                setStep(1);
+                setFinalError(data.error ?? '오류가 발생했습니다.');
                 return;
             }
 
             router.replace('/');
         } catch {
-            setStep1Error('네트워크 오류가 발생했습니다.');
-            setStep(1);
+            setFinalError('네트워크 오류가 발생했습니다.');
         } finally {
             setLoading(false);
         }
@@ -431,7 +447,28 @@ const OnboardingPage: NextPage<{guest?: boolean}> = ({guest}) => {
                             {localDesigners.map((d) => (
                                 <StyledDesignerRow key={d.id}>
                                     <StyledDesignerColorDot style={{background: d.color}} />
-                                    <StyledDesignerName>{d.name}</StyledDesignerName>
+                                    {editingDesignerId === d.id ? (
+                                        <StyledDesignerEditInput
+                                            value={editingDesignerName}
+                                            onChange={(e) => { setEditingDesignerName(e.target.value); setStep3Error(''); }}
+                                            onBlur={() => handleSaveDesignerName(d.id)}
+                                            onKeyDown={(e) => {
+                                                if (e.key === 'Enter') handleSaveDesignerName(d.id);
+                                                if (e.key === 'Escape') { setEditingDesignerId(null); setStep3Error(''); }
+                                            }}
+                                            autoFocus
+                                        />
+                                    ) : (
+                                        <StyledDesignerName
+                                            role="button"
+                                            tabIndex={0}
+                                            onClick={() => handleStartEditDesignerName(d)}
+                                            onKeyDown={(e) => e.key === 'Enter' && handleStartEditDesignerName(d)}
+                                            title="클릭하여 이름 수정"
+                                        >
+                                            {d.name}
+                                        </StyledDesignerName>
+                                    )}
                                     <StyledDesignerColorPicker
                                         type="color"
                                         value={d.color}
@@ -559,7 +596,7 @@ const OnboardingPage: NextPage<{guest?: boolean}> = ({guest}) => {
                             </StyledCompleteSummary>
                         </StyledCompleteSection>
 
-                        <FieldError>{step1Error}</FieldError>
+                        <FieldError>{finalError}</FieldError>
 
                         <StyledNavRow $centered>
                             <StyledBackBtn type="button" onClick={() => { clearErrors(); setStep(prevStep()); }}>← 이전</StyledBackBtn>
@@ -846,6 +883,27 @@ const StyledDesignerName = styled.span`
     font-size: 14px;
     font-weight: 600;
     color: var(--dark-gray-color);
+    cursor: text;
+    border-radius: var(--radius-sm);
+    padding: 2px 4px;
+
+    @media (hover: hover) and (pointer: fine) {
+        &:hover { background: var(--light-gray-color); }
+    }
+`;
+
+const StyledDesignerEditInput = styled.input`
+    flex: 1;
+    height: 28px;
+    padding: 0 8px;
+    border: 1px solid var(--blue-color);
+    border-radius: var(--radius-sm);
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--dark-gray-color);
+    background: var(--white-color);
+    outline: none;
+    box-sizing: border-box;
 `;
 
 const StyledDesignerColorPicker = styled.input`
