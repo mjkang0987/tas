@@ -23,6 +23,7 @@ import {
     syncDesignerSettings,
     syncReservationState,
     syncServiceSettings,
+    syncStoreInfo,
     syncStoreSettings,
 } from './calendarStoreHelpers';
 import {
@@ -172,6 +173,7 @@ export interface CalendarState {
     setCategoryBaseColorMap: (colorMap: Record<string, string>) => void;
     setDesigners: (designers: Designer[]) => void;
     setStoreInfo: (name: string, type: string | null) => void;
+    updateStoreInfo: (name: string, type: string | null) => void;
     setStoreSettings: (storeSettings: StoreSettings) => void;
     updateStoreBusinessHours: (hours: Partial<StoreSettings['businessHours']>) => void;
     updateStorePointSettings: (pointSettings: Partial<StoreSettings['pointSettings']>) => void;
@@ -408,6 +410,10 @@ export const useCalendarStore = create<CalendarState>((set) => ({
     setCategoryBaseColorMap: (categoryBaseColorMap) => set({categoryBaseColorMap}),
     setDesigners: (designers) => set({designers}),
     setStoreInfo: (storeName, shopType) => set({storeName, shopType}),
+    updateStoreInfo: (storeName, shopType) => {
+        set({storeName, shopType});
+        syncStoreInfo(storeName, shopType);
+    },
     setStoreSettings: (storeSettings) => set({storeSettings}),
 
     updateStoreBusinessHours: (hours) =>

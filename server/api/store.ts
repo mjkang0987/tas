@@ -106,6 +106,29 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         return res.status(200).json(nextData);
     }
 
-    res.setHeader('Allow', ['GET', 'PUT']);
+    if (req.method === 'PATCH') {
+        if (!requireRole(session, 'manager', res)) return;
+
+        const {storeName, shopType} = req.body as {storeName?: unknown; shopType?: unknown};
+
+        if (storeName !== undefined && (typeof storeName !== 'string' || !storeName.trim())) {
+            return res.status(400).json({error: 'Invalid storeName'});
+        }
+        if (shopType !== undefined && shopType !== null && typeof shopType !== 'string') {
+            return res.status(400).json({error: 'Invalid shopType'});
+        }
+
+        await prisma.store.update({
+            where: {id: session.storeId},
+            data: {
+                ...(storeName !== undefined && {name: (storeName as string).trim()}),
+                ...(shopType !== undefined && {shopType: shopType as string | null}),
+            },
+        });
+
+        return res.status(200).json({storeName: storeName ?? undefined, shopType: shopType ?? undefined});
+    }
+
+    res.setHeader('Allow', ['GET', 'PUT', 'PATCH']);
     return res.status(405).end(`Method ${req.method} Not Allowed`);
 }

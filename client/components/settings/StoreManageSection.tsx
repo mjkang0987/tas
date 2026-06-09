@@ -24,6 +24,7 @@ export const StoreManageSection = ({formatDateLabel}: StoreManageSectionProps) =
     const storeName = useCalendarStore((s) => s.storeName);
     const shopType = useCalendarStore((s) => s.shopType);
     const storeSettings = useCalendarStore((s) => s.storeSettings);
+    const updateStoreInfo = useCalendarStore((s) => s.updateStoreInfo);
     const updateStoreBusinessHours = useCalendarStore((s) => s.updateStoreBusinessHours);
     const updateStoreClosedDates = useCalendarStore((s) => s.updateStoreClosedDates);
     const [businessHours, setBusinessHours] = useState(storeSettings.businessHours);
@@ -32,11 +33,30 @@ export const StoreManageSection = ({formatDateLabel}: StoreManageSectionProps) =
     const [closedDateError, setClosedDateError] = useState('');
     const [isEditingBusinessHours, setIsEditingBusinessHours] = useState(false);
     const [isEditingClosedDates, setIsEditingClosedDates] = useState(false);
+    const [isEditingStoreInfo, setIsEditingStoreInfo] = useState(false);
+    const [editStoreName, setEditStoreName] = useState(storeName);
+    const [editShopType, setEditShopType] = useState<string | null>(shopType);
+    const [storeInfoError, setStoreInfoError] = useState('');
 
     useEffect(() => {
         setBusinessHours(storeSettings.businessHours);
         setClosedDates(storeSettings.closedDates);
     }, [storeSettings]);
+
+    useEffect(() => {
+        setEditStoreName(storeName);
+        setEditShopType(shopType);
+    }, [storeName, shopType]);
+
+    const handleSaveStoreInfo = () => {
+        if (!editStoreName.trim()) {
+            setStoreInfoError('매장 이름을 입력해 주세요.');
+            return;
+        }
+        updateStoreInfo(editStoreName.trim(), editShopType);
+        setIsEditingStoreInfo(false);
+        setStoreInfoError('');
+    };
 
     const isBusinessHoursDirty = businessHours.start !== storeSettings.businessHours.start
         || businessHours.end !== storeSettings.businessHours.end;
@@ -71,14 +91,66 @@ export const StoreManageSection = ({formatDateLabel}: StoreManageSectionProps) =
     return (
         <StyledStoreSection>
             <PageHero eyebrow="STORE" title="매장 관리" subtitle="영업시간과 휴업일을 설정합니다." />
-            {(storeName || shopType) && (
-                <StyledStoreInfoCard>
-                    {storeName && <StyledStoreInfoName>{storeName}</StyledStoreInfoName>}
-                    {shopType && (
-                        <StyledStoreInfoType>{SHOP_TYPE_LABELS[shopType] ?? shopType}</StyledStoreInfoType>
+            <StyledStoreCard>
+                <StyledStoreCardHeader>
+                    <StyledStoreCardTitle>매장 정보</StyledStoreCardTitle>
+                    {!isEditingStoreInfo && (
+                        <StyledEditBtn type="button" onClick={() => setIsEditingStoreInfo(true)}>수정</StyledEditBtn>
                     )}
-                </StyledStoreInfoCard>
-            )}
+                </StyledStoreCardHeader>
+                {isEditingStoreInfo ? (
+                    <>
+                        <StyledStoreFieldGrid>
+                            <StyledRangeInputWrap>
+                                <span>매장 이름</span>
+                                <StyledDateInput
+                                    type="text"
+                                    value={editStoreName}
+                                    onChange={(e) => {
+                                        setEditStoreName(e.target.value);
+                                        setStoreInfoError('');
+                                    }}
+                                    placeholder="매장 이름을 입력하세요"
+                                />
+                            </StyledRangeInputWrap>
+                        </StyledStoreFieldGrid>
+                        <StyledShopTypeGrid>
+                            {Object.entries(SHOP_TYPE_LABELS).map(([type, label]) => (
+                                <StyledShopTypeBtn
+                                    key={type}
+                                    type="button"
+                                    $selected={editShopType === type}
+                                    onClick={() => setEditShopType(type)}
+                                >
+                                    {label}
+                                </StyledShopTypeBtn>
+                            ))}
+                        </StyledShopTypeGrid>
+                        {storeInfoError && <StyledAddNotice>{storeInfoError}</StyledAddNotice>}
+                        <StyledStoreActionRow>
+                            <StyledCancelBtn
+                                type="button"
+                                onClick={() => {
+                                    setEditStoreName(storeName);
+                                    setEditShopType(shopType);
+                                    setStoreInfoError('');
+                                    setIsEditingStoreInfo(false);
+                                }}
+                            >
+                                취소
+                            </StyledCancelBtn>
+                            <StyledSaveBtn type="button" onClick={handleSaveStoreInfo}>저장</StyledSaveBtn>
+                        </StyledStoreActionRow>
+                    </>
+                ) : (
+                    <StyledStoreInfoRow>
+                        <StyledStoreInfoName>{storeName || <StyledInfoPlaceholder>매장 이름 없음</StyledInfoPlaceholder>}</StyledStoreInfoName>
+                        {shopType && (
+                            <StyledStoreInfoType>{SHOP_TYPE_LABELS[shopType] ?? shopType}</StyledStoreInfoType>
+                        )}
+                    </StyledStoreInfoRow>
+                )}
+            </StyledStoreCard>
             <StyledStoreCard>
                 <StyledStoreCardHeader>
                     <StyledStoreCardTitle>영업시간</StyledStoreCardTitle>
@@ -191,28 +263,31 @@ const StyledStoreSection = styled.div`
     grid-template-columns: 1fr 1fr;
     gap: 12px;
 
-    > :first-child { grid-column: 1 / -1; }
+    > :first-child,
+    > :nth-child(2) { grid-column: 1 / -1; }
 
     @media (max-width: 640px) {
         grid-template-columns: 1fr;
     }
 `;
 
-const StyledStoreInfoCard = styled.div`
-    grid-column: 1 / -1;
+const StyledStoreInfoRow = styled.div`
     display: flex;
     align-items: center;
     gap: 10px;
-    padding: 12px 14px;
-    border: 1px solid var(--light-gray-color);
-    border-radius: 10px;
-    background: var(--white-color);
+    flex-wrap: wrap;
 `;
 
 const StyledStoreInfoName = styled.strong`
     font-size: 15px;
     font-weight: 600;
     color: var(--black-color);
+`;
+
+const StyledInfoPlaceholder = styled.span`
+    font-size: 13px;
+    font-weight: 400;
+    color: var(--dark-gray-color2);
 `;
 
 const StyledStoreInfoType = styled.span`
@@ -222,6 +297,24 @@ const StyledStoreInfoType = styled.span`
     background: rgba(45, 127, 249, 0.08);
     padding: 2px 8px;
     border-radius: 4px;
+`;
+
+const StyledShopTypeGrid = styled.div`
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+`;
+
+const StyledShopTypeBtn = styled.button<{$selected: boolean}>`
+    padding: 4px 10px;
+    border: 1px solid ${(p) => p.$selected ? 'var(--blue-color)' : 'var(--light-gray-color)'};
+    border-radius: 16px;
+    background: ${(p) => p.$selected ? 'rgba(45, 127, 249, 0.08)' : 'var(--white-color)'};
+    color: ${(p) => p.$selected ? 'var(--blue-color)' : 'var(--dark-gray-color)'};
+    font-size: 12px;
+    font-weight: ${(p) => p.$selected ? '600' : '400'};
+    cursor: pointer;
+    transition: border-color 0.12s, background 0.12s;
 `;
 
 const StyledStoreCard = styled.div`
