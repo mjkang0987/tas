@@ -5,9 +5,9 @@ import type {Reservation, ReservationChannel} from '../../../utils/reservations'
 import {findOverlap} from '../../../utils/reservations';
 import type {Customer, CustomerMap} from '../../../utils/customers';
 import type {Designer} from '../../../utils/designers';
-import {getDesignerAvailabilityError, splitDesignersByStatus} from '../../../utils/designers';
+import {getDesignerAvailabilityState, splitDesignersByStatus} from '../../../utils/designers';
 import {calcEndTime, joinServiceNames, sumDurationMinutes, sumPrice} from '../../../utils/services';
-import type {ReservationDetailFormState} from './ReservationDetailSections';
+import type {ReservationDetailFormState, ReservationFieldError} from './ReservationDetailSections';
 type CustomerMode = 'existing' | 'new';
 
 const KOREAN_MOBILE_PHONE_PATTERN = /^01[016789]\d{7,8}$/;
@@ -64,7 +64,7 @@ export function useReservationCreateForm({
         channel: '전화예약' as ReservationChannel,
     });
     const [isEndTimeManual, setIsEndTimeManual] = useState(false);
-    const [error, setError] = useState('');
+    const [error, setError] = useState<ReservationFieldError | null>(null);
 
     const filteredCustomers = customerQuery.trim()
         ? customers.filter((customer) => customer.name.includes(customerQuery) || customer.tel.includes(customerQuery))
@@ -80,14 +80,14 @@ export function useReservationCreateForm({
             setCustomerQuery(customer.name);
         }
         setShowSuggestions(false);
-        setError('');
+        setError(null);
     };
 
     const handleCustomerInputChange = (value: string) => {
         setCustomerQuery(value);
         setCustomerId(0);
         setShowSuggestions(true);
-        setError('');
+        setError(null);
     };
 
     const handleCustomerFocus = () => {
@@ -112,13 +112,13 @@ export function useReservationCreateForm({
 
             return next;
         });
-        setError('');
+        setError(null);
     };
 
     const handleEndTimeChange = (value: string) => {
         setIsEndTimeManual(true);
         setForm((prev) => ({...prev, endTime: value}));
-        setError('');
+        setError(null);
     };
 
     const handleServiceToggle = (serviceName: string) => {
@@ -143,49 +143,50 @@ export function useReservationCreateForm({
             }
 
             setIsEndTimeManual(false);
-            setError('');
+            setError(null);
             return next;
         });
     };
 
-    const validate = (): string => {
+    const validate = (): ReservationFieldError | null => {
         const normalizedNewCustomerTel = newCustomerTel.replace(/\D/g, '');
 
-        if (activeDesigners.length > 0 && !form.designerId) return '디자이너를 선택해주세요.';
-        if (customerMode === 'existing' && !customerId) return '고객을 선택해주세요.';
-        if (customerMode === 'new' && !newCustomerName.trim()) return '신규 고객명을 입력해주세요.';
-        if (customerMode === 'new' && !newCustomerTel.trim()) return '신규 고객 연락처를 입력해주세요.';
+        if (activeDesigners.length > 0 && !form.designerId) return {field: 'designer', message: '디자이너를 선택해주세요.'};
+        if (customerMode === 'existing' && !customerId) return {field: 'customer', message: '고객을 선택해주세요.'};
+        if (customerMode === 'new' && !newCustomerName.trim()) return {field: 'customer', message: '신규 고객명을 입력해주세요.'};
+        if (customerMode === 'new' && !newCustomerTel.trim()) return {field: 'customer', message: '신규 고객 연락처를 입력해주세요.'};
         if (customerMode === 'new' && !KOREAN_MOBILE_PHONE_PATTERN.test(normalizedNewCustomerTel)) {
-            return '신규 고객 연락처 형식을 확인해주세요.';
+            return {field: 'customer', message: '신규 고객 연락처 형식을 확인해주세요.'};
         }
-        if (selectedServices.length === 0) return '서비스를 선택해주세요.';
-        if (!form.date) return '날짜를 선택해주세요.';
-        if (!form.startTime) return '시작 시간을 입력해주세요.';
-        if (!form.endTime) return '종료 시간을 입력해주세요.';
-        if (form.startTime >= form.endTime) return '시작 시간은 종료 시간보다 앞서야 합니다.';
+        if (selectedServices.length === 0) return {field: 'service', message: '서비스를 선택해주세요.'};
+        if (!form.date) return {field: 'date', message: '날짜를 선택해주세요.'};
+        if (!form.startTime) return {field: 'time', message: '시작 시간을 입력해주세요.'};
+        if (!form.endTime) return {field: 'time', message: '종료 시간을 입력해주세요.'};
+        if (form.startTime >= form.endTime) return {field: 'time', message: '시작 시간은 종료 시간보다 앞서야 합니다.'};
 
-        const availabilityError = getDesignerAvailabilityError(
+        const availability = getDesignerAvailabilityState(
             designers,
             form.designerId,
             form.date,
             form.startTime,
             form.endTime
         );
-        if (availabilityError) return availabilityError;
+        if (availability.kind === 'off-day') return {field: 'date', message: availability.message};
+        if (availability.kind === 'outside-hours') return {field: 'time', message: availability.message};
 
         const overlap = findOverlap(reservationMap, form.date, form.startTime, form.endTime);
         if (overlap) {
             const name = customerMap[overlap.customerId]?.name ?? '-';
-            return `${name} 예약(${overlap.startTime}~${overlap.endTime})과 시간이 겹칩니다.`;
+            return {field: 'time', message: `${name} 예약(${overlap.startTime}~${overlap.endTime})과 시간이 겹칩니다.`};
         }
 
-        return '';
+        return null;
     };
 
     const handleSave = () => {
-        const message = validate();
-        if (message) {
-            setError(message);
+        const validationError = validate();
+        if (validationError) {
+            setError(validationError);
             return;
         }
 
@@ -240,15 +241,15 @@ export function useReservationCreateForm({
         totalPrice,
         setCustomerMode: (mode: CustomerMode) => {
             setCustomerMode(mode);
-            setError('');
+            setError(null);
         },
         setNewCustomerName: (value: string) => {
             setNewCustomerName(value);
-            setError('');
+            setError(null);
         },
         setNewCustomerTel: (value: string) => {
             setNewCustomerTel(value);
-            setError('');
+            setError(null);
         },
         handleCustomerSelect,
         handleCustomerInputChange,
@@ -262,15 +263,15 @@ export function useReservationCreateForm({
             const num = raw === '' ? 0 : parseInt(raw, 10);
             setForm((prev) => ({...prev, price: num}));
             setIsPriceManual(true);
-            setError('');
+            setError(null);
         },
         handleDesignerChange: (nextDesignerId: number) => {
             setForm((prev) => ({...prev, designerId: nextDesignerId}));
-            setError('');
+            setError(null);
         },
         handleFieldChange: (field: keyof ReservationDetailFormState, value: string) => {
             setForm((prev) => ({...prev, [field]: value}));
-            setError('');
+            setError(null);
         },
         handleSave,
     };

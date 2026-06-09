@@ -36,6 +36,13 @@ export interface ReservationDetailFormState {
     channel: ReservationChannel;
 }
 
+export type ReservationErrorField = 'customer' | 'service' | 'designer' | 'date' | 'time' | 'general';
+
+export interface ReservationFieldError {
+    field: ReservationErrorField;
+    message: string;
+}
+
 interface ReservationFormFieldsProps {
     idPrefix: string;
     form: ReservationDetailFormState;
@@ -54,6 +61,9 @@ interface ReservationFormFieldsProps {
     onStartTimeChange: (value: string) => void;
     onEndTimeChange: (value: string) => void;
     serviceErrorMessage?: string;
+    designerErrorMessage?: string;
+    dateErrorMessage?: string;
+    timeErrorMessage?: string;
     children?: ReactNode;
 }
 
@@ -75,6 +85,9 @@ export const ReservationFormFields = ({
     onStartTimeChange,
     onEndTimeChange,
     serviceErrorMessage,
+    designerErrorMessage,
+    dateErrorMessage,
+    timeErrorMessage,
     children,
 }: ReservationFormFieldsProps) => (
     <StyledForm>
@@ -128,6 +141,7 @@ export const ReservationFormFields = ({
                             : ''}
                     </StyledDesignerPolicyNotice>
                 )}
+                {designerErrorMessage && <StyledInlineError>{designerErrorMessage}</StyledInlineError>}
             </label>
         )}
         <label htmlFor={`${idPrefix}-date`}>
@@ -138,6 +152,7 @@ export const ReservationFormFields = ({
                 value={form.date}
                 onChange={(e) => onFieldChange('date', e.target.value)}
             />
+            {dateErrorMessage && <StyledInlineError>{dateErrorMessage}</StyledInlineError>}
         </label>
         <StyledTimeRow>
             <label htmlFor={`${idPrefix}-startTime`}>
@@ -159,6 +174,7 @@ export const ReservationFormFields = ({
                 />
             </label>
         </StyledTimeRow>
+        {timeErrorMessage && <StyledInlineError>{timeErrorMessage}</StyledInlineError>}
         <label htmlFor={`${idPrefix}-channel`}>
             <strong>예약경로</strong>
             <select
@@ -188,7 +204,7 @@ export const ReservationFormFields = ({
 interface ReservationEditSectionProps {
     form: ReservationDetailFormState;
     priceInputValue?: string;
-    error: string;
+    error: ReservationFieldError | null;
     customerMemoTags: CustomerMemoTag[];
     activeDesigners: Designer[];
     onLeaveDesigners: Designer[];
@@ -254,8 +270,12 @@ export const ReservationEditSection = ({
             onFieldChange={onFieldChange}
             onStartTimeChange={onStartTimeChange}
             onEndTimeChange={onEndTimeChange}
+            serviceErrorMessage={error?.field === 'service' ? error.message : ''}
+            designerErrorMessage={error?.field === 'designer' ? error.message : ''}
+            dateErrorMessage={error?.field === 'date' ? error.message : ''}
+            timeErrorMessage={error?.field === 'time' ? error.message : ''}
         />
-        {error && <StyledError>{error}</StyledError>}
+        {error && error.field === 'general' && <StyledError>{error.message}</StyledError>}
     </StyledBodyInner></StyledBody>
 );
 

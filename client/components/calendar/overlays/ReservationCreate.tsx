@@ -80,13 +80,11 @@ export const ReservationCreate = ({initial, customerMap, onClose, onSave}: Reser
         addCustomer,
         onSave,
     });
-    const customerErrorMessage = (
-        error === '고객을 선택해주세요.'
-        || error === '신규 고객명을 입력해주세요.'
-        || error === '신규 고객 연락처를 입력해주세요.'
-        || error === '신규 고객 연락처 형식을 확인해주세요.'
-    ) ? error : '';
-    const serviceErrorMessage = error === '서비스를 선택해주세요.' ? error : '';
+    const customerErrorMessage = error?.field === 'customer' ? error.message : '';
+    const serviceErrorMessage = error?.field === 'service' ? error.message : '';
+    const designerErrorMessage = error?.field === 'designer' ? error.message : '';
+    const dateErrorMessage = error?.field === 'date' ? error.message : '';
+    const timeErrorMessage = error?.field === 'time' ? error.message : '';
 
     if (!modalRoot) return null;
 
@@ -138,9 +136,12 @@ export const ReservationCreate = ({initial, customerMap, onClose, onSave}: Reser
                         onStartTimeChange={handleStartTimeChange}
                         onEndTimeChange={handleEndTimeChange}
                         serviceErrorMessage={serviceErrorMessage}
+                        designerErrorMessage={designerErrorMessage}
+                        dateErrorMessage={dateErrorMessage}
+                        timeErrorMessage={timeErrorMessage}
                     />
                 </StyledCreateForm>
-                {error && !customerErrorMessage && !serviceErrorMessage && <StyledError>{error}</StyledError>}
+                {error && error.field === 'general' && <StyledError>{error.message}</StyledError>}
             </StyledBodyInner></StyledBody>
 
             <StyledFooter>
