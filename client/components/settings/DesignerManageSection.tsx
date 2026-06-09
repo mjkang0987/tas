@@ -9,10 +9,17 @@ import {StyledConfirmOverlay, StyledDetail, StyledHeader, StyledFooter, StyledAc
 import type {Designer, DesignerStatus} from '../../utils/designers';
 import {WEEKDAY_LABELS, getDesignerColor, getDesignerStatus, getDesignerStatusMeta, splitDesignersByStatus, sortDesigners} from '../../utils/designers';
 import {Dot} from '../ui/Dot';
+import {LabelBadge} from '../ui/LabelBadge';
 import {formControlStyle} from '../ui/FormControls';
 import {StyledEditBtn, StyledDeleteBtn, StyledSaveBtn, StyledCancelBtn, StyledEmpty, StyledServiceFooter} from './settings-styles';
 
 const DESIGNER_STATUS_OPTIONS: DesignerStatus[] = ['재직', '휴직', '퇴직'];
+
+const DESIGNER_STATUS_TONE: Record<DesignerStatus, 'success' | 'warning' | 'neutral'> = {
+    '재직': 'success',
+    '휴직': 'warning',
+    '퇴직': 'neutral',
+};
 
 interface ConfirmDialogProps {
     message: string;
@@ -461,7 +468,7 @@ const StyledSectionEmpty = styled.div`
     padding: 24px;
     border: 1px dashed rgba(148, 163, 184, 0.32);
     border-radius: 10px;
-    background: rgba(248, 250, 252, 0.6);
+    background: var(--bg-subtle);
     font-size: 13px;
     color: var(--dark-gray-color2);
 `;
@@ -476,16 +483,16 @@ const StyledDesignerCard = styled.div<{ $status: DesignerStatus; $designerColor:
     padding: 8px;
     background: linear-gradient(180deg, rgba(255, 255, 255, 0.96) 0%, ${({$designerColor}) => `${$designerColor}10`} 100%);
     box-shadow: ${({$isEditing}) => $isEditing
-            ? '0 0 0 2px var(--blue-color), 0 8px 18px rgba(15, 23, 42, 0.05)'
-            : '0 8px 18px rgba(15, 23, 42, 0.05)'};
+            ? '0 0 0 2px var(--blue-color), var(--card-shadow)'
+            : 'var(--card-shadow)'};
     transition: box-shadow 0.14s ease, border-color 0.14s ease, background-color 0.14s ease;
 
     @media (hover: hover) and (pointer: fine) {
         &:hover {
             border-color: ${({$designerColor}) => `${$designerColor}66`};
             box-shadow: ${({$isEditing}) => $isEditing
-                    ? '0 0 0 2px var(--blue-color), 0 14px 26px rgba(15, 23, 42, 0.08)'
-                    : '0 14px 26px rgba(15, 23, 42, 0.08)'};
+                    ? '0 0 0 2px var(--blue-color), var(--card-shadow-hover)'
+                    : 'var(--card-shadow-hover)'};
             background-color: ${({$designerColor}) => `${$designerColor}14`};
         }
     }
@@ -540,7 +547,7 @@ const StyledDesignerMetaGrid = styled.div`
     grid-template-columns: minmax(0, 1fr) minmax(0, 1.5fr) 32px;
     gap: 4px;
     border-radius: 8px;
-    background: rgba(248, 250, 252, 0.92);
+    background: var(--neutral-bg);
 
     @media (max-width: 760px) {
         grid-template-columns: 1fr 1fr;
@@ -611,17 +618,14 @@ const StyledDesignerStatusSelect = styled.select`
     color: var(--dark-gray-color2);
 `;
 
-const StyledDesignerStatusBadge = styled.span<{ $status: DesignerStatus }>`
-    display: inline-flex;
-    align-items: center;
+const StyledDesignerStatusBadge = styled(LabelBadge).attrs<{ $status: DesignerStatus }>((props) => ({
+    $tone: DESIGNER_STATUS_TONE[props.$status],
+    $shape: 'pill' as const,
+    $size: 'sm' as const,
+}))<{ $status: DesignerStatus }>`
     height: 24px;
     padding: 0 8px;
-    border-radius: 999px;
-    border: 1px solid ${({$status}) => getDesignerStatusMeta($status).border};
-    background: ${({$status}) => getDesignerStatusMeta($status).tint};
-    color: ${({$status}) => getDesignerStatusMeta($status).accent};
     font-size: 10px;
-    font-weight: 700;
 
     @media (max-width: 480px) {
         height: 20px;
@@ -635,7 +639,7 @@ const StyledScheduleList = styled.div`
     flex-direction: column;
     gap: 3px;
     border-radius: 8px;
-    background: rgba(248, 250, 252, 0.6);
+    background: var(--bg-subtle);
 `;
 
 const StyledScheduleCollapsedNotice = styled.div<{ $status: DesignerStatus }>`
@@ -669,7 +673,7 @@ const StyledDayLabel = styled.span`
     width: 20px;
     padding: 2px 0;
     border-radius: 4px;
-    background: rgba(248, 250, 252, 0.92);
+    background: var(--neutral-bg);
     color: var(--dark-gray-color);
     font-weight: 600;
     text-align: center;
@@ -719,7 +723,7 @@ const StyledAddForm = styled.div`
     padding: 12px;
     border: 1px dashed var(--light-gray-color);
     border-radius: 10px;
-    background: rgba(248, 250, 252, 0.6);
+    background: var(--bg-subtle);
 `;
 
 const StyledAddFormGrid = styled.div`
