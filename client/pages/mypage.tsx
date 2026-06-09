@@ -57,6 +57,8 @@ const MyPage: NextPage<MyPageProps> = ({linkedProvider}) => {
     }, [selectedReservationIds, storeReservationMap]);
     const [localSnapshot, setLocalSnapshot] = useState<LocalDbSnapshot | null>(null);
     const [showDeleteModal, setShowDeleteModal] = useState(false);
+    const [isEditingNickname, setIsEditingNickname] = useState(false);
+    const [nicknameInput, setNicknameInput] = useState('');
 
     useEffect(() => {
         const localMode = status !== 'authenticated' && shouldUseLocalDb();
@@ -72,6 +74,15 @@ const MyPage: NextPage<MyPageProps> = ({linkedProvider}) => {
 
     const effectiveLocalSnapshot = isLocalMode ? localSnapshot : null;
     const storageModeLabel = isLocalMode ? '게스트 회원' : '로그인 회원';
+    const guestNickname = effectiveLocalSnapshot?.nickname ?? '게스트';
+
+    const handleSaveNickname = () => {
+        if (!nicknameInput.trim()) return;
+        const snapshot = loadLocalDbSnapshot();
+        snapshot.nickname = nicknameInput.trim();
+        saveLocalDbSnapshot(snapshot);
+        setIsEditingNickname(false);
+    };
 
     const localSummary = useMemo(() => ({
         customers: effectiveLocalSnapshot?.customers.length ?? 0,
@@ -99,7 +110,41 @@ const MyPage: NextPage<MyPageProps> = ({linkedProvider}) => {
                     </StyledRow>
                     <StyledRow>
                         <StyledLabel>별명</StyledLabel>
-                        <StyledValue>{session?.user?.name ?? '게스트'}</StyledValue>
+                        {isLocalMode ? (
+                            isEditingNickname ? (
+                                <StyledNicknameEditRow>
+                                    <StyledNicknameInput
+                                        type="text"
+                                        value={nicknameInput}
+                                        onChange={(e) => setNicknameInput(e.target.value)}
+                                        onKeyDown={(e) => {
+                                            if (e.key === 'Enter') handleSaveNickname();
+                                            if (e.key === 'Escape') setIsEditingNickname(false);
+                                        }}
+                                        placeholder="닉네임 입력"
+                                        autoFocus
+                                        maxLength={20}
+                                    />
+                                    <StyledNicknameBtn type="button" onClick={handleSaveNickname}>저장</StyledNicknameBtn>
+                                    <StyledNicknameBtn type="button" $cancel onClick={() => setIsEditingNickname(false)}>취소</StyledNicknameBtn>
+                                </StyledNicknameEditRow>
+                            ) : (
+                                <StyledNicknameView>
+                                    <StyledValue>{guestNickname}</StyledValue>
+                                    <StyledNicknameEditTrigger
+                                        type="button"
+                                        onClick={() => {
+                                            setNicknameInput(effectiveLocalSnapshot?.nickname ?? '');
+                                            setIsEditingNickname(true);
+                                        }}
+                                    >
+                                        수정
+                                    </StyledNicknameEditTrigger>
+                                </StyledNicknameView>
+                            )
+                        ) : (
+                            <StyledValue>{session?.user?.name ?? '-'}</StyledValue>
+                        )}
                     </StyledRow>
                     <StyledRow>
                         <StyledLabel>이메일</StyledLabel>
@@ -474,6 +519,55 @@ const StyledDeleteButton = styled.button`
     border: 1px solid var(--danger-border);
     background: var(--danger-bg);
     color: var(--danger-color);
+`;
+
+const StyledNicknameView = styled.div`
+    display: flex;
+    align-items: center;
+    gap: 8px;
+`;
+
+const StyledNicknameEditTrigger = styled.button`
+    padding: 2px 8px;
+    border: 1px solid var(--light-gray-color);
+    border-radius: var(--radius-sm);
+    background: var(--white-color);
+    font-size: 12px;
+    color: var(--dark-gray-color2);
+    cursor: pointer;
+`;
+
+const StyledNicknameEditRow = styled.div`
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex: 1;
+    justify-content: flex-end;
+`;
+
+const StyledNicknameInput = styled.input`
+    width: 140px;
+    height: 30px;
+    padding: 0 8px;
+    border: 1px solid var(--blue-color);
+    border-radius: var(--radius-sm);
+    font-size: 13px;
+    color: var(--black-color);
+    outline: none;
+    box-sizing: border-box;
+`;
+
+const StyledNicknameBtn = styled.button<{$cancel?: boolean}>`
+    height: 30px;
+    padding: 0 10px;
+    border: 1px solid ${(p) => p.$cancel ? 'var(--light-gray-color)' : 'var(--blue-color)'};
+    border-radius: var(--radius-sm);
+    background: ${(p) => p.$cancel ? 'var(--white-color)' : 'var(--blue-color)'};
+    color: ${(p) => p.$cancel ? 'var(--dark-gray-color)' : 'var(--white-color)'};
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    flex-shrink: 0;
 `;
 
 const StyledFooterCs = styled.p`
