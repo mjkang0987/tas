@@ -7,6 +7,7 @@ import {StyledEditBtn, StyledDeleteBtn, StyledSaveBtn, StyledCancelBtn, StyledEm
 import {useCalendarStore} from '../../store/calendarStore';
 import {PageHero} from '../ui/PageHero';
 import {formControlStyle} from '../ui/FormControls';
+import {FieldError} from '../ui/FieldError';
 
 interface StoreManageSectionProps {
     formatDateLabel: (dateKey: string) => string;
@@ -126,7 +127,7 @@ export const StoreManageSection = ({formatDateLabel}: StoreManageSectionProps) =
                                 </StyledShopTypeBtn>
                             ))}
                         </StyledShopTypeGrid>
-                        {storeInfoError && <StyledAddNotice>{storeInfoError}</StyledAddNotice>}
+                        <FieldError variant="inline">{storeInfoError}</FieldError>
                         <StyledStoreActionRow>
                             <StyledCancelBtn
                                 type="button"
@@ -214,7 +215,7 @@ export const StoreManageSection = ({formatDateLabel}: StoreManageSectionProps) =
                             />
                             <StyledSaveBtn type="button" onClick={handleAddClosedDate}>추가</StyledSaveBtn>
                         </StyledClosedDateAddRow>
-                        {closedDateError && <StyledAddNotice>{closedDateError}</StyledAddNotice>}
+                        <FieldError variant="inline">{closedDateError}</FieldError>
                     </>
                 )}
                 {closedDates.length === 0 ? (
@@ -398,10 +399,4 @@ const StyledDateInput = styled.input`
     padding: 0 8px;
 `;
 
-const StyledAddNotice = styled.p`
-    margin: 0;
-    font-size: 12px;
-    line-height: 1.4;
-    color: var(--red-color);
-`;
 

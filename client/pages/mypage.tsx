@@ -7,6 +7,7 @@ import {signIn, signOut, useSession} from 'next-auth/react';
 import styled from 'styled-components';
 
 import {AuthActionIcon} from '../components/ui/AuthActionIcon';
+import {FieldError} from '../components/ui/FieldError';
 import {PageHero} from '../components/ui/PageHero';
 import {AccountDeleteModal} from '../components/account/AccountDeleteModal';
 import {CustomerDetail} from '../components/calendar/overlays/CustomerDetail';
@@ -178,9 +179,7 @@ const MyPage: NextPage<MyPageProps> = ({linkedProvider}) => {
                                             취소
                                         </StyledNicknameBtn>
                                     </StyledNicknameEditRow>
-                                    {nicknameError && (
-                                        <StyledNicknameError>{nicknameError}</StyledNicknameError>
-                                    )}
+                                    <FieldError variant="inline">{nicknameError}</FieldError>
                                     {nicknameSuggestions.length > 0 && (
                                         <StyledSuggestions>
                                             <StyledSuggestionsLabel>추천 닉네임</StyledSuggestionsLabel>
@@ -656,12 +655,6 @@ const StyledNicknameBtn = styled.button<{$cancel?: boolean}>`
     &:disabled { opacity: 0.6; cursor: default; }
 `;
 
-const StyledNicknameError = styled.p`
-    margin: 0;
-    font-size: 12px;
-    color: var(--danger-color);
-    text-align: right;
-`;
 
 const StyledSuggestions = styled.div`
     display: flex;
