@@ -61,6 +61,9 @@ class ReservationDocument extends Document {
                           content="https://takeaseat.co.kr/og-image.jpg" />
                     <link rel="shortcut icon"
                           href="/favicon/favicon.ico" />
+                    <script async
+                            src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-XXXXXXXXXXXXXXXX"
+                            crossOrigin="anonymous" />
                 </Head>
                 <body>
                 <Main />
