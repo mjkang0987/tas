@@ -35,7 +35,7 @@ type MyPageProps = {
 };
 
 const MyPage: NextPage<MyPageProps> = ({linkedProvider}) => {
-    const {data: session, status} = useSession();
+    const {data: session, status, update: updateSession} = useSession();
     const [isLocalMode, setIsLocalMode] = useState(false);
     const storeCustomerMap = useCalendarStore((s) => s.customerMap);
     const storeReservationMap = useCalendarStore((s) => s.reservationMap);
@@ -59,6 +59,9 @@ const MyPage: NextPage<MyPageProps> = ({linkedProvider}) => {
     const [showDeleteModal, setShowDeleteModal] = useState(false);
     const [isEditingNickname, setIsEditingNickname] = useState(false);
     const [nicknameInput, setNicknameInput] = useState('');
+    const [nicknameError, setNicknameError] = useState('');
+    const [nicknameSuggestions, setNicknameSuggestions] = useState<string[]>([]);
+    const [nicknameLoading, setNicknameLoading] = useState(false);
 
     useEffect(() => {
         const localMode = status !== 'authenticated' && shouldUseLocalDb();
@@ -74,14 +77,43 @@ const MyPage: NextPage<MyPageProps> = ({linkedProvider}) => {
 
     const effectiveLocalSnapshot = isLocalMode ? localSnapshot : null;
     const storageModeLabel = isLocalMode ? '게스트 회원' : '로그인 회원';
-    const guestNickname = effectiveLocalSnapshot?.nickname ?? '게스트';
 
-    const handleSaveNickname = () => {
-        if (!nicknameInput.trim()) return;
-        const snapshot = loadLocalDbSnapshot();
-        snapshot.nickname = nicknameInput.trim();
-        saveLocalDbSnapshot(snapshot);
-        setIsEditingNickname(false);
+    const handleSaveNickname = async () => {
+        const trimmed = nicknameInput.trim();
+        if (trimmed.length < 2) {
+            setNicknameError('닉네임은 2자 이상 입력해 주세요.');
+            return;
+        }
+        setNicknameLoading(true);
+        setNicknameError('');
+        setNicknameSuggestions([]);
+
+        try {
+            const res = await fetch('/api/user/nickname', {
+                method: 'PATCH',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({nickname: trimmed}),
+            });
+            const data = await res.json() as {nickname?: string; error?: string; suggestions?: string[]};
+
+            if (res.status === 409) {
+                setNicknameError('이미 사용 중인 닉네임입니다.');
+                setNicknameSuggestions(data.suggestions ?? []);
+                return;
+            }
+
+            if (!res.ok) {
+                setNicknameError(data.error ?? '오류가 발생했습니다.');
+                return;
+            }
+
+            await updateSession({name: trimmed});
+            setIsEditingNickname(false);
+        } catch {
+            setNicknameError('네트워크 오류가 발생했습니다.');
+        } finally {
+            setNicknameLoading(false);
+        }
     };
 
     const localSummary = useMemo(() => ({
@@ -110,31 +142,73 @@ const MyPage: NextPage<MyPageProps> = ({linkedProvider}) => {
                     </StyledRow>
                     <StyledRow>
                         <StyledLabel>별명</StyledLabel>
-                        {isLocalMode ? (
+                        {!isLocalMode && session?.user ? (
                             isEditingNickname ? (
-                                <StyledNicknameEditRow>
-                                    <StyledNicknameInput
-                                        type="text"
-                                        value={nicknameInput}
-                                        onChange={(e) => setNicknameInput(e.target.value)}
-                                        onKeyDown={(e) => {
-                                            if (e.key === 'Enter') handleSaveNickname();
-                                            if (e.key === 'Escape') setIsEditingNickname(false);
-                                        }}
-                                        placeholder="닉네임 입력"
-                                        autoFocus
-                                        maxLength={20}
-                                    />
-                                    <StyledNicknameBtn type="button" onClick={handleSaveNickname}>저장</StyledNicknameBtn>
-                                    <StyledNicknameBtn type="button" $cancel onClick={() => setIsEditingNickname(false)}>취소</StyledNicknameBtn>
-                                </StyledNicknameEditRow>
+                                <StyledNicknameBlock>
+                                    <StyledNicknameEditRow>
+                                        <StyledNicknameInput
+                                            type="text"
+                                            value={nicknameInput}
+                                            onChange={(e) => {
+                                                setNicknameInput(e.target.value);
+                                                setNicknameError('');
+                                                setNicknameSuggestions([]);
+                                            }}
+                                            onKeyDown={(e) => {
+                                                if (e.key === 'Enter') handleSaveNickname();
+                                                if (e.key === 'Escape') {
+                                                    setIsEditingNickname(false);
+                                                    setNicknameError('');
+                                                    setNicknameSuggestions([]);
+                                                }
+                                            }}
+                                            placeholder="2~20자"
+                                            autoFocus
+                                            maxLength={20}
+                                            disabled={nicknameLoading}
+                                        />
+                                        <StyledNicknameBtn type="button" onClick={handleSaveNickname} disabled={nicknameLoading}>
+                                            {nicknameLoading ? '...' : '저장'}
+                                        </StyledNicknameBtn>
+                                        <StyledNicknameBtn type="button" $cancel onClick={() => {
+                                            setIsEditingNickname(false);
+                                            setNicknameError('');
+                                            setNicknameSuggestions([]);
+                                        }}>
+                                            취소
+                                        </StyledNicknameBtn>
+                                    </StyledNicknameEditRow>
+                                    {nicknameError && (
+                                        <StyledNicknameError>{nicknameError}</StyledNicknameError>
+                                    )}
+                                    {nicknameSuggestions.length > 0 && (
+                                        <StyledSuggestions>
+                                            <StyledSuggestionsLabel>추천 닉네임</StyledSuggestionsLabel>
+                                            <StyledSuggestionList>
+                                                {nicknameSuggestions.map((s) => (
+                                                    <StyledSuggestionChip
+                                                        key={s}
+                                                        type="button"
+                                                        onClick={() => {
+                                                            setNicknameInput(s);
+                                                            setNicknameError('');
+                                                            setNicknameSuggestions([]);
+                                                        }}
+                                                    >
+                                                        {s}
+                                                    </StyledSuggestionChip>
+                                                ))}
+                                            </StyledSuggestionList>
+                                        </StyledSuggestions>
+                                    )}
+                                </StyledNicknameBlock>
                             ) : (
                                 <StyledNicknameView>
-                                    <StyledValue>{guestNickname}</StyledValue>
+                                    <StyledValue>{session.user.name ?? '-'}</StyledValue>
                                     <StyledNicknameEditTrigger
                                         type="button"
                                         onClick={() => {
-                                            setNicknameInput(effectiveLocalSnapshot?.nickname ?? '');
+                                            setNicknameInput(session.user?.name ?? '');
                                             setIsEditingNickname(true);
                                         }}
                                     >
@@ -143,7 +217,7 @@ const MyPage: NextPage<MyPageProps> = ({linkedProvider}) => {
                                 </StyledNicknameView>
                             )
                         ) : (
-                            <StyledValue>{session?.user?.name ?? '-'}</StyledValue>
+                            <StyledValue>게스트</StyledValue>
                         )}
                     </StyledRow>
                     <StyledRow>
@@ -527,6 +601,14 @@ const StyledNicknameView = styled.div`
     gap: 8px;
 `;
 
+const StyledNicknameBlock = styled.div`
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    flex: 1;
+    align-items: flex-end;
+`;
+
 const StyledNicknameEditTrigger = styled.button`
     padding: 2px 8px;
     border: 1px solid var(--light-gray-color);
@@ -541,7 +623,7 @@ const StyledNicknameEditRow = styled.div`
     display: flex;
     align-items: center;
     gap: 6px;
-    flex: 1;
+    width: 100%;
     justify-content: flex-end;
 `;
 
@@ -555,6 +637,8 @@ const StyledNicknameInput = styled.input`
     color: var(--black-color);
     outline: none;
     box-sizing: border-box;
+
+    &:disabled { opacity: 0.6; }
 `;
 
 const StyledNicknameBtn = styled.button<{$cancel?: boolean}>`
@@ -568,6 +652,54 @@ const StyledNicknameBtn = styled.button<{$cancel?: boolean}>`
     font-weight: 600;
     cursor: pointer;
     flex-shrink: 0;
+
+    &:disabled { opacity: 0.6; cursor: default; }
+`;
+
+const StyledNicknameError = styled.p`
+    margin: 0;
+    font-size: 12px;
+    color: var(--danger-color);
+    text-align: right;
+`;
+
+const StyledSuggestions = styled.div`
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    align-items: flex-end;
+    width: 100%;
+`;
+
+const StyledSuggestionsLabel = styled.span`
+    font-size: 11px;
+    color: var(--dark-gray-color2);
+`;
+
+const StyledSuggestionList = styled.div`
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    justify-content: flex-end;
+`;
+
+const StyledSuggestionChip = styled.button`
+    padding: 3px 10px;
+    border: 1px solid var(--light-gray-color);
+    border-radius: 999px;
+    background: var(--gray-color2);
+    font-size: 12px;
+    color: var(--dark-gray-color);
+    cursor: pointer;
+    transition: border-color 0.12s, background 0.12s;
+
+    @media (hover: hover) and (pointer: fine) {
+        &:hover {
+            border-color: var(--blue-color);
+            color: var(--blue-color);
+            background: rgba(45, 127, 249, 0.06);
+        }
+    }
 `;
 
 const StyledFooterCs = styled.p`
