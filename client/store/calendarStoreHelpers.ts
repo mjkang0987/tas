@@ -115,6 +115,19 @@ export function syncStoreSettings(storeSettings: StoreSettings): void {
     syncToServer('/api/store', storeSettings, (c) => ({...c, storeSettings}));
 }
 
+export function syncStoreInfo(storeName: string, shopType: string | null): void {
+    if (shouldUseLocalDb()) {
+        updateLocalDbSnapshot((c) => ({...c, storeName, shopType: shopType ?? undefined}));
+        return;
+    }
+
+    fetch('/api/store', {
+        method: 'PATCH',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({storeName, shopType}),
+    }).catch(() => {});
+}
+
 export function syncReservationState(reservationMap: ReservationMap, history: ReservationHistoryEntry[]): void {
     if (!shouldUseLocalDb()) {
         return;
