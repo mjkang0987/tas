@@ -8,6 +8,7 @@ import styled from 'styled-components';
 
 import {AuthActionIcon} from '../components/ui/AuthActionIcon';
 import {PageHero} from '../components/ui/PageHero';
+import {AccountDeleteModal} from '../components/account/AccountDeleteModal';
 import {CustomerDetail} from '../components/calendar/overlays/CustomerDetail';
 import {ReservationDetail} from '../components/calendar/overlays/ReservationDetail';
 import {useCalendarStore} from '../store/calendarStore';
@@ -35,7 +36,7 @@ type MyPageProps = {
 
 const MyPage: NextPage<MyPageProps> = ({linkedProvider}) => {
     const {data: session, status} = useSession();
-    const isLocalMode = status !== 'authenticated' && shouldUseLocalDb();
+    const [isLocalMode, setIsLocalMode] = useState(false);
     const storeCustomerMap = useCalendarStore((s) => s.customerMap);
     const storeReservationMap = useCalendarStore((s) => s.reservationMap);
     const selectedCustomerId = useCalendarStore((s) => s.selectedCustomerId);
@@ -54,17 +55,20 @@ const MyPage: NextPage<MyPageProps> = ({linkedProvider}) => {
             .map((id) => all.find((r) => r.id === id) ?? null)
             .filter((r): r is NonNullable<typeof r> => r !== null);
     }, [selectedReservationIds, storeReservationMap]);
-    const [localSnapshot, setLocalSnapshot] = useState<LocalDbSnapshot | null>(() => (
-        isLocalMode ? loadLocalDbSnapshot() : null
-    ));
+    const [localSnapshot, setLocalSnapshot] = useState<LocalDbSnapshot | null>(null);
+    const [showDeleteModal, setShowDeleteModal] = useState(false);
 
     useEffect(() => {
-        if (!isLocalMode) {
-            return;
-        }
+        const localMode = status !== 'authenticated' && shouldUseLocalDb();
+        setIsLocalMode(localMode);
 
-        return subscribeLocalDb(setLocalSnapshot);
-    }, [isLocalMode, status]);
+        if (localMode) {
+            setLocalSnapshot(loadLocalDbSnapshot());
+            return subscribeLocalDb(setLocalSnapshot);
+        } else {
+            setLocalSnapshot(null);
+        }
+    }, [status]);
 
     const effectiveLocalSnapshot = isLocalMode ? localSnapshot : null;
     const storageModeLabel = isLocalMode ? '게스트 회원' : '로그인 회원';
@@ -127,6 +131,9 @@ const MyPage: NextPage<MyPageProps> = ({linkedProvider}) => {
                                 <AuthActionIcon direction="logout" />
                                 <span>로그아웃</span>
                             </StyledActionButton>
+                            <StyledDeleteButton type="button" onClick={() => setShowDeleteModal(true)}>
+                                회원탈퇴
+                            </StyledDeleteButton>
                         </StyledButtonRow>
                     )}
                 </StyledCard>
@@ -238,6 +245,10 @@ const MyPage: NextPage<MyPageProps> = ({linkedProvider}) => {
                                    onCancel={cancelReservation}
                                    onRestore={restoreReservation}/>
             ))}
+            {showDeleteModal && (
+                <AccountDeleteModal role={session?.user?.role}
+                                    onClose={() => setShowDeleteModal(false)} />
+            )}
             {selectedCustomerId !== null && storeCustomerMap[selectedCustomerId] && (
                 <CustomerDetail customer={storeCustomerMap[selectedCustomerId]}
                                 reservationMap={storeReservationMap}
@@ -456,6 +467,13 @@ const StyledGoogleButton = styled.button`
     @media (hover: hover) and (pointer: fine) {
         &:hover { opacity: 0.85; }
     }
+`;
+
+const StyledDeleteButton = styled.button`
+    ${buttonLikeStyle}
+    border: 1px solid var(--danger-border);
+    background: var(--danger-bg);
+    color: var(--danger-color);
 `;
 
 const StyledFooterCs = styled.p`
