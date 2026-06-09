@@ -1,4 +1,4 @@
-export type ShopType = 'hair' | 'nail' | 'waxing' | 'lash' | 'skin';
+export type ShopType = 'hair' | 'nail' | 'waxing' | 'lash' | 'skin' | 'etc';
 
 export const DEFAULT_SERVICES: Record<ShopType, Array<{
     category: string;
@@ -47,6 +47,7 @@ export const DEFAULT_SERVICES: Record<ShopType, Array<{
         {category: '클렌징', name: '딥 클렌징', durationMinutes: 30, price: 60000},
         {category: '패키지', name: '풀 케어 패키지', durationMinutes: 120, price: 150000},
     ],
+    etc: [],
 };
 
 export const SHOP_CATEGORY_COLOR_MAP: Record<ShopType, Record<string, string>> = {
@@ -76,4 +77,5 @@ export const SHOP_CATEGORY_COLOR_MAP: Record<ShopType, Record<string, string>> =
         '클렌징': '#2D7FF9',
         '패키지': '#FB8C00',
     },
+    etc: {},
 };
