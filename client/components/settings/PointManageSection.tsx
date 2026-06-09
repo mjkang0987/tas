@@ -475,7 +475,7 @@ const StyledTabButton = styled.button<{ $active: boolean }>`
     flex-shrink: 0;
     min-width: 72px;
     border: 1px solid ${(props) => props.$active ? 'var(--blue-color)' : 'var(--light-gray-color)'};
-    background: ${(props) => props.$active ? 'rgba(45, 127, 249, 0.1)' : 'var(--white-color)'};
+    background: ${(props) => props.$active ? 'var(--info-bg)' : 'var(--white-color)'};
     color: ${(props) => props.$active ? 'var(--blue-color)' : 'var(--dark-gray-color)'};
     font-weight: ${(props) => props.$active ? 700 : 500};
 `;

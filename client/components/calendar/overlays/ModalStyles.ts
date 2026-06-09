@@ -465,16 +465,16 @@ export const StyledNewTime = styled.span`
     color: var(--blue-color);
 `;
 
-export const StyledActionButton = styled.button<{ $primary?: boolean; $danger?: boolean; $warning?: boolean }>`
+export const StyledActionButton = styled.button<{ $primary?: boolean; $danger?: boolean; $dangerOutline?: boolean; $warning?: boolean }>`
     min-height: var(--modal-button-height);
     padding: 0 var(--modal-button-padding-x);
-    border: 1px solid ${(props) => props.$danger ? 'var(--danger-color)' : props.$warning ? 'var(--warning-color)' : props.$primary ? 'var(--blue-color)' : 'rgba(148, 163, 184, 0.34)'};
+    border: ${(props) => props.$dangerOutline ? '1px solid var(--danger-border)' : (props.$danger || props.$primary || props.$warning) ? 'none' : '1px solid var(--border-color)'};
     border-radius: var(--modal-button-radius);
-    background-color: ${(props) => props.$danger ? 'var(--danger-color)' : props.$warning ? 'var(--warning-color)' : props.$primary ? 'var(--blue-color)' : 'rgba(255,255,255,0.88)'};
-    color: ${(props) => (props.$danger || props.$primary || props.$warning) ? 'var(--white-color)' : 'var(--dark-gray-color)'};
+    background-color: ${(props) => props.$dangerOutline ? 'var(--white-color)' : props.$danger ? 'var(--danger-color)' : props.$warning ? 'var(--warning-color)' : props.$primary ? 'var(--brand-color)' : 'var(--white-color)'};
+    color: ${(props) => props.$dangerOutline ? 'var(--danger-color)' : (props.$danger || props.$primary || props.$warning) ? 'var(--white-color)' : 'var(--dark-gray-color)'};
     font-size: var(--modal-button-font);
-    font-weight: 600;
-    box-shadow: ${(props) => (props.$danger || props.$primary || props.$warning) ? '0 10px 20px rgba(15, 23, 42, 0.12)' : 'none'};
+    font-weight: ${(props) => (props.$danger || props.$dangerOutline || props.$primary || props.$warning) ? 600 : 500};
+    box-shadow: var(--shadow-sm);
     transition: transform 0.14s ease, opacity 0.14s ease, box-shadow 0.14s ease, background-color 0.14s ease;
 
     @media (hover: hover) and (pointer: fine) {

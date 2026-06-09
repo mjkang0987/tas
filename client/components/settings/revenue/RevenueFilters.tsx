@@ -172,7 +172,7 @@ const StyledQuickFilterButton = styled.button<{ $active: boolean }>`
     border: 1px solid ${(p) => p.$active ? 'var(--blue-color)' : 'var(--light-gray-color)'};
     border-radius: 13px;
     background: ${(p) => p.$active ? 'var(--blue-color)' : 'var(--white-color)'};
-    color: ${(p) => p.$active ? '#fff' : 'var(--dark-gray-color)'};
+    color: ${(p) => p.$active ? 'var(--white-color)' : 'var(--dark-gray-color)'};
 `;
 
 const StyledRangeFilter = styled.div`
@@ -232,7 +232,7 @@ const StyledDesignerTab = styled.button<{ $active: boolean }>`
     border: 1px solid ${(p) => p.$active ? 'var(--blue-color)' : 'var(--light-gray-color)'};
     border-radius: 10px;
     background: ${(p) => p.$active ? 'var(--blue-color)' : 'var(--white-color)'};
-    color: ${(p) => p.$active ? '#fff' : 'var(--dark-gray-color)'};
+    color: ${(p) => p.$active ? 'var(--white-color)' : 'var(--dark-gray-color)'};
 `;
 
 const StyledRow3 = styled.div`
@@ -254,7 +254,7 @@ const StyledViewTab = styled.button<{ $active: boolean }>`
     white-space: nowrap;
     border: 1px solid ${(p) => p.$active ? 'var(--black-color)' : 'var(--light-gray-color)'};
     background: ${(p) => p.$active ? 'var(--black-color)' : 'var(--white-color)'};
-    color: ${(p) => p.$active ? '#fff' : 'var(--dark-gray-color)'};
+    color: ${(p) => p.$active ? 'var(--white-color)' : 'var(--dark-gray-color)'};
 
     @media (max-width: 640px) {
         min-width: 0;
@@ -268,7 +268,7 @@ const StyledFilterModeTab = styled.button<{ $active: boolean }>`
     padding: 0 11px;
     border: 1px solid ${(p) => p.$active ? 'var(--blue-color)' : 'var(--light-gray-color)'};
     border-radius: 10px;
-    background: ${(p) => p.$active ? 'rgba(45, 127, 249, 0.1)' : 'var(--white-color)'};
+    background: ${(p) => p.$active ? 'var(--info-bg)' : 'var(--white-color)'};
     color: ${(p) => p.$active ? 'var(--blue-color)' : 'var(--dark-gray-color)'};
     font-weight: ${(p) => p.$active ? 700 : 500};
 `;

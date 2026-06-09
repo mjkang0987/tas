@@ -131,6 +131,7 @@ export const GlobalStyle = createGlobalStyle`
         --card-shadow-hover: 0 14px 26px rgba(15, 23, 42, 0.08);
         --chip-padding: 4px 8px;
         --chip-radius: 999px;
+        --bg-subtle: rgba(248, 250, 252, 0.6);
     }
 
     @media (max-width: 640px) {

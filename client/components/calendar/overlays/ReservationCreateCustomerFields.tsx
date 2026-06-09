@@ -142,7 +142,7 @@ const StyledCustomerModeButton = styled.button<{ $active: boolean }>`
   border: 1px solid ${({$active}) => $active ? 'var(--blue-color)' : 'var(--light-gray-color)'};
   border-radius: 999px;
   background: ${({$active}) => $active ? 'var(--blue-color)' : 'var(--white-color)'};
-  color: ${({$active}) => $active ? '#fff' : 'var(--dark-gray-color)'};
+  color: ${({$active}) => $active ? 'var(--white-color)' : 'var(--dark-gray-color)'};
   font-size: 12px;
 `;
 
@@ -169,7 +169,7 @@ const StyledSuggestionWrap = styled.div`
   z-index: 10;
   margin: 4px 0 0;
   max-height: 160px;
-  background-color: #fff;
+  background-color: var(--white-color);
   border: 1px solid var(--light-gray-color);
   border-radius: 4px;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);

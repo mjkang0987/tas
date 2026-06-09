@@ -494,10 +494,10 @@ const StyledHeaderActions = styled.div`
 const StyledHeaderActionButton = styled.button<{ $primary?: boolean; $danger?: boolean }>`
     height: 30px;
     padding: 0 10px;
-    border: 1px solid ${props => props.$danger ? 'var(--danger-color)' : props.$primary ? 'var(--blue-color)' : 'var(--light-gray-color)'};
+    border: ${props => (props.$danger || props.$primary) ? 'none' : '1px solid var(--border-color)'};
     border-radius: 8px;
-    background: ${props => props.$danger ? 'var(--danger-color)' : props.$primary ? 'var(--blue-color)' : 'var(--white-color)'};
-    color: ${props => (props.$danger || props.$primary) ? '#fff' : 'var(--dark-gray-color)'};
+    background: ${props => props.$danger ? 'var(--danger-color)' : props.$primary ? 'var(--brand-color)' : 'var(--white-color)'};
+    color: ${props => (props.$danger || props.$primary) ? 'var(--white-color)' : 'var(--dark-gray-color)'};
     font-size: 12px;
     font-weight: 600;
 
@@ -544,7 +544,7 @@ const StyledTelLink = styled.a`
 `;
 
 const StyledNoshowCount = styled.span<{ $hasNoshow: boolean }>`
-    color: ${(p) => p.$hasNoshow ? '#EA4335' : 'inherit'};
+    color: ${(p) => p.$hasNoshow ? 'var(--warning-color)' : 'inherit'};
     font-weight: ${(p) => p.$hasNoshow ? 700 : 'inherit'};
 `;
 
@@ -577,7 +577,7 @@ const StyledEditFields = styled.div`
 const StyledPointInfo = styled.div`
     font-size: 12px;
     font-weight: 700;
-    color: var(--blue-color);
+    color: var(--brand-color);
 `;
 
 const StyledNotesSection = styled.div`
@@ -671,7 +671,7 @@ const StyledPointHistoryMoreButton = styled.button`
     border: none;
     background: none;
     font-size: 12px;
-    color: var(--blue-color);
+    color: var(--brand-color);
     font-weight: 600;
     padding: 0;
 `;
@@ -732,10 +732,10 @@ const StyledTagInputRow = styled.div`
     button {
         height: 34px;
         padding: 0 12px;
-        border: 1px solid var(--blue-color);
+        border: none;
         border-radius: 8px;
-        background: var(--blue-color);
-        color: #fff;
+        background: var(--brand-color);
+        color: var(--white-color);
         font-size: 12px;
         font-weight: 600;
         cursor: pointer;
@@ -808,7 +808,7 @@ const StyledPointHistoryTop = styled.div`
     span {
         font-size: 12px;
         font-weight: 700;
-        color: var(--blue-color);
+        color: var(--brand-color);
     }
 `;
 

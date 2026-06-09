@@ -59,26 +59,26 @@ export function getDesignerStatusMeta(status: DesignerStatus): DesignerStatusMet
     if (status === '휴직') {
         return {
             label: status,
-            accent: '#D97706',
-            tint: '#FFF7ED',
-            border: '#F5D0A5',
+            accent: 'var(--warning-text)',
+            tint: 'var(--warning-bg-soft)',
+            border: 'var(--warning-border-soft)',
         };
     }
 
     if (status === '퇴직') {
         return {
             label: status,
-            accent: '#6B7280',
-            tint: '#F3F4F6',
-            border: '#D1D5DB',
+            accent: 'var(--neutral-text)',
+            tint: 'var(--neutral-bg)',
+            border: 'var(--neutral-border)',
         };
     }
 
     return {
         label: status,
-        accent: '#137333',
-        tint: '#EAF7EE',
-        border: '#B7E1C2',
+        accent: 'var(--success-text)',
+        tint: 'var(--success-bg)',
+        border: 'var(--success-border)',
     };
 }
 
