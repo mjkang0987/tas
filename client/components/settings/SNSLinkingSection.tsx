@@ -31,6 +31,7 @@ export function SNSLinkingSection() {
     const [loading, setLoading] = useState(!isGuest);
     const [actionLoading, setActionLoading] = useState<string | null>(null);
     const [error, setError] = useState('');
+    const [unlinkTarget, setUnlinkTarget] = useState<string | null>(null);
 
     const fetchLinked = useCallback(async () => {
         if (isGuest) return;
@@ -75,6 +76,7 @@ export function SNSLinkingSection() {
     const handleUnlink = async (provider: string) => {
         setError('');
         setActionLoading(provider);
+        setUnlinkTarget(null);
         try {
             const res = await fetch('/api/account/unlink', {
                 method: 'DELETE',
@@ -118,7 +120,7 @@ export function SNSLinkingSection() {
                                     {isLinked ? (
                                         <StyledUnlinkBtn
                                             type="button"
-                                            onClick={() => handleUnlink(p.id)}
+                                            onClick={() => setUnlinkTarget(p.id)}
                                             disabled={isLastAccount || isProcessing}
                                             title={isLastAccount ? '최소 1개의 계정은 연결을 유지해야 합니다' : ''}
                                         >
@@ -143,6 +145,27 @@ export function SNSLinkingSection() {
             {error && <StyledError>{error}</StyledError>}
 
             <StyledHint>최소 1개의 계정은 연결을 유지해야 합니다.</StyledHint>
+
+            {unlinkTarget && (
+                <StyledUnlinkOverlay onClick={() => setUnlinkTarget(null)}>
+                    <StyledUnlinkDialog onClick={(e) => e.stopPropagation()}>
+                        <StyledUnlinkTitle>연결 해제</StyledUnlinkTitle>
+                        <StyledUnlinkMsg>
+                            <strong>{PROVIDERS.find((p) => p.id === unlinkTarget)?.label}</strong> 연결을 해제하면 해당 계정으로 로그인할 수 없게 됩니다. 계속하시겠습니까?
+                        </StyledUnlinkMsg>
+                        <StyledUnlinkActions>
+                            <StyledUnlinkCancel type="button" onClick={() => setUnlinkTarget(null)}>취소</StyledUnlinkCancel>
+                            <StyledUnlinkConfirm
+                                type="button"
+                                disabled={!!actionLoading}
+                                onClick={() => handleUnlink(unlinkTarget)}
+                            >
+                                {actionLoading ? '처리 중...' : '연결 해제'}
+                            </StyledUnlinkConfirm>
+                        </StyledUnlinkActions>
+                    </StyledUnlinkDialog>
+                </StyledUnlinkOverlay>
+            )}
         </div>
     );
 }
@@ -263,4 +286,80 @@ const StyledHint = styled.p`
     margin: 12px 0 0;
     font-size: 12px;
     color: var(--dark-gray-color2);
+`;
+
+const StyledUnlinkOverlay = styled.div`
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.45);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+`;
+
+const StyledUnlinkDialog = styled.div`
+    background: var(--white-color);
+    border-radius: var(--radius-lg);
+    padding: 24px;
+    width: 320px;
+    max-width: calc(100vw - 32px);
+    box-shadow: var(--shadow-lg);
+`;
+
+const StyledUnlinkTitle = styled.h3`
+    margin: 0 0 12px;
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--dark-gray-color);
+`;
+
+const StyledUnlinkMsg = styled.p`
+    margin: 0 0 20px;
+    font-size: 14px;
+    color: var(--dark-gray-color);
+    line-height: 1.6;
+
+    strong { color: var(--dark-gray-color); font-weight: 700; }
+`;
+
+const StyledUnlinkActions = styled.div`
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+`;
+
+const StyledUnlinkCancel = styled.button`
+    height: 36px;
+    padding: 0 16px;
+    border: 1px solid var(--light-gray-color);
+    border-radius: var(--radius-md);
+    background: none;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--dark-gray-color);
+    cursor: pointer;
+
+    @media (hover: hover) and (pointer: fine) {
+        &:hover { background: var(--light-gray-color); }
+    }
+`;
+
+const StyledUnlinkConfirm = styled.button`
+    height: 36px;
+    padding: 0 16px;
+    border: 1px solid var(--danger-border, #fca5a5);
+    border-radius: var(--radius-md);
+    background: var(--danger-color, #dc2626);
+    font-size: 13px;
+    font-weight: 600;
+    color: #fff;
+    cursor: pointer;
+    transition: opacity 0.15s;
+
+    &:disabled { opacity: 0.5; cursor: default; }
+
+    @media (hover: hover) and (pointer: fine) {
+        &:hover:not(:disabled) { opacity: 0.85; }
+    }
 `;
