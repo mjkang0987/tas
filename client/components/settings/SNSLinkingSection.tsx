@@ -25,27 +25,35 @@ const PROVIDERS: ProviderConfig[] = [
 ];
 
 export function SNSLinkingSection() {
-    const {data: session} = useSession();
-    const isGuest = !session;
+    const {status} = useSession();
+    const isGuest = status === 'unauthenticated';
     const [linked, setLinked] = useState<LinkedAccount[]>([]);
-    const [loading, setLoading] = useState(!isGuest);
+    const [loading, setLoading] = useState(true);
     const [actionLoading, setActionLoading] = useState<string | null>(null);
     const [error, setError] = useState('');
     const [unlinkTarget, setUnlinkTarget] = useState<string | null>(null);
 
     const fetchLinked = useCallback(async () => {
-        if (isGuest) return;
         try {
             const res = await fetch('/api/account/linked');
-            if (res.ok) setLinked(await res.json());
+            if (res.ok) {
+                setLinked(await res.json());
+            }
         } catch {
             /* ignore */
         } finally {
             setLoading(false);
         }
-    }, [isGuest]);
+    }, []);
 
-    useEffect(() => { fetchLinked(); }, [fetchLinked]);
+    useEffect(() => {
+        if (status === 'loading') return;
+        if (isGuest) {
+            setLoading(false);
+            return;
+        }
+        fetchLinked();
+    }, [status, isGuest, fetchLinked]);
 
     const linkedProviders = new Set(linked.map((a) => a.provider));
 
