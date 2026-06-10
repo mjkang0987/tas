@@ -9,6 +9,7 @@ type SyncAuthUserParams = {
     user?: User;
     inviteCode?: string | null;
     linkUserId?: string | null;
+    displayName?: string | null;
 };
 
 type SyncedAuthUser = {
@@ -73,9 +74,33 @@ async function generateFallbackUniqueNickname(): Promise<string> {
 }
 
 async function createUserWithNickname(
-    data: {email: string | null; image: string | null; provider: string; providerSub: string},
+    data: {email: string | null; image: string | null; provider: string; providerSub: string; displayName?: string | null},
     tx: Prisma.TransactionClient,
 ): Promise<{id: string; nickname: string; email: string | null; image: string | null}> {
+    const trimmedDisplayName = data.displayName?.trim();
+    if (trimmedDisplayName && trimmedDisplayName.length >= 2) {
+        const nickname = trimmedDisplayName.slice(0, 20);
+        const existing = await tx.user.findUnique({where: {nickname}, select: {id: true}});
+        if (!existing) {
+            try {
+                return await tx.user.create({
+                    data: {
+                        email: data.email,
+                        nickname,
+                        name: nickname,
+                        image: data.image,
+                        accounts: {create: {provider: data.provider, providerSub: data.providerSub}},
+                    },
+                    select: {id: true, nickname: true, email: true, image: true},
+                });
+            } catch (error) {
+                if (!(error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002')) {
+                    throw error;
+                }
+            }
+        }
+    }
+
     for (let attempt = 0; attempt < 5; attempt++) {
         const nickname = await generateUniqueNickname();
         try {
@@ -125,7 +150,7 @@ async function createUserWithNickname(
     throw new Error('Failed to create a user with a unique nickname.');
 }
 
-export async function syncAuthUser({account, user, inviteCode, linkUserId}: SyncAuthUserParams): Promise<SyncedAuthUser | null> {
+export async function syncAuthUser({account, user, inviteCode, linkUserId, displayName}: SyncAuthUserParams): Promise<SyncedAuthUser | null> {
     if (!process.env.DATABASE_URL) {
         return null;
     }
@@ -197,7 +222,7 @@ export async function syncAuthUser({account, user, inviteCode, linkUserId}: Sync
         const {invite} = validation;
 
         const createdUser = await prisma.$transaction(async (tx) => {
-            const newUser = await createUserWithNickname({email, image, provider, providerSub}, tx);
+            const newUser = await createUserWithNickname({email, image, provider, providerSub, displayName}, tx);
 
             await tx.membership.create({
                 data: {
@@ -225,7 +250,7 @@ export async function syncAuthUser({account, user, inviteCode, linkUserId}: Sync
         const storeName = process.env.STORE_NAME || '내 매장';
 
         const createdUser = await prisma.$transaction(async (tx) => {
-            const newUser = await createUserWithNickname({email, image, provider, providerSub}, tx);
+            const newUser = await createUserWithNickname({email, image, provider, providerSub, displayName}, tx);
 
             const store = await tx.store.create({
                 data: {name: storeName},

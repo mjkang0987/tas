@@ -102,7 +102,7 @@ export const {handlers, auth, signIn, signOut} = NextAuth({
                 const inviteCode = authRequestContext.getStore()?.inviteCode ?? null;
                 const linkUserId = authRequestContext.getStore()?.linkUserId ?? null;
 
-                const syncedUser = await syncAuthUser({account, user, inviteCode, linkUserId});
+                const syncedUser = await syncAuthUser({account, user, inviteCode, linkUserId, displayName: user?.name ?? null});
 
                 if (!syncedUser) {
                     token.loginError = 'no-account';
