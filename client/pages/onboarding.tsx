@@ -1,12 +1,11 @@
-import {useMemo, useState} from 'react';
+import {useEffect, useMemo, useState} from 'react';
 
-import type {GetServerSideProps, NextPage} from 'next';
+import type {NextPage} from 'next';
 import {useRouter} from 'next/router';
 import Head from 'next/head';
+import {useSession} from 'next-auth/react';
 
 import styled from 'styled-components';
-
-import {getPageSession} from '../lib/page-data';
 import {FieldError} from '../components/ui/FieldError';
 import {DEFAULT_SERVICES, SHOP_CATEGORY_COLOR_MAP} from '../features/services/default-services';
 import type {ShopType} from '../features/services/default-services';
@@ -52,12 +51,26 @@ const STEP_LABELS: Record<OnboardingStep, string> = {
 
 const DEFAULT_DESIGNER_ID_START = 1;
 
-const OnboardingPage: NextPage<{guest?: boolean}> = ({guest}) => {
+const OnboardingPage: NextPage = () => {
     const router = useRouter();
+    const {data: session, status} = useSession();
+    const guest = router.isReady ? router.query.mode === 'guest' : null;
     const [loading, setLoading] = useState(false);
 
+    useEffect(() => {
+        if (status === 'loading' || !router.isReady) return;
+        if (guest) return;
+        if (!session) { router.replace('/login'); return; }
+        if ((session as {onboarded?: boolean}).onboarded) { router.replace('/'); }
+    }, [status, session, guest, router]);
+
     // ── Step navigation ──
-    const [step, setStep] = useState<OnboardingStep>(guest ? 0 : 1);
+    const [step, setStep] = useState<OnboardingStep>(0);
+
+    useEffect(() => {
+        if (guest === null) return;
+        setStep(guest ? 0 : 1);
+    }, [guest]);
 
     // ── Step 1 ──
     const [shopName, setShopName] = useState('');
@@ -635,22 +648,7 @@ const OnboardingPage: NextPage<{guest?: boolean}> = ({guest}) => {
 
 export default OnboardingPage;
 
-export const getServerSideProps: GetServerSideProps = async (ctx) => {
-    if (ctx.query.mode === 'guest') {
-        return {props: {guest: true}};
-    }
-
-    const session = await getPageSession(ctx);
-
-    if (!session) {
-        return {redirect: {destination: '/login', permanent: false}};
-    }
-    if (session.onboarded) {
-        return {redirect: {destination: '/', permanent: false}};
-    }
-
-    return {props: {}};
-};
+export const getStaticProps = () => ({props: {}});
 
 /* ── Styled Components ── */
 
@@ -1230,7 +1228,8 @@ const StyledNavRow = styled.div<{$centered?: boolean}>`
     display: flex;
     align-items: center;
     gap: 8px;
-    margin-top: 4px;
+    margin-top: auto;
+    padding-top: 8px;
     justify-content: ${({$centered}) => $centered ? 'center' : 'flex-end'};
 `;
 
