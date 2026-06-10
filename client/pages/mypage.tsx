@@ -10,6 +10,7 @@ import {AuthActionIcon} from '../components/ui/AuthActionIcon';
 import {FieldError} from '../components/ui/FieldError';
 import {PageHero} from '../components/ui/PageHero';
 import {AccountDeleteModal} from '../components/account/AccountDeleteModal';
+import {GuestNotice} from '../components/ui/GuestNotice';
 import {CustomerDetail} from '../components/calendar/overlays/CustomerDetail';
 import {ReservationDetail} from '../components/calendar/overlays/ReservationDetail';
 import {useCalendarStore} from '../store/calendarStore';
@@ -32,10 +33,11 @@ const PROVIDER_LABELS: Record<string, string> = {
 };
 
 type MyPageProps = {
-    linkedProvider: string | null;
+    linkedProviders: string[];
 };
 
-const MyPage: NextPage<MyPageProps> = ({linkedProvider}) => {
+const MyPage: NextPage<MyPageProps> = ({linkedProviders}) => {
+    const linkedProvider = linkedProviders[0] ?? null;
     const {data: session, status, update: updateSession} = useSession();
     const [isLocalMode, setIsLocalMode] = useState(false);
     const storeCustomerMap = useCalendarStore((s) => s.customerMap);
@@ -134,6 +136,8 @@ const MyPage: NextPage<MyPageProps> = ({linkedProvider}) => {
         <StyledSection>
             <StyledContainer>
                 <PageHero eyebrow="MY PAGE" title="계정 관리" subtitle={storageModeLabel} />
+
+                {isLocalMode && <GuestNotice />}
 
                 <StyledCard>
                     <StyledCardTitle>사용 상태</StyledCardTitle>
@@ -239,8 +243,8 @@ const MyPage: NextPage<MyPageProps> = ({linkedProvider}) => {
                     <StyledRow>
                         <StyledLabel>연결된 SNS</StyledLabel>
                         <StyledValue>
-                            {linkedProvider
-                                ? PROVIDER_LABELS[linkedProvider] ?? linkedProvider
+                            {linkedProviders.length > 0
+                                ? linkedProviders.map((p) => PROVIDER_LABELS[p] ?? p).join(', ')
                                 : '-'}
                         </StyledValue>
                     </StyledRow>
@@ -342,9 +346,6 @@ const MyPage: NextPage<MyPageProps> = ({linkedProvider}) => {
                                 <span className="label">디자이너</span>
                             </StyledMetric>
                         </StyledGrid>
-                        <StyledHint>
-                            게스트 모드 데이터는 현재 사용중인 기기에만 저장됩니다.
-                        </StyledHint>
                         <StyledDangerButton type="button" onClick={resetGuestData}>
                             게스트 데이터 초기화
                         </StyledDangerButton>
@@ -382,19 +383,20 @@ export default MyPage;
 
 export const getServerSideProps: GetServerSideProps<MyPageProps> = async (ctx) => {
     const session = await auth(ctx);
-    let linkedProvider: string | null = null;
+    let linkedProviders: string[] = [];
 
     if (session?.user?.id) {
-        const account = await prisma.authAccount.findUnique({
+        const accounts = await prisma.authAccount.findMany({
             where: {userId: session.user.id},
             select: {provider: true},
+            orderBy: {createdAt: 'asc'},
         });
-        linkedProvider = account?.provider ?? null;
+        linkedProviders = accounts.map((a) => a.provider);
     }
 
     return {
         props: {
-            linkedProvider,
+            linkedProviders,
         }
     };
 };
