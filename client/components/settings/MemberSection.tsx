@@ -7,6 +7,8 @@ import {LabelBadge} from '../ui/LabelBadge';
 import {PageHero} from '../ui/PageHero';
 import {EMPTY_TEXT, StyledEmpty, StyledSettingsCard, StyledSettingsCardTitle, StyledSettingsHint} from './settings-styles';
 import {FieldError} from '../ui/FieldError';
+import {StyledConfirmOverlay, StyledConfirmModal, StyledHeader, StyledFooter, StyledActionButton} from '../calendar/overlays/ModalStyles';
+import {useToastStore} from '../../store/toastStore';
 
 type Invite = {
     id: string;
@@ -65,11 +67,13 @@ function CopyButton({text}: {text: string}) {
 
 export const MemberSection = () => {
     const {data: session} = useSession();
+    const toast = useToastStore((s) => s.show);
     const [invites, setInvites] = useState<Invite[]>([]);
     const [members, setMembers] = useState<Member[]>([]);
     const [newRole, setNewRole] = useState<string>('staff');
     const [creating, setCreating] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const [deleteTarget, setDeleteTarget] = useState<string | null>(null);
 
     const loadInvites = useCallback(async () => {
         try {
@@ -106,6 +110,7 @@ export const MemberSection = () => {
             }
 
             await loadInvites();
+            toast('초대코드가 생성되었습니다.');
         } catch (err) {
             setError(err instanceof Error ? err.message : '초대코드 생성에 실패했습니다.');
         } finally {
@@ -114,13 +119,17 @@ export const MemberSection = () => {
     };
 
     const deleteInvite = async (id: string) => {
+        setDeleteTarget(null);
         try {
             const res = await fetch('/api/invites', {
                 method: 'DELETE',
                 headers: {'Content-Type': 'application/json'},
                 body: JSON.stringify({id}),
             });
-            if (res.ok) await loadInvites();
+            if (res.ok) {
+                await loadInvites();
+                toast('초대코드가 취소되었습니다.', 'info');
+            }
         } catch { /* ignore */ }
     };
 
@@ -154,7 +163,7 @@ export const MemberSection = () => {
         );
     }
 
-    return (
+    return (<>
         <StyledContainer>
             <PageHero eyebrow="MEMBER" title="멤버 관리" subtitle="초대코드를 생성하고 매장 멤버를 관리합니다." />
 
@@ -191,7 +200,7 @@ export const MemberSection = () => {
                                 <StyledInviteActions>
                                     <StyledExpiry>{formatExpiry(inv.expiresAt)}</StyledExpiry>
                                     <CopyButton text={inv.code} />
-                                    <StyledDeleteButton type="button" onClick={() => deleteInvite(inv.id)}>
+                                    <StyledDeleteButton type="button" onClick={() => setDeleteTarget(inv.id)}>
                                         취소
                                     </StyledDeleteButton>
                                 </StyledInviteActions>
@@ -243,6 +252,20 @@ export const MemberSection = () => {
                 </StyledSettingsCard>
             )}
         </StyledContainer>
+
+        {deleteTarget && (
+            <StyledConfirmOverlay onClick={() => setDeleteTarget(null)}>
+                <StyledConfirmModal onClick={(e) => e.stopPropagation()}>
+                    <StyledHeader><h3>초대코드 취소</h3></StyledHeader>
+                    <StyledConfirmText>초대코드를 취소하면 더 이상 사용할 수 없습니다. 계속하시겠습니까?</StyledConfirmText>
+                    <StyledFooter>
+                        <StyledActionButton type="button" onClick={() => setDeleteTarget(null)}>닫기</StyledActionButton>
+                        <StyledActionButton type="button" $danger onClick={() => deleteInvite(deleteTarget)}>취소하기</StyledActionButton>
+                    </StyledFooter>
+                </StyledConfirmModal>
+            </StyledConfirmOverlay>
+        )}
+    </>
     );
 };
 
@@ -466,4 +489,11 @@ const StyledGuestDesc = styled.p`
     font-size: 13px;
     line-height: 1.7;
     color: var(--dark-gray-color2);
+`;
+
+const StyledConfirmText = styled.p`
+    margin: 0 0 20px;
+    font-size: 14px;
+    color: var(--dark-gray-color);
+    line-height: 1.6;
 `;

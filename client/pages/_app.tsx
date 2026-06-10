@@ -21,6 +21,7 @@ import {toCustomerMap} from '../utils/customers';
 import {loadLocalDbSnapshot, saveLocalDbSnapshot, setAuthenticated, shouldUseLocalDb} from '../lib/local-db';
 
 import LayoutComponent from '../components/layout/LayoutComponent';
+import {ToastContainer} from '../components/ui/ToastContainer';
 
 type AppContentProps = Pick<AppProps, 'Component' | 'pageProps'>;
 
@@ -264,6 +265,7 @@ function AppContent({Component, pageProps}: AppContentProps) {
             <LayoutComponent>
                 <Component {...pageProps} />
             </LayoutComponent>
+            <ToastContainer />
             {sessionExpired && (
                 <StyledSessionExpiredToast>
                     <span>로그인 세션이 만료되었습니다.</span>

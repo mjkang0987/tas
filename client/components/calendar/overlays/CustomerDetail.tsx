@@ -27,6 +27,7 @@ import {CloseIconButton} from '../../ui/CloseIconButton';
 import {CustomerReservationCards} from '../../ui/CustomerReservationCards';
 import {ColorTag} from '../../ui/ColorTag';
 import {ColorPickerButton} from '../../ui/ColorPickerButton';
+import {useToastStore} from '../../../store/toastStore';
 
 const PAGE_SIZE = 5;
 
@@ -69,6 +70,7 @@ export const CustomerDetail = ({customer, reservationMap, onClose, onReservation
     const designers = useCalendarStore((s) => s.designers);
     const updateCustomer = useCalendarStore((s) => s.updateCustomer);
     const setCustomerMap = useCalendarStore((s) => s.setCustomerMap);
+    const toast = useToastStore((s) => s.show);
     const modalRoot = document.getElementById('modal-root');
     const {layerId, layerDataId} = useLayerInstanceId('customer-detail');
     const dialogRef = useDialogAccessibility<HTMLDivElement>(onClose);
@@ -136,7 +138,7 @@ export const CustomerDetail = ({customer, reservationMap, onClose, onReservation
 
             if (!resp.ok) {
                 const err = await resp.json().catch(() => null);
-                alert(err?.error || '분리에 실패했습니다.');
+                toast(err?.error || '분리에 실패했습니다.', 'error');
                 return;
             }
 
@@ -149,7 +151,7 @@ export const CustomerDetail = ({customer, reservationMap, onClose, onReservation
 
             onClose();
         } catch {
-            alert('분리 중 오류가 발생했습니다.');
+            toast('분리 중 오류가 발생했습니다.', 'error');
         } finally {
             setIsUnmerging(false);
             setIsUnmergeConfirm(false);

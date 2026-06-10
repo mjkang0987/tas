@@ -8,6 +8,7 @@ import {useCalendarStore} from '../../store/calendarStore';
 import {PageHero} from '../ui/PageHero';
 import {formControlStyle} from '../ui/FormControls';
 import {FieldError} from '../ui/FieldError';
+import {useToastStore} from '../../store/toastStore';
 
 interface StoreManageSectionProps {
     formatDateLabel: (dateKey: string) => string;
@@ -15,6 +16,7 @@ interface StoreManageSectionProps {
 
 
 export const StoreManageSection = ({formatDateLabel}: StoreManageSectionProps) => {
+    const toast = useToastStore((s) => s.show);
     const storeName = useCalendarStore((s) => s.storeName);
     const storeSettings = useCalendarStore((s) => s.storeSettings);
     const updateStoreInfo = useCalendarStore((s) => s.updateStoreInfo);
@@ -47,6 +49,7 @@ export const StoreManageSection = ({formatDateLabel}: StoreManageSectionProps) =
         updateStoreInfo(editStoreName.trim(), null);
         setIsEditingStoreInfo(false);
         setStoreInfoError('');
+        toast('매장 정보가 저장되었습니다.');
     };
 
     const isBusinessHoursDirty = businessHours.start !== storeSettings.businessHours.start
@@ -56,6 +59,7 @@ export const StoreManageSection = ({formatDateLabel}: StoreManageSectionProps) =
     const handleSaveBusinessHours = () => {
         updateStoreBusinessHours(businessHours);
         setIsEditingBusinessHours(false);
+        toast('영업시간이 저장되었습니다.');
     };
 
     const handleAddClosedDate = () => {
@@ -77,6 +81,7 @@ export const StoreManageSection = ({formatDateLabel}: StoreManageSectionProps) =
     const handleSaveClosedDates = () => {
         updateStoreClosedDates(closedDates);
         setIsEditingClosedDates(false);
+        toast('휴업일이 저장되었습니다.');
     };
 
     return (

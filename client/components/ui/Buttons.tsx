@@ -46,6 +46,14 @@ const StyledCircleButton = styled.button <Props>`
     box-shadow: var(--shadow-sm);
     font-size: 14px;
     color: var(--dark-gray-color);
+
+    @media (max-width: 640px) {
+        &::after {
+            content: '';
+            position: absolute;
+            inset: -12px;
+        }
+    }
 `;
 
 export const ButtonCircle: React.FC<Props> = ({children, ...props}) => {

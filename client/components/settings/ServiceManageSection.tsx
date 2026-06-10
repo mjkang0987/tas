@@ -1,4 +1,5 @@
 import {useMemo, useState, type DragEvent} from 'react';
+import {useToastStore} from '../../store/toastStore';
 import {createPortal} from 'react-dom';
 
 import styled from 'styled-components';
@@ -14,6 +15,8 @@ import {
     StyledHeader,
     StyledFooter,
     StyledActionButton,
+    StyledConfirmOverlay,
+    StyledConfirmModal,
     StyledForm,
     StyledFieldRow,
     useDialogAccessibility,
@@ -43,6 +46,7 @@ const ServiceEditModal = ({item, serviceCatalog, onSave, onDelete, onClose}: Ser
     const [name, setName] = useState(item.name);
     const [durationMinutes, setDurationMinutes] = useState(String(item.durationMinutes));
     const [price, setPrice] = useState(String(item.price));
+    const [confirmDelete, setConfirmDelete] = useState(false);
     const [error, setError] = useState('');
 
     const handleSave = () => {
@@ -63,11 +67,8 @@ const ServiceEditModal = ({item, serviceCatalog, onSave, onDelete, onClose}: Ser
         });
     };
 
-    const handleDelete = () => {
-        if (confirm(`"${item.name}" 항목을 삭제하시겠습니까?`)) {
-            onDelete(item.name);
-        }
-    };
+    const handleDelete = () => setConfirmDelete(true);
+    const handleDeleteConfirm = () => { onDelete(item.name); };
 
     if (!modalRoot) return null;
 
@@ -131,6 +132,21 @@ const ServiceEditModal = ({item, serviceCatalog, onSave, onDelete, onClose}: Ser
                     <StyledActionButton type="button" $primary onClick={handleSave}>저장</StyledActionButton>
                 </StyledFooter>
             </StyledServiceModal>
+            {confirmDelete && (
+                <StyledConfirmOverlay onClick={() => setConfirmDelete(false)}>
+                    <StyledConfirmModal onClick={(e) => e.stopPropagation()}>
+                        <StyledHeader><h3>서비스 삭제</h3></StyledHeader>
+                        <StyledDeleteMsg>
+                            <strong>"{item.name}"</strong> 서비스를 삭제하시겠습니까?<br />
+                            이 작업은 되돌릴 수 없습니다.
+                        </StyledDeleteMsg>
+                        <StyledFooter>
+                            <StyledActionButton type="button" onClick={() => setConfirmDelete(false)}>취소</StyledActionButton>
+                            <StyledActionButton type="button" $danger onClick={handleDeleteConfirm}>삭제</StyledActionButton>
+                        </StyledFooter>
+                    </StyledConfirmModal>
+                </StyledConfirmOverlay>
+            )}
         </StyledServiceOverlay>,
         modalRoot
     );
@@ -283,6 +299,7 @@ const ServiceAddModal = ({categories, serviceCatalog, onAdd, onClose}: ServiceAd
 /* ------------------------------------------------------------------ */
 
 export const ServiceManageSection = () => {
+    const toast = useToastStore((s) => s.show);
     const serviceCatalog = useCalendarStore((s) => s.serviceCatalog);
     const categoryBaseColorMap = useCalendarStore((s) => s.categoryBaseColorMap);
     const addService = useCalendarStore((s) => s.addService);
@@ -313,16 +330,19 @@ export const ServiceManageSection = () => {
     const handleSaveEdit = (original: ServiceItem, updated: ServiceItem) => {
         updateService(original.name, updated);
         setEditingItem(null);
+        toast('서비스가 저장되었습니다.');
     };
 
     const handleDelete = (name: string) => {
         deleteService(name);
         setEditingItem(null);
+        toast(`"${name}" 서비스가 삭제되었습니다.`, 'info');
     };
 
     const handleAdd = (item: ServiceItem) => {
         addService(item);
         setShowAddModal(false);
+        toast('서비스가 추가되었습니다.');
     };
 
     const handleDragStart = (e: DragEvent<HTMLDivElement>, name: string) => {
@@ -861,3 +881,12 @@ const StyledAddButton = styled.button`
     }
 `;
 
+
+
+const StyledDeleteMsg = styled.p`
+    margin: 0 0 20px;
+    font-size: 14px;
+    color: var(--dark-gray-color);
+    line-height: 1.6;
+    strong { font-weight: 700; }
+`;

@@ -27,6 +27,12 @@ const StyledCloseIconButton = styled.button`
     background: var(--white-color);
     color: var(--dark-gray-color);
 
+    @media (max-width: 640px) {
+        width: 44px;
+        height: 44px;
+        border-radius: var(--radius-lg);
+    }
+
     @media (hover: hover) and (pointer: fine) {
         &:hover {
         background-color: var(--black-color-10);
