@@ -458,6 +458,17 @@ const MenuIcon = ({icon}: { icon: string }) => {
         );
     }
 
+    if (icon === 'naver') {
+        return (
+            <StyledMenuIcon viewBox="0 0 24 24"
+                            aria-hidden="true">
+                <rect x="3.5" y="4.5" width="17" height="16" rx="3" />
+                <path d="M7.5 3.5V6.5M16.5 3.5V6.5M3.5 9H20.5" />
+                <path d="M9 14.5L11 16.5L15 12.5" />
+            </StyledMenuIcon>
+        );
+    }
+
     if (icon === 'sns') {
         return (
             <StyledMenuIcon viewBox="0 0 24 24"

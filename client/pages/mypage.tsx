@@ -283,6 +283,9 @@ const MyPage: NextPage<MyPageProps> = ({linkedProviders}) => {
                                     <li className="step">
                                         이후 예약/취소 발생 시 앱 상단 🔔 아이콘에서 확인 가능
                                     </li>
+                                    <li className="step">
+                                        등록되지 않은 서비스명은 <strong className="step-em">자동으로 서비스에 추가</strong>됩니다
+                                    </li>
                                 </StyledStepList>
                             </>
                         ) : (
@@ -303,6 +306,9 @@ const MyPage: NextPage<MyPageProps> = ({linkedProviders}) => {
                                     </li>
                                     <li className="step">
                                         이후 예약/취소 발생 시 앱 상단 🔔 에서 자동 확인 가능
+                                    </li>
+                                    <li className="step">
+                                        등록되지 않은 서비스명은 <strong className="step-em">자동으로 서비스에 추가</strong>됩니다
                                     </li>
                                 </StyledStepList>
                                 <StyledButtonRow>

@@ -75,6 +75,7 @@ export function NaverBookingSection() {
                     <li>예약 확정·취소 이메일을 파싱해 일정표에 자동 반영합니다.</li>
                     <li>동기화는 로그인 시 1회 + 매 정시 자동 실행됩니다 (최소 30분 간격).</li>
                     <li>디자이너 이름이 일치하지 않으면 자동으로 새 디자이너를 생성합니다.</li>
+                    <li>등록되지 않은 서비스명은 자동으로 서비스에 추가됩니다.</li>
                 </StyledGuideList>
             </StyledCard>
 
