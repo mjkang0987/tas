@@ -9,7 +9,7 @@ interface SeoHeadProps {
 export function SeoHead({title}: SeoHeadProps) {
     return (
         <Head>
-            <title>{SITE_NAME} | {title}</title>
+            <title>{`${SITE_NAME} | ${title}`}</title>
         </Head>
     );
 }
