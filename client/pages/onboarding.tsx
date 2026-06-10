@@ -367,7 +367,7 @@ const OnboardingPage: NextPage<{guest?: boolean}> = ({guest}) => {
 
                         <StyledNavRow>
                             {guest && <StyledBackBtn type="button" onClick={() => { clearErrors(); setStep(0); }}>← 이전</StyledBackBtn>}
-                            <StyledSkipBtn type="button" onClick={handleStep1Skip}>건너뛰기</StyledSkipBtn>
+                            <StyledSkipBtn $leftAlign={!guest} type="button" onClick={handleStep1Skip}>건너뛰기</StyledSkipBtn>
                             <StyledNextBtn type="button" onClick={handleStep1Next}>다음</StyledNextBtn>
                         </StyledNavRow>
                     </StyledStepBody>
@@ -1247,7 +1247,7 @@ const StyledBackBtn = styled.button`
     box-shadow: var(--shadow-sm);
 `;
 
-const StyledSkipBtn = styled.button`
+const StyledSkipBtn = styled.button<{$leftAlign?: boolean}>`
     min-height: 32px;
     padding: 0 12px;
     border: none;
@@ -1256,6 +1256,7 @@ const StyledSkipBtn = styled.button`
     font-size: 13px;
     color: var(--dark-gray-color2);
     cursor: pointer;
+    ${({$leftAlign}) => $leftAlign && 'margin-right: auto;'}
 
     @media (hover: hover) and (pointer: fine) {
         &:hover { color: var(--dark-gray-color); }
