@@ -84,6 +84,14 @@ export default function LoginPage({providerIds, isDatabaseConfigured, loginError
 
     return (
         <StyledWrapper>
+            {status === 'loading' && (
+                <StyledLoadingOverlay>
+                    <StyledLoadingCard>
+                        <StyledSpinner aria-hidden="true"/>
+                        <span>로그인 상태 확인 중</span>
+                    </StyledLoadingCard>
+                </StyledLoadingOverlay>
+            )}
             <StyledCard>
                 <StyledTitle>TAS</StyledTitle>
                 <StyledSubtitle>SNS 계정으로 로그인</StyledSubtitle>
@@ -119,12 +127,6 @@ export default function LoginPage({providerIds, isDatabaseConfigured, loginError
                                 <span>{p.label}</span>
                             </StyledButton>
                         ))}
-                        {status === 'loading' && (
-                            <StyledLoadingRow>
-                                <StyledSpinner aria-hidden="true"/>
-                                <span>로그인 상태 확인 중</span>
-                            </StyledLoadingRow>
-                        )}
                     </StyledButtonGroup>
                 ) : (
                     <StyledEmptyState>
@@ -255,14 +257,36 @@ const StyledButtonGroup = styled.div`
     width: 100%;
 `;
 
-const StyledLoadingRow = styled.div`
+const StyledLoadingOverlay = styled.div`
+    position: fixed;
+    inset: 0;
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 10px;
-    margin-top: 4px;
+    padding: var(--overlay-padding);
+    background: transparent;
+    backdrop-filter: blur(var(--overlay-backdrop-blur));
+    box-sizing: border-box;
+    z-index: ${100};
+`;
+
+const StyledLoadingCard = styled.div`
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    width: 100%;
+    max-width: 300px;
+    padding: 20px 0;
+    background: rgba(255, 255, 255, 0.78);
+    backdrop-filter: var(--sticky-backdrop);
+    border: 1px solid var(--modal-border);
+    border-radius: var(--modal-radius);
+    box-shadow: var(--modal-shadow);
     color: var(--dark-gray-color2);
-    font-size: 13px;
+    font-size: 14px;
+    font-weight: 600;
 `;
 
 const StyledSpinner = styled.span`
@@ -364,3 +388,4 @@ const StyledSecondaryButton = styled.button`
     font-size: 14px;
     font-weight: 600;
 `;
+
