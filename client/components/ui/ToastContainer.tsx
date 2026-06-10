@@ -1,12 +1,14 @@
-import {useEffect, useRef} from 'react';
+import {useEffect, useRef, useState} from 'react';
 import {createPortal} from 'react-dom';
 import styled, {keyframes, css} from 'styled-components';
 import {useToastStore, type Toast} from '../../store/toastStore';
 
 export function ToastContainer() {
+    const [mounted, setMounted] = useState(false);
+    useEffect(() => setMounted(true), []);
     const toasts = useToastStore((s) => s.toasts);
     const dismiss = useToastStore((s) => s.dismiss);
-    const root = typeof document !== 'undefined' ? document.getElementById('modal-root') : null;
+    const root = mounted ? document.getElementById('modal-root') : null;
     if (!root) return null;
     return createPortal(
         <StyledList role="region" aria-live="polite" aria-label="알림">
