@@ -313,7 +313,7 @@ const OnboardingPage: NextPage<{guest?: boolean}> = ({guest}) => {
 
                 {/* ── Step 0: 초기 설정 시작 여부 ── */}
                 {step === 0 && (
-                    <StyledStep0Body>
+                    <StyledStepBody $centerContent>
                         <StyledStep0Desc>
                             매장 정보, 서비스, 디자이너를 미리 설정하면<br />
                             처음부터 편리하게 사용할 수 있습니다.
@@ -322,7 +322,7 @@ const OnboardingPage: NextPage<{guest?: boolean}> = ({guest}) => {
                             <StyledSkipBtn type="button" onClick={handleSkipOnboarding}>건너뛰기</StyledSkipBtn>
                             <StyledNextBtn type="button" onClick={() => setStep(1)}>설정 시작</StyledNextBtn>
                         </StyledNavRow>
-                    </StyledStep0Body>
+                    </StyledStepBody>
                 )}
 
                 {/* ── Step 1: 매장 정보 ── */}
@@ -721,11 +721,12 @@ const StyledStepLabel = styled.p`
     color: var(--black-color);
 `;
 
-const StyledStepBody = styled.div`
+const StyledStepBody = styled.div<{$centerContent?: boolean}>`
     flex: 1;
     display: flex;
     flex-direction: column;
     gap: 16px;
+    ${({$centerContent}) => $centerContent && 'justify-content: center;'}
 `;
 
 const StyledSection = styled.div`
@@ -1299,12 +1300,6 @@ const StyledSubmitBtn = styled.button`
     @media (hover: hover) and (pointer: fine) {
         &:hover:not(:disabled) { opacity: 0.88; }
     }
-`;
-
-const StyledStep0Body = styled(StyledStepBody)`
-    justify-content: center;
-    align-items: center;
-    text-align: center;
 `;
 
 const StyledStep0Desc = styled.p`
