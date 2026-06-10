@@ -188,6 +188,7 @@ export const Aside = () => {
                 </StyledNav>
                 <StyledDivider />
                 <StyledInquiryLink href="/inquiry"
+                                   $active={router.pathname === '/inquiry'}
                                    onClick={closeMobile}>
                     <MenuIcon icon="inquiry" />
                     <span>고객센터</span>
@@ -710,7 +711,7 @@ const StyledLogoutButton = styled.button`
     }
 `;
 
-const StyledInquiryLink = styled(Link)`
+const StyledInquiryLink = styled(Link)<{ $active?: boolean }>`
     display: flex;
     align-items: center;
     gap: 8px;
@@ -722,10 +723,11 @@ const StyledInquiryLink = styled(Link)`
     box-sizing: border-box;
     font-size: var(--small-font);
     font-weight: 500;
-    color: var(--aside-text);
+    color: ${(p) => p.$active ? 'var(--white-color)' : 'var(--aside-text)'};
+    background-color: ${(p) => p.$active ? 'var(--brand-color)' : 'transparent'};
     text-decoration: none;
     white-space: nowrap;
-    opacity: 0.7;
+    opacity: ${(p) => p.$active ? 1 : 0.7};
     transition: background-color 0.1s, opacity 0.1s, filter 0.1s;
 
     @media (hover: hover) and (pointer: fine) {
