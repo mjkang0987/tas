@@ -318,10 +318,10 @@ const OnboardingPage: NextPage<{guest?: boolean}> = ({guest}) => {
                             매장 정보, 서비스, 디자이너를 미리 설정하면<br />
                             처음부터 편리하게 사용할 수 있습니다.
                         </StyledStep0Desc>
-                        <StyledStep0Actions>
-                            <StyledNextBtn type="button" onClick={() => setStep(1)}>설정 시작</StyledNextBtn>
+                        <StyledNavRow>
                             <StyledSkipBtn type="button" onClick={handleSkipOnboarding}>건너뛰기</StyledSkipBtn>
-                        </StyledStep0Actions>
+                            <StyledNextBtn type="button" onClick={() => setStep(1)}>설정 시작</StyledNextBtn>
+                        </StyledNavRow>
                     </StyledStepBody>
                 )}
 
@@ -1305,11 +1305,3 @@ const StyledStep0Desc = styled.p`
     text-align: center;
 `;
 
-const StyledStep0Actions = styled.div`
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-    margin-top: 8px;
-
-    button { width: 100%; justify-content: center; text-align: center; }
-`;
