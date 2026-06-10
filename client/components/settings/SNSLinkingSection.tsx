@@ -37,7 +37,18 @@ export function SNSLinkingSection() {
         try {
             const res = await fetch('/api/account/linked');
             if (res.ok) {
-                setLinked(await res.json());
+                const data: LinkedAccount[] = await res.json();
+                setLinked(data);
+
+                const attempted = sessionStorage.getItem('tas-link-attempt');
+                if (attempted) {
+                    sessionStorage.removeItem('tas-link-attempt');
+                    const linked = new Set(data.map((a) => a.provider));
+                    if (!linked.has(attempted)) {
+                        const label = PROVIDERS.find((p) => p.id === attempted)?.label ?? attempted;
+                        setError(`${label} 계정이 이미 다른 사용자에게 연결되어 있습니다.`);
+                    }
+                }
             }
         } catch {
             /* ignore */
@@ -73,6 +84,7 @@ export function SNSLinkingSection() {
                     return;
                 }
             }
+            if (!isGuest) sessionStorage.setItem('tas-link-attempt', provider);
             await signIn(provider, {callbackUrl: isGuest ? '/' : '/settings/sns'});
         } catch {
             setError('네트워크 오류가 발생했습니다.');
