@@ -25,10 +25,13 @@ hair_reservations/
 |------|------|------|
 | `/` | `index.tsx` | 메인 캘린더 (SSR, `getServerSideProps`로 예약·고객·이력 초기 로드) |
 | `/login` | `login.tsx` | 로그인 (Google, Kakao, Naver OAuth) |
-| `/settings` | `settings.tsx` | 설정 메인 |
-| `/settings/[tab]` | `settings/[tab].tsx` | 탭별 설정 (매출, 디자이너, 서비스, 적립금, 멤버) |
+| `/logout` | `logout.tsx` | 로그아웃 후 `/login`으로 리다이렉트 |
+| `/mypage` | `mypage.tsx` | 계정 관리 (프로필, 로그아웃, 회원탈퇴) |
+| `/settings` | `settings.tsx` | 설정 메인 (탭: revenue/store/service/designer/point/member/sns/naver) |
+| `/settings/[tab]` | `settings/[tab].tsx` | 탭별 설정 URL 라우팅 |
 | `/address` | `address.tsx` | 고객 주소록 |
-| `/inquiry` | `inquiry.tsx` | 문의 페이지 |
+| `/onboarding` | `onboarding.tsx` | 신규 매장 초기 설정 (매장명, 영업시간, 디자이너, 서비스) |
+| `/inquiry` | `inquiry.tsx` | 고객센터 문의·이력 조회 |
 
 ### 컴포넌트 (`client/components/`)
 
@@ -38,14 +41,18 @@ hair_reservations/
 | `calendar/overlays/` | 예약 생성·상세·수정 모달 | `ReservationCreate.tsx`, `ReservationDetail.tsx`, `ReservationDetailSections.tsx`, `CustomerDetail.tsx` |
 | `calendar/service/` | 서비스 범례·필드 | `ServiceLegend.tsx`, `ServiceFields.tsx` |
 | `layout/` | 공통 레이아웃 | `Header.tsx`, `Aside.tsx`, `LayoutComponent.tsx`, `NaverSyncNotification.tsx`[^1], `NaverSyncConflictModal.tsx`[^2], `CustomerMergeSuggestionModal.tsx`[^3] |
-| `settings/` | 설정 화면 섹션 | `StoreManageSection.tsx`, `ServiceManageSection.tsx`, `DesignerManageSection.tsx`, `PointManageSection.tsx`, `MemberSection.tsx` |
+| `settings/` | 설정 화면 섹션 | `StoreManageSection.tsx`, `ServiceManageSection.tsx`, `DesignerManageSection.tsx`, `PointManageSection.tsx`, `MemberSection.tsx`, `SNSLinkingSection.tsx`[^14], `NaverBookingSection.tsx`[^15], `settings-styles.ts`[^16] |
 | `settings/revenue/` | 매출 관리 | `RevenueSection.tsx`, `RevenueChartGrid.tsx`, `RevenueDailyList.tsx`, `RevenueDailyDetailModal.tsx` |
 | `address/` | 고객 주소록 | `AddressContent.tsx`, `AddressCustomerRow.tsx`, `AddressCustomerSummary.tsx`, `AddressCustomerRecharge.tsx` |
-| `ui/` | 공통 UI | `Buttons.tsx`, `Icons.tsx`, `ServiceChip.tsx`, `DesignerLabel.tsx`, `ReservationInfoCard.tsx` |
+| `ui/` | 공통 UI | `Buttons.tsx`, `Icons.tsx`, `PageHero.tsx`, `SeoHead.tsx`, `ServiceChip.tsx`, `DesignerLabel.tsx`, `ReservationInfoCard.tsx`, `GuestNotice.tsx`, `FieldError.tsx` |
+| `account/` | 계정 관련 모달 | `AccountDeleteModal.tsx` |
 
 [^1]: 네이버 동기화 알림 벨 아이콘 + 알림 목록 패널. 미읽음 카운트는 `!read || (conflict && !confirmed)` 조건으로 계산
 [^2]: 네이버 예약 시간 중복(conflict) 해결 모달. pending → deferred/confirmed 상태 전이
 [^3]: 동명이인·유사 고객 병합 제안 모달
+[^14]: Google/Kakao/Naver 계정 연결·해제. 타 계정 충돌 시 `sessionStorage('tas-link-attempt')` 감지로 에러 안내. 해제 확인 모달 포함
+[^15]: `/settings/naver` 탭. Google 연동 여부·역할 체크, 동기화 상태 표시, 수동 동기화 버튼
+[^16]: 설정 공통 styled-components — `StyledSettingsCard`, `StyledSettingsCardTitle`, `StyledSettingsHint`, `StyledEditBtn`, `StyledSaveBtn`, `StyledCancelBtn`, `StyledDeleteBtn`
 
 ### 도메인 모델 (`client/features/`)
 
@@ -102,6 +109,7 @@ hair_reservations/
 | `lib/page-data.ts` | SSR 페이지 데이터 로딩 |
 | `lib/local-db.ts` | 테스트 모드 로컬 DB |
 | `lib/authz.ts` | 권한 관리 |
+| `lib/seo.ts` | SEO 상수 (`SITE_URL`, `SITE_TITLE`, OG/Twitter 메타값) |
 
 ### 인증 (`client/auth.ts`)
 
