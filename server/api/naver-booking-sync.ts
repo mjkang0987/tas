@@ -14,6 +14,9 @@ import {calcEndTime, getLastNaverSyncTimestamp} from './gmail/helpers';
 import {findByNameContains} from '../utils/string-matching';
 
 const DEFAULT_DURATION = 30;
+const DESIGNER_COLORS = [
+    '#2D7FF9', '#E85D75', '#00A896', '#FB8C00', '#6D6F78', '#7E57C2',
+];
 const EMAIL_FETCH_CONCURRENCY = 10;
 
 interface SyncedEntry {
@@ -37,7 +40,7 @@ interface CancelledEntry {
 interface SyncContext {
     storeId: string;
     existingBookingMap: Map<string, {id: string; naverBookingUrl: string | null; serviceSummary: string | null; designerId: string | null}>;
-    designerMap: Map<string, {id: string; legacyId: number}>;
+    designerMap: Map<string, {id: string; legacyId: number; color?: string | null}>;
     serviceMap: Map<string, {name: string; duration: number}>;
     nextCustomerLegacyId: number;
     nextReservationLegacyId: number;
@@ -87,7 +90,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         }),
         prisma.designer.findMany({
             where: {storeId},
-            select: {id: true, name: true, legacyId: true},
+            select: {id: true, name: true, legacyId: true, color: true},
         }),
         prisma.service.findMany({
             where: {storeId},
@@ -122,7 +125,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                 .map((r) => [r.naverBookingId!, {id: r.id, naverBookingUrl: r.naverBookingUrl, serviceSummary: r.serviceSummary, designerId: r.designerId}])
         ),
         designerMap: new Map(
-            allDesigners.map((d) => [d.name, {id: d.id, legacyId: d.legacyId ?? 0}])
+            allDesigners.map((d) => [d.name, {id: d.id, legacyId: d.legacyId ?? 0, color: d.color}])
         ),
         serviceMap: new Map(allServices.map((s) => [s.name, s])),
         nextCustomerLegacyId: (maxCustomerLegacy?.legacyId ?? 0) + 1,
@@ -267,11 +270,16 @@ async function createReservationFromBooking(
     let designer = findByNameContains(designerMap, booking.designerName);
     if (!designer && booking.designerName) {
         const legacyId = ctx.nextDesignerLegacyId++;
+        const usedColors = new Set(Array.from(designerMap.values()).map((d) => d.color).filter(Boolean));
+        const available = DESIGNER_COLORS.filter((c) => !usedColors.has(c));
+        const color = available.length > 0
+            ? available[designerMap.size % available.length]
+            : DESIGNER_COLORS[designerMap.size % DESIGNER_COLORS.length];
         const created = await prisma.designer.create({
-            data: {storeId, name: booking.designerName, status: 'active', color: '#8E8E93', legacyId},
+            data: {storeId, name: booking.designerName, status: 'active', color, legacyId},
             select: {id: true},
         });
-        designer = {id: created.id, legacyId};
+        designer = {id: created.id, legacyId, color};
         designerMap.set(booking.designerName, designer);
     }
 
