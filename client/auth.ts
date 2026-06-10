@@ -80,11 +80,15 @@ export const {handlers, auth, signIn, signOut} = NextAuth({
         signIn: '/login'
     },
     callbacks: {
-        authorized({request}) {
+        authorized({auth, request}) {
             const pathname = request.nextUrl.pathname;
 
             if (pathname === '/login' || pathname.startsWith('/api/auth')) {
                 return true;
+            }
+
+            if (auth?.user?.loginError === 'no-account') {
+                return Response.redirect(new URL('/login', request.nextUrl));
             }
 
             return true;
@@ -126,6 +130,21 @@ export const {handlers, auth, signIn, signOut} = NextAuth({
                 }
             }
 
+            // Backfill: 기존 JWT에 userId가 없으면 providerSub로 DB 조회해 복구
+            if (!token.userId && token.sub) {
+                const existing = await prisma.authAccount.findFirst({
+                    where: {providerSub: token.sub},
+                    select: {provider: true, user: {select: {id: true, nickname: true, email: true, image: true}}},
+                });
+                if (existing) {
+                    token.userId = existing.user.id;
+                    token.name = existing.user.nickname;
+                    token.email = existing.user.email;
+                    token.picture = existing.user.image;
+                    if (!token.provider) token.provider = existing.provider;
+                }
+            }
+
             const membership = await resolveUserMembership((token.userId as string) ?? null);
             token.role = membership?.role;
             token.storeId = membership?.storeId;
@@ -142,9 +161,24 @@ export const {handlers, auth, signIn, signOut} = NextAuth({
 
             return token;
         },
-        session({session, token}) {
+        async session({session, token}) {
             if (session.user) {
-                session.user.id = (token.userId as string) ?? token.sub ?? '';
+                let userId = token.userId as string | undefined;
+
+                // 기존 JWT에 userId 없으면 providerSub로 DB 조회
+                if (!userId && token.sub) {
+                    const found = await prisma.authAccount.findFirst({
+                        where: {providerSub: token.sub},
+                        select: {userId: true, provider: true},
+                    });
+                    if (found) {
+                        userId = found.userId;
+                        token.userId = found.userId;
+                        if (!token.provider) token.provider = found.provider;
+                    }
+                }
+
+                session.user.id = userId ?? token.sub ?? '';
                 session.user.name = token.name ?? session.user.name;
                 session.user.email = token.email ?? session.user.email;
                 session.user.image = (token.picture as string | null | undefined) ?? session.user.image;
