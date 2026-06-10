@@ -7,6 +7,7 @@ import {useSession} from 'next-auth/react';
 
 import styled from 'styled-components';
 import {FieldError} from '../components/ui/FieldError';
+import {GuestNotice} from '../components/ui/GuestNotice';
 import {DEFAULT_SERVICES, SHOP_CATEGORY_COLOR_MAP} from '../features/services/default-services';
 import type {ShopType} from '../features/services/default-services';
 import {createDefaultSchedule, getDesignerColor} from '../utils/designers';
@@ -45,7 +46,7 @@ const STEP_LABELS: Record<OnboardingStep, string> = {
     1: '매장 정보',
     2: '서비스 설정',
     3: '디자이너 등록',
-    4: '네이버 예약',
+    4: '네이버 예약 연동 방식 안내',
     5: '설정 완료',
 };
 
@@ -328,9 +329,10 @@ const OnboardingPage: NextPage = () => {
                 {step === 0 && (
                     <StyledStepBody $centerContent>
                         <StyledStep0Desc>
-                            매장 정보, 서비스, 디자이너를 미리 설정하면<br />
-                            처음부터 편리하게 사용할 수 있습니다.
+                            <StyledHighlight>⚡ 30초 설정으로 바로 시작</StyledHighlight>
+                            <span>업종별 서비스와 가격을 자동 추천해드립니다.</span>
                         </StyledStep0Desc>
+                        <GuestNotice />
                         <StyledNavRow>
                             <StyledSkipBtn type="button" onClick={handleSkipOnboarding}>건너뛰기</StyledSkipBtn>
                             <StyledNextBtn type="button" onClick={() => setStep(1)}>설정 시작</StyledNextBtn>
@@ -586,9 +588,10 @@ const OnboardingPage: NextPage = () => {
                 {step === 4 && (
                     <StyledStepBody>
                         <StyledNaverGuide>
-                            <StyledNaverGuideTitle>네이버 예약 연동 방법</StyledNaverGuideTitle>
+                            <StyledNaverGuideTitle>Google 계정 동기화를 통한 네이버 예약 연동</StyledNaverGuideTitle>
+                            
                             <ol>
-                                <li>네이버 스마트플레이스에서 <strong>예약</strong> 서비스를 활성화합니다.</li>
+                                <li>네이버 스마트플레이스 &gt; 에약 &gt; 설정 &gt; 알림설정 &gt; 이메일 알림 예약 알림 메일 받을 Gmail 계정 추가</li>
                                 <li>TAS 설정 → <strong>네이버 예약 연동</strong> 메뉴에서 연동 코드를 입력합니다.</li>
                                 <li>연동 완료 후 네이버를 통한 예약이 자동으로 동기화됩니다.</li>
                             </ol>
@@ -1301,8 +1304,14 @@ const StyledSubmitBtn = styled.button`
     }
 `;
 
-const StyledStep0Desc = styled.p`
-    margin: 8px 0 0;
+const StyledStep0Desc = styled.div`
+    margin: 0;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
     font-size: 14px;
     line-height: 1.7;
     color: var(--dark-gray-color);
