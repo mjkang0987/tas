@@ -1,4 +1,4 @@
-import {Prisma} from '@prisma/client';
+import {Prisma} from '../../client/prisma/generated/prisma/client';
 import type {Account, User} from 'next-auth';
 
 import {prisma} from '../db/prisma';

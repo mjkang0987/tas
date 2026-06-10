@@ -1,4 +1,4 @@
-import type {PaymentMethod as DbPaymentMethod} from '@prisma/client';
+import type {PaymentMethod as DbPaymentMethod} from '../../../client/prisma/generated/prisma/client';
 
 const NAVER_PAYMENT_MAP: Record<string, DbPaymentMethod> = {
     '네이버페이 머니': 'naver_pay',

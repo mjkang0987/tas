@@ -12,6 +12,7 @@ client/.next/
 .pnpm-store/
 client/prisma/dev.db
 client/prisma/dev.db-journal
+client/prisma/generated/
 client/certificates/
 
 client/next-env.d.ts

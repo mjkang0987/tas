@@ -1,5 +1,5 @@
 import type {NextApiRequest, NextApiResponse} from 'next';
-import {Prisma} from '@prisma/client';
+import {Prisma} from '../../client/prisma/generated/prisma/client';
 
 import {prisma} from '../db/prisma';
 import {getApiSession, requireRole} from '../auth/api-session';

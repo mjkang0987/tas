@@ -3,7 +3,7 @@ import type {
     PaymentMethod as DbPaymentMethod,
     ReservationChannel as DbReservationChannel,
     ReservationStatus as DbReservationStatus,
-} from '@prisma/client';
+} from '../../client/prisma/generated/prisma/client';
 import type {DesignerStatus} from '../../client/features/designers/model';
 import type {Customer, PointHistoryType} from '../../client/features/customers/model';
 import type {PaymentMethod, ReservationChannel, Reservation, ReservationHistoryEntry, ReservationStatus} from '../../client/features/reservations/model';
