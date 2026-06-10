@@ -7,6 +7,7 @@ import styled from 'styled-components';
 
 import {useNaverBookingSync} from '../../hooks/useNaverBookingSync';
 import {PageHero} from '../ui/PageHero';
+import {StyledSettingsCard, StyledSettingsCardTitle, StyledSaveBtn} from './settings-styles';
 
 function formatLastSync(ts: number): string {
     const d = new Date(ts);
@@ -32,8 +33,8 @@ export function NaverBookingSection() {
         <div>
             <PageHero eyebrow="설정" title="네이버예약 연동" subtitle="Gmail을 통해 네이버 예약을 자동으로 일정표에 반영합니다." />
 
-            <StyledCard>
-                <StyledCardTitle>연동 상태</StyledCardTitle>
+            <StyledSettingsCard>
+                <StyledSettingsCardTitle>연동 상태</StyledSettingsCardTitle>
 
                 <StyledCheckRow>
                     <StyledIcon $ok={isGoogle}>{isGoogle ? '✅' : '❌'}</StyledIcon>
@@ -61,15 +62,15 @@ export function NaverBookingSection() {
                         {lastSync && (
                             <StyledLastSync>마지막 동기화: {formatLastSync(lastSync)}</StyledLastSync>
                         )}
-                        <StyledSyncBtn type="button" onClick={sync} disabled={syncing}>
+                        <StyledSaveBtn type="button" onClick={sync} disabled={syncing} style={{flexShrink: 0}}>
                             {syncing ? '동기화 중...' : '지금 동기화'}
-                        </StyledSyncBtn>
+                        </StyledSaveBtn>
                     </StyledActiveRow>
                 )}
-            </StyledCard>
+            </StyledSettingsCard>
 
-            <StyledCard>
-                <StyledCardTitle>동작 방식</StyledCardTitle>
+            <StyledSettingsCard>
+                <StyledSettingsCardTitle>동작 방식</StyledSettingsCardTitle>
                 <StyledGuideList>
                     <li>Google 계정으로 로그인하면 Gmail에서 네이버 예약 이메일을 자동으로 읽어옵니다.</li>
                     <li>예약 확정·취소 이메일을 파싱해 일정표에 자동 반영합니다.</li>
@@ -77,36 +78,19 @@ export function NaverBookingSection() {
                     <li>디자이너 이름이 일치하지 않으면 자동으로 새 디자이너를 생성합니다.</li>
                     <li>등록되지 않은 서비스명은 자동으로 서비스에 추가됩니다.</li>
                 </StyledGuideList>
-            </StyledCard>
+            </StyledSettingsCard>
 
-            <StyledCard>
-                <StyledCardTitle>주의사항</StyledCardTitle>
+            <StyledSettingsCard>
+                <StyledSettingsCardTitle>주의사항</StyledSettingsCardTitle>
                 <StyledGuideList>
                     <li>네이버예약 알림 이메일을 Google 계정으로 수신하도록 설정해야 합니다.</li>
                     <li>Gmail 읽기 권한이 필요합니다 (Google 로그인 시 동의).</li>
                 </StyledGuideList>
-            </StyledCard>
+            </StyledSettingsCard>
         </div>
     );
 }
 
-const StyledCard = styled.div`
-    border: 1px solid var(--light-gray-color);
-    border-radius: var(--radius-lg);
-    background: var(--white-color);
-    box-shadow: var(--shadow-sm);
-    padding: 20px;
-    margin-bottom: 16px;
-`;
-
-const StyledCardTitle = styled.h3`
-    font-size: 13px;
-    font-weight: 700;
-    color: var(--dark-gray-color2);
-    margin: 0 0 14px;
-    text-transform: uppercase;
-    letter-spacing: 0.04em;
-`;
 
 const StyledCheckRow = styled.div`
     display: flex;
@@ -162,25 +146,6 @@ const StyledLastSync = styled.span`
     flex: 1;
 `;
 
-const StyledSyncBtn = styled.button`
-    height: 32px;
-    padding: 0 14px;
-    border: 1px solid var(--blue-color);
-    border-radius: var(--radius-md);
-    background: var(--blue-color);
-    font-size: 12px;
-    font-weight: 600;
-    color: var(--white-color);
-    cursor: pointer;
-    transition: opacity 0.15s;
-    flex-shrink: 0;
-
-    &:disabled { opacity: 0.5; cursor: default; }
-
-    @media (hover: hover) and (pointer: fine) {
-        &:hover:not(:disabled) { opacity: 0.85; }
-    }
-`;
 
 const StyledGuideList = styled.ol`
     margin: 0;

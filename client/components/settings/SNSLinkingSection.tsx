@@ -3,7 +3,10 @@ import {useCallback, useEffect, useState} from 'react';
 import {signIn, useSession} from 'next-auth/react';
 
 import styled from 'styled-components';
+
+import {StyledConfirmOverlay, StyledConfirmModal, StyledHeader, StyledFooter, StyledActionButton} from '../calendar/overlays/ModalStyles';
 import {PageHero} from '../ui/PageHero';
+import {StyledSettingsCard, StyledSettingsHint, StyledSaveBtn, StyledCancelBtn, StyledEditBtn} from './settings-styles';
 
 type LinkedAccount = {
     provider: string;
@@ -120,7 +123,7 @@ export function SNSLinkingSection() {
         <div>
             <PageHero eyebrow="SNS" title="계정 연동" subtitle="여러 SNS 계정을 연결하면 어떤 계정으로든 로그인할 수 있습니다." />
 
-            <StyledCard>
+            <StyledSettingsCard style={{padding: 0, overflow: 'hidden'}}>
                 {loading ? (
                     <StyledLoadingRow>불러오는 중...</StyledLoadingRow>
                 ) : (
@@ -138,43 +141,45 @@ export function SNSLinkingSection() {
                                 </StyledProviderInfo>
                                 <StyledProviderAction>
                                     {isLinked ? (
-                                        <StyledUnlinkBtn
+                                        <StyledEditBtn
                                             type="button"
                                             onClick={() => setUnlinkTarget(p.id)}
                                             disabled={isLastAccount || isProcessing}
                                             title={isLastAccount ? '최소 1개의 계정은 연결을 유지해야 합니다' : ''}
                                         >
                                             {isProcessing ? '처리 중...' : '연결 해제'}
-                                        </StyledUnlinkBtn>
+                                        </StyledEditBtn>
                                     ) : (
-                                        <StyledLinkBtn
+                                        <StyledSaveBtn
                                             type="button"
                                             onClick={() => handleLink(p.id)}
                                             disabled={!!actionLoading}
                                         >
                                             {isProcessing ? '처리 중...' : '연결하기'}
-                                        </StyledLinkBtn>
+                                        </StyledSaveBtn>
                                     )}
                                 </StyledProviderAction>
                             </StyledProviderRow>
                         );
                     })
                 )}
-            </StyledCard>
+            </StyledSettingsCard>
 
             {error && <StyledError>{error}</StyledError>}
 
-            <StyledHint>최소 1개의 계정은 연결을 유지해야 합니다.</StyledHint>
+            <StyledSettingsHint>최소 1개의 계정은 연결을 유지해야 합니다.</StyledSettingsHint>
 
             {unlinkTarget && (
-                <StyledUnlinkOverlay onClick={() => setUnlinkTarget(null)}>
-                    <StyledUnlinkDialog onClick={(e) => e.stopPropagation()}>
-                        <StyledUnlinkTitle>연결 해제</StyledUnlinkTitle>
+                <StyledConfirmOverlay onClick={() => setUnlinkTarget(null)}>
+                    <StyledConfirmModal onClick={(e) => e.stopPropagation()}>
+                        <StyledHeader>
+                            <h3>연결 해제</h3>
+                        </StyledHeader>
                         <StyledUnlinkMsg>
                             <strong>{PROVIDERS.find((p) => p.id === unlinkTarget)?.label}</strong> 연결을 해제하면 해당 계정으로 로그인할 수 없게 됩니다. 계속하시겠습니까?
                         </StyledUnlinkMsg>
-                        <StyledUnlinkActions>
-                            <StyledUnlinkCancel type="button" onClick={() => setUnlinkTarget(null)}>취소</StyledUnlinkCancel>
+                        <StyledFooter>
+                            <StyledActionButton type="button" onClick={() => setUnlinkTarget(null)}>취소</StyledActionButton>
                             <StyledUnlinkConfirm
                                 type="button"
                                 disabled={!!actionLoading}
@@ -182,21 +187,14 @@ export function SNSLinkingSection() {
                             >
                                 {actionLoading ? '처리 중...' : '연결 해제'}
                             </StyledUnlinkConfirm>
-                        </StyledUnlinkActions>
-                    </StyledUnlinkDialog>
-                </StyledUnlinkOverlay>
+                        </StyledFooter>
+                    </StyledConfirmModal>
+                </StyledConfirmOverlay>
             )}
         </div>
     );
 }
 
-const StyledCard = styled.div`
-    border: 1px solid var(--light-gray-color);
-    border-radius: var(--radius-lg);
-    background: var(--white-color);
-    box-shadow: var(--shadow-sm);
-    overflow: hidden;
-`;
 
 const StyledLoadingRow = styled.div`
     display: flex;
@@ -254,46 +252,6 @@ const StyledProviderAction = styled.div`
     flex-shrink: 0;
 `;
 
-const StyledLinkBtn = styled.button`
-    height: 32px;
-    padding: 0 14px;
-    border: 1px solid var(--blue-color);
-    border-radius: var(--radius-md);
-    background: var(--blue-color);
-    font-size: 12px;
-    font-weight: 600;
-    color: var(--white-color);
-    cursor: pointer;
-    transition: opacity 0.15s;
-
-    &:disabled { opacity: 0.5; cursor: default; }
-
-    @media (hover: hover) and (pointer: fine) {
-        &:hover:not(:disabled) { opacity: 0.85; }
-    }
-`;
-
-const StyledUnlinkBtn = styled.button`
-    height: 32px;
-    padding: 0 14px;
-    border: 1px solid var(--light-gray-color);
-    border-radius: var(--radius-md);
-    background: none;
-    font-size: 12px;
-    font-weight: 500;
-    color: var(--dark-gray-color);
-    cursor: pointer;
-    transition: opacity 0.15s, border-color 0.15s;
-
-    &:disabled { opacity: 0.4; cursor: default; }
-
-    @media (hover: hover) and (pointer: fine) {
-        &:hover:not(:disabled) {
-            border-color: var(--danger-border);
-            color: var(--danger-color);
-        }
-    }
-`;
 
 const StyledError = styled.p`
     margin: 12px 0 0;
@@ -302,37 +260,6 @@ const StyledError = styled.p`
     font-weight: 500;
 `;
 
-const StyledHint = styled.p`
-    margin: 12px 0 0;
-    font-size: 12px;
-    color: var(--dark-gray-color2);
-`;
-
-const StyledUnlinkOverlay = styled.div`
-    position: fixed;
-    inset: 0;
-    background: rgba(0, 0, 0, 0.45);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    z-index: 1000;
-`;
-
-const StyledUnlinkDialog = styled.div`
-    background: var(--white-color);
-    border-radius: var(--radius-lg);
-    padding: 24px;
-    width: 320px;
-    max-width: calc(100vw - 32px);
-    box-shadow: var(--shadow-lg);
-`;
-
-const StyledUnlinkTitle = styled.h3`
-    margin: 0 0 12px;
-    font-size: 16px;
-    font-weight: 700;
-    color: var(--dark-gray-color);
-`;
 
 const StyledUnlinkMsg = styled.p`
     margin: 0 0 20px;
@@ -343,37 +270,16 @@ const StyledUnlinkMsg = styled.p`
     strong { color: var(--dark-gray-color); font-weight: 700; }
 `;
 
-const StyledUnlinkActions = styled.div`
-    display: flex;
-    justify-content: flex-end;
-    gap: 8px;
-`;
-
-const StyledUnlinkCancel = styled.button`
-    height: 36px;
-    padding: 0 16px;
-    border: 1px solid var(--light-gray-color);
-    border-radius: var(--radius-md);
-    background: none;
-    font-size: 13px;
-    font-weight: 500;
-    color: var(--dark-gray-color);
-    cursor: pointer;
-
-    @media (hover: hover) and (pointer: fine) {
-        &:hover { background: var(--light-gray-color); }
-    }
-`;
 
 const StyledUnlinkConfirm = styled.button`
     height: 36px;
     padding: 0 16px;
-    border: 1px solid var(--danger-border, #fca5a5);
+    border: 1px solid var(--danger-border);
     border-radius: var(--radius-md);
-    background: var(--danger-color, #dc2626);
+    background: var(--danger-color);
     font-size: 13px;
     font-weight: 600;
-    color: #fff;
+    color: var(--white-color);
     cursor: pointer;
     transition: opacity 0.15s;
 
