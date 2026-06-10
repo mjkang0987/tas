@@ -18,6 +18,7 @@ import {
 import {AuthActionIcon} from '../ui/AuthActionIcon';
 import {ButtonText} from '../ui/ButtonText';
 import {AdBanner} from '../ad/AdBanner';
+import {CustomerAddModal} from '../address/CustomerAddModal';
 
 const SETTINGS_SUBMENU = [
     {tab: 'revenue', href: '/settings/revenue', label: '매출', icon: 'revenue'},
@@ -26,6 +27,7 @@ const SETTINGS_SUBMENU = [
     {tab: 'service', href: '/settings/service', label: '서비스 관리', icon: 'service'},
     {tab: 'designer', href: '/settings/designer', label: '디자이너 관리', icon: 'designer'},
     {tab: 'customers', href: '/address', label: '고객 명단', icon: 'customers'},
+    {tab: 'sns', href: '/settings/sns', label: 'SNS 연동', icon: 'sns'},
     {tab: 'member', href: '/settings/member', label: '멤버 관리', icon: 'member'},
     {tab: 'my', href: '/mypage', label: '계정 관리', icon: 'account'},
 ];
@@ -42,6 +44,8 @@ export const Aside = () => {
     const [reservationOpen, setReservationOpen] = useState(true);
     const [settingsOpen, setSettingsOpen] = useState(true);
     const [showGuestLogout, setShowGuestLogout] = useState(false);
+    const [showCustomerAdd, setShowCustomerAdd] = useState(false);
+    const storeName = useCalendarStore((s) => s.storeName);
     const isGuest = !session;
 
     const todayMidnight = () => {
@@ -109,12 +113,19 @@ export const Aside = () => {
                 </StyledMenuIcon>
                 <span>TAS</span>
             </StyledBrandLink>
-            {session?.user && (
+            {storeName && (
+                <StyledStoreNameLink href="/settings/store" onClick={closeMobile}>{storeName}</StyledStoreNameLink>
+            )}
+            {session?.user ? (
                 <StyledUserInfoLink href="/mypage"
                                     onClick={closeMobile}>
                     <StyledUserName>{session.user.name ?? '-'}</StyledUserName>
                     <StyledUserEmail>{session.user.email ?? ''}</StyledUserEmail>
                 </StyledUserInfoLink>
+            ) : (
+                <StyledGuestInfo>
+                    <StyledUserName>게스트</StyledUserName>
+                </StyledGuestInfo>
             )}
             <StyledScrollArea>
                 <StyledNav>
@@ -156,6 +167,14 @@ export const Aside = () => {
                         <MenuIcon icon="create" />
                         <ButtonText a11y={false}>예약추가</ButtonText>
                     </StyledCreateButton>
+                    <StyledCreateButton type="button"
+                                        onClick={() => {
+                                            setShowCustomerAdd(true);
+                                            closeMobile();
+                                        }}>
+                        <MenuIcon icon="customerAdd" />
+                        <ButtonText a11y={false}>고객추가</ButtonText>
+                    </StyledCreateButton>
                     <StyledDivider />
                     <StyledAccordionToggle type="button"
                                            onClick={() => setSettingsOpen(!settingsOpen)}>
@@ -171,7 +190,7 @@ export const Aside = () => {
                         </StyledToggleIcon>
                     </StyledAccordionToggle>
                     <StyledAccordionContent $open={settingsOpen}>
-                        {SETTINGS_SUBMENU.map((item) =>
+                        {SETTINGS_SUBMENU.filter((item) => !isGuest || item.tab !== 'member').map((item) =>
                             <StyledSubNavLink href={item.href}
                                               $active={item.tab === 'my'
                                                   ? router.pathname === '/mypage'
@@ -200,6 +219,9 @@ export const Aside = () => {
                     <AuthActionIcon direction="logout" />
                     <span>로그아웃</span>
                 </StyledLogoutButton>
+                {showCustomerAdd && (
+                    <CustomerAddModal onClose={() => setShowCustomerAdd(false)} />
+                )}
                 {showGuestLogout && (
                     <StyledGuestLogoutOverlay onClick={() => setShowGuestLogout(false)}>
                         <StyledGuestLogoutDialog onClick={(e) => e.stopPropagation()}>
@@ -303,6 +325,17 @@ const MenuIcon = ({icon}: { icon: string }) => {
             <StyledMenuIcon viewBox="0 0 24 24"
                             aria-hidden="true">
                 <path d="M12 5V19M5 12H19" />
+            </StyledMenuIcon>
+        );
+    }
+
+    if (icon === 'customerAdd') {
+        return (
+            <StyledMenuIcon viewBox="0 0 24 24"
+                            aria-hidden="true">
+                <circle cx="10" cy="8" r="3.5" />
+                <path d="M3 21V18.5C3 16.6 4.6 15 6.5 15H13.5C15.4 15 17 16.6 17 18.5V21" />
+                <path d="M19 8V14M16 11H22" />
             </StyledMenuIcon>
         );
     }
@@ -424,6 +457,18 @@ const MenuIcon = ({icon}: { icon: string }) => {
         );
     }
 
+    if (icon === 'sns') {
+        return (
+            <StyledMenuIcon viewBox="0 0 24 24"
+                            aria-hidden="true">
+                <circle cx="12" cy="5" r="2.5" />
+                <circle cx="5" cy="18" r="2.5" />
+                <circle cx="19" cy="18" r="2.5" />
+                <path d="M12 7.5V12M12 12L5 15.5M12 12L19 15.5" />
+            </StyledMenuIcon>
+        );
+    }
+
     if (icon === 'inquiry') {
         return (
             <StyledMenuIcon viewBox="0 0 24 24"
@@ -496,6 +541,37 @@ const StyledBrandLink = styled(Link)`
     color: var(--aside-text);
     letter-spacing: 1px;
     white-space: nowrap;
+    text-decoration: none;
+    transition: opacity 0.1s;
+
+    @media (hover: hover) and (pointer: fine) {
+        &:hover {
+            opacity: 0.85;
+        }
+    }
+`;
+
+const StyledGuestInfo = styled.div`
+    flex-shrink: 0;
+    display: flex;
+    flex-direction: column;
+    padding: 0 10px 10px;
+    min-width: var(--aside-width);
+    box-sizing: border-box;
+`;
+
+const StyledStoreNameLink = styled(Link)`
+    flex-shrink: 0;
+    padding: 0 10px 6px;
+    min-width: var(--aside-width);
+    box-sizing: border-box;
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--aside-text);
+    opacity: 0.6;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
     text-decoration: none;
     transition: opacity 0.1s;
 
