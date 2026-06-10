@@ -1,4 +1,4 @@
-import {useState} from 'react';
+import {useMemo, useState} from 'react';
 
 import type {GetServerSideProps, NextPage} from 'next';
 import {useRouter} from 'next/router';
@@ -12,7 +12,7 @@ import {DEFAULT_SERVICES, SHOP_CATEGORY_COLOR_MAP} from '../features/services/de
 import type {ShopType} from '../features/services/default-services';
 import {createDefaultSchedule, getDesignerColor} from '../utils/designers';
 import {loadLocalDbSnapshot, saveLocalDbSnapshot} from '../lib/local-db';
-import {formatDuration, formatPrice} from '../utils/services';
+import {buildServiceColorMap, formatDuration, formatPrice, getServiceColor} from '../utils/services';
 import type {ServiceItem} from '../utils/services';
 
 type OnboardingStep = 1 | 2 | 3 | 4 | 5;
@@ -60,8 +60,9 @@ const OnboardingPage: NextPage<{guest?: boolean}> = ({guest}) => {
 
     // ── Step 1 ──
     const [shopName, setShopName] = useState('');
-    const [shopType, setShopType] = useState<ExtShopType | null>(null);
+    const [shopTypes, setShopTypes] = useState<ExtShopType[]>([]);
     const [step1Error, setStep1Error] = useState('');
+    const [shopNameError, setShopNameError] = useState('');
 
     // ── Step 2 ──
     const [localServices, setLocalServices] = useState<ServiceItem[]>([]);
@@ -77,13 +78,12 @@ const OnboardingPage: NextPage<{guest?: boolean}> = ({guest}) => {
     const [newDesignerColor, setNewDesignerColor] = useState(
         getDesignerColor({id: DEFAULT_DESIGNER_ID_START + 1})
     );
+    const [editingDesignerId, setEditingDesignerId] = useState<number | null>(null);
     const [step3Error, setStep3Error] = useState('');
 
-    // ── Step 4 ──
-    const [naverChoice, setNaverChoice] = useState<'yes' | 'no' | null>(null);
-
     // ── Computed ──
-    const skipServiceStep = !shopType || shopType === 'etc';
+    const realShopTypes = shopTypes.filter((t): t is ShopType => t !== 'etc');
+    const skipServiceStep = realShopTypes.length === 0;
 
     const prevStep = (): OnboardingStep => {
         if (step === 5) return 4;
@@ -95,23 +95,33 @@ const OnboardingPage: NextPage<{guest?: boolean}> = ({guest}) => {
 
     const clearErrors = () => {
         setStep1Error('');
+        setShopNameError('');
         setStep2Error('');
         setStep3Error('');
     };
 
     // ── Step 1 handlers ──
+    const toggleShopType = (type: ExtShopType) => {
+        setShopTypes((prev) =>
+            prev.includes(type) ? prev.filter((t) => t !== type) : [...prev, type]
+        );
+        setStep1Error('');
+    };
+
     const handleStep1Next = () => {
         if (!shopName.trim()) {
-            setStep1Error('등록된 매장 이름이 없습니다.');
+            setShopNameError('샵 이름을 입력해 주세요.');
             return;
         }
-        if (!shopType) {
+        if (shopTypes.length === 0) {
             setStep1Error('업종을 선택해 주세요.');
             return;
         }
         clearErrors();
-        if (shopType !== 'etc') {
-            setLocalServices(DEFAULT_SERVICES[shopType as ShopType] ?? []);
+        if (realShopTypes.length > 0) {
+            const merged = realShopTypes.flatMap((t) => DEFAULT_SERVICES[t] ?? []);
+            const unique = merged.filter((s, i, arr) => arr.findIndex((x) => x.name === s.name) === i);
+            setLocalServices(unique);
             setStep(2);
         } else {
             setStep(3);
@@ -187,6 +197,11 @@ const OnboardingPage: NextPage<{guest?: boolean}> = ({guest}) => {
         setStep3Error('');
     };
 
+    const handleUpdateDesignerName = (id: number, name: string) => {
+        setLocalDesigners((prev) => prev.map((d) => d.id === id ? {...d, name} : d));
+        setStep3Error('');
+    };
+
     const handleUpdateDesignerColor = (id: number, color: string) => {
         setLocalDesigners((prev) => prev.map((d) => d.id === id ? {...d, color} : d));
     };
@@ -200,11 +215,13 @@ const OnboardingPage: NextPage<{guest?: boolean}> = ({guest}) => {
             if (guest) {
                 const snapshot = loadLocalDbSnapshot();
                 if (shopName.trim()) snapshot.storeName = shopName.trim();
-                snapshot.shopType = shopType && shopType !== 'etc' ? shopType : undefined;
+                snapshot.shopType = realShopTypes.length > 0 ? realShopTypes.join(',') : undefined;
                 snapshot.services = localServices;
-                snapshot.categoryBaseColors = (shopType && shopType !== 'etc')
-                    ? (SHOP_CATEGORY_COLOR_MAP[shopType as ShopType] ?? {})
-                    : {};
+                const mergedColors: Record<string, string> = {};
+                for (const t of realShopTypes) {
+                    Object.assign(mergedColors, SHOP_CATEGORY_COLOR_MAP[t] ?? {});
+                }
+                snapshot.categoryBaseColors = mergedColors;
                 snapshot.designers = localDesigners.map((d) => ({
                     id: d.id,
                     name: d.name,
@@ -225,7 +242,7 @@ const OnboardingPage: NextPage<{guest?: boolean}> = ({guest}) => {
                 headers: {'Content-Type': 'application/json'},
                 body: JSON.stringify({
                     shopName: shopName.trim(),
-                    shopType: shopType && shopType !== 'etc' ? shopType : null,
+                    shopType: realShopTypes.length > 0 ? realShopTypes.join(',') : null,
                     services: localServices,
                     designers: localDesigners.map((d) => ({name: d.name, color: d.color})),
                 }),
@@ -254,19 +271,33 @@ const OnboardingPage: NextPage<{guest?: boolean}> = ({guest}) => {
         return acc;
     }, {});
     const serviceCategories = Object.keys(groupedServices);
+    const mergedCategoryColors = useMemo(() => {
+        const colors: Record<string, string> = {};
+        for (const t of realShopTypes) Object.assign(colors, SHOP_CATEGORY_COLOR_MAP[t] ?? {});
+        return colors;
+    }, [realShopTypes]);
+    const serviceColorMap = useMemo(
+        () => buildServiceColorMap(localServices, mergedCategoryColors),
+        [localServices, mergedCategoryColors]
+    );
+
+    const visibleSteps: OnboardingStep[] = skipServiceStep
+        ? [1, 3, 4, 5]
+        : [1, 2, 3, 4, 5];
+    const stepIndex = visibleSteps.indexOf(step);
 
     return (
         <StyledPage>
             <Head>
                 <title>TAS | 초기 설정</title>
             </Head>
-            <StyledCard $wide={step === 2 || step === 3}>
+            <StyledCard>
                 {/* Header */}
                 <StyledCardHeader>
                     <StyledLogo>TAS</StyledLogo>
                     <StyledStepRow>
-                        {([1, 2, 3, 4, 5] as OnboardingStep[]).map((s) => (
-                            <StyledStepDot key={s} $active={s === step} $done={s < step} />
+                        {visibleSteps.map((s, i) => (
+                            <StyledStepDot key={s} $active={i === stepIndex} $done={i < stepIndex} />
                         ))}
                     </StyledStepRow>
                     <StyledStepLabel>{STEP_LABELS[step]}</StyledStepLabel>
@@ -284,24 +315,23 @@ const OnboardingPage: NextPage<{guest?: boolean}> = ({guest}) => {
                                 onChange={(e) => {
                                     setShopName(e.target.value);
                                     setStep1Error('');
+                                    setShopNameError('');
                                 }}
                                 placeholder="예) 홍길동 헤어샵"
                                 autoFocus
                             />
+                            <FieldError variant="inline">{shopNameError}</FieldError>
                         </StyledSection>
 
                         <StyledSection>
-                            <StyledLabel>업종</StyledLabel>
+                            <StyledLabel>업종 (복수 선택 가능)</StyledLabel>
                             <StyledTypeGrid>
                                 {SHOP_TYPES.map(({type, label, emoji, desc}) => (
                                     <StyledTypeCard
                                         key={type}
                                         type="button"
-                                        $selected={shopType === type}
-                                        onClick={() => {
-                                            setShopType(type);
-                                            setStep1Error('');
-                                        }}
+                                        $selected={shopTypes.includes(type)}
+                                        onClick={() => toggleShopType(type)}
                                     >
                                         <StyledTypeEmoji>{emoji}</StyledTypeEmoji>
                                         <StyledTypeLabel>{label}</StyledTypeLabel>
@@ -324,7 +354,8 @@ const OnboardingPage: NextPage<{guest?: boolean}> = ({guest}) => {
                 {step === 2 && (
                     <StyledStepBody>
                         <StyledSectionNote>
-                            업종별 기본 서비스 목록입니다. 수정 후 적용하거나 건너뛸 수 있습니다.
+                            <StyledHighlight>서비스 변경 및 추가는 초기 매장 설정 완료 이후 언제든 가능합니다.</StyledHighlight>
+                            <br/>업종별 기본 서비스 목록입니다.
                         </StyledSectionNote>
 
                         <StyledServiceList>
@@ -337,7 +368,9 @@ const OnboardingPage: NextPage<{guest?: boolean}> = ({guest}) => {
                                     {(groupedServices[cat] ?? []).map((item) => (
                                         <StyledServiceRow key={item.name}>
                                             <StyledServiceInfo>
-                                                <StyledServiceName>{item.name}</StyledServiceName>
+                                                <StyledNameChip $color={getServiceColor(item.name, serviceColorMap)}>
+                                                    {item.name}
+                                                </StyledNameChip>
                                                 <StyledServiceMeta>
                                                     {item.durationMinutes > 0 && formatDuration(item.durationMinutes)}
                                                     {item.durationMinutes > 0 && item.price > 0 && ' · '}
@@ -361,6 +394,7 @@ const OnboardingPage: NextPage<{guest?: boolean}> = ({guest}) => {
                             <StyledAddForm>
                                 <StyledAddFormRow>
                                     <select
+                                        id="onboard-svc-category"
                                         value={addSvc.category}
                                         onChange={(e) => setAddSvc({...addSvc, category: e.target.value, newCategory: ''})}
                                     >
@@ -372,6 +406,7 @@ const OnboardingPage: NextPage<{guest?: boolean}> = ({guest}) => {
                                     </select>
                                     {addSvc.category === '__new' && (
                                         <StyledAddInput
+                                            id="onboard-svc-new-category"
                                             value={addSvc.newCategory}
                                             onChange={(e) => setAddSvc({...addSvc, newCategory: e.target.value})}
                                             placeholder="카테고리명"
@@ -380,17 +415,20 @@ const OnboardingPage: NextPage<{guest?: boolean}> = ({guest}) => {
                                 </StyledAddFormRow>
                                 <StyledAddFormRow>
                                     <StyledAddInput
+                                        id="onboard-svc-name"
                                         value={addSvc.name}
                                         onChange={(e) => { setAddSvc({...addSvc, name: e.target.value}); setStep2Error(''); }}
                                         placeholder="서비스명 *"
                                     />
                                     <StyledAddInput
+                                        id="onboard-svc-duration"
                                         type="number"
                                         value={addSvc.durationMinutes}
                                         onChange={(e) => setAddSvc({...addSvc, durationMinutes: e.target.value})}
                                         placeholder="소요(분)"
                                     />
                                     <StyledAddInput
+                                        id="onboard-svc-price"
                                         type="number"
                                         value={addSvc.price}
                                         onChange={(e) => setAddSvc({...addSvc, price: e.target.value})}
@@ -424,30 +462,48 @@ const OnboardingPage: NextPage<{guest?: boolean}> = ({guest}) => {
                 {step === 3 && (
                     <StyledStepBody>
                         <StyledSectionNote>
-                            디자이너를 등록하세요. 나중에 설정에서 수정할 수 있습니다.
+                            <StyledHighlight>디자이너 변경 및 추가는 초기 매장 설정 완료 이후 언제든 가능합니다.</StyledHighlight>
+                            <br/>디자이너를 등록하세요.
                         </StyledSectionNote>
 
                         <StyledDesignerList>
                             {localDesigners.map((d) => (
-                                <StyledDesignerRow key={d.id}>
-                                    <StyledDesignerColorDot style={{background: d.color}} />
-                                    <StyledDesignerName>{d.name}</StyledDesignerName>
-                                    <StyledDesignerColorPicker
-                                        type="color"
-                                        value={d.color}
-                                        onChange={(e) => handleUpdateDesignerColor(d.id, e.target.value)}
-                                        title="컬러 변경"
-                                    />
-                                    {localDesigners.length > 1 && (
-                                        <StyledRemoveBtn
-                                            type="button"
-                                            onClick={() => handleRemoveDesigner(d.id)}
-                                            aria-label={`${d.name} 삭제`}
-                                        >
-                                            ×
-                                        </StyledRemoveBtn>
-                                    )}
-                                </StyledDesignerRow>
+                                <StyledDesignerCard key={d.id} $color={d.color} $isEditing={editingDesignerId === d.id}>
+                                    <StyledDesignerHeader>
+                                        <StyledDesignerHeaderLeft>
+                                            <StyledDesignerColorDot style={{background: d.color}} />
+                                            {editingDesignerId === d.id ? (
+                                                <StyledDesignerNameInput
+                                                    value={d.name}
+                                                    onChange={(e) => handleUpdateDesignerName(d.id, e.target.value)}
+                                                    placeholder="디자이너명"
+                                                    autoFocus
+                                                />
+                                            ) : (
+                                                <StyledDesignerName>{d.name}</StyledDesignerName>
+                                            )}
+                                        </StyledDesignerHeaderLeft>
+                                        <StyledDesignerActions>
+                                            <StyledDesignerColorPicker
+                                                type="color"
+                                                value={d.color}
+                                                onChange={(e) => handleUpdateDesignerColor(d.id, e.target.value)}
+                                                disabled={editingDesignerId !== d.id}
+                                                title="컬러 변경"
+                                            />
+                                            {editingDesignerId === d.id ? (
+                                                <>
+                                                    {localDesigners.length > 1 && (
+                                                        <StyledInlineDeleteBtn type="button" onClick={() => { handleRemoveDesigner(d.id); setEditingDesignerId(null); }}>삭제</StyledInlineDeleteBtn>
+                                                    )}
+                                                    <StyledConfirmBtnSm type="button" onClick={() => setEditingDesignerId(null)}>완료</StyledConfirmBtnSm>
+                                                </>
+                                            ) : (
+                                                <StyledSmEditBtn type="button" onClick={() => setEditingDesignerId(d.id)}>수정</StyledSmEditBtn>
+                                            )}
+                                        </StyledDesignerActions>
+                                    </StyledDesignerHeader>
+                                </StyledDesignerCard>
                             ))}
                         </StyledDesignerList>
 
@@ -455,6 +511,7 @@ const OnboardingPage: NextPage<{guest?: boolean}> = ({guest}) => {
                             <StyledAddForm>
                                 <StyledAddFormRow>
                                     <StyledAddInput
+                                        id="onboard-designer-name"
                                         value={newDesignerName}
                                         onChange={(e) => { setNewDesignerName(e.target.value); setStep3Error(''); }}
                                         placeholder="디자이너명 *"
@@ -490,40 +547,17 @@ const OnboardingPage: NextPage<{guest?: boolean}> = ({guest}) => {
                 {/* ── Step 4: 네이버 예약 ── */}
                 {step === 4 && (
                     <StyledStepBody>
-                        <StyledNaverSection>
-                            <StyledNaverQuestion>네이버 예약 연동을 사용하시나요?</StyledNaverQuestion>
-                            <StyledNaverBtns>
-                                <StyledNaverBtn
-                                    type="button"
-                                    $active={naverChoice === 'yes'}
-                                    onClick={() => setNaverChoice('yes')}
-                                >
-                                    사용합니다
-                                </StyledNaverBtn>
-                                <StyledNaverBtn
-                                    type="button"
-                                    $active={naverChoice === 'no'}
-                                    onClick={() => setNaverChoice('no')}
-                                >
-                                    사용 안 합니다
-                                </StyledNaverBtn>
-                            </StyledNaverBtns>
-
-                            {naverChoice === 'yes' && (
-                                <StyledNaverGuide>
-                                    <StyledNaverGuideTitle>네이버 예약 연동 방법</StyledNaverGuideTitle>
-                                    <ol>
-                                        <li>네이버 스마트플레이스에서 <strong>예약</strong> 서비스를 활성화합니다.</li>
-                                        <li>TAS 설정 → <strong>네이버 예약 연동</strong> 메뉴에서 연동 코드를 입력합니다.</li>
-                                        <li>연동 완료 후 네이버를 통한 예약이 자동으로 동기화됩니다.</li>
-                                    </ol>
-                                </StyledNaverGuide>
-                            )}
-                        </StyledNaverSection>
+                        <StyledNaverGuide>
+                            <StyledNaverGuideTitle>네이버 예약 연동 방법</StyledNaverGuideTitle>
+                            <ol>
+                                <li>네이버 스마트플레이스에서 <strong>예약</strong> 서비스를 활성화합니다.</li>
+                                <li>TAS 설정 → <strong>네이버 예약 연동</strong> 메뉴에서 연동 코드를 입력합니다.</li>
+                                <li>연동 완료 후 네이버를 통한 예약이 자동으로 동기화됩니다.</li>
+                            </ol>
+                        </StyledNaverGuide>
 
                         <StyledNavRow>
                             <StyledBackBtn type="button" onClick={() => { clearErrors(); setStep(prevStep()); }}>← 이전</StyledBackBtn>
-                            <StyledSkipBtn type="button" onClick={() => { clearErrors(); setStep(5); }}>건너뛰기</StyledSkipBtn>
                             <StyledNextBtn type="button" onClick={() => { clearErrors(); setStep(5); }}>다음</StyledNextBtn>
                         </StyledNavRow>
                     </StyledStepBody>
@@ -542,10 +576,10 @@ const OnboardingPage: NextPage<{guest?: boolean}> = ({guest}) => {
                                         <strong>{shopName.trim()}</strong>
                                     </StyledSummaryRow>
                                 )}
-                                {shopType && shopType !== 'etc' && (
+                                {realShopTypes.length > 0 && (
                                     <StyledSummaryRow>
                                         <span>업종</span>
-                                        <strong>{SHOP_TYPES.find((t) => t.type === shopType)?.label}</strong>
+                                        <strong>{realShopTypes.map((t) => SHOP_TYPES.find((s) => s.type === t)?.label).filter(Boolean).join(', ')}</strong>
                                     </StyledSummaryRow>
                                 )}
                                 <StyledSummaryRow>
@@ -597,16 +631,16 @@ export const getServerSideProps: GetServerSideProps = async (ctx) => {
 
 const StyledPage = styled.div`
     display: flex;
-    align-items: flex-start;
+    align-items: center;
     justify-content: center;
     min-height: 100%;
     padding: 24px 16px;
     box-sizing: border-box;
 `;
 
-const StyledCard = styled.div<{$wide?: boolean}>`
+const StyledCard = styled.div`
     width: 100%;
-    max-width: ${({$wide}) => $wide ? '640px' : '520px'};
+    max-width: 600px;
     display: flex;
     flex-direction: column;
     gap: 20px;
@@ -614,7 +648,6 @@ const StyledCard = styled.div<{$wide?: boolean}>`
     background: var(--white-color);
     border-radius: var(--radius-lg);
     box-shadow: var(--shadow-md);
-    transition: max-width 0.2s ease;
 
     @media (max-width: 480px) {
         padding: 24px 18px;
@@ -678,6 +711,11 @@ const StyledSectionNote = styled.p`
     font-size: 13px;
     color: var(--dark-gray-color2);
     line-height: 1.5;
+`;
+
+const StyledHighlight = styled.span`
+    color: var(--blue-color);
+    font-weight: 600;
 `;
 
 const StyledLabel = styled.label`
@@ -792,7 +830,7 @@ const StyledServiceRow = styled.div`
     gap: 8px;
     padding: 6px 8px;
     border-radius: var(--radius-sm);
-    background: var(--gray-color2);
+    border-bottom: 1px solid var(--light-gray-color);
 `;
 
 const StyledServiceInfo = styled.div`
@@ -803,16 +841,55 @@ const StyledServiceInfo = styled.div`
     gap: 8px;
 `;
 
-const StyledServiceName = styled.span`
-    font-size: 13px;
-    font-weight: 500;
-    color: var(--dark-gray-color);
+const StyledNameChip = styled.span<{$color: string}>`
+    display: inline-flex;
+    align-items: center;
+    padding: 3px 9px;
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 600;
+    color: ${(p) => p.$color};
+    background-color: ${(p) => `${p.$color}18`};
 `;
 
 const StyledServiceMeta = styled.span`
     font-size: 11px;
     color: var(--dark-gray-color2);
     flex-shrink: 0;
+    margin-left: auto;
+`;
+
+const StyledRemoveBtn = styled.button`
+    flex-shrink: 0;
+    width: 22px;
+    height: 22px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: none;
+    border-radius: 50%;
+    background: var(--light-gray-color);
+    font-size: 14px;
+    color: var(--dark-gray-color);
+    line-height: 1;
+    cursor: pointer;
+
+    @media (hover: hover) and (pointer: fine) {
+        &:hover { background: var(--danger-border); color: var(--danger-color); }
+    }
+`;
+
+const StyledInlineDeleteBtn = styled.button`
+    height: 28px;
+    padding: 0 10px;
+    border: 1px solid var(--danger-border);
+    border-radius: var(--radius-sm);
+    background: var(--danger-bg);
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--danger-color);
+    cursor: pointer;
+    margin-right: auto;
 `;
 
 /* ── Designer list ── */
@@ -820,23 +897,59 @@ const StyledServiceMeta = styled.span`
 const StyledDesignerList = styled.div`
     display: flex;
     flex-direction: column;
-    gap: 6px;
+    gap: 8px;
 `;
 
-const StyledDesignerRow = styled.div`
+const StyledDesignerCard = styled.div<{$color: string; $isEditing: boolean}>`
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    border: 1px solid ${(p) => `${p.$color}44`};
+    border-left: 4px solid ${(p) => p.$color};
+    border-radius: 10px;
+    padding: 8px 10px;
+    background: linear-gradient(180deg, rgba(255,255,255,0.96) 0%, ${(p) => `${p.$color}10`} 100%);
+    box-shadow: ${(p) => p.$isEditing
+        ? '0 0 0 2px var(--blue-color), var(--card-shadow)'
+        : 'var(--card-shadow)'};
+    transition: box-shadow 0.14s ease, border-color 0.14s ease;
+
+    @media (hover: hover) and (pointer: fine) {
+        &:hover {
+            border-color: ${(p) => `${p.$color}66`};
+            box-shadow: ${(p) => p.$isEditing
+                ? '0 0 0 2px var(--blue-color), var(--card-shadow-hover)'
+                : 'var(--card-shadow-hover)'};
+        }
+    }
+`;
+
+const StyledDesignerHeader = styled.div`
     display: flex;
     align-items: center;
-    gap: 10px;
-    padding: 8px 10px;
-    border-radius: var(--radius-md);
-    background: var(--gray-color2);
-    border: 1px solid var(--light-gray-color);
+    justify-content: space-between;
+    gap: 8px;
+`;
+
+const StyledDesignerHeaderLeft = styled.div`
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex: 1;
+    min-width: 0;
+`;
+
+const StyledDesignerActions = styled.div`
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-shrink: 0;
 `;
 
 const StyledDesignerColorDot = styled.span`
     display: block;
-    width: 12px;
-    height: 12px;
+    width: 10px;
+    height: 10px;
     border-radius: 50%;
     flex-shrink: 0;
 `;
@@ -844,8 +957,27 @@ const StyledDesignerColorDot = styled.span`
 const StyledDesignerName = styled.span`
     flex: 1;
     font-size: 14px;
-    font-weight: 600;
+    font-weight: 700;
     color: var(--dark-gray-color);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+`;
+
+const StyledDesignerNameInput = styled.input`
+    flex: 1;
+    min-width: 80px;
+    height: 30px;
+    padding: 0 8px;
+    border: 1px solid var(--light-gray-color);
+    border-radius: var(--radius-sm);
+    font-size: 14px;
+    font-weight: 700;
+    background: var(--white-color);
+    outline: none;
+    box-sizing: border-box;
+
+    &:focus { border-color: var(--blue-color); }
 `;
 
 const StyledDesignerColorPicker = styled.input`
@@ -856,6 +988,25 @@ const StyledDesignerColorPicker = styled.input`
     border-radius: var(--radius-sm);
     cursor: pointer;
     flex-shrink: 0;
+
+    &:disabled { opacity: 0.5; cursor: default; }
+`;
+
+const StyledSmEditBtn = styled.button`
+    height: 26px;
+    padding: 0 10px;
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    background: var(--white-color);
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--dark-gray-color);
+    cursor: pointer;
+    box-shadow: var(--shadow-sm);
+
+    @media (hover: hover) and (pointer: fine) {
+        &:hover { background: var(--gray-color2); }
+    }
 `;
 
 /* ── Add forms ── */
@@ -953,58 +1104,8 @@ const StyledAddServiceBtn = styled.button`
     }
 `;
 
-const StyledRemoveBtn = styled.button`
-    flex-shrink: 0;
-    width: 22px;
-    height: 22px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    border: none;
-    border-radius: 50%;
-    background: var(--light-gray-color);
-    font-size: 14px;
-    color: var(--dark-gray-color);
-    line-height: 1;
-    cursor: pointer;
-
-    @media (hover: hover) and (pointer: fine) {
-        &:hover { background: var(--danger-border); color: var(--danger-color); }
-    }
-`;
 
 /* ── Naver step ── */
-
-const StyledNaverSection = styled.div`
-    display: flex;
-    flex-direction: column;
-    gap: 14px;
-`;
-
-const StyledNaverQuestion = styled.p`
-    margin: 0;
-    font-size: 15px;
-    font-weight: 600;
-    color: var(--black-color);
-`;
-
-const StyledNaverBtns = styled.div`
-    display: flex;
-    gap: 10px;
-`;
-
-const StyledNaverBtn = styled.button<{$active: boolean}>`
-    flex: 1;
-    height: 44px;
-    border: 2px solid ${({$active}) => $active ? 'var(--blue-color)' : 'var(--light-gray-color)'};
-    border-radius: var(--radius-md);
-    background: ${({$active}) => $active ? 'rgba(45,127,249,0.07)' : 'var(--white-color)'};
-    font-size: 14px;
-    font-weight: ${({$active}) => $active ? 700 : 500};
-    color: ${({$active}) => $active ? 'var(--blue-color)' : 'var(--dark-gray-color)'};
-    cursor: pointer;
-    transition: border-color 0.15s, background 0.15s, color 0.15s;
-`;
 
 const StyledNaverGuide = styled.div`
     padding: 14px 16px;
@@ -1105,22 +1206,24 @@ const StyledNavRow = styled.div<{$centered?: boolean}>`
 `;
 
 const StyledBackBtn = styled.button`
-    height: 40px;
-    padding: 0 14px;
-    border: 1px solid var(--light-gray-color);
-    border-radius: var(--radius-md);
+    min-height: 32px;
+    padding: 0 12px;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
     background: var(--white-color);
     font-size: 13px;
+    font-weight: 500;
     color: var(--dark-gray-color);
     cursor: pointer;
     margin-right: auto;
+    box-shadow: var(--shadow-sm);
 `;
 
 const StyledSkipBtn = styled.button`
-    height: 40px;
-    padding: 0 14px;
+    min-height: 32px;
+    padding: 0 12px;
     border: none;
-    border-radius: var(--radius-md);
+    border-radius: 8px;
     background: none;
     font-size: 13px;
     color: var(--dark-gray-color2);
@@ -1132,15 +1235,16 @@ const StyledSkipBtn = styled.button`
 `;
 
 const StyledNextBtn = styled.button`
-    height: 40px;
-    padding: 0 20px;
+    min-height: 32px;
+    padding: 0 12px;
     border: none;
-    border-radius: var(--radius-md);
+    border-radius: 8px;
     background: var(--brand-color);
-    font-size: 14px;
+    font-size: 13px;
     font-weight: 600;
     color: var(--white-color);
     cursor: pointer;
+    box-shadow: var(--shadow-sm);
     transition: opacity 0.15s;
 
     @media (hover: hover) and (pointer: fine) {
@@ -1149,15 +1253,16 @@ const StyledNextBtn = styled.button`
 `;
 
 const StyledSubmitBtn = styled.button`
-    height: 48px;
-    padding: 0 32px;
+    min-height: 32px;
+    padding: 0 16px;
     border: none;
-    border-radius: var(--radius-md);
+    border-radius: 8px;
     background: var(--brand-color);
-    font-size: 15px;
+    font-size: 13px;
     font-weight: 600;
     color: var(--white-color);
     cursor: pointer;
+    box-shadow: var(--shadow-sm);
     transition: opacity 0.15s;
 
     &:disabled { opacity: 0.6; cursor: default; }
