@@ -19,7 +19,7 @@ import type {Designer} from '../utils/designers';
 import type {StoreSettings} from '../utils/storeSettings';
 import {groupByDate} from '../utils/reservations';
 import {toCustomerMap} from '../utils/customers';
-import {loadLocalDbSnapshot, setAuthenticated, shouldUseLocalDb} from '../lib/local-db';
+import {loadLocalDbSnapshot, saveLocalDbSnapshot, setAuthenticated, shouldUseLocalDb} from '../lib/local-db';
 
 import LayoutComponent from '../components/layout/LayoutComponent';
 
@@ -70,6 +70,38 @@ function AppContent({Component, pageProps}: AppContentProps) {
 
     useEffect(() => {
         setAuthenticated(hasApiAccess);
+    }, [hasApiAccess]);
+
+    // 게스트 → SNS 연동 시 로컬 온보딩 데이터를 서버로 마이그레이션
+    const localSyncDone = useRef(false);
+    useEffect(() => {
+        if (!hasApiAccess || localSyncDone.current) return;
+
+        const snapshot = loadLocalDbSnapshot();
+        if (!snapshot.onboarded) return;
+        if (snapshot.services.length === 0 && snapshot.designers.length === 0) return;
+
+        localSyncDone.current = true;
+
+        fetch('/api/onboarding', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({
+                shopName: snapshot.storeName ?? '',
+                shopType: snapshot.shopType ?? null,
+                services: snapshot.services,
+                designers: snapshot.designers.map((d) => ({name: d.name, color: d.color})),
+            }),
+        })
+            .then((res) => {
+                if (res.ok) {
+                    snapshot.onboarded = false;
+                    saveLocalDbSnapshot(snapshot);
+                }
+            })
+            .catch(() => {
+                localSyncDone.current = false;
+            });
     }, [hasApiAccess]);
 
     useEffect(() => {
