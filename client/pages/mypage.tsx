@@ -343,7 +343,7 @@ const MyPage: NextPage<MyPageProps> = ({linkedProvider}) => {
                             </StyledMetric>
                         </StyledGrid>
                         <StyledHint>
-                            게스트 모드 데이터는 현재 브라우저의 `localStorage`에만 저장됩니다.
+                            게스트 모드 데이터는 현재 사용중인 기기에만 저장됩니다.
                         </StyledHint>
                         <StyledDangerButton type="button" onClick={resetGuestData}>
                             게스트 데이터 초기화

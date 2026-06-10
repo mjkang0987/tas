@@ -15,7 +15,7 @@ import {loadLocalDbSnapshot, saveLocalDbSnapshot} from '../lib/local-db';
 import {buildServiceColorMap, formatDuration, formatPrice, getServiceColor} from '../utils/services';
 import type {ServiceItem} from '../utils/services';
 
-type OnboardingStep = 1 | 2 | 3 | 4 | 5;
+type OnboardingStep = 0 | 1 | 2 | 3 | 4 | 5;
 type ExtShopType = ShopType | 'etc';
 
 interface LocalDesigner {
@@ -42,6 +42,7 @@ const SHOP_TYPES: {type: ExtShopType; label: string; emoji: string; desc: string
 ];
 
 const STEP_LABELS: Record<OnboardingStep, string> = {
+    0: '매장 초기 설정',
     1: '매장 정보',
     2: '서비스 설정',
     3: '디자이너 등록',
@@ -56,7 +57,7 @@ const OnboardingPage: NextPage<{guest?: boolean}> = ({guest}) => {
     const [loading, setLoading] = useState(false);
 
     // ── Step navigation ──
-    const [step, setStep] = useState<OnboardingStep>(1);
+    const [step, setStep] = useState<OnboardingStep>(guest ? 0 : 1);
 
     // ── Step 1 ──
     const [shopName, setShopName] = useState('');
@@ -93,6 +94,7 @@ const OnboardingPage: NextPage<{guest?: boolean}> = ({guest}) => {
         if (step === 4) return 3;
         if (step === 3) return skipServiceStep ? 1 : 2;
         if (step === 2) return 1;
+        if (step === 1 && guest) return 0;
         return 1;
     };
 
@@ -205,6 +207,13 @@ const OnboardingPage: NextPage<{guest?: boolean}> = ({guest}) => {
         setLocalDesigners((prev) => prev.map((d) => d.id === id ? {...d, color} : d));
     };
 
+    const handleSkipOnboarding = () => {
+        const snapshot = loadLocalDbSnapshot();
+        snapshot.onboarded = true;
+        saveLocalDbSnapshot(snapshot);
+        router.replace('/');
+    };
+
     // ── Final submit ──
     const handleComplete = async () => {
         setLoading(true);
@@ -281,7 +290,7 @@ const OnboardingPage: NextPage<{guest?: boolean}> = ({guest}) => {
     const visibleSteps: OnboardingStep[] = skipServiceStep
         ? [1, 3, 4, 5]
         : [1, 2, 3, 4, 5];
-    const stepIndex = visibleSteps.indexOf(step);
+    const stepIndex = visibleSteps.indexOf(step as (typeof visibleSteps)[number]);
 
     return (
         <StyledPage>
@@ -292,13 +301,29 @@ const OnboardingPage: NextPage<{guest?: boolean}> = ({guest}) => {
                 {/* Header */}
                 <StyledCardHeader>
                     <StyledLogo>TAS</StyledLogo>
-                    <StyledStepRow>
-                        {visibleSteps.map((s, i) => (
-                            <StyledStepDot key={s} $active={i === stepIndex} $done={i < stepIndex} />
-                        ))}
-                    </StyledStepRow>
+                    {step !== 0 && (
+                        <StyledStepRow>
+                            {visibleSteps.map((s, i) => (
+                                <StyledStepDot key={s} $active={i === stepIndex} $done={i < stepIndex} />
+                            ))}
+                        </StyledStepRow>
+                    )}
                     <StyledStepLabel>{STEP_LABELS[step]}</StyledStepLabel>
                 </StyledCardHeader>
+
+                {/* ── Step 0: 초기 설정 시작 여부 ── */}
+                {step === 0 && (
+                    <StyledStepBody>
+                        <StyledStep0Desc>
+                            매장 정보, 서비스, 디자이너를 미리 설정하면<br />
+                            처음부터 편리하게 사용할 수 있습니다.
+                        </StyledStep0Desc>
+                        <StyledStep0Actions>
+                            <StyledNextBtn type="button" onClick={() => setStep(1)}>설정 시작</StyledNextBtn>
+                            <StyledSkipBtn type="button" onClick={handleSkipOnboarding}>건너뛰기</StyledSkipBtn>
+                        </StyledStep0Actions>
+                    </StyledStepBody>
+                )}
 
                 {/* ── Step 1: 매장 정보 ── */}
                 {step === 1 && (
@@ -341,6 +366,7 @@ const OnboardingPage: NextPage<{guest?: boolean}> = ({guest}) => {
                         <FieldError>{step1Error}</FieldError>
 
                         <StyledNavRow>
+                            {guest && <StyledBackBtn type="button" onClick={() => { clearErrors(); setStep(0); }}>← 이전</StyledBackBtn>}
                             <StyledSkipBtn type="button" onClick={handleStep1Skip}>건너뛰기</StyledSkipBtn>
                             <StyledNextBtn type="button" onClick={handleStep1Next}>다음</StyledNextBtn>
                         </StyledNavRow>
@@ -1269,4 +1295,21 @@ const StyledSubmitBtn = styled.button`
     @media (hover: hover) and (pointer: fine) {
         &:hover:not(:disabled) { opacity: 0.88; }
     }
+`;
+
+const StyledStep0Desc = styled.p`
+    margin: 8px 0 0;
+    font-size: 14px;
+    line-height: 1.7;
+    color: var(--dark-gray-color);
+    text-align: center;
+`;
+
+const StyledStep0Actions = styled.div`
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-top: 8px;
+
+    button { width: 100%; justify-content: center; text-align: center; }
 `;
