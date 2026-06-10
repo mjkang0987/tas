@@ -4,21 +4,12 @@ import styled from 'styled-components';
 
 import {useCalendarStore} from '../../store/calendarStore';
 import type {PointHistoryEntry} from '../../utils/customers';
-import {formatTel} from '../../utils/customers';
+import {formatTel, POINT_HISTORY_LABELS} from '../../utils/customers';
 import type {Reservation} from '../../utils/reservations';
 import {formatPrice} from '../../utils/services';
 import {PageHero} from '../ui/PageHero';
 import {formControlStyle} from '../ui/FormControls';
 import {actionButtonStyle, EMPTY_TEXT, StyledEditBtn, StyledSaveBtn, StyledCancelBtn, StyledEmpty} from './settings-styles';
-
-const POINT_HISTORY_LABELS: Record<PointHistoryEntry['type'], string> = {
-    manual_add: '수동 적립',
-    manual_subtract: '수동 차감',
-    recharge: '충전',
-    payment_use: '결제 사용',
-    payment_earn: '결제 적립',
-    payment_adjust: '적립 조정',
-};
 
 type PointManageTab = 'history' | 'adjust' | 'settings';
 

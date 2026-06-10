@@ -20,7 +20,7 @@ import {
 
 import {buildDesignerColorMap, buildDesignerNameMap} from '../../../utils/designers';
 import {buildServiceColorMap, formatPrice} from '../../../utils/services';
-import {formatTel, toCustomerMap} from '../../../utils/customers';
+import {formatTel, toCustomerMap, POINT_HISTORY_LABELS} from '../../../utils/customers';
 import type {Customer as CustomerType} from '../../../utils/customers';
 import {useCalendarStore} from '../../../store/calendarStore';
 import {CloseIconButton} from '../../ui/CloseIconButton';
@@ -29,15 +29,6 @@ import {ColorTag} from '../../ui/ColorTag';
 import {ColorPickerButton} from '../../ui/ColorPickerButton';
 
 const PAGE_SIZE = 5;
-
-const POINT_HISTORY_LABELS: Record<PointHistoryEntry['type'], string> = {
-    manual_add: '수동 적립',
-    manual_subtract: '수동 차감',
-    recharge: '충전',
-    payment_use: '결제 사용',
-    payment_earn: '결제 적립',
-    payment_adjust: '적립 조정',
-};
 
 interface CustomerDetailProps {
     customer: Customer;

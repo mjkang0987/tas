@@ -36,7 +36,7 @@ export const StyledClickableRow = styled.div<{ $accentColor?: string; $showAccen
     border-left-width: ${(props) => props.$showAccentBar ? '4px' : '1px'};
     border-left-color: ${(props) => props.$showAccentBar ? (props.$accentColor || 'rgba(148, 163, 184, 0.42)') : undefined};
     background:
-        linear-gradient(180deg, rgba(255, 255, 255, 0.96) 0%, ${(props) => props.$accentColor ? `${props.$accentColor}10` : 'rgba(248, 250, 252, 0.96)'} 100%);
+        linear-gradient(180deg, rgba(255, 255, 255, 0.96) 0%, ${(props) => props.$accentColor ? `${props.$accentColor}10` : 'var(--bg-subtle-96)'} 100%);
     box-shadow: var(--card-shadow);
     cursor: pointer;
     transition: transform 0.14s ease, box-shadow 0.14s ease, border-color 0.14s ease, background-color 0.14s ease;
@@ -45,7 +45,7 @@ export const StyledClickableRow = styled.div<{ $accentColor?: string; $showAccen
         &:hover {
             border-color: ${(props) => props.$accentColor ? `${props.$accentColor}66` : 'rgba(66, 133, 244, 0.28)'};
             box-shadow: var(--card-shadow-hover);
-            background-color: ${(props) => props.$accentColor ? `${props.$accentColor}14` : 'rgba(248, 250, 252, 0.98)'};
+            background-color: ${(props) => props.$accentColor ? `${props.$accentColor}14` : 'var(--bg-subtle-98)'};
         }
     }
 
@@ -131,7 +131,7 @@ export const StyledCustomerName = styled.span`
     max-width: 100%;
     font-size: var(--small-font);
     border-radius: var(--chip-radius);
-    background: rgba(248, 250, 252, 0.92);
+    background: var(--bg-subtle-92);
 `;
 
 export const StyledInlineCustomerButton = styled.button`
@@ -176,7 +176,7 @@ export const StyledRevenueEmpty = styled.div`
     padding: 54px 24px;
     border: 1px dashed rgba(148, 163, 184, 0.32);
     border-radius: 10px;
-    background: rgba(248, 250, 252, 0.78);
+    background: var(--bg-subtle-78);
     font-size: 13px;
     color: var(--dark-gray-color2);
 `;
@@ -189,7 +189,7 @@ export const StyledSummary = styled.div`
     padding: 10px 14px;
     border: 1px solid rgba(148, 163, 184, 0.18);
     border-radius: var(--info-grid-cell-radius);
-    background: rgba(248, 250, 252, 0.88);
+    background: var(--bg-subtle-88);
     font-size: 13px;
     color: var(--dark-gray-color2);
 
@@ -211,7 +211,7 @@ export const StyledCustomerInfoGrid = styled.div`
         display: flex;
         gap: 6px;
         border-radius: 10px;
-        background: rgba(248, 250, 252, 0.92);
+        background: var(--bg-subtle-92);
         font-size: 12px;
         color: var(--dark-gray-color);
     }

@@ -62,9 +62,9 @@ export function NaverBookingSection() {
                         {lastSync && (
                             <StyledLastSync>마지막 동기화: {formatLastSync(lastSync)}</StyledLastSync>
                         )}
-                        <StyledSaveBtn type="button" onClick={sync} disabled={syncing} style={{flexShrink: 0}}>
+                        <StyledSyncBtn type="button" onClick={sync} disabled={syncing}>
                             {syncing ? '동기화 중...' : '지금 동기화'}
-                        </StyledSaveBtn>
+                        </StyledSyncBtn>
                     </StyledActiveRow>
                 )}
             </StyledSettingsCard>
@@ -91,6 +91,10 @@ export function NaverBookingSection() {
     );
 }
 
+
+const StyledSyncBtn = styled(StyledSaveBtn)`
+    flex-shrink: 0;
+`;
 
 const StyledCheckRow = styled.div`
     display: flex;

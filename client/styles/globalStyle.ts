@@ -24,6 +24,8 @@ export const GlobalStyle = createGlobalStyle`
         --white-color-40: hsla(0, 0%, 100%, .4);
 
         --brand-color: #6526d9;
+        --brand-color-bg: rgba(101, 38, 217, 0.04);
+        --brand-color-border: rgba(101, 38, 217, 0.2);
 
         --danger-color: #c93a30;
         --danger-bg: #fef2f2;
@@ -132,6 +134,12 @@ export const GlobalStyle = createGlobalStyle`
         --chip-padding: 4px 8px;
         --chip-radius: 999px;
         --bg-subtle: rgba(248, 250, 252, 0.6);
+        --bg-subtle-72: rgba(248, 250, 252, 0.72);
+        --bg-subtle-78: rgba(248, 250, 252, 0.78);
+        --bg-subtle-88: rgba(248, 250, 252, 0.88);
+        --bg-subtle-92: rgba(248, 250, 252, 0.92);
+        --bg-subtle-96: rgba(248, 250, 252, 0.96);
+        --bg-subtle-98: rgba(248, 250, 252, 0.98);
     }
 
     @media (max-width: 640px) {

@@ -142,7 +142,7 @@ export const StyledDetail = styled.div<{ $width?: number | string }>`
     max-height: 80vh;
     display: flex;
     flex-direction: column;
-    background: linear-gradient(180deg, rgba(255, 255, 255, 0.98) 0%, rgba(248, 250, 252, 0.98) 100%);
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.98) 0%, var(--bg-subtle-98) 100%);
     border: 1px solid var(--modal-border);
     border-radius: var(--modal-radius);
     box-shadow: var(--modal-shadow);
@@ -164,7 +164,7 @@ export const StyledHeader = styled.div`
     gap: var(--modal-header-gap);
     padding: var(--modal-header-padding);
     border-bottom: 1px solid var(--modal-header-border);
-    background: linear-gradient(180deg, rgba(255, 255, 255, 0.88) 0%, rgba(248, 250, 252, 0.92) 100%);
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.88) 0%, var(--bg-subtle-92) 100%);
     backdrop-filter: blur(10px);
 
     h3 {
@@ -339,7 +339,7 @@ export const StyledInfoGrid = styled.dl`
         align-items: start;
         padding: var(--info-grid-cell-padding);
         border-radius: var(--info-grid-cell-radius);
-        background: rgba(248, 250, 252, 0.9);
+        background: rgba(248, 250, 252, 0.9); /* --bg-subtle 계열 (0.9 변형은 변수 없음) */
         border: 1px solid rgba(226, 232, 240, 0.9);
         font-size: 13px;
     }
@@ -405,7 +405,7 @@ export const StyledFooter = styled.div`
     gap: var(--modal-footer-gap);
     padding: var(--modal-footer-padding);
     border-top: 1px solid var(--modal-footer-border);
-    background: linear-gradient(180deg, rgba(248, 250, 252, 0.72) 0%, rgba(255, 255, 255, 0.96) 100%);
+    background: linear-gradient(180deg, var(--bg-subtle-72) 0%, rgba(255, 255, 255, 0.96) 100%);
 
     @media (max-width: 640px) {
         flex-wrap: wrap;
