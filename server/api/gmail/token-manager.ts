@@ -17,7 +17,7 @@ export async function saveGoogleTokens(userId: string, tokens: GoogleTokens): Pr
     }
 
     await prisma.authAccount.update({
-        where: {userId},
+        where: {userId_provider: {userId, provider: 'google'}},
         data,
     });
 }
@@ -31,7 +31,7 @@ export async function getValidAccessToken(userId: string): Promise<string | null
 
 export async function getValidAccessTokenWithReason(userId: string): Promise<{token: string | null; reason: TokenFailReason | null}> {
     const account = await prisma.authAccount.findUnique({
-        where: {userId},
+        where: {userId_provider: {userId, provider: 'google'}},
         select: {
             provider: true,
             accessToken: true,

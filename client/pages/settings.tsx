@@ -22,6 +22,7 @@ import {MemberSection} from '../components/settings/MemberSection';
 import {PointManageSection} from '../components/settings/PointManageSection';
 import {RevenueSection, type RevenueDesignerKey, type RevenueQuickRange} from '../components/settings/revenue';
 import {ServiceManageSection} from '../components/settings/ServiceManageSection';
+import {SNSLinkingSection} from '../components/settings/SNSLinkingSection';
 import {StoreManageSection} from '../components/settings/StoreManageSection';
 
 import {loadLocalDbSnapshot, subscribeLocalDb, type LocalDbSnapshot} from '../lib/local-db';
@@ -34,7 +35,7 @@ type SettingsProps = {
     storageMode: 'remote' | 'local';
 };
 
-type SettingsTab = 'revenue' | 'point' | 'service' | 'designer' | 'store' | 'member';
+type SettingsTab = 'revenue' | 'point' | 'service' | 'designer' | 'store' | 'member' | 'sns';
 
 const WEEKDAYS = ['일', '월', '화', '수', '목', '금', '토'];
 
@@ -56,7 +57,7 @@ function shiftDateKey(baseDate: Date, days: number): string {
 }
 
 function isSettingsTab(value: string): value is SettingsTab {
-    return value === 'revenue' || value === 'point' || value === 'service' || value === 'designer' || value === 'store' || value === 'member';
+    return value === 'revenue' || value === 'point' || value === 'service' || value === 'designer' || value === 'store' || value === 'member' || value === 'sns';
 }
 
 /* ── Service Manage Section ── */
@@ -257,6 +258,7 @@ const Settings: NextPage<SettingsProps> = ({reservations, customers, history, st
                 {tab === 'service' && <ServiceManageSection/>}
                 {tab === 'designer' && <DesignerManageSection/>}
                 {tab === 'member' && <MemberSection/>}
+                {tab === 'sns' && <SNSLinkingSection/>}
                 <StyledFooterCs>Take a seat CS: <a href="mailto:takeaseat.cs@gmail.com">takeaseat.cs@gmail.com</a></StyledFooterCs>
             </StyledContent>
             {selectedReservations.map((reservation, index) => (

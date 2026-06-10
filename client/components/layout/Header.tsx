@@ -38,6 +38,7 @@ const SETTINGS_TAB_TITLES: Record<string, string> = {
     service: '서비스 관리',
     designer: '디자이너 관리',
     member: '멤버 관리',
+    sns: 'SNS 연동',
 };
 
 export const Header = () => {

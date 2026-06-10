@@ -8,6 +8,7 @@ type SyncAuthUserParams = {
     account: Account;
     user?: User;
     inviteCode?: string | null;
+    linkUserId?: string | null;
 };
 
 type SyncedAuthUser = {
@@ -124,7 +125,7 @@ async function createUserWithNickname(
     throw new Error('Failed to create a user with a unique nickname.');
 }
 
-export async function syncAuthUser({account, user, inviteCode}: SyncAuthUserParams): Promise<SyncedAuthUser | null> {
+export async function syncAuthUser({account, user, inviteCode, linkUserId}: SyncAuthUserParams): Promise<SyncedAuthUser | null> {
     if (!process.env.DATABASE_URL) {
         return null;
     }
@@ -133,6 +134,33 @@ export async function syncAuthUser({account, user, inviteCode}: SyncAuthUserPara
     const image = user?.image ?? null;
     const provider = account.provider;
     const providerSub = account.providerAccountId;
+
+    // 0. Account linking: attach new provider to existing user
+    if (linkUserId) {
+        const existingUser = await prisma.user.findUnique({
+            where: {id: linkUserId},
+            select: {id: true, nickname: true, email: true, image: true},
+        });
+
+        if (!existingUser) return null;
+
+        // Check if this provider account is already linked to another user
+        const conflicting = await prisma.authAccount.findUnique({
+            where: {provider_providerSub: {provider, providerSub}},
+            select: {userId: true},
+        });
+
+        if (conflicting) {
+            // Already linked (to this or another user) — just return existing user
+            return existingUser;
+        }
+
+        await prisma.authAccount.create({
+            data: {userId: linkUserId, provider, providerSub},
+        });
+
+        return existingUser;
+    }
 
     // 1. Existing AuthAccount → normal login
     const existingAccount = await prisma.authAccount.findUnique({

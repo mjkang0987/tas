@@ -11,7 +11,7 @@ import {resolveUserMembership} from '../server/auth/resolve-user-membership';
 import {syncAuthUser} from '../server/auth/sync-auth-user';
 import {saveGoogleTokens} from '../server/api/gmail/token-manager';
 
-type AuthRequestContext = {inviteCode?: string | null};
+type AuthRequestContext = {inviteCode?: string | null; linkUserId?: string | null};
 export const authRequestContext = new AsyncLocalStorage<AuthRequestContext>();
 
 type KakaoProfile = {
@@ -100,8 +100,9 @@ export const {handlers, auth, signIn, signOut} = NextAuth({
                 token.provider = account.provider;
 
                 const inviteCode = authRequestContext.getStore()?.inviteCode ?? null;
+                const linkUserId = authRequestContext.getStore()?.linkUserId ?? null;
 
-                const syncedUser = await syncAuthUser({account, user, inviteCode});
+                const syncedUser = await syncAuthUser({account, user, inviteCode, linkUserId});
 
                 if (!syncedUser) {
                     token.loginError = 'no-account';
