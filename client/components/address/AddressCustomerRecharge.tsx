@@ -6,6 +6,7 @@ import styled from 'styled-components';
 
 import {useCalendarStore} from '../../store/calendarStore';
 import type {Customer, PointHistoryEntry} from '../../utils/customers';
+import {POINT_HISTORY_LABELS} from '../../utils/customers';
 import type {Reservation} from '../../utils/reservations';
 import {formatPrice} from '../../utils/services';
 import {formControlStyle} from '../ui/FormControls';
@@ -19,15 +20,6 @@ import {
 } from '../calendar/overlays/ModalStyles';
 
 const CUSTOM_OPTION = '__custom__';
-
-const POINT_HISTORY_LABELS: Record<PointHistoryEntry['type'], string> = {
-    manual_add: '수동 적립',
-    manual_subtract: '수동 차감',
-    recharge: '충전',
-    payment_use: '결제 사용',
-    payment_earn: '결제 적립',
-    payment_adjust: '적립 조정',
-};
 
 type AddressCustomerRechargeProps = {
     customer: Customer;

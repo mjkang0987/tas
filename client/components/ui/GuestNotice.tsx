@@ -23,9 +23,9 @@ const StyledWrapper = styled.div`
     margin: 0;
     padding: 14px 16px;
     box-sizing: border-box;
-    border: 1px solid rgba(101, 38, 217, 0.2);
+    border: 1px solid var(--brand-color-border);
     border-radius: var(--radius-md);
-    background: rgba(101, 38, 217, 0.04);
+    background: var(--brand-color-bg);
     display: flex;
     flex-direction: column;
     gap: 8px;
@@ -54,7 +54,7 @@ const StyledList = styled.ul`
 const StyledDivider = styled.hr`
     margin: 0;
     border: none;
-    border-top: 1px dashed rgba(101, 38, 217, 0.2);
+    border-top: 1px dashed var(--brand-color-border);
 `;
 
 const StyledCta = styled.p`

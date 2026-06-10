@@ -2,6 +2,15 @@ import type {ReservationMap} from '../reservations/model';
 
 export type PointHistoryType = 'manual_add' | 'manual_subtract' | 'recharge' | 'payment_use' | 'payment_earn' | 'payment_adjust';
 
+export const POINT_HISTORY_LABELS: Record<PointHistoryType, string> = {
+    manual_add: '수동 적립',
+    manual_subtract: '수동 차감',
+    recharge: '충전',
+    payment_use: '결제 사용',
+    payment_earn: '결제 적립',
+    payment_adjust: '적립 조정',
+};
+
 export interface PointHistoryEntry {
     id: string;
     type: PointHistoryType;
