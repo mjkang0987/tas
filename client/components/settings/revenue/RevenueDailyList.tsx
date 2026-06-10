@@ -6,6 +6,7 @@ import {formatPrice} from '../../../utils/services';
 import type {Designer} from '../../../utils/designers';
 import type {Reservation} from '../../../utils/reservations';
 import type {CustomerMap} from '../../../utils/customers';
+import {EMPTY_TEXT} from '../settings-styles';
 import {
     StyledList,
     StyledRevenueEmpty,
@@ -72,7 +73,7 @@ export const RevenueDailyList = ({
     };
 
     if (days.length === 0) {
-        return <StyledRevenueEmpty>내역이 없습니다.</StyledRevenueEmpty>;
+        return <StyledRevenueEmpty>{EMPTY_TEXT}</StyledRevenueEmpty>;
     }
 
     return (

@@ -3,6 +3,7 @@ import React, {useMemo} from 'react';
 import styled from 'styled-components';
 
 import type {Reservation} from '../../utils/reservations';
+import {EMPTY_TEXT, StyledEmptyCard} from '../settings/settings-styles';
 import {CustomerReservationCards} from '../ui/CustomerReservationCards';
 
 const STATUS_GROUPS = [
@@ -67,7 +68,7 @@ export function AddressCustomerReservations({
     const nonEmptyGroups = STATUS_GROUPS.filter((g) => grouped[g.key].length > 0);
 
     if (nonEmptyGroups.length === 0) {
-        return <StyledEmpty>예약 내역이 없습니다.</StyledEmpty>;
+        return <StyledEmptyCard>{EMPTY_TEXT}</StyledEmptyCard>;
     }
 
     return (
@@ -107,11 +108,3 @@ const StyledGroupLabel = styled.p`
     color: var(--dark-gray-color);
 `;
 
-const StyledEmpty = styled.p`
-    padding: 16px 10px;
-    font-size: var(--small-font);
-    color: var(--gray-color);
-    text-align: center;
-    background-color: var(--black-color-10);
-    border-radius: 4px;
-`;

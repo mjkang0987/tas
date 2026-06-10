@@ -3,6 +3,7 @@ import {useMemo} from 'react';
 import styled from 'styled-components';
 
 import {useCalendarStore} from '../../../store/calendarStore';
+import {EMPTY_TEXT, StyledEmpty} from '../../settings/settings-styles';
 import {
     getGroupedCatalog,
     getServicePrice,
@@ -40,6 +41,9 @@ export const ServiceFields = ({
     return (
         <StyledServiceArea>
             <StyledServiceList>
+                {groupedCatalog.size === 0 && (
+                    <StyledEmpty>{EMPTY_TEXT}</StyledEmpty>
+                )}
                 {[...groupedCatalog.entries()].map(([category, items]) => (
                     <StyledServiceGroup key={category}>
                         <StyledCategoryHeader>{category}</StyledCategoryHeader>

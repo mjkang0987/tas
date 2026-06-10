@@ -10,6 +10,7 @@ import {isNewCustomerVisit} from '../../../utils/customers';
 import {buildDesignerColorMap, buildDesignerNameMap} from '../../../utils/designers';
 import {buildServiceColorMap} from '../../../utils/services';
 
+import {EMPTY_TEXT} from '../../settings/settings-styles';
 import {
     OVERLAY_Z_INDEX,
     StyledActionButton,
@@ -155,7 +156,7 @@ export const ReservationListModal = () => {
             <StyledListBody>
                 <StyledListBodyInner>
                     {reservations.length === 0 ? (
-                        <StyledEmpty>예약이 없습니다.</StyledEmpty>
+                        <StyledEmpty>{EMPTY_TEXT}</StyledEmpty>
                     ) : (
                         grouped.map((group) => (
                             <StyledDateGroup key={group.date}>
@@ -218,11 +219,13 @@ const StyledListBodyInner = styled(StyledBodyInner)`
     padding: 6px 8px 18px;
 `;
 
-const StyledEmpty = styled.p`
+const StyledEmpty = styled.div`
+    display: flex;
+    align-items: center;
+    justify-content: center;
     padding: 24px;
-    text-align: center;
-    font-size: var(--small-font);
-    color: var(--gray-color);
+    font-size: 13px;
+    color: var(--dark-gray-color2);
 `;
 
 const StyledList = styled.ul`

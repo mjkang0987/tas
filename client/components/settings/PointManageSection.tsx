@@ -9,7 +9,7 @@ import type {Reservation} from '../../utils/reservations';
 import {formatPrice} from '../../utils/services';
 import {PageHero} from '../ui/PageHero';
 import {formControlStyle} from '../ui/FormControls';
-import {actionButtonStyle, StyledEditBtn, StyledSaveBtn, StyledCancelBtn, StyledEmpty} from './settings-styles';
+import {actionButtonStyle, EMPTY_TEXT, StyledEditBtn, StyledSaveBtn, StyledCancelBtn, StyledEmpty} from './settings-styles';
 
 const POINT_HISTORY_LABELS: Record<PointHistoryEntry['type'], string> = {
     manual_add: '수동 적립',
@@ -188,7 +188,7 @@ export const PointManageSection = () => {
                         />
                     </StyledSearchRow>
                     {filteredCustomers.length === 0 ? (
-                        <StyledEmpty>내역이 없습니다.</StyledEmpty>
+                        <StyledEmpty>{EMPTY_TEXT}</StyledEmpty>
                     ) : (
                     <StyledCustomerList>
                         {filteredCustomers.map((customer) => (

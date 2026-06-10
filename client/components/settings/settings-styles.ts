@@ -55,6 +55,8 @@ export const StyledDeleteBtn = styled.button`
     color: var(--danger-color);
 `;
 
+export const EMPTY_TEXT = '등록된 데이터가 없습니다';
+
 export const StyledEmpty = styled.div`
     display: flex;
     align-items: center;
@@ -62,6 +64,16 @@ export const StyledEmpty = styled.div`
     padding: 40px;
     font-size: 13px;
     color: var(--dark-gray-color2);
+`;
+
+export const StyledEmptyCard = styled.p`
+    padding: 16px 10px;
+    font-size: var(--small-font);
+    color: var(--gray-color);
+    text-align: center;
+    background-color: var(--black-color-10);
+    border-radius: 4px;
+    margin: 0;
 `;
 
 export const StyledServiceFooter = styled.div`

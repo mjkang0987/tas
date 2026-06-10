@@ -5,7 +5,7 @@ import styled from 'styled-components';
 
 import {useCalendarStore} from '../../store/calendarStore';
 import {PageHero} from '../ui/PageHero';
-import {actionButtonStyle, StyledEditBtn as StyledEditBtnBase, StyledSaveBtn, StyledCancelBtn, StyledServiceFooter, StyledEmpty} from './settings-styles';
+import {actionButtonStyle, EMPTY_TEXT, StyledEditBtn as StyledEditBtnBase, StyledSaveBtn, StyledCancelBtn, StyledServiceFooter, StyledEmpty} from './settings-styles';
 import {buildServiceColorMap, formatPrice, formatDuration, getCategoryBaseColor, getGroupedCatalog, getServiceColor} from '../../utils/services';
 import type {ServiceItem} from '../../utils/services';
 import {
@@ -405,7 +405,7 @@ export const ServiceManageSection = () => {
         <>
             <PageHero eyebrow="SERVICE" title="서비스 관리" subtitle="서비스 카테고리와 메뉴를 등록하고 가격을 설정합니다." />
             <StyledServiceBody>
-                {grouped.size === 0 && <StyledEmpty>내역이 없습니다.</StyledEmpty>}
+                {grouped.size === 0 && <StyledEmpty>{EMPTY_TEXT}</StyledEmpty>}
                 {Array.from(grouped.entries()).map(([category, items]) => (
                     <StyledGroup
                         key={category}

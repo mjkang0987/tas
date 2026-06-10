@@ -1,6 +1,7 @@
 import styled from 'styled-components';
 
 import type {Reservation} from '../../utils/reservations';
+import {EMPTY_TEXT, StyledEmptyCard} from '../settings/settings-styles';
 import {ReservationInfoCard} from './ReservationInfoCard';
 
 type CustomerReservationCardsProps = {
@@ -21,11 +22,11 @@ export function CustomerReservationCards({
     serviceColorMap,
     today,
     onReservationClick,
-    emptyText = '예약 내역이 없습니다.',
+    emptyText = EMPTY_TEXT,
     className,
 }: CustomerReservationCardsProps) {
     if (reservations.length === 0) {
-        return <StyledEmpty className={className}>{emptyText}</StyledEmpty>;
+        return <StyledEmptyCard className={className}>{emptyText}</StyledEmptyCard>;
     }
 
     return (
@@ -67,11 +68,3 @@ const StyledReservationList = styled.ul`
     gap: 6px;
 `;
 
-const StyledEmpty = styled.p`
-    padding: 16px 10px;
-    font-size: var(--small-font);
-    color: var(--gray-color);
-    text-align: center;
-    background-color: var(--black-color-10);
-    border-radius: 4px;
-`;

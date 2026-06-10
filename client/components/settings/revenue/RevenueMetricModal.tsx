@@ -23,6 +23,7 @@ import type {CustomerMap} from '../../../utils/customers';
 import {formatTel} from '../../../utils/customers';
 import type {RevenueFilterMode} from '../../../utils/revenue';
 import type {RevenueMetricKey} from './RevenueKpiGrid';
+import {EMPTY_TEXT} from '../settings-styles';
 import {
     StyledCustomerInfoGrid,
     StyledCustomerName,
@@ -112,7 +113,7 @@ export const RevenueMetricModal = ({
                     <StyledMetricBodyInner>
                     {metricLayerKey === 'new' || metricLayerKey === 'returning' ? (
                         metricLayer.customers.length === 0 ? (
-                            <StyledRevenueEmpty>내역이 없습니다.</StyledRevenueEmpty>
+                            <StyledRevenueEmpty>{EMPTY_TEXT}</StyledRevenueEmpty>
                         ) : (
                             <StyledCustomerList>
                                 {metricLayer.customers.map((item) => (
@@ -143,7 +144,7 @@ export const RevenueMetricModal = ({
                             </StyledCustomerList>
                         )
                     ) : metricLayer.reservations.length === 0 ? (
-                        <StyledRevenueEmpty>내역이 없습니다.</StyledRevenueEmpty>
+                        <StyledRevenueEmpty>{EMPTY_TEXT}</StyledRevenueEmpty>
                     ) : (
                         <RevenueReservationList
                             reservations={metricLayer.reservations}

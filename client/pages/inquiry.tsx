@@ -5,7 +5,7 @@ import {useSession} from 'next-auth/react';
 import styled from 'styled-components';
 
 import {PageHero} from '../components/ui/PageHero';
-import {actionButtonStyle} from '../components/settings/settings-styles';
+import {actionButtonStyle, EMPTY_TEXT, StyledEmpty as StyledEmptyBase} from '../components/settings/settings-styles';
 import {FieldError} from '../components/ui/FieldError';
 
 type InquiryTab = 'form' | 'history';
@@ -159,9 +159,9 @@ const InquiryPage: NextPage = () => {
                     {activeTab === 'history' && (
                         <>
                             {historyLoading ? (
-                                <StyledEmpty>불러오는 중...</StyledEmpty>
+                                <StyledEmptyBase>불러오는 중...</StyledEmptyBase>
                             ) : inquiries.length === 0 ? (
-                                <StyledEmpty>문의 내역이 없습니다.</StyledEmpty>
+                                <StyledEmptyBase>{EMPTY_TEXT}</StyledEmptyBase>
                             ) : (
                                 <StyledHistoryList>
                                     {inquiries.map((inquiry) => (
@@ -351,12 +351,6 @@ const StyledResetButton = styled.button`
     font-weight: 600;
 `;
 
-const StyledEmpty = styled.div`
-    padding: 40px 20px;
-    text-align: center;
-    font-size: 13px;
-    color: var(--dark-gray-color2);
-`;
 
 const StyledHistoryList = styled.div`
     display: flex;

@@ -5,6 +5,7 @@ import styled from 'styled-components';
 import {formatPrice} from '../../../utils/services';
 import type {CustomerMap} from '../../../utils/customers';
 import {compareDesignerName} from '../../../utils/designers';
+import {EMPTY_TEXT} from '../settings-styles';
 import {StyledColorSwatch} from './revenue-styles';
 
 const REVENUE_CHART_WIDTH = 320;
@@ -123,7 +124,7 @@ export const RevenueChartGrid = ({
                     <span>{fromDateKey} ~ {toDateKeyValue}</span>
                 </StyledChartHeader>
                 {seriesLength === 0 ? (
-                    <StyledChartEmpty>내역이 없습니다.</StyledChartEmpty>
+                    <StyledChartEmpty>{EMPTY_TEXT}</StyledChartEmpty>
                 ) : (
                     <>
                         <StyledLineChartBox>
@@ -188,7 +189,7 @@ export const RevenueChartGrid = ({
                     <span>결제완료 기준</span>
                 </StyledChartHeader>
                 {paymentChartItems.length === 0 ? (
-                    <StyledChartEmpty>내역이 없습니다.</StyledChartEmpty>
+                    <StyledChartEmpty>{EMPTY_TEXT}</StyledChartEmpty>
                 ) : (
                     <StyledPaymentChartWrap>
                         <StyledDonutChart $gradient={paymentDonutGradient}>
@@ -226,7 +227,7 @@ export const RevenueChartGrid = ({
                     <span>전화 · 방문 · 네이버</span>
                 </StyledChartHeader>
                 {channelTotalCount === 0 ? (
-                    <StyledChartEmpty>내역이 없습니다.</StyledChartEmpty>
+                    <StyledChartEmpty>{EMPTY_TEXT}</StyledChartEmpty>
                 ) : (
                     <StyledDonutColumnWrap>
                         <StyledDonutChart $gradient={channelDonutGradient}>
@@ -264,7 +265,7 @@ export const RevenueChartGrid = ({
                     <span>{designerKey === 'all' ? '전체 기준' : '선택 디자이너 기준'}</span>
                 </StyledChartHeader>
                 {designerChartItems.length === 0 ? (
-                    <StyledChartEmpty>내역이 없습니다.</StyledChartEmpty>
+                    <StyledChartEmpty>{EMPTY_TEXT}</StyledChartEmpty>
                 ) : (
                     <>
                         {(() => {
@@ -331,7 +332,7 @@ export const RevenueChartGrid = ({
                     <strong>{totalCancelledRate}%</strong>
                 </StyledOperationSummary>
                 {designerCancellationItems.length === 0 ? (
-                    <StyledChartEmpty>내역이 없습니다.</StyledChartEmpty>
+                    <StyledChartEmpty>{EMPTY_TEXT}</StyledChartEmpty>
                 ) : (
                     <StyledOperationList>
                         {[...designerCancellationItems].sort((a, b) => compareDesignerName(a.name, b.name)).map((item) => (
@@ -364,7 +365,7 @@ export const RevenueChartGrid = ({
                     <strong>{totalNoshowRate}%</strong>
                 </StyledOperationSummary>
                 {customerNoshowItems.length === 0 ? (
-                    <StyledChartEmpty>내역이 없습니다.</StyledChartEmpty>
+                    <StyledChartEmpty>{EMPTY_TEXT}</StyledChartEmpty>
                 ) : (
                     <StyledOperationList>
                         {customerNoshowItems.map((item) => (

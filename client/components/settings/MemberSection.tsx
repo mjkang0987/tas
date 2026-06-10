@@ -5,7 +5,7 @@ import {useSession} from 'next-auth/react';
 import styled from 'styled-components';
 import {LabelBadge} from '../ui/LabelBadge';
 import {PageHero} from '../ui/PageHero';
-import {StyledEmpty} from './settings-styles';
+import {EMPTY_TEXT, StyledEmpty} from './settings-styles';
 import {FieldError} from '../ui/FieldError';
 
 type Invite = {
@@ -199,7 +199,7 @@ export const MemberSection = () => {
                         ))}
                     </StyledList>
                 ) : (
-                    <StyledEmpty>내역이 없습니다.</StyledEmpty>
+                    <StyledEmpty>{EMPTY_TEXT}</StyledEmpty>
                 )}
             </StyledCard>
 
@@ -218,7 +218,7 @@ export const MemberSection = () => {
                         ))}
                     </StyledList>
                 ) : (
-                    <StyledEmpty>내역이 없습니다.</StyledEmpty>
+                    <StyledEmpty>{EMPTY_TEXT}</StyledEmpty>
                 )}
             </StyledCard>
 

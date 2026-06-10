@@ -6,6 +6,7 @@ import type {Designer} from '../../../utils/designers';
 import type {Reservation} from '../../../utils/reservations';
 import type {CustomerMap} from '../../../utils/customers';
 import {isNewCustomerVisit} from '../../../utils/customers';
+import {EMPTY_TEXT} from '../settings-styles';
 import {
     StyledList,
     StyledRevenueEmpty,
@@ -30,7 +31,7 @@ export function RevenueReservationList({
     serviceColorMap,
     onSelectReservation,
     onSelectCustomer,
-    emptyText = '내역이 없습니다.',
+    emptyText = EMPTY_TEXT,
     variant = 'default',
     className,
 }: RevenueReservationListProps) {
