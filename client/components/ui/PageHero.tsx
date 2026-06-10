@@ -25,18 +25,18 @@ const StyledEyebrow = styled.p`
     font-size: 11px;
     font-weight: 700;
     letter-spacing: 0.18em;
-    color: #2d7ff9;
+    color: var(--blue-color);
 `;
 
 const StyledTitle = styled.h1`
     margin: 0;
     font-size: 32px;
     line-height: 1.1;
-    color: #111827;
+    color: var(--dark-gray-color);
 `;
 
 const StyledSubtitle = styled.p`
     margin: 10px 0 0;
-    color: #4b5563;
+    color: var(--dark-gray-color2);
     font-size: 15px;
 `;

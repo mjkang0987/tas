@@ -2,8 +2,6 @@ import {useEffect, useMemo} from 'react';
 
 import type {GetServerSideProps, NextPage} from 'next';
 
-import Head from 'next/head';
-
 import styled from 'styled-components';
 
 import {useCalendarStore} from '../store/calendarStore';
@@ -25,6 +23,7 @@ import {CustomerDetail} from '../components/calendar/overlays/CustomerDetail';
 import {ServiceLegend} from '../components/calendar/service/ServiceLegend';
 
 import {getPageSession, loadPageData} from '../lib/page-data';
+import {SeoHead} from '../components/ui/SeoHead';
 
 type HomeProps = {
     reservations: Reservation[];
@@ -85,9 +84,7 @@ const Home: NextPage<HomeProps> = (props) => {
     }, [selectedReservations, setCreateReservationInitial]);
 
     return (<>
-            <Head>
-                <title>TAS | Take a seat</title>
-            </Head>
+            <SeoHead title="Take a seat" />
             <StyledSection $isVisible={aside.isVisible}>
                 {curr && <Calendar/>}
             </StyledSection>

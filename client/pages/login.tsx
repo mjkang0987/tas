@@ -9,6 +9,7 @@ import type {GetServerSideProps} from 'next';
 import styled from 'styled-components';
 
 import {AuthActionIcon} from '../components/ui/AuthActionIcon';
+import {SeoHead} from '../components/ui/SeoHead';
 
 type ProviderInfo = {id: string; label: string; bg: string; color: string; border: string};
 type LoginPageProps = {
@@ -84,6 +85,7 @@ export default function LoginPage({providerIds, isDatabaseConfigured, loginError
 
     return (
         <StyledWrapper>
+            <SeoHead title="로그인" />
             {status === 'loading' && (
                 <StyledLoadingOverlay>
                     <StyledLoadingCard>

@@ -2,7 +2,6 @@ import {useEffect, useMemo, useState} from 'react';
 
 import type {NextPage} from 'next';
 import {useRouter} from 'next/router';
-import Head from 'next/head';
 import {useSession} from 'next-auth/react';
 
 import styled from 'styled-components';
@@ -14,6 +13,7 @@ import {createDefaultSchedule, getDesignerColor} from '../utils/designers';
 import {loadLocalDbSnapshot, saveLocalDbSnapshot} from '../lib/local-db';
 import {buildServiceColorMap, formatDuration, formatPrice, getServiceColor} from '../utils/services';
 import type {ServiceItem} from '../utils/services';
+import {SeoHead} from '../components/ui/SeoHead';
 
 type OnboardingStep = 0 | 1 | 2 | 3 | 4 | 5;
 type ExtShopType = ShopType | 'etc';
@@ -308,9 +308,7 @@ const OnboardingPage: NextPage = () => {
 
     return (
         <StyledPage>
-            <Head>
-                <title>TAS | 초기 설정</title>
-            </Head>
+            <SeoHead title="초기 설정" />
             <StyledCard>
                 {/* Header */}
                 <StyledCardHeader>

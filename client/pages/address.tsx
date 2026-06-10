@@ -2,8 +2,6 @@ import React, {useState, useMemo, useRef, useEffect, useCallback} from 'react';
 
 import type {GetServerSideProps, NextPage} from 'next';
 
-import Head from 'next/head';
-
 import styled from 'styled-components';
 
 import type {Customer} from '../utils/customers';
@@ -22,6 +20,7 @@ import {useCalendarStore} from '../store/calendarStore';
 
 import {loadLocalDbSnapshot, subscribeLocalDb, type LocalDbSnapshot} from '../lib/local-db';
 import {getPageSession, loadPageData} from '../lib/page-data';
+import {SeoHead} from '../components/ui/SeoHead';
 
 type AddressProps = {
     customers: Customer[];
@@ -298,9 +297,7 @@ const Address: NextPage<AddressProps> = ({customers, reservations, history, stor
 
     return (
         <StyledSection>
-            <Head>
-                <title>TAS | 고객명단</title>
-            </Head>
+            <SeoHead title="고객명단" />
             <PageHero eyebrow="CUSTOMER" title="고객 명단" subtitle="고객 정보, 예약 이력, 메모 태그를 관리합니다." />
             <AddressContent
                 filteredCustomers={filteredCustomers}

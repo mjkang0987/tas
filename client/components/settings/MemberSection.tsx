@@ -5,7 +5,7 @@ import {useSession} from 'next-auth/react';
 import styled from 'styled-components';
 import {LabelBadge} from '../ui/LabelBadge';
 import {PageHero} from '../ui/PageHero';
-import {EMPTY_TEXT, StyledEmpty} from './settings-styles';
+import {EMPTY_TEXT, StyledEmpty, StyledSettingsCard, StyledSettingsCardTitle, StyledSettingsHint} from './settings-styles';
 import {FieldError} from '../ui/FieldError';
 
 type Invite = {
@@ -149,7 +149,7 @@ export const MemberSection = () => {
         return (
             <StyledContainer>
                 <PageHero eyebrow="MEMBER" title="멤버 관리" subtitle="초대코드를 생성하고 매장 멤버를 관리합니다." />
-                <StyledHint>멤버 관리는 오너 또는 매니저만 가능합니다.</StyledHint>
+                <StyledSettingsHint>멤버 관리는 오너 또는 매니저만 가능합니다.</StyledSettingsHint>
             </StyledContainer>
         );
     }
@@ -158,8 +158,8 @@ export const MemberSection = () => {
         <StyledContainer>
             <PageHero eyebrow="MEMBER" title="멤버 관리" subtitle="초대코드를 생성하고 매장 멤버를 관리합니다." />
 
-            <StyledCard>
-                <StyledCardTitle>초대코드 생성</StyledCardTitle>
+            <StyledSettingsCard>
+                <StyledSettingsCardTitle>초대코드 생성</StyledSettingsCardTitle>
                 <StyledCreateRow>
                     <StyledSelect
                         id="member-role"
@@ -176,10 +176,10 @@ export const MemberSection = () => {
                     </StyledPrimaryButton>
                 </StyledCreateRow>
                 <FieldError>{error}</FieldError>
-            </StyledCard>
+            </StyledSettingsCard>
 
-            <StyledCard>
-                <StyledCardTitle>사용 가능한 초대코드</StyledCardTitle>
+            <StyledSettingsCard>
+                <StyledSettingsCardTitle>사용 가능한 초대코드</StyledSettingsCardTitle>
                 {activeInvites.length > 0 ? (
                     <StyledList>
                         {activeInvites.map((inv) => (
@@ -201,10 +201,10 @@ export const MemberSection = () => {
                 ) : (
                     <StyledEmpty>{EMPTY_TEXT}</StyledEmpty>
                 )}
-            </StyledCard>
+            </StyledSettingsCard>
 
-            <StyledCard>
-                <StyledCardTitle>현재 멤버</StyledCardTitle>
+            <StyledSettingsCard>
+                <StyledSettingsCardTitle>현재 멤버</StyledSettingsCardTitle>
                 {members.length > 0 ? (
                     <StyledList>
                         {members.map((m) => (
@@ -220,11 +220,11 @@ export const MemberSection = () => {
                 ) : (
                     <StyledEmpty>{EMPTY_TEXT}</StyledEmpty>
                 )}
-            </StyledCard>
+            </StyledSettingsCard>
 
             {usedOrExpiredInvites.length > 0 && (
-                <StyledCard>
-                    <StyledCardTitle>사용/만료된 코드</StyledCardTitle>
+                <StyledSettingsCard>
+                    <StyledSettingsCardTitle>사용/만료된 코드</StyledSettingsCardTitle>
                     <StyledList>
                         {usedOrExpiredInvites.map((inv) => (
                             <StyledInviteItem key={inv.id} $dimmed>
@@ -240,7 +240,7 @@ export const MemberSection = () => {
                             </StyledInviteItem>
                         ))}
                     </StyledList>
-                </StyledCard>
+                </StyledSettingsCard>
             )}
         </StyledContainer>
     );
@@ -253,20 +253,6 @@ const StyledContainer = styled.div`
 `;
 
 
-const StyledCard = styled.div`
-    padding: 14px;
-    border: 1px solid var(--border-color);
-    border-radius: var(--radius-lg);
-    background: var(--white-color);
-    box-shadow: var(--shadow-sm);
-`;
-
-const StyledCardTitle = styled.h3`
-    margin: 0 0 10px;
-    font-size: 13px;
-    font-weight: 600;
-    color: var(--dark-gray-color);
-`;
 
 const StyledCreateRow = styled.div`
     display: flex;
@@ -459,11 +445,6 @@ const StyledMemberEmail = styled.span`
     color: var(--dark-gray-color2);
 `;
 
-const StyledHint = styled.p`
-    margin: 0;
-    font-size: 13px;
-    color: var(--dark-gray-color2);
-`;
 
 const StyledGuestCard = styled.div`
     padding: 14px;

@@ -2,7 +2,6 @@ import {useEffect, useMemo, useState} from 'react';
 
 import type {GetServerSideProps, NextPage} from 'next';
 
-import Head from 'next/head';
 import {useRouter} from 'next/router';
 
 import styled from 'styled-components';
@@ -28,6 +27,7 @@ import {StoreManageSection} from '../components/settings/StoreManageSection';
 
 import {loadLocalDbSnapshot, subscribeLocalDb, type LocalDbSnapshot} from '../lib/local-db';
 import {getPageSession, loadPageData} from '../lib/page-data';
+import {SeoHead} from '../components/ui/SeoHead';
 
 type SettingsProps = {
     reservations: Reservation[];
@@ -233,9 +233,7 @@ const Settings: NextPage<SettingsProps> = ({reservations, customers, history, st
 
     return (
         <StyledSection>
-            <Head>
-                <title>TAS | 설정</title>
-            </Head>
+            <SeoHead title="설정" />
             <StyledContent>
                 {tab === 'revenue' && <RevenueSection reservationMap={reservationMap}
                                                       designers={designers}

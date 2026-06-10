@@ -55,6 +55,28 @@ export const StyledDeleteBtn = styled.button`
     color: var(--danger-color);
 `;
 
+export const StyledSettingsCard = styled.div`
+    border: 1px solid var(--light-gray-color);
+    border-radius: var(--radius-lg);
+    background: var(--white-color);
+    box-shadow: var(--shadow-sm);
+    padding: 16px;
+    margin-bottom: 16px;
+`;
+
+export const StyledSettingsCardTitle = styled.h3`
+    margin: 0 0 12px;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--dark-gray-color);
+`;
+
+export const StyledSettingsHint = styled.p`
+    margin: 12px 0 0;
+    font-size: 12px;
+    color: var(--dark-gray-color2);
+`;
+
 export const EMPTY_TEXT = '등록된 데이터가 없습니다';
 
 export const StyledEmpty = styled.div`

@@ -5,6 +5,7 @@ import {useSession} from 'next-auth/react';
 import styled from 'styled-components';
 
 import {PageHero} from '../components/ui/PageHero';
+import {SeoHead} from '../components/ui/SeoHead';
 import {actionButtonStyle, EMPTY_TEXT, StyledEmpty as StyledEmptyBase} from '../components/settings/settings-styles';
 import {FieldError} from '../components/ui/FieldError';
 
@@ -88,6 +89,7 @@ const InquiryPage: NextPage = () => {
 
     return (
         <StyledSection>
+            <SeoHead title="고객센터" />
             <StyledContainer>
                 <PageHero eyebrow="SUPPORT" title="고객센터" />
                 <StyledStickyHeader>

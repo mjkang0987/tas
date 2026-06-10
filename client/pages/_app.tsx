@@ -1,6 +1,5 @@
 import React, {useEffect, useRef, useState} from 'react';
 
-import Head from 'next/head';
 import Link from 'next/link';
 import Router, {useRouter} from 'next/router';
 
@@ -261,9 +260,6 @@ function AppContent({Component, pageProps}: AppContentProps) {
 
     return (
         <>
-            <Head>
-                <title>TAS | Take a seat</title>
-            </Head>
             <GlobalStyle/>
             <LayoutComponent>
                 <Component {...pageProps} />

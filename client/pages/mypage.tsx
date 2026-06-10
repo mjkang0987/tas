@@ -25,6 +25,7 @@ import {
     subscribeLocalDb,
     type LocalDbSnapshot,
 } from '../lib/local-db';
+import {SeoHead} from '../components/ui/SeoHead';
 
 const PROVIDER_LABELS: Record<string, string> = {
     google: 'Google',
@@ -134,6 +135,7 @@ const MyPage: NextPage<MyPageProps> = ({linkedProviders}) => {
 
     return (
         <StyledSection>
+            <SeoHead title="계정 관리" />
             <StyledContainer>
                 <PageHero eyebrow="MY PAGE" title="계정 관리" subtitle={storageModeLabel} />
 
