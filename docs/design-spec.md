@@ -55,6 +55,9 @@
 | `--warning-border` | `#f5c6c2` | 경고 보더 |
 | `--success-color` | `#24753a` | 완료, 성공 텍스트 |
 | `--caution-color` | `#a88417` | 주의 텍스트 (노쇼 등) |
+| `--brand-color` | `#6526d9` | 브랜드 보라, 사이드바 활성 메뉴, 주요 버튼 |
+| `--brand-color-bg` | `rgba(101, 38, 217, 0.08)` | 브랜드 배지/카드 배경 |
+| `--brand-color-border` | `rgba(101, 38, 217, 0.2)` | 브랜드 배지/카드 보더 |
 | `--cancelled-color` | `hsl(220, 9%, 62%)` | 취소된 항목 텍스트 |
 
 #### 투명도 변형
