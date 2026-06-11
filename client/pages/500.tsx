@@ -4,15 +4,15 @@ import styled from 'styled-components';
 
 import {SeoHead} from '../components/ui/SeoHead';
 
-export default function Error404() {
+export default function Error500() {
     return (
         <>
-            <SeoHead title="페이지를 찾을 수 없습니다" />
+            <SeoHead title="서버 오류" />
             <StyledPage>
                 <StyledCard>
-                    <StyledCode>404</StyledCode>
-                    <StyledTitle>페이지를 찾을 수 없습니다</StyledTitle>
-                    <StyledDesc>요청하신 페이지가 존재하지 않거나 이동되었습니다.</StyledDesc>
+                    <StyledCode>500</StyledCode>
+                    <StyledTitle>서버 오류가 발생했습니다</StyledTitle>
+                    <StyledDesc>일시적인 오류입니다. 잠시 후 다시 시도해 주세요.</StyledDesc>
                     <StyledHomeLink href="/">홈으로 돌아가기</StyledHomeLink>
                 </StyledCard>
             </StyledPage>
@@ -47,7 +47,7 @@ const StyledCode = styled.p`
     font-size: 64px;
     font-weight: 700;
     line-height: 1;
-    color: var(--brand-color);
+    color: var(--danger-color);
     margin: 0;
 `;
 
