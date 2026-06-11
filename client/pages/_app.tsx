@@ -41,6 +41,9 @@ function AppContent({Component, pageProps}: AppContentProps) {
     const hasApiAccess = status === 'authenticated' && !!session?.user?.role && !!session.user?.storeId;
 
     const [sessionExpired, setSessionExpired] = useState(false);
+    const [servicesReady, setServicesReady] = useState(false);
+    const [designersReady, setDesignersReady] = useState(false);
+    const [reservationsReady, setReservationsReady] = useState(false);
     const hadSessionRef = useRef(false);
 
     useEffect(() => {
@@ -76,6 +79,8 @@ function AppContent({Component, pageProps}: AppContentProps) {
     const localSyncDone = useRef(false);
     useEffect(() => {
         if (!hasApiAccess || localSyncDone.current) return;
+        // 온보딩(데이터 마이그레이션)은 매장 오너만 가능 → 비-owner는 403 방지 위해 스킵
+        if (session?.user?.role !== 'owner') return;
 
         const snapshot = loadLocalDbSnapshot();
         if (!snapshot.onboarded) return;
@@ -94,7 +99,8 @@ function AppContent({Component, pageProps}: AppContentProps) {
             }),
         })
             .then((res) => {
-                if (res.ok) {
+                // 성공(ok) 또는 이미 데이터가 있는 매장(409 ALREADY_SETUP) → 마이그레이션 완료 처리하여 재시도 방지
+                if (res.ok || res.status === 409) {
                     snapshot.onboarded = false;
                     saveLocalDbSnapshot(snapshot);
                 }
@@ -102,7 +108,7 @@ function AppContent({Component, pageProps}: AppContentProps) {
             .catch(() => {
                 localSyncDone.current = false;
             });
-    }, [hasApiAccess]);
+    }, [hasApiAccess, session]);
 
     useEffect(() => {
         if (status === 'loading') return;
@@ -116,7 +122,7 @@ function AppContent({Component, pageProps}: AppContentProps) {
         try {
             const parsed = JSON.parse(raw);
             if (parsed.onboarded === false) {
-                router.replace('/onboarding?mode=guest');
+                router.replace('/onboarding/guest');
             }
         } catch {
             // ignore
@@ -128,6 +134,7 @@ function AppContent({Component, pageProps}: AppContentProps) {
             const localDb = loadLocalDbSnapshot();
             setServiceCatalog(localDb.services);
             setCategoryBaseColorMap(localDb.categoryBaseColors);
+            setServicesReady(true);
             return;
         }
 
@@ -148,8 +155,10 @@ function AppContent({Component, pageProps}: AppContentProps) {
                 if (data.categoryBaseColors && typeof data.categoryBaseColors === 'object' && Object.keys(data.categoryBaseColors).length > 0) {
                     setCategoryBaseColorMap(data.categoryBaseColors);
                 }
+                setServicesReady(true);
             })
             .catch(() => {
+                setServicesReady(true);
                 // Keep default SERVICE_CATALOG if loading fails.
             });
     }, [hasApiAccess, status, setServiceCatalog, setCategoryBaseColorMap]);
@@ -158,6 +167,7 @@ function AppContent({Component, pageProps}: AppContentProps) {
         if (status === 'unauthenticated' || (status === 'authenticated' && !hasApiAccess)) {
             const localDb = loadLocalDbSnapshot();
             setDesigners(localDb.designers);
+            setDesignersReady(true);
             return;
         }
 
@@ -174,8 +184,10 @@ function AppContent({Component, pageProps}: AppContentProps) {
                 if (Array.isArray(data.designers)) {
                     setDesigners(data.designers);
                 }
+                setDesignersReady(true);
             })
             .catch(() => {
+                setDesignersReady(true);
                 // Keep default designers if loading fails.
             });
     }, [hasApiAccess, status, setDesigners]);
@@ -188,6 +200,7 @@ function AppContent({Component, pageProps}: AppContentProps) {
             setReservationMap(groupByDate(localDb.reservations));
             setCustomerMap(toCustomerMap(localDb.customers));
             setReservationHistory(localDb.history);
+            setReservationsReady(true);
             return;
         }
 
@@ -253,11 +266,18 @@ function AppContent({Component, pageProps}: AppContentProps) {
                 if (Array.isArray(customersData.customers)) {
                     setCustomerMap(toCustomerMap(customersData.customers));
                 }
+                setReservationsReady(true);
             })
             .catch(() => {
                 // Keep the current in-memory data if loading fails.
+                setReservationsReady(true);
             });
     }, [hasApiAccess, status, setStoreInfo, setStoreSettings, setReservationMap, setCustomerMap, setReservationHistory]);
+
+    // 데이터(서비스·디자이너·예약)가 모두 준비될 때까지 오버레이로 가려 새로고침 플래시를 막음.
+    // bootDataReady류 상태는 SSR/첫 렌더 모두 false라 하이드레이션 불일치가 없음.
+    const isAuthFlowPage = router.pathname.startsWith('/login') || router.pathname.startsWith('/onboarding');
+    const isBooting = !isAuthFlowPage && !(servicesReady && designersReady && reservationsReady);
 
     return (
         <>
@@ -265,6 +285,11 @@ function AppContent({Component, pageProps}: AppContentProps) {
             <LayoutComponent>
                 <Component {...pageProps} />
             </LayoutComponent>
+            {isBooting && (
+                <StyledBootOverlay>
+                    <StyledSpinner />
+                </StyledBootOverlay>
+            )}
             <ToastContainer />
             {sessionExpired && (
                 <StyledSessionExpiredToast>
@@ -344,6 +369,16 @@ const StyledSpinner = styled.div`
     border-top-color: var(--blue-color);
     border-radius: 50%;
     animation: ${spin} 0.6s linear infinite;
+`;
+
+const StyledBootOverlay = styled.div`
+    position: fixed;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--white-color);
+    z-index: 9998;
 `;
 
 const StyledSessionExpiredToast = styled.div`

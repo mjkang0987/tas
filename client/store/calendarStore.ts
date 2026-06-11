@@ -6,9 +6,8 @@ import type {Customer, CustomerMap} from '../utils/customers';
 import type {PointHistoryEntry} from '../utils/customers';
 import {appendPointHistories, syncCustomerFirstVisitDates} from '../utils/customers';
 import type {ServiceItem} from '../utils/services';
-import {CATEGORY_BASE_COLOR_MAP, SERVICE_CATALOG} from '../utils/services';
+import {CATEGORY_BASE_COLOR_MAP} from '../utils/services';
 import type {DaySchedule, Designer, DesignerStatus} from '../utils/designers';
-import {DEFAULT_DESIGNERS} from '../utils/designers';
 import type {StoreSettings} from '../utils/storeSettings';
 import type {SyncNotification} from '../hooks/useNaverBookingSync';
 import {DEFAULT_STORE_SETTINGS} from '../utils/storeSettings';
@@ -256,9 +255,9 @@ export const useCalendarStore = create<CalendarState>((set) => ({
     createReservationInitial: null,
     selectedCustomerId: null,
     calendarDesignerId: null,
-    serviceCatalog: SERVICE_CATALOG,
+    serviceCatalog: [],
     categoryBaseColorMap: CATEGORY_BASE_COLOR_MAP,
-    designers: DEFAULT_DESIGNERS,
+    designers: [],
     storeName: '',
     shopType: null,
     storeSettings: DEFAULT_STORE_SETTINGS,

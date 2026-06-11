@@ -1,6 +1,7 @@
 import {useCallback, useEffect, useRef, useState} from 'react';
 
 import {useCalendarStore} from '../store/calendarStore';
+import {shouldUseLocalDb} from '../lib/local-db';
 import {toCustomerMap} from '../utils/customers';
 import type {Customer} from '../utils/customers';
 import type {Reservation} from '../utils/reservations';
@@ -170,6 +171,11 @@ export function useCustomerMergeSuggestion() {
 
     // customerMap 크기 증가 시 (= 동기화 후 새 고객 추가) 감지 실행
     useEffect(() => {
+        // 게스트/미인증 모드에서는 고객 병합 제안(네이버 동기화 기반 서버 기능)을 띄우지 않음
+        if (shouldUseLocalDb()) {
+            setSuggestions([]);
+            return;
+        }
         const customerCount = Object.keys(customerMap).length;
         if (customerCount === 0) return;
 
