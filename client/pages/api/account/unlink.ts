@@ -17,14 +17,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         return res.status(400).json({error: 'Invalid provider'});
     }
 
-    const accountCount = await prisma.authAccount.count({
-        where: {userId: session.user.id},
-    });
-
-    if (accountCount <= 1) {
-        return res.status(400).json({error: '최소 1개의 계정은 연결을 유지해야 합니다.'});
-    }
-
     await prisma.authAccount.deleteMany({
         where: {userId: session.user.id, provider},
     });

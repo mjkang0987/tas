@@ -1,13 +1,13 @@
 import {useCallback, useEffect, useState} from 'react';
 
-import {signIn, useSession} from 'next-auth/react';
+import {signIn, signOut, useSession} from 'next-auth/react';
 
 import styled from 'styled-components';
 
-import {StyledConfirmOverlay, StyledConfirmModal, StyledHeader, StyledFooter, StyledActionButton} from '../calendar/overlays/ModalStyles';
+import {StyledConfirmOverlay, StyledConfirmModal, StyledHeader, StyledFooter, StyledActionButton, StyledModalContent, StyledModalMessage} from '../calendar/overlays/ModalStyles';
 import {PageHero} from '../ui/PageHero';
 import {GuestNotice} from '../ui/GuestNotice';
-import {StyledSettingsCard, StyledSettingsHint, StyledSaveBtn, StyledCancelBtn, StyledEditBtn} from './settings-styles';
+import {StyledSettingsCard, StyledSaveBtn, StyledEditBtn} from './settings-styles';
 
 type LinkedAccount = {
     provider: string;
@@ -101,6 +101,7 @@ export function SNSLinkingSection() {
         setError('');
         setActionLoading(provider);
         setUnlinkTarget(null);
+        const wasLastAccount = linked.length <= 1;
         try {
             const res = await fetch('/api/account/unlink', {
                 method: 'DELETE',
@@ -110,6 +111,10 @@ export function SNSLinkingSection() {
             if (!res.ok) {
                 const data = await res.json().catch(() => ({}));
                 setError(data.error ?? '연결 해제에 실패했습니다.');
+                return;
+            }
+            if (wasLastAccount) {
+                await signOut({callbackUrl: '/login'});
                 return;
             }
             await fetchLinked();
@@ -147,8 +152,7 @@ export function SNSLinkingSection() {
                                         <StyledEditBtn
                                             type="button"
                                             onClick={() => setUnlinkTarget(p.id)}
-                                            disabled={isLastAccount || isProcessing}
-                                            title={isLastAccount ? '최소 1개의 계정은 연결을 유지해야 합니다' : ''}
+                                            disabled={isProcessing}
                                         >
                                             {isProcessing ? '처리 중...' : '연결 해제'}
                                         </StyledEditBtn>
@@ -170,26 +174,29 @@ export function SNSLinkingSection() {
 
             {error && <StyledError>{error}</StyledError>}
 
-            <StyledSettingsHint>최소 1개의 계정은 연결을 유지해야 합니다.</StyledSettingsHint>
-
             {unlinkTarget && (
                 <StyledConfirmOverlay onClick={() => setUnlinkTarget(null)}>
                     <StyledConfirmModal onClick={(e) => e.stopPropagation()}>
                         <StyledHeader>
                             <h3>연결 해제</h3>
                         </StyledHeader>
-                        <StyledUnlinkMsg>
-                            <strong>{PROVIDERS.find((p) => p.id === unlinkTarget)?.label}</strong> 연결을 해제하면 해당 계정으로 로그인할 수 없게 됩니다. 계속하시겠습니까?
-                        </StyledUnlinkMsg>
+                        <StyledModalContent>
+                            <StyledModalMessage>
+                                <strong>{PROVIDERS.find((p) => p.id === unlinkTarget)?.label}</strong> 연결을 해제하면 해당 계정으로 로그인할 수 없게 됩니다.
+                                {linked.length <= 1 && ' 마지막 계정이므로 해제 시 로그아웃됩니다.'}
+                                {' '}계속하시겠습니까?
+                            </StyledModalMessage>
+                        </StyledModalContent>
                         <StyledFooter>
                             <StyledActionButton type="button" onClick={() => setUnlinkTarget(null)}>취소</StyledActionButton>
-                            <StyledUnlinkConfirm
+                            <StyledActionButton
+                                $danger
                                 type="button"
                                 disabled={!!actionLoading}
                                 onClick={() => handleUnlink(unlinkTarget)}
                             >
                                 {actionLoading ? '처리 중...' : '연결 해제'}
-                            </StyledUnlinkConfirm>
+                            </StyledActionButton>
                         </StyledFooter>
                     </StyledConfirmModal>
                 </StyledConfirmOverlay>
@@ -269,31 +276,3 @@ const StyledError = styled.p`
 `;
 
 
-const StyledUnlinkMsg = styled.p`
-    margin: 0 0 20px;
-    font-size: 14px;
-    color: var(--dark-gray-color);
-    line-height: 1.6;
-
-    strong { color: var(--dark-gray-color); font-weight: 700; }
-`;
-
-
-const StyledUnlinkConfirm = styled.button`
-    height: 36px;
-    padding: 0 16px;
-    border: 1px solid var(--danger-border);
-    border-radius: var(--radius-md);
-    background: var(--danger-color);
-    font-size: 13px;
-    font-weight: 600;
-    color: var(--white-color);
-    cursor: pointer;
-    transition: opacity 0.15s;
-
-    &:disabled { opacity: 0.5; cursor: default; }
-
-    @media (hover: hover) and (pointer: fine) {
-        &:hover:not(:disabled) { opacity: 0.85; }
-    }
-`;
