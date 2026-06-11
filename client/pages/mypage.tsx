@@ -26,6 +26,7 @@ import {
     subscribeLocalDb,
     type LocalDbSnapshot,
 } from '../lib/local-db';
+import {StyledEmptyCard} from '../components/settings/settings-styles';
 import {SeoHead} from '../components/ui/SeoHead';
 
 const PROVIDER_LABELS: Record<string, string> = {
@@ -243,24 +244,30 @@ const MyPage: NextPage<MyPageProps> = ({linkedProviders}) => {
 
                 <StyledCard>
                     <StyledCardTitle>로그인 계정</StyledCardTitle>
-                    <StyledRow>
-                        <StyledLabel>연결된 SNS</StyledLabel>
-                        <StyledValue>
-                            {linkedProviders.length > 0
-                                ? linkedProviders.map((p) => PROVIDER_LABELS[p] ?? p).join(', ')
-                                : '-'}
-                        </StyledValue>
-                    </StyledRow>
-                    {!!session?.user && (
-                        <StyledButtonRow>
-                            <StyledActionButton type="button" onClick={() => signOut({callbackUrl: '/login'})}>
-                                <AuthActionIcon direction="logout" />
-                                <span>로그아웃</span>
-                            </StyledActionButton>
-                            <StyledDeleteButton type="button" onClick={() => setShowDeleteModal(true)}>
-                                회원탈퇴
-                            </StyledDeleteButton>
-                        </StyledButtonRow>
+                    {isLocalMode ? (
+                        <StyledEmptyCard>연결된 SNS 계정이 없습니다. 설정 → SNS 연동에서 계정을 연결해 보세요.</StyledEmptyCard>
+                    ) : (
+                        <>
+                            <StyledRow>
+                                <StyledLabel>연결된 SNS</StyledLabel>
+                                <StyledValue>
+                                    {linkedProviders.length > 0
+                                        ? linkedProviders.map((p) => PROVIDER_LABELS[p] ?? p).join(', ')
+                                        : '-'}
+                                </StyledValue>
+                            </StyledRow>
+                            {!!session?.user && (
+                                <StyledButtonRow>
+                                    <StyledActionButton type="button" onClick={() => signOut({callbackUrl: '/login'})}>
+                                        <AuthActionIcon direction="logout" />
+                                        <span>로그아웃</span>
+                                    </StyledActionButton>
+                                    <StyledDeleteButton type="button" onClick={() => setShowDeleteModal(true)}>
+                                        회원탈퇴
+                                    </StyledDeleteButton>
+                                </StyledButtonRow>
+                            )}
+                        </>
                     )}
                 </StyledCard>
 
