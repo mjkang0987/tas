@@ -275,7 +275,6 @@ export const StyledShowAllButton = styled.button`
     padding: 0;
 `;
 
-// Modal-specific styles
 export const StyledModalOverlay = styled(StyledOverlay)`
     z-index: ${OVERLAY_Z_INDEX.detail};
 `;
