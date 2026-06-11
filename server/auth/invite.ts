@@ -14,7 +14,7 @@ export function generateInviteCode(): string {
 }
 
 export type InviteValidation =
-    | {valid: true; invite: {id: string; storeId: string; role: 'owner' | 'manager' | 'staff'}}
+    | {valid: true; invite: {id: string; storeId: string; role: 'owner' | 'staff'}}
     | {valid: false; reason: 'not-found' | 'expired' | 'used'};
 
 export async function validateInviteCode(code: string): Promise<InviteValidation> {

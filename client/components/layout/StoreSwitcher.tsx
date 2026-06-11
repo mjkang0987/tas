@@ -23,7 +23,6 @@ type StoreSwitcherProps = {
 
 const ROLE_LABELS: Record<string, string> = {
     owner: '오너',
-    manager: '멤버',
     staff: '멤버',
 };
 

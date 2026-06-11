@@ -5,7 +5,7 @@ import {prisma} from '../../lib/prisma';
 import {hasRequiredRole} from '../../../server/auth/roles';
 import {generateInviteCode, getInviteExpiresAt} from '../../../server/auth/invite';
 
-const ALLOWED_ROLES = new Set(['manager', 'staff']);
+const ALLOWED_ROLES = new Set(['owner', 'staff']);
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
     const session = await auth(req, res);
@@ -14,9 +14,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         return;
     }
 
-    const userRole = session.user.role as 'owner' | 'manager' | 'staff' | undefined;
+    const userRole = session.user.role as 'owner' | 'staff' | undefined;
 
-    if (!hasRequiredRole(userRole, 'manager')) {
+    if (!hasRequiredRole(userRole, 'owner')) {
         res.status(403).json({error: 'Forbidden'});
         return;
     }
@@ -24,7 +24,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     if (req.method === 'POST') {
         const role = typeof req.body?.role === 'string' ? req.body.role : null;
         if (!role || !ALLOWED_ROLES.has(role)) {
-            res.status(400).json({error: 'Invalid role. Must be "manager" or "staff".'});
+            res.status(400).json({error: 'Invalid role. Must be "owner" or "staff".'});
             return;
         }
 

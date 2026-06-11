@@ -54,7 +54,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
 
     const session = await getApiSession(req, res);
-    if (!requireRole(session, 'manager', res)) return;
+    if (!requireRole(session, 'owner', res)) return;
 
     const {token: accessToken, reason: tokenFailReason} = await getValidAccessTokenWithReason(session.userId);
     if (!accessToken) {

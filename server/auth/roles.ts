@@ -1,9 +1,8 @@
-export type AppRole = 'owner' | 'manager' | 'staff';
+export type AppRole = 'owner' | 'staff';
 
 export const ROLE_PRIORITY: Record<AppRole, number> = {
     owner: 0,
-    manager: 1,
-    staff: 2,
+    staff: 1,
 };
 
 export function hasRequiredRole(

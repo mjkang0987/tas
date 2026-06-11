@@ -217,7 +217,7 @@ export function useNaverBookingSync() {
 
     const isActive =
         session?.user?.provider === 'google'
-        && (session.user.role === 'manager' || session.user.role === 'owner')
+        && (session.user.role === 'owner')
         && !!session.user.storeId;
 
     const sync = useCallback(async () => {

@@ -32,7 +32,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
 
     if (req.method === 'PUT') {
-        if (!requireRole(session, 'manager', res)) return;
+        if (!requireRole(session, 'owner', res)) return;
 
         const {businessHours, closedDates, pointSettings} = req.body as StoreSettings;
 
@@ -107,7 +107,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
 
     if (req.method === 'PATCH') {
-        if (!requireRole(session, 'manager', res)) return;
+        if (!requireRole(session, 'owner', res)) return;
 
         const {storeName, shopType} = req.body as {storeName?: unknown; shopType?: unknown};
 

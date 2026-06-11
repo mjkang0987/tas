@@ -20,7 +20,7 @@ export function NaverBookingSection() {
     const {sync, syncing, isActive} = useNaverBookingSync();
 
     const isGoogle = session?.user?.provider === 'google';
-    const hasRole = session?.user?.role === 'manager' || session?.user?.role === 'owner';
+    const hasRole = session?.user?.role === 'owner';
 
     const [lastSync, setLastSync] = useState<number | null>(null);
 

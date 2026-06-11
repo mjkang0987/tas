@@ -325,6 +325,10 @@ export const getServerSideProps: GetServerSideProps<SettingsProps> = async (ctx)
         };
     }
 
+    if (session.role !== 'owner') {
+        return {redirect: {destination: '/', permanent: false}};
+    }
+
     const data = await loadPageData(session.storeId);
 
     return {

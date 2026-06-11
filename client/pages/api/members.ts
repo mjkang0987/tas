@@ -13,7 +13,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     const storeId = session.user.storeId;
     const userId = session.user.id;
-    const userRole = session.user.role as 'owner' | 'manager' | 'staff' | undefined;
+    const userRole = session.user.role as 'owner' | 'staff' | undefined;
 
     if (req.method === 'GET') {
         const members = await prisma.membership.findMany({
@@ -35,16 +35,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         }
 
         const {membershipId, role} = req.body ?? {};
-        if (!membershipId || (role !== 'manager' && role !== 'staff')) {
+        if (!membershipId || (role !== 'owner' && role !== 'staff')) {
             return res.status(400).json({error: '잘못된 요청입니다.'});
         }
 
         const membership = await prisma.membership.findUnique({where: {id: membershipId}});
         if (!membership || membership.storeId !== storeId) {
             return res.status(404).json({error: '멤버를 찾을 수 없습니다.'});
-        }
-        if (membership.role === 'owner') {
-            return res.status(400).json({error: '오너 역할은 변경할 수 없습니다.'});
         }
         if (membership.userId === userId) {
             return res.status(400).json({error: '자신의 역할은 변경할 수 없습니다.'});
@@ -68,9 +65,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         const membership = await prisma.membership.findUnique({where: {id: membershipId}});
         if (!membership || membership.storeId !== storeId) {
             return res.status(404).json({error: '멤버를 찾을 수 없습니다.'});
-        }
-        if (membership.role === 'owner') {
-            return res.status(400).json({error: '오너는 제거할 수 없습니다.'});
         }
         if (membership.userId === userId) {
             return res.status(400).json({error: '자기 자신을 제거할 수 없습니다.'});

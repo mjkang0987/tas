@@ -22,7 +22,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
 
     if (req.method === 'PUT') {
-        if (!requireRole(session, 'manager', res)) return;
+        if (!requireRole(session, 'owner', res)) return;
 
         const {designers} = req.body as { designers: Designer[] };
 

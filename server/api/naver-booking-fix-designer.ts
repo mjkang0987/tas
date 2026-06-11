@@ -14,7 +14,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
 
     const session = await getApiSession(req, res);
-    if (!requireRole(session, 'manager', res)) return;
+    if (!requireRole(session, 'owner', res)) return;
 
     const {reservationIds} = req.body as {reservationIds: Array<number | string>};
     if (!Array.isArray(reservationIds) || reservationIds.length === 0) {

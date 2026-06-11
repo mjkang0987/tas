@@ -31,19 +31,17 @@ type Member = {
 };
 
 const ROLE_OPTIONS = [
-    {value: 'manager', label: '멤버'},
-    {value: 'staff', label: '스태프'},
+    {value: 'owner', label: '오너'},
+    {value: 'staff', label: '멤버'},
 ] as const;
 
 const ROLE_LABELS: Record<string, string> = {
     owner: '오너',
-    manager: '멤버',
-    staff: '스태프',
+    staff: '멤버',
 };
 
 const ROLE_TONE: Record<string, LabelBadgeTone> = {
     owner: 'purple',
-    manager: 'info',
     staff: 'neutral',
 };
 
@@ -192,7 +190,6 @@ export const MemberSection = () => {
     const usedOrExpiredInvites = invites.filter((inv) => inv.usedAt || new Date(inv.expiresAt) <= new Date());
     const isGuest = !session?.user;
     const isOwner = session?.user?.role === 'owner';
-    const isManager = isOwner || session?.user?.role === 'manager';
     const myUserId = session?.user?.id;
 
     if (isGuest) {
@@ -211,11 +208,11 @@ export const MemberSection = () => {
         );
     }
 
-    if (!isManager) {
+    if (!isOwner) {
         return (
             <StyledContainer>
                 <PageHero eyebrow="MEMBER" title="멤버 관리" subtitle="초대코드를 생성하고 매장 멤버를 관리합니다." />
-                <StyledSettingsHint>멤버 관리는 오너 또는 멤버만 가능합니다.</StyledSettingsHint>
+                <StyledSettingsHint>멤버 관리는 오너만 가능합니다.</StyledSettingsHint>
             </StyledContainer>
         );
     }
@@ -275,8 +272,7 @@ export const MemberSection = () => {
                     <StyledList>
                         {members.map((m) => {
                             const isSelf = m.user.id === myUserId;
-                            const isTargetOwner = m.role === 'owner';
-                            const canManage = isOwner && !isSelf && !isTargetOwner;
+                            const canManage = isOwner && !isSelf;
                             const saving = roleSaving === m.id;
                             return (
                                 <StyledMemberItem key={m.id}>
@@ -295,8 +291,9 @@ export const MemberSection = () => {
                                                 onChange={(e) => changeRole(m.id, e.target.value)}
                                                 aria-label={`${m.user.nickname} 역할 변경`}
                                             >
-                                                <option value="manager">멤버</option>
-                                                <option value="staff">스태프</option>
+                                                {ROLE_OPTIONS.map((opt) => (
+                                                    <option key={opt.value} value={opt.value}>{opt.label}</option>
+                                                ))}
                                             </StyledRoleSelect>
                                         ) : (
                                             <StyledBadge $tone={ROLE_TONE[m.role] ?? 'neutral'}>

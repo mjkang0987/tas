@@ -266,7 +266,6 @@ model Invite {
 
 enum MembershipRole {
   owner
-  manager
   staff
 }
 
