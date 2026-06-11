@@ -8,6 +8,12 @@ import {toCustomerMap} from '../utils/customers';
 import type {Reservation, ReservationHistoryEntry} from '../utils/reservations';
 import type {Customer} from '../utils/customers';
 import type {Designer} from '../utils/designers';
+import {
+    loadActiveConflictPairs,
+    saveActiveConflictPairs,
+    removeActiveConflictPair,
+    restoreConflictsFromPairs,
+} from './naverSyncConflictStorage';
 
 export interface ConflictInfo {
     newReservation: Reservation;
@@ -49,65 +55,6 @@ interface CancelledEntry {
 
 function conflictKey(c: ConflictInfo): string {
     return `${c.newReservation.id}-${c.existingReservation.id}`;
-}
-
-const ACTIVE_CONFLICTS_KEY = 'naver-sync-active-conflicts';
-
-interface StoredConflictPair {
-    newReservation: Reservation;
-    existingReservation: Reservation;
-}
-
-function loadActiveConflictPairs(): StoredConflictPair[] {
-    if (typeof window === 'undefined') return [];
-    try {
-        const raw = localStorage.getItem(ACTIVE_CONFLICTS_KEY);
-        return raw ? JSON.parse(raw) : [];
-    } catch {
-        return [];
-    }
-}
-
-function saveActiveConflictPairs(conflicts: ConflictInfo[]): void {
-    if (typeof window === 'undefined') return;
-    const pairs: StoredConflictPair[] = conflicts.map((c) => ({
-        newReservation: c.newReservation,
-        existingReservation: c.existingReservation,
-    }));
-    localStorage.setItem(ACTIVE_CONFLICTS_KEY, JSON.stringify(pairs));
-}
-
-function removeActiveConflictPair(key: string): void {
-    if (typeof window === 'undefined') return;
-    const pairs = loadActiveConflictPairs();
-    const [newId, existingId] = key.split('-').map(Number);
-    const next = pairs.filter((p) => !(p.newReservation.id === newId && p.existingReservation.id === existingId));
-    localStorage.setItem(ACTIVE_CONFLICTS_KEY, JSON.stringify(next));
-}
-
-function restoreConflictsFromPairs(): ConflictInfo[] {
-    const pairs = loadActiveConflictPairs();
-    if (pairs.length === 0) return [];
-
-    const reservationMap = useCalendarStore.getState().reservationMap;
-    const activeReservations = Object.values(reservationMap).flat()
-        .filter((r) => r.status !== 'cancelled' && r.status !== 'noshow');
-    const conflicts: ConflictInfo[] = [];
-
-    for (const stored of pairs) {
-        // 취소·노쇼가 아닌 예약이 여전히 존재하는지 확인
-        const newExists = activeReservations.some((r) => r.id === stored.newReservation.id);
-        const existingExists = activeReservations.some((r) => r.id === stored.existingReservation.id);
-        if (newExists && existingExists) {
-            // 원본 스냅샷을 유지 (변경 비교용)
-            conflicts.push({
-                newReservation: stored.newReservation,
-                existingReservation: stored.existingReservation,
-            });
-        }
-    }
-
-    return conflicts;
 }
 
 export function useNaverBookingSync() {
