@@ -605,7 +605,7 @@ const StyledDesignerMetaInput = styled.input`
     padding: 0 8px;
 
     &:focus {
-        box-shadow: 0 0 0 3px rgba(0, 169, 230, 0.14);
+        box-shadow: 0 0 0 3px rgba(101, 38, 217, 0.12);
     }
 `;
 

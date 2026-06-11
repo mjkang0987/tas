@@ -34,8 +34,8 @@ export const StyledEditBtn = styled.button`
 export const StyledSaveBtn = styled.button`
     ${actionButtonStyle};
     ${mobileStretchButtonStyle};
-    border: 1px solid var(--blue-color);
-    background-color: var(--blue-color);
+    border: 1px solid var(--brand-color);
+    background-color: var(--brand-color);
     color: var(--white-color);
 `;
 
@@ -53,6 +53,30 @@ export const StyledDeleteBtn = styled.button`
     background: var(--danger-bg);
     font-size: 11px;
     color: var(--danger-color);
+`;
+
+export const StyledSelect = styled.select`
+    height: 30px;
+    padding: 0 10px;
+    border: 1px solid var(--light-gray-color);
+    border-radius: var(--radius-md);
+    background: var(--white-color);
+    font-size: 12px;
+    color: var(--dark-gray-color);
+    cursor: pointer;
+    outline: none;
+    box-sizing: border-box;
+    transition: border-color 0.15s ease, box-shadow 0.15s ease;
+
+    &:focus {
+        border-color: var(--brand-color);
+        box-shadow: 0 0 0 3px rgba(101, 38, 217, 0.12);
+    }
+
+    &:disabled {
+        background: var(--gray-color2);
+        color: var(--dark-gray-color2);
+    }
 `;
 
 export const StyledSettingsCard = styled.div`

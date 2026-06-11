@@ -24,7 +24,7 @@ export const GlobalStyle = createGlobalStyle`
         --white-color-40: hsla(0, 0%, 100%, .4);
 
         --brand-color: #6526d9;
-        --brand-color-bg: rgba(101, 38, 217, 0.04);
+        --brand-color-bg: rgba(101, 38, 217, 0.08);
         --brand-color-border: rgba(101, 38, 217, 0.2);
 
         --danger-color: #c93a30;
