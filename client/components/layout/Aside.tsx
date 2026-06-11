@@ -184,22 +184,37 @@ export const Aside = () => {
                     </StyledCreateButton>
                     <StyledDivider />
                     {isLoggedInStaff && (<>
-                        <StyledSubNavLink href="/address"
-                                          $active={router.pathname === '/address'}
-                                          onClick={closeMobile}>
+                        <StyledAccordionToggle type="button"
+                                               onClick={() => setSettingsOpen(!settingsOpen)}>
                             <StyledMenuContent>
-                                <MenuIcon icon="customers" />
-                                <span>고객 명단</span>
+                                <MenuIcon icon="settings" />
+                                <span>설정</span>
                             </StyledMenuContent>
-                        </StyledSubNavLink>
-                        <StyledSubNavLink href="/mypage"
-                                          $active={router.pathname === '/mypage'}
-                                          onClick={closeMobile}>
-                            <StyledMenuContent>
-                                <MenuIcon icon="account" />
-                                <span>계정 관리</span>
-                            </StyledMenuContent>
-                        </StyledSubNavLink>
+                            <StyledToggleIcon $collapsed={!settingsOpen}
+                                              aria-hidden="true">
+                                <svg viewBox="0 0 24 24">
+                                    <path d="M9 6L15 12L9 18" />
+                                </svg>
+                            </StyledToggleIcon>
+                        </StyledAccordionToggle>
+                        <StyledAccordionContent $open={settingsOpen}>
+                            <StyledSubNavLink href="/address"
+                                              $active={router.pathname === '/address'}
+                                              onClick={closeMobile}>
+                                <StyledMenuContent>
+                                    <MenuIcon icon="customers" />
+                                    <span>고객 명단</span>
+                                </StyledMenuContent>
+                            </StyledSubNavLink>
+                            <StyledSubNavLink href="/mypage"
+                                              $active={router.pathname === '/mypage'}
+                                              onClick={closeMobile}>
+                                <StyledMenuContent>
+                                    <MenuIcon icon="account" />
+                                    <span>계정 관리</span>
+                                </StyledMenuContent>
+                            </StyledSubNavLink>
+                        </StyledAccordionContent>
                     </>)}
                     {(isOwner || isGuest) && (<>
                         <StyledAccordionToggle type="button"
