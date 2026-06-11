@@ -77,7 +77,8 @@ export const {handlers, auth, signIn, signOut} = NextAuth({
         strategy: 'jwt'
     },
     pages: {
-        signIn: '/login'
+        signIn: '/login',
+        error: '/login',
     },
     callbacks: {
         authorized({auth, request}) {
@@ -106,27 +107,33 @@ export const {handlers, auth, signIn, signOut} = NextAuth({
                 const inviteCode = authRequestContext.getStore()?.inviteCode ?? null;
                 const linkUserId = authRequestContext.getStore()?.linkUserId ?? null;
 
-                const syncedUser = await syncAuthUser({account, user, inviteCode, linkUserId, displayName: user?.name ?? null});
+                try {
+                    const syncedUser = await syncAuthUser({account, user, inviteCode, linkUserId, displayName: user?.name ?? null});
 
-                if (!syncedUser) {
-                    token.loginError = 'no-account';
+                    if (!syncedUser) {
+                        token.loginError = 'no-account';
+                        return token;
+                    }
+
+                    token.userId = syncedUser.id;
+                    token.name = syncedUser.nickname;
+                    token.email = syncedUser.email;
+                    token.picture = syncedUser.image;
+                    token.loginError = undefined;
+
+                    if (account.provider === 'google' && account.access_token) {
+                        await saveGoogleTokens(syncedUser.id, {
+                            accessToken: account.access_token,
+                            refreshToken: account.refresh_token ?? null,
+                            expiresAt: account.expires_at
+                                ? new Date(account.expires_at * 1000)
+                                : null,
+                        });
+                    }
+                } catch (error) {
+                    console.error('[auth] syncAuthUser failed:', error);
+                    token.loginError = 'sync-error';
                     return token;
-                }
-
-                token.userId = syncedUser.id;
-                token.name = syncedUser.nickname;
-                token.email = syncedUser.email;
-                token.picture = syncedUser.image;
-                token.loginError = undefined;
-
-                if (account.provider === 'google' && account.access_token) {
-                    await saveGoogleTokens(syncedUser.id, {
-                        accessToken: account.access_token,
-                        refreshToken: account.refresh_token ?? null,
-                        expiresAt: account.expires_at
-                            ? new Date(account.expires_at * 1000)
-                            : null,
-                    });
                 }
             }
 

@@ -40,6 +40,9 @@ const ERROR_MESSAGES: Record<string, string> = {
     'invalid-invite': '유효하지 않은 초대코드입니다.',
     'invite-used': '이미 사용된 초대코드입니다.',
     'invite-expired': '만료된 초대코드입니다.',
+    'Configuration': '로그인 처리 중 오류가 발생했습니다. 다시 시도해 주세요.',
+    'OAuthAccountNotLinked': '이미 다른 계정에 연결된 SNS입니다.',
+    'sync-error': '계정 동기화 중 오류가 발생했습니다. 다시 시도해 주세요.',
 };
 
 function setInviteCookie(code: string) {
@@ -59,19 +62,21 @@ export default function LoginPage({providerIds, isDatabaseConfigured, loginError
     const monthEntryPath = getMonthEntryPath();
     const [inviteCode, setInviteCode] = useState('');
 
+    const authError = typeof router.query.error === 'string' ? router.query.error : null;
+
     useEffect(() => {
-        if (hasAccess) {
+        if (hasAccess && !authError) {
             router.replace(monthEntryPath);
         }
-    }, [hasAccess, monthEntryPath, router]);
+    }, [hasAccess, monthEntryPath, router, authError]);
 
-    if (hasAccess) {
+    if (hasAccess && !authError) {
         return null;
     }
 
     const providers = ALL_PROVIDERS.filter((p) => providerIds.includes(p.id));
     const canStartLogin = providers.length > 0;
-    const displayError = loginError ?? (hasLoginError ? 'no-account' : null);
+    const displayError = authError ?? loginError ?? (hasLoginError ? 'no-account' : null);
 
     const startProviderLogin = (providerId: string) => {
         const trimmedCode = inviteCode.trim().toUpperCase();
