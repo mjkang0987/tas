@@ -226,8 +226,15 @@ export function useNaverBookingSync() {
         isSyncingRef.current = true;
         setSyncing(true);
 
+        const autoCreateDesigner = localStorage.getItem('naver-auto-designer') !== 'false';
+        const autoAddService = localStorage.getItem('naver-auto-service') !== 'false';
+
         try {
-            const res = await fetch('/api/naver-booking-sync', {method: 'POST'});
+            const res = await fetch('/api/naver-booking-sync', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({autoCreateDesigner, autoAddService}),
+            });
             if (!res.ok) return;
 
             const data = await res.json() as {
@@ -330,6 +337,7 @@ export function useNaverBookingSync() {
     // 자동 동기화: 로그인 시 + 매 정시 (마지막 동기화 후 30분 이내면 건너뜀)
     useEffect(() => {
         if (!isActive) return;
+        if (localStorage.getItem('naver-auto-sync') === 'false') return;
 
         const shouldSync = () => {
             const last = Number(localStorage.getItem('naver-sync-last') || '0');

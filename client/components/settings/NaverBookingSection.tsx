@@ -15,6 +15,12 @@ function formatLastSync(ts: number): string {
     return `${d.getFullYear()}.${pad(d.getMonth() + 1)}.${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
 }
 
+function readBoolSetting(key: string, defaultValue = true): boolean {
+    if (typeof window === 'undefined') return defaultValue;
+    const v = localStorage.getItem(key);
+    return v === null ? defaultValue : v !== 'false';
+}
+
 export function NaverBookingSection() {
     const {data: session} = useSession();
     const {sync, syncing, isActive} = useNaverBookingSync();
@@ -23,6 +29,20 @@ export function NaverBookingSection() {
     const hasRole = session?.user?.role === 'owner';
 
     const [lastSync, setLastSync] = useState<number | null>(null);
+    const [autoSync, setAutoSync] = useState(true);
+    const [autoDesigner, setAutoDesigner] = useState(true);
+    const [autoService, setAutoService] = useState(true);
+
+    useEffect(() => {
+        setAutoSync(readBoolSetting('naver-auto-sync'));
+        setAutoDesigner(readBoolSetting('naver-auto-designer'));
+        setAutoService(readBoolSetting('naver-auto-service'));
+    }, []);
+
+    const toggleSetting = (key: string, value: boolean, setter: (v: boolean) => void) => {
+        setter(value);
+        localStorage.setItem(key, String(value));
+    };
 
     useEffect(() => {
         const raw = localStorage.getItem('naver-sync-last');
@@ -67,6 +87,55 @@ export function NaverBookingSection() {
                         </StyledSyncBtn>
                     </StyledActiveRow>
                 )}
+            </StyledSettingsCard>
+
+            <StyledSettingsCard>
+                <StyledSettingsCardTitle>동기화 설정</StyledSettingsCardTitle>
+                <StyledToggleRow>
+                    <StyledToggleLabel>
+                        <span>자동 동기화</span>
+                        <StyledToggleDesc>로그인 시 및 매 정시에 자동으로 동기화합니다.</StyledToggleDesc>
+                    </StyledToggleLabel>
+                    <StyledToggleSwitch
+                        type="button"
+                        role="switch"
+                        aria-checked={autoSync}
+                        $on={autoSync}
+                        onClick={() => toggleSetting('naver-auto-sync', !autoSync, setAutoSync)}
+                    >
+                        <StyledToggleKnob $on={autoSync} />
+                    </StyledToggleSwitch>
+                </StyledToggleRow>
+                <StyledToggleRow>
+                    <StyledToggleLabel>
+                        <span>디자이너 자동 생성</span>
+                        <StyledToggleDesc>이메일에 등록되지 않은 디자이너 이름이 있으면 자동으로 추가합니다.</StyledToggleDesc>
+                    </StyledToggleLabel>
+                    <StyledToggleSwitch
+                        type="button"
+                        role="switch"
+                        aria-checked={autoDesigner}
+                        $on={autoDesigner}
+                        onClick={() => toggleSetting('naver-auto-designer', !autoDesigner, setAutoDesigner)}
+                    >
+                        <StyledToggleKnob $on={autoDesigner} />
+                    </StyledToggleSwitch>
+                </StyledToggleRow>
+                <StyledToggleRow>
+                    <StyledToggleLabel>
+                        <span>서비스 자동 등록</span>
+                        <StyledToggleDesc>이메일에 등록되지 않은 서비스명이 있으면 자동으로 추가합니다.</StyledToggleDesc>
+                    </StyledToggleLabel>
+                    <StyledToggleSwitch
+                        type="button"
+                        role="switch"
+                        aria-checked={autoService}
+                        $on={autoService}
+                        onClick={() => toggleSetting('naver-auto-service', !autoService, setAutoService)}
+                    >
+                        <StyledToggleKnob $on={autoService} />
+                    </StyledToggleSwitch>
+                </StyledToggleRow>
             </StyledSettingsCard>
 
             <StyledSettingsCard>
@@ -163,4 +232,60 @@ const StyledGuideList = styled.ol`
         color: var(--dark-gray-color);
         line-height: 1.6;
     }
+`;
+
+const StyledToggleRow = styled.div`
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 10px 0;
+
+    & + & {
+        border-top: 1px solid var(--light-gray-color);
+    }
+`;
+
+const StyledToggleLabel = styled.label`
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    cursor: default;
+
+    span {
+        font-size: 14px;
+        font-weight: 500;
+        color: var(--dark-gray-color);
+    }
+`;
+
+const StyledToggleDesc = styled.span`
+    font-size: 12px;
+    color: var(--dark-gray-color2);
+    line-height: 1.4;
+`;
+
+const StyledToggleSwitch = styled.button<{$on: boolean}>`
+    flex-shrink: 0;
+    position: relative;
+    width: 44px;
+    height: 26px;
+    border-radius: 999px;
+    border: none;
+    background: ${(p) => p.$on ? 'var(--brand-color)' : 'var(--light-gray-color)'};
+    cursor: pointer;
+    transition: background-color 0.2s;
+    padding: 0;
+`;
+
+const StyledToggleKnob = styled.span<{$on: boolean}>`
+    position: absolute;
+    top: 3px;
+    left: ${(p) => p.$on ? '21px' : '3px'};
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: var(--white-color);
+    box-shadow: 0 1px 3px rgba(0,0,0,0.18);
+    transition: left 0.2s;
 `;

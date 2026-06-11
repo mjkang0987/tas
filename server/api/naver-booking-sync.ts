@@ -45,6 +45,8 @@ interface SyncContext {
     nextCustomerLegacyId: number;
     nextReservationLegacyId: number;
     nextDesignerLegacyId: number;
+    autoCreateDesigner: boolean;
+    autoAddService: boolean;
 }
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
@@ -55,6 +57,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     const session = await getApiSession(req, res);
     if (!requireRole(session, 'owner', res)) return;
+
+    const autoCreateDesigner = req.body?.autoCreateDesigner !== false;
+    const autoAddService = req.body?.autoAddService !== false;
 
     const {token: accessToken, reason: tokenFailReason} = await getValidAccessTokenWithReason(session.userId);
     if (!accessToken) {
@@ -131,6 +136,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         nextCustomerLegacyId: (maxCustomerLegacy?.legacyId ?? 0) + 1,
         nextReservationLegacyId: (maxReservationLegacy?.legacyId ?? 0) + 1,
         nextDesignerLegacyId: (maxDesignerLegacy?.legacyId ?? 0) + 1,
+        autoCreateDesigner,
+        autoAddService,
     };
 
     const synced: SyncedEntry[] = [];
@@ -268,7 +275,7 @@ async function createReservationFromBooking(
 
     // 디자이너 매칭 — 메모리에서 처리, 없으면 생성 후 맵 업데이트
     let designer = findByNameContains(designerMap, booking.designerName);
-    if (!designer && booking.designerName) {
+    if (!designer && booking.designerName && ctx.autoCreateDesigner) {
         const legacyId = ctx.nextDesignerLegacyId++;
         const usedColors = new Set(Array.from(designerMap.values()).map((d) => d.color).filter(Boolean));
         const available = DESIGNER_COLORS.filter((c) => !usedColors.has(c));
@@ -292,12 +299,15 @@ async function createReservationFromBooking(
         if (dbService) {
             serviceNames.push(dbService.name);
             totalDuration += dbService.duration;
-        } else {
+        } else if (ctx.autoAddService) {
             // 등록되지 않은 서비스 → "네이버예약" 카테고리로 자동 추가
             await prisma.service.create({
                 data: {storeId, name: svc.name, duration: DEFAULT_DURATION, category: '네이버예약', price: svc.price},
             });
             serviceMap.set(svc.name, {name: svc.name, duration: DEFAULT_DURATION});
+            serviceNames.push(svc.name);
+            totalDuration += DEFAULT_DURATION;
+        } else {
             serviceNames.push(svc.name);
             totalDuration += DEFAULT_DURATION;
         }
