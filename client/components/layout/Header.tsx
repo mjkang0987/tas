@@ -10,7 +10,7 @@ import {signIn} from 'next-auth/react';
 import {useCalendarStore} from '../../store/calendarStore';
 import {useNaverBookingSync} from '../../hooks/useNaverBookingSync';
 import {useCustomerMergeSuggestion} from '../../hooks/useCustomerMergeSuggestion';
-import {splitDesignersByStatus} from '../../utils/designers';
+import {splitDesignersByStatus, getDesignerColor} from '../../utils/designers';
 import {isCalendar} from '../../utils/router';
 import type {Reservation} from '../../utils/reservations';
 import {formatTel} from '../../utils/customers';
@@ -159,31 +159,27 @@ export const Header = () => {
                                           onChange={(e) => setCalendarDesignerId(e.target.value ? Number(e.target.value) : null)}
                                           aria-label="달력 디자이너 필터">
                         <option value="">전체보기</option>
-                        <option value="0"
-                                data-bg-color="#8E8E93">미지정
-                        </option>
+                        <option value="0" data-bg-color="#8E8E93">미지정</option>
                         {activeDesigners.map((designer) => (
-                            <option key={designer.id}
-                                    value={designer.id}
-                                    data-bg-color={designer.color}>
+                            <option key={designer.id} value={designer.id} data-bg-color={getDesignerColor(designer)}>
                                 {designer.name}
                             </option>
                         ))}
                         {onLeaveDesigners.length > 0 && (
                             <optgroup label="휴직자">
                                 {onLeaveDesigners.map((designer) => (
-                                    <option key={designer.id}
-                                            value={designer.id}
-                                            data-bg-color={designer.color}>{designer.name}</option>
+                                    <option key={designer.id} value={designer.id} data-bg-color={getDesignerColor(designer)}>
+                                        {designer.name}
+                                    </option>
                                 ))}
                             </optgroup>
                         )}
                         {resignedDesigners.length > 0 && (
                             <optgroup label="퇴직자">
                                 {resignedDesigners.map((designer) => (
-                                    <option key={designer.id}
-                                            value={designer.id}
-                                            data-bg-color={designer.color}>{designer.name}</option>
+                                    <option key={designer.id} value={designer.id} data-bg-color={getDesignerColor(designer)}>
+                                        {designer.name}
+                                    </option>
                                 ))}
                             </optgroup>
                         )}
@@ -477,22 +473,58 @@ const StyledPageTitle = styled.h1`
 const StyledDesignerFilter = styled.select`
     min-width: 128px;
     margin-right: auto;
-    padding: 0 10px;
+    padding: 0 6px 0 8px;
     ${formControlStyle};
+    appearance: base-select;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
     cursor: pointer;
+
     @media (max-width: 640px) {
-        padding: 0 4px;
+        min-width: 96px;
+        margin-left: 0;
+        padding: 0 4px 0 6px;
+    }
+
+    selectedcontent {
+        display: inline-flex;
+        align-items: center;
+        min-width: 0;
+    }
+
+    &::picker-icon {
+        margin-left: auto;
+        color: var(--dark-gray-color2);
+        transition: transform 0.15s ease;
+    }
+
+    &:open::picker-icon {
+        transform: rotate(180deg);
+    }
+
+    &::picker(select) {
+        appearance: base-select;
+        min-width: anchor-size(width);
+        margin-top: 6px;
+        padding: 6px;
+        border: 1px solid var(--border-color);
+        border-radius: var(--radius-lg);
+        background: var(--white-color);
+        box-shadow: var(--shadow-md);
     }
 
     option {
-        gap: 2px;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        padding: 6px 8px;
+        border-radius: var(--radius-md);
+        cursor: pointer;
+        transition: background-color 0.12s ease;
 
         &::checkmark {
             display: none;
-        }
-
-        &[value]:not([value=""]) {
-            padding-left: 14px;
         }
 
         &[data-bg-color]::before {
@@ -500,28 +532,27 @@ const StyledDesignerFilter = styled.select`
             display: inline-block;
             width: 8px;
             height: 8px;
-            margin-right: 2px;
+            flex-shrink: 0;
             border-radius: 50%;
-            vertical-align: middle;
             background-color: attr(data-bg-color type(<color>), transparent);
         }
     }
 
-    &,
-    &::picker(select) {
-        appearance: base-select;
-        align-items: center;
-        border: 1px solid var(--border-color);
-        border-radius: var(--radius-md);
-        margin-top: 4px;
-        @media (max-width: 640px) {
-            margin-top: 0;
-        }
+    option:hover,
+    option:focus {
+        background: var(--gray-color2);
     }
 
-    @media (max-width: 640px) {
-        min-width: 96px;
-        margin-left: 0;
+    option:checked {
+        background: var(--brand-color-bg);
+        font-weight: 600;
+    }
+
+    optgroup {
+        padding-top: 6px;
+        font-size: 10px;
+        font-weight: 700;
+        color: var(--dark-gray-color2);
     }
 `;
 
