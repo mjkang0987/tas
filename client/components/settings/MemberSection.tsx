@@ -24,6 +24,7 @@ type Member = {
     id: string;
     role: string;
     user: {
+        id: string;
         nickname: string;
         email: string | null;
     };
@@ -80,6 +81,9 @@ export const MemberSection = () => {
     const [creating, setCreating] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [deleteTarget, setDeleteTarget] = useState<string | null>(null);
+    const [kickTarget, setKickTarget] = useState<Member | null>(null);
+    const [kicking, setKicking] = useState(false);
+    const [roleSaving, setRoleSaving] = useState<string | null>(null);
 
     const loadInvites = useCallback(async () => {
         try {
@@ -139,10 +143,57 @@ export const MemberSection = () => {
         } catch { /* ignore */ }
     };
 
+    const kickMember = async (member: Member) => {
+        setKicking(true);
+        try {
+            const res = await fetch('/api/members', {
+                method: 'DELETE',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({membershipId: member.id}),
+            });
+            if (res.ok) {
+                await loadMembers();
+                toast(`${member.user.nickname}님을 멤버에서 제거했습니다.`, 'info');
+            } else {
+                const data = await res.json().catch(() => null);
+                toast(data?.error ?? '멤버 제거에 실패했습니다.', 'error');
+            }
+        } catch {
+            toast('멤버 제거에 실패했습니다.', 'error');
+        } finally {
+            setKicking(false);
+            setKickTarget(null);
+        }
+    };
+
+    const changeRole = async (membershipId: string, role: string) => {
+        setRoleSaving(membershipId);
+        try {
+            const res = await fetch('/api/members', {
+                method: 'PATCH',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({membershipId, role}),
+            });
+            if (res.ok) {
+                await loadMembers();
+                toast('역할이 변경되었습니다.');
+            } else {
+                const data = await res.json().catch(() => null);
+                toast(data?.error ?? '역할 변경에 실패했습니다.', 'error');
+            }
+        } catch {
+            toast('역할 변경에 실패했습니다.', 'error');
+        } finally {
+            setRoleSaving(null);
+        }
+    };
+
     const activeInvites = invites.filter((inv) => !inv.usedAt && new Date(inv.expiresAt) > new Date());
     const usedOrExpiredInvites = invites.filter((inv) => inv.usedAt || new Date(inv.expiresAt) <= new Date());
     const isGuest = !session?.user;
-    const isManager = session?.user?.role === 'owner' || session?.user?.role === 'manager';
+    const isOwner = session?.user?.role === 'owner';
+    const isManager = isOwner || session?.user?.role === 'manager';
+    const myUserId = session?.user?.id;
 
     if (isGuest) {
         return (
@@ -222,15 +273,49 @@ export const MemberSection = () => {
                 <StyledSettingsCardTitle>현재 멤버</StyledSettingsCardTitle>
                 {members.length > 0 ? (
                     <StyledList>
-                        {members.map((m) => (
-                            <StyledMemberItem key={m.id}>
-                                <StyledMemberName>{m.user.nickname}</StyledMemberName>
-                                <StyledMemberMeta>
-                                    {m.user.email && <StyledMemberEmail>{m.user.email}</StyledMemberEmail>}
-                                    <StyledBadge $tone={ROLE_TONE[m.role] ?? 'neutral'}>{ROLE_LABELS[m.role] ?? m.role}</StyledBadge>
-                                </StyledMemberMeta>
-                            </StyledMemberItem>
-                        ))}
+                        {members.map((m) => {
+                            const isSelf = m.user.id === myUserId;
+                            const isTargetOwner = m.role === 'owner';
+                            const canManage = isOwner && !isSelf && !isTargetOwner;
+                            const saving = roleSaving === m.id;
+                            return (
+                                <StyledMemberItem key={m.id}>
+                                    <StyledMemberInfo>
+                                        <StyledMemberName>
+                                            {m.user.nickname}
+                                            {isSelf && <StyledSelfTag>나</StyledSelfTag>}
+                                        </StyledMemberName>
+                                        {m.user.email && <StyledMemberEmail>{m.user.email}</StyledMemberEmail>}
+                                    </StyledMemberInfo>
+                                    <StyledMemberActions>
+                                        {canManage ? (
+                                            <StyledRoleSelect
+                                                value={m.role}
+                                                disabled={saving}
+                                                onChange={(e) => changeRole(m.id, e.target.value)}
+                                                aria-label={`${m.user.nickname} 역할 변경`}
+                                            >
+                                                <option value="manager">멤버</option>
+                                                <option value="staff">스태프</option>
+                                            </StyledRoleSelect>
+                                        ) : (
+                                            <StyledBadge $tone={ROLE_TONE[m.role] ?? 'neutral'}>
+                                                {ROLE_LABELS[m.role] ?? m.role}
+                                            </StyledBadge>
+                                        )}
+                                        {canManage && (
+                                            <StyledKickButton
+                                                type="button"
+                                                disabled={saving}
+                                                onClick={() => setKickTarget(m)}
+                                            >
+                                                제거
+                                            </StyledKickButton>
+                                        )}
+                                    </StyledMemberActions>
+                                </StyledMemberItem>
+                            );
+                        })}
                     </StyledList>
                 ) : (
                     <StyledEmpty>{EMPTY_TEXT}</StyledEmpty>
@@ -267,6 +352,26 @@ export const MemberSection = () => {
                     <StyledFooter>
                         <StyledActionButton type="button" onClick={() => setDeleteTarget(null)}>닫기</StyledActionButton>
                         <StyledActionButton type="button" $danger onClick={() => deleteInvite(deleteTarget)}>취소하기</StyledActionButton>
+                    </StyledFooter>
+                </StyledConfirmModal>
+            </StyledConfirmOverlay>
+        )}
+
+        {kickTarget && (
+            <StyledConfirmOverlay onClick={() => !kicking && setKickTarget(null)}>
+                <StyledConfirmModal onClick={(e) => e.stopPropagation()}>
+                    <StyledHeader><h3>멤버 제거</h3></StyledHeader>
+                    <StyledConfirmText>
+                        <strong>{kickTarget.user.nickname}</strong>님을 매장에서 제거하면
+                        더 이상 이 매장에 접근할 수 없습니다. 계속하시겠습니까?
+                    </StyledConfirmText>
+                    <StyledFooter>
+                        <StyledActionButton type="button" disabled={kicking} onClick={() => setKickTarget(null)}>
+                            취소
+                        </StyledActionButton>
+                        <StyledActionButton type="button" $danger disabled={kicking} onClick={() => kickMember(kickTarget)}>
+                            {kicking ? '제거 중...' : '제거하기'}
+                        </StyledActionButton>
                     </StyledFooter>
                 </StyledConfirmModal>
             </StyledConfirmOverlay>
@@ -414,21 +519,85 @@ const StyledMemberItem = styled.div`
     }
 `;
 
+const StyledMemberInfo = styled.div`
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+`;
+
 const StyledMemberName = styled.span`
+    display: flex;
+    align-items: center;
+    gap: 6px;
     font-size: 14px;
     font-weight: 600;
     color: var(--black-color);
 `;
 
-const StyledMemberMeta = styled.div`
+const StyledSelfTag = styled.span`
+    font-size: 11px;
+    font-weight: 500;
+    padding: 1px 6px;
+    border-radius: var(--chip-radius);
+    background: var(--black-color-10);
+    color: var(--dark-gray-color2);
+`;
+
+const StyledMemberActions = styled.div`
     display: flex;
     align-items: center;
     gap: 8px;
+    flex-shrink: 0;
+
+    @media (max-width: 640px) {
+        width: 100%;
+        justify-content: flex-end;
+    }
 `;
 
 const StyledMemberEmail = styled.span`
     font-size: 12px;
     color: var(--dark-gray-color2);
+`;
+
+const StyledRoleSelect = styled.select`
+    height: 26px;
+    padding: 0 8px;
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    background: var(--white-color);
+    color: var(--dark-gray-color);
+    font-size: 12px;
+    cursor: pointer;
+
+    &:disabled {
+        opacity: 0.5;
+        cursor: default;
+    }
+`;
+
+const StyledKickButton = styled.button`
+    height: 26px;
+    padding: 0 10px;
+    border: 1px solid var(--danger-border);
+    border-radius: var(--radius-md);
+    background: var(--danger-bg);
+    color: var(--danger-color);
+    font-size: 11px;
+    font-weight: 600;
+    transition: opacity 0.15s;
+
+    &:disabled {
+        opacity: 0.4;
+        cursor: default;
+    }
+
+    @media (hover: hover) and (pointer: fine) {
+        &:not(:disabled):hover {
+            opacity: 0.8;
+        }
+    }
 `;
 
 
