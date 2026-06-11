@@ -104,7 +104,7 @@ export function getHistoryDiffs(entry: ReservationHistoryEntry, designerNameMap:
     const diffs: ReservationDiffItem[] = [];
 
     if (entry.after.status === 'cancelled' && entry.before.status !== 'cancelled') {
-        diffs.push({label: '상태', before: '예약', after: '예약취소'});
+        diffs.push({label: '상태', before: '예약', after: '취소'});
         return diffs;
     }
 
@@ -119,7 +119,7 @@ export function getHistoryDiffs(entry: ReservationHistoryEntry, designerNameMap:
     }
 
     if (entry.after.status === 'active' && (entry.before.status === 'cancelled' || entry.before.status === 'noshow')) {
-        const beforeLabel = entry.before.status === 'cancelled' ? '예약취소' : '노쇼';
+        const beforeLabel = entry.before.status === 'cancelled' ? '취소' : '노쇼';
         diffs.push({label: '상태', before: beforeLabel, after: '예약'});
         return diffs;
     }

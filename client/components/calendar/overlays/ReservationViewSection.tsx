@@ -10,7 +10,8 @@ import type {CustomerMap} from '../../../utils/customers';
 import {formatTel} from '../../../utils/customers';
 import type {Reservation} from '../../../utils/reservations';
 import {formatPrice} from '../../../utils/services';
-import {StyledBody, StyledBodyInner, StyledStatusBadge} from './ModalStyles';
+import {ReservationStatusBadge} from '../../ui/ReservationStatusBadge';
+import {StyledBody, StyledBodyInner} from './ModalStyles';
 
 interface ReservationViewSectionProps {
     reservation: Reservation;
@@ -54,19 +55,19 @@ export function ReservationViewSection({
                     {isCancelled && (
                         <>
                             <dt>상태</dt>
-                            <dd><StyledStatusBadge $variant="neutral">예약취소</StyledStatusBadge></dd>
+                            <dd><ReservationStatusBadge $type="cancelled">취소</ReservationStatusBadge></dd>
                         </>
                     )}
                     {isNoshow && (
                         <>
                             <dt>상태</dt>
-                            <dd><StyledStatusBadge $variant="danger">노쇼</StyledStatusBadge></dd>
+                            <dd><ReservationStatusBadge $type="noshow">노쇼</ReservationStatusBadge></dd>
                         </>
                     )}
                     {isCompleted && (
                         <>
                             <dt>상태</dt>
-                            <dd><StyledStatusBadge $variant="success">완료</StyledStatusBadge></dd>
+                            <dd><ReservationStatusBadge $type="completed">완료</ReservationStatusBadge></dd>
                         </>
                     )}
                     <dt>날짜</dt>
@@ -84,9 +85,9 @@ export function ReservationViewSection({
                     <dt>결제</dt>
                     <dd>
                         <StyledPaymentValue>
-                            <StyledPaymentBadge $completed={paymentCompleted}>
+                            <ReservationStatusBadge $type={paymentCompleted ? 'paid' : 'unpaid'}>
                                 {paymentCompleted ? '결제완료' : '미결제'}
-                            </StyledPaymentBadge>
+                            </ReservationStatusBadge>
                             <StyledPaymentLineList>
                                 {paymentLines.map((line) => <span key={line}>{line}</span>)}
                             </StyledPaymentLineList>
@@ -233,14 +234,6 @@ const StyledPaymentLineList = styled.span`
     gap: 2px;
 `;
 
-const StyledPaymentBadge = styled(LabelBadge).attrs<{ $completed: boolean }>((props) => ({
-    $tone: props.$completed ? 'success' : 'warning',
-    $shape: 'soft',
-    $size: 'md',
-}))<{ $completed: boolean }>`
-    font-size: var(--small-font);
-    font-weight: 600;
-`;
 
 const StyledServiceChipList = styled(ServiceChipList)``;
 

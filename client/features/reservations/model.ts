@@ -102,5 +102,6 @@ export const RESERVATION_STATUS_BADGE_STYLES: Record<string, { bg: string; color
     cancelled: {bg: '#F1F1F1', color: '#999'},
     completed: {bg: '#E6F4EA', color: '#34A853'},
     noshow: {bg: '#FCE8E6', color: '#EA4335'},
-    paid: {bg: '#E6F4EA', color: '#34A853'},
+    paid: {bg: 'rgba(101, 38, 217, 0.08)', color: '#6526d9'},
+    unpaid: {bg: '#FEF3C7', color: '#92400E'},
 };

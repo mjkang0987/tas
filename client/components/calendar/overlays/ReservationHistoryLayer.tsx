@@ -73,7 +73,7 @@ export function ReservationHistoryLayer({
                                         <StyledHistoryDetailHeader>
                                             <time dateTime={entry.timestamp}>{formatTimestamp(entry.timestamp)}</time>
                                             <StyledHistoryTypeBadge $type={entryType}>
-                                                {isCancelEntry ? '예약취소' : isNoshowEntry ? '노쇼' : isCompleteEntry ? '예약완료' : isRestoreEntry ? '예약전환' : '변경'}
+                                                {isCancelEntry ? '취소' : isNoshowEntry ? '노쇼' : isCompleteEntry ? '예약완료' : isRestoreEntry ? '예약전환' : '변경'}
                                             </StyledHistoryTypeBadge>
                                         </StyledHistoryDetailHeader>
                                         <StyledHistoryDetailDiffs>

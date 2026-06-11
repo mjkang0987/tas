@@ -159,7 +159,7 @@ export const NaverSyncNotification = ({
                                             <span className="name">{n.customerName}</span>
                                             <span className="suffix">고객님</span>
                                             {n.type === 'cancel'
-                                                ? <StyledCancelTag>예약취소</StyledCancelTag>
+                                                ? <StyledCancelTag>취소</StyledCancelTag>
                                                 : <><StyledNaverTag>네이버예약</StyledNaverTag><span className="suffix">확정</span></>
                                             }
                                         </StyledItemText>
@@ -296,7 +296,7 @@ const NotificationModal = ({notifications, designers, reservationMap, markRead, 
                 <span className="name">{n.customerName}</span>
                 <span className="suffix">고객님</span>
                 {n.type === 'cancel'
-                    ? <StyledCancelTag>예약취소</StyledCancelTag>
+                    ? <StyledCancelTag>취소</StyledCancelTag>
                     : <><StyledNaverTag>네이버예약</StyledNaverTag><span className="suffix">확정</span></>
                 }
             </StyledItemText>

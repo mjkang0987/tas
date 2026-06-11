@@ -75,7 +75,7 @@ export function TimelineReservationCard({
                 <StyledTimelineServiceList service={reservation.service}
                                           serviceColorMap={serviceColorMap}
                                           keyPrefix={reservation.id} />
-                {reservation.status === 'cancelled' ? ' (예약취소)' : reservation.status === 'noshow' ? ' (노쇼)' : hasCompletedPayment(reservation) ? ' (결제완료)' : ''}
+                {reservation.status === 'cancelled' ? ' (취소)' : reservation.status === 'noshow' ? ' (노쇼)' : hasCompletedPayment(reservation) ? ' (결제완료)' : ''}
             </strong>
             {preview && <span className="sub">{preview.date} {preview.startTime}~{preview.endTime}</span>}
             {customerName && (
@@ -124,7 +124,7 @@ export function TimelineDragGhost({
                 <StyledTimelineServiceList service={reservation.service}
                                           serviceColorMap={serviceColorMap}
                                           keyPrefix={`ghost-${reservation.id}`} />
-                {reservation.status === 'cancelled' ? ' (예약취소)' : reservation.status === 'noshow' ? ' (노쇼)' : hasCompletedPayment(reservation) ? ' (결제완료)' : ''}
+                {reservation.status === 'cancelled' ? ' (취소)' : reservation.status === 'noshow' ? ' (노쇼)' : hasCompletedPayment(reservation) ? ' (결제완료)' : ''}
             </strong>
             <span className="sub">{preview.date} {preview.startTime}~{preview.endTime}</span>
             {customerName && (

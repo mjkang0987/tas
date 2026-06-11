@@ -2,10 +2,10 @@ import styled from 'styled-components';
 import type {KeyboardEvent} from 'react';
 
 import type {Reservation} from '../../utils/reservations';
-import {RESERVATION_STATUS_BADGE_STYLES, hasCompletedPayment} from '../../utils/reservations';
+import {hasCompletedPayment} from '../../utils/reservations';
 import {formatPrice} from '../../utils/services';
 import {DesignerLabel} from './DesignerLabel';
-import {LabelBadge} from './LabelBadge';
+import {ReservationStatusBadge} from './ReservationStatusBadge';
 import {NewCustomerBadge} from './NewCustomerBadge';
 import {ServiceChipList} from './ServiceChip';
 
@@ -30,7 +30,7 @@ type ReservationInfoCardProps = {
 };
 
 function getReservationState(reservation: Reservation, today?: string) {
-    if (reservation.status === 'cancelled') return {type: 'cancelled', label: '예약취소'};
+    if (reservation.status === 'cancelled') return {type: 'cancelled', label: '취소'};
     if (reservation.status === 'noshow') return {type: 'noshow', label: '노쇼'};
     if (hasCompletedPayment(reservation)) return {type: 'paid', label: '결제완료'};
     return {type: 'booked', label: '예약'};
@@ -145,9 +145,9 @@ export function ReservationInfoCard({
             {(showStatus || showPrice) && (
                 <StyledTrailing>
                     {showStatus && (
-                        <StyledStatusBadge $type={state.type}>
+                        <ReservationStatusBadge $type={state.type}>
                             {state.label}
-                        </StyledStatusBadge>
+                        </ReservationStatusBadge>
                     )}
                     {showPrice && (
                         <StyledPrice>{formatPrice(reservation.price ?? 0)}</StyledPrice>
@@ -293,16 +293,6 @@ const StyledTrailing = styled.div`
     }
 `;
 
-const StyledStatusBadge = styled(LabelBadge).attrs<{ $type: string }>((props) => ({
-    $tone: (props.$type === 'completed' || props.$type === 'paid') ? 'success' : props.$type === 'cancelled' ? 'neutral' : props.$type === 'noshow' ? 'danger' : 'info',
-    $shape: 'soft',
-    $size: 'sm',
-}))<{ $type: string }>`
-    font-size: var(--tiny-font);
-    font-weight: 600;
-    background-color: ${(props) => RESERVATION_STATUS_BADGE_STYLES[props.$type]?.bg || '#F1F1F1'};
-    color: ${(props) => RESERVATION_STATUS_BADGE_STYLES[props.$type]?.color || '#999'};
-`;
 
 const StyledPrice = styled.span`
     font-size: 13px;

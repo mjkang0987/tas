@@ -2,18 +2,11 @@ import React from 'react';
 
 import styled from 'styled-components';
 
-import {LabelBadge} from '../ui/LabelBadge';
 import {ServiceChipList} from '../ui/ServiceChip';
+import {ReservationStatusBadge} from '../ui/ReservationStatusBadge';
 import type {Customer} from '../../utils/customers';
 import {formatTel} from '../../utils/customers';
 import {formatPrice} from '../../utils/services';
-
-const STATUS_COLORS: Record<string, string> = {
-    booked: '#4285F4',
-    cancelled: '#999',
-    completed: '#34A853',
-    noshow: '#EA4335',
-};
 
 type CustomerStats = {
     recentService: string;
@@ -71,10 +64,10 @@ export function AddressCustomerSummary({customer, stats, serviceColorMap, checke
             <StyledBlockRow>
                 <StyledPrice><StyledPriceLabel>적립금</StyledPriceLabel>{formatPrice(customer.points ?? 0)}</StyledPrice>
                 <StyledStatusCounts>
-                    <StyledStatusBadge $type="booked">예약({stats?.booked || 0})</StyledStatusBadge>
-                    <StyledStatusBadge $type="cancelled">예약취소({stats?.cancelled || 0})</StyledStatusBadge>
-                    <StyledStatusBadge $type="completed">완료({stats?.completed || 0})</StyledStatusBadge>
-                    <StyledStatusBadge $type="noshow">노쇼({stats?.noshow || 0})</StyledStatusBadge>
+                    <ReservationStatusBadge $type="booked">예약({stats?.booked || 0})</ReservationStatusBadge>
+                    <ReservationStatusBadge $type="cancelled">취소({stats?.cancelled || 0})</ReservationStatusBadge>
+                    <ReservationStatusBadge $type="completed">완료({stats?.completed || 0})</ReservationStatusBadge>
+                    <ReservationStatusBadge $type="noshow">노쇼({stats?.noshow || 0})</ReservationStatusBadge>
                 </StyledStatusCounts>
             </StyledBlockRow>
         </StyledSummaryRow>
@@ -213,19 +206,3 @@ const StyledStatusCounts = styled.div`
     justify-content: flex-end;
 `;
 
-const StyledStatusBadge = styled(LabelBadge).attrs<{ $type: string }>((props) => ({
-    $tone:
-        props.$type === 'completed'
-            ? 'success'
-            : props.$type === 'noshow'
-                ? 'danger'
-                : props.$type === 'booked'
-                    ? 'info'
-                    : 'neutral',
-    $shape: 'soft',
-    $size: 'sm',
-}))<{ $type: string }>`
-    font-size: var(--tiny-font);
-    font-weight: 500;
-    color: ${(props) => STATUS_COLORS[props.$type] || 'var(--gray-color)'};
-`;

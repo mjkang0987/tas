@@ -72,7 +72,7 @@ export function ReservationDetailFooterActions({
                 {!paymentCompleted && (
                     <StyledActionButton type="button"
                                         $dangerOutline
-                                        onClick={onOpenCancelling}>예약취소</StyledActionButton>
+                                        onClick={onOpenCancelling}>취소</StyledActionButton>
                 )}
                 {!paymentCompleted && (
                     <StyledActionButton type="button"
