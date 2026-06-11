@@ -13,7 +13,7 @@ export const StyledGroup = styled.div<{ $isCategoryDragging: boolean; $isCategor
     transition: background-color 0.16s ease, box-shadow 0.16s ease;
 
     &::before {
-        content: ${(p) => p.$isCategoryDragOver ? "'여기로 이동'" : "''"};
+        content: ${(p) => p.$isCategoryDragOver ? "'여기로 이동'" : "''" };
         position: absolute;
         top: -10px;
         right: 12px;
@@ -200,7 +200,7 @@ export const StyledItem = styled.div<{ $isDragging: boolean; $isDragOver: boolea
     }
 
     &::before {
-        content: ${(p) => p.$isDragOver ? "'이 위치로 이동'" : "''"};
+        content: ${(p) => p.$isDragOver ? "'이 위치로 이동'" : "''" };
         position: absolute;
         top: 6px;
         right: 16px;
