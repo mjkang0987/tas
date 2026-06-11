@@ -18,10 +18,11 @@ import type {Designer} from '../utils/designers';
 import type {StoreSettings} from '../utils/storeSettings';
 import {groupByDate} from '../utils/reservations';
 import {toCustomerMap} from '../utils/customers';
-import {loadLocalDbSnapshot, saveLocalDbSnapshot, setAuthenticated, shouldUseLocalDb} from '../lib/local-db';
+import {createDefaultLocalDbSnapshot, loadLocalDbSnapshot, saveLocalDbSnapshot, setAuthenticated, shouldUseLocalDb} from '../lib/local-db';
 
 import LayoutComponent from '../components/layout/LayoutComponent';
 import {ToastContainer} from '../components/ui/ToastContainer';
+import {GuestMigrationLayer} from '../components/layout/GuestMigrationLayer';
 
 type AppContentProps = Pick<AppProps, 'Component' | 'pageProps'>;
 
@@ -41,6 +42,10 @@ function AppContent({Component, pageProps}: AppContentProps) {
     const hasApiAccess = status === 'authenticated' && !!session?.user?.role && !!session.user?.storeId;
 
     const [sessionExpired, setSessionExpired] = useState(false);
+    const [migrationData, setMigrationData] = useState<{
+        snapshot: ReturnType<typeof loadLocalDbSnapshot>;
+        storeName: string;
+    } | null>(null);
     const [servicesReady, setServicesReady] = useState(false);
     const [designersReady, setDesignersReady] = useState(false);
     const [reservationsReady, setReservationsReady] = useState(false);
@@ -75,34 +80,48 @@ function AppContent({Component, pageProps}: AppContentProps) {
         setAuthenticated(hasApiAccess);
     }, [hasApiAccess]);
 
-    // 게스트 → SNS 연동 시 로컬 온보딩 데이터를 서버로 마이그레이션
+    // 게스트 → SNS 연동 시 로컬 데이터를 서버로 전체 마이그레이션
     const localSyncDone = useRef(false);
     useEffect(() => {
         if (!hasApiAccess || localSyncDone.current) return;
-        // 온보딩(데이터 마이그레이션)은 매장 오너만 가능 → 비-owner는 403 방지 위해 스킵
         if (session?.user?.role !== 'owner') return;
 
         const snapshot = loadLocalDbSnapshot();
         if (!snapshot.onboarded) return;
-        if (snapshot.services.length === 0 && snapshot.designers.length === 0) return;
+        const hasLocalData =
+            snapshot.services.length > 0 ||
+            snapshot.designers.length > 0 ||
+            snapshot.customers.length > 0 ||
+            snapshot.reservations.length > 0;
+        if (!hasLocalData) return;
 
         localSyncDone.current = true;
 
-        fetch('/api/onboarding', {
+        fetch('/api/migrate-local', {
             method: 'POST',
             headers: {'Content-Type': 'application/json'},
             body: JSON.stringify({
                 shopName: snapshot.storeName ?? '',
                 shopType: snapshot.shopType ?? null,
                 services: snapshot.services,
-                designers: snapshot.designers.map((d) => ({name: d.name, color: d.color})),
+                designers: snapshot.designers.map((d) => ({id: d.id, name: d.name, color: d.color ?? null})),
+                customers: snapshot.customers,
+                reservations: snapshot.reservations,
             }),
         })
-            .then((res) => {
-                // 성공(ok) 또는 이미 데이터가 있는 매장(409 ALREADY_SETUP) → 마이그레이션 완료 처리하여 재시도 방지
-                if (res.ok || res.status === 409) {
-                    snapshot.onboarded = false;
-                    saveLocalDbSnapshot(snapshot);
+            .then(async (res) => {
+                if (res.ok) {
+                    // 빈 매장: 전체 생성 완료 → 로컬 정리 후 리로드
+                    const clean = createDefaultLocalDbSnapshot();
+                    clean.onboarded = false;
+                    saveLocalDbSnapshot(clean);
+                    window.location.reload();
+                } else if (res.status === 409) {
+                    // 기존 데이터 있는 매장 → 병합/삭제 레이어 표시
+                    const data = await res.json() as {storeName?: string};
+                    setMigrationData({snapshot, storeName: data.storeName ?? ''});
+                } else {
+                    localSyncDone.current = false;
                 }
             })
             .catch(() => {
@@ -291,6 +310,13 @@ function AppContent({Component, pageProps}: AppContentProps) {
                 </StyledBootOverlay>
             )}
             <ToastContainer />
+            {migrationData && (
+                <GuestMigrationLayer
+                    snapshot={migrationData.snapshot}
+                    storeName={migrationData.storeName}
+                    onFinish={() => setMigrationData(null)}
+                />
+            )}
             {sessionExpired && (
                 <StyledSessionExpiredToast>
                     <span>로그인 세션이 만료되었습니다.</span>
