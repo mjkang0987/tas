@@ -4,7 +4,7 @@ import styled from 'styled-components';
 
 import {useCalendarStore} from '../../../store/calendarStore';
 import {buildServiceColorMap, getGroupedCatalog, getServiceColor} from '../../../utils/services';
-import {Dot} from '../../ui/Dot';
+import {StyledServiceText} from '../../ui/ServiceChip';
 
 export const ServiceLegend = () => {
     const [open, setOpen] = useState(false);
@@ -25,10 +25,13 @@ export const ServiceLegend = () => {
                         <StyledCategoryLabel>{category}</StyledCategoryLabel>
                         <StyledItems>
                             {items.map((item) => (
-                                <StyledItem key={item.name}>
-                                    <StyledDot color={getServiceColor(item.name, serviceColorMap)} size={10} />
-                                    <span>{item.name}</span>
-                                </StyledItem>
+                                <StyledServiceText
+                                    key={item.name}
+                                    as="li"
+                                    $color={getServiceColor(item.name, serviceColorMap)}
+                                >
+                                    {item.name}
+                                </StyledServiceText>
                             ))}
                         </StyledItems>
                     </StyledGroup>
@@ -80,6 +83,7 @@ const StyledPanel = styled.div`
     overflow-y: auto;
     overscroll-behavior: auto;
     min-width: 180px;
+    max-width: min(280px, calc(100vw - 40px));
 `;
 
 const StyledGroup = styled.div`
@@ -98,23 +102,11 @@ const StyledCategoryLabel = styled.span`
 
 const StyledItems = styled.ul`
     display: flex;
-    flex-direction: column;
-    gap: 3px;
+    flex-wrap: wrap;
+    gap: 6px;
     padding: 0;
     margin: 0;
     list-style: none;
-`;
-
-const StyledItem = styled.li`
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    font-size: 12px;
-    color: var(--text-color, #333);
-`;
-
-const StyledDot = styled(Dot)`
-    flex-shrink: 0;
 `;
 
 const StyledToggle = styled.button<{ $open: boolean }>`
