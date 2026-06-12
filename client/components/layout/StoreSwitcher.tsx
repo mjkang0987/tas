@@ -9,6 +9,7 @@ import styled from 'styled-components';
 import {StyledConfirmOverlay, StyledConfirmModal, StyledHeader, StyledModalContent} from '../calendar/overlays/ModalStyles';
 import {actionButtonStyle} from '../settings/settings-styles';
 import {LabelBadge} from '../ui/LabelBadge';
+import {ROLE_LABELS} from '../../utils/labels';
 
 type StoreEntry = {
     storeId: string;
@@ -19,11 +20,6 @@ type StoreEntry = {
 type StoreSwitcherProps = {
     fallbackName: string;
     onNavigate?: () => void;
-};
-
-const ROLE_LABELS: Record<string, string> = {
-    owner: '오너',
-    staff: '멤버',
 };
 
 export function StoreSwitcher({fallbackName, onNavigate}: StoreSwitcherProps) {

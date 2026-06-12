@@ -22,7 +22,7 @@ import {createDefaultLocalDbSnapshot, loadLocalDbSnapshot, saveLocalDbSnapshot, 
 
 import LayoutComponent from '../components/layout/LayoutComponent';
 import {ToastContainer} from '../components/ui/ToastContainer';
-import {GuestMigrationLayer} from '../components/layout/GuestMigrationLayer';
+import {GuestMigrationLayer} from '../components/modals/GuestMigrationLayer';
 
 type AppContentProps = Pick<AppProps, 'Component' | 'pageProps'>;
 

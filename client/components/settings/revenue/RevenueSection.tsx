@@ -1,7 +1,5 @@
 import {useMemo, useState} from 'react';
 
-import styled from 'styled-components';
-
 import {PageHero} from '../../ui/PageHero';
 import {
     getDailyRevenue,
@@ -27,6 +25,10 @@ import {RevenueDailyList} from './RevenueDailyList';
 import {RevenueDailyDetailModal} from './RevenueDailyDetailModal';
 import {RevenueMetricModal} from './RevenueMetricModal';
 import {StyledRevenueEmpty} from './revenue-styles';
+import {
+    StyledDashboard,
+    StyledDailyCard,
+} from './RevenueSection.styles';
 
 export type RevenueDesignerKey = 'all' | `${number}`;
 export type RevenueQuickRange = 'month' | 'week' | 'today';
@@ -617,18 +619,3 @@ export const RevenueSection = ({
 };
 
 /* ── Styled ── */
-
-const StyledDashboard = styled.div`
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-    padding: 8px 0;
-`;
-
-const StyledDailyCard = styled.div`
-    padding: 10px;
-    border: 1px solid var(--light-gray-color);
-    border-radius: 10px;
-    background: var(--white-color);
-    box-shadow: 0 10px 24px rgba(15, 23, 42, 0.05);
-`;

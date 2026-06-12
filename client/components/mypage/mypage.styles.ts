@@ -1,9 +1,7 @@
-import Link from 'next/link';
-
 import styled from 'styled-components';
 
+import Link from 'next/link';
 import {StyledDeleteBtn, actionButtonStyle} from '../settings/settings-styles';
-
 export const StyledSection = styled.section`
     flex: 1;
     box-sizing: border-box;
@@ -245,20 +243,3 @@ export const StyledSuggestionChip = styled.button`
     }
 `;
 
-export const StyledFooterCs = styled.p`
-    margin: auto 0 0;
-    padding: 24px 0 0;
-    text-align: center;
-    font-size: 12px;
-    color: var(--dark-gray-color2);
-
-    .link {
-        color: inherit;
-        text-decoration: none;
-        font-weight: 600;
-
-        @media (hover: hover) and (pointer: fine) {
-            &:hover { text-decoration: underline; }
-        }
-    }
-`;

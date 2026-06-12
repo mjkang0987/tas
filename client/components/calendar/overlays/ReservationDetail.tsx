@@ -2,8 +2,6 @@ import {useEffect, useMemo, useState} from 'react';
 
 import {createPortal} from 'react-dom';
 import {useRouter} from 'next/router';
-import styled from 'styled-components';
-
 import {useCalendarStore} from '../../../store/calendarStore';
 
 import type {PaymentEntry, PaymentMethod, Reservation, ReservationHistoryEntry, ReservationMap, ReservationStatus} from '../../../utils/reservations';
@@ -55,6 +53,13 @@ import {
     getPaymentEntryDrafts,
     getPointAmount,
 } from './reservationDetailUtils';
+import {
+    StyledReservationOverlay,
+    StyledRestoreOverlay,
+    StyledRestoreModal,
+    StyledRestoreBody,
+    StyledRestoreMessage,
+} from './ReservationDetail.styles';
 
 const PAYMENT_METHOD_OPTIONS: PaymentMethod[] = ['현금', '현금+현금영수증', '카드', '네이버페이', '네이버 예약금', '지역화폐', '지역화폐+현금영수증', '상품권', '적립금', '할인'];
 
@@ -782,44 +787,3 @@ export const ReservationDetail = ({
     )}
     </>, modalRoot);
 };
-
-const StyledReservationOverlay = styled(StyledOverlay)<{ $stacked: boolean }>`
-    z-index: ${(props) => props.$stacked ? OVERLAY_Z_INDEX.confirm : OVERLAY_Z_INDEX.detail};
-`;
-
-const StyledRestoreOverlay = styled(StyledOverlay)`
-    z-index: ${OVERLAY_Z_INDEX.confirm};
-`;
-
-const StyledRestoreModal = styled(StyledDetail)`
-    width: min(360px, 90vw);
-`;
-
-const StyledRestoreBody = styled.div`
-    padding: var(--modal-body-padding);
-
-    dl {
-        display: grid;
-        grid-template-columns: 60px 1fr;
-        gap: 8px 12px;
-        margin: 0;
-    }
-
-    dt {
-        font-size: 13px;
-        color: var(--dark-gray-color);
-        font-weight: 500;
-    }
-
-    dd {
-        margin: 0;
-        font-size: 13px;
-    }
-`;
-
-const StyledRestoreMessage = styled.p`
-    margin: 0 0 16px;
-    font-size: 14px;
-    font-weight: 600;
-    color: var(--blue-color);
-`;

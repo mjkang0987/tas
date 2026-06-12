@@ -12,6 +12,7 @@ import {PageHero} from '../ui/PageHero';
 import {GuestNotice} from '../ui/GuestNotice';
 import {useToastStore} from '../../store/toastStore';
 import {StyledSettingsCard, StyledSaveBtn, StyledEditBtn} from './settings-styles';
+import {ROLE_LABELS} from '../../utils/labels';
 
 type LinkedAccount = {
     provider: string;
@@ -21,11 +22,6 @@ type LinkedAccount = {
 type MergePreview = {
     provider: string;
     memberships: Array<{storeName: string; role: string}>;
-};
-
-const ROLE_LABELS: Record<string, string> = {
-    owner: '오너',
-    staff: '멤버',
 };
 
 type ProviderConfig = {

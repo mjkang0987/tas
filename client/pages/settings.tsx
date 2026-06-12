@@ -28,6 +28,7 @@ import {StoreManageSection} from '../components/settings/StoreManageSection';
 import {loadLocalDbSnapshot, subscribeLocalDb, type LocalDbSnapshot} from '../lib/local-db';
 import {getPageSession, loadPageData} from '../lib/page-data';
 import {SeoHead} from '../components/ui/SeoHead';
+import {CsFooter} from '../components/ui/CsFooter';
 
 type SettingsProps = {
     reservations: Reservation[];
@@ -259,7 +260,7 @@ const Settings: NextPage<SettingsProps> = ({reservations, customers, history, st
                 {tab === 'member' && <MemberSection/>}
                 {tab === 'sns' && <SNSLinkingSection/>}
                 {tab === 'naver' && <NaverBookingSection/>}
-                <StyledFooterCs>Take a seat CS: <a href="mailto:takeaseat.cs@gmail.com">takeaseat.cs@gmail.com</a></StyledFooterCs>
+                <CsFooter />
             </StyledContent>
             {selectedReservations.map((reservation, index) => (
                 <ReservationDetail key={`${reservation.id}-${index}`}
@@ -363,20 +364,3 @@ const StyledContent = styled.div`
     box-sizing: border-box;
 `;
 
-const StyledFooterCs = styled.p`
-    margin: auto 0 0;
-    padding: 24px 0 0;
-    text-align: center;
-    font-size: 12px;
-    color: var(--dark-gray-color2);
-
-    a {
-        color: inherit;
-        text-decoration: none;
-        font-weight: 600;
-
-        @media (hover: hover) and (pointer: fine) {
-            &:hover { text-decoration: underline; }
-        }
-    }
-`;

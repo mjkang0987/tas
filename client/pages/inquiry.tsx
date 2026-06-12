@@ -8,6 +8,7 @@ import {PageHero} from '../components/ui/PageHero';
 import {SeoHead} from '../components/ui/SeoHead';
 import {actionButtonStyle, EMPTY_TEXT, StyledEmpty as StyledEmptyBase} from '../components/settings/settings-styles';
 import {FieldError} from '../components/ui/FieldError';
+import {CsFooter} from '../components/ui/CsFooter';
 
 type InquiryTab = 'form' | 'history';
 
@@ -185,7 +186,7 @@ const InquiryPage: NextPage = () => {
                         </>
                     )}
                 </StyledCard>
-                <StyledFooterCs>Take a seat CS: <a href="mailto:takeaseat.cs@gmail.com">takeaseat.cs@gmail.com</a></StyledFooterCs>
+                <CsFooter />
             </StyledContainer>
         </StyledSection>
     );
@@ -414,20 +415,3 @@ const StyledHistoryContent = styled.p`
     word-break: break-word;
 `;
 
-const StyledFooterCs = styled.p`
-    margin: auto 0 0;
-    padding: 24px 0 0;
-    text-align: center;
-    font-size: 12px;
-    color: var(--dark-gray-color2);
-
-    a {
-        color: inherit;
-        text-decoration: none;
-        font-weight: 600;
-
-        @media (hover: hover) and (pointer: fine) {
-            &:hover { text-decoration: underline; }
-        }
-    }
-`;

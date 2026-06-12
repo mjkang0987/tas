@@ -1,14 +1,8 @@
 import styled from 'styled-components';
 
-import {LabelBadge} from '../ui/LabelBadge';
 import type {SyncNotification} from '../../hooks/useNaverBookingSync';
-import {
-    StyledOverlay,
-    StyledDetail,
-    StyledBodyInner,
-    OVERLAY_Z_INDEX,
-} from '../calendar/overlays/ModalStyles';
-
+import {LabelBadge} from '../ui/LabelBadge';
+import {OVERLAY_Z_INDEX, StyledBodyInner, StyledDetail, StyledOverlay} from '../calendar/overlays/ModalStyles';
 export const StyledContainer = styled.div`
     position: relative;
     display: inline-flex;
@@ -308,3 +302,4 @@ export const StyledModalItem = styled.div<{ $unread: boolean; $isConflict?: bool
         border-bottom: none;
     }
 `;
+

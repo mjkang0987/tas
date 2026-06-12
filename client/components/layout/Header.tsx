@@ -1,11 +1,6 @@
-import {useCallback, useEffect, useRef, useState} from 'react';
-
-import {createPortal} from 'react-dom';
-
-import styled, {keyframes} from 'styled-components';
+import {useCallback, useState} from 'react';
 
 import {useRouter} from 'next/router';
-import {signIn} from 'next-auth/react';
 
 import {useCalendarStore} from '../../store/calendarStore';
 import {useNaverBookingSync} from '../../hooks/useNaverBookingSync';
@@ -13,17 +8,33 @@ import {useCustomerMergeSuggestion} from '../../hooks/useCustomerMergeSuggestion
 import {splitDesignersByStatus, getDesignerColor} from '../../utils/designers';
 import {isCalendar} from '../../utils/router';
 import type {Reservation} from '../../utils/reservations';
-import {formatTel} from '../../utils/customers';
 
 import {CalendarDirection} from '../calendar/CalendarDirection';
 import {CalendarHeading} from '../calendar/CalendarHeading';
 import {ReservationDetail} from '../calendar/overlays/ReservationDetail';
 import {NaverSyncNotification} from './NaverSyncNotification';
-import {NaverSyncConflictModal} from './NaverSyncConflictModal';
-import {CustomerMergeSuggestionModal} from './CustomerMergeSuggestionModal';
-import {formControlStyle} from '../ui/FormControls';
-import {scrollHintStyle, scrollContentStyle} from '../calendar/overlays/ModalStyles';
-import {CloseIconButton} from '../ui/CloseIconButton';
+import {NaverSyncConflictModal} from '../modals/NaverSyncConflictModal';
+import {CustomerMergeSuggestionModal} from '../modals/CustomerMergeSuggestionModal';
+import {HeaderSearchLayer} from './HeaderSearchLayer';
+import {
+    StyledConflictBanner,
+    StyledHeader,
+    StyledCalendarRow,
+    StyledToolRow,
+    StyledAsideToggle,
+    StyledAsideToggleLabel,
+    StyledPageTitle,
+    StyledDesignerFilter,
+    StyledSyncWrap,
+    StyledSyncToast,
+    StyledSyncButton,
+    StyledSyncIcon,
+    StyledCustomerSearchButton,
+    StyledSearchIcon,
+    StyledTokenExpiredToast,
+    StyledTokenReconnect,
+    StyledTokenClose,
+} from './Header.styles';
 
 const PAGE_TITLES: Record<string, string> = {
     '/address': '고객 명단',
@@ -302,13 +313,13 @@ export const Header = () => {
                                        setHeaderReservations((prev) => prev.filter((r) => r.id !== res.id));
                                    }} />
             ))}
-            {isSearchOpen && <SearchLayer onClose={() => setIsSearchOpen(false)} />}
+            {isSearchOpen && <HeaderSearchLayer onClose={() => setIsSearchOpen(false)} />}
             {gmailTokenExpired && (
                 <StyledTokenExpiredToast>
                     <span>Google 인증이 만료되었습니다.</span>
                     <StyledTokenReconnect type="button" onClick={() => {
                         dismissGmailTokenExpired();
-                        signIn('google');
+                        window.location.href = '/api/gmail/connect';
                     }}>
                         재연결
                     </StyledTokenReconnect>
@@ -327,516 +338,3 @@ export const Header = () => {
         </>
     );
 };
-
-const conflictSlideIn = keyframes`
-    from { transform: translate(0, -8px); opacity: 0; }
-    to   { transform: translate(0, 0);    opacity: 1; }
-`;
-
-const StyledConflictBanner = styled.button`
-    z-index: 60;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 12px;
-    margin: 4px;
-    width: calc(100% - 8px);
-    box-sizing: border-box;
-    padding: 8px 14px;
-    border: 1px solid var(--danger-border);
-    border-radius: var(--radius-lg);
-    background: var(--danger-bg);
-    color: var(--danger-color);
-    box-shadow: var(--shadow-md);
-    font-size: 12px;
-    cursor: pointer;
-    text-align: left;
-    animation: ${conflictSlideIn} 0.18s ease;
-
-    .count { font-weight: 700; }
-
-    .cta {
-        font-weight: 600;
-        white-space: nowrap;
-    }
-
-    @media (hover: hover) and (pointer: fine) {
-        &:hover { filter: brightness(0.97); }
-    }
-
-    @media (max-width: 640px) {
-        top: 100px;
-    }
-`;
-
-const StyledHeader = styled.header`
-    position: relative;
-    z-index: 20;
-    display: flex;
-    align-items: center;
-    flex-wrap: wrap;
-    gap: 4px;
-    width: 100%;
-    padding: 0 12px 0 0;
-    min-height: 48px;
-    box-sizing: border-box;
-    background-color: var(--white-color);
-    border-bottom: solid 1px var(--light-gray-color);
-    flex-shrink: 0;
-    @media (max-width: 640px) {
-        gap: 0;
-        padding: 0 0 0 8px;
-    }
-`;
-
-const StyledCalendarRow = styled.div`
-    display: flex;
-    align-items: center;
-    gap: 4px;
-    flex: 1;
-    min-width: 0;
-
-    @media (max-width: 640px) {
-        width: 100%;
-        padding: 2px;
-    }
-`;
-
-const StyledToolRow = styled.div`
-    display: flex;
-    align-items: center;
-    gap: 4px;
-
-    @media (max-width: 640px) {
-        width: 100%;
-        padding: 4px 2px;
-    }
-`;
-
-const StyledAsideToggle = styled.button<{ $open: boolean }>`
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    width: 32px;
-    height: 32px;
-    border-radius: var(--radius-md);
-    background-color: transparent;
-    border: none;
-    color: var(--dark-gray-color);
-    flex-shrink: 0;
-
-    .menu-label { display: none; }
-
-    @media (hover: hover) and (pointer: fine) {
-        &:hover {
-            background-color: var(--gray-color2);
-        }
-    }
-
-    @media (max-width: 640px) {
-        position: fixed;
-        bottom: 20px;
-        left: ${(props) => props.$open ? 'calc(8px + var(--aside-width) + 8px)' : '16px'};
-        z-index: 210;
-        flex-direction: column;
-        gap: 3px;
-        width: auto;
-        min-width: 44px;
-        height: auto;
-        padding: 8px 10px;
-        border-radius: 20px;
-        background-color: var(--aside-bg);
-        color: var(--aside-text);
-        box-shadow: 0 4px 16px rgba(0,0,0,0.22);
-        opacity: 1;
-        transition: left 0.25s ease, background-color 0.1s;
-
-        .menu-label { display: block; }
-
-        @media (hover: hover) and (pointer: fine) {
-            &:hover {
-                background-color: var(--aside-hover);
-            }
-        }
-    }
-`;
-
-const StyledAsideToggleLabel = styled.span`
-    font-size: 10px;
-    font-weight: 600;
-    letter-spacing: 0.02em;
-    line-height: 1;
-`;
-
-const StyledPageTitle = styled.h1`
-    flex: 1;
-    margin: 0;
-    font-size: var(--big-font);
-    font-weight: 700;
-    text-align: center;
-    color: var(--dark-gray-color);
-
-    @media (max-width: 640px) {
-        text-align: left;
-    }
-`;
-
-const StyledDesignerFilter = styled.select`
-    min-width: 128px;
-    margin-right: auto;
-    padding: 0 6px 0 8px;
-    ${formControlStyle};
-    appearance: base-select;
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    cursor: pointer;
-
-    @media (max-width: 640px) {
-        min-width: 96px;
-        margin-left: 0;
-        padding: 0 4px 0 6px;
-    }
-
-    selectedcontent {
-        display: inline-flex;
-        align-items: center;
-        min-width: 0;
-    }
-
-    &::picker-icon {
-        margin-left: auto;
-        color: var(--dark-gray-color2);
-        transition: transform 0.15s ease;
-    }
-
-    &:open::picker-icon {
-        transform: rotate(180deg);
-    }
-
-    &::picker(select) {
-        appearance: base-select;
-        min-width: anchor-size(width);
-        margin-top: 6px;
-        padding: 6px;
-        border: 1px solid var(--border-color);
-        border-radius: var(--radius-lg);
-        background: var(--white-color);
-        box-shadow: var(--shadow-md);
-    }
-
-    option {
-        display: flex;
-        align-items: center;
-        gap: 6px;
-        padding: 6px 8px;
-        border-radius: var(--radius-md);
-        cursor: pointer;
-        transition: background-color 0.12s ease;
-
-        &::checkmark {
-            display: none;
-        }
-
-        &[data-bg-color]::before {
-            content: '';
-            display: inline-block;
-            width: 8px;
-            height: 8px;
-            flex-shrink: 0;
-            border-radius: 50%;
-            background-color: attr(data-bg-color type(<color>), transparent);
-        }
-    }
-
-    option:hover,
-    option:focus {
-        background: var(--gray-color2);
-    }
-
-    option:checked {
-        background: var(--brand-color-bg);
-        font-weight: 600;
-    }
-
-    optgroup {
-        padding-top: 6px;
-        font-size: 10px;
-        font-weight: 700;
-        color: var(--dark-gray-color2);
-    }
-`;
-
-const StyledSyncWrap = styled.div`
-    position: relative;
-    flex-shrink: 0;
-`;
-
-const StyledSyncToast = styled.span`
-    position: absolute;
-    top: 100%;
-    left: 50%;
-    transform: translateX(-50%);
-    margin-top: 4px;
-    padding: 4px 10px;
-    border-radius: var(--radius-md);
-    background-color: var(--black-color);
-    color: var(--white-color);
-    font-size: var(--tiny-font);
-    white-space: nowrap;
-    pointer-events: none;
-    z-index: 10;
-`;
-
-const StyledSyncButton = styled.button`
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    width: 32px;
-    height: 32px;
-    border-radius: var(--radius-md);
-    background-color: transparent;
-    border: none;
-    color: var(--dark-gray-color);
-    flex-shrink: 0;
-
-    &:disabled {
-        cursor: default;
-        opacity: 0.5;
-    }
-
-    @media (hover: hover) and (pointer: fine) {
-        &:not(:disabled):hover {
-            background-color: var(--gray-color2);
-        }
-    }
-`;
-
-const StyledSyncIcon = styled.svg<{ $syncing: boolean }>`
-    @keyframes spin {
-        from {
-            transform: rotate(0deg);
-        }
-        to {
-            transform: rotate(360deg);
-        }
-    }
-
-    ${(props) => props.$syncing && 'animation: spin 1s linear infinite;'}
-`;
-
-const StyledCustomerSearchButton = styled.button`
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    width: 32px;
-    height: 32px;
-    border-radius: var(--radius-md);
-    background-color: transparent;
-    border: none;
-    color: var(--dark-gray-color);
-    flex-shrink: 0;
-
-    @media (hover: hover) and (pointer: fine) {
-        &:hover {
-            background-color: var(--gray-color2);
-        }
-    }
-`;
-
-const StyledSearchIcon = styled.svg`
-    width: 18px;
-    height: 18px;
-    flex-shrink: 0;
-    stroke: currentColor;
-    fill: none;
-    stroke-width: 2;
-    stroke-linecap: round;
-    stroke-linejoin: round;
-`;
-
-/* ── Customer Search Layer ── */
-
-const SearchLayer = ({onClose}: { onClose: () => void }) => {
-    const customerMap = useCalendarStore((s) => s.customerMap);
-    const openCustomerDetail = useCalendarStore((s) => s.openCustomerDetail);
-
-    const [query, setQuery] = useState('');
-    const inputRef = useRef<HTMLInputElement>(null);
-    const modalRoot = document.getElementById('modal-root');
-
-    const customers = Object.values(customerMap).sort((a, b) => a.name.localeCompare(b.name, 'ko'));
-    const filtered = query.trim()
-        ? customers.filter((c) => c.name.includes(query) || c.tel.includes(query))
-        : customers;
-
-    useEffect(() => {
-        inputRef.current?.focus();
-    }, []);
-
-    const handleSelect = (id: number) => {
-        openCustomerDetail(id);
-        onClose();
-    };
-
-    if (!modalRoot) return null;
-
-    return createPortal(
-        <StyledSearchOverlay onClick={onClose}
-                             role="dialog"
-                             aria-modal="true"
-                             aria-label="고객 검색">
-            <StyledSearchModal onClick={(e) => e.stopPropagation()}>
-                <StyledSearchHeader>
-                    <StyledSearchInput ref={inputRef}
-                                       type="search"
-                                       autoComplete="off"
-                                       placeholder="고객명 또는 연락처 검색"
-                                       value={query}
-                                       onChange={(e) => setQuery(e.target.value)} />
-                    <CloseIconButton onClick={onClose} />
-                </StyledSearchHeader>
-                <StyledResultListWrap><StyledResultList>
-                    {query.trim() && filtered.length === 0 ? (
-                        <StyledNoResult>검색 결과 없음</StyledNoResult>
-                    ) : (
-                        filtered.map((c) => (
-                            <StyledResultItem key={c.id}
-                                              onClick={() => handleSelect(c.id)}>
-                                <span>{c.name}</span>
-                                <span>{formatTel(c.tel)}</span>
-                            </StyledResultItem>
-                        ))
-                    )}
-                </StyledResultList></StyledResultListWrap>
-            </StyledSearchModal>
-        </StyledSearchOverlay>,
-        modalRoot
-    );
-};
-
-const StyledSearchOverlay = styled.div`
-    position: fixed;
-    inset: 0;
-    z-index: 100;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 20px;
-    background-color: rgba(0, 0, 0, 0.45);
-    box-sizing: border-box;
-`;
-
-const StyledSearchModal = styled.div`
-    width: 100%;
-    max-width: 400px;
-    max-height: 70vh;
-    display: flex;
-    flex-direction: column;
-    background-color: var(--white-color);
-    border-radius: var(--radius-lg);
-    box-shadow: var(--shadow-md);
-    overflow: hidden;
-`;
-
-const StyledSearchHeader = styled.div`
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    flex-shrink: 0;
-    padding: 8px;
-    border-bottom: 1px solid var(--light-gray-color);
-`;
-
-const StyledSearchInput = styled.input`
-    flex: 1;
-    ${formControlStyle};
-    padding: 0 10px;
-
-    &[type="search"]::-webkit-search-cancel-button {
-        -webkit-appearance: none;
-        appearance: none;
-        width: 14px;
-        height: 14px;
-        margin-right: 4px;
-        background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 14 14'%3E%3Ccircle cx='7' cy='7' r='7' fill='%23999'/%3E%3Cpath d='M4.5 4.5L9.5 9.5M9.5 4.5L4.5 9.5' stroke='%23fff' stroke-width='1.5' stroke-linecap='round'/%3E%3C/svg%3E") no-repeat center / contain;
-    }
-`;
-
-const StyledResultListWrap = styled.div`
-    flex: 1;
-    ${scrollHintStyle};
-`;
-
-const StyledResultList = styled.ul`
-    ${scrollContentStyle};
-    padding: 4px 0 30px;
-    list-style: none;
-`;
-
-const StyledResultItem = styled.li`
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 10px 16px;
-    font-size: 14px;
-    cursor: pointer;
-
-    > span:last-child {
-        font-size: 12px;
-        color: var(--gray-color);
-    }
-
-    @media (hover: hover) and (pointer: fine) {
-        &:hover {
-            background-color: var(--black-color-10);
-        }
-    }
-`;
-
-const StyledNoResult = styled.li`
-    padding: 24px;
-    font-size: 13px;
-    color: var(--gray-color);
-    text-align: center;
-`;
-
-const StyledTokenExpiredToast = styled.div`
-    position: fixed;
-    bottom: 24px;
-    left: 50%;
-    transform: translateX(-50%);
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    padding: 12px 16px;
-    border-radius: 10px;
-    background: var(--toast-bg);
-    color: var(--white-color);
-    font-size: 13px;
-    box-shadow: var(--modal-shadow);
-    z-index: 10000;
-    white-space: nowrap;
-`;
-
-const StyledTokenReconnect = styled.button`
-    padding: 0;
-    border: none;
-    background: none;
-    color: var(--link-color-light);
-    font-size: 13px;
-    font-weight: 600;
-
-    @media (hover: hover) and (pointer: fine) {
-        &:hover { text-decoration: underline; }
-    }
-`;
-
-const StyledTokenClose = styled.button`
-    padding: 0;
-    border: none;
-    background: none;
-    color: var(--muted-text);
-    font-size: 14px;
-    line-height: 1;
-`;

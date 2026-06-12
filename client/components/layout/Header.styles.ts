@@ -1,23 +1,31 @@
-import styled from 'styled-components';
+import styled, {keyframes} from 'styled-components';
 
 import {formControlStyle} from '../ui/FormControls';
 
+const conflictSlideIn = keyframes`
+    from { transform: translate(0, -8px); opacity: 0; }
+    to   { transform: translate(0, 0);    opacity: 1; }
+`;
+
 export const StyledConflictBanner = styled.button`
+    z-index: 60;
     display: flex;
     align-items: center;
     justify-content: space-between;
-    width: 100%;
-    padding: 0 14px;
-    height: 34px;
-    flex-shrink: 0;
+    gap: 12px;
+    margin: 4px;
+    width: calc(100% - 8px);
     box-sizing: border-box;
-    border: none;
-    border-bottom: 1px solid var(--danger-border);
+    padding: 8px 14px;
+    border: 1px solid var(--danger-border);
+    border-radius: var(--radius-lg);
     background: var(--danger-bg);
     color: var(--danger-color);
+    box-shadow: var(--shadow-md);
     font-size: 12px;
     cursor: pointer;
     text-align: left;
+    animation: ${conflictSlideIn} 0.18s ease;
 
     .count { font-weight: 700; }
 
@@ -28,6 +36,10 @@ export const StyledConflictBanner = styled.button`
 
     @media (hover: hover) and (pointer: fine) {
         &:hover { filter: brightness(0.97); }
+    }
+
+    @media (max-width: 640px) {
+        top: 100px;
     }
 `;
 
@@ -60,7 +72,7 @@ export const StyledCalendarRow = styled.div`
 
     @media (max-width: 640px) {
         width: 100%;
-        padding: 0 2px;
+        padding: 2px;
     }
 `;
 

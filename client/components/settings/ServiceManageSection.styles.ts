@@ -1,8 +1,23 @@
 import styled from 'styled-components';
 
-import {actionButtonStyle, StyledEditBtn as StyledEditBtnBase} from './settings-styles';
+import {StyledEditBtn as StyledEditBtnBase, actionButtonStyle} from './settings-styles';
+import {StyledDetail, StyledOverlay} from '../calendar/overlays/ModalStyles';
+export const StyledServiceOverlay = styled(StyledOverlay)`
+    z-index: 160;
+`;
 
-export const StyledServiceBody = styled.div``;
+export const StyledServiceModal = styled(StyledDetail)`
+    width: min(100%, 380px);
+    max-width: min(380px, 90vw);
+`;
+
+export const StyledModalBody = styled.div`
+    padding: 10px;
+    overflow-y: auto;
+`;
+
+export const StyledServiceBody = styled.div`
+`;
 
 export const StyledGroup = styled.div<{ $isCategoryDragging: boolean; $isCategoryDragOver: boolean }>`
     position: relative;
@@ -13,7 +28,7 @@ export const StyledGroup = styled.div<{ $isCategoryDragging: boolean; $isCategor
     transition: background-color 0.16s ease, box-shadow 0.16s ease;
 
     &::before {
-        content: ${(p) => p.$isCategoryDragOver ? "'여기로 이동'" : "''" };
+        content: ${(p) => p.$isCategoryDragOver ? "'여기로 이동'" : "''"};
         position: absolute;
         top: -10px;
         right: 12px;
@@ -200,7 +215,7 @@ export const StyledItem = styled.div<{ $isDragging: boolean; $isDragOver: boolea
     }
 
     &::before {
-        content: ${(p) => p.$isDragOver ? "'이 위치로 이동'" : "''" };
+        content: ${(p) => p.$isDragOver ? "'이 위치로 이동'" : "''"};
         position: absolute;
         top: 6px;
         right: 16px;
@@ -301,3 +316,12 @@ export const StyledAddButton = styled.button`
         }
     }
 `;
+
+export const StyledDeleteMsg = styled.p`
+    margin: 0 0 20px;
+    font-size: 14px;
+    color: var(--dark-gray-color);
+    line-height: 1.6;
+    strong { font-weight: 700; }
+`;
+

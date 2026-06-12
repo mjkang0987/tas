@@ -1,7 +1,6 @@
 import styled from 'styled-components';
 
 import {LabelBadge} from '../ui/LabelBadge';
-
 export const StyledContainer = styled.div`
     display: flex;
     flex-direction: column;
@@ -247,3 +246,4 @@ export const StyledConfirmText = styled.p`
     color: var(--dark-gray-color);
     line-height: 1.6;
 `;
+

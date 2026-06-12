@@ -1,11 +1,8 @@
 import styled from 'styled-components';
 
-import {OVERLAY_Z_INDEX, StyledOverlay, StyledDetail, scrollHintStyle, scrollContentStyle} from './ModalStyles';
+import {OVERLAY_Z_INDEX, StyledDetail, StyledOverlay, scrollContentStyle, scrollHintStyle} from './ModalStyles';
 import {CloseIconButton} from '../../ui/CloseIconButton';
 import {ColorTag} from '../../ui/ColorTag';
-
-/* ── Overlay / panel ── */
-
 export const StyledCustomerOverlay = styled(StyledOverlay)`
     z-index: ${OVERLAY_Z_INDEX.childDetail};
 `;
@@ -19,8 +16,6 @@ export const StyledCustomerContent = styled.div`
     display: flex;
     flex-direction: column;
 `;
-
-/* ── Header ── */
 
 export const StyledHeaderActions = styled.div`
     display: inline-flex;
@@ -47,8 +42,6 @@ export const StyledHeaderActionButton = styled.button<{ $primary?: boolean; $dan
 export const StyledHeaderCloseButton = styled(CloseIconButton)`
     flex-shrink: 0;
 `;
-
-/* ── Info section ── */
 
 export const StyledInfo = styled.div`
     padding: 8px;
@@ -119,7 +112,115 @@ export const StyledPointInfo = styled.div`
     color: var(--brand-color);
 `;
 
-/* ── Memo section ── */
+export const StyledNotesSection = styled.div`
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--light-gray-color);
+
+    h4 {
+        margin: 0;
+        font-size: 14px;
+        font-weight: 600;
+    }
+`;
+
+export const StyledNoteList = styled.div`
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+`;
+
+export const StyledNoteItem = styled.div`
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+
+    strong {
+        font-size: 12px;
+        color: var(--dark-gray-color);
+    }
+
+    span {
+        font-size: 12px;
+        color: var(--dark-gray-color2);
+        white-space: pre-wrap;
+    }
+`;
+
+export const StyledNoteEditor = styled.div`
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+
+    label {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+    }
+
+    span {
+        font-size: 12px;
+        font-weight: 600;
+        color: var(--dark-gray-color);
+    }
+
+    input {
+        height: 34px;
+        padding: 0 10px;
+        border: 1px solid var(--light-gray-color);
+        border-radius: 8px;
+        font-size: 12px;
+        font-family: inherit;
+    }
+`;
+
+export const StyledReservationSection = styled.div`
+    flex: 1;
+    ${scrollHintStyle};
+`;
+
+export const StyledPointHistorySection = styled.div`
+    padding: 8px;
+    border-bottom: 1px solid var(--light-gray-color);
+
+    h4 {
+        margin: 0;
+        font-size: 14px;
+        font-weight: 600;
+    }
+`;
+
+export const StyledPointHistoryHeader = styled.div`
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 8px;
+`;
+
+export const StyledPointHistoryMoreButton = styled.button`
+    border: none;
+    background: none;
+    font-size: 12px;
+    color: var(--brand-color);
+    font-weight: 600;
+    padding: 0;
+`;
+
+export const StyledPointHistoryOverlay = styled(StyledOverlay)`
+    z-index: ${OVERLAY_Z_INDEX.confirm};
+`;
+
+export const StyledPointHistoryModal = styled(StyledDetail)`
+    width: min(360px, 90vw);
+    max-height: 70vh;
+`;
+
+export const StyledPointHistoryModalContent = styled.div`
+    ${scrollContentStyle};
+    padding: 8px;
+`;
 
 export const StyledAddressMemoSection = styled.div`
     display: flex;
@@ -200,41 +301,6 @@ export const StyledEditError = styled.p`
     color: var(--danger-color);
 `;
 
-export const StyledEmptyText = styled.p`
-    margin: 0;
-    font-size: 12px;
-    color: var(--dark-gray-color2);
-`;
-
-/* ── Point history section ── */
-
-export const StyledPointHistorySection = styled.div`
-    padding: 8px;
-    border-bottom: 1px solid var(--light-gray-color);
-
-    h4 {
-        margin: 0;
-        font-size: 14px;
-        font-weight: 600;
-    }
-`;
-
-export const StyledPointHistoryHeader = styled.div`
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    margin-bottom: 8px;
-`;
-
-export const StyledPointHistoryMoreButton = styled.button`
-    border: none;
-    background: none;
-    font-size: 12px;
-    color: var(--brand-color);
-    font-weight: 600;
-    padding: 0;
-`;
-
 export const StyledPointHistoryList = styled.ul`
     display: flex;
     flex-direction: column;
@@ -286,27 +352,10 @@ export const StyledPointHistoryMeta = styled.div`
     color: var(--dark-gray-color2);
 `;
 
-/* ── Point history modal ── */
-
-export const StyledPointHistoryOverlay = styled(StyledOverlay)`
-    z-index: ${OVERLAY_Z_INDEX.confirm};
-`;
-
-export const StyledPointHistoryModal = styled(StyledDetail)`
-    width: min(360px, 90vw);
-    max-height: 70vh;
-`;
-
-export const StyledPointHistoryModalContent = styled.div`
-    ${scrollContentStyle};
-    padding: 8px;
-`;
-
-/* ── Reservation section ── */
-
-export const StyledReservationSection = styled.div`
-    flex: 1;
-    ${scrollHintStyle};
+export const StyledEmptyText = styled.p`
+    margin: 0;
+    font-size: 12px;
+    color: var(--dark-gray-color2);
 `;
 
 export const StyledReservationScroll = styled.div`
@@ -337,8 +386,6 @@ export const StyledMoreButton = styled.button`
         }
     }
 `;
-
-/* ── Unmerge modal ── */
 
 export const StyledUnmergeOverlay = styled(StyledOverlay)`
     z-index: ${OVERLAY_Z_INDEX.confirm};
@@ -402,3 +449,4 @@ export const StyledUnmergeFooter = styled.div`
     padding: 10px 14px 14px;
     border-top: 1px solid rgba(148, 163, 184, 0.16);
 `;
+
