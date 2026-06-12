@@ -1,10 +1,27 @@
+import {useEffect, useState} from 'react';
+
 import Link from 'next/link';
+import {useRouter} from 'next/router';
 
 import styled from 'styled-components';
 
 import {SeoHead} from '../components/ui/SeoHead';
 
+const REDIRECT_SECONDS = 5;
+
 export default function Error404() {
+    const router = useRouter();
+    const [secondsLeft, setSecondsLeft] = useState(REDIRECT_SECONDS);
+
+    useEffect(() => {
+        if (secondsLeft <= 0) {
+            void router.replace('/');
+            return;
+        }
+        const timerId = setTimeout(() => setSecondsLeft((s) => s - 1), 1000);
+        return () => clearTimeout(timerId);
+    }, [secondsLeft, router]);
+
     return (
         <>
             <SeoHead title="페이지를 찾을 수 없습니다" />
@@ -13,12 +30,19 @@ export default function Error404() {
                     <StyledCode>404</StyledCode>
                     <StyledTitle>페이지를 찾을 수 없습니다</StyledTitle>
                     <StyledDesc>요청하신 페이지가 존재하지 않거나 이동되었습니다.</StyledDesc>
+                    <StyledRedirectNotice>{secondsLeft}초 후 홈으로 자동 이동합니다.</StyledRedirectNotice>
                     <StyledHomeLink href="/">홈으로 돌아가기</StyledHomeLink>
                 </StyledCard>
             </StyledPage>
         </>
     );
 }
+
+const StyledRedirectNotice = styled.p`
+    font-size: 12px;
+    color: var(--dark-gray-color2);
+    margin: 0;
+`;
 
 const StyledPage = styled.div`
     min-height: 100dvh;
