@@ -183,25 +183,7 @@ export const Aside = () => {
                         <ButtonText a11y={false}>고객추가</ButtonText>
                     </StyledCreateButton>
                     <StyledDivider />
-                    {isLoggedInStaff && (<>
-                        <StyledSubNavLink href="/address"
-                                          $active={router.pathname === '/address'}
-                                          onClick={closeMobile}>
-                            <StyledMenuContent>
-                                <MenuIcon icon="customers" />
-                                <span>고객 명단</span>
-                            </StyledMenuContent>
-                        </StyledSubNavLink>
-                        <StyledSubNavLink href="/mypage"
-                                          $active={router.pathname === '/mypage'}
-                                          onClick={closeMobile}>
-                            <StyledMenuContent>
-                                <MenuIcon icon="account" />
-                                <span>계정 관리</span>
-                            </StyledMenuContent>
-                        </StyledSubNavLink>
-                    </>)}
-                    {(isOwner || isGuest) && (<>
+                    <>
                         <StyledAccordionToggle type="button"
                                                onClick={() => setSettingsOpen(!settingsOpen)}>
                             <StyledMenuContent>
@@ -216,7 +198,12 @@ export const Aside = () => {
                             </StyledToggleIcon>
                         </StyledAccordionToggle>
                         <StyledAccordionContent $open={settingsOpen}>
-                            {SETTINGS_SUBMENU.filter((item) => !isGuest || item.tab !== 'member').map((item) =>
+                            {SETTINGS_SUBMENU.filter((item) => {
+                                if (isGuest && item.tab === 'member') return false;
+                                // 멤버(staff)는 기존 노출 항목(고객 명단·계정 관리)만 유지
+                                if (isLoggedInStaff && item.tab !== 'customers' && item.tab !== 'my') return false;
+                                return true;
+                            }).map((item) =>
                                 <StyledSubNavLink href={item.href}
                                                   $active={item.tab === 'my'
                                                       ? router.pathname === '/mypage'
@@ -232,7 +219,7 @@ export const Aside = () => {
                                 </StyledSubNavLink>
                             )}
                         </StyledAccordionContent>
-                    </>)}
+                    </>
                 </StyledNav>
                 <StyledDivider />
                 <StyledInquiryLink href="/inquiry"
