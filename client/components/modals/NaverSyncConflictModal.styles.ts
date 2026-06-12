@@ -1,14 +1,8 @@
 import styled from 'styled-components';
 
+import {OVERLAY_Z_INDEX, StyledDetail, StyledOverlay} from '../calendar/overlays/ModalStyles';
 import {LabelBadge} from '../ui/LabelBadge';
 import {ServiceChipList} from '../ui/ServiceChip';
-
-import {
-    OVERLAY_Z_INDEX,
-    StyledDetail,
-    StyledOverlay,
-} from '../calendar/overlays/ModalStyles';
-
 export const StyledConfirmOverlay = styled(StyledOverlay)`
     z-index: ${OVERLAY_Z_INDEX.supporting};
 `;
@@ -231,3 +225,4 @@ export const StyledUnresolvedActions = styled.div`
     gap: 8px;
     justify-content: center;
 `;
+
