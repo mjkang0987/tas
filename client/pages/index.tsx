@@ -84,7 +84,7 @@ const Home: NextPage<HomeProps> = (props) => {
     }, [selectedReservations, setCreateReservationInitial]);
 
     return (<>
-            <SeoHead title="Take a seat" />
+            <SeoHead title="예약, 네이버 예약, 고객 관리 시스템" />
             <StyledSection $isVisible={aside.isVisible}>
                 {curr && <Calendar/>}
             </StyledSection>
