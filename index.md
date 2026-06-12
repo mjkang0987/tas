@@ -58,7 +58,7 @@ hair_reservations/
 [^2]: 네이버 예약 시간 중복(conflict) 해결 모달. pending → deferred/confirmed 상태 전이
 [^3]: 동명이인·유사 고객 병합 제안 모달 (게스트 모드에서는 비활성)
 [^14]: Google/Kakao/Naver 계정 연결·해제. 타 계정 충돌 시 계정 병합(merge-preview→merge) 플로우 제공. 해제 확인 모달 포함
-[^15]: `/settings/naver` 탭. Google 연동 여부·오너 권한 체크, 동기화 상태 표시, 수동 동기화 버튼
+[^15]: `/settings/naver` 탭. Gmail 연동 상태(연동/해제/다른 계정으로 연동)·오너 권한 체크, 동기화 상태 표시, 수동 동기화 버튼, 연동 실패 안내 레이어
 [^16]: 설정 공통 styled-components — `StyledSettingsCard`, `StyledSettingsCardTitle`, `StyledSettingsHint`, `StyledEditBtn`, `StyledSaveBtn`, `StyledCancelBtn`, `StyledDeleteBtn`, `StyledSelect`
 [^17]: 멀티매장 전환 드롭다운. `/api/user/stores`로 멤버십 매장 목록 조회 → 선택 시 세션 `preferredStoreId` 갱신
 
@@ -126,7 +126,7 @@ hair_reservations/
 ### 인증 (`client/auth.ts`)
 
 NextAuth 5.0 설정. Google·Kakao·Naver OAuth 지원.
-- Google: `openid email profile gmail.readonly` 스코프 (Gmail API용)
+- Google: 기본 스코프(openid email profile)만 사용 — **로그인 전용**. Gmail 권한은 별도 연동 플로우(`/api/gmail/connect`)에서 요청
 - JWT 세션 전략
 - 로그인 시 `syncAuthUser()`로 DB 사용자 동기화 + 초대 코드 처리
 - 초대코드 없이 신규가입 시 새 매장(owner) 자동 생성 (`onboarded: true`)
@@ -165,7 +165,7 @@ NextAuth 5.0 설정. Google·Kakao·Naver OAuth 지원.
 | `backfill-reservation-prices.ts` | `/api/backfill-reservation-prices` | POST | - | 예약 가격 백필 |
 | `test-mode.ts` | `/api/test-mode` | POST | - | 테스트 모드 토글 |
 
-### 계정·멤버 API (`client/pages/api/` 직접 구현)
+### 계정·멤버 API (`server/api/account/`, `server/api/user/`, `server/api/{members,invites}.ts`)
 
 | 엔드포인트 | 메서드 | 권한 | 설명 |
 |-----------|-------|------|------|
@@ -189,7 +189,11 @@ NextAuth 5.0 설정. Google·Kakao·Naver OAuth 지원.
 |------|------|
 | `gmail-client.ts` | Gmail API 클라이언트[^11]. 이메일 목록 조회(`listNaverBookingEmails`), 본문 조회(`getEmailContent`) |
 | `naver-booking-parser.ts` | 네이버 예약 이메일 HTML 파싱[^12]. `NaverBookingData` 추출 (bookingId, customerName, designerName, date/time, services, deposit) |
-| `token-manager.ts` | Google OAuth 토큰 관리. 만료 시 refreshToken으로 자동 갱신 |
+| `token-manager.ts` | Gmail 연동 토큰 관리 (**GmailConnection** 테이블, 로그인 계정과 분리). 만료 시 refreshToken으로 자동 갱신 |
+| `connect.ts` | `/api/gmail/connect` (GET, owner) — Google OAuth 시작. 계정 선택 화면 강제(로그인 계정과 다른 Gmail 사용 가능) |
+| `oauth-callback.ts` | `/api/gmail/oauth-callback` (GET) — 코드 교환 → GmailConnection upsert. 실패 시 `/settings/naver?gmail=error&reason=…`로 리다이렉트 |
+| `status.ts` | `/api/gmail/status` (GET, 로그인) — 연동 여부·연동 이메일 |
+| `disconnect.ts` | `/api/gmail/disconnect` (POST, owner) — 연동 해제 |
 | `helpers.ts` | 네이버 결제 방법 매핑, 종료시간 계산, 동기화 타임스탬프(매월 1일부터) |
 
 [^11]: Rate limiting: 429 응답 시 15분 쿨다운. 배치 fetch (`EMAIL_FETCH_CONCURRENCY = 10`)
@@ -216,10 +220,10 @@ NextAuth 5.0 설정. Google·Kakao·Naver OAuth 지원.
 
 ---
 
-## DB 스키마 (`client/prisma/schema.prisma`) + Prisma 설정
+## DB 스키마 (`server/prisma/schema.prisma`) + Prisma 설정
 
-- **Prisma 7**: `prisma-client` generator, `./generated/prisma` output, driver adapter 필수
-- **`client/prisma.config.ts`**: datasource URL, migration 경로, seed 명령 설정 (dotenv로 환경변수 로드)
+- **Prisma 7**: `prisma-client` generator, output은 `client/prisma/generated/prisma` (빌드 산출물이라 패키지 루트인 client 내부에 유지), driver adapter 필수
+- **`client/prisma.config.ts`**: datasource URL, migration 경로, seed 명령 설정 (dotenv로 환경변수 로드). schema/migrations/seed는 `server/prisma/`를 가리킴 (Prisma CLI는 client에서 실행)
 - **`@prisma/adapter-pg`**: PostgreSQL driver adapter (`server/db/prisma.ts`에서 `PrismaPg` 사용)
 - import 경로: `../../client/prisma/generated/prisma/client` (generated 클라이언트)
 
@@ -235,7 +239,8 @@ Store ─┬── Customer ──── Reservation ──── ReservationPay
        │       └──────── Reservation (optional)
        │
        ├── Service
-       ├── Membership ── User ── AuthAccount (1유저 N프로바이더)
+       ├── Membership ── User ──┬─ AuthAccount (1유저 N프로바이더)
+       │                          └─ GmailConnection (1유저 1연동, 로그인 계정과 분리)
        ├── StoreBusinessHour (7일)
        ├── StoreClosedDate
        ├── StorePointSettings

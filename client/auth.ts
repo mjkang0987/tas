@@ -9,7 +9,6 @@ import Naver from 'next-auth/providers/naver';
 import {prisma} from '../server/db/prisma';
 import {resolveUserMembership} from '../server/auth/resolve-user-membership';
 import {syncAuthUser} from '../server/auth/sync-auth-user';
-import {saveGoogleTokens} from '../server/api/gmail/token-manager';
 
 type AuthRequestContext = {inviteCode?: string | null; linkUserId?: string | null};
 export const authRequestContext = new AsyncLocalStorage<AuthRequestContext>();
@@ -36,13 +35,6 @@ if (process.env.AUTH_GOOGLE_ID && !process.env.AUTH_GOOGLE_ID.startsWith('REPLAC
     providers.push(Google({
         clientId: process.env.AUTH_GOOGLE_ID,
         clientSecret: process.env.AUTH_GOOGLE_SECRET,
-        authorization: {
-            params: {
-                scope: 'openid email profile https://www.googleapis.com/auth/gmail.readonly',
-                access_type: 'offline',
-                prompt: 'consent',
-            },
-        },
     }));
 if (process.env.AUTH_KAKAO_ID && !process.env.AUTH_KAKAO_ID.startsWith('REPLACE'))
     providers.push(Kakao({
@@ -131,16 +123,6 @@ export const {handlers, auth, signIn, signOut} = NextAuth({
                     token.picture = syncedUser.image;
                     token.loginError = undefined;
                     token.pendingMerge = syncedUser.pendingMerge;
-
-                    if (account.provider === 'google' && account.access_token) {
-                        await saveGoogleTokens(syncedUser.id, {
-                            accessToken: account.access_token,
-                            refreshToken: account.refresh_token ?? null,
-                            expiresAt: account.expires_at
-                                ? new Date(account.expires_at * 1000)
-                                : null,
-                        });
-                    }
                 } catch (error) {
                     console.error('[auth] syncAuthUser failed:', error);
                     token.loginError = 'sync-error';

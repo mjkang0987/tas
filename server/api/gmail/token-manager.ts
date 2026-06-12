@@ -6,66 +6,87 @@ interface GoogleTokens {
     expiresAt: Date | null;
 }
 
-export async function saveGoogleTokens(userId: string, tokens: GoogleTokens): Promise<void> {
-    const data: Record<string, unknown> = {
+export async function saveGmailConnection(
+    userId: string,
+    email: string,
+    tokens: GoogleTokens,
+): Promise<void> {
+    const update: Record<string, unknown> = {
+        email,
         accessToken: tokens.accessToken,
         tokenExpiresAt: tokens.expiresAt,
     };
 
+    // refresh 토큰은 재동의 없이는 다시 내려오지 않으므로 값이 있을 때만 갱신
     if (tokens.refreshToken) {
-        data.refreshToken = tokens.refreshToken;
+        update.refreshToken = tokens.refreshToken;
     }
 
-    await prisma.authAccount.update({
-        where: {userId_provider: {userId, provider: 'google'}},
-        data,
+    await prisma.gmailConnection.upsert({
+        where: {userId},
+        update,
+        create: {
+            userId,
+            email,
+            accessToken: tokens.accessToken,
+            refreshToken: tokens.refreshToken,
+            tokenExpiresAt: tokens.expiresAt,
+        },
     });
 }
 
-type TokenFailReason = 'not_google' | 'no_refresh_token' | 'token_expired';
-
-export async function getValidAccessToken(userId: string): Promise<string | null> {
-    const result = await getValidAccessTokenWithReason(userId);
-    return result.token;
+export async function getGmailConnection(userId: string): Promise<{email: string} | null> {
+    const connection = await prisma.gmailConnection.findUnique({
+        where: {userId},
+        select: {email: true},
+    });
+    return connection;
 }
 
+export async function deleteGmailConnection(userId: string): Promise<void> {
+    await prisma.gmailConnection.deleteMany({where: {userId}});
+}
+
+type TokenFailReason = 'not_connected' | 'no_refresh_token' | 'token_expired';
+
 export async function getValidAccessTokenWithReason(userId: string): Promise<{token: string | null; reason: TokenFailReason | null}> {
-    const account = await prisma.authAccount.findUnique({
-        where: {userId_provider: {userId, provider: 'google'}},
+    const connection = await prisma.gmailConnection.findUnique({
+        where: {userId},
         select: {
-            provider: true,
             accessToken: true,
             refreshToken: true,
             tokenExpiresAt: true,
         },
     });
 
-    if (!account || account.provider !== 'google' || !account.accessToken) {
-        return {token: null, reason: 'not_google'};
+    if (!connection || !connection.accessToken) {
+        return {token: null, reason: 'not_connected'};
     }
 
     const now = new Date();
     const bufferMs = 60_000;
-    const isExpired = account.tokenExpiresAt
-        && account.tokenExpiresAt.getTime() - bufferMs < now.getTime();
+    const isExpired = connection.tokenExpiresAt
+        && connection.tokenExpiresAt.getTime() - bufferMs < now.getTime();
 
     if (!isExpired) {
-        return {token: account.accessToken, reason: null};
+        return {token: connection.accessToken, reason: null};
     }
 
-    if (!account.refreshToken) {
+    if (!connection.refreshToken) {
         return {token: null, reason: 'no_refresh_token'};
     }
 
-    const refreshed = await refreshAccessToken(account.refreshToken);
+    const refreshed = await refreshAccessToken(connection.refreshToken);
     if (!refreshed) {
         return {token: null, reason: 'token_expired'};
     }
 
-    await saveGoogleTokens(userId, {
-        accessToken: refreshed.accessToken,
-        refreshToken: null,
-        expiresAt: refreshed.expiresAt,
+    await prisma.gmailConnection.update({
+        where: {userId},
+        data: {
+            accessToken: refreshed.accessToken,
+            tokenExpiresAt: refreshed.expiresAt,
+        },
     });
 
     return {token: refreshed.accessToken, reason: null};

@@ -3,6 +3,7 @@ import {useCallback, useEffect, useRef, useState} from 'react';
 import {useSession} from 'next-auth/react';
 
 import {useCalendarStore} from '../store/calendarStore';
+import {fetchGmailStatus} from '../lib/gmail-status';
 import {groupByDate} from '../utils/reservations';
 import {toCustomerMap} from '../utils/customers';
 import type {Reservation, ReservationHistoryEntry} from '../utils/reservations';
@@ -215,10 +216,25 @@ export function useNaverBookingSync() {
         setCurrentIndex(0);
     }, [session, reservationMap, addSyncNotifications]);
 
-    const isActive =
-        session?.user?.provider === 'google'
-        && (session.user.role === 'owner')
-        && !!session.user.storeId;
+    // Gmail 연동은 로그인 계정과 분리 — 연동 여부는 서버 상태로 판단
+    const [gmailConnected, setGmailConnected] = useState(false);
+    const canUseSync = session?.user?.role === 'owner' && !!session.user.storeId;
+
+    useEffect(() => {
+        if (!canUseSync) {
+            setGmailConnected(false);
+            return;
+        }
+        let cancelled = false;
+        fetchGmailStatus().then((status) => {
+            if (!cancelled) setGmailConnected(status.connected);
+        });
+        return () => {
+            cancelled = true;
+        };
+    }, [canUseSync]);
+
+    const isActive = canUseSync && gmailConnected;
 
     const sync = useCallback(async () => {
         if (!isActive) return;
