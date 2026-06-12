@@ -20,6 +20,16 @@
       "@prisma/client": [
         "./node_modules/@prisma/client"
       ],
+      "@prisma/client/*": [
+        "./node_modules/@prisma/client/*"
+      ],
+      "@prisma/adapter-pg": [
+        "./node_modules/@prisma/adapter-pg"
+      ],
+      "nodemailer": [
+        "./node_modules/@types/nodemailer",
+        "./node_modules/nodemailer"
+      ],
       "next": [
         "./node_modules/next"
       ],
