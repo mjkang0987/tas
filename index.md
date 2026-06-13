@@ -9,7 +9,9 @@
 ```
 hair_reservations/
 ├── client/          # 프론트엔드 (Next.js 앱, pages/api 라우트 포함)
-├── server/          # 백엔드 (API 핸들러 + DB + Auth)
+│   ├── pages/       # 라우팅 (pages 라우터). 실제 화면 전부
+│   └── app/         # app 라우터 — NextAuth route handler + 전역 not-found(404)만
+├── server/          # 백엔드 (API 핸들러 + DB + Auth + Prisma 자산)
 ├── docs/            # 문서
 ├── plan.md          # 게스트 데이터 마이그레이션(병합 플로우) 계획
 ├── CLAUDE.md        # 커밋 컨벤션 (한글, feat:/fix:/refactor: 등, 커밋 시 푸시 포함)
@@ -33,6 +35,8 @@ hair_reservations/
 | `/onboarding` | `onboarding/index.tsx` | 신규 매장 초기 설정 (로그인 사용자). 온보딩 완료자는 이전 페이지로 리다이렉트 |
 | `/onboarding/guest` | `onboarding/guest.tsx` | 게스트 온보딩 (index 컴포넌트 재사용, 경로로 분기) |
 | `/inquiry` | `inquiry.tsx` | 고객센터 문의·이력 조회 |
+| (404) | `pages/404.tsx` + `app/not-found.tsx` | 안내 페이지 + 5초 카운트다운 후 홈 자동 리다이렉트[^18] |
+| (500) | `pages/500.tsx` | 서버 오류 안내 페이지 |
 
 ### 미들웨어 (`client/proxy.ts`)
 
@@ -44,23 +48,26 @@ hair_reservations/
 | 폴더 | 역할 | 주요 파일 |
 |------|------|----------|
 | `calendar/views/` | 캘린더 뷰 (일/주/월/년/타임라인) | `Calendar.tsx`, `Day.tsx`, `Week.tsx`, `Month.tsx`, `Timeline.tsx`, `TimelineCluster.tsx`(중복예약 클러스터 — 디자이너 배지 표시) |
-| `calendar/overlays/` | 예약 생성·상세·수정 모달 | `ReservationCreate.tsx`, `ReservationDetail.tsx`, `ReservationDetailSections.tsx`, `CustomerDetail.tsx`, `ModalStyles.ts`(공통 모달 스타일) |
+| `calendar/overlays/` | 예약 생성·상세·수정 모달 | `ReservationCreate.tsx`(+`useReservationCreateForm.ts`/`ReservationCreateCustomerFields.tsx`), `ReservationDetail.tsx`(+`ReservationDetailSections`/`Header`/`FooterActions`/`PaymentLayer`/`ViewSection`, 순수 로직은 `reservationDetailUtils.ts`·타입은 `reservationDetailTypes.ts`), `CustomerDetail.tsx`(+`CustomerDetailSections.tsx`[^3a]), `ModalStyles.ts`(공통 모달 스타일·`OVERLAY_Z_INDEX`·접근성 훅), 컴포넌트별 `*.styles.ts` |
 | `calendar/service/` | 서비스 범례·필드 | `ServiceLegend.tsx`(시술 배지 디자인), `ServiceFields.tsx` |
-| `layout/` | 공통 레이아웃 | `Header.tsx`(디자이너 필터 base-select), `Aside.tsx`(역할별 설정 메뉴), `StoreSwitcher.tsx`[^17], `LayoutComponent.tsx`, `NaverSyncNotification.tsx`[^1], `NaverSyncConflictModal.tsx`[^2], `CustomerMergeSuggestionModal.tsx`[^3] |
+| `layout/` | 공통 레이아웃 | `Header.tsx`(디자이너 필터 base-select)+`HeaderSearchLayer.tsx`(고객 검색)+`Header.styles.ts`, `Aside.tsx`(역할별 설정 메뉴)+`AsideMenuIcon.tsx`(메뉴 아이콘)+`AsideGuestLogout.tsx`(게스트 로그아웃 확인)+`Aside.styles.ts`, `StoreSwitcher.tsx`[^17], `LayoutComponent.tsx`, `Footer.tsx`, `NaverSyncNotification.tsx`[^1](+`.styles.ts`) |
+| `modals/` | 전역 오버레이 (layout과 분리) | `NaverSyncConflictModal.tsx`[^2](+`.styles.ts`), `CustomerMergeSuggestionModal.tsx`[^3], `GuestMigrationLayer.tsx`(게스트→계정 병합 레이어) |
 | `onboarding/` | 온보딩 스텝 분리 | `OnboardingStep1~5.tsx`, `onboarding-types.ts`, `onboarding-step-styles.tsx` |
-| `settings/` | 설정 화면 섹션 | `StoreManageSection.tsx`, `ServiceManageSection.tsx`, `DesignerManageSection.tsx`, `PointManageSection.tsx`(+`PointSettingsTab`/`PointAdjustTab`/`PointHistoryTab`), `MemberSection.tsx`(+`.styles.ts`), `SNSLinkingSection.tsx`[^14], `NaverBookingSection.tsx`[^15], `settings-styles.ts`[^16] |
-| `settings/revenue/` | 매출 관리 | `RevenueSection.tsx`, `RevenueChartGrid.tsx`, `RevenueDailyList.tsx`, `RevenueDailyDetailModal.tsx` |
+| `settings/` | 설정 화면 섹션 | `StoreManageSection.tsx`, `ServiceManageSection.tsx`, `DesignerManageSection.tsx`, `PointManageSection.tsx`(+`PointSettingsTab`/`PointAdjustTab`/`PointHistoryTab`), `MemberSection.tsx`, `SNSLinkingSection.tsx`[^14], `NaverBookingSection.tsx`[^15], `settings-styles.ts`[^16]. 큰 섹션은 본체와 `*.styles.ts` 분리 |
+| `settings/revenue/` | 매출 관리 | `RevenueSection.tsx`(+`.styles.ts`, 순수 차트 로직은 `revenueChartUtils.ts`), `RevenueChartGrid.tsx`, `RevenueKpiGrid.tsx`, `RevenueFilters.tsx`, `RevenueMetricModal.tsx`, `RevenueReservationList.tsx`, `RevenueDailyList.tsx`, `RevenueDailyDetailModal.tsx`, `revenue-styles.ts`/`revenue-chart-styles.ts` |
 | `address/` | 고객 명단 | `AddressContent.tsx`, `AddressCustomerRow.tsx`, `AddressCustomerSummary.tsx`, `AddressCustomerRecharge.tsx` |
-| `ui/` | 공통 UI | `Buttons.tsx`, `Icons.tsx`, `PageHero.tsx`, `SeoHead.tsx`, `ServiceChip.tsx`, `DesignerLabel.tsx`/`ColorTag.tsx`(디자이너 색상 배지), `LabelBadge.tsx`(tone×shape 배지), `ReservationStatusBadge.ts`(예약 상태 배지), `ReservationInfoCard.tsx`, `GuestNotice.tsx`, `FieldError.tsx`, `FormControls.ts` |
+| `ui/` | 공통 UI | `Buttons.tsx`, `Icons.tsx`, `PageHero.tsx`, `SeoHead.tsx`, `ServiceChip.tsx`, `DesignerLabel.tsx`/`ColorTag.tsx`(디자이너 색상 배지), `LabelBadge.tsx`(tone×shape 배지), `ReservationStatusBadge.ts`(예약 상태 배지), `ReservationInfoCard.tsx`, `CsFooter.tsx`(고객센터 푸터 공통), `GuestNotice.tsx`, `FieldError.tsx`, `FormControls.ts` |
 | `account/` | 계정 관련 모달 | `AccountDeleteModal.tsx` |
 
 [^1]: 네이버 동기화 알림 벨 아이콘 + 알림 목록 패널. 미읽음 카운트는 `!read || (conflict && !confirmed)` 조건으로 계산
 [^2]: 네이버 예약 시간 중복(conflict) 해결 모달. pending → deferred/confirmed 상태 전이
 [^3]: 동명이인·유사 고객 병합 제안 모달 (게스트 모드에서는 비활성)
+[^3a]: 고객 상세의 하위 UI 분리 — 적립금 이력 아이템(`PointHistoryItem` 공용), 메모 태그 섹션, 이력 더보기 모달, 병합 분리 확인 모달
 [^14]: Google/Kakao/Naver 계정 연결·해제. 타 계정 충돌 시 계정 병합(merge-preview→merge) 플로우 제공. 해제 확인 모달 포함
 [^15]: `/settings/naver` 탭. Gmail 연동 상태(연동/해제/다른 계정으로 연동)·오너 권한 체크, 동기화 상태 표시, 수동 동기화 버튼, 연동 실패 안내 레이어
 [^16]: 설정 공통 styled-components — `StyledSettingsCard`, `StyledSettingsCardTitle`, `StyledSettingsHint`, `StyledEditBtn`, `StyledSaveBtn`, `StyledCancelBtn`, `StyledDeleteBtn`, `StyledSelect`
 [^17]: 멀티매장 전환 드롭다운. `/api/user/stores`로 멤버십 매장 목록 조회 → 선택 시 세션 `preferredStoreId` 갱신
+[^18]: app 라우터에 `app/` 디렉터리(NextAuth route handler)가 있으면 잘못된 경로의 404를 app 라우터가 처리하므로, `app/not-found.tsx`(+최소 `app/layout.tsx`)에 디자인 가이드 동일 스타일 + 자동 리다이렉트를 구현. `pages/404.tsx`는 pages 라우터 폴백용으로 동일 UI 유지
 
 ### 도메인 모델 (`client/features/`)
 
@@ -117,10 +124,12 @@ hair_reservations/
 | `utils/revenue-export.ts` | 매출 Excel 내보내기 (xlsx) |
 | `utils/calendarDerived.ts` | 캘린더 파생 상태 |
 | `utils/timeRound.ts` | 시간 반올림 |
+| `utils/labels.ts` | 표시 라벨 공통 (`ROLE_LABELS` 오너/멤버, `PROVIDER_LABELS` Google/Kakao/Naver) |
 | `lib/page-data.ts` | SSR 페이지 데이터 로딩 |
 | `lib/local-db.ts` | 게스트 모드 로컬 DB (re-export from features) |
 | `lib/authz.ts` | 권한 관리 |
 | `lib/seo.ts` | SEO 상수 (`SITE_URL`, `SITE_TITLE`, OG/Twitter 메타값) |
+| `lib/gmail-status.ts` | Gmail 연동 상태 조회 (`/api/gmail/status`, 페이지 로드당 1회 캐시) |
 | `scripts/backfill-designer-legacyid.mjs` | 디자이너 null legacyId 백필 스크립트 (`--dry-run` 지원) |
 
 ### 인증 (`client/auth.ts`)
@@ -222,10 +231,12 @@ NextAuth 5.0 설정. Google·Kakao·Naver OAuth 지원.
 
 ## DB 스키마 (`server/prisma/schema.prisma`) + Prisma 설정
 
-- **Prisma 7**: `prisma-client` generator, output은 `client/prisma/generated/prisma` (빌드 산출물이라 패키지 루트인 client 내부에 유지), driver adapter 필수
-- **`client/prisma.config.ts`**: datasource URL, migration 경로, seed 명령 설정 (dotenv로 환경변수 로드). schema/migrations/seed는 `server/prisma/`를 가리킴 (Prisma CLI는 client에서 실행)
-- **`@prisma/adapter-pg`**: PostgreSQL driver adapter (`server/db/prisma.ts`에서 `PrismaPg` 사용)
+- **Prisma 7**: `prisma-client` generator, output은 `client/prisma/generated/prisma` (빌드 산출물이라 패키지 루트인 client 내부에 유지), `importFileExtension = "ts"`(생성 파일이 `.ts` 확장자), driver adapter 필수
+- **`client/prisma.config.ts`**: datasource URL, migration 경로, seed 명령 설정 (dotenv로 환경변수 로드). schema/migrations/seed/seed-data는 `server/prisma/`를 가리킴 (Prisma CLI는 client에서 실행)
+- **`@prisma/adapter-pg`**: PostgreSQL driver adapter (`server/db/prisma.ts`·seed 스크립트에서 `PrismaPg` 사용)
 - import 경로: `../../client/prisma/generated/prisma/client` (generated 클라이언트)
+- **마이그레이션**: `server/prisma/migrations/`. 빈 DB에서도 `prisma migrate deploy`로 전체 재생 가능(히스토리/`db push` 드리프트는 `202606120002_replay_drift_repair`가 멱등 구문으로 보정). 배포는 `pnpm prisma:deploy`, 시드는 `pnpm prisma:seed`(→`server/prisma/seed.mjs`)
+- **PostgreSQL 12+ 필요**: 일부 마이그레이션이 트랜잭션 내 `ALTER TYPE ... ADD VALUE IF NOT EXISTS` 사용
 
 ### 핵심 모델 관계
 
@@ -251,7 +262,7 @@ Store ─┬── Customer ──── Reservation ──── ReservationPay
 
 | Enum | 값 |
 |------|---|
-| `MembershipRole` | owner, staff (스키마 기준. DB enum에는 레거시 `manager` 값 잔존 — 사용 행 0건, 추후 마이그레이션으로 제거 예정) |
+| `MembershipRole` | owner, staff (`202606110001_simplify_roles`에서 enum 재생성으로 레거시 `manager` 제거 완료) |
 | `ReservationStatus` | active, completed, cancelled, noshow |
 | `ReservationChannel` | naver, walk_in, phone |
 | `DesignerStatus` | active, on_leave, resigned |
