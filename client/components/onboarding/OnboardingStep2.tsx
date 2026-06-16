@@ -71,7 +71,7 @@ export const OnboardingStep2 = ({localServices, mergedCategoryColors, onServices
     return (
         <>
             <StyledSectionNote>
-                <StyledHighlight>서비스 변경 샕 추가는 초기 매장 설정 완료 이후 언제든 가능합니다.</StyledHighlight>
+                <StyledHighlight>서비스 변경, 추가는 초기 매장 설정 완료 이후 언제든 가능합니다.</StyledHighlight>
                 <br/>업종별 기본 서비스 목록입니다.
             </StyledSectionNote>
 

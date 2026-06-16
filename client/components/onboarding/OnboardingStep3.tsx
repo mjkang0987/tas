@@ -63,7 +63,7 @@ export const OnboardingStep3 = ({localDesigners, onDesignersChange, onNext, onSk
     return (
         <>
             <StyledSectionNote>
-                <StyledHighlight>디자이너 변경 샕 추가는 초기 매장 설정 완료 이후 언제든 가능합니다.</StyledHighlight>
+                <StyledHighlight>디자이너 변경, 추가는 초기 매장 설정 완료 이후 언제든 가능합니다.</StyledHighlight>
                 <br/>디자이너를 등록하세요.
             </StyledSectionNote>
 
