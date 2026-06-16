@@ -19,6 +19,7 @@ import {AdBanner} from '../ad/AdBanner';
 import {CustomerAddModal} from '../address/CustomerAddModal';
 import {StoreSwitcher} from './StoreSwitcher';
 import {AsideGuestLogout} from './AsideGuestLogout';
+import {clearGuestEntryResolved, clearGuestTermsAgreed} from '../../lib/local-db';
 import {AsideMenuIcon, StyledMenuIcon} from './AsideMenuIcon';
 import {
     StyledAside,
@@ -262,6 +263,9 @@ export const Aside = () => {
                     <AsideGuestLogout onClose={() => setShowGuestLogout(false)}
                                       onConfirm={() => {
                                           localStorage.removeItem('takeaseat.local-db.v1');
+                                          // 데이터와 함께 게스트 약관 동의·진입 플래그도 초기화 (다음 게스트 시작 시 재동의)
+                                          clearGuestTermsAgreed();
+                                          clearGuestEntryResolved();
                                           router.push('/login');
                                       }} />
                 )}
