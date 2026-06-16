@@ -1,10 +1,10 @@
 import {useCallback, useEffect, useState} from 'react';
+import {createPortal} from 'react-dom';
 
 import Link from 'next/link';
-import {useRouter} from 'next/router';
 import {useSession} from 'next-auth/react';
 
-import styled from 'styled-components';
+import styled, {keyframes} from 'styled-components';
 
 import {StyledConfirmOverlay, StyledConfirmModal, StyledHeader, StyledModalContent} from '../calendar/overlays/ModalStyles';
 import {actionButtonStyle} from '../settings/settings-styles';
@@ -24,7 +24,6 @@ type StoreSwitcherProps = {
 
 export function StoreSwitcher({fallbackName, onNavigate}: StoreSwitcherProps) {
     const {data: session, update} = useSession();
-    const router = useRouter();
     const [stores, setStores] = useState<StoreEntry[]>([]);
     const [open, setOpen] = useState(false);
     const [switching, setSwitching] = useState(false);
@@ -59,8 +58,9 @@ export function StoreSwitcher({fallbackName, onNavigate}: StoreSwitcherProps) {
         if (storeId === currentStoreId || switching) return;
         setSwitching(true);
         setOpen(false);
+        // 세션 갱신(aside 변경)은 오버레이로 가린 뒤, 깨끗하게 hard reload
         await update({storeId});
-        router.reload();
+        window.location.reload();
     };
 
     return (
@@ -101,6 +101,14 @@ export function StoreSwitcher({fallbackName, onNavigate}: StoreSwitcherProps) {
                         </StyledModalContent>
                     </StyledConfirmModal>
                 </StyledConfirmOverlay>
+            )}
+
+            {switching && typeof document !== 'undefined' && document.getElementById('modal-root') && createPortal(
+                <StyledSwitchOverlay>
+                    <StyledSwitchSpinner />
+                    <StyledSwitchText>매장 전환 중...</StyledSwitchText>
+                </StyledSwitchOverlay>,
+                document.getElementById('modal-root')!,
             )}
         </StyledRow>
     );
@@ -186,6 +194,37 @@ const StyledCheckIcon = styled.svg`
     stroke-width: 2.5;
     stroke-linecap: round;
     stroke-linejoin: round;
+`;
+
+const switchSpin = keyframes`
+    to { transform: rotate(360deg); }
+`;
+
+const StyledSwitchOverlay = styled.div`
+    position: fixed;
+    inset: 0;
+    z-index: 10000;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 14px;
+    background: var(--white-color);
+`;
+
+const StyledSwitchSpinner = styled.div`
+    width: 36px;
+    height: 36px;
+    border: 3px solid var(--light-gray-color);
+    border-top-color: var(--brand-color);
+    border-radius: 50%;
+    animation: ${switchSpin} 0.6s linear infinite;
+`;
+
+const StyledSwitchText = styled.span`
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--dark-gray-color);
 `;
 
 const StyledFallbackLink = styled(Link)`
