@@ -83,6 +83,7 @@ export const Header = () => {
         markAllRead,
         currentConflict,
         currentConflictStatus,
+        currentConflictReason,
         advanceConflict,
         deferConflict,
         dismissConflicts,
@@ -105,6 +106,9 @@ export const Header = () => {
 
     const customerMap = useCalendarStore((s) => s.customerMap);
     const openCustomerDetail = useCalendarStore((s) => s.openCustomerDetail);
+    const updateReservation = useCalendarStore((s) => s.updateReservation);
+    const cancelReservation = useCalendarStore((s) => s.cancelReservation);
+    const restoreReservation = useCalendarStore((s) => s.restoreReservation);
     const [headerReservations, setHeaderReservations] = useState<Reservation[]>([]);
 
     const handleHeaderReservationClick = useCallback((reservation: Reservation) => {
@@ -281,6 +285,7 @@ export const Header = () => {
             {currentConflict && (
                 <NaverSyncConflictModal conflict={currentConflict}
                                         isConfirmed={currentConflictStatus === 'confirmed'}
+                                        reason={currentConflictReason}
                                         onAdvance={advanceConflict}
                                         onDefer={deferConflict}
                                         onDismiss={dismissConflicts}
@@ -303,14 +308,17 @@ export const Header = () => {
                                    history={[]}
                                    onClose={() => setHeaderReservations((prev) => prev.filter((r) => r.id !== reservation.id))}
                                    onCustomerClick={openCustomerDetail}
-                                   onUpdate={(_prev, updated) => {
-                                       setHeaderReservations((prev) => prev.map((r) => r.id === updated.id ? updated : r));
+                                   onUpdate={(prev, updated) => {
+                                       updateReservation(prev, updated);
+                                       setHeaderReservations((list) => list.map((r) => r.id === updated.id ? updated : r));
                                    }}
-                                   onCancel={(res) => {
-                                       setHeaderReservations((prev) => prev.filter((r) => r.id !== res.id));
+                                   onCancel={(res, status) => {
+                                       cancelReservation(res, status);
+                                       setHeaderReservations((list) => list.filter((r) => r.id !== res.id));
                                    }}
                                    onRestore={(res) => {
-                                       setHeaderReservations((prev) => prev.filter((r) => r.id !== res.id));
+                                       restoreReservation(res);
+                                       setHeaderReservations((list) => list.filter((r) => r.id !== res.id));
                                    }} />
             ))}
             {isSearchOpen && <HeaderSearchLayer onClose={() => setIsSearchOpen(false)} />}
