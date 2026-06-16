@@ -2,8 +2,8 @@ import {useRouter} from 'next/router';
 
 import styled from 'styled-components';
 
-import {SeoHead} from '../components/ui/SeoHead';
 import {PageHero} from '../components/ui/PageHero';
+import {SeoHead} from '../components/ui/SeoHead';
 
 export default function PrivacyPage() {
     const router = useRouter();
