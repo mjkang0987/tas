@@ -42,6 +42,7 @@ import {
     StyledInquiryLink,
     StyledAsideAd,
     StyledToggleIcon,
+    StyledLegalLinks,
 } from './Aside.styles';
 
 const SETTINGS_SUBMENU = [
@@ -256,6 +257,11 @@ export const Aside = () => {
                     <AuthActionIcon direction="logout" />
                     <span>로그아웃</span>
                 </StyledLogoutButton>
+                <StyledLegalLinks>
+                    <Link href="/terms" onClick={closeMobile}>이용약관</Link>
+                    <span aria-hidden="true">·</span>
+                    <Link href="/privacy" onClick={closeMobile}>개인정보처리방침</Link>
+                </StyledLegalLinks>
                 {showCustomerAdd && (
                     <CustomerAddModal onClose={() => setShowCustomerAdd(false)} />
                 )}

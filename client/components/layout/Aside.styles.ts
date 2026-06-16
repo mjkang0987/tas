@@ -325,8 +325,7 @@ export const StyledAsideAd = styled.div`
 
     @media (max-width: 640px) {
         display: none;
-    }
-`;
+    }`;
 
 export const StyledToggleIcon = styled.span<{ $collapsed: boolean }>`
     display: inline-flex;
@@ -344,5 +343,32 @@ export const StyledToggleIcon = styled.span<{ $collapsed: boolean }>`
         stroke-width: 2;
         stroke-linecap: round;
         stroke-linejoin: round;
+    }
+`;
+
+export const StyledLegalLinks = styled.div`
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    flex-shrink: 0;
+    padding: 6px 10px 2px;
+    font-size: var(--tiny-font);
+
+    a {
+        color: var(--aside-text);
+        text-decoration: none;
+        opacity: 0.55;
+        white-space: nowrap;
+        transition: opacity 0.1s;
+
+        @media (hover: hover) and (pointer: fine) {
+            &:hover { opacity: 0.9; text-decoration: underline; }
+        }
+    }
+
+    span {
+        color: var(--aside-text);
+        opacity: 0.35;
     }
 `;
