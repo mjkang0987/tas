@@ -30,10 +30,14 @@ const nextConfig = {
         root: path.resolve('..'),
     },
     async rewrites() {
-        return asides.map((aside) => ({
-            source: `/${aside}/:path*`,
-            destination: '/',
-        }));
+        return [
+            ...asides.map((aside) => ({
+                source: `/${aside}/:path*`,
+                destination: '/',
+            })),
+            // /consent/<돌아갈 경로> → consent 페이지 (쿼리스트링 대신 슬래시 경로)
+            {source: '/consent/:slug*', destination: '/consent'},
+        ];
     },
 };
 

@@ -74,6 +74,41 @@ export function clearGuestTermsAgreed(): void {
     localStorage.removeItem(GUEST_TERMS_KEY);
 }
 
+// 실제 게스트 이용 데이터(온보딩 완료 또는 고객/예약/디자이너/서비스)가 있는지
+export function hasGuestData(): boolean {
+    if (typeof window === 'undefined') return false;
+    const raw = window.localStorage.getItem(LOCAL_DB_KEY);
+    if (!raw) return false;
+    try {
+        const parsed = JSON.parse(raw) as Partial<LocalDbSnapshot>;
+        return parsed.onboarded === true
+            || (Array.isArray(parsed.customers) && parsed.customers.length > 0)
+            || (Array.isArray(parsed.reservations) && parsed.reservations.length > 0)
+            || (Array.isArray(parsed.designers) && parsed.designers.length > 0)
+            || (Array.isArray(parsed.services) && parsed.services.length > 0);
+    } catch {
+        return false;
+    }
+}
+
+// 게스트 진입(데이터 불러오기 여부)을 이번 세션에서 이미 결정했는지 — 중복 안내 방지
+const GUEST_ENTRY_RESOLVED_KEY = 'takeaseat.guest-entry-resolved';
+
+export function isGuestEntryResolved(): boolean {
+    if (typeof sessionStorage === 'undefined') return false;
+    return !!sessionStorage.getItem(GUEST_ENTRY_RESOLVED_KEY);
+}
+
+export function markGuestEntryResolved(): void {
+    if (typeof sessionStorage === 'undefined') return;
+    sessionStorage.setItem(GUEST_ENTRY_RESOLVED_KEY, '1');
+}
+
+export function clearGuestEntryResolved(): void {
+    if (typeof sessionStorage === 'undefined') return;
+    sessionStorage.removeItem(GUEST_ENTRY_RESOLVED_KEY);
+}
+
 export function loadLocalDbSnapshot(): LocalDbSnapshot {
     if (typeof window === 'undefined') {
         return createDefaultLocalDbSnapshot();

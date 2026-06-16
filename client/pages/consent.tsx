@@ -57,9 +57,10 @@ export default function ConsentPage() {
         // 게스트: localStorage에 동의 기록 (DB 계정 없음) 후 원래 가려던 곳으로 복귀
         if (isGuest) {
             setGuestTermsAgreed(CURRENT_TERMS_VERSION);
-            const rawNext = typeof router.query.next === 'string' ? router.query.next : null;
-            const safeNext = rawNext && rawNext.startsWith('/') && !rawNext.startsWith('//') ? rawNext : null;
-            router.replace(safeNext ?? getMonthEntryPath());
+            // 돌아갈 경로는 슬래시 경로(/consent/<경로>)에서 추출
+            const rest = router.asPath.slice('/consent'.length);
+            const next = rest.startsWith('/') && !rest.startsWith('//') ? rest : null;
+            router.replace(next ?? getMonthEntryPath());
             return;
         }
 
@@ -171,7 +172,7 @@ const StyledCard = styled.div`
     border-radius: var(--radius-lg);
     box-shadow: var(--shadow-md);
     width: 100%;
-    max-width: 380px;
+    max-width: 360px;
     box-sizing: border-box;
 
     @media (max-width: 640px) {
@@ -292,10 +293,10 @@ const StyledSecondaryButton = styled.button`
     width: 100%;
     margin-top: 10px;
     padding: 12px;
-    border: 1px solid var(--light-gray-color);
+    border: 1px solid var(--dark-gray-color2);
     border-radius: 8px;
     background-color: var(--white-color);
-    color: var(--dark-gray-color2);
+    color: var(--dark-gray-color);
     font-size: 14px;
     font-weight: 600;
     cursor: pointer;

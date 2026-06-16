@@ -9,7 +9,7 @@ import {GuestNotice} from '../../components/ui/GuestNotice';
 import {DEFAULT_SERVICES, SHOP_CATEGORY_COLOR_MAP} from '../../features/services/default-services';
 import type {ShopType} from '../../features/services/default-services';
 import {createDefaultSchedule, getDesignerColor} from '../../utils/designers';
-import {loadLocalDbSnapshot, saveLocalDbSnapshot} from '../../lib/local-db';
+import {createDefaultLocalDbSnapshot, loadLocalDbSnapshot, saveLocalDbSnapshot} from '../../lib/local-db';
 import type {ServiceItem} from '../../utils/services';
 import {SeoHead} from '../../components/ui/SeoHead';
 import {ConfirmDialog} from '../../components/ui/ConfirmDialog';
@@ -127,7 +127,10 @@ const OnboardingPage: NextPage = () => {
 
         try {
             if (guest) {
-                const snapshot = loadLocalDbSnapshot();
+                // fresh=1: 기존 게스트 데이터를 불러오지 않고 새로 작성 (로그인 페이지에서 '아니오' 선택)
+                const snapshot = router.query.fresh === '1'
+                    ? createDefaultLocalDbSnapshot()
+                    : loadLocalDbSnapshot();
                 if (shopName.trim()) snapshot.storeName = shopName.trim();
                 snapshot.shopType = realShopTypes.length > 0 ? realShopTypes.join(',') : undefined;
                 snapshot.services = localServices;

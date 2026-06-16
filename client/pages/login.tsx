@@ -10,6 +10,10 @@ import styled from 'styled-components';
 
 import {AuthActionIcon} from '../components/ui/AuthActionIcon';
 import {SeoHead} from '../components/ui/SeoHead';
+import {ConfirmDialog} from '../components/ui/ConfirmDialog';
+import {LoadingOverlay} from '../components/ui/LoadingOverlay';
+import {getGuestTermsVersion, hasGuestData, markGuestEntryResolved} from '../lib/local-db';
+import {CURRENT_TERMS_VERSION} from '../utils/terms';
 
 type ProviderInfo = {id: string; label: string; bg: string; color: string; border: string};
 type LoginPageProps = {
@@ -61,6 +65,7 @@ export default function LoginPage({providerIds, isDatabaseConfigured, loginError
     const isAuthenticatedWithoutAccess = status === 'authenticated' && !hasAccess;
     const monthEntryPath = getMonthEntryPath();
     const [inviteCode, setInviteCode] = useState('');
+    const [showGuestLoad, setShowGuestLoad] = useState(false);
 
     const authError = typeof router.query.error === 'string' ? router.query.error : null;
 
@@ -92,16 +97,25 @@ export default function LoginPage({providerIds, isDatabaseConfigured, loginError
         void signIn(providerId, {callbackUrl: monthEntryPath});
     };
 
+    const startGuest = () => {
+        if (hasGuestData()) {
+            setShowGuestLoad(true);
+            return;
+        }
+        // 데이터 없음 → (미동의면) 약관 동의 먼저, 그다음 온보딩
+        markGuestEntryResolved();
+        if (getGuestTermsVersion() !== CURRENT_TERMS_VERSION) {
+            router.push('/consent/onboarding/guest');
+        } else {
+            router.push('/onboarding/guest');
+        }
+    };
+
     return (
         <StyledWrapper>
             <SeoHead title="로그인" />
             {status === 'loading' && (
-                <StyledLoadingOverlay>
-                    <StyledLoadingCard>
-                        <StyledSpinner aria-hidden="true"/>
-                        <span>로그인 상태 확인 중</span>
-                    </StyledLoadingCard>
-                </StyledLoadingOverlay>
+                <LoadingOverlay backdrop="blur" boxed size={30} zIndex={100} text="로그인 상태 확인 중" />
             )}
             <StyledCard>
                 <StyledTitle>TAS</StyledTitle>
@@ -144,7 +158,7 @@ export default function LoginPage({providerIds, isDatabaseConfigured, loginError
                         로그인 제공자가 설정되지 않았습니다. `AUTH_*` 환경변수를 확인해 주세요.
                     </StyledEmptyState>
                 )}
-                <StyledSecondaryButton type="button" onClick={() => router.push('/onboarding/guest')}>
+                <StyledSecondaryButton type="button" onClick={startGuest}>
                     <span>게스트로 사용하기</span>
                 </StyledSecondaryButton>
                 {!isDatabaseConfigured && (
@@ -164,6 +178,37 @@ export default function LoginPage({providerIds, isDatabaseConfigured, loginError
                     </StyledSecondaryButton>
                 )}
             </StyledCard>
+            {showGuestLoad && (
+                <ConfirmDialog
+                    title="이전 데이터 불러오기"
+                    message="게스트모드 데이터가 있습니다. 이전 데이터를 불러오시겠습니까?"
+                    confirmLabel="예"
+                    cancelLabel="아니오"
+                    showCloseButton={false}
+                    layerKey="guest-load"
+                    onConfirm={() => {
+                        markGuestEntryResolved();
+                        setShowGuestLoad(false);
+                        // 불러오기: 약관 미동의면 동의 먼저
+                        if (getGuestTermsVersion() !== CURRENT_TERMS_VERSION) {
+                            router.replace(`/consent${monthEntryPath}`);
+                        } else {
+                            router.replace(monthEntryPath);
+                        }
+                    }}
+                    onClose={() => {
+                        // 아니오: (미동의면) 약관 동의 먼저 → 새 온보딩 (완료 시 기존 로컬데이터 폐기)
+                        markGuestEntryResolved();
+                        setShowGuestLoad(false);
+                        const dest = '/onboarding/guest?fresh=1';
+                        if (getGuestTermsVersion() !== CURRENT_TERMS_VERSION) {
+                            router.push(`/consent${dest}`);
+                        } else {
+                            router.push(dest);
+                        }
+                    }}
+                />
+            )}
         </StyledWrapper>
     );
 }
@@ -266,53 +311,6 @@ const StyledButtonGroup = styled.div`
     flex-direction: column;
     gap: 12px;
     width: 100%;
-`;
-
-const StyledLoadingOverlay = styled.div`
-    position: fixed;
-    inset: 0;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: var(--overlay-padding);
-    background: transparent;
-    backdrop-filter: blur(var(--overlay-backdrop-blur));
-    box-sizing: border-box;
-    z-index: ${100};
-`;
-
-const StyledLoadingCard = styled.div`
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    gap: 12px;
-    width: 100%;
-    max-width: 300px;
-    padding: 20px 0;
-    background: rgba(255, 255, 255, 0.78);
-    backdrop-filter: var(--sticky-backdrop);
-    border: 1px solid var(--modal-border);
-    border-radius: var(--modal-radius);
-    box-shadow: var(--modal-shadow);
-    color: var(--dark-gray-color2);
-    font-size: 14px;
-    font-weight: 600;
-`;
-
-const StyledSpinner = styled.span`
-    width: 16px;
-    height: 16px;
-    border: 2px solid #dbe7ff;
-    border-top-color: #2d7ff9;
-    border-radius: 50%;
-    animation: loginSpin 0.8s linear infinite;
-
-    @keyframes loginSpin {
-        to {
-            transform: rotate(360deg);
-        }
-    }
 `;
 
 const StyledEmptyState = styled.p`

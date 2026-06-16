@@ -9,7 +9,7 @@ import type {
 } from 'next/app';
 
 import {SessionProvider, useSession} from 'next-auth/react';
-import styled, {keyframes} from 'styled-components';
+import styled from 'styled-components';
 
 import {GlobalStyle} from '../styles/globalStyle';
 import {useCalendarStore} from '../store/calendarStore';
@@ -18,13 +18,14 @@ import type {Designer} from '../utils/designers';
 import type {StoreSettings} from '../utils/storeSettings';
 import {groupByDate} from '../utils/reservations';
 import {toCustomerMap} from '../utils/customers';
-import {createDefaultLocalDbSnapshot, getGuestTermsVersion, loadLocalDbSnapshot, saveLocalDbSnapshot, setAuthenticated, shouldUseLocalDb} from '../lib/local-db';
+import {clearGuestEntryResolved, createDefaultLocalDbSnapshot, getGuestTermsVersion, hasGuestData, isGuestEntryResolved, loadLocalDbSnapshot, markGuestEntryResolved, saveLocalDbSnapshot, setAuthenticated, shouldUseLocalDb} from '../lib/local-db';
 import {CURRENT_TERMS_VERSION} from '../utils/terms';
 
 import LayoutComponent from '../components/layout/LayoutComponent';
 import {ToastContainer} from '../components/ui/ToastContainer';
 import {GuestMigrationLayer} from '../components/modals/GuestMigrationLayer';
 import {ConfirmDialog} from '../components/ui/ConfirmDialog';
+import {LoadingOverlay} from '../components/ui/LoadingOverlay';
 
 type AppContentProps = Pick<AppProps, 'Component' | 'pageProps'>;
 
@@ -73,6 +74,8 @@ function AppContent({Component, pageProps}: AppContentProps) {
     useEffect(() => {
         if (status === 'authenticated') {
             hadSessionRef.current = true;
+            // 로그인 상태에선 게스트 진입 플래그 불필요 → 비워서 로그아웃 후 잔존 방지
+            clearGuestEntryResolved();
         }
         if (status === 'unauthenticated' && hadSessionRef.current) {
             setSessionExpired(true);
@@ -138,45 +141,47 @@ function AppContent({Component, pageProps}: AppContentProps) {
         if (status === 'loading' || status === 'authenticated') return;
         const path = router.pathname;
 
-        if (path === '/login' || path === '/consent' || path === '/terms'
-            || path === '/privacy' || path === '/logout') return;
+        // 로그인 / 약관 문서는 자유 접근
+        if (path === '/login' || path === '/terms' || path === '/privacy' || path === '/logout') return;
 
-        // 게스트 시작(온보딩 진입) → 약관 미동의면 동의 먼저
-        if (path.startsWith('/onboarding')) {
-            if (getGuestTermsVersion() !== CURRENT_TERMS_VERSION) {
-                router.replace(`/consent?next=${encodeURIComponent(router.asPath)}`);
+        const consented = getGuestTermsVersion() === CURRENT_TERMS_VERSION;
+        // 게스트로 커밋(게스트 시작 버튼 누름=resolved, 또는 사용 데이터 있음)한 적이 있는지
+        const committed = hasGuestData() || isGuestEntryResolved();
+
+        // /consent·/onboarding: 게스트 시작 절차 없이 URL 직접 접근하면 로그인으로
+        if (path === '/consent' || path.startsWith('/onboarding')) {
+            if (!committed) {
+                router.replace('/login');
+                return;
+            }
+            // 온보딩 진입인데 약관 미동의면 동의 먼저
+            if (path.startsWith('/onboarding') && !consented) {
+                router.replace(`/consent${router.asPath}`);
             }
             return;
         }
 
-        // 그 외 앱 페이지 첫 진입 (마운트당 1회)
-        if (guestEntryHandledRef.current) return;
-        guestEntryHandledRef.current = true;
-
-        // raw를 직접 읽어 판정 (loadLocalDbSnapshot은 빈 키를 생성하는 부작용이 있어 사용하지 않음)
-        const raw = typeof window !== 'undefined'
-            ? window.localStorage.getItem('takeaseat.local-db.v1')
-            : null;
-        let hasGuestData = false;
-        if (raw) {
-            try {
-                const parsed = JSON.parse(raw);
-                hasGuestData = parsed.onboarded === true
-                    || (Array.isArray(parsed.customers) && parsed.customers.length > 0)
-                    || (Array.isArray(parsed.reservations) && parsed.reservations.length > 0)
-                    || (Array.isArray(parsed.designers) && parsed.designers.length > 0)
-                    || (Array.isArray(parsed.services) && parsed.services.length > 0);
-            } catch {
-                hasGuestData = false;
-            }
-        }
-
-        if (!hasGuestData) {
-            // 로컬 데이터 없음 → 로그인으로
+        // 로컬 데이터 없음 → 로그인으로 (아직 게스트로 커밋 안 함, 동의 불필요)
+        if (!hasGuestData()) {
             router.replace('/login');
             return;
         }
-        // 게스트 이용 데이터 있음 → 로그인 권유 안내
+
+        // 게스트 데이터 있음(=게스트로 사용 중)인데 미동의 → 어느 페이지든 동의 먼저
+        // (온보딩 건너뛰기 등으로 동의를 우회하는 경우의 backstop)
+        if (!consented) {
+            router.replace(`/consent${router.asPath}`);
+            return;
+        }
+
+        // 이하 "불러오기 안내"는 마운트당 1회만
+        if (guestEntryHandledRef.current) return;
+        guestEntryHandledRef.current = true;
+
+        // 이번 세션에 이미 결정했으면 다시 묻지 않고 그대로 사용
+        if (isGuestEntryResolved()) return;
+
+        // 데이터 있음 + 동의 완료 + 미결정 → 불러오기 안내
         setShowGuestEntry(true);
     }, [status, router]);
 
@@ -347,10 +352,22 @@ function AppContent({Component, pageProps}: AppContentProps) {
     }, [hasApiAccess, status, setStoreInfo, setStoreSettings, setReservationMap, setCustomerMap, setReservationHistory]);
 
     // 데이터(서비스·디자이너·예약)가 모두 준비될 때까지 오버레이로 가려 새로고침 플래시를 막음.
-    // bootDataReady류 상태는 SSR/첫 렌더 모두 false라 하이드레이션 불일치가 없음.
+    // SSR/첫 렌더 모두 status==='loading'이라 하이드레이션 불일치가 없음.
     const isAuthFlowPage = router.pathname.startsWith('/login') || router.pathname.startsWith('/onboarding')
         || router.pathname === '/consent' || router.pathname === '/terms' || router.pathname === '/privacy';
-    const isBooting = !isAuthFlowPage && !(servicesReady && designersReady && reservationsReady);
+    // 미인증 + 로컬데이터 없음 = /login 리다이렉트 대기 → 달력이 깜빡이지 않게 오버레이 유지
+    // (게이트가 데이터 없으면 resolved와 무관하게 /login으로 보내므로 동일 조건으로 맞춤)
+    const guestRedirectPending = status === 'unauthenticated' && !isAuthFlowPage && !hasGuestData();
+    const isBooting = !isAuthFlowPage && (
+        status === 'loading' || guestRedirectPending || !(servicesReady && designersReady && reservationsReady)
+    );
+    // 로딩바 하단 현재 상태 문구
+    const bootStatusText = status === 'loading' ? '로그인 상태 확인 중...'
+        : guestRedirectPending ? '로그인 페이지로 이동 중...'
+        : !servicesReady ? '서비스 정보를 불러오는 중...'
+        : !designersReady ? '디자이너 정보를 불러오는 중...'
+        : !reservationsReady ? '예약 정보를 불러오는 중...'
+        : '잠시만 기다려 주세요...';
 
     return (
         <>
@@ -359,9 +376,7 @@ function AppContent({Component, pageProps}: AppContentProps) {
                 <Component {...pageProps} />
             </LayoutComponent>
             {isBooting && (
-                <StyledBootOverlay>
-                    <StyledSpinner />
-                </StyledBootOverlay>
+                <LoadingOverlay backdrop="solid" zIndex={9998} text={bootStatusText} />
             )}
             <ToastContainer />
             {migrationData && (
@@ -380,10 +395,11 @@ function AppContent({Component, pageProps}: AppContentProps) {
                     showCloseButton={false}
                     layerKey="guest-entry"
                     onConfirm={() => {
+                        markGuestEntryResolved();
                         setShowGuestEntry(false);
                         // 약관 미동의 시 동의 먼저 (동의 후 원래 페이지로 복귀하며 로컬데이터 로드)
                         if (getGuestTermsVersion() !== CURRENT_TERMS_VERSION) {
-                            router.replace(`/consent?next=${encodeURIComponent(router.asPath)}`);
+                            router.replace(`/consent${router.asPath}`);
                         }
                     }}
                     onClose={() => { setShowGuestEntry(false); router.replace('/login'); }}
@@ -439,45 +455,8 @@ function RouteLoadingSpinner() {
 
     if (!loading) return null;
 
-    return (
-        <StyledOverlay>
-            <StyledSpinner />
-        </StyledOverlay>
-    );
+    return <LoadingOverlay backdrop="dim" zIndex={9999} />;
 }
-
-const spin = keyframes`
-    to { transform: rotate(360deg); }
-`;
-
-const StyledOverlay = styled.div`
-    position: fixed;
-    inset: 0;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background: rgba(255, 255, 255, 0.6);
-    z-index: 9999;
-`;
-
-const StyledSpinner = styled.div`
-    width: 36px;
-    height: 36px;
-    border: 3px solid var(--light-gray-color);
-    border-top-color: var(--blue-color);
-    border-radius: 50%;
-    animation: ${spin} 0.6s linear infinite;
-`;
-
-const StyledBootOverlay = styled.div`
-    position: fixed;
-    inset: 0;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background: var(--white-color);
-    z-index: 9998;
-`;
 
 const StyledSessionExpiredToast = styled.div`
     position: fixed;
