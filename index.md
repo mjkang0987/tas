@@ -36,8 +36,8 @@ hair_reservations/
 | `/onboarding/guest` | `onboarding/guest.tsx` | 게스트 온보딩 (index 컴포넌트 재사용, 경로로 분기) |
 | `/inquiry` | `inquiry.tsx` | 고객센터 문의·이력 조회 |
 | `/consent` (`/consent/:slug*`) | `consent.tsx` | 이용약관·개인정보처리방침 **동의 게이트**[^19]. 동의 후 원래 가려던 경로로 복귀 |
-| `/terms` | `terms.tsx` | 이용약관 본문 (공개) |
-| `/privacy` | `privacy.tsx` | 개인정보처리방침 본문 (공개) |
+| `/terms` | `terms.tsx` | 이용약관 페이지 (공개, 본문 준비 중) |
+| `/privacy` | `privacy.tsx` | 개인정보처리방침 페이지 (공개, 본문 준비 중) |
 | (404) | `pages/404.tsx` + `app/not-found.tsx` | 안내 페이지 + 5초 카운트다운 후 홈 자동 리다이렉트[^18] |
 | (500) | `pages/500.tsx` | 서버 오류 안내 페이지 |
 
@@ -83,7 +83,7 @@ hair_reservations/
 | `services/model.ts` | `ServiceItem` | name, durationMinutes, category, price |
 | `services/default-services.ts` | - | 업종(ShopType)별 기본 서비스·카테고리 색상 (온보딩용) |
 | `store-settings/model.ts` | `StoreSettings` | businessHours, closedDates, pointSettings(적립률, 충전규칙) |
-| `local-db/storage.ts` | - | 게스트 모드 로컬 스냅샷 (`takeaseat.local-db.v1`). `shouldUseLocalDb()`로 모드 판정 |
+| `local-db/storage.ts` | - | 게스트 모드 로컬 스냅샷 (`takeaseat.local-db.v1`). `shouldUseLocalDb()`로 모드 판정, 게스트 약관 동의 버전 헬퍼(`getGuestTermsVersion`/`setGuestTermsAgreed`) — `lib/local-db`로 re-export |
 
 [^4]: status: `active` · `completed` · `cancelled` · `noshow`
 [^5]: channel: `네이버예약` · `현장방문` · `전화예약`
@@ -129,7 +129,7 @@ hair_reservations/
 | `utils/calendarDerived.ts` | 캘린더 파생 상태 |
 | `utils/timeRound.ts` | 시간 반올림 |
 | `utils/labels.ts` | 표시 라벨 공통 (`ROLE_LABELS` 오너/멤버, `PROVIDER_LABELS` Google/Kakao/Naver) |
-| `utils/terms.ts` | 약관 동의 버전 상수 `CURRENT_TERMS_VERSION`(현재 `2026-06-16`) + 게스트 동의 헬퍼(`getGuestTermsVersion`/`setGuestTermsAgreed`) |
+| `utils/terms.ts` | 약관 동의 버전 상수 `CURRENT_TERMS_VERSION`(현재 `2026-06-16`) 정의 (게스트 동의 헬퍼는 `features/local-db/storage.ts`) |
 | `lib/page-data.ts` | SSR 페이지 데이터 로딩 |
 | `lib/local-db.ts` | 게스트 모드 로컬 DB (re-export from features) |
 | `lib/authz.ts` | 권한 관리 |
