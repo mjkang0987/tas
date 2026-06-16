@@ -218,6 +218,7 @@ export function useNaverBookingSync() {
 
     // Gmail 연동은 로그인 계정과 분리 — 연동 여부는 서버 상태로 판단
     const [gmailConnected, setGmailConnected] = useState(false);
+    const [conflictResolutions, setConflictResolutions] = useState<Record<string, {reason: string; memo?: string}>>({});
     const canUseSync = session?.user?.role === 'owner' && !!session.user.storeId;
 
     useEffect(() => {
@@ -235,6 +236,23 @@ export function useNaverBookingSync() {
     }, [canUseSync]);
 
     const isActive = canUseSync && gmailConnected;
+
+    useEffect(() => {
+        if (!isActive) return;
+        let cancelled = false;
+        fetch('/api/conflict-resolution')
+            .then((r) => r.ok ? r.json() : null)
+            .then((data: {resolutions?: Array<{conflictKey: string; reason: string; memo: string | null}>} | null) => {
+                if (cancelled || !data?.resolutions) return;
+                const map: Record<string, {reason: string; memo?: string}> = {};
+                for (const r of data.resolutions) {
+                    map[r.conflictKey] = {reason: r.reason, memo: r.memo ?? undefined};
+                }
+                setConflictResolutions(map);
+            })
+            .catch(() => {});
+        return () => {cancelled = true;};
+    }, [isActive]);
 
     const sync = useCallback(async () => {
         if (!isActive) return;
@@ -393,9 +411,23 @@ export function useNaverBookingSync() {
         ? (notifications.find((n) => n.type === 'conflict' && n.conflictKey === conflictKey(currentConflict))?.conflictStatus ?? 'pending')
         : null;
 
-    const advanceConflict = useCallback(() => {
+    const currentConflictReason = currentConflict
+        ? conflictResolutions[conflictKey(currentConflict)] ?? null
+        : null;
+
+    const advanceConflict = useCallback((reason?: string, memo?: string) => {
         if (currentConflict) {
             const key = conflictKey(currentConflict);
+            const trimmedReason = reason?.trim();
+            if (trimmedReason) {
+                const trimmedMemo = memo?.trim() || undefined;
+                setConflictResolutions((prev) => ({...prev, [key]: {reason: trimmedReason, memo: trimmedMemo}}));
+                fetch('/api/conflict-resolution', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({conflictKey: key, reason: trimmedReason, memo: trimmedMemo}),
+                }).catch(() => {});
+            }
             updateConflictNotificationStatus(key, 'confirmed');
             removeActiveConflictPair(key);
             // 확인 시 해당 알림 읽음 처리
@@ -508,6 +540,7 @@ export function useNaverBookingSync() {
         clearAll: clearSyncNotifications,
         currentConflict,
         currentConflictStatus,
+        currentConflictReason,
         advanceConflict,
         deferConflict,
         dismissConflicts,

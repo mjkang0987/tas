@@ -81,11 +81,7 @@ export const StyledGuideNotice = styled.p`
 export const StyledConflictCard = styled.div`
     display: flex;
     flex-direction: column;
-    gap: 8px;
-    padding: 12px;
-    border: 1px solid rgba(226, 232, 240, 0.9);
-    border-radius: var(--radius-md);
-    background: rgba(248, 250, 252, 0.5);
+    gap: 10px;
 
     & + & {
         margin-top: 12px;
@@ -102,12 +98,16 @@ export const StyledConflictLabel = styled(LabelBadge).attrs<{ $existing?: boolea
 
 export const StyledClickableInfo = styled.div`
     cursor: pointer;
-    border-radius: var(--radius-sm);
-    transition: background-color 0.14s ease;
+    padding: 10px 12px;
+    border: 1px solid var(--light-gray-color);
+    border-radius: var(--radius-md);
+    background: var(--white-color);
+    transition: background-color 0.14s ease, border-color 0.14s ease;
 
     @media (hover: hover) and (pointer: fine) {
         &:hover {
-            background-color: rgba(59, 130, 246, 0.06);
+            border-color: rgba(45, 127, 249, 0.25);
+            background-color: rgba(59, 130, 246, 0.04);
         }
     }
 `;
@@ -226,3 +226,86 @@ export const StyledUnresolvedActions = styled.div`
     justify-content: center;
 `;
 
+
+export const StyledConflictReservation = styled.div`
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+`;
+
+export const StyledConflictBadges = styled.div`
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+`;
+
+export const StyledReasonTitle = styled.div`
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--dark-gray-color);
+    margin-bottom: 8px;
+
+    span {
+        font-weight: 500;
+        color: var(--dark-gray-color2);
+    }
+`;
+
+export const StyledReasonList = styled.div`
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin-bottom: 10px;
+`;
+
+export const StyledReasonOption = styled.label`
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+    color: var(--dark-gray-color);
+    cursor: pointer;
+
+    input {
+        flex-shrink: 0;
+    }
+`;
+
+export const StyledReasonMemo = styled.textarea`
+    width: 100%;
+    min-height: 56px;
+    padding: 8px 10px;
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    font-size: 13px;
+    font-family: inherit;
+    resize: vertical;
+    box-sizing: border-box;
+    outline: none;
+
+    &:focus {
+        border-color: var(--brand-color);
+    }
+`;
+
+export const StyledReasonSummary = styled.div`
+    display: flex;
+    align-items: flex-start;
+    gap: 6px;
+    margin: 0 0 12px;
+    padding: 8px 10px;
+    border: 1px solid var(--info-border);
+    border-radius: var(--radius-md);
+    background: var(--info-bg);
+    color: var(--dark-gray-color);
+    font-size: 12px;
+    font-weight: 600;
+    line-height: 1.45;
+
+    &::before {
+        content: 'ⓘ';
+        color: var(--info-color);
+        font-weight: 700;
+        flex-shrink: 0;
+    }
+`;

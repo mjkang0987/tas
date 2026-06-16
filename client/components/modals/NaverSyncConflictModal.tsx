@@ -21,42 +21,46 @@ import {
     useLayerInstanceId,
 } from '../calendar/overlays/ModalStyles';
 import {CloseIconButton} from '../ui/CloseIconButton';
-import {DesignerLabel} from '../ui/DesignerLabel';
-import {LabelBadge} from '../ui/LabelBadge';
-import {ServiceChipList} from '../ui/ServiceChip';
+import {ReservationInfoCard} from '../ui/ReservationInfoCard';
+import {NaverBookingInfo} from '../ui/NaverBookingInfo';
 import {
     StyledConfirmOverlay,
-    StyledCustomerValue,
-    StyledServiceChipList,
-    StyledDesignerText,
     StyledConfirmModal,
     StyledScrollArea,
     StyledResolvedNotice,
     StyledGuideNotice,
     StyledConflictCard,
-    StyledConflictLabel,
     StyledClickableInfo,
-    StyledReservationDl,
-    StyledFieldLabel,
-    StyledInlineConflictBadge,
-    StyledDangerTime,
-    StyledDangerTimeRow,
-    StyledChangedTag,
+    StyledConflictReservation,
+    StyledConflictBadges,
     StyledCancelledWrapper,
     StyledUnresolvedOverlay,
     StyledUnresolvedDialog,
     StyledUnresolvedMessage,
     StyledUnresolvedActions,
+    StyledReasonTitle,
+    StyledReasonList,
+    StyledReasonOption,
+    StyledReasonMemo,
+    StyledReasonSummary,
 } from './NaverSyncConflictModal.styles';
 
 interface NaverSyncConflictModalProps {
     conflict: ConflictInfo;
     isConfirmed?: boolean;
-    onAdvance: () => void;
+    reason?: {reason: string; memo?: string} | null;
+    onAdvance: (reason?: string, memo?: string) => void;
     onDefer: () => void;
     onDismiss: () => void;
     onSelectReservation: (reservation: Reservation) => void;
 }
+
+const CONFLICT_REASON_PRESETS = [
+    '스마트플레이스에서 취소/변경 처리',
+    '실제 별개 예약 (중복 아님)',
+    '중복 입력 — 무시',
+    '기타',
+];
 
 function findCurrentReservation(reservationMap: ReservationMap, original: Reservation): Reservation | undefined {
     for (const reservations of Object.values(reservationMap)) {
@@ -101,6 +105,7 @@ function findAllOverlapping(reservationMap: ReservationMap, ...seeds: Reservatio
 export const NaverSyncConflictModal = ({
                                            conflict,
                                            isConfirmed = false,
+                                           reason,
                                            onAdvance,
                                            onDefer,
                                            onDismiss,
@@ -117,7 +122,9 @@ export const NaverSyncConflictModal = ({
     const categoryBaseColorMap = useCalendarStore((s) => s.categoryBaseColorMap);
     const serviceColorMap = buildServiceColorMap(serviceCatalog, categoryBaseColorMap);
 
-    const [showUnresolvedConfirm, setShowUnresolvedConfirm] = useState(false);
+    const [reasonOpen, setReasonOpen] = useState(false);
+    const [selectedReason, setSelectedReason] = useState('');
+    const [reasonMemo, setReasonMemo] = useState('');
 
     const modalRoot = document.getElementById('modal-root');
     if (!modalRoot) return null;
@@ -125,85 +132,37 @@ export const NaverSyncConflictModal = ({
     const getCustomerName = (r: Reservation) => customerMap[r.customerId]?.name ?? '고객';
     const getDesignerName = (r: Reservation) => designers.find((d) => d.id === r.designerId)?.name ?? '미지정';
     const getDesignerDotColor = (r: Reservation) => getDesignerColor(designers.find((d) => d.id === r.designerId));
-    const formatTime = (r: Reservation) => `${r.startTime} ~ ${r.endTime}`;
 
-    const getChangedFields = (original: Reservation, current: Reservation): Set<string> => {
-        const changed = new Set<string>();
-        if (original.date !== current.date) changed.add('date');
-        if (original.startTime !== current.startTime || original.endTime !== current.endTime) changed.add('time');
-        if (original.service !== current.service) changed.add('service');
-        if (original.designerId !== current.designerId) changed.add('designer');
-        return changed;
-    };
-
-    const renderChangedTag = (field: string, changedFields: Set<string>) => {
-        if (!changedFields.has(field)) return null;
-        return <StyledChangedTag>(변경)</StyledChangedTag>;
-    };
-
-    const getChannelLabel = (r: Reservation) => {
-        if (r.channel === '네이버예약') return '네이버예약';
-        if (r.channel === '현장방문') return '현장방문';
-        return '전화예약';
-    };
-
-    const renderReservation = (reservation: Reservation, isDangerTime: boolean, isDangerDesigner: boolean, changedFields: Set<string>) => {
+    const renderReservation = (reservation: Reservation, isDangerTime: boolean, isDangerDesigner: boolean) => {
         return (
-            <StyledReservationDl>
-                <dt>예약경로</dt>
-                <dd>
-                    <StyledConflictLabel $existing={reservation.channel !== '네이버예약'}>{getChannelLabel(reservation)}</StyledConflictLabel>
-                </dd>
-
-                <dt>고객명</dt>
-                <dd>
-                    <StyledCustomerValue>{getCustomerName(reservation)}</StyledCustomerValue>
-                </dd>
-
-                <dt>날짜 {renderChangedTag('date', changedFields)}</dt>
-                <dd>{reservation.date}</dd>
-
-                <StyledFieldLabel>
-                    <span>시간</span>
-                    {renderChangedTag('time', changedFields)}
-                </StyledFieldLabel>
-                <dd>
-                    {isDangerTime ? (
-                        <StyledDangerTimeRow>
-                            <StyledDangerTime>{formatTime(reservation)}</StyledDangerTime>
-                            <StyledStatusBadge $variant="danger">중복</StyledStatusBadge>
-                        </StyledDangerTimeRow>
-                    ) : (
-                        formatTime(reservation)
-                    )}
-                </dd>
-
-                <dt>서비스 {renderChangedTag('service', changedFields)}</dt>
-                <dd>
-                    <StyledServiceChipList service={reservation.service}
-                                           serviceColorMap={serviceColorMap}
-                                           keyPrefix={reservation.id} />
-                </dd>
-
-                <StyledFieldLabel>
-                    <span>디자이너</span>
-                    {renderChangedTag('designer', changedFields)}
-                </StyledFieldLabel>
-                <dd>
-                    {isDangerDesigner ? (
-                        <StyledDangerTimeRow>
-                            <StyledDesignerText>
-                                <DesignerLabel color={getDesignerDotColor(reservation)}
-                                               name={getDesignerName(reservation)} />
-                            </StyledDesignerText>
-                            <StyledStatusBadge $variant="danger">중복</StyledStatusBadge>
-                        </StyledDangerTimeRow>
-                    ) : (
-                        <DesignerLabel color={getDesignerDotColor(reservation)}
-                                       name={getDesignerName(reservation)} />
-                    )}
-                </dd>
-            </StyledReservationDl>
+            <StyledConflictReservation>
+                {(isDangerTime || isDangerDesigner) && (
+                    <StyledConflictBadges>
+                        {isDangerTime && (
+                            <StyledStatusBadge $variant="danger">
+                                시간 중복 {reservation.startTime}~{reservation.endTime}
+                            </StyledStatusBadge>
+                        )}
+                        {isDangerDesigner && (
+                            <StyledStatusBadge $variant="danger">
+                                디자이너 중복 {getDesignerName(reservation)}
+                            </StyledStatusBadge>
+                        )}
+                    </StyledConflictBadges>
+                )}
+                <ReservationInfoCard
+                    reservation={reservation}
+                    serviceColorMap={serviceColorMap}
+                    designerColor={getDesignerDotColor(reservation)}
+                    designerName={getDesignerName(reservation)}
+                    customerName={getCustomerName(reservation)}
+                    showDate
+                    showPrice
+                    showStatus
+                    timeMode="range"
+                />
+                {reservation.naverBookingId && <NaverBookingInfo reservation={reservation} />}
+            </StyledConflictReservation>
         );
     };
 
@@ -232,8 +191,6 @@ export const NaverSyncConflictModal = ({
 
     const isCancelledNew = currentNew.status === 'cancelled' || currentNew.status === 'noshow';
     const isCancelledExisting = currentExisting.status === 'cancelled' || currentExisting.status === 'noshow';
-    const changedFieldsNew = getChangedFields(conflict.newReservation, currentNew);
-    const changedFieldsExisting = getChangedFields(conflict.existingReservation, currentExisting);
 
     // 변경사항 감지: 원본 vs 현재
     const resolvedChanges: Array<{ reservation: Reservation; lines: string[] }> = [];
@@ -265,12 +222,22 @@ export const NaverSyncConflictModal = ({
     // 원래 pair에 포함되지 않은 추가 겹침 예약
     const extraOverlapping = allOverlapping.filter((r) => r.id !== currentNew.id && r.id !== currentExisting.id);
 
+    // 레이어가 뜬 이유 한 줄 요약 (원래 충돌 pair 기준)
+    const overlapStart = conflict.newReservation.startTime > conflict.existingReservation.startTime
+        ? conflict.newReservation.startTime
+        : conflict.existingReservation.startTime;
+    const overlapEnd = conflict.newReservation.endTime < conflict.existingReservation.endTime
+        ? conflict.newReservation.endTime
+        : conflict.existingReservation.endTime;
+    const conflictSummary = `${getDesignerName(conflict.newReservation)} 디자이너, ${conflict.newReservation.date} ${overlapStart}~${overlapEnd}에 ${getCustomerName(conflict.newReservation)}·${getCustomerName(conflict.existingReservation)}님 예약이 겹쳤습니다`;
+
     const handleAdvanceClick = () => {
-        if (isUnresolved) {
-            setShowUnresolvedConfirm(true);
-            return;
-        }
-        onAdvance();
+        setReasonOpen(true);
+    };
+
+    const handleReasonConfirm = () => {
+        setReasonOpen(false);
+        onAdvance(selectedReason || undefined, reasonMemo || undefined);
     };
 
     return createPortal(
@@ -291,6 +258,7 @@ export const NaverSyncConflictModal = ({
                 </StyledHeader>
                 <StyledScrollArea>
                     <StyledModalContent>
+                        <StyledReasonSummary>{conflictSummary}</StyledReasonSummary>
                         {isConflictDismissed && (
                             <StyledResolvedNotice>
                                 {cancelledReservations.map(({reservation, statusLabel}) => (
@@ -320,19 +288,28 @@ export const NaverSyncConflictModal = ({
                                 ))}
                             </StyledResolvedNotice>
                         )}
+                        {reason && (
+                            <StyledResolvedNotice>
+                                <strong className="notice-title">처리 사유</strong>
+                                <ul className="notice-list">
+                                    <li className="notice-item">{reason.reason}</li>
+                                    {reason.memo && <li className="notice-item">메모: {reason.memo}</li>}
+                                </ul>
+                            </StyledResolvedNotice>
+                        )}
                         <StyledGuideNotice>
                             네이버예약의 실제 변경/취소는 스마트플레이스 통해서 가능합니다.
                         </StyledGuideNotice>
                         <StyledConflictCard>
                             <StyledCancelledWrapper $cancelled={isCancelledNew}>
                                 <StyledClickableInfo onClick={() => onSelectReservation(currentNew)}>
-                                    {renderReservation(currentNew, stillOverlapping, sameDesigner, changedFieldsNew)}
+                                    {renderReservation(currentNew, stillOverlapping, sameDesigner)}
                                 </StyledClickableInfo>
                             </StyledCancelledWrapper>
 
                             <StyledCancelledWrapper $cancelled={isCancelledExisting}>
                                 <StyledClickableInfo onClick={() => onSelectReservation(currentExisting)}>
-                                    {renderReservation(currentExisting, stillOverlapping, sameDesigner, changedFieldsExisting)}
+                                    {renderReservation(currentExisting, stillOverlapping, sameDesigner)}
                                 </StyledClickableInfo>
                             </StyledCancelledWrapper>
 
@@ -341,7 +318,7 @@ export const NaverSyncConflictModal = ({
                                 return (
                                     <StyledCancelledWrapper key={extra.id} $cancelled={isCancelledExtra}>
                                         <StyledClickableInfo onClick={() => onSelectReservation(extra)}>
-                                            {renderReservation(extra, stillOverlapping, sameDesigner, new Set())}
+                                            {renderReservation(extra, stillOverlapping, sameDesigner)}
                                         </StyledClickableInfo>
                                     </StyledCancelledWrapper>
                                 );
@@ -358,19 +335,33 @@ export const NaverSyncConflictModal = ({
                                             onClick={handleAdvanceClick}>확인</StyledActionButton>
                     </>}
                 </StyledFooter>
-                {showUnresolvedConfirm && (
+                {reasonOpen && (
                     <StyledUnresolvedOverlay>
                         <StyledUnresolvedDialog>
-                            <StyledUnresolvedMessage>
-                                예약 중복이 수정되지 않았습니다.<br />
-                                확인처리 하시겠습니까?
-                            </StyledUnresolvedMessage>
+                            {isUnresolved && (
+                                <StyledUnresolvedMessage>예약 중복이 수정되지 않았습니다.</StyledUnresolvedMessage>
+                            )}
+                            <StyledReasonTitle>처리 사유 <span>(선택)</span></StyledReasonTitle>
+                            <StyledReasonList>
+                                {CONFLICT_REASON_PRESETS.map((preset) => (
+                                    <StyledReasonOption key={preset}>
+                                        <input type="radio"
+                                               name="conflict-reason"
+                                               checked={selectedReason === preset}
+                                               onChange={() => setSelectedReason(preset)} />
+                                        <span>{preset}</span>
+                                    </StyledReasonOption>
+                                ))}
+                            </StyledReasonList>
+                            <StyledReasonMemo placeholder="메모 (선택)"
+                                              value={reasonMemo}
+                                              onChange={(e) => setReasonMemo(e.target.value)} />
                             <StyledUnresolvedActions>
                                 <StyledActionButton type="button"
-                                                    onClick={() => setShowUnresolvedConfirm(false)}>취소</StyledActionButton>
+                                                    onClick={() => setReasonOpen(false)}>취소</StyledActionButton>
                                 <StyledActionButton type="button"
                                                     $primary
-                                                    onClick={() => { setShowUnresolvedConfirm(false); onAdvance(); }}>확인</StyledActionButton>
+                                                    onClick={handleReasonConfirm}>확인</StyledActionButton>
                             </StyledUnresolvedActions>
                         </StyledUnresolvedDialog>
                     </StyledUnresolvedOverlay>
