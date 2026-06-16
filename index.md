@@ -35,6 +35,9 @@ hair_reservations/
 | `/onboarding` | `onboarding/index.tsx` | 신규 매장 초기 설정 (로그인 사용자). 온보딩 완료자는 이전 페이지로 리다이렉트 |
 | `/onboarding/guest` | `onboarding/guest.tsx` | 게스트 온보딩 (index 컴포넌트 재사용, 경로로 분기) |
 | `/inquiry` | `inquiry.tsx` | 고객센터 문의·이력 조회 |
+| `/consent` (`/consent/:slug*`) | `consent.tsx` | 이용약관·개인정보처리방침 **동의 게이트**[^19]. 동의 후 원래 가려던 경로로 복귀 |
+| `/terms` | `terms.tsx` | 이용약관 본문 (공개) |
+| `/privacy` | `privacy.tsx` | 개인정보처리방침 본문 (공개) |
 | (404) | `pages/404.tsx` + `app/not-found.tsx` | 안내 페이지 + 5초 카운트다운 후 홈 자동 리다이렉트[^18] |
 | (500) | `pages/500.tsx` | 서버 오류 안내 페이지 |
 
@@ -50,7 +53,7 @@ hair_reservations/
 | `calendar/views/` | 캘린더 뷰 (일/주/월/년/타임라인) | `Calendar.tsx`, `Day.tsx`, `Week.tsx`, `Month.tsx`, `Timeline.tsx`, `TimelineCluster.tsx`(중복예약 클러스터 — 디자이너 배지 표시) |
 | `calendar/overlays/` | 예약 생성·상세·수정 모달 | `ReservationCreate.tsx`(+`useReservationCreateForm.ts`/`ReservationCreateCustomerFields.tsx`), `ReservationDetail.tsx`(+`ReservationDetailSections`/`Header`/`FooterActions`/`PaymentLayer`/`ViewSection`, 순수 로직은 `reservationDetailUtils.ts`·타입은 `reservationDetailTypes.ts`), `CustomerDetail.tsx`(+`CustomerDetailSections.tsx`[^3a]), `ModalStyles.ts`(공통 모달 스타일·`OVERLAY_Z_INDEX`·접근성 훅), 컴포넌트별 `*.styles.ts` |
 | `calendar/service/` | 서비스 범례·필드 | `ServiceLegend.tsx`(시술 배지 디자인), `ServiceFields.tsx` |
-| `layout/` | 공통 레이아웃 | `Header.tsx`(디자이너 필터 base-select)+`HeaderSearchLayer.tsx`(고객 검색)+`Header.styles.ts`, `Aside.tsx`(역할별 설정 메뉴)+`AsideMenuIcon.tsx`(메뉴 아이콘)+`AsideGuestLogout.tsx`(게스트 로그아웃 확인)+`Aside.styles.ts`, `StoreSwitcher.tsx`[^17], `LayoutComponent.tsx`, `Footer.tsx`, `NaverSyncNotification.tsx`[^1](+`.styles.ts`) |
+| `layout/` | 공통 레이아웃 | `Header.tsx`(디자이너 필터 base-select)+`HeaderSearchLayer.tsx`(고객 검색)+`Header.styles.ts`, `Aside.tsx`(역할별 설정 메뉴 + 하단 이용약관/개인정보처리방침 링크)+`AsideMenuIcon.tsx`(메뉴 아이콘)+`AsideGuestLogout.tsx`(게스트 로그아웃 확인, 동의 플래그 초기화 포함)+`Aside.styles.ts`, `StoreSwitcher.tsx`[^17], `LayoutComponent.tsx`, `Footer.tsx`, `NaverSyncNotification.tsx`[^1](+`.styles.ts`) |
 | `modals/` | 전역 오버레이 (layout과 분리) | `NaverSyncConflictModal.tsx`[^2](+`.styles.ts`), `CustomerMergeSuggestionModal.tsx`[^3], `GuestMigrationLayer.tsx`(게스트→계정 병합 레이어) |
 | `onboarding/` | 온보딩 스텝 분리 | `OnboardingStep1~5.tsx`, `onboarding-types.ts`, `onboarding-step-styles.tsx` |
 | `settings/` | 설정 화면 섹션 | `StoreManageSection.tsx`, `ServiceManageSection.tsx`, `DesignerManageSection.tsx`, `PointManageSection.tsx`(+`PointSettingsTab`/`PointAdjustTab`/`PointHistoryTab`), `MemberSection.tsx`, `SNSLinkingSection.tsx`[^14], `NaverBookingSection.tsx`[^15], `settings-styles.ts`[^16]. 큰 섹션은 본체와 `*.styles.ts` 분리 |
@@ -68,6 +71,7 @@ hair_reservations/
 [^16]: 설정 공통 styled-components — `StyledSettingsCard`, `StyledSettingsCardTitle`, `StyledSettingsHint`, `StyledEditBtn`, `StyledSaveBtn`, `StyledCancelBtn`, `StyledDeleteBtn`, `StyledSelect`
 [^17]: 멀티매장 전환 드롭다운. `/api/user/stores`로 멤버십 매장 목록 조회 → 선택 시 세션 `preferredStoreId` 갱신
 [^18]: app 라우터에 `app/` 디렉터리(NextAuth route handler)가 있으면 잘못된 경로의 404를 app 라우터가 처리하므로, `app/not-found.tsx`(+최소 `app/layout.tsx`)에 디자인 가이드 동일 스타일 + 자동 리다이렉트를 구현. `pages/404.tsx`는 pages 라우터 폴백용으로 동일 UI 유지
+[^19]: 약관 버전은 `utils/terms.ts`의 `CURRENT_TERMS_VERSION`(날짜 기반 `YYYY-MM-DD`)으로 관리. 동의 여부 판정 — 게스트: `getGuestTermsVersion()===CURRENT_TERMS_VERSION`(localStorage), 로그인: 세션 `termsVersion===CURRENT_TERMS_VERSION`. 미동의 시 게이트 노출, 동의 시 게스트는 localStorage(`setGuestTermsAgreed`)·로그인은 `POST /api/consent`(→ `User.agreedTermsVersion`/`agreedTermsAt` 갱신) 후 세션 갱신. `/consent/<경로>` 형태로 복귀 경로를 슬래시로 전달(`next.config.mjs` rewrite). Aside 하단에 이용약관/개인정보처리방침 링크 제공, 게스트 로그아웃 시 동의 플래그도 초기화
 
 ### 도메인 모델 (`client/features/`)
 
@@ -125,6 +129,7 @@ hair_reservations/
 | `utils/calendarDerived.ts` | 캘린더 파생 상태 |
 | `utils/timeRound.ts` | 시간 반올림 |
 | `utils/labels.ts` | 표시 라벨 공통 (`ROLE_LABELS` 오너/멤버, `PROVIDER_LABELS` Google/Kakao/Naver) |
+| `utils/terms.ts` | 약관 동의 버전 상수 `CURRENT_TERMS_VERSION`(현재 `2026-06-16`) + 게스트 동의 헬퍼(`getGuestTermsVersion`/`setGuestTermsAgreed`) |
 | `lib/page-data.ts` | SSR 페이지 데이터 로딩 |
 | `lib/local-db.ts` | 게스트 모드 로컬 DB (re-export from features) |
 | `lib/authz.ts` | 권한 관리 |
@@ -142,6 +147,7 @@ NextAuth 5.0 설정. Google·Kakao·Naver OAuth 지원.
 - **계정 연동/병합**: 기존 로그인 상태에서 타 프로바이더 연결(`/api/account/link`). 해당 계정이 다른 유저 소유면 `pendingMerge`를 세션에 실어 병합 플로우(merge-preview → merge) 유도
 - **멀티매장**: `preferredStoreId`(세션 update로 갱신) 기반으로 `resolveUserMembership()`이 활성 매장 결정. jwt 콜백이 매 요청 `role`/`storeId`/`onboarded`를 DB에서 재조회
 - `authorized` 콜백: `loginError='no-account'` 시 `/login`으로 리다이렉트
+- **약관 동의 게이트**: jwt 콜백이 매 요청 `User.agreedTermsVersion`을 `token.termsVersion`으로 노출. `CURRENT_TERMS_VERSION`(`utils/terms.ts`)과 불일치 시 `/consent`에서 재동의 유도 (게스트는 localStorage 기반)
 
 ### 부팅/마이그레이션 (`client/pages/_app.tsx`)
 
@@ -170,6 +176,7 @@ NextAuth 5.0 설정. Google·Kakao·Naver OAuth 지원.
 | `naver-booking-sync.ts` | `/api/naver-booking-sync` | POST | owner | 네이버 예약 동기화[^9] |
 | `naver-booking-fix-designer.ts` | `/api/naver-booking-fix-designer` | POST | owner | naverBookingId로 Gmail 검색 → 디자이너 매칭 수정[^10] |
 | `inquiry.ts` | `/api/inquiry` | POST | - | 문의 전송 (`server/api/mail/send-inquiry.ts`) |
+| `consent.ts` | `/api/consent` | POST | 로그인 | 약관 동의 기록 (`agreedTermsVersion`=`CURRENT_TERMS_VERSION`, `agreedTermsAt`) |
 | `backfill-point-relations.ts` | `/api/backfill-point-relations` | POST | - | 포인트 이력-예약 관계 백필 |
 | `backfill-reservation-prices.ts` | `/api/backfill-reservation-prices` | POST | - | 예약 가격 백필 |
 | `test-mode.ts` | `/api/test-mode` | POST | - | 테스트 모드 토글 |
@@ -323,6 +330,17 @@ useCustomerMergeSuggestion.ts (동명이인 감지, 게스트 모드 제외)
     └─ 기존 데이터 매장(409): 자동 이전 중단
   → 전체 데이터(고객·예약 포함) 병합: /api/migrate-local + 디자이너 병합(/api/designers/merge)
     (확인 레이어 → append(ID remap) → 디자이너/고객 병합 → 로컬 정리. 상세는 plan.md)
+```
+
+### 약관 동의 게이트
+
+```
+CURRENT_TERMS_VERSION (utils/terms.ts, 날짜 버전)
+  → 로그인: 세션 termsVersion vs CURRENT  /  게스트: localStorage 동의 버전 vs CURRENT
+  → 불일치 → /consent (이용약관 + 개인정보처리방침 동의 화면)
+    ├─ 게스트: setGuestTermsAgreed(localStorage) → 원래 경로 복귀
+    └─ 로그인: POST /api/consent → User.agreedTermsVersion/agreedTermsAt 갱신 → 세션 갱신 → 복귀
+  → 약관 개정 시 상수 값만 올리면 전체 사용자 재동의
 ```
 
 ### 적립금
