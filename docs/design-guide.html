@@ -1028,12 +1028,21 @@
     </div>
   </div>
 
-  <div class="demo-card">
+  <div class="demo-card" style="margin-bottom:12px">
     <div class="demo-label">ButtonCircle / ButtonAdd</div>
     <div class="demo-row">
       <button class="btn btn-circle">‹</button>
       <button class="btn btn-circle">›</button>
       <button class="btn btn-add" style="background:transparent;color:var(--gray-color)">＋</button>
+    </div>
+  </div>
+
+  <div class="demo-card">
+    <div class="demo-label">온보딩 네비게이션 (뒤로 / 건너뛰기 / 다음) — 건너뛰기는 ghost 스타일</div>
+    <div class="demo-row">
+      <button class="btn btn-secondary">뒤로</button>
+      <button class="btn" style="border:none;background:none;color:var(--dark-gray-color2);font-weight:400">건너뛰기</button>
+      <button class="btn btn-primary" style="background:var(--brand-color)">다음</button>
     </div>
   </div>
 </section>
@@ -1314,6 +1323,19 @@
   </div>
   <div style="font-size:11px;color:var(--dark-gray-color2);margin-bottom:24px;line-height:1.8">
     height: 34px &nbsp;·&nbsp; background: <code>--danger-bg</code> &nbsp;·&nbsp; border-bottom: <code>--danger-border</code> &nbsp;·&nbsp; color: <code>--danger-color</code>
+  </div>
+
+  <p class="subsection-title">충돌 사유 안내 (ReasonSummary)</p>
+  <div style="max-width:480px;margin-bottom:12px">
+    <div style="display:flex;align-items:flex-start;gap:6px;padding:8px 10px;border:1px solid var(--info-border);border-radius:var(--radius-md);background:var(--info-bg);color:var(--dark-gray-color);font-size:12px;font-weight:600;line-height:1.45">
+      <span style="color:var(--info-color);font-weight:700;flex-shrink:0">ⓘ</span>
+      <span>김민지 디자이너 · 14:00~15:00에 홍길동·이영희님 예약이 겹쳤습니다</span>
+    </div>
+  </div>
+  <div style="font-size:11px;color:var(--dark-gray-color2);margin-bottom:24px;line-height:1.8">
+    중복(충돌) 모달 상단에 "왜 떴는지" 한 줄로 요약하는 info 톤 안내 배너.<br>
+    background: <code>--info-bg</code> &nbsp;·&nbsp; border: <code>--info-border</code> &nbsp;·&nbsp; ⓘ 색 <code>--info-color</code> &nbsp;·&nbsp; font-size: 12px / weight 600<br>
+    컴포넌트: <code>StyledReasonSummary</code> (<code>NaverSyncConflictModal.styles.ts</code>)
   </div>
 </section>
 
