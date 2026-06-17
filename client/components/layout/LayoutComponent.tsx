@@ -29,10 +29,9 @@ export default function LayoutComponent({children}: NodeType) {
 
     const isLoginPage = router.pathname === '/login';
     const isOnboardingPage = router.pathname.startsWith('/onboarding');
+    // 정책 문서(/terms·/privacy·/dpa)는 앱 셸(Aside·Header) 안에서 보여준다.
     const isBarePage = isLoginPage || isOnboardingPage
-        || router.pathname === '/consent'
-        || router.pathname === '/terms'
-        || router.pathname === '/privacy';
+        || router.pathname === '/consent';
 
     const [loading, setLoading] = useState(false);
     const aside = useCalendarStore((s) => s.aside);
@@ -232,8 +231,4 @@ const StyledFooterAd = styled.div`
     padding: 6px 12px;
     border-top: 1px solid var(--light-gray-color);
     background-color: var(--white-color);
-
-    @media (max-width: 640px) {
-        display: none;
-    }
 `;
