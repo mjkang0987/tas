@@ -1,3 +1,7 @@
+// 보안 참고: xlsx(SheetJS)의 알려진 취약점(Prototype Pollution·ReDoS)은 외부 xlsx
+// 파일을 "파싱(XLSX.read)"할 때만 발동한다. 이 모듈은 앱 자체 데이터를 xlsx로
+// "내보내기(write)"만 하고 외부 입력을 읽지 않으므로 실위험은 없다. (npm에는 패치본이
+// 없고 패치는 cdn.sheetjs.com에만 있으므로 버전 업그레이드 대신 사용 범위를 export로 한정한다.)
 import * as XLSX from 'xlsx';
 
 import type {Reservation, ReservationMap} from './reservations';
