@@ -1,6 +1,7 @@
 import React, {useEffect, useRef, useState} from 'react';
 
 import Link from 'next/link';
+import Head from 'next/head';
 import Router, {useRouter} from 'next/router';
 
 import type {
@@ -20,6 +21,7 @@ import {groupByDate} from '../utils/reservations';
 import {toCustomerMap} from '../utils/customers';
 import {clearGuestEntryResolved, clearGuestTermsAgreed, createDefaultLocalDbSnapshot, getGuestTermsVersion, hasGuestData, isGuestConsentAck, isGuestEntryResolved, loadLocalDbSnapshot, markGuestEntryResolved, saveLocalDbSnapshot, setAuthenticated, shouldUseLocalDb} from '../lib/local-db';
 import {CURRENT_TERMS_VERSION} from '../utils/terms';
+import {SITE_TITLE} from '../lib/seo';
 
 import LayoutComponent from '../components/layout/LayoutComponent';
 import {ToastContainer} from '../components/ui/ToastContainer';
@@ -395,6 +397,11 @@ function AppContent({Component, pageProps}: AppContentProps) {
 
     return (
         <>
+            {/* 기본 타이틀 폴백 — 페이지가 SeoHead로 자체 title을 주면 그게 우선되고,
+                없거나 본문이 CSR로 늦게 렌더되는 경우에도 SSR 단계에서 빈 title을 막는다. */}
+            <Head>
+                <title>{SITE_TITLE}</title>
+            </Head>
             <GlobalStyle/>
             <LayoutComponent>
                 <Component {...pageProps} />
