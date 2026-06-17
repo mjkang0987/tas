@@ -17,6 +17,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         return res.status(400).json({error: 'Invalid provider'});
     }
 
+    // 마지막 남은 계정은 해제 불가 — 해제하면 로그인 수단이 없는 orphan 유저가 됨
+    const total = await prisma.authAccount.count({where: {userId: session.user.id}});
+    if (total <= 1) {
+        return res.status(400).json({error: '마지막으로 연결된 계정은 해제할 수 없습니다.'});
+    }
+
     await prisma.authAccount.deleteMany({
         where: {userId: session.user.id, provider},
     });

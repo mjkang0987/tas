@@ -80,81 +80,39 @@ async function generateFallbackUniqueNickname(): Promise<string> {
     throw new Error('Failed to generate a fallback unique nickname after multiple attempts.');
 }
 
+// 닉네임은 트랜잭션 밖(prisma)에서 미리 유니크하게 확정한다.
+// 트랜잭션 내부에서 create 실패 후 재시도하면 Postgres가 트랜잭션을 abort하여
+// 이후 모든 쿼리가 25P02(current transaction is aborted)로 막히기 때문.
+async function resolveUniqueNickname(displayName?: string | null): Promise<string> {
+    const trimmed = displayName?.trim();
+    if (trimmed && trimmed.length >= 2) {
+        const nickname = trimmed.slice(0, 20);
+        const existing = await prisma.user.findUnique({where: {nickname}, select: {id: true}});
+        if (!existing) return nickname;
+    }
+    try {
+        return await generateUniqueNickname();
+    } catch {
+        return await generateFallbackUniqueNickname();
+    }
+}
+
 async function createUserWithNickname(
     data: {email: string | null; image: string | null; provider: string; providerSub: string; displayName?: string | null},
     tx: Prisma.TransactionClient,
 ): Promise<{id: string; nickname: string; email: string | null; image: string | null}> {
-    const trimmedDisplayName = data.displayName?.trim();
-    if (trimmedDisplayName && trimmedDisplayName.length >= 2) {
-        const nickname = trimmedDisplayName.slice(0, 20);
-        const existing = await tx.user.findUnique({where: {nickname}, select: {id: true}});
-        if (!existing) {
-            try {
-                return await tx.user.create({
-                    data: {
-                        email: data.email,
-                        nickname,
-                        name: nickname,
-                        image: data.image,
-                        accounts: {create: {provider: data.provider, providerSub: data.providerSub}},
-                    },
-                    select: {id: true, nickname: true, email: true, image: true},
-                });
-            } catch (error) {
-                if (!(error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002')) {
-                    throw error;
-                }
-            }
-        }
-    }
-
-    for (let attempt = 0; attempt < 5; attempt++) {
-        const nickname = await generateUniqueNickname();
-        try {
-            return await tx.user.create({
-                data: {
-                    email: data.email,
-                    nickname,
-                    name: nickname,
-                    image: data.image,
-                    accounts: {
-                        create: {provider: data.provider, providerSub: data.providerSub},
-                    },
-                },
-                select: {id: true, nickname: true, email: true, image: true},
-            });
-        } catch (error) {
-            if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
-                continue;
-            }
-            throw error;
-        }
-    }
-
-    for (let attempt = 0; attempt < 5; attempt++) {
-        const nickname = await generateFallbackUniqueNickname();
-        try {
-            return await tx.user.create({
-                data: {
-                    email: data.email,
-                    nickname,
-                    name: nickname,
-                    image: data.image,
-                    accounts: {
-                        create: {provider: data.provider, providerSub: data.providerSub},
-                    },
-                },
-                select: {id: true, nickname: true, email: true, image: true},
-            });
-        } catch (error) {
-            if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
-                continue;
-            }
-            throw error;
-        }
-    }
-
-    throw new Error('Failed to create a user with a unique nickname.');
+    const nickname = await resolveUniqueNickname(data.displayName);
+    // 단일 create — 충돌 시 throw하여 트랜잭션이 깔끔히 롤백되도록 한다(재시도하지 않음).
+    return await tx.user.create({
+        data: {
+            email: data.email,
+            nickname,
+            name: nickname,
+            image: data.image,
+            accounts: {create: {provider: data.provider, providerSub: data.providerSub}},
+        },
+        select: {id: true, nickname: true, email: true, image: true},
+    });
 }
 
 export async function syncAuthUser({account, user, inviteCode, linkUserId, displayName}: SyncAuthUserParams): Promise<SyncedAuthUser | null> {
@@ -221,6 +179,21 @@ export async function syncAuthUser({account, user, inviteCode, linkUserId, displ
         return savedUser;
     }
 
+    // 1.5 Same email already registered (다른 SNS로 가입) → 새 SNS 계정을 기존 유저에 연결.
+    //     (이메일 unique 충돌로 가입이 막히는 대신, 같은 사람으로 보고 로그인시킨다)
+    if (email) {
+        const userByEmail = await prisma.user.findUnique({
+            where: {email},
+            select: {id: true, nickname: true, email: true, image: true},
+        });
+        if (userByEmail) {
+            await prisma.authAccount.create({
+                data: {userId: userByEmail.id, provider, providerSub},
+            });
+            return userByEmail;
+        }
+    }
+
     // 2. No existing account — check invite code
     if (inviteCode) {
         const validation = await validateInviteCode(inviteCode);
@@ -265,7 +238,7 @@ export async function syncAuthUser({account, user, inviteCode, linkUserId, displ
         const newUser = await createUserWithNickname({email, image, provider, providerSub, displayName}, tx);
 
         const store = await tx.store.create({
-            data: {name: storeName, onboarded: true},
+            data: {name: storeName, onboarded: false},
         });
 
         await tx.membership.create({
