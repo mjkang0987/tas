@@ -13,7 +13,7 @@ export const GlobalStyle = createGlobalStyle`
         --gray-color: hsl(0, 0%, 86%);
         --gray-color2: hsl(0, 0%, 96%);
         --dark-gray-color: hsl(0, 0%, 32%);
-        --dark-gray-color2: hsl(0, 0%, 65%);
+        --dark-gray-color2: hsl(0, 0%, 45%);
         --light-gray-color: hsl(0, 0%, 89%);
         --white-color: hsl(0, 0%, 100%);
         --blue-color: hsl(196, 100%, 45%);
@@ -62,7 +62,7 @@ export const GlobalStyle = createGlobalStyle`
 
         --toast-bg: #1e293b;
         --link-color-light: #60a5fa;
-        --muted-text: #94a3b8;
+        --muted-text: #64748b;
 
         --radius-sm: 4px;
         --radius-md: 6px;
