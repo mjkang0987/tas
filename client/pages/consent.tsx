@@ -1,6 +1,5 @@
 import {useEffect, useState} from 'react';
 
-import Link from 'next/link';
 import {useRouter} from 'next/router';
 
 import {signOut, useSession} from 'next-auth/react';
@@ -8,10 +7,13 @@ import {signOut, useSession} from 'next-auth/react';
 import styled from 'styled-components';
 
 import {ConfirmDialog} from '../components/ui/ConfirmDialog';
+import {ConsentDpaLayer} from '../components/modals/ConsentDpaLayer';
+import {PolicyViewLayer} from '../components/policy/PolicyViewLayer';
+import type {PolicySlug} from '../content/policies';
 import {LoadingOverlay} from '../components/ui/LoadingOverlay';
 import {SeoHead} from '../components/ui/SeoHead';
 import {CURRENT_TERMS_VERSION} from '../utils/terms';
-import {getGuestTermsVersion, setGuestTermsAgreed} from '../lib/local-db';
+import {getGuestTermsVersion, markGuestConsentAck} from '../lib/local-db';
 
 function getMonthEntryPath(): string {
     const today = new Date();
@@ -26,19 +28,43 @@ export default function ConsentPage() {
 
     const [agreeTerms, setAgreeTerms] = useState(false);
     const [agreePrivacy, setAgreePrivacy] = useState(false);
+    // 처리위탁(DPA)은 서버에 데이터가 보관되는 비게스트(SNS 연동)에만 필요
+    const [agreeDpa, setAgreeDpa] = useState(false);
     const [submitting, setSubmitting] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [showDeclineConfirm, setShowDeclineConfirm] = useState(false);
+    const [policyView, setPolicyView] = useState<PolicySlug | null>(null);
 
     const alreadyAgreed = isGuest
         ? getGuestTermsVersion() === CURRENT_TERMS_VERSION
         : session?.user?.termsVersion === CURRENT_TERMS_VERSION;
+
+    // 게스트로 이미 동의(이용약관·수집·이용)한 사용자가 SNS 연동으로 인증됐고 DB 동의 기록만 없는 경우:
+    // 전체 페이지 대신 처리위탁(DPA) 항목만 레이어로 추가 동의받음
+    const needsDpaOnly = status === 'authenticated'
+        && !session?.user?.loginError
+        && session?.user?.termsVersion !== CURRENT_TERMS_VERSION
+        && getGuestTermsVersion() === CURRENT_TERMS_VERSION;
 
     // 동의 후 돌아갈 경로: 슬래시 경로(/consent/<경로>)에서 추출, 없으면 월 진입
     const resolveNextPath = () => {
         const rest = router.asPath.slice('/consent'.length);
         const next = rest.startsWith('/') && !rest.startsWith('//') ? rest : null;
         return next ?? getMonthEntryPath();
+    };
+
+    // 인증 사용자 약관 동의를 DB에 기록(POST) 후 진입
+    const submitAuthConsent = async () => {
+        try {
+            const res = await fetch('/api/consent', {method: 'POST'});
+            if (!res.ok) throw new Error('consent failed');
+            // 세션(JWT) 갱신 → termsVersion 반영 후 진입
+            await update();
+            router.replace(resolveNextPath());
+        } catch {
+            setError('동의 처리 중 오류가 발생했습니다. 다시 시도해 주세요.');
+            setSubmitting(false);
+        }
     };
 
     // 로그인 에러 → 로그인, 이미 동의 → 원래 가려던 곳(슬래시 경로)으로
@@ -55,10 +81,11 @@ export default function ConsentPage() {
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [status, alreadyAgreed, session, router]);
 
-    const allChecked = agreeTerms && agreePrivacy;
+    const allChecked = agreeTerms && agreePrivacy && (isGuest || agreeDpa);
     const toggleAll = (checked: boolean) => {
         setAgreeTerms(checked);
         setAgreePrivacy(checked);
+        setAgreeDpa(checked);
     };
 
     const handleAgree = async () => {
@@ -66,23 +93,15 @@ export default function ConsentPage() {
         setSubmitting(true);
         setError(null);
 
-        // 게스트: localStorage에 동의 기록 (DB 계정 없음) 후 원래 가려던 곳으로 복귀
+        // 게스트: 영구 기록은 온보딩 완료(서비스 개시) 때 — 여기선 세션 ack만 남기고 진행.
+        // (온보딩 미완료 상태로 재진입하면 동의를 다시 받기 위함)
         if (isGuest) {
-            setGuestTermsAgreed(CURRENT_TERMS_VERSION);
+            markGuestConsentAck();
             router.replace(resolveNextPath());
             return;
         }
 
-        try {
-            const res = await fetch('/api/consent', {method: 'POST'});
-            if (!res.ok) throw new Error('consent failed');
-            // 세션(JWT) 갱신 → termsVersion 반영 후 진입
-            await update();
-            router.replace(resolveNextPath());
-        } catch {
-            setError('동의 처리 중 오류가 발생했습니다. 다시 시도해 주세요.');
-            setSubmitting(false);
-        }
+        await submitAuthConsent();
     };
 
     const handleDecline = () => {
@@ -108,6 +127,30 @@ export default function ConsentPage() {
     // 동의 직후/이미 동의: 다음 화면으로 이동하는 동안 안내 문구 노출
     if (alreadyAgreed) {
         return <LoadingOverlay text="서비스를 준비하는 중..." />;
+    }
+
+    // 게스트 동의 보유자의 SNS 연동: 처리위탁 항목만 레이어로 추가 동의
+    if (needsDpaOnly) {
+        return (
+            <>
+                <SeoHead title="추가 동의" />
+                <ConsentDpaLayer
+                    submitting={submitting}
+                    error={error}
+                    onConfirm={() => {
+                        if (submitting) return;
+                        setSubmitting(true);
+                        setError(null);
+                        void submitAuthConsent();
+                    }}
+                    onClose={() => {
+                        if (submitting) return;
+                        setSubmitting(true);
+                        void signOut({callbackUrl: '/login'});
+                    }}
+                />
+            </>
+        );
     }
 
     return (
@@ -137,9 +180,9 @@ export default function ConsentPage() {
                     <StyledItemText>
                         <StyledRequired>(필수)</StyledRequired> 이용약관 동의
                     </StyledItemText>
-                    <StyledViewLink href="/terms" target="_blank" rel="noopener noreferrer">
+                    <StyledViewButton type="button" onClick={() => setPolicyView('terms')}>
                         보기
-                    </StyledViewLink>
+                    </StyledViewButton>
                 </StyledItem>
 
                 <StyledItem>
@@ -149,12 +192,28 @@ export default function ConsentPage() {
                         onChange={(e) => setAgreePrivacy(e.target.checked)}
                     />
                     <StyledItemText>
-                        <StyledRequired>(필수)</StyledRequired> {isGuest ? '개인정보 수집·이용 동의' : '개인정보 수집·이용 및 처리위탁 동의'}
+                        <StyledRequired>(필수)</StyledRequired> 개인정보 수집·이용 동의
                     </StyledItemText>
-                    <StyledViewLink href="/privacy" target="_blank" rel="noopener noreferrer">
+                    <StyledViewButton type="button" onClick={() => setPolicyView('privacy')}>
                         보기
-                    </StyledViewLink>
+                    </StyledViewButton>
                 </StyledItem>
+
+                {!isGuest && (
+                    <StyledItem>
+                        <StyledCheckbox
+                            type="checkbox"
+                            checked={agreeDpa}
+                            onChange={(e) => setAgreeDpa(e.target.checked)}
+                        />
+                        <StyledItemText>
+                            <StyledRequired>(필수)</StyledRequired> 개인정보 처리위탁 동의
+                        </StyledItemText>
+                        <StyledViewButton type="button" onClick={() => setPolicyView('dpa')}>
+                            보기
+                        </StyledViewButton>
+                    </StyledItem>
+                )}
 
                 {error && <StyledError>{error}</StyledError>}
 
@@ -180,6 +239,10 @@ export default function ConsentPage() {
                     onConfirm={confirmDecline}
                     onClose={() => setShowDeclineConfirm(false)}
                 />
+            )}
+
+            {policyView && (
+                <PolicyViewLayer slug={policyView} onClose={() => setPolicyView(null)} />
             )}
         </StyledWrapper>
     );
@@ -271,11 +334,15 @@ const StyledCheckbox = styled.input`
     cursor: pointer;
 `;
 
-const StyledViewLink = styled(Link)`
+const StyledViewButton = styled.button`
     flex-shrink: 0;
+    padding: 0;
+    border: none;
+    background: none;
     font-size: 12px;
     color: var(--dark-gray-color2);
     text-decoration: underline;
+    cursor: pointer;
 
     @media (hover: hover) and (pointer: fine) {
         &:hover { color: var(--brand-color); }

@@ -25,13 +25,15 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     const storeId = session.storeId;
 
-    // 이미 디자이너/서비스가 등록된 매장이면 재온보딩을 거부 (기존 데이터 삭제 방지)
+    // 이미 디자이너/서비스가 등록된 매장이면 데이터는 보존하고 onboarded만 보장한다.
+    // (재온보딩으로 기존 데이터를 덮어쓰지 않으면서, onboarded=false로 남아 무한 리다이렉트되는 것 방지)
     const [designerCount, serviceCount] = await Promise.all([
         prisma.designer.count({where: {storeId}}),
         prisma.service.count({where: {storeId}}),
     ]);
     if (designerCount > 0 || serviceCount > 0) {
-        return res.status(409).json({error: '이미 설정된 매장입니다.', code: 'ALREADY_SETUP'});
+        await prisma.store.update({where: {id: storeId}, data: {onboarded: true}});
+        return res.status(200).json({ok: true, alreadySetup: true});
     }
 
     await prisma.$transaction(async (tx) => {

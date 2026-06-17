@@ -17,14 +17,17 @@ export default auth((req) => {
         pathname === '/favicon.ico';
 
     // 1) 약관 동의 게이트: 로그인된 실제 계정인데 현재 약관 버전 미동의 → /consent
-    if (user?.id && !user.loginError && user.termsVersion !== CURRENT_TERMS_VERSION && !isExempt) {
+    //    단, 게스트로 이미 동의(쿠키)한 경우는 통과시키고 처리위탁(DPA) 동의만 앱 위 레이어로 받는다.
+    const guestTermsAgreed = req.cookies.get('tas-guest-terms')?.value === CURRENT_TERMS_VERSION;
+    if (user?.id && !user.loginError && user.termsVersion !== CURRENT_TERMS_VERSION && !isExempt && !guestTermsAgreed) {
         return Response.redirect(new URL('/consent', req.url));
     }
 
     // 2) 온보딩 게이트: 매장은 있으나 온보딩 미완료 → /onboarding
+    //    단, 게스트로 이미 온보딩·동의(쿠키)한 경우는 온보딩 페이지 대신 데이터 마이그레이션으로 처리하므로 건너뜀.
     const storeId = user?.storeId;
     const onboarded = user?.onboarded;
-    if (storeId && !onboarded) {
+    if (storeId && !onboarded && !guestTermsAgreed) {
         const isAllowed = pathname.startsWith('/onboarding') || isExempt;
         if (!isAllowed) {
             return Response.redirect(new URL('/onboarding', req.url));

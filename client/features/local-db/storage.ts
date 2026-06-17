@@ -57,6 +57,9 @@ export function shouldUseLocalDb(): boolean {
 }
 
 const GUEST_TERMS_KEY = 'takeaseat.guest-terms-version';
+// 미들웨어(proxy.ts)가 SNS 연동 시 "게스트로 이미 동의함"을 판별하기 위한 쿠키.
+// 이 경우 /consent 리다이렉트 대신 통과시키고, DPA 동의는 앱 위 레이어로 받는다.
+const GUEST_TERMS_COOKIE = 'tas-guest-terms';
 
 // 게스트(미로그인) 약관 동의 버전 — 로그인 계정은 DB(User.agreedTermsVersion)에 저장
 export function getGuestTermsVersion(): string | null {
@@ -67,11 +70,17 @@ export function getGuestTermsVersion(): string | null {
 export function setGuestTermsAgreed(version: string): void {
     if (typeof localStorage === 'undefined') return;
     localStorage.setItem(GUEST_TERMS_KEY, version);
+    if (typeof document !== 'undefined') {
+        document.cookie = `${GUEST_TERMS_COOKIE}=${version}; path=/; max-age=${60 * 60 * 24 * 365}; samesite=lax`;
+    }
 }
 
 export function clearGuestTermsAgreed(): void {
     if (typeof localStorage === 'undefined') return;
     localStorage.removeItem(GUEST_TERMS_KEY);
+    if (typeof document !== 'undefined') {
+        document.cookie = `${GUEST_TERMS_COOKIE}=; path=/; max-age=0; samesite=lax`;
+    }
 }
 
 // 실제 게스트 이용 데이터(온보딩 완료 또는 고객/예약/디자이너/서비스)가 있는지
@@ -107,6 +116,25 @@ export function markGuestEntryResolved(): void {
 export function clearGuestEntryResolved(): void {
     if (typeof sessionStorage === 'undefined') return;
     sessionStorage.removeItem(GUEST_ENTRY_RESOLVED_KEY);
+}
+
+// 약관 동의를 이번 세션에서 확인(ack)했는지 — 영구 기록은 온보딩 완료(서비스 개시) 시점에 함.
+// consent→onboarding 사이에서만 동의를 유지하고, 온보딩 미완료 재진입 시엔 다시 동의받기 위함.
+const GUEST_CONSENT_ACK_KEY = 'takeaseat.guest-consent-ack';
+
+export function isGuestConsentAck(): boolean {
+    if (typeof sessionStorage === 'undefined') return false;
+    return !!sessionStorage.getItem(GUEST_CONSENT_ACK_KEY);
+}
+
+export function markGuestConsentAck(): void {
+    if (typeof sessionStorage === 'undefined') return;
+    sessionStorage.setItem(GUEST_CONSENT_ACK_KEY, '1');
+}
+
+export function clearGuestConsentAck(): void {
+    if (typeof sessionStorage === 'undefined') return;
+    sessionStorage.removeItem(GUEST_CONSENT_ACK_KEY);
 }
 
 export function loadLocalDbSnapshot(): LocalDbSnapshot {

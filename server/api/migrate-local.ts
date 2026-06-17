@@ -53,13 +53,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     try {
         await prisma.$transaction(async (tx) => {
             if (!hasExistingData) {
-                // 빈 매장: 처음부터 생성
-                if (name) {
-                    await tx.store.update({
-                        where: {id: storeId},
-                        data: {name, shopType: type, onboarded: true},
-                    });
-                }
+                // 빈 매장: 처음부터 생성. 이름이 없어도(건너뛴 게스트) onboarded는 표시한다.
+                await tx.store.update({
+                    where: {id: storeId},
+                    data: {onboarded: true, ...(name ? {name, shopType: type} : {})},
+                });
 
                 if (servicesList.length > 0) {
                     await tx.service.createMany({

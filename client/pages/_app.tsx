@@ -8,7 +8,7 @@ import type {
     AppProps
 } from 'next/app';
 
-import {SessionProvider, useSession} from 'next-auth/react';
+import {SessionProvider, signOut, useSession} from 'next-auth/react';
 import styled from 'styled-components';
 
 import {GlobalStyle} from '../styles/globalStyle';
@@ -18,19 +18,20 @@ import type {Designer} from '../utils/designers';
 import type {StoreSettings} from '../utils/storeSettings';
 import {groupByDate} from '../utils/reservations';
 import {toCustomerMap} from '../utils/customers';
-import {clearGuestEntryResolved, createDefaultLocalDbSnapshot, getGuestTermsVersion, hasGuestData, isGuestEntryResolved, loadLocalDbSnapshot, markGuestEntryResolved, saveLocalDbSnapshot, setAuthenticated, shouldUseLocalDb} from '../lib/local-db';
+import {clearGuestEntryResolved, clearGuestTermsAgreed, createDefaultLocalDbSnapshot, getGuestTermsVersion, hasGuestData, isGuestConsentAck, isGuestEntryResolved, loadLocalDbSnapshot, markGuestEntryResolved, saveLocalDbSnapshot, setAuthenticated, shouldUseLocalDb} from '../lib/local-db';
 import {CURRENT_TERMS_VERSION} from '../utils/terms';
 
 import LayoutComponent from '../components/layout/LayoutComponent';
 import {ToastContainer} from '../components/ui/ToastContainer';
 import {GuestMigrationLayer} from '../components/modals/GuestMigrationLayer';
+import {ConsentDpaLayer} from '../components/modals/ConsentDpaLayer';
 import {ConfirmDialog} from '../components/ui/ConfirmDialog';
 import {LoadingOverlay} from '../components/ui/LoadingOverlay';
 
 type AppContentProps = Pick<AppProps, 'Component' | 'pageProps'>;
 
 function AppContent({Component, pageProps}: AppContentProps) {
-    const {data: session, status} = useSession();
+    const {data: session, status, update} = useSession();
     const router = useRouter();
     const setServiceCatalog = useCalendarStore((s) => s.setServiceCatalog);
     const setCategoryBaseColorMap = useCalendarStore((s) => s.setCategoryBaseColorMap);
@@ -53,7 +54,12 @@ function AppContent({Component, pageProps}: AppContentProps) {
     const [designersReady, setDesignersReady] = useState(false);
     const [reservationsReady, setReservationsReady] = useState(false);
     const [showGuestEntry, setShowGuestEntry] = useState(false);
+    const [dpaSubmitting, setDpaSubmitting] = useState(false);
+    const [dpaError, setDpaError] = useState<string | null>(null);
+    const [mounted, setMounted] = useState(false);
     const hadSessionRef = useRef(false);
+
+    useEffect(() => setMounted(true), []);
     const guestEntryHandledRef = useRef(false);
 
     useEffect(() => {
@@ -92,15 +98,14 @@ function AppContent({Component, pageProps}: AppContentProps) {
     useEffect(() => {
         if (!hasApiAccess || localSyncDone.current) return;
         if (session?.user?.role !== 'owner') return;
+        // 처리위탁(DPA) 등 약관 동의가 DB에 기록된 뒤에만 서버로 이관한다.
+        // (수탁자=서버가 손님 데이터를 저장하기 전에 위탁계약 동의가 선행되도록 보장)
+        if (session?.user?.termsVersion !== CURRENT_TERMS_VERSION) return;
 
         const snapshot = loadLocalDbSnapshot();
+        // 게스트가 온보딩을 완료했거나 '건너뛰기'했으면(onboarded=true) 데이터가 비어 있어도
+        // 마이그레이션을 실행해 서버 store를 onboarded로 표시 → 계정에서도 온보딩을 건너뛴다.
         if (!snapshot.onboarded) return;
-        const hasLocalData =
-            snapshot.services.length > 0 ||
-            snapshot.designers.length > 0 ||
-            snapshot.customers.length > 0 ||
-            snapshot.reservations.length > 0;
-        if (!hasLocalData) return;
 
         localSyncDone.current = true;
 
@@ -122,6 +127,8 @@ function AppContent({Component, pageProps}: AppContentProps) {
                     const clean = createDefaultLocalDbSnapshot();
                     clean.onboarded = false;
                     saveLocalDbSnapshot(clean);
+                    // 세션(JWT) 갱신 → onboarded 반영 후 리로드 (없으면 미들웨어가 /onboarding으로 보냄)
+                    await update();
                     window.location.reload();
                 } else if (res.status === 409) {
                     // 기존 데이터 있는 매장 → 병합/삭제 레이어 표시
@@ -145,6 +152,8 @@ function AppContent({Component, pageProps}: AppContentProps) {
         if (path === '/login' || path === '/terms' || path === '/privacy' || path === '/logout') return;
 
         const consented = getGuestTermsVersion() === CURRENT_TERMS_VERSION;
+        // 영구 동의는 온보딩 완료 시점에 기록되므로, 온보딩 진입 가드는 세션 ack도 허용
+        const consentedOrAck = consented || isGuestConsentAck();
         // 게스트로 커밋(게스트 시작 버튼 누름=resolved, 또는 사용 데이터 있음)한 적이 있는지
         const committed = hasGuestData() || isGuestEntryResolved();
 
@@ -154,8 +163,8 @@ function AppContent({Component, pageProps}: AppContentProps) {
                 router.replace('/login');
                 return;
             }
-            // 온보딩 진입인데 약관 미동의면 동의 먼저
-            if (path.startsWith('/onboarding') && !consented) {
+            // 온보딩 진입인데 약관 미동의(영구·세션 모두)면 동의 먼저
+            if (path.startsWith('/onboarding') && !consentedOrAck) {
                 router.replace(`/consent${router.asPath}`);
             }
             return;
@@ -403,6 +412,33 @@ function AppContent({Component, pageProps}: AppContentProps) {
                         }
                     }}
                     onClose={() => { setShowGuestEntry(false); router.replace('/login'); }}
+                />
+            )}
+            {mounted
+                && status === 'authenticated'
+                && !session?.user?.loginError
+                && session?.user?.termsVersion !== CURRENT_TERMS_VERSION
+                && getGuestTermsVersion() === CURRENT_TERMS_VERSION
+                && router.pathname !== '/consent'
+                && !migrationData && (
+                <ConsentDpaLayer
+                    submitting={dpaSubmitting}
+                    error={dpaError}
+                    onConfirm={() => {
+                        if (dpaSubmitting) return;
+                        setDpaSubmitting(true);
+                        setDpaError(null);
+                        fetch('/api/consent', {method: 'POST'})
+                            .then(async (res) => {
+                                if (!res.ok) throw new Error('consent failed');
+                                // 게스트 동의를 계정(DB)으로 이관 완료 → 잔존 쿠키·플래그 정리(다른 계정 오작동 방지)
+                                clearGuestTermsAgreed();
+                                await update();
+                            })
+                            .catch(() => setDpaError('동의 처리 중 오류가 발생했습니다. 다시 시도해 주세요.'))
+                            .finally(() => setDpaSubmitting(false));
+                    }}
+                    onClose={() => { void signOut({callbackUrl: '/login'}); }}
                 />
             )}
             {sessionExpired && (

@@ -1,4 +1,4 @@
-import {useEffect, useMemo, useState} from 'react';
+import {useEffect, useMemo, useRef, useState} from 'react';
 
 import type {NextPage} from 'next';
 import {useRouter} from 'next/router';
@@ -9,7 +9,8 @@ import {GuestNotice} from '../../components/ui/GuestNotice';
 import {DEFAULT_SERVICES, SHOP_CATEGORY_COLOR_MAP} from '../../features/services/default-services';
 import type {ShopType} from '../../features/services/default-services';
 import {createDefaultSchedule, getDesignerColor} from '../../utils/designers';
-import {createDefaultLocalDbSnapshot, loadLocalDbSnapshot, saveLocalDbSnapshot} from '../../lib/local-db';
+import {clearGuestConsentAck, createDefaultLocalDbSnapshot, loadLocalDbSnapshot, saveLocalDbSnapshot, setGuestTermsAgreed} from '../../lib/local-db';
+import {CURRENT_TERMS_VERSION} from '../../utils/terms';
 import type {ServiceItem} from '../../utils/services';
 import {SeoHead} from '../../components/ui/SeoHead';
 import {ConfirmDialog} from '../../components/ui/ConfirmDialog';
@@ -24,9 +25,17 @@ import {OnboardingStep5} from '../../components/onboarding/OnboardingStep5';
 
 const OnboardingPage: NextPage = () => {
     const router = useRouter();
-    const {data: session, status} = useSession();
+    const {data: session, status, update} = useSession();
     const guest = router.pathname === '/onboarding/guest';
     const [loading, setLoading] = useState(false);
+
+    // 진입 시 세션(JWT)을 1회 갱신 — DB는 onboarded=true인데 JWT가 stale인 경우 자가 복구
+    const refreshedRef = useRef(false);
+    useEffect(() => {
+        if (guest || status !== 'authenticated' || refreshedRef.current) return;
+        refreshedRef.current = true;
+        void update();
+    }, [guest, status, update]);
 
     useEffect(() => {
         if (status === 'loading') return;
@@ -112,6 +121,14 @@ const OnboardingPage: NextPage = () => {
         const snapshot = loadLocalDbSnapshot();
         snapshot.onboarded = true;
         saveLocalDbSnapshot(snapshot);
+        if (guest) {
+            // 서비스 개시 시점에 약관 동의 영구 기록 (consent 단계의 세션 ack 정리)
+            setGuestTermsAgreed(CURRENT_TERMS_VERSION);
+            clearGuestConsentAck();
+            // 하드 리로드로 store를 갱신 (router.replace는 _app 재hydrate가 안 돌아 매장정보가 안 들어옴)
+            window.location.href = '/';
+            return;
+        }
         router.replace('/');
     };
 
@@ -150,7 +167,11 @@ const OnboardingPage: NextPage = () => {
                 }));
                 snapshot.onboarded = true;
                 saveLocalDbSnapshot(snapshot);
-                router.replace('/');
+                // 서비스 개시 시점에 약관 동의 영구 기록 (consent 단계의 세션 ack 정리)
+                setGuestTermsAgreed(CURRENT_TERMS_VERSION);
+                clearGuestConsentAck();
+                // 하드 리로드로 store를 갱신 (router.replace는 _app 재hydrate가 안 돌아 매장정보가 안 들어옴)
+                window.location.href = '/';
                 return;
             }
 
@@ -167,11 +188,14 @@ const OnboardingPage: NextPage = () => {
 
             if (!res.ok) {
                 const data = await res.json().catch(() => ({}));
-                if (res.status === 409) { setShowSetupLayer(true); return; }
+                // 이미 설정된 매장(JWT만 stale onboarded=false) → 세션 갱신 후 홈으로 (레이어 막다른 길 방지)
+                if (res.status === 409) { await update(); router.replace('/'); return; }
                 setFinalError(data.error ?? '오류가 발생했습니다.');
                 return;
             }
 
+            // 세션(JWT) 갱신 → onboarded 반영 후 진입 (없으면 미들웨어가 계속 /onboarding으로 보냄)
+            await update();
             router.replace('/');
         } catch {
             setFinalError('네트워크 오류가 발생했습니다.');
@@ -258,6 +282,7 @@ const OnboardingPage: NextPage = () => {
                 {step === 4 && (
                     <StyledStepBody>
                         <OnboardingStep4
+                            guest={guest}
                             onNext={() => setStep(5)}
                             onBack={() => setStep(prevStep())}
                         />
@@ -298,8 +323,8 @@ const OnboardingPage: NextPage = () => {
                     confirmLabel="홈으로"
                     hideCancel
                     layerKey="onboarding-setup-exists"
-                    onConfirm={() => router.replace('/')}
-                    onClose={() => router.replace('/')}
+                    onConfirm={async () => { await update(); router.replace('/'); }}
+                    onClose={async () => { await update(); router.replace('/'); }}
                 />
             )}
         </StyledPage>
