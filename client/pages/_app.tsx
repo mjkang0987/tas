@@ -420,8 +420,16 @@ function AppContent({Component, pageProps}: AppContentProps) {
     );
 }
 
+// 이동 목적지 경로에 맞는 로딩 안내 문구
+function routeLoadingText(url: string): string {
+    const path = url.split(/[?#]/)[0];
+    if (path.startsWith('/onboarding')) return '서비스를 준비하는 중...';
+    return '잠시만 기다려 주세요...';
+}
+
 function RouteLoadingSpinner() {
     const [loading, setLoading] = useState(false);
+    const [text, setText] = useState('잠시만 기다려 주세요...');
 
     useEffect(() => {
         let timer: ReturnType<typeof setTimeout>;
@@ -431,6 +439,7 @@ function RouteLoadingSpinner() {
 
         const start = (url: string, opts: {shallow: boolean}) => {
             if (opts.shallow || calendarPattern.test(url)) return;
+            setText(routeLoadingText(url));
             timer = setTimeout(() => setLoading(true), 300);
             fallback = setTimeout(() => setLoading(false), 8000);
         };
@@ -455,7 +464,7 @@ function RouteLoadingSpinner() {
 
     if (!loading) return null;
 
-    return <LoadingOverlay backdrop="dim" zIndex={9999} />;
+    return <LoadingOverlay backdrop="dim" zIndex={9999} text={text} />;
 }
 
 const StyledSessionExpiredToast = styled.div`
