@@ -1,12 +1,13 @@
-import {useRef, useState} from 'react';
+import {useMemo, useRef, useState} from 'react';
 
 import type {CreateReservationInitial} from '../../../store/calendarStore';
+import {useCalendarStore} from '../../../store/calendarStore';
 import type {Reservation, ReservationChannel} from '../../../utils/reservations';
 import {findOverlap} from '../../../utils/reservations';
 import type {Customer, CustomerMap} from '../../../utils/customers';
 import type {Designer} from '../../../utils/designers';
 import {getDesignerAvailabilityState, splitDesignersByStatus} from '../../../utils/designers';
-import {calcEndTime, joinServiceNames, sumDurationMinutes, sumPrice} from '../../../utils/services';
+import {buildCatalogMap, calcEndTime, joinServiceNames, sumDurationMinutes, sumPrice} from '../../../utils/services';
 import type {ReservationDetailFormState, ReservationFieldError} from './ReservationDetailSections';
 type CustomerMode = 'existing' | 'new';
 
@@ -36,6 +37,9 @@ export function useReservationCreateForm({
     addCustomer,
     onSave,
 }: UseReservationCreateFormParams) {
+    const serviceCatalog = useCalendarStore((s) => s.serviceCatalog);
+    const catalogMap = useMemo(() => buildCatalogMap(serviceCatalog), [serviceCatalog]);
+
     const {active: activeDesigners, onLeave: onLeaveDesigners, resigned: resignedDesigners} = splitDesignersByStatus(designers);
     const defaultDesignerId = activeDesigners[0]?.id ?? 0;
     const customers = Object.values(customerMap);
@@ -70,8 +74,8 @@ export function useReservationCreateForm({
         ? customers.filter((customer) => customer.name.includes(customerQuery) || customer.tel.includes(customerQuery))
         : customers;
 
-    const totalDuration = sumDurationMinutes(selectedServices);
-    const totalPrice = sumPrice(selectedServices);
+    const totalDuration = sumDurationMinutes(selectedServices, catalogMap);
+    const totalPrice = sumPrice(selectedServices, catalogMap);
 
     const handleCustomerSelect = (id: number) => {
         const customer = customerMap[id];
@@ -104,7 +108,7 @@ export function useReservationCreateForm({
             const next = {...prev, startTime: value};
 
             if (!isEndTimeManual && selectedServices.length > 0) {
-                const duration = sumDurationMinutes(selectedServices);
+                const duration = sumDurationMinutes(selectedServices, catalogMap);
                 if (duration > 0) {
                     next.endTime = calcEndTime(value, duration);
                 }
@@ -128,7 +132,7 @@ export function useReservationCreateForm({
                 : [...prev, serviceName];
 
             const nextService = joinServiceNames(next);
-            const duration = sumDurationMinutes(next);
+            const duration = sumDurationMinutes(next, catalogMap);
 
             setForm((currentForm) => {
                 const updated = {...currentForm, service: nextService};
@@ -139,7 +143,7 @@ export function useReservationCreateForm({
             });
 
             if (!isPriceManual) {
-                setForm((prevForm) => ({...prevForm, price: sumPrice(next)}));
+                setForm((prevForm) => ({...prevForm, price: sumPrice(next, catalogMap)}));
             }
 
             setIsEndTimeManual(false);

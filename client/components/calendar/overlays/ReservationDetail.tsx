@@ -15,6 +15,7 @@ import {
     sumDurationMinutes,
     sumPrice,
     calcEndTime,
+    buildCatalogMap,
     buildServiceColorMap,
     formatPrice,
 } from '../../../utils/services';
@@ -124,6 +125,7 @@ export const ReservationDetail = ({
         : null;
     const designerNameMap = buildDesignerNameMap(designers, true);
     const serviceColorMap = buildServiceColorMap(serviceCatalog, categoryBaseColorMap);
+    const catalogMap = useMemo(() => buildCatalogMap(serviceCatalog), [serviceCatalog]);
     const knownServiceNames = useMemo(() => new Set(Object.keys(serviceColorMap)), [serviceColorMap]);
     const modalRoot = document.getElementById('modal-root');
     const {layerId, layerDataId} = useLayerInstanceId('reservation-detail');
@@ -180,8 +182,8 @@ export const ReservationDetail = ({
 
     const changedFields = getChangedFields(sourceReservation, form, designerNameMap);
     const thisHistory = history.filter((h) => h.reservationId === sourceReservation.id);
-    const totalDuration = sumDurationMinutes(selectedServices);
-    const totalPrice = sumPrice(selectedServices);
+    const totalDuration = sumDurationMinutes(selectedServices, catalogMap);
+    const totalPrice = sumPrice(selectedServices, catalogMap);
     const displayDesignerName = draftReservation.designerId
         ? (designerNameMap[draftReservation.designerId] ?? '미지정')
         : '미지정';
@@ -203,7 +205,7 @@ export const ReservationDetail = ({
             const next = {...prev, startTime: value};
 
             if (!isEndTimeManual && selectedServices.length > 0) {
-                const duration = sumDurationMinutes(selectedServices);
+                const duration = sumDurationMinutes(selectedServices, catalogMap);
 
                 if (duration > 0) {
                     next.endTime = calcEndTime(value, duration);
@@ -228,8 +230,8 @@ export const ReservationDetail = ({
                 : [...prev, serviceName];
 
             const serviceStr = joinServiceNames(next);
-            const duration = sumDurationMinutes(next);
-            const nextPrice = sumPrice(next);
+            const duration = sumDurationMinutes(next, catalogMap);
+            const nextPrice = sumPrice(next, catalogMap);
 
             setForm((f) => {
                 const updated = {...f, service: serviceStr};
