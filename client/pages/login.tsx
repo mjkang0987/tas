@@ -9,6 +9,7 @@ import type {GetServerSideProps} from 'next';
 import styled from 'styled-components';
 
 import {AuthActionIcon} from '../components/ui/AuthActionIcon';
+import {AdBanner} from '../components/ad/AdBanner';
 import {SeoHead} from '../components/ui/SeoHead';
 import {ConfirmDialog} from '../components/ui/ConfirmDialog';
 import {LoadingOverlay} from '../components/ui/LoadingOverlay';
@@ -178,6 +179,9 @@ export default function LoginPage({providerIds, isDatabaseConfigured, loginError
                     </StyledSecondaryButton>
                 )}
             </StyledCard>
+            <StyledAuthAd>
+                <AdBanner adSlot={process.env.NEXT_PUBLIC_ADSENSE_AUTH_SLOT ?? ''} adFormat="horizontal" />
+            </StyledAuthAd>
             {showGuestLoad && (
                 <ConfirmDialog
                     title="이전 데이터 불러오기"
@@ -232,25 +236,51 @@ export const getServerSideProps: GetServerSideProps = async (ctx) => {
 
 const StyledWrapper = styled.div`
     display: flex;
+    flex-direction: column;
     align-items: center;
     justify-content: center;
-    height: 100%;
+    gap: 16px;
+    min-height: 100%;
     padding: 10px;
     box-sizing: border-box;
+
+    /* 모바일: 풀블리드(좌우 여백 제거). 흰 배경이라 박스 없이도 풀스크린처럼 보임 */
+    @media (max-width: 640px) {
+        padding: 0;
+    }
+`;
+
+const StyledAuthAd = styled.div`
+    width: 100%;
+    max-width: 360px;
+    flex-shrink: 0;
+
+    /* 모바일: 카드 폭에 맞춰 가로 꽉 + 좌우 인셋(카드 본문과 정렬) */
+    @media (max-width: 640px) {
+        max-width: none;
+        padding: 0 20px;
+        box-sizing: border-box;
+    }
 `;
 
 const StyledCard = styled.div`
     display: flex;
     flex-direction: column;
     align-items: center;
+    margin: auto 0;
     padding: 40px 30px;
     background-color: var(--white-color);
     border-radius: var(--radius-lg);
     box-shadow: var(--shadow-md);
     width: 100%;
     max-width: 360px;
+    box-sizing: border-box;
 
+    /* 모바일: 박스 디자인(그림자·라운드·고정폭) 제거 — 흰 배경에 녹아들어 풀스크린처럼 */
     @media (max-width: 640px) {
+        max-width: none;
+        border-radius: 0;
+        box-shadow: none;
         padding: 32px 20px;
     }
 `;

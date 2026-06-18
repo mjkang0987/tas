@@ -13,6 +13,7 @@ import {clearGuestConsentAck, createDefaultLocalDbSnapshot, loadLocalDbSnapshot,
 import {CURRENT_TERMS_VERSION} from '../../utils/terms';
 import type {ServiceItem} from '../../utils/services';
 import {SeoHead} from '../../components/ui/SeoHead';
+import {AdBanner} from '../../components/ad/AdBanner';
 import {ConfirmDialog} from '../../components/ui/ConfirmDialog';
 import type {OnboardingStep, ExtShopType, LocalDesigner} from '../../components/onboarding/onboarding-types';
 import {DEFAULT_DESIGNER_ID_START, STEP_LABELS} from '../../components/onboarding/onboarding-types';
@@ -305,6 +306,10 @@ const OnboardingPage: NextPage = () => {
                 )}
             </StyledCard>
 
+            <StyledAuthAd>
+                <AdBanner adSlot={process.env.NEXT_PUBLIC_ADSENSE_AUTH_SLOT ?? ''} adFormat="horizontal" />
+            </StyledAuthAd>
+
             {showSkipConfirm && (
                 <ConfirmDialog
                     title="설정을 건너뛸까요?"
@@ -337,17 +342,39 @@ export const getStaticProps = () => ({props: {}});
 
 const StyledPage = styled.div`
     display: flex;
+    flex-direction: column;
     align-items: center;
-    justify-content: center;
+    justify-content: flex-start;
+    gap: 20px;
     min-height: 100%;
     padding: 24px 16px;
     box-sizing: border-box;
+
+    /* 모바일: 풀블리드(좌우 여백 제거) + 상단 여백만 유지. 흰 배경이라 박스 없이도 풀스크린처럼 */
+    @media (max-width: 640px) {
+        padding: 16px 0 0;
+    }
+`;
+
+const StyledAuthAd = styled.div`
+    width: 100%;
+    max-width: 600px;
+    flex-shrink: 0;
+    margin-top: auto;
+
+    /* 모바일: 카드 폭에 맞춰 가로 꽉 + 좌우 인셋(카드 본문과 정렬) */
+    @media (max-width: 640px) {
+        max-width: none;
+        padding: 0 18px;
+        box-sizing: border-box;
+    }
 `;
 
 const StyledCard = styled.div`
     width: 100%;
     max-width: 600px;
     min-height: 480px;
+    box-sizing: border-box;
     display: flex;
     flex-direction: column;
     gap: 20px;
@@ -356,8 +383,12 @@ const StyledCard = styled.div`
     border-radius: var(--radius-lg);
     box-shadow: var(--shadow-md);
 
-    @media (max-width: 480px) {
-        min-height: 360px;
+    /* 모바일: 박스 디자인(그림자·라운드·고정폭) 제거 — 흰 배경에 녹아들어 풀스크린처럼 */
+    @media (max-width: 640px) {
+        max-width: none;
+        min-height: 0;
+        border-radius: 0;
+        box-shadow: none;
         padding: 24px 18px;
         gap: 16px;
     }

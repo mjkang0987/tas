@@ -98,6 +98,7 @@ const StyledCompleteSummary = styled.div`
     border-radius: var(--radius-md);
     background: var(--gray-color2);
     border: 1px solid var(--light-gray-color);
+    box-sizing: border-box;
 `;
 
 const StyledSummaryRow = styled.div`
