@@ -5,12 +5,23 @@
 This runbook covers the first production deploy of the current service stack:
 
 - **Hosting:** Next.js app as a container on **Google Cloud Run** (free tier)
-- **Database:** **Neon** (free serverless PostgreSQL) — accessed via Prisma driver adapter (`@prisma/adapter-pg`), no query-engine binary
+- **Database:** **Supabase** (PostgreSQL, **Seoul / ap-northeast-2**) — accessed via Prisma driver adapter (`@prisma/adapter-pg`), no query-engine binary
 - **DNS:** **Cloudflare** for `takeaseat.co.kr`
 - **Ads:** Google AdSense (`AdBanner` already implemented)
 - Prisma migrations + seed import for the default store data
 
-> Vercel was evaluated and **rejected**: Hobby tier forbids ads / commercial use. Cloud Run + Neon + Cloudflare keeps cost at ~0 with no commercial restriction.
+> Vercel was evaluated and **rejected**: Hobby tier forbids ads / commercial use. Cloud Run + Supabase + Cloudflare keeps cost at ~0 with no commercial restriction.
+>
+> **Why Supabase over Neon:** Neon has no Korea region (nearest = Singapore, ~75ms from Seoul). Supabase offers **Seoul**, so app (Cloud Run Seoul) and DB sit in the same region (~2ms) — best latency for Korean users + data stays in Korea. Trade-off: Supabase free pauses a project after 7 days of inactivity (mitigate with traffic / a keep-alive ping, or upgrade to paid).
+
+## Connection strings (pooler vs direct)
+
+Cloud Run scales to many instances, so the **app runtime** must use the connection pooler; **migrations/seed** must use a direct connection.
+
+- `DATABASE_URL` — **Supavisor transaction pooler**, port **6543**, `?pgbouncer=true`. Read by the runtime adapter (`server/db/prisma.ts`) and seed.
+- `DIRECT_URL` — **direct/session** connection, port **5432**. Read by the Prisma CLI for migrations (`prisma.config.ts` prefers `DIRECT_URL`, falls back to `DATABASE_URL`). Migrations need session mode for advisory locks / DDL.
+
+Local dev can leave `DIRECT_URL` unset (a plain direct `DATABASE_URL` is used for everything).
 
 ## Build Artifacts (in repo)
 
@@ -38,7 +49,8 @@ docker run --rm -p 8080:8080 \
 
 Application (set on the Cloud Run service):
 
-- `DATABASE_URL` — Neon pooled connection string (`...-pooler.../db?sslmode=require`)
+- `DATABASE_URL` — Supabase transaction pooler (port 6543, `?pgbouncer=true`)
+- `DIRECT_URL` — Supabase direct connection (port 5432) — for migrations/seed only
 - `AUTH_SECRET` — production-only value (`openssl rand -base64 32`)
 - `AUTH_URL` — `https://takeaseat.co.kr`
 - `AUTH_GOOGLE_ID`, `AUTH_GOOGLE_SECRET`
@@ -60,7 +72,7 @@ Optional:
 
 ## Pre-Deploy Checklist
 
-1. **Neon:** create a project + database. Copy the **pooled** connection string into `DATABASE_URL`.
+1. **Supabase:** create a project in **Seoul (ap-northeast-2)**. From *Project Settings → Database → Connection string*, copy the **Transaction pooler** URI (6543) into `DATABASE_URL` and the **Direct connection** URI (5432) into `DIRECT_URL`.
 2. **OAuth:** register production callback URLs for each provider (below). Rotate every secret currently in local files; never reuse dev secrets.
 3. `AUTH_SECRET` — generate a fresh production-only value.
 4. Decide the final domain (`takeaseat.co.kr`) and set `AUTH_URL` to it.
@@ -100,21 +112,21 @@ Notes:
 
 ## Database Migration
 
-Checked-in migrations live at `server/prisma/migrations/`. Run against Neon after `DATABASE_URL` is available (from `client/`, locally or in a one-off job):
+A single squashed baseline migration lives at `server/prisma/migrations/0001_init/`. Run it once `DIRECT_URL` is set (CLI uses the direct/5432 connection, not the pooler):
 
 ```bash
 cd client
-pnpm prisma:deploy        # validate + migrate status + migrate deploy
+DIRECT_URL="<supabase direct 5432 uri>" pnpm prisma:deploy   # validate + migrate status + migrate deploy
 ```
 
 ## First Data Import
 
-After migrations succeed:
+After migrations succeed (run seed against the direct connection too, to avoid pooler quirks):
 
 ```bash
 cd client
-pnpm prisma:seed
-pnpm prisma:verify-seed
+DATABASE_URL="<supabase direct 5432 uri>" pnpm prisma:seed
+DATABASE_URL="<supabase direct 5432 uri>" pnpm prisma:verify-seed
 # or, single first-run command:
 pnpm prisma:bootstrap
 ```
@@ -146,8 +158,8 @@ pnpm prisma:bootstrap
 If the first production import is incorrect:
 
 1. Roll back Cloud Run to the previous revision (`gcloud run services update-traffic tas --to-revisions PREV=100`).
-2. Restore the Neon database from a branch/snapshot taken before import.
-3. Fix the seed data or seed logic; re-run migration + seed checks against a Neon branch first.
+2. Restore the Supabase database from a backup/snapshot taken before import (Supabase dashboard → Database → Backups).
+3. Fix the seed data or seed logic; re-run migration + seed checks against a throwaway Supabase project first.
 
 ## Current Known Risks
 
@@ -155,4 +167,5 @@ If the first production import is incorrect:
 - `NEXT_PUBLIC_*` are build-time — changing AdSense IDs requires a rebuild, not just an env update.
 - `next-auth@5.0.0-beta.x` with `next@16.x` had development-time module-resolution noise around `next/server`.
 - Kakao profile parsing required a defensive override in `client/auth.ts`.
-- Prisma driver adapter (`@prisma/adapter-pg`) talks to Neon over `pg`; ensure the **pooled** connection string + `sslmode=require`.
+- Prisma driver adapter (`@prisma/adapter-pg`) talks to Supabase over `pg`. App must use the **transaction pooler (6543)**; migrations/seed must use the **direct connection (5432)** — mixing them up causes either connection exhaustion (app on direct) or advisory-lock failures (migrations on pooler).
+- Supabase free tier **pauses after 7 days of inactivity** — first request after a pause is slow / may need a manual resume. Keep traffic flowing or upgrade before relying on it for production uptime.
