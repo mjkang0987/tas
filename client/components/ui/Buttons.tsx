@@ -14,6 +14,8 @@ interface Props {
     $height?: number | undefined;
     $color?: string | undefined;
     $cancelled?: boolean | undefined;
+    $active?: boolean | undefined;
+    'aria-label'?: string | undefined;
 }
 
 const StyledSquareButton = styled.button <Props>`
@@ -23,7 +25,7 @@ const StyledSquareButton = styled.button <Props>`
     min-height: 32px;
     padding: 0 8px;
     border: 1px solid var(--border-color);
-    background-color: var(--white-color);
+    background-color: ${props => props.$active ? 'var(--gray-color2)' : 'var(--white-color)'};
     border-radius: var(--radius-md);
     box-shadow: var(--shadow-sm);
     font-size: var(--small-font);

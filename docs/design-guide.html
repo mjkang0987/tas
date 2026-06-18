@@ -8,7 +8,6 @@
   :root {
     --big-font: 18px;
     --font: 14px;
-    --small-font: 12px;
     --xsmall-font: 11px;
     --tiny-font: 10px;
 
@@ -328,14 +327,13 @@
     border-radius: var(--radius-md);
     box-shadow: var(--shadow-sm);
   }
-  .btn-circle {
-    width: 20px; height: 20px;
-    border: 1px solid var(--border-color);
-    background: var(--white-color);
-    border-radius: 50%;
-    box-shadow: var(--shadow-sm);
-    font-size: 14px;
-    color: var(--dark-gray-color);
+  .btn-square.active { background: var(--gray-color2); }
+  /* 캘린더 헤더 이전/다음 — 투명 래퍼 + DirectionIcon(32px 둥근사각 + 셰브론) */
+  .btn-direction {
+    padding: 0;
+    border: 0;
+    background: transparent;
+    line-height: 0;
   }
   .btn-add {
     width: 18px; height: 18px;
@@ -1019,20 +1017,30 @@
   </div>
 
   <div class="demo-card" style="margin-bottom:12px">
-    <div class="demo-label">ButtonSquare — 작은 인라인 버튼</div>
+    <div class="demo-label">ButtonSquare — 작은 인라인 버튼 (기본 / active)</div>
     <div class="demo-row">
-      <button class="btn btn-square">주간</button>
+      <button class="btn btn-square active">주간</button>
       <button class="btn btn-square">타임라인</button>
       <button class="btn btn-square">월간</button>
-      <button class="btn btn-square" style="background:var(--gray-color2)">오늘</button>
+      <button class="btn btn-square">오늘</button>
     </div>
   </div>
 
   <div class="demo-card" style="margin-bottom:12px">
-    <div class="demo-label">ButtonCircle / ButtonAdd</div>
+    <div class="demo-label">방향 버튼 (이전 / 다음) — 캘린더 헤더 / ButtonAdd</div>
     <div class="demo-row">
-      <button class="btn btn-circle">‹</button>
-      <button class="btn btn-circle">›</button>
+      <button class="btn btn-direction" aria-label="이전">
+        <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
+          <rect x="1" y="1" width="30" height="30" rx="8" stroke="#D1D5DB" fill="white"/>
+          <path d="M18.5 10.5L13 16L18.5 21.5" stroke="#111827" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </button>
+      <button class="btn btn-direction" aria-label="다음">
+        <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
+          <rect x="1" y="1" width="30" height="30" rx="8" stroke="#D1D5DB" fill="white"/>
+          <path d="M13.5 10.5L19 16L13.5 21.5" stroke="#111827" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </button>
       <button class="btn btn-add" style="background:transparent;color:var(--gray-color)">＋</button>
     </div>
   </div>

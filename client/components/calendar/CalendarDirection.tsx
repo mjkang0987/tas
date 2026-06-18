@@ -9,7 +9,8 @@ import {useCalendarStore} from '../../store/calendarStore';
 import {
     A11Y_DIRECTION,
     ASIDE,
-    ViewType
+    ViewType,
+    isTodayValue
 } from '../../utils/constants';
 
 import {setRouter} from '../../utils/router';
@@ -114,8 +115,25 @@ export const CalendarDirection = () => {
         }
     };
 
+    // 현재 뷰가 '오늘'을 보고 있는지 (뷰 단위별 판정) → 오늘 버튼 active 표시
+    const isTodayActive = (() => {
+        if (!today) return false;
+        if (type === ViewType.Year) return today.getFullYear() === +fullYear;
+        if (type === ViewType.Month) return today.getFullYear() === +fullYear && today.getMonth() === +month;
+        if (type === ViewType.Week) {
+            const start = new Date(+fullYear, +month, +date - +day);
+            const startMid = new Date(start.getFullYear(), start.getMonth(), start.getDate());
+            const end = new Date(startMid);
+            end.setDate(startMid.getDate() + 6);
+            const t = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+            return t >= startMid && t <= end;
+        }
+        return isTodayValue(today, +fullYear, +month, +date);
+    })();
+
     return (<StyledButtonWrap>
-            {today && <ButtonSquare onClick={() => {
+            {today && <ButtonSquare $active={isTodayActive}
+                                    onClick={() => {
                 setUpdateCurr(today);
                 setRouter({
                     type,

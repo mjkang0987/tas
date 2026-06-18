@@ -232,10 +232,10 @@ export const Header = () => {
                                                 aria-label="고객검색">
                         <StyledSearchIcon viewBox="0 0 24 24"
                                           aria-hidden="true">
-                            <circle cx="11"
-                                    cy="11"
-                                    r="5.5" />
-                            <path d="M15.2 15.2L19 19" />
+                            <circle cx="10.5"
+                                    cy="10.5"
+                                    r="7.5" />
+                            <path d="M15.8 15.8L21 21" />
                         </StyledSearchIcon>
                     </StyledCustomerSearchButton>
                 </StyledToolRow>
@@ -275,10 +275,10 @@ export const Header = () => {
                                             aria-label="고객검색">
                     <StyledSearchIcon viewBox="0 0 24 24"
                                       aria-hidden="true">
-                        <circle cx="11"
-                                cy="11"
-                                r="5.5" />
-                        <path d="M15.2 15.2L19 19" />
+                        <circle cx="10.5"
+                                cy="10.5"
+                                r="7.5" />
+                        <path d="M15.8 15.8L21 21" />
                     </StyledSearchIcon>
                 </StyledCustomerSearchButton>
             </>}
