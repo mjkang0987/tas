@@ -140,7 +140,7 @@ export const Aside = () => {
                     <path d="M3 9.5L12 4L21 9.5" />
                     <path d="M5 9.5V18.5C5 19.05 5.45 19.5 6 19.5H18C18.55 19.5 19 19.05 19 18.5V9.5" />
                 </StyledMenuIcon>
-                <StyledBrandLogo src="/logo/logo-black.svg" alt="TAS" />
+                <StyledBrandLogo src="/logo/logo.svg" alt="TAS" />
             </StyledBrandLink>
             {isGuest ? (
                 storeName ? <StyledStoreNameLink href="/settings/store" onClick={closeMobile}>{storeName}</StyledStoreNameLink> : null
