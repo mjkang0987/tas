@@ -14,7 +14,6 @@ import {
 
 import {AuthActionIcon} from '../ui/AuthActionIcon';
 import {ButtonText} from '../ui/ButtonText';
-import {AdBanner} from '../ad/AdBanner';
 import {CustomerAddModal} from '../address/CustomerAddModal';
 import {StoreSwitcher} from './StoreSwitcher';
 import {AsideGuestLogout} from './AsideGuestLogout';
@@ -23,6 +22,7 @@ import {AsideMenuIcon, StyledMenuIcon} from './AsideMenuIcon';
 import {
     StyledAside,
     StyledBrandLink,
+    StyledBrandLogo,
     StyledGuestInfo,
     StyledStoreNameLink,
     StyledUserInfoLink,
@@ -39,12 +39,10 @@ import {
     StyledSubNavLink,
     StyledLogoutButton,
     StyledInquiryLink,
-    StyledAsideAd,
     StyledToggleIcon,
     StyledToggleSvg,
     StyledLegalLinks,
     StyledLegalLink,
-    StyledLegalSeparator,
 } from './Aside.styles';
 
 const SETTINGS_SUBMENU = [
@@ -142,7 +140,7 @@ export const Aside = () => {
                     <path d="M3 9.5L12 4L21 9.5" />
                     <path d="M5 9.5V18.5C5 19.05 5.45 19.5 6 19.5H18C18.55 19.5 19 19.05 19 18.5V9.5" />
                 </StyledMenuIcon>
-                <span>TAS</span>
+                <StyledBrandLogo src="/logo/logo-black.svg" alt="TAS" />
             </StyledBrandLink>
             {isGuest ? (
                 storeName ? <StyledStoreNameLink href="/settings/store" onClick={closeMobile}>{storeName}</StyledStoreNameLink> : null
@@ -261,13 +259,9 @@ export const Aside = () => {
                 </StyledLogoutButton>
                 <StyledLegalLinks>
                     <StyledLegalLink href="/terms" onClick={closeMobile}>이용약관</StyledLegalLink>
-                    <StyledLegalSeparator aria-hidden="true">·</StyledLegalSeparator>
                     <StyledLegalLink href="/privacy" onClick={closeMobile}>개인정보처리방침</StyledLegalLink>
                     {!isGuest && (
-                        <>
-                            <StyledLegalSeparator aria-hidden="true">·</StyledLegalSeparator>
-                            <StyledLegalLink href="/dpa" onClick={closeMobile}>개인정보 처리위탁</StyledLegalLink>
-                        </>
+                        <StyledLegalLink href="/dpa" onClick={closeMobile}>개인정보 처리위탁</StyledLegalLink>
                     )}
                 </StyledLegalLinks>
                 {showCustomerAdd && (
@@ -285,10 +279,6 @@ export const Aside = () => {
                                           window.location.href = '/login';
                                       }} />
                 )}
-                <StyledAsideAd>
-                    <AdBanner adSlot="ASIDE_SLOT_ID"
-                              adFormat="vertical" />
-                </StyledAsideAd>
             </StyledScrollArea>
         </StyledAside>
     );

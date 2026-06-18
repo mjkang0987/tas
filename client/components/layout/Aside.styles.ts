@@ -18,7 +18,10 @@ export const StyledAside = styled.aside<{ $isVisible: boolean }>`
         top: 0;
         left: 0;
         height: 100%;
-        z-index: 200;
+        /* 모달 대역(OVERLAY_Z_INDEX 100~190)보다 아래에 둔다.
+           드로어 안에서 여는 모달(예: 게스트 로그아웃 확인)이 가려지지 않도록.
+           페이지 콘텐츠(최대 z-index ~50)는 계속 덮는다. */
+        z-index: 99;
         width: ${props => props.$isVisible ? 'auto' : '0'};
         box-shadow: ${props => props.$isVisible ? 'var(--shadow-md)' : 'none'};
         padding-left: 8px;
@@ -47,6 +50,12 @@ export const StyledBrandLink = styled(Link)`
             opacity: 0.85;
         }
     }
+`;
+
+export const StyledBrandLogo = styled.img`
+    height: 24px;
+    width: auto;
+    display: block;
 `;
 
 export const StyledGuestInfo = styled.div`
@@ -318,12 +327,6 @@ export const StyledInquiryLink = styled(Link)<{ $active?: boolean }>`
     }
 `;
 
-export const StyledAsideAd = styled.div`
-    margin-top: auto;
-    padding: 8px 8px 8px 0;
-    flex-shrink: 0;
-`;
-
 export const StyledToggleIcon = styled.span<{ $collapsed: boolean }>`
     display: inline-flex;
     width: 16px;
@@ -345,9 +348,9 @@ export const StyledToggleSvg = styled.svg`
 
 export const StyledLegalLinks = styled.div`
     display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 6px;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
     flex-shrink: 0;
     padding: 6px 10px 2px;
     font-size: var(--tiny-font);
@@ -363,9 +366,4 @@ export const StyledLegalLink = styled(Link)`
     @media (hover: hover) and (pointer: fine) {
         &:hover { opacity: 0.9; text-decoration: underline; }
     }
-`;
-
-export const StyledLegalSeparator = styled.span`
-    color: var(--aside-text);
-    opacity: 0.35;
 `;
