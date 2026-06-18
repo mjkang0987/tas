@@ -158,6 +158,7 @@ export default function ConsentPage() {
         <StyledWrapper>
             <SeoHead title="약관 동의" />
             <StyledCard>
+                <StyledBrandLogo src="/logo/logo-black.svg" alt="TAS" />
                 <StyledTitle>약관 동의</StyledTitle>
                 <StyledSubtitle>TAS 이용을 위해 아래 약관에 동의해 주세요.</StyledSubtitle>
 
@@ -301,6 +302,13 @@ const StyledCard = styled.div`
         box-shadow: none;
         padding: 28px 20px;
     }
+`;
+
+const StyledBrandLogo = styled.img`
+    height: 88px;
+    width: auto;
+    display: block;
+    margin: 0 0 16px;
 `;
 
 const StyledTitle = styled.h1`

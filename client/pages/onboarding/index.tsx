@@ -213,7 +213,7 @@ const OnboardingPage: NextPage = () => {
             <SeoHead title="초기 설정" />
             <StyledCard>
                 <StyledCardHeader>
-                    <StyledLogo>TAS</StyledLogo>
+                    <StyledBrandLogo src="/logo/logo-black.svg" alt="TAS" />
                     {step !== 0 && (
                         <StyledStepRow>
                             {visibleSteps.map((s, i) => (
@@ -400,12 +400,10 @@ const StyledCardHeader = styled.div`
     gap: 10px;
 `;
 
-const StyledLogo = styled.p`
-    margin: 0;
-    font-size: 12px;
-    font-weight: 800;
-    letter-spacing: 0.2em;
-    color: var(--blue-color);
+const StyledBrandLogo = styled.img`
+    height: 88px;
+    width: auto;
+    display: block;
 `;
 
 const StyledStepRow = styled.div`

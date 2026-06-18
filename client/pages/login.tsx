@@ -119,7 +119,9 @@ export default function LoginPage({providerIds, isDatabaseConfigured, loginError
                 <LoadingOverlay backdrop="blur" boxed size={30} zIndex={100} text="로그인 상태 확인 중" />
             )}
             <StyledCard>
-                <StyledTitle>TAS</StyledTitle>
+                <StyledTitle>
+                    <StyledBrandLogo src="/logo/logo-black.svg" alt="TAS" />
+                </StyledTitle>
                 <StyledSubtitle>SNS 계정으로 로그인</StyledSubtitle>
                 {displayError && ERROR_MESSAGES[displayError] && (
                     <StyledLoginError>
@@ -286,10 +288,13 @@ const StyledCard = styled.div`
 `;
 
 const StyledTitle = styled.h1`
-    font-size: 24px;
-    font-weight: 700;
     margin: 0 0 8px;
-    color: var(--black-color);
+`;
+
+const StyledBrandLogo = styled.img`
+    height: 88px;
+    width: auto;
+    display: block;
 `;
 
 const StyledSubtitle = styled.p`
