@@ -197,4 +197,87 @@ Phase 1(API 이전) 먼저 — 위험이 낮고 즉시 경계가 깔끔해짐. P
 
 > **진행 현황 (2026-06-12, 완료)**: 404/500 안내 페이지는 기존(aa3be11) 디자인 적용 확인. 404에 5초 카운트다운 자동 홈 리다이렉트 추가(`3938299`). 잘못된 설정 탭 경로는 기존 `getServerSideProps` 리다이렉트로 처리됨.
 - 디자인 가이드 맞춰서 안내 페이지 제작
-- 올바른 페이지로 리다이렉트 기능 구현 
+- 올바른 페이지로 리다이렉트 기능 구현
+
+---
+
+# 릴리즈 준비 — UI 정리 + 광고
+
+> **진행 현황 (2026-06-18, 진행 중)**: 아래 UI 정리 작업 완료, 커밋 대기. 광고제거 기능은 미착수(아래 별도 섹션).
+
+## 배포 방향 (확정)
+- 호스팅: **Cloud Run 무료 티어 + Neon(무료 Postgres) + Cloudflare(DNS) + 블로그는 Cloudflare Pages**. 비용 0 + 상업용 제한 없음(Vercel Hobby는 광고/상업 불가라 제외).
+- 도메인: `takeaseat.co.kr`(TAS), `blog.takeaseat.co.kr`(블로그), `clipnote.co.kr`(별도 앱). 호스팅과 독립 — DNS만 맞추면 됨.
+- 광고: Google AdSense (이미 `AdBanner` 구현됨). 릴리즈 시 ① `NEXT_PUBLIC_ADSENSE_CLIENT`/슬롯 설정 ② `/ads.txt` 추가 ③ AdSense 사이트 승인.
+
+## 완료한 UI 작업 (커밋 대기)
+1. **aside 약관 링크 정리** — 이용약관·개인정보처리방침·개인정보 처리위탁을 한 줄 `·` 나열 → 세로 스택 + 왼쪽 정렬, 구분자(`StyledLegalSeparator`) 제거. (`components/layout/Aside.tsx`, `Aside.styles.ts`)
+2. **인증 화면 광고 추가** — 로그인·온보딩(게스트 포함)·약관동의 카드 아래 `AdBanner` 추가, 공용 슬롯 `NEXT_PUBLIC_ADSENSE_AUTH_SLOT`. (`pages/login.tsx`, `pages/onboarding/index.tsx`, `pages/consent.tsx`, `.env.example`)
+3. **모바일 aside z-index 수정** — 모바일 aside `z-index 200 → 99`. 드로어가 모달 대역(`OVERLAY_Z_INDEX` 100~190)보다 위라 aside 내부에서 여는 모달(게스트 로그아웃 등)이 가려지던 버그 해결. (`Aside.styles.ts`)
+4. **모바일 인증 화면 박스 제거** — 로그인·온보딩·약관동의 카드를 ≤640px에서 풀블리드로(그림자·라운드·고정폭 제거, 페이지 좌우 패딩 0). 배경이 흰색이라 박스 없이 풀스크린처럼 보임. 광고도 모바일에서 가로 꽉 + 좌우 인셋으로 정렬, 폴드 위 노출(카드 `flex:1` 제거).
+
+## 커밋 단위 (Korean, conventional)
+1. `style: aside 약관 링크 세로 정렬로 정리`
+2. `feat: 로그인·온보딩·약관 동의 화면에 광고 추가`
+3. `fix: 모바일에서 게스트 로그아웃 레이어가 aside에 가려지는 문제 수정`
+4. `style: 모바일 인증 화면 박스 디자인 제거 및 광고 정렬`
+
+---
+
+# 광고제거(ad-free) 계정 분기 — "광고제거 키"
+
+> **진행 현황 (2026-06-18, 계획)**: 미착수. 결정 확정 — **사용자(User) 단위 / 영구 해제(Boolean) / 운영자 수동 발급(CLI)**.
+
+## 배경 / 정책
+- 일부 계정에 광고를 노출하지 않도록 "광고제거 키"를 발급. 유저가 키 입력 → 해당 **유저 계정**이 영구 ad-free.
+- ⚠️ 발급은 **운영자만** (CLI 스크립트). 인앱 발급 API는 만들지 않음 — 만들면 일반 유저가 스스로 광고를 끌 수 있어 수익화가 무너짐.
+- 게스트는 계정이 없으므로 ad-free 대상 아님(항상 광고 노출).
+- 기존 **초대코드 시스템**(`server/auth/invite.ts`, `pages/api/invites.ts`, `Invite` 모델) 패턴을 그대로 미러링.
+
+## 구현 항목
+### 1. DB 스키마 (`server/prisma/schema.prisma`) — 마이그레이션 필요
+- `User`에 `adFree Boolean @default(false)` 추가
+- `AdRemovalKey` 모델 추가 (Invite 미러):
+  ```prisma
+  model AdRemovalKey {
+    id           String    @id @default(cuid())
+    code         String    @unique
+    redeemedById String?
+    redeemedAt   DateTime?
+    createdAt    DateTime  @default(now())
+    redeemedBy   User?     @relation(fields: [redeemedById], references: [id])
+  }
+  ```
+  - `User`에 역관계 `adKeysRedeemed AdRemovalKey[]` 추가
+
+### 2. 서버 로직 (`server/auth/ad-key.ts`)
+- `generateAdKey()` — invite의 CHARSET/6자리 재사용
+- `validateAdKey(code)` — not-found / used / valid
+- `redeemAdKey(code, userId)` — 트랜잭션: 키 소비(`redeemedAt`, `redeemedById`) + `user.adFree = true`
+
+### 3. 세션 전파 (`auth.ts`, `types/next-auth.d.ts`)
+- jwt 콜백의 기존 `consentUser` select에 `adFree` 추가 → `token.adFree`
+- session 콜백에서 `session.user.adFree = token.adFree`
+- `types/next-auth.d.ts`의 `Session['user']`에 `adFree?: boolean`
+
+### 4. 사용처리 API (`pages/api/ad-keys/redeem.ts` → `server/api/...` 한 줄 re-export)
+- `POST { code }` → 인증 필요, `redeemAdKey`, 성공 시 세션 갱신 유도(클라에서 `update()`)
+
+### 5. 클라 게이트 (단일 차단점)
+- `store/calendarStore.ts`에 `adFree: boolean` + setter
+- `_app.tsx`에서 `session.user.adFree`로 세팅
+- `components/ad/AdBanner.tsx`에서 `adFree`면 `return null` — 모든 광고 위치(aside·footer·인증화면) 일괄 차단
+
+### 6. 설정 UI
+- 설정 화면에 "광고 제거 코드 입력" 섹션 (MemberSection 초대 입력 패턴 재사용). 이미 ad-free면 "광고 제거됨" 상태 표시.
+
+### 7. 운영자 키 발급 (`scripts/gen-ad-key.mjs`)
+- CLI로 키 N개 생성·DB insert·출력. 운영자가 고객에게 전달.
+
+## 리스크 / 주의
+- **DB 마이그레이션** — 운영 DB 영향. 마이그레이션 실행 주체/방식 별도 확인(`prisma migrate dev` vs 수동).
+- 키는 운영자만 발급 — 인앱 발급 API 금지(수익화 보호).
+- `adFree`는 매 요청 jwt 갱신이라 키 사용 직후 `update()` 호출로 즉시 반영.
+
+## 진행 순서 권장
+1. 스키마 + 마이그레이션 → 2. 서버 로직 + 세션 전파 → 3. 클라 게이트(AdBanner) → 4. redeem API + 설정 UI → 5. 발급 스크립트 → 6. 전체 흐름 검증(키 발급 → 입력 → 광고 사라짐 확인) 
