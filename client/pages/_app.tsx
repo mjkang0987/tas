@@ -187,11 +187,11 @@ function AppContent({Component, pageProps}: AppContentProps) {
             return;
         }
 
-        // 미인증 + (게스트 데이터 없음 || 이번 세션에 게스트 모드를 선택하지 않음) → 로그인으로.
-        // 옛 localStorage 게스트 흔적만으로 /consent 에 끌려가지 않게 함
-        // (예: SNS 로그인 중단 후 복귀 시 약관동의 페이지 강제 진입 방지).
-        if (!hasGuestData() || !isGuestEntryResolved()) {
-            router.replace('/login');
+        // 미인증 진입 라우팅:
+        //  - 로컬(게스트) 데이터·로그인 모두 없음 → 루트는 소개(/about), 그 외 보호경로는 /login
+        //  - 로컬 데이터가 있으면 메인으로 진입(이하 동의/온보딩 게이트는 기존대로 처리)
+        if (!hasGuestData()) {
+            router.replace(path === '/' ? '/about' : '/login');
             return;
         }
 
