@@ -16,7 +16,7 @@ const FEATURES: Feature[] = [
 export default function AboutPage() {
     return (
         <StyledWrapper>
-            <SeoHead title="서비스 소개" description="Take a Seat — 미용실·뷰티샵을 위한 예약·고객 관리 서비스" />
+            <SeoHead title="서비스 소개" />
             <StyledMain>
                 <StyledHero>
                     <StyledBrandLogo src="/logo/logo-black.svg" alt="Take a Seat" />
