@@ -1,5 +1,3 @@
-# syntax=docker/dockerfile:1
-#
 # Cloud Run 배포용 Next.js standalone 이미지.
 #
 # 빌드 컨텍스트 = repo 루트 (client/ 와 server/ 를 모두 필요로 함).
@@ -31,12 +29,12 @@ COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 # client install 이 "Already up to date" 로 스킵돼 client/node_modules 가 안 생김.
 COPY client/package.json client/pnpm-lock.yaml client/pnpm-workspace.yaml ./client/
 
-# 루트(server + prisma 툴링) 의존성
-RUN --mount=type=cache,id=pnpm,target=/pnpm/store \
-    pnpm install --frozen-lockfile
+# 루트(server + prisma 툴링) 의존성.
+# 주: BuildKit 캐시 마운트(--mount=type=cache)는 Cloud Build 기본 docker 빌더가
+#     BuildKit 비활성이라 못 씀. 빌드 속도 최적화일 뿐이라 제거해 호환성 확보.
+RUN pnpm install --frozen-lockfile
 # client(Next 앱) 의존성. postinstall(prisma generate)은 소스가 아직 없으니 스킵.
-RUN --mount=type=cache,id=pnpm,target=/pnpm/store \
-    cd client && pnpm install --frozen-lockfile --ignore-scripts
+RUN cd client && pnpm install --frozen-lockfile --ignore-scripts
 
 # ---------- builder: prisma generate + next build ----------
 FROM node:${NODE_VERSION}-slim AS builder
