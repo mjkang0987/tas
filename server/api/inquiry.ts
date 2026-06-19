@@ -3,6 +3,7 @@ import type {NextApiRequest, NextApiResponse} from 'next';
 import {prisma} from '../db/prisma';
 import {getApiSession} from '../auth/api-session';
 import {sendInquiryEmail} from './mail/send-inquiry';
+import {notifySlack} from '../notify/slack';
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
     const session = await getApiSession(req, res);
@@ -62,6 +63,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     } catch (err) {
         console.error('[inquiry] 메일 발송 실패:', err);
     }
+
+    await notifySlack(
+        `📩 *새 문의*\n• 이름: ${trimmedName}`
+        + (trimmedEmail ? `\n• 이메일: ${trimmedEmail}` : '')
+        + `\n• 내용: ${trimmedContent}`
+    );
 
     return res.status(200).json({ok: true});
 }

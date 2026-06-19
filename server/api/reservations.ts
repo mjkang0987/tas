@@ -10,6 +10,7 @@ import {
     frontendChannelToDb,
 } from '../db/mappers';
 import {reservationInclude} from '../db/prisma-includes';
+import {notifySlack} from '../notify/slack';
 import type {Reservation, ReservationStatus} from '../../client/features/reservations/model';
 import {hasCompletedPayment} from '../../client/features/reservations/model';
 
@@ -93,6 +94,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             },
             include: reservationInclude,
         });
+
+        await notifySlack(
+            `🗓️ *새 예약*\n• 날짜: ${reservation.date} ${reservation.startTime}`
+            + `\n• 시술: ${reservation.service ?? '-'}`
+        );
 
         return res.status(201).json({reservation: dbReservationToFrontend(created)});
     }
