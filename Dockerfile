@@ -26,7 +26,10 @@ WORKDIR /repo
 
 # 매니페스트만 먼저 복사해 install 레이어 캐시
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
-COPY client/package.json client/pnpm-lock.yaml ./client/
+# client/pnpm-workspace.yaml 도 함께 복사해야 client 가 자기 자신을 워크스페이스
+# 루트로 인식. 없으면 pnpm 이 위로 올라가 /repo 워크스페이스를 root 로 잡고
+# client install 이 "Already up to date" 로 스킵돼 client/node_modules 가 안 생김.
+COPY client/package.json client/pnpm-lock.yaml client/pnpm-workspace.yaml ./client/
 
 # 루트(server + prisma 툴링) 의존성
 RUN --mount=type=cache,id=pnpm,target=/pnpm/store \
