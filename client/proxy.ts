@@ -17,6 +17,11 @@ export default auth((req) => {
         pathname.startsWith('/privacy') ||
         pathname === '/favicon.ico';
 
+    // 0) DPA(처리위탁) 약관은 운영자 전용 — 미인증(SNS 로그인 안 함) 접근은 로그인으로 보낸다.
+    if (pathname.startsWith('/dpa') && !user?.id) {
+        return Response.redirect(new URL('/login', req.url));
+    }
+
     // 1) 약관 동의 게이트: 로그인된 실제 계정인데 현재 약관 버전 미동의 → /consent
     //    단, 게스트로 이미 동의(쿠키)한 경우는 통과시키고 처리위탁(DPA) 동의만 앱 위 레이어로 받는다.
     const guestTermsAgreed = req.cookies.get('tas-guest-terms')?.value === CURRENT_TERMS_VERSION;
