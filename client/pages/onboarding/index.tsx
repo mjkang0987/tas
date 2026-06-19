@@ -344,7 +344,8 @@ const StyledPage = styled.div`
     display: flex;
     flex-direction: column;
     align-items: center;
-    justify-content: flex-start;
+    /* 데스크탑: 세로 가운데 정렬. 모바일은 기존대로 상단 정렬 유지. */
+    justify-content: center;
     gap: 20px;
     min-height: 100%;
     padding: 24px 16px;
@@ -352,6 +353,7 @@ const StyledPage = styled.div`
 
     /* 모바일: 풀블리드(좌우 여백 제거) + 상단 여백만 유지. 흰 배경이라 박스 없이도 풀스크린처럼 */
     @media (max-width: 640px) {
+        justify-content: flex-start;
         padding: 16px 0 0;
     }
 `;
@@ -360,10 +362,10 @@ const StyledAuthAd = styled.div`
     width: 100%;
     max-width: 600px;
     flex-shrink: 0;
-    margin-top: auto;
 
-    /* 모바일: 카드 폭에 맞춰 가로 꽉 + 좌우 인셋(카드 본문과 정렬) */
+    /* 모바일: 하단 고정(margin-top:auto) + 카드 폭에 맞춰 가로 꽉 + 좌우 인셋 */
     @media (max-width: 640px) {
+        margin-top: auto;
         max-width: none;
         padding: 0 18px;
         box-sizing: border-box;

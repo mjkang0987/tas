@@ -137,12 +137,12 @@ const StyledCtaLink = styled(Link)`
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    padding: 14px 28px;
-    border-radius: 10px;
-    background: var(--black-color);
+    padding: 12px 28px;
+    border-radius: 8px;
+    background: var(--brand-color);
     color: var(--white-color);
     font-size: 15px;
-    font-weight: 700;
+    font-weight: 600;
     text-decoration: none;
 `;
 
