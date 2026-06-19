@@ -382,7 +382,8 @@ function AppContent({Component, pageProps}: AppContentProps) {
     // 데이터(서비스·디자이너·예약)가 모두 준비될 때까지 오버레이로 가려 새로고침 플래시를 막음.
     // SSR/첫 렌더 모두 status==='loading'이라 하이드레이션 불일치가 없음.
     const isAuthFlowPage = router.pathname.startsWith('/login') || router.pathname.startsWith('/onboarding')
-        || router.pathname === '/consent' || router.pathname === '/terms' || router.pathname === '/privacy';
+        || router.pathname === '/consent' || router.pathname === '/about' || router.pathname === '/logout'
+        || router.pathname === '/terms' || router.pathname === '/privacy';
     // 미인증 + 로컬데이터 없음 = /login 리다이렉트 대기 → 달력이 깜빡이지 않게 오버레이 유지
     // (게이트가 데이터 없으면 resolved와 무관하게 /login으로 보내므로 동일 조건으로 맞춤)
     const guestRedirectPending = status === 'unauthenticated' && !isAuthFlowPage && !hasGuestData();
