@@ -309,4 +309,34 @@ Phase 1(API 이전) 먼저 — 위험이 낮고 즉시 경계가 깔끔해짐. P
 - **버그2(온보딩 중 로그인으로 튕김)**: 초대 흐름 수정으로 해소 가능성 → 운영 재테스트 대기. 재현 시 튕기는 시점 + 콘솔 에러 필요.
 - **OAuth 콘솔 작업(코드 외)**: Google/Kakao 콘솔 redirect URI 등록, Cloudflare SSL=Full(strict), Google 동의화면 프로덕션 게시.
 - **Gmail 제한범위(`gmail.readonly`) 인증**: 데모영상 + CASA 보안평가 필요(별도).
+
+---
+
+# AdSense 광고 붙이기 (퍼블리셔 ID 주입)
+
+> **진행 현황 (2026-06-20, 완료)**: 퍼블리셔 ID `ca-pub-5655041057903258` 코드 기본값 주입 + ads.txt 갱신. 운영 모드 검증 — `/login` HTML에 로더 스크립트 삽입, `/ads.txt` 정상 응답, `next build` 그린. 후속: AdSense 콘솔 사이트 승인 + 자동광고 ON, 개별 유닛용 슬롯 ID 발급.
+
+## 배경
+- 광고 인프라는 이미 구축됨: `_document.tsx`가 `NEXT_PUBLIC_ADSENSE_CLIENT` 존재 시 AdSense 로더 스크립트 자동 삽입, `AdBanner` 컴포넌트(`<ins class="adsbygoogle">`)와 배치(푸터·로그인·온보딩·동의)도 존재.
+- 미설정이던 퍼블리셔 ID만 주입하면 페이지 레벨 스크립트(자동 광고) 활성화.
+
+## 요구사항 / 접근
+- 퍼블리셔 ID: `ca-pub-5655041057903258` (ads.txt용 publisher id: `pub-5655041057903258`).
+- `NEXT_PUBLIC_*`는 빌드타임 인라인이라 배포 env 미설정 시 광고가 안 뜸 → **코드에 기본값**을 두어 env 없이도 동작하게 함(env로 오버라이드 가능). 퍼블리셔 ID는 페이지 소스에 노출되는 공개값이라 하드코딩 무방.
+
+## 영향 파일
+- `client/lib/ads.ts` (신규) — `ADSENSE_CLIENT` 단일 소스(env ?? 기본값).
+- `client/components/ad/AdBanner.tsx` — 로컬 상수 → `lib/ads` 사용.
+- `client/pages/_document.tsx` — 로더 스크립트도 `lib/ads` 사용.
+- `client/public/ads.txt` — 실제 게시자 라인 활성화.
+- `client/.env.example` — 기본값 안내.
+
+## 기대 결과 / 검증
+- 운영 빌드에서 `<head>`에 `adsbygoogle.js?client=ca-pub-5655041057903258` 로더 삽입.
+- `/ads.txt` → `google.com, pub-5655041057903258, DIRECT, f08c47fec0942fa0` 응답.
+- `next build` 그린.
+
+## 주의 / 후속
+- 개별 광고 유닛(`AdBanner`)은 **슬롯 ID**(`NEXT_PUBLIC_ADSENSE_FOOTER_SLOT`/`AUTH_SLOT`)가 있어야 `<ins>`가 렌더됨 — 슬롯은 AdSense 콘솔에서 발급 후 env 설정 필요. 그 전까지는 페이지 레벨(자동 광고)만 동작.
+- AdSense 사이트 승인 + 콘솔에서 자동광고 ON 필요.
  
