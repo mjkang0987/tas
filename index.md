@@ -15,7 +15,7 @@ hair_reservations/
 ├── server/          # 백엔드 (API 핸들러 + DB + Auth + Prisma 자산)
 ├── docs/            # 문서
 ├── plan.md          # 게스트 데이터 마이그레이션(병합 플로우) 계획
-├── CLAUDE.md        # 커밋 컨벤션 (한글, feat:/fix:/refactor: 등, 커밋 시 푸시 포함)
+├── CLAUDE.md        # Claude 작업 지시사항 (세션 시작 규칙·워크플로·프론트 표준·커밋 컨벤션)
 └── index.md         # 이 파일
 ```
 
@@ -28,7 +28,7 @@ hair_reservations/
 | 경로 | 파일 | 설명 |
 |------|------|------|
 | `/` | `index.tsx` | 메인 캘린더 (SSR, `getServerSideProps`로 예약·고객·이력 초기 로드) |
-| `/login` | `login.tsx` | 로그인 (Google, Kakao, Naver OAuth) + 게스트 진입 버튼 |
+| `/login` | `login.tsx` | 로그인 (Google, Kakao, Naver OAuth) + 게스트 진입. 초대 링크(`?invite=CODE`) 코드 자동입력, 인앱 브라우저(WebView) 감지 시 안내 배너 + 카카오 우선 노출, 로고→루트 링크 |
 | `/logout` | `logout.tsx` | 로그아웃 후 `/login`으로 리다이렉트 |
 | `/mypage` | `mypage.tsx` | 계정 관리 (프로필, 연결된 SNS, 로그아웃, 회원탈퇴) |
 | `/settings/[tab]` | `settings/[tab].tsx` → `settings.tsx` | 설정 (탭: revenue/point/store/service/designer/member/sns/naver) |
@@ -150,7 +150,7 @@ NextAuth 5.0 설정. Google·Kakao·Naver OAuth 지원.
 - Google: 기본 스코프(openid email profile)만 사용 — **로그인 전용**. Gmail 권한은 별도 연동 플로우(`/api/gmail/connect`)에서 요청
 - JWT 세션 전략
 - 로그인 시 `syncAuthUser()`로 DB 사용자 동기화 + 초대 코드 처리
-- 초대코드 없이 신규가입 시 새 매장(owner) 자동 생성 (`onboarded: true`)
+- 초대코드 없이 신규가입 시 새 매장(owner) 자동 생성 (`onboarded: false` — 이후 온보딩 진행)
 - **계정 연동/병합**: 기존 로그인 상태에서 타 프로바이더 연결(`/api/account/link`). 해당 계정이 다른 유저 소유면 `pendingMerge`를 세션에 실어 병합 플로우(merge-preview → merge) 유도
 - **멀티매장**: `preferredStoreId`(세션 update로 갱신) 기반으로 `resolveUserMembership()`이 활성 매장 결정. jwt 콜백이 매 요청 `role`/`storeId`/`onboarded`를 DB에서 재조회
 - `authorized` 콜백: `loginError='no-account'` 시 `/login`으로 리다이렉트

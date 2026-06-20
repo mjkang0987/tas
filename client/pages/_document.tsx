@@ -3,6 +3,7 @@ import Document, {Html, Head, Main, NextScript, DocumentContext} from 'next/docu
 import {ServerStyleSheet} from 'styled-components';
 
 import {SITE_DESCRIPTION, SITE_KEYWORDS, SITE_OG_DESCRIPTION, SITE_OG_IMAGE, SITE_TITLE, SITE_TWITTER_DESCRIPTION, SITE_URL} from '../lib/seo';
+import {ADSENSE_CLIENT} from '../lib/ads';
 
 class ReservationDocument extends Document {
     static async getInitialProps(ctx: DocumentContext) {
@@ -64,9 +65,9 @@ class ReservationDocument extends Document {
                           href="/favicon/apple-icon-180x180.png" />
                     <link rel="manifest"
                           href="/favicon/manifest.json" />
-                    {process.env.NEXT_PUBLIC_ADSENSE_CLIENT && (
+                    {ADSENSE_CLIENT && (
                         <script async
-                                src={`https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${process.env.NEXT_PUBLIC_ADSENSE_CLIENT}`}
+                                src={`https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${ADSENSE_CLIENT}`}
                                 crossOrigin="anonymous" />
                     )}
                 </Head>

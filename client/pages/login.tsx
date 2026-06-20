@@ -1,5 +1,6 @@
 import {useEffect, useState} from 'react';
 
+import Link from 'next/link';
 import {useRouter} from 'next/router';
 
 import {signIn, signOut, useSession} from 'next-auth/react';
@@ -50,12 +51,47 @@ const ERROR_MESSAGES: Record<string, string> = {
     'sync-error': '계정 동기화 중 오류가 발생했습니다. 다시 시도해 주세요.',
 };
 
+// http(로컬) 환경에서는 secure 쿠키가 저장되지 않으므로 https일 때만 secure 부여
+function secureFlag(): string {
+    return typeof window !== 'undefined' && window.location.protocol === 'https:' ? '; secure' : '';
+}
+
 function setInviteCookie(code: string) {
-    document.cookie = `tas-invite-code=${encodeURIComponent(code)}; path=/; max-age=600; samesite=lax; secure`;
+    document.cookie = `tas-invite-code=${encodeURIComponent(code)}; path=/; max-age=600; samesite=lax${secureFlag()}`;
 }
 
 function clearInviteCookie() {
-    document.cookie = 'tas-invite-code=; path=/; max-age=0; samesite=lax; secure';
+    document.cookie = `tas-invite-code=; path=/; max-age=0; samesite=lax${secureFlag()}`;
+}
+
+// 카카오톡·인스타·네이버앱 등 인앱(WebView) 브라우저 감지.
+// Google OAuth는 인앱 브라우저에서 'disallowed_useragent'로 차단되므로 안내가 필요.
+function isInAppBrowser(): boolean {
+    if (typeof navigator === 'undefined') return false;
+    const ua = navigator.userAgent || '';
+    return /KAKAOTALK|Instagram|NAVER\(|; ?wv\)|Line\/|FBAN|FBAV|FB_IAB|Daum|everytimeApp|Threads|Snapchat/i.test(ua);
+}
+
+// 현재 페이지를 외부 브라우저(가능하면 크롬)에서 열도록 유도.
+function openInExternalBrowser() {
+    if (typeof window === 'undefined') return;
+    const url = window.location.href;
+    const ua = navigator.userAgent || '';
+
+    // 카카오톡 인앱: 전용 스킴으로 외부 브라우저 열기
+    if (/KAKAOTALK/i.test(ua)) {
+        window.location.href = `kakaotalk://web/openExternal?url=${encodeURIComponent(url)}`;
+        return;
+    }
+    // 안드로이드: 크롬으로 강제 오픈(intent)
+    if (/Android/i.test(ua)) {
+        const noScheme = url.replace(/^https?:\/\//, '');
+        window.location.href = `intent://${noScheme}#Intent;scheme=https;package=com.android.chrome;end`;
+        return;
+    }
+    // iOS 등: 강제 불가 → 주소 복사 후 안내
+    navigator.clipboard?.writeText(url).catch(() => {});
+    alert('주소가 복사되었습니다.\nSafari 등 브라우저에 붙여넣어 접속해 주세요.');
 }
 
 export default function LoginPage({providerIds, isDatabaseConfigured, loginError}: LoginPageProps) {
@@ -67,8 +103,25 @@ export default function LoginPage({providerIds, isDatabaseConfigured, loginError
     const monthEntryPath = getMonthEntryPath();
     const [inviteCode, setInviteCode] = useState('');
     const [showGuestLoad, setShowGuestLoad] = useState(false);
+    const [inApp, setInApp] = useState(false);
+
+    // 인앱 브라우저 감지(마운트 후 1회) — SSR 하이드레이션 불일치 방지를 위해 effect에서 처리
+    useEffect(() => {
+        setInApp(isInAppBrowser());
+    }, []);
 
     const authError = typeof router.query.error === 'string' ? router.query.error : null;
+
+    // 초대 링크(/login?invite=CODE)로 진입 시 코드 자동 입력 + 쿠키 세팅
+    // → 로그인 직후 OAuth 콜백에서 초대가 적용되어 새 매장이 아닌 초대 매장으로 가입됨
+    useEffect(() => {
+        const q = router.query.invite;
+        const code = typeof q === 'string' ? q.trim().toUpperCase().slice(0, 6) : '';
+        if (code) {
+            setInviteCode(code);
+            setInviteCookie(code);
+        }
+    }, [router.query.invite]);
 
     useEffect(() => {
         if (!authError && hasAccess) {
@@ -84,7 +137,11 @@ export default function LoginPage({providerIds, isDatabaseConfigured, loginError
         return null;
     }
 
-    const providers = ALL_PROVIDERS.filter((p) => providerIds.includes(p.id));
+    const filteredProviders = ALL_PROVIDERS.filter((p) => providerIds.includes(p.id));
+    // 인앱 브라우저에선 카카오 로그인이 가장 안정적이므로 맨 위로 노출
+    const providers = inApp
+        ? [...filteredProviders].sort((a, b) => Number(b.id === 'kakao') - Number(a.id === 'kakao'))
+        : filteredProviders;
     const canStartLogin = providers.length > 0;
     const displayError = authError ?? loginError ?? (hasLoginError ? 'no-account' : null);
 
@@ -120,9 +177,23 @@ export default function LoginPage({providerIds, isDatabaseConfigured, loginError
             )}
             <StyledCard>
                 <StyledTitle>
-                    <StyledBrandLogo src="/logo/logo-black.svg" alt="TAS" />
+                    <StyledBrandLink href="/" aria-label="홈으로 이동">
+                        <StyledBrandLogo src="/logo/logo-black.svg" alt="TAS" />
+                    </StyledBrandLink>
                 </StyledTitle>
                 <StyledSubtitle>SNS 계정으로 로그인</StyledSubtitle>
+                {inApp && (
+                    <StyledInAppNotice>
+                        <StyledInAppTitle>📱 인앱 브라우저로 접속 중이에요</StyledInAppTitle>
+                        <StyledInAppText>
+                            구글 로그인은 보안 정책상 인앱 브라우저에서 차단됩니다.{' '}
+                            <b>카카오 로그인</b>을 이용하시거나, 아래 버튼으로 외부 브라우저에서 열어 주세요.
+                        </StyledInAppText>
+                        <StyledInAppButton type="button" onClick={openInExternalBrowser}>
+                            외부 브라우저로 열기
+                        </StyledInAppButton>
+                    </StyledInAppNotice>
+                )}
                 {displayError && ERROR_MESSAGES[displayError] && (
                     <StyledLoginError>
                         <StyledLoginErrorText>{ERROR_MESSAGES[displayError]}</StyledLoginErrorText>
@@ -291,6 +362,11 @@ const StyledTitle = styled.h1`
     margin: 0 0 8px;
 `;
 
+const StyledBrandLink = styled(Link)`
+    display: inline-block;
+    line-height: 0;
+`;
+
 const StyledBrandLogo = styled.img`
     height: 88px;
     width: auto;
@@ -338,6 +414,53 @@ const StyledInviteInput = styled.input`
         letter-spacing: normal;
         font-weight: 400;
         font-size: 14px;
+    }
+`;
+
+const StyledInAppNotice = styled.div`
+    width: 100%;
+    margin: 0 0 16px;
+    padding: 12px 14px;
+    box-sizing: border-box;
+    border: 1px solid #fde68a;
+    border-radius: 10px;
+    background: #fffbeb;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+`;
+
+const StyledInAppTitle = styled.strong`
+    font-size: 13px;
+    font-weight: 700;
+    color: #92400e;
+`;
+
+const StyledInAppText = styled.p`
+    margin: 0;
+    font-size: 12px;
+    line-height: 1.6;
+    color: #92400e;
+
+    b {
+        font-weight: 700;
+    }
+`;
+
+const StyledInAppButton = styled.button`
+    align-self: flex-start;
+    margin-top: 2px;
+    padding: 8px 14px;
+    border: 1px solid #f59e0b;
+    border-radius: 8px;
+    background: #f59e0b;
+    color: #fff;
+    font-size: 13px;
+    font-weight: 700;
+    cursor: pointer;
+
+    @media (hover: hover) and (pointer: fine) {
+        &:hover { opacity: 0.9; }
     }
 `;
 

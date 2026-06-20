@@ -280,4 +280,63 @@ Phase 1(API 이전) 먼저 — 위험이 낮고 즉시 경계가 깔끔해짐. P
 - `adFree`는 매 요청 jwt 갱신이라 키 사용 직후 `update()` 호출로 즉시 반영.
 
 ## 진행 순서 권장
-1. 스키마 + 마이그레이션 → 2. 서버 로직 + 세션 전파 → 3. 클라 게이트(AdBanner) → 4. redeem API + 설정 UI → 5. 발급 스크립트 → 6. 전체 흐름 검증(키 발급 → 입력 → 광고 사라짐 확인) 
+1. 스키마 + 마이그레이션 → 2. 서버 로직 + 세션 전파 → 3. 클라 게이트(AdBanner) → 4. redeem API + 설정 UI → 5. 발급 스크립트 → 6. 전체 흐름 검증(키 발급 → 입력 → 광고 사라짐 확인)
+
+---
+
+# 로그인/인증 안정화 — OAuth 진단 + 초대 링크 + 인앱 브라우저 대응
+
+> **진행 현황 (2026-06-20, 완료)**: 아래 항목 구현·검증·푸시 완료(`claude/angdae-issue-gym218`). 커밋 `54cf696`(로고 링크), `dd816c5`(초대 링크), `43ea35c`(온보딩 step0 되돌림), `c73a2c6`(인앱 브라우저).
+
+## 배경 / 문제 (QA·운영 제보)
+- Google/Kakao 로그인 실패 → 원인은 **콘솔 설정**(인앱브라우저 `disallowed_useragent`, 카카오 redirect URI 미등록)으로 규명. **코드 수정 불필요**(콘솔에 `https://takeaseat.co.kr/api/auth/callback/{google,kakao}` 등록 필요).
+- 초대코드로 로그인했는데 새 매장이 생성됨 → 초대가 **수동 코드 입력**으로만 적용되고 "링크"가 없어서, 코드 미입력 시 `syncAuthUser`가 새 매장(owner) 경로로 빠짐.
+- 카카오톡 등 인앱 브라우저에서 구글 로그인 차단 → 사용자가 막힘.
+
+## 구현 항목 (완료)
+1. **로그인 로고 → 루트(/) 링크** (`pages/login.tsx`) — `next/link`로 감싸 홈 이동.
+2. **초대 링크 지원** (`pages/login.tsx`) — `/login?invite=CODE` 진입 시 코드 자동입력 + `tas-invite-code` 쿠키 세팅(대문자화·6자 슬라이스). 콜백에서 초대 매장 합류. 쿠키 `secure`는 https에서만 부여(로컬 http 누락 방지).
+3. **초대 링크 복사** (`components/settings/MemberSection.tsx`) — 코드/링크 복사 버튼 + 안내 문구.
+4. **인앱 브라우저 대응** (`pages/login.tsx`) — WebView(KakaoTalk·Instagram·Naver·Line·FB·Threads 등) 감지 → 안내 배너 + "외부 브라우저로 열기"(카카오 스킴/안드로이드 chrome intent/iOS 복사 폴백) + 카카오 로그인 우선 정렬.
+5. **온보딩 step0 노출 변경 → 되돌림** — SNS 사용자에게 step0(30초 인트로) 노출은 불필요하여 원복.
+
+## 검증 (실제 브라우저 구동, Playwright)
+- 초대: `/login?invite=abc123` → 입력칸 `ABC123` + 쿠키 세팅, 8자 입력 시 6자 슬라이스, 미지정 시 빈값. ✅
+- 인앱: KakaoTalk UA → 배너 노출 + 카카오 우선 정렬 / 일반 UA → 배너 없음 + 기본 순서. ✅
+- 타입체크 + `next build` 그린.
+
+## 후속 / 미해결
+- **버그2(온보딩 중 로그인으로 튕김)**: 초대 흐름 수정으로 해소 가능성 → 운영 재테스트 대기. 재현 시 튕기는 시점 + 콘솔 에러 필요.
+- **OAuth 콘솔 작업(코드 외)**: Google/Kakao 콘솔 redirect URI 등록, Cloudflare SSL=Full(strict), Google 동의화면 프로덕션 게시.
+- **Gmail 제한범위(`gmail.readonly`) 인증**: 데모영상 + CASA 보안평가 필요(별도).
+
+---
+
+# AdSense 광고 붙이기 (퍼블리셔 ID 주입)
+
+> **진행 현황 (2026-06-20, 완료)**: 퍼블리셔 ID `ca-pub-5655041057903258` 코드 기본값 주입 + ads.txt 갱신. 운영 모드 검증 — `/login` HTML에 로더 스크립트 삽입, `/ads.txt` 정상 응답, `next build` 그린. 후속: AdSense 콘솔 사이트 승인 + 자동광고 ON, 개별 유닛용 슬롯 ID 발급.
+
+## 배경
+- 광고 인프라는 이미 구축됨: `_document.tsx`가 `NEXT_PUBLIC_ADSENSE_CLIENT` 존재 시 AdSense 로더 스크립트 자동 삽입, `AdBanner` 컴포넌트(`<ins class="adsbygoogle">`)와 배치(푸터·로그인·온보딩·동의)도 존재.
+- 미설정이던 퍼블리셔 ID만 주입하면 페이지 레벨 스크립트(자동 광고) 활성화.
+
+## 요구사항 / 접근
+- 퍼블리셔 ID: `ca-pub-5655041057903258` (ads.txt용 publisher id: `pub-5655041057903258`).
+- `NEXT_PUBLIC_*`는 빌드타임 인라인이라 배포 env 미설정 시 광고가 안 뜸 → **코드에 기본값**을 두어 env 없이도 동작하게 함(env로 오버라이드 가능). 퍼블리셔 ID는 페이지 소스에 노출되는 공개값이라 하드코딩 무방.
+
+## 영향 파일
+- `client/lib/ads.ts` (신규) — `ADSENSE_CLIENT` 단일 소스(env ?? 기본값).
+- `client/components/ad/AdBanner.tsx` — 로컬 상수 → `lib/ads` 사용.
+- `client/pages/_document.tsx` — 로더 스크립트도 `lib/ads` 사용.
+- `client/public/ads.txt` — 실제 게시자 라인 활성화.
+- `client/.env.example` — 기본값 안내.
+
+## 기대 결과 / 검증
+- 운영 빌드에서 `<head>`에 `adsbygoogle.js?client=ca-pub-5655041057903258` 로더 삽입.
+- `/ads.txt` → `google.com, pub-5655041057903258, DIRECT, f08c47fec0942fa0` 응답.
+- `next build` 그린.
+
+## 주의 / 후속
+- 개별 광고 유닛(`AdBanner`)은 **슬롯 ID**(`NEXT_PUBLIC_ADSENSE_FOOTER_SLOT`/`AUTH_SLOT`)가 있어야 `<ins>`가 렌더됨 — 슬롯은 AdSense 콘솔에서 발급 후 env 설정 필요. 그 전까지는 페이지 레벨(자동 광고)만 동작.
+- AdSense 사이트 승인 + 콘솔에서 자동광고 ON 필요.
+ 

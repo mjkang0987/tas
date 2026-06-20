@@ -74,7 +74,12 @@ function formatExpiry(expiresAt: string): string {
     return `${minutes}분 남음`;
 }
 
-function CopyButton({text}: {text: string}) {
+function buildInviteLink(code: string): string {
+    const origin = typeof window !== 'undefined' ? window.location.origin : '';
+    return `${origin}/login?invite=${code}`;
+}
+
+function CopyButton({text, label = '복사'}: {text: string; label?: string}) {
     const [copied, setCopied] = useState(false);
 
     const handleCopy = async () => {
@@ -84,8 +89,8 @@ function CopyButton({text}: {text: string}) {
     };
 
     return (
-        <StyledCopyButton type="button" onClick={handleCopy} aria-label="코드 복사">
-            {copied ? '복사됨' : '복사'}
+        <StyledCopyButton type="button" onClick={handleCopy} aria-label={`${label} 복사`}>
+            {copied ? '복사됨' : label}
         </StyledCopyButton>
     );
 }
@@ -263,6 +268,9 @@ export const MemberSection = () => {
 
             <StyledSettingsCard>
                 <StyledSettingsCardTitle>사용 가능한 초대코드</StyledSettingsCardTitle>
+                <StyledSettingsHint>
+                    &lsquo;링크&rsquo;를 복사해 전달하면 받는 사람이 코드를 입력하지 않아도 자동으로 매장에 합류합니다.
+                </StyledSettingsHint>
                 {activeInvites.length > 0 ? (
                     <StyledList>
                         {activeInvites.map((inv) => (
@@ -273,7 +281,8 @@ export const MemberSection = () => {
                                 </StyledCodeBlock>
                                 <StyledInviteActions>
                                     <StyledExpiry>{formatExpiry(inv.expiresAt)}</StyledExpiry>
-                                    <CopyButton text={inv.code} />
+                                    <CopyButton text={inv.code} label="코드" />
+                                    <CopyButton text={buildInviteLink(inv.code)} label="링크" />
                                     <StyledDeleteButton type="button" onClick={() => setDeleteTarget(inv.id)}>
                                         취소
                                     </StyledDeleteButton>
