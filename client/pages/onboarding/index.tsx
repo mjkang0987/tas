@@ -51,7 +51,8 @@ const OnboardingPage: NextPage = () => {
     const [step, setStep] = useState<OnboardingStep>(0);
 
     useEffect(() => {
-        setStep(guest ? 0 : 1);
+        // 게스트·SNS 모두 인트로(step 0, "30초 설정 안내")부터 시작
+        setStep(0);
     }, [guest]);
 
     const [shopName, setShopName] = useState('');
@@ -118,11 +119,11 @@ const OnboardingPage: NextPage = () => {
         }
     };
 
-    const handleSkipOnboarding = () => {
-        const snapshot = loadLocalDbSnapshot();
-        snapshot.onboarded = true;
-        saveLocalDbSnapshot(snapshot);
+    const handleSkipOnboarding = async () => {
         if (guest) {
+            const snapshot = loadLocalDbSnapshot();
+            snapshot.onboarded = true;
+            saveLocalDbSnapshot(snapshot);
             // 서비스 개시 시점에 약관 동의 영구 기록 (consent 단계의 세션 ack 정리)
             setGuestTermsAgreed(CURRENT_TERMS_VERSION);
             clearGuestConsentAck();
@@ -130,12 +131,34 @@ const OnboardingPage: NextPage = () => {
             window.location.href = '/';
             return;
         }
-        router.replace('/');
+
+        // 비게스트(SNS): 기본 설정(원장 1명)으로 온보딩 완료 처리.
+        // 단순 router.replace('/')만 하면 onboarded=false라 미들웨어가 다시 /onboarding으로 보내 무한 루프.
+        setLoading(true);
+        setFinalError('');
+        try {
+            const res = await fetch('/api/onboarding', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({}),
+            });
+            if (!res.ok && res.status !== 409) {
+                const data = await res.json().catch(() => ({}));
+                setFinalError(data.error ?? '오류가 발생했습니다.');
+                return;
+            }
+            await update();
+            router.replace('/');
+        } catch {
+            setFinalError('네트워크 오류가 발생했습니다.');
+        } finally {
+            setLoading(false);
+        }
     };
 
     const handleConfirmSkip = () => {
         setShowSkipConfirm(false);
-        handleSkipOnboarding();
+        void handleSkipOnboarding();
     };
 
     const handleComplete = async () => {
@@ -230,7 +253,7 @@ const OnboardingPage: NextPage = () => {
                             <StyledHighlight>⚡ 30초 설정으로 바로 시작</StyledHighlight>
                             <span>업종별 서비스와 가격을 자동 추천해드립니다.</span>
                         </StyledStep0Desc>
-                        <GuestNotice />
+                        {guest && <GuestNotice />}
                         <StyledNavRow>
                             <StyledSkipBtn type="button" onClick={() => setShowSkipConfirm(true)}>건너뛰기</StyledSkipBtn>
                             <StyledNextBtn type="button" onClick={() => setStep(1)}>설정 시작</StyledNextBtn>

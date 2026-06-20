@@ -51,12 +51,17 @@ const ERROR_MESSAGES: Record<string, string> = {
     'sync-error': '계정 동기화 중 오류가 발생했습니다. 다시 시도해 주세요.',
 };
 
+// http(로컬) 환경에서는 secure 쿠키가 저장되지 않으므로 https일 때만 secure 부여
+function secureFlag(): string {
+    return typeof window !== 'undefined' && window.location.protocol === 'https:' ? '; secure' : '';
+}
+
 function setInviteCookie(code: string) {
-    document.cookie = `tas-invite-code=${encodeURIComponent(code)}; path=/; max-age=600; samesite=lax; secure`;
+    document.cookie = `tas-invite-code=${encodeURIComponent(code)}; path=/; max-age=600; samesite=lax${secureFlag()}`;
 }
 
 function clearInviteCookie() {
-    document.cookie = 'tas-invite-code=; path=/; max-age=0; samesite=lax; secure';
+    document.cookie = `tas-invite-code=; path=/; max-age=0; samesite=lax${secureFlag()}`;
 }
 
 export default function LoginPage({providerIds, isDatabaseConfigured, loginError}: LoginPageProps) {
@@ -70,6 +75,17 @@ export default function LoginPage({providerIds, isDatabaseConfigured, loginError
     const [showGuestLoad, setShowGuestLoad] = useState(false);
 
     const authError = typeof router.query.error === 'string' ? router.query.error : null;
+
+    // 초대 링크(/login?invite=CODE)로 진입 시 코드 자동 입력 + 쿠키 세팅
+    // → 로그인 직후 OAuth 콜백에서 초대가 적용되어 새 매장이 아닌 초대 매장으로 가입됨
+    useEffect(() => {
+        const q = router.query.invite;
+        const code = typeof q === 'string' ? q.trim().toUpperCase().slice(0, 6) : '';
+        if (code) {
+            setInviteCode(code);
+            setInviteCookie(code);
+        }
+    }, [router.query.invite]);
 
     useEffect(() => {
         if (!authError && hasAccess) {
