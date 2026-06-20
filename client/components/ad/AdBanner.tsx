@@ -2,14 +2,13 @@ import {useEffect, useRef} from 'react';
 
 import styled from 'styled-components';
 
+import {ADSENSE_CLIENT} from '../../lib/ads';
+
 declare global {
     interface Window {
         adsbygoogle: Array<Record<string, unknown>>;
     }
 }
-
-// 실제 AdSense 퍼블리셔 ID가 설정된 경우에만 광고를 로드 (미설정 시 400 방지)
-const ADSENSE_CLIENT = process.env.NEXT_PUBLIC_ADSENSE_CLIENT;
 
 interface AdBannerProps {
     adSlot: string;
