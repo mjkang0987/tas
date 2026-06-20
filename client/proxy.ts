@@ -5,18 +5,6 @@ export default auth((req) => {
     const {pathname} = req.nextUrl;
     const user = req.auth?.user;
 
-    // run.app(Cloud Run 기본 URL)로 들어온 트래픽은 정식 도메인으로 정규화(308).
-    // OAuth 콜백·세션 쿠키·AdSense가 모두 takeaseat.co.kr 기준이라, run.app 접속은
-    // 로그인이 깨지고 광고 도메인도 어긋난다. host만 바꿔 같은 경로로 영구 리다이렉트.
-    const host = req.headers.get('host') ?? '';
-    if (host.endsWith('.run.app')) {
-        const url = req.nextUrl.clone();
-        url.protocol = 'https:';
-        url.host = 'takeaseat.co.kr';
-        url.port = '';
-        return Response.redirect(url, 308);
-    }
-
     // 약관 동의·온보딩 가드에서 항상 허용하는 경로 (인프라 + 동의/약관 관련 페이지)
     const isExempt =
         pathname.startsWith('/api/') ||
@@ -56,8 +44,6 @@ export default auth((req) => {
     // (미들웨어는 고정 URL로만 보낼 수 있어 '이전 페이지' 처리를 클라이언트 가드에 위임)
 });
 
-// /login도 미들웨어가 타게 둠 — run.app→도메인 정규화가 로그인 페이지에도 적용되도록.
-// (login은 아래 동의/온보딩 게이트에서는 isExempt로 그대로 통과)
 export const config = {
-    matcher: ['/((?!api/auth|_next/static|_next/image|favicon.ico).*)'],
+    matcher: ['/((?!api/auth|_next/static|_next/image|favicon.ico|login).*)'],
 };
