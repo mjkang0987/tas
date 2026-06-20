@@ -358,4 +358,23 @@ Phase 1(API 이전) 먼저 — 위험이 낮고 즉시 경계가 깔끔해짐. P
 
 ## 후속 (코드 외)
 - 네이버 스마트플레이스/예약에 등록된 사이트 URL을 `https://takeaseat.co.kr`로 교체(근본).
+
+---
+
+# 중복예약(충돌) 모달 안 뜨는 회귀 수정
+
+> **진행 현황 (2026-06-20, 완료)**: `useNaverBookingSync.ts` 2곳 수정. 빌드/타입체크 그린. 런타임(클릭 동작)은 Gmail 충돌 데이터+로그인 필요라 배포 후 모바일 확인 요망.
+
+## 근본 원인
+충돌 모달을 여는 경로가 **현재 캘린더에 로드된 예약(reservationMap)에 그 두 예약이 있어야만** 동작. 다른 날짜를 보면:
+1. `restoreConflictsFromPairs`가 미로드 예약 충돌을 버림 → `saveActiveConflictPairs(merged)`가 저장본을 덮어써 영구 삭제
+2. `openConflictByKey`가 reservationMap에서 못 찾으면 조용히 `return` → 모달 안 뜸
+→ "처음엔 떴다가 다른 날짜 보면 영구히 안 뜨는" 회귀.
+
+## 수정 (2곳, `useNaverBookingSync.ts`)
+1. `restoreConflictsFromPairs`: 미로드 예약을 버리지 않음. 현재 로드된 범위에서 **취소/노쇼로 확인된 경우만** 제외 → 저장본이 보존됨(덮어쓰기 시에도 유지).
+2. `openConflictByKey`: 폴백을 `loadActiveConflictPairs()` 스냅샷 우선으로 → 어떤 날짜든 모달 오픈, 조용한 return 제거.
+
+## 알려진 한계 / 후속
+- 감지 effect의 자동확정(line~162)은 여전히 로드된 감지(detectedKeys)만 기준이라, 미로드 충돌이 'confirmed' 상태로 표시될 수 있음(모달은 열림). 카운트 정확도까지 원하면 별도 보강.
  

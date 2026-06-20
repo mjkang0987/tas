@@ -91,21 +91,27 @@ function restoreConflictsFromPairs(): ConflictInfo[] {
     if (pairs.length === 0) return [];
 
     const reservationMap = useCalendarStore.getState().reservationMap;
-    const activeReservations = Object.values(reservationMap).flat()
-        .filter((r) => r.status !== 'cancelled' && r.status !== 'noshow');
+    // 현재 로드된 범위에서 '취소/노쇼로 해소된 것이 확인된' 예약 id만 모은다.
+    // 로드되지 않은(=확인 불가) 예약은 스냅샷을 그대로 유지해야, 다른 날짜를 보고 있어도
+    // 알림에서 해당 충돌 모달을 열 수 있다. (예전엔 미로드 예약을 '없는 것'으로 보고 버려서
+    // 다른 날짜로 이동하면 충돌이 영구히 안 열리던 회귀의 원인)
+    const resolvedIds = new Set(
+        Object.values(reservationMap).flat()
+            .filter((r) => r.status === 'cancelled' || r.status === 'noshow')
+            .map((r) => r.id),
+    );
     const conflicts: ConflictInfo[] = [];
 
     for (const stored of pairs) {
-        // 취소·노쇼가 아닌 예약이 여전히 존재하는지 확인
-        const newExists = activeReservations.some((r) => r.id === stored.newReservation.id);
-        const existingExists = activeReservations.some((r) => r.id === stored.existingReservation.id);
-        if (newExists && existingExists) {
-            // 원본 스냅샷을 유지 (변경 비교용)
-            conflicts.push({
-                newReservation: stored.newReservation,
-                existingReservation: stored.existingReservation,
-            });
+        // 둘 중 하나라도 취소/노쇼로 확인되면 해소된 것으로 보고 제외
+        if (resolvedIds.has(stored.newReservation.id) || resolvedIds.has(stored.existingReservation.id)) {
+            continue;
         }
+        // 원본 스냅샷을 유지 (변경 비교용 + 미로드 날짜에서도 모달 오픈 가능)
+        conflicts.push({
+            newReservation: stored.newReservation,
+            existingReservation: stored.existingReservation,
+        });
     }
 
     return conflicts;
@@ -500,16 +506,28 @@ export function useNaverBookingSync() {
 
         let existing = queue.find((conflict) => conflictKey(conflict) === key);
 
-        // queue에도 없으면 notification + reservationMap에서 직접 복원
+        // queue에도 없으면: ① 저장된 충돌 스냅샷 → ② 현재 로드된 reservationMap 순으로 복원.
+        // ①을 먼저 보는 이유: 스냅샷엔 예약 두 건의 전체 정보가 들어 있어, 지금 보고 있지 않은
+        // 날짜의 충돌도 모달을 열 수 있다(예전엔 reservationMap에 없으면 조용히 return 해서 안 떴음).
         if (!existing) {
-            const [newIdStr, existingIdStr] = key.split('-');
-            const newId = Number(newIdStr);
-            const existingId = Number(existingIdStr);
-            const allReservations = Object.values(reservationMap).flat();
-            const newRes = allReservations.find((r) => r.id === newId);
-            const existingRes = allReservations.find((r) => r.id === existingId);
-            if (!newRes || !existingRes) return;
-            existing = {newReservation: newRes, existingReservation: existingRes};
+            const savedPair = loadActiveConflictPairs().find(
+                (p) => `${p.newReservation.id}-${p.existingReservation.id}` === key,
+            );
+            if (savedPair) {
+                existing = {
+                    newReservation: savedPair.newReservation,
+                    existingReservation: savedPair.existingReservation,
+                };
+            } else {
+                const [newIdStr, existingIdStr] = key.split('-');
+                const newId = Number(newIdStr);
+                const existingId = Number(existingIdStr);
+                const allReservations = Object.values(reservationMap).flat();
+                const newRes = allReservations.find((r) => r.id === newId);
+                const existingRes = allReservations.find((r) => r.id === existingId);
+                if (!newRes || !existingRes) return;
+                existing = {newReservation: newRes, existingReservation: existingRes};
+            }
             queue = [...queue, existing];
             setConflictQueue(queue);
             saveActiveConflictPairs(queue);
