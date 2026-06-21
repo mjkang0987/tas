@@ -191,14 +191,16 @@ const OnboardingPage: NextPage = () => {
             if (!res.ok) {
                 const data = await res.json().catch(() => ({}));
                 // 이미 설정된 매장(JWT만 stale onboarded=false) → 세션 갱신 후 홈으로 (레이어 막다른 길 방지)
-                if (res.status === 409) { await update(); router.replace('/'); return; }
+                if (res.status === 409) { await update(); window.location.href = '/'; return; }
                 setFinalError(data.error ?? '오류가 발생했습니다.');
                 return;
             }
 
-            // 세션(JWT) 갱신 → onboarded 반영 후 진입 (없으면 미들웨어가 계속 /onboarding으로 보냄)
+            // 세션(JWT) 갱신 → onboarded 반영 후 진입.
+            // 하드 리로드로 이동해야 갱신된 쿠키를 미들웨어가 보고 /onboarding으로 되돌리지 않음
+            // (router.replace 같은 소프트 이동은 갱신 전 쿠키로 미들웨어가 판정해 온보딩이 한 번 더 뜸)
             await update();
-            router.replace('/');
+            window.location.href = '/';
         } catch {
             setFinalError('네트워크 오류가 발생했습니다.');
         } finally {
