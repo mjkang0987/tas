@@ -28,13 +28,14 @@ import {GuidedTour, TourStep} from '../components/ui/GuidedTour';
 
 const TOUR_DONE_KEY = 'tas-tour-main-v1';
 
+// inAside: 모바일에서 이 단계는 aside 드로어를 열고, 아닌 단계(헤더 대상)는 드로어를 닫는다.
 const MAIN_TOUR_STEPS: TourStep[] = [
-    {targetId: 'tour-add-reservation', title: '예약 추가', description: '여기서 새 예약을 등록할 수 있어요. 달력의 빈 칸을 눌러도 바로 등록돼요.'},
-    {targetId: 'tour-views', title: '보기 전환', description: '일·주·월 등 원하는 방식으로 달력을 볼 수 있어요.'},
+    {targetId: 'tour-add-reservation', title: '예약 추가', description: '여기서 새 예약을 등록할 수 있어요. 달력의 빈 칸을 눌러도 바로 등록돼요.', inAside: true},
+    {targetId: 'tour-views', title: '보기 전환', description: '일·주·월 등 원하는 방식으로 달력을 볼 수 있어요.', inAside: true},
+    {targetId: 'tour-settings', title: '설정', description: '매장·서비스·디자이너·멤버를 여기서 관리해요.', inAside: true},
     {targetId: 'tour-designer-filter', title: '디자이너 필터', description: '특정 디자이너의 예약만 모아서 볼 수 있어요.'},
     {targetId: 'tour-search', title: '고객 검색', description: '고객·예약을 빠르게 찾을 수 있어요.'},
     {targetId: 'tour-notify', title: '알림', description: '네이버 예약·중복 예약 알림이 여기에 표시돼요.'},
-    {targetId: 'tour-settings', title: '설정', description: '매장·서비스·디자이너·멤버를 여기서 관리해요.'},
 ];
 
 type HomeProps = {
@@ -100,13 +101,22 @@ const Home: NextPage<HomeProps> = (props) => {
     const [tourOpen, setTourOpen] = useState(false);
     const asideWasVisibleRef = useRef(false);
 
-    // 투어 시작: aside가 접혀 있으면 대상 버튼이 width:0로 잘려 스포트라이트가 어긋나므로,
-    // 먼저 aside를 펼치고 레이아웃이 안정된 뒤(transition 0.25s) 투어를 연다.
+    // 단계별 레이아웃 조정: 데스크탑은 aside(컬럼)를 펼친 채 두면 헤더도 안 가려지므로 항상 펼침.
+    // 모바일은 aside가 드로어(오버레이)라, aside 대상 단계만 열고 헤더 대상 단계는 닫아 가림 방지.
+    const handleTourStep = useCallback((step: TourStep) => {
+        if (typeof window === 'undefined') return;
+        const isMobile = window.matchMedia('(max-width: 640px)').matches;
+        if (isMobile) {
+            setAside((prev) => ({...prev, isVisible: !!step.inAside}));
+        } else {
+            setAside((prev) => (prev.isVisible ? prev : {...prev, isVisible: true}));
+        }
+    }, [setAside]);
+
     const startTour = useCallback(() => {
         asideWasVisibleRef.current = useCalendarStore.getState().aside.isVisible;
-        setAside((prev) => ({...prev, isVisible: true}));
-        setTimeout(() => setTourOpen(true), 320);
-    }, [setAside]);
+        setTourOpen(true);
+    }, []);
 
     useEffect(() => {
         if (typeof window === 'undefined') return;
@@ -154,7 +164,7 @@ const Home: NextPage<HomeProps> = (props) => {
                                                  onReservationClick={openReservationDetailFromCustomer}
                                                  onClose={() => setSelectedCustomerId(null)}/>}
             <ServiceLegend/>
-            <GuidedTour steps={MAIN_TOUR_STEPS} open={tourOpen} onClose={closeTour}/>
+            <GuidedTour steps={MAIN_TOUR_STEPS} open={tourOpen} onClose={closeTour} onStepChange={handleTourStep}/>
         </>
     );
 };

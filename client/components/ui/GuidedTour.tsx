@@ -8,12 +8,14 @@ export interface TourStep {
     targetId: string;
     title: string;
     description: string;
+    inAside?: boolean;
 }
 
 interface GuidedTourProps {
     steps: TourStep[];
     open: boolean;
     onClose: () => void;
+    onStepChange?: (step: TourStep, index: number) => void;
 }
 
 interface Rect {
@@ -28,7 +30,7 @@ const TOOLTIP_WIDTH = 280;
 
 // 딤 + 스포트라이트 + 단계별 말풍선으로 주요 버튼을 안내하는 가이드 투어.
 // 대상은 요소 id로 지정한다. 대상이 없거나 화면에 없는 단계는 자동으로 건너뛴다.
-export const GuidedTour = ({steps, open, onClose}: GuidedTourProps) => {
+export const GuidedTour = ({steps, open, onClose, onStepChange}: GuidedTourProps) => {
     const [index, setIndex] = useState(0);
     const [rect, setRect] = useState<Rect | null>(null);
 
@@ -60,9 +62,19 @@ export const GuidedTour = ({steps, open, onClose}: GuidedTourProps) => {
         setRect(null);
     }, [open, index, steps]);
 
+    // 단계 변경/오픈 시: 부모에 알려 레이아웃(예: aside 드로어)을 조정하게 한 뒤,
+    // 전환(드로어 0.25s)을 감안해 여러 번 측정해 스포트라이트 위치를 맞춘다.
     useEffect(() => {
+        if (!open) return;
+        onStepChange?.(steps[index], index);
         measure();
-    }, [measure]);
+        const t1 = setTimeout(measure, 200);
+        const t2 = setTimeout(measure, 420);
+        return () => {
+            clearTimeout(t1);
+            clearTimeout(t2);
+        };
+    }, [open, index, steps, onStepChange, measure]);
 
     useEffect(() => {
         if (!open) return;
