@@ -148,9 +148,9 @@ export function useNaverBookingSync() {
         patchNotificationNames();
     }, [customerMap, reservationMap, patchNotificationNames]);
 
-    // 자동 중복 감지 (예약 데이터 로드 시) — 인증된 세션에서만 실행
+    // 자동 중복 감지 (예약 데이터 로드 시) — 네이버 연동은 오너 전용이므로 오너 세션에서만 실행
     useEffect(() => {
-        if (!session) return;
+        if (session?.user?.role !== 'owner') return;
         if (conflictDetectedRef.current) return;
 
         const reservationDates = Object.keys(reservationMap);
@@ -565,6 +565,7 @@ export function useNaverBookingSync() {
         openConflictByKey,
         sync,
         syncing,
+        canUseSync,
         isActive,
         gmailTokenExpired,
         dismissGmailTokenExpired: useCallback(() => setGmailTokenExpired(false), []),

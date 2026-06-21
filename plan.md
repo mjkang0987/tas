@@ -380,6 +380,32 @@ Phase 1(API 이전) 먼저 — 위험이 낮고 즉시 경계가 깔끔해짐. P
 
 ---
 
+# 멤버(staff)에게 네이버예약 연동 차단
+
+> **진행 현황 (2026-06-21, 진행 중)**: 네이버 동기화 기능 잔여 노출(알림 벨·충돌 자동감지·충돌 모달)을 오너 전용으로 정리.
+
+## 배경 / 문제
+- 네이버예약 연동(동기화)은 오너 전용 기능. 이미 막혀 있는 부분: 설정 탭(`/settings/naver` SSR 오너 가드), 동기화 버튼/폴링(`canUseSync`/`isActive` = owner), Aside 메뉴(`isLoggedInStaff` 필터), API(`/api/naver-booking-sync` owner).
+- **그러나 멤버(staff)에게 새는 곳 2군데**:
+  1. 헤더 알림 벨 `NaverSyncNotification` — `isActive` 가드 없이 무조건 렌더 → 멤버도 봄.
+  2. 충돌 자동 감지 effect (`useNaverBookingSync.ts`) — `if (!session) return`이라 멤버 세션에서도 실행 → 네이버 충돌 알림 생성, 충돌 모달도 뜰 수 있음.
+
+## 구현
+- `hooks/useNaverBookingSync.ts`:
+  - 충돌 자동 감지 effect 가드를 `session` → **오너 전용**으로 변경.
+  - 반환값에 `canUseSync`(오너+storeId) 노출.
+- `components/layout/Header.tsx`:
+  - 알림 벨(`NaverSyncNotification`) 2곳 + 충돌 모달(`NaverSyncConflictModal`)을 `canUseSync` 일 때만 렌더.
+
+## 범위 밖
+- 예약 생성/수정 폼의 예약경로 `네이버예약` 옵션은 동기화와 별개인 수동 메타 입력이라 유지.
+
+## 검증
+- 타입체크(`npx tsc --noEmit`) + 빌드 그린.
+- 멤버 로그인 시 헤더 알림 벨 미노출 + 네이버 충돌 알림/모달 미발생, 오너는 기존대로 동작.
+
+---
+
 # 사용 안내 가이드 투어 (딤+하이라이트 튜토리얼)
 
 > **진행 현황 (2026-06-21, 검증 완료/머지 대기)**: 재사용 `GuidedTour` 컴포넌트 + 메인 캘린더 투어(6스텝) 구현. Playwright로 게스트 메인에서 전 동작 검증.

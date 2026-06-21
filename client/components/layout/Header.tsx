@@ -90,6 +90,7 @@ export const Header = () => {
         openConflictByKey,
         sync,
         syncing,
+        canUseSync,
         isActive,
         gmailTokenExpired,
         dismissGmailTokenExpired,
@@ -221,13 +222,15 @@ export const Header = () => {
                             {syncing && <StyledSyncToast>동기화 중입니다</StyledSyncToast>}
                         </StyledSyncWrap>
                     )}
-                    <NaverSyncNotification notifications={visibleNotifications}
-                                           unreadCount={unreadCount}
-                                           markRead={markRead}
-                                           markAllRead={markAllRead}
-                                           reservationMap={reservationMap}
-                                           onSelectReservation={handleHeaderReservationClick}
-                                           onSelectConflict={openConflictByKey} />
+                    {canUseSync && (
+                        <NaverSyncNotification notifications={visibleNotifications}
+                                               unreadCount={unreadCount}
+                                               markRead={markRead}
+                                               markAllRead={markAllRead}
+                                               reservationMap={reservationMap}
+                                               onSelectReservation={handleHeaderReservationClick}
+                                               onSelectConflict={openConflictByKey} />
+                    )}
                     <StyledCustomerSearchButton type="button"
                                                 id="tour-search"
                                                 onClick={() => setIsSearchOpen(true)}
@@ -265,13 +268,15 @@ export const Header = () => {
                         {syncing && <StyledSyncToast>동기화 중입니다</StyledSyncToast>}
                     </StyledSyncWrap>
                 )}
-                <NaverSyncNotification notifications={visibleNotifications}
-                                       unreadCount={unreadCount}
-                                       markRead={markRead}
-                                       markAllRead={markAllRead}
-                                       reservationMap={reservationMap}
-                                       onSelectReservation={handleHeaderReservationClick}
-                                       onSelectConflict={openConflictByKey} />
+                {canUseSync && (
+                    <NaverSyncNotification notifications={visibleNotifications}
+                                           unreadCount={unreadCount}
+                                           markRead={markRead}
+                                           markAllRead={markAllRead}
+                                           reservationMap={reservationMap}
+                                           onSelectReservation={handleHeaderReservationClick}
+                                           onSelectConflict={openConflictByKey} />
+                )}
                 <StyledCustomerSearchButton type="button"
                                             onClick={() => setIsSearchOpen(true)}
                                             aria-label="고객검색">
@@ -284,7 +289,7 @@ export const Header = () => {
                     </StyledSearchIcon>
                 </StyledCustomerSearchButton>
             </>}
-            {currentConflict && (
+            {canUseSync && currentConflict && (
                 <NaverSyncConflictModal conflict={currentConflict}
                                         isConfirmed={currentConflictStatus === 'confirmed'}
                                         reason={currentConflictReason}
@@ -293,7 +298,7 @@ export const Header = () => {
                                         onDismiss={dismissConflicts}
                                         onSelectReservation={handleConflictReservationClick} />
             )}
-            {!currentConflict && currentSuggestion && (
+            {!(canUseSync && currentConflict) && currentSuggestion && (
                 <CustomerMergeSuggestionModal suggestion={currentSuggestion}
                                               reservationMap={suggestionReservationMap}
                                               merging={mergeSuggestionMerging}
