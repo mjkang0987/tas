@@ -38,6 +38,7 @@ import {
     StyledAccordionContent,
     StyledSubNavLink,
     StyledLogoutButton,
+    StyledHelpButton,
     StyledInquiryLink,
     StyledToggleIcon,
     StyledToggleSvg,
@@ -173,7 +174,7 @@ export const Aside = () => {
                             </StyledToggleSvg>
                         </StyledToggleIcon>
                     </StyledAccordionToggle>
-                    <StyledAccordionContent $open={reservationOpen}>
+                    <StyledAccordionContent $open={reservationOpen} id="tour-views">
                         {currValue && Object.keys(asides).map((a) =>
                             <StyledSubNavLink href={`/${setAsPath(a.toLowerCase()).join('/')}`}
                                               $active={activeReservationType === a.toLowerCase()}
@@ -191,6 +192,7 @@ export const Aside = () => {
                     </StyledAccordionContent>
                     <StyledDivider />
                     <StyledCreateButton type="button"
+                                        id="tour-add-reservation"
                                         onClick={() => {
                                             handleCreateReservation();
                                             closeMobile();
@@ -209,6 +211,7 @@ export const Aside = () => {
                     <StyledDivider />
                     <>
                         <StyledAccordionToggle type="button"
+                                               id="tour-settings"
                                                onClick={() => setSettingsOpen(!settingsOpen)}>
                             <StyledMenuContent>
                                 <AsideMenuIcon icon="settings" />
@@ -252,6 +255,14 @@ export const Aside = () => {
                     <AsideMenuIcon icon="inquiry" />
                     <span>고객센터</span>
                 </StyledInquiryLink>
+                <StyledHelpButton type="button"
+                                  onClick={() => {
+                                      if (typeof window !== 'undefined') window.dispatchEvent(new Event('tas:start-tour'));
+                                      closeMobile();
+                                  }}>
+                    <AsideMenuIcon icon="inquiry" />
+                    <span>사용 안내</span>
+                </StyledHelpButton>
                 <StyledLogoutButton type="button"
                                     onClick={() => isGuest ? setShowGuestLogout(true) : signOut({callbackUrl: '/login'})}>
                     <AuthActionIcon direction="logout" />

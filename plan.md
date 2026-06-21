@@ -377,4 +377,25 @@ Phase 1(API 이전) 먼저 — 위험이 낮고 즉시 경계가 깔끔해짐. P
 
 ## 알려진 한계 / 후속
 - 감지 effect의 자동확정(line~162)은 여전히 로드된 감지(detectedKeys)만 기준이라, 미로드 충돌이 'confirmed' 상태로 표시될 수 있음(모달은 열림). 카운트 정확도까지 원하면 별도 보강.
+
+---
+
+# 사용 안내 가이드 투어 (딤+하이라이트 튜토리얼)
+
+> **진행 현황 (2026-06-21, 검증 완료/머지 대기)**: 재사용 `GuidedTour` 컴포넌트 + 메인 캘린더 투어(6스텝) 구현. Playwright로 게스트 메인에서 전 동작 검증.
+
+## 요구 / 결정
+- 노출: **온보딩 후 메인 첫 진입 시 1회 자동** + Aside '사용 안내' 버튼으로 재실행 (localStorage `tas-tour-main-v1`).
+- 스텝(6): 예약추가 → 보기전환 → 디자이너필터 → 검색 → 알림 → 설정.
+
+## 구현
+- `components/ui/GuidedTour.tsx`(신규): 딤+스포트라이트(box-shadow), 말풍선(제목/설명/단계점), 다음/이전/건너뛰기/완료, 대상 id로 지정·미존재 단계 자동 스킵, ESC 닫기, 리사이즈/스크롤 추적, modal-root 포털.
+- 대상 id 부여: Aside(`tour-add-reservation`/`tour-views`/`tour-settings`), Header(`tour-designer-filter`/`tour-search`), NaverSyncNotification(`tour-notify`).
+- Aside에 '사용 안내' 버튼 → `window` 이벤트(`tas:start-tour`) 디스패치 → `pages/index.tsx`가 수신해 재실행.
+
+## 검증 (Playwright, 게스트 메인, 1280x800)
+- 자동 노출(1/6), 다음→보기전환/디자이너필터, 완료 시 닫힘, localStorage 기록 후 재자동노출 안 됨, 이벤트로 재실행, ESC 닫힘 — 전부 통과. 빌드/타입체크 그린.
+
+## 후속
+- 모바일(Aside 드로어 접힘)에선 Aside 대상 단계가 스킵됨(헤더 단계만). 필요 시 모바일 전용 스텝/드로어 오픈 보강.
  
