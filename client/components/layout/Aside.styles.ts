@@ -300,6 +300,35 @@ export const StyledLogoutButton = styled.button`
     }
 `;
 
+export const StyledHelpButton = styled.button`
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+    padding: 0 10px;
+    min-height: 36px;
+    flex-shrink: 0;
+    border: none;
+    text-align: left;
+    border-radius: var(--radius-md);
+    background-color: transparent;
+    box-sizing: border-box;
+    font-size: var(--small-font);
+    font-weight: 500;
+    color: var(--aside-text);
+    text-decoration: none;
+    white-space: nowrap;
+    opacity: 0.7;
+    transition: background-color 0.1s, opacity 0.1s, filter 0.1s;
+
+    @media (hover: hover) and (pointer: fine) {
+        &:hover {
+            opacity: 1;
+            filter: brightness(1.18);
+        }
+    }
+`;
+
 export const StyledInquiryLink = styled(Link)<{ $active?: boolean }>`
     display: flex;
     align-items: center;

@@ -171,6 +171,7 @@ export const Header = () => {
                 </StyledCalendarRow>
                 <StyledToolRow>
                     <StyledDesignerFilter value={calendarDesignerId ?? ''}
+                                          id="tour-designer-filter"
                                           onChange={(e) => setCalendarDesignerId(e.target.value ? Number(e.target.value) : null)}
                                           aria-label="달력 디자이너 필터">
                         <option value="">전체보기</option>
@@ -228,6 +229,7 @@ export const Header = () => {
                                            onSelectReservation={handleHeaderReservationClick}
                                            onSelectConflict={openConflictByKey} />
                     <StyledCustomerSearchButton type="button"
+                                                id="tour-search"
                                                 onClick={() => setIsSearchOpen(true)}
                                                 aria-label="고객검색">
                         <StyledSearchIcon viewBox="0 0 24 24"
