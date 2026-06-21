@@ -119,11 +119,11 @@ const OnboardingPage: NextPage = () => {
         }
     };
 
-    const handleSkipOnboarding = () => {
-        const snapshot = loadLocalDbSnapshot();
-        snapshot.onboarded = true;
-        saveLocalDbSnapshot(snapshot);
+    const handleSkipOnboarding = async () => {
         if (guest) {
+            const snapshot = loadLocalDbSnapshot();
+            snapshot.onboarded = true;
+            saveLocalDbSnapshot(snapshot);
             // 서비스 개시 시점에 약관 동의 영구 기록 (consent 단계의 세션 ack 정리)
             setGuestTermsAgreed(CURRENT_TERMS_VERSION);
             clearGuestConsentAck();
@@ -131,12 +131,35 @@ const OnboardingPage: NextPage = () => {
             window.location.href = '/';
             return;
         }
-        router.replace('/');
+
+        // 비게스트(로그인): 기본 설정(원장 1명)으로 온보딩 완료 처리 후 진입.
+        // 단순 이동만 하면 onboarded=false라 미들웨어가 다시 /onboarding으로 보내 무한 루프.
+        setLoading(true);
+        setFinalError('');
+        try {
+            const res = await fetch('/api/onboarding', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({}),
+            });
+            if (!res.ok && res.status !== 409) {
+                const data = await res.json().catch(() => ({}));
+                setFinalError(data.error ?? '오류가 발생했습니다.');
+                return;
+            }
+            // 완료와 동일하게 세션 갱신 후 하드 리로드 (갱신된 쿠키로 미들웨어가 판정)
+            await update();
+            window.location.href = '/';
+        } catch {
+            setFinalError('네트워크 오류가 발생했습니다.');
+        } finally {
+            setLoading(false);
+        }
     };
 
     const handleConfirmSkip = () => {
         setShowSkipConfirm(false);
-        handleSkipOnboarding();
+        void handleSkipOnboarding();
     };
 
     const handleComplete = async () => {
