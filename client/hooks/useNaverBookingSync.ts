@@ -191,10 +191,22 @@ export function useNaverBookingSync() {
             }
         }
 
-        if (merged.length === 0) return;
+        // 이미 처리완료(confirmed)된 충돌은 큐·저장쌍에서 제외한다.
+        // (해결된 충돌의 모달이 다시 뜨거나 저장쌍이 계속 복원되던 버그 방지)
+        const confirmedKeys = new Set(
+            useCalendarStore.getState().syncNotifications
+                .filter((n) => n.type === 'conflict' && n.conflictStatus === 'confirmed' && n.conflictKey)
+                .map((n) => n.conflictKey),
+        );
+        const activeMerged = merged.filter((c) => !confirmedKeys.has(conflictKey(c)));
 
-        // 활성 conflict 저장
-        saveActiveConflictPairs(merged);
+        // 저장쌍은 활성 충돌만 남겨 confirmed 잔재를 정리한다.
+        saveActiveConflictPairs(activeMerged);
+
+        if (activeMerged.length === 0) {
+            setConflictQueue([]);
+            return;
+        }
 
         const customerMap = useCalendarStore.getState().customerMap;
         const designers = useCalendarStore.getState().designers;
@@ -205,7 +217,7 @@ export function useNaverBookingSync() {
                 .map((n) => n.conflictKey)
         );
 
-        const conflictNotifications: SyncNotification[] = merged
+        const conflictNotifications: SyncNotification[] = activeMerged
             .filter((conflict) => !existingKeys.has(conflictKey(conflict)))
             .map((conflict, index) => ({
                 id: `conflict-${conflict.newReservation.id}-${index}`,
@@ -226,7 +238,7 @@ export function useNaverBookingSync() {
             addSyncNotifications(conflictNotifications);
         }
 
-        setConflictQueue(merged);
+        setConflictQueue(activeMerged);
         setCurrentIndex(0);
     }, [session, reservationMap, addSyncNotifications]);
 
