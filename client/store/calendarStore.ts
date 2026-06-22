@@ -224,6 +224,17 @@ function resolveLatestReservation(reservationMap: ReservationMap, reservation: R
     return dateReservations.find((item) => item.id === reservation.id) ?? reservation;
 }
 
+// 예약 변경(추가·수정·취소·복원·삭제) 시 firstVisitDate가 실제로 바뀐 고객만 서버에
+// 저장한다. 전체 고객 목록을 통째로 PUT하던 비효율(고객 수에 비례해 수 초, 예약 POST와
+// 레이스)을 없애기 위함.
+function syncChangedCustomers(prev: CustomerMap, next: CustomerMap): void {
+    const changed = Object.values(next).filter((c) => {
+        const before = prev[c.id];
+        return !before || before.firstVisitDate !== c.firstVisitDate;
+    });
+    if (changed.length > 0) syncCustomerSettings(changed);
+}
+
 export const useCalendarStore = create<CalendarState>((set) => ({
     today: null,
     target: {
@@ -367,8 +378,10 @@ export const useCalendarStore = create<CalendarState>((set) => ({
                 [customerId]: nextCustomer,
             };
             const normalizedCustomerMap = syncCustomerFirstVisitDates(nextCustomerMap, state.reservationMap);
-            if (Object.keys(normalizedCustomerMap).length > 0) {
-                syncCustomerSettings(Object.values(normalizedCustomerMap));
+            // 수정된 고객 1명만 저장 (전체 목록 PUT 대신). 단건 PUT이라 메모태그·포인트이력도 처리됨.
+            const editedCustomer = normalizedCustomerMap[customerId];
+            if (editedCustomer) {
+                syncCustomerSettings([editedCustomer]);
             }
             return {customerMap: normalizedCustomerMap};
         }),
@@ -578,9 +591,7 @@ export const useCalendarStore = create<CalendarState>((set) => ({
             const nextMap = buildAddedReservationMap(state.reservationMap, reservation);
             const nextCustomerMap = syncCustomerFirstVisitDates(state.customerMap, nextMap);
             nextReservationMap = nextMap;
-            if (Object.keys(nextCustomerMap).length > 0) {
-                syncCustomerSettings(Object.values(nextCustomerMap));
-            }
+            syncChangedCustomers(state.customerMap, nextCustomerMap);
             return {reservationMap: nextMap, customerMap: nextCustomerMap, createReservationInitial: null};
         });
 
@@ -612,9 +623,7 @@ export const useCalendarStore = create<CalendarState>((set) => ({
             const nextCustomerMap = syncCustomerFirstVisitDates(state.customerMap, nextState.reservationMap);
             nextReservationMap = nextState.reservationMap;
             nextHistory = nextState.reservationHistory;
-            if (Object.keys(nextCustomerMap).length > 0) {
-                syncCustomerSettings(Object.values(nextCustomerMap));
-            }
+            syncChangedCustomers(state.customerMap, nextCustomerMap);
             return {...nextState, customerMap: nextCustomerMap};
         });
 
@@ -682,9 +691,7 @@ export const useCalendarStore = create<CalendarState>((set) => ({
             const nextCustomerMap = syncCustomerFirstVisitDates(state.customerMap, nextState.reservationMap);
             nextReservationMap = nextState.reservationMap;
             nextHistory = nextState.reservationHistory;
-            if (Object.keys(nextCustomerMap).length > 0) {
-                syncCustomerSettings(Object.values(nextCustomerMap));
-            }
+            syncChangedCustomers(state.customerMap, nextCustomerMap);
             return {...nextState, customerMap: nextCustomerMap};
         });
 
@@ -724,9 +731,7 @@ export const useCalendarStore = create<CalendarState>((set) => ({
             nextHistory = [...state.reservationHistory, historyEntry];
             nextReservationMap = nextMap;
             const nextCustomerMap = syncCustomerFirstVisitDates(state.customerMap, nextMap);
-            if (Object.keys(nextCustomerMap).length > 0) {
-                syncCustomerSettings(Object.values(nextCustomerMap));
-            }
+            syncChangedCustomers(state.customerMap, nextCustomerMap);
             return {
                 reservationMap: nextMap,
                 reservationHistory: nextHistory,
@@ -758,9 +763,7 @@ export const useCalendarStore = create<CalendarState>((set) => ({
             const nextMap = {...state.reservationMap, [reservation.date]: nextDateReservations};
             const nextCustomerMap = syncCustomerFirstVisitDates(state.customerMap, nextMap);
             nextReservationMap = nextMap;
-            if (Object.keys(nextCustomerMap).length > 0) {
-                syncCustomerSettings(Object.values(nextCustomerMap));
-            }
+            syncChangedCustomers(state.customerMap, nextCustomerMap);
             return {reservationMap: nextMap, customerMap: nextCustomerMap};
         });
 
