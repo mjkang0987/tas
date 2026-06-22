@@ -347,12 +347,18 @@ const Address: NextPage<AddressProps> = ({customers, reservations, history, stor
                                    onClose={() => setSelectedReservations((prev) => prev.filter((_, itemIndex) => itemIndex !== index))}
                                    onCustomerClick={openCustomerDetail}
                                    onUpdate={(prev, updated) => {
+                                       useCalendarStore.getState().updateReservation(prev, updated);
                                        setSelectedReservations((current) => current.map((item) => item.id === prev.id ? updated : item));
                                    }}
-                                   onCancel={(targetReservation) => {
+                                   onCancel={(targetReservation, status) => {
+                                       useCalendarStore.getState().cancelReservation(targetReservation, status);
                                        setSelectedReservations((prev) => prev.filter((item) => item.id !== targetReservation.id));
                                    }}
-                                   onRestore={useCalendarStore.getState().restoreReservation}/>
+                                   onRestore={useCalendarStore.getState().restoreReservation}
+                                   onDelete={(targetReservation) => {
+                                       // 삭제 후 오버레이 닫기는 ReservationDetail이 onClose로 처리(index 기준).
+                                       useCalendarStore.getState().deleteReservation(targetReservation);
+                                   }}/>
             ))}
             {selectedCustomerId !== null && storeCustomerMap[selectedCustomerId] && (
                 <CustomerDetail customer={storeCustomerMap[selectedCustomerId]}
