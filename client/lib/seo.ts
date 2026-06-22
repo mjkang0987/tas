@@ -1,10 +1,10 @@
 export const SITE_URL = 'https://takeaseat.co.kr';
 export const SITE_NAME = 'TAS';
-export const SITE_TITLE = 'TAS | 네이버 예약까지 간편하게 관리';
-export const SITE_DESCRIPTION = '예약, 네이버 예약, 고객관리까지 간편하게!';
-export const SITE_OG_DESCRIPTION = '네이버 예약 + 자체 예약을 한 화면에서. 예약 관리의 새로운 기준 TAS';
-export const SITE_TWITTER_DESCRIPTION = '예약, 네이버 예약, 고객관리까지 간편하게!';
+export const SITE_TITLE = 'TAS | 통합 예약 관리';
+export const SITE_DESCRIPTION = '네이버·당근 등 여러 플랫폼의 예약을 한 곳에서. 예약·고객 관리까지 통합으로 간편하게, TAS';
+export const SITE_OG_DESCRIPTION = '네이버·당근 등 여러 플랫폼의 예약을 한 화면에서 통합 관리. 예약 관리의 새로운 기준 TAS';
+export const SITE_TWITTER_DESCRIPTION = '네이버·당근 등 여러 플랫폼의 예약을 한 곳에서. 예약·고객 관리까지 통합으로 간편하게, TAS';
 export const SITE_OG_IMAGE = `${SITE_URL}/img-share.png`;
 export const SITE_OG_IMAGE_WIDTH = '1200';
 export const SITE_OG_IMAGE_HEIGHT = '628';
-export const SITE_KEYWORDS = '예약, 네이버 예약, 고객관리, 예약 시스템, 예약 CRM, 예약 캘린더, TAS';
+export const SITE_KEYWORDS = '통합 예약 관리, 예약 통합, 다양한 플랫폼 예약, 네이버 예약, 당근 예약, 예약 관리, 고객관리, 예약 시스템, 예약 CRM, 예약 캘린더, TAS';
