@@ -495,4 +495,22 @@ Phase 1(API 이전) 먼저 — 위험이 낮고 즉시 경계가 깔끔해짐. P
 1. `node scripts/recalc-reservation-endtimes.mjs` → 미리보기 + 겹침/미인식 리포트 확인
 2. 결과 검토(특히 겹침·수동조정 예약)
 3. 이상 없으면 `node scripts/recalc-reservation-endtimes.mjs --apply`
+
+---
+
+# 모바일에서 모달 레이어가 브라우저 툴바와 겹치는 문제 수정
+
+> **진행 현황 (2026-06-22, 완료)**: 월/연 전체보기 예약 목록 레이어(`ReservationListModal`)를 비롯한 공통 모달이 모바일에서 헤더(제목·닫기)·footer(닫기 버튼)가 브라우저 툴바 뒤로 잘려 "무슨 레이어인지·닫기 버튼이 안 보이는" 문제.
+
+## 근본 원인
+- 공통 모달(`ModalStyles.ts`)이 높이를 `vh`로 지정(`max-height: 80vh`, 모바일 `90vh`).
+- 모바일 브라우저에서 `vh`/`fixed`의 ICB는 주소창·툴바가 펼쳐진 **큰 뷰포트** 기준 → 실제 보이는 영역보다 레이어가 커지고, 오버레이가 큰 뷰포트 중앙에 정렬되어 모달 상·하단이 툴바 뒤로 밀려남.
+
+## 수정 (`client/components/calendar/overlays/ModalStyles.ts`)
+- `StyledDetail`: `max-height`에 `dvh` 폴백 추가(`80vh`→`80dvh`, 모바일 `90vh`→`90dvh`). 구형 브라우저는 `vh` 라인 사용, 최신은 `dvh`(툴바 제외 실제 보이는 높이).
+- `StyledOverlay`: `inset: 0`(큰 뷰포트) → `top/left/right: 0` + `height: 100dvh`(vh 폴백)로 변경. 오버레이가 보이는 영역에 맞춰져 모달이 화면 중앙에 들어옴.
+- `dvh`는 이미 `404/500/not-found` 페이지에서 사용 중 — 코드베이스 표준과 일치.
+
+## 영향 범위
+- 공통 `StyledDetail`/`StyledOverlay`를 쓰는 모든 모달에 적용(예약 상세·생성·고객 상세·확인 레이어 등) — 모바일 가시성 일괄 개선. CSS만 변경, 동작/로직 변화 없음.
  
