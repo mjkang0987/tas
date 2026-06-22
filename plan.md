@@ -380,6 +380,34 @@ Phase 1(API 이전) 먼저 — 위험이 낮고 즉시 경계가 깔끔해짐. P
 
 ---
 
+# 서비스 변경 → 기존 예약 일괄 반영
+
+> **진행 현황 (2026-06-21, 진행 중)**: 서비스 관리에서 소요시간/가격 변경 시 앞으로의 미결제 예약에 일괄 반영.
+
+## 배경 / 문제
+- 예약은 서비스를 `service`(이름 문자열, `+`로 멀티 결합) + `price`/`endTime` **스냅샷**으로 저장(생성 시점 카탈로그 값 복사). 카탈로그를 바꿔도 기존 예약은 그대로.
+- `loadPageData`는 매장의 **전체 예약**을 날짜 필터·limit 없이 로드 → 클라이언트 스토어 `reservationMap`에 전 예약이 있음 → **클라이언트 스토어에서 일괄 재계산**해도 누락 없음.
+
+## 결정 (사용자 확인)
+- **적용 범위**: 앞으로의 미결제 예약만 — `date >= 오늘` AND `status === 'active'` AND `!hasCompletedPayment`. 과거·완료·결제·취소·노쇼 보존.
+- **변경 대상**: 가격·소요시간(종료시간) 모두 재계산. 이름 변경 시 예약의 service 문자열도 갱신(라벨 일관성).
+- **수동 수정건 보존**: 저장된 `price`가 (구 카탈로그 기준 합계)와 다르면 수동조정으로 보고 가격 유지. `endTime-startTime`이 구 카탈로그 합계 소요시간과 다르면 시간 유지.
+
+## 구현
+- `store/calendarStoreServiceHelpers.ts`: 순수 헬퍼 `buildServiceCatalogReservationUpdates(reservationMap, originalName, updatedName, prevCatalog, nextCatalog)` → `{nextReservationMap, updates: {prev, updated}[]}`.
+- `store/calendarStore.ts` `updateService`: 카탈로그 갱신과 함께 예약 재계산 적용 + 영속화(로컬=스냅샷, 원격=변경 예약마다 `PUT /api/reservations`). 반영 건수 반환.
+- `components/settings/ServiceManageSection.tsx`: 저장 토스트에 반영 건수 표시.
+
+## 범위 밖 / 주의
+- 소요시간 변경으로 종료시간이 밀리면 다른 예약과 겹칠 수 있음(이 앱은 중복예약 허용 — 데이터 무결성 문제 없음). 별도 차단 안 함.
+- 서버 측 일괄 엔드포인트는 만들지 않음(전체 예약이 클라이언트에 로드되므로 기존 PUT 경로 재사용).
+
+## 검증
+- 타입체크 + 빌드 그린.
+- 가격만/시간만/둘다 변경, 멀티서비스 예약, 수동조정 예약 보존, 과거·완료·결제 예약 불변, 게스트(로컬) 모드 동작.
+
+---
+
 # 멤버(staff)에게 네이버예약 연동 차단
 
 > **진행 현황 (2026-06-21, 진행 중)**: 네이버 동기화 기능 잔여 노출(알림 벨·충돌 자동감지·충돌 모달)을 오너 전용으로 정리.

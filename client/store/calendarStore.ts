@@ -40,6 +40,7 @@ import {
     buildMovedCategoryState,
     buildMovedServiceInCategoryState,
     buildRenamedCategoryState,
+    buildServiceCatalogReservationUpdates,
     buildUpdatedServiceState,
 } from './calendarStoreServiceHelpers';
 import {
@@ -185,7 +186,7 @@ export interface CalendarState {
     deleteDesigner: (designerId: number) => void;
     updateCategoryBaseColor: (category: string, color: string) => void;
     addService: (item: ServiceItem) => void;
-    updateService: (name: string, updated: ServiceItem) => void;
+    updateService: (name: string, updated: ServiceItem) => number;
     deleteService: (name: string) => void;
     renameCategory: (prevCategory: string, nextCategory: string) => void;
     moveCategory: (dragCategory: string, targetCategory: string) => void;
@@ -500,11 +501,36 @@ export const useCalendarStore = create<CalendarState>((set) => ({
             return withSyncedCatalog(state, nextCatalog);
         }),
 
-    updateService: (name, updated) =>
+    updateService: (name, updated) => {
+        const {serviceCatalog: prevCatalog, reservationMap, reservationHistory} = useCalendarStore.getState();
+        const nextCatalog = buildUpdatedServiceState(prevCatalog, name, updated);
+        const {nextReservationMap, updates} = buildServiceCatalogReservationUpdates(
+            reservationMap, name, updated.name, prevCatalog, nextCatalog,
+        );
+
         set((state) => {
-            const nextCatalog = buildUpdatedServiceState(state.serviceCatalog, name, updated);
-            return withSyncedCatalog(state, nextCatalog);
-        }),
+            const synced = withSyncedCatalog(state, nextCatalog);
+            return updates.length > 0
+                ? {...synced, reservationMap: nextReservationMap}
+                : synced;
+        });
+
+        // 변경된 예약 영속화: 로컬 모드는 스냅샷, 원격은 변경 건마다 PUT (전체 예약이 메모리에 있음)
+        if (updates.length > 0) {
+            syncReservationState(nextReservationMap, reservationHistory);
+            if (!shouldUseLocalDb()) {
+                for (const change of updates) {
+                    fetch('/api/reservations', {
+                        method: 'PUT',
+                        headers: {'Content-Type': 'application/json'},
+                        body: JSON.stringify(change),
+                    }).catch(() => {});
+                }
+            }
+        }
+
+        return updates.length;
+    },
 
     deleteService: (name) =>
         set((state) => {

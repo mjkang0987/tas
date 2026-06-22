@@ -105,7 +105,7 @@ hair_reservations/
 | `calendarStoreDesignerHelpers.ts` | 디자이너 상태 빌더 (add, update, delete) |
 | `calendarStoreReservationHelpers.ts` | 예약 상태 빌더 (reservationMap 조작) |
 | `calendarStoreOverlayHelpers.ts` | 오버레이(모달) 상태 관리 |
-| `calendarStoreServiceHelpers.ts` | 서비스 카탈로그 상태 빌더 |
+| `calendarStoreServiceHelpers.ts` | 서비스 카탈로그 상태 빌더 + 서비스 변경(소요시간·가격·이름) 시 앞으로의 미결제 예약 일괄 반영(`buildServiceCatalogReservationUpdates`, 수동조정 건 보존) |
 | `calendarStoreStoreSettingsHelpers.ts` | 매장 설정 상태 빌더 |
 | `toastStore.ts` | 토스트 알림 |
 
