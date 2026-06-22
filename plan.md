@@ -452,4 +452,47 @@ Phase 1(API 이전) 먼저 — 위험이 낮고 즉시 경계가 깔끔해짐. P
 
 ## 후속
 - 모바일(Aside 드로어 접힘)에선 Aside 대상 단계가 스킵됨(헤더 단계만). 필요 시 모바일 전용 스텝/드로어 오픈 보강.
+
+---
+
+# 서비스 시간 변경에 따른 예약 종료시간(endTime) 재계산
+
+> **진행 현황 (2026-06-22, 스크립트 작성 완료/운영 적용 대기)**: Supabase에서 서비스 `duration`을 수동 수정함 → 기존 예약의 `endTime`은 생성 시점 값으로 고정되어 불일치. 매장별 서비스 카탈로그로 `serviceSummary`를 파싱해 `endTime`을 재계산하는 standalone 스크립트(`scripts/recalc-reservation-endtimes.mjs`) 작성. **운영 DB이므로 dry-run(미리보기)→확인→`--apply` 순서로 사용자가 로컬에서 직접 실행.**
+
+## 배경 / 문제
+- 예약은 `endTime`을 **저장값으로 보관**(생성 시 `startTime + sum(서비스 duration)`으로 계산해 기록 — `useReservationCreateForm.ts`의 `calcEndTime`).
+- 서비스 `duration`을 나중에 바꿔도 **기존 예약 `endTime`은 자동 갱신되지 않음** → 변경된 서비스 시간과 불일치.
+- 예약↔서비스는 FK가 아니라 `Reservation.serviceSummary`(`+`로 join된 서비스명 문자열)로 연결됨. duration은 매장별(`Service.storeId`).
+
+## 결정된 범위 (2026-06-22, 사용자 확인)
+- **대상 예약**: `status = 'active'` AND `paymentCompleted = false` (완료/결제완료 건 제외). `serviceSummary`가 빈 값이면 스킵.
+- **대상 매장**: 전체 매장 (매장별로 해당 매장의 서비스 카탈로그를 따로 적용).
+
+## 접근 (검증된 로직 재사용)
+- 선례: `server/api/backfill-reservation-prices.ts` (서비스 기준 가격 재계산 owner 엔드포인트), `scripts/update-default-prices.mjs` (standalone 스크립트).
+- 파싱: `client/features/services/model.ts`의 `parseServiceString`(greedy, `+` 포함 서비스명 보존) + `LEGACY_NAME_MAP`(구명칭→현명칭) + `calcEndTime` 로직을 스크립트에 이식.
+- 매장별: `Service`에서 `(name → duration)` 맵 구성(LEGACY 별칭 포함) → 대상 예약의 `serviceSummary` 파싱 → duration 합산 → `newEndTime = calcEndTime(startTime, total)`.
+
+## 스크립트 동작 (`scripts/recalc-reservation-endtimes.mjs`)
+- **기본 = dry-run**: 변경 예정 목록(매장/날짜/서비스/시작/기존 endTime→새 endTime)을 콘솔 출력 + outputs에 미리보기 파일 저장. **DB 미변경.**
+- **`--apply`**: 변경분만 `prisma.reservation.update`로 실제 반영.
+- **겹침 경고**: 같은 (매장·디자이너·날짜) 그룹에서 새 endTime이 다음 예약 startTime을 침범하면 경고 표시(자동 차단 없음 — 사용자 판단).
+- **duration 합계 0(미인식 서비스)** 예약은 변경하지 않고 별도 목록으로 표시.
+- 연결: `DIRECT_URL ?? DATABASE_URL`(seed.mjs와 동일한 PrismaPg 어댑터 패턴), `client` 패키지 컨텍스트로 generated client 로드.
+
+## 영향 파일
+- 신규: `scripts/recalc-reservation-endtimes.mjs`
+- 문서: `index.md`(스크립트 추가), `plan.md`(본 섹션)
+
+## 리스크 / 주의
+- **운영 데이터 변경** — dry-run 미리보기 확인 전 절대 `--apply` 금지.
+- **시간 겹침** — 일괄 변경은 앱의 생성 시 겹침 검증을 우회 → 경고만, 적용은 사용자 확인.
+- **미인식 서비스명** — 카탈로그/LEGACY에 없는 `serviceSummary`는 duration 0 → 건드리지 않음(별도 리포트).
+- **endTime 수동조정 예약** — 사용자가 수동으로 종료시간을 바꾼 예약도 재계산되어 덮어쓸 수 있음(현재 구분 필드 없음). 미리보기에서 확인 필요.
+- **history 미기록(기본)** — 일괄 마이그레이션이라 `ReservationHistory`는 기본 미기록. 필요 시 옵션 추가.
+
+## 실행 순서 (사용자 로컬)
+1. `node scripts/recalc-reservation-endtimes.mjs` → 미리보기 + 겹침/미인식 리포트 확인
+2. 결과 검토(특히 겹침·수동조정 예약)
+3. 이상 없으면 `node scripts/recalc-reservation-endtimes.mjs --apply`
  

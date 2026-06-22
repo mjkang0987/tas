@@ -143,6 +143,7 @@ hair_reservations/
 | `lib/seo.ts` | SEO 상수 (`SITE_URL`, `SITE_TITLE`, OG/Twitter 메타값) |
 | `lib/gmail-status.ts` | Gmail 연동 상태 조회 (`/api/gmail/status`, 페이지 로드당 1회 캐시) |
 | `scripts/backfill-designer-legacyid.mjs` | 디자이너 null legacyId 백필 스크립트 (`--dry-run` 지원) |
+| `scripts/recalc-reservation-endtimes.mjs` | 서비스 duration 변경 후 기존 예약 endTime 재계산 (매장별 카탈로그 기준, 기본 dry-run / `--apply`로 반영, 대상: active·미결제) |
 
 ### 인증 (`client/auth.ts`)
 
