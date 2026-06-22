@@ -20,6 +20,7 @@ import {createRequire} from 'node:module';
 import fs from 'node:fs';
 import path from 'node:path';
 import {fileURLToPath} from 'node:url';
+import readline from 'node:readline/promises';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -38,6 +39,33 @@ const connectionString = process.env.DIRECT_URL || process.env.DATABASE_URL;
 if (!connectionString) {
     console.error('❌ DIRECT_URL / DATABASE_URL 이 설정되어 있지 않습니다 (client/.env).');
     process.exit(1);
+}
+
+// ── 접속 대상 표시 + 운영 DB 보호 ───────────────────────────────────────────
+// 주의: 이 스크립트는 DIRECT_URL 을 우선 사용한다. .env.local 이 DATABASE_URL 만
+//       localhost 로 덮어써도 .env 의 DIRECT_URL(운영)이 그대로 선택될 수 있으니
+//       반드시 아래 host 출력을 확인할 것.
+const dbHost = (() => {
+    try {
+        return new URL(connectionString).host;
+    } catch {
+        return '(파싱 실패)';
+    }
+})();
+const isLocalDb = /^(localhost|127\.0\.0\.1)(:|$)/.test(dbHost);
+
+console.log(`\n🔌 접속 대상 DB: ${dbHost}  ${isLocalDb ? '(로컬)' : '⚠️  운영/원격으로 보임'}`);
+
+if (APPLY && !isLocalDb) {
+    const rl = readline.createInterface({input: process.stdin, output: process.stdout});
+    const answer = await rl.question(
+        `\n⚠️  운영/원격 DB(${dbHost})에 실제 변경(--apply)을 적용하려고 합니다.\n   계속하려면 정확히 "APPLY" 를 입력하세요: `,
+    );
+    rl.close();
+    if (answer.trim() !== 'APPLY') {
+        console.log('🛑 취소되었습니다. (입력값 불일치)');
+        process.exit(1);
+    }
 }
 
 const prisma = new PrismaClient({adapter: new PrismaPg({connectionString})});
