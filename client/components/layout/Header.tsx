@@ -110,6 +110,7 @@ export const Header = () => {
     const updateReservation = useCalendarStore((s) => s.updateReservation);
     const cancelReservation = useCalendarStore((s) => s.cancelReservation);
     const restoreReservation = useCalendarStore((s) => s.restoreReservation);
+    const deleteReservation = useCalendarStore((s) => s.deleteReservation);
     const [headerReservations, setHeaderReservations] = useState<Reservation[]>([]);
 
     const handleHeaderReservationClick = useCallback((reservation: Reservation) => {
@@ -326,7 +327,8 @@ export const Header = () => {
                                    onRestore={(res) => {
                                        restoreReservation(res);
                                        setHeaderReservations((list) => list.filter((r) => r.id !== res.id));
-                                   }} />
+                                   }}
+                                   onDelete={(res) => deleteReservation(res)} />
             ))}
             {isSearchOpen && <HeaderSearchLayer onClose={() => setIsSearchOpen(false)} />}
             {gmailTokenExpired && (

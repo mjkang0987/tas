@@ -8,7 +8,8 @@ export type ReservationDetailMode =
     | 'completing'
     | 'cancelling'
     | 'noshow'
-    | 'payment';
+    | 'payment'
+    | 'deleting';
 
 export type ReservationDiffItem = {
     label: string;

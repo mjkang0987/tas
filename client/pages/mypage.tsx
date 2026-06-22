@@ -69,6 +69,7 @@ const MyPage: NextPage<MyPageProps> = ({linkedProviders}) => {
     const updateReservation = useCalendarStore((s) => s.updateReservation);
     const cancelReservation = useCalendarStore((s) => s.cancelReservation);
     const restoreReservation = useCalendarStore((s) => s.restoreReservation);
+    const deleteReservation = useCalendarStore((s) => s.deleteReservation);
     const storeHistory = useCalendarStore((s) => s.reservationHistory);
     const selectedReservations = useMemo(() => {
         const all = Object.values(storeReservationMap).flat();
@@ -324,7 +325,8 @@ const MyPage: NextPage<MyPageProps> = ({linkedProviders}) => {
                                    onCustomerClick={openCustomerDetail}
                                    onUpdate={updateReservation}
                                    onCancel={cancelReservation}
-                                   onRestore={restoreReservation}/>
+                                   onRestore={restoreReservation}
+                                   onDelete={deleteReservation}/>
             ))}
             {showDeleteModal && (
                 <AccountDeleteModal role={session?.user?.role}

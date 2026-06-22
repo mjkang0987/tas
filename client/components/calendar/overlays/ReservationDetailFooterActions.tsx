@@ -9,6 +9,7 @@ type ReservationDetailFooterActionsProps = {
     isCompleted: boolean;
     paymentCompleted: boolean;
     isNaverBooking: boolean;
+    canDelete: boolean;
     onOpenCompleting: () => void;
     onOpenCancelling: () => void;
     onOpenNoshow: () => void;
@@ -21,6 +22,8 @@ type ReservationDetailFooterActionsProps = {
     onNoshowReservation: () => void;
     onOpenRestoring: () => void;
     onRestoreReservation: () => void;
+    onOpenDeleting: () => void;
+    onDeleteReservation: () => void;
     onPaymentSave: () => void;
     onBackToEditing: () => void;
     onBackToView: () => void;
@@ -32,6 +35,7 @@ export function ReservationDetailFooterActions({
                                                    isCompleted,
                                                    paymentCompleted,
                                                    isNaverBooking,
+                                                   canDelete,
                                                    onOpenCompleting,
                                                    onOpenCancelling,
                                                    onOpenNoshow,
@@ -44,6 +48,8 @@ export function ReservationDetailFooterActions({
                                                    onNoshowReservation,
                                                    onOpenRestoring,
                                                    onRestoreReservation,
+                                                   onOpenDeleting,
+                                                   onDeleteReservation,
                                                    onPaymentSave,
                                                    onBackToEditing,
                                                    onBackToView,
@@ -51,9 +57,16 @@ export function ReservationDetailFooterActions({
     if (mode === 'view') {
         if (isInactive) {
             return (
-                <StyledActionButton type="button"
-                                    $primary
-                                    onClick={onOpenRestoring}>예약전환</StyledActionButton>
+                <>
+                    <StyledActionButton type="button"
+                                        $primary
+                                        onClick={onOpenRestoring}>예약전환</StyledActionButton>
+                    {canDelete && (
+                        <StyledActionButton type="button"
+                                            $dangerOutline
+                                            onClick={onOpenDeleting}>삭제</StyledActionButton>
+                    )}
+                </>
             );
         }
 
@@ -82,6 +95,11 @@ export function ReservationDetailFooterActions({
                 <StyledActionButton type="button"
                                     $primary
                                     onClick={onOpenEditing}>변경</StyledActionButton>
+                {canDelete && (
+                    <StyledActionButton type="button"
+                                        $dangerOutline
+                                        onClick={onOpenDeleting}>삭제</StyledActionButton>
+                )}
             </>
         );
     }
@@ -118,6 +136,18 @@ export function ReservationDetailFooterActions({
                 <StyledActionButton type="button"
                                     $primary
                                     onClick={onCancelReservation}>확인</StyledActionButton>
+            </>
+        );
+    }
+
+    if (mode === 'deleting') {
+        return (
+            <>
+                <StyledActionButton type="button"
+                                    onClick={onBackToView}>취소</StyledActionButton>
+                <StyledActionButton type="button"
+                                    $danger
+                                    onClick={onDeleteReservation}>삭제</StyledActionButton>
             </>
         );
     }

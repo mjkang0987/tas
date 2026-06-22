@@ -2,6 +2,7 @@ import {useEffect, useMemo, useState} from 'react';
 
 import {createPortal} from 'react-dom';
 import {useRouter} from 'next/router';
+import {useSession} from 'next-auth/react';
 import {useCalendarStore} from '../../../store/calendarStore';
 
 import type {PaymentEntry, PaymentMethod, Reservation, ReservationHistoryEntry, ReservationMap, ReservationStatus} from '../../../utils/reservations';
@@ -82,6 +83,7 @@ interface ReservationDetailProps {
     onUpdate: (prev: Reservation, updated: Reservation) => void;
     onCancel: (reservation: Reservation, status?: ReservationStatus) => void;
     onRestore: (reservation: Reservation) => void;
+    onDelete?: (reservation: Reservation) => void;
 }
 
 export const ReservationDetail = ({
@@ -93,9 +95,12 @@ export const ReservationDetail = ({
                                       onCustomerClick,
                                       onUpdate,
                                       onCancel,
-                                      onRestore
+                                      onRestore,
+                                      onDelete
                                   }: ReservationDetailProps) => {
     const router = useRouter();
+    const {data: session} = useSession();
+    const canDelete = !!onDelete && session?.user?.role === 'owner';
     const storeReservationMap = useCalendarStore((s) => s.reservationMap);
     const effectiveReservationMap = useMemo(
         () => Object.keys(storeReservationMap).length > 0 ? storeReservationMap : reservationMapProp,
@@ -569,6 +574,19 @@ export const ReservationDetail = ({
                 />
             )}
 
+            {mode === 'deleting' && (
+                <ReservationStaticDiffSection
+                    message="이 예약을 영구 삭제하시겠습니까? (되돌릴 수 없습니다)"
+                    color="var(--danger-color)"
+                    items={[
+                        {label: '서비스', value: reservation.service},
+                        {label: '날짜', value: reservation.date},
+                        {label: '시간', value: `${reservation.startTime} ~ ${reservation.endTime}`},
+                        {label: '고객명', value: customer?.name ?? '-'},
+                    ]}
+                />
+            )}
+
             {mode === 'completing' && (
                 <ReservationStaticDiffSection
                     message="이 예약을 완료 처리하시겠습니까?"
@@ -679,6 +697,12 @@ export const ReservationDetail = ({
                         onNoshowReservation={() => onCancel(sourceReservation, 'noshow')}
                         onOpenRestoring={() => setIsRestoringOpen(true)}
                         onRestoreReservation={() => onRestore(sourceReservation)}
+                        canDelete={canDelete}
+                        onOpenDeleting={() => setMode('deleting')}
+                        onDeleteReservation={() => {
+                            onDelete?.(sourceReservation);
+                            onClose();
+                        }}
                         onPaymentSave={handlePaymentSave}
                         onBackToEditing={() => setMode('editing')}
                         onBackToView={() => setMode('view')}

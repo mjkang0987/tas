@@ -195,6 +195,7 @@ export interface CalendarState {
     updateReservation: (prev: Reservation, updated: Reservation) => void;
     cancelReservation: (reservation: Reservation, status?: ReservationStatus) => void;
     restoreReservation: (reservation: Reservation) => void;
+    deleteReservation: (reservation: Reservation) => void;
     addSyncNotifications: (items: SyncNotification[]) => void;
     markSyncNotificationRead: (id: string) => void;
     markSyncNotificationsRead: () => void;
@@ -741,6 +742,36 @@ export const useCalendarStore = create<CalendarState>((set) => ({
             method: 'PATCH',
             headers: {'Content-Type': 'application/json'},
             body: JSON.stringify({id: reservation.id, status: 'active'})
+        });
+    },
+
+    deleteReservation: (reservation) => {
+        let nextReservationMap: ReservationMap | null = null;
+
+        set((state) => {
+            const dateReservations = state.reservationMap[reservation.date] ?? [];
+            const nextDateReservations = dateReservations.filter((r) => r.id !== reservation.id);
+            const nextMap = {...state.reservationMap, [reservation.date]: nextDateReservations};
+            const nextCustomerMap = syncCustomerFirstVisitDates(state.customerMap, nextMap);
+            nextReservationMap = nextMap;
+            if (Object.keys(nextCustomerMap).length > 0) {
+                syncCustomerSettings(Object.values(nextCustomerMap));
+            }
+            return {reservationMap: nextMap, customerMap: nextCustomerMap};
+        });
+
+        if (nextReservationMap) {
+            syncReservationState(nextReservationMap, useCalendarStore.getState().reservationHistory);
+        }
+
+        if (shouldUseLocalDb()) {
+            return;
+        }
+
+        fetch('/api/reservations', {
+            method: 'DELETE',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({id: reservation.id})
         });
     },
 

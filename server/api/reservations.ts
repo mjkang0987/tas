@@ -220,6 +220,27 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         return res.status(200).json({reservation: after, historyEntry: entry});
     }
 
-    res.setHeader('Allow', ['GET', 'POST', 'PUT', 'PATCH']);
+    if (req.method === 'DELETE') {
+        // 영구 삭제(되돌릴 수 없음)는 오너 전용.
+        if (!requireRole(session, 'owner', res)) return;
+
+        const {id} = req.body as { id: number };
+
+        const dbReservation = await prisma.reservation.findUnique({
+            where: {storeId_legacyId: {storeId: session.storeId, legacyId: id}},
+            select: {id: true},
+        });
+
+        if (!dbReservation) {
+            return res.status(404).json({error: 'Reservation not found'});
+        }
+
+        // 결제내역·예약이력은 cascade 삭제, 포인트이력의 참조는 SET NULL 로 정리됨.
+        await prisma.reservation.delete({where: {id: dbReservation.id}});
+
+        return res.status(200).json({ok: true});
+    }
+
+    res.setHeader('Allow', ['GET', 'POST', 'PUT', 'PATCH', 'DELETE']);
     return res.status(405).end(`Method ${req.method} Not Allowed`);
 }
