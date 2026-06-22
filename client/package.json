@@ -20,6 +20,7 @@
         "prisma:deploy": "pnpm prisma:deploy:check && pnpm prisma:migrate:deploy",
         "prisma:db:push": "prisma db push",
         "prisma:migrate:dev": "prisma migrate dev",
+        "prisma:migrate:local": "sh ./scripts/migrate-local.sh",
         "prisma:migrate:deploy": "prisma migrate deploy",
         "prisma:migrate:status": "prisma migrate status",
         "prisma:studio": "prisma studio",
