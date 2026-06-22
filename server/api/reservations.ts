@@ -10,7 +10,7 @@ import {
     frontendChannelToDb,
 } from '../db/mappers';
 import {reservationInclude} from '../db/prisma-includes';
-import {notifySlack} from '../notify/slack';
+import {notifySlackForStore} from '../notify/slack';
 import type {Reservation, ReservationStatus} from '../../client/features/reservations/model';
 import {hasCompletedPayment} from '../../client/features/reservations/model';
 
@@ -95,7 +95,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             include: reservationInclude,
         });
 
-        await notifySlack(
+        await notifySlackForStore(session.storeId,
             `🗓️ *새 예약*\n• 날짜: ${reservation.date}`
             + `\n• 시간: ${reservation.startTime}~${reservation.endTime}`
             + `\n• 시술: ${reservation.service ?? '-'}`
@@ -175,6 +175,21 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             timestamp: new Date().toISOString(),
         };
 
+        // 일정·시술·디자이너가 실제로 바뀐 경우에만 알림 (결제만 저장한 경우 제외)
+        const scheduleChanged = prev.date !== updated.date
+            || prev.startTime !== updated.startTime
+            || prev.endTime !== updated.endTime
+            || prev.service !== updated.service
+            || prev.designerId !== updated.designerId;
+        if (scheduleChanged) {
+            await notifySlackForStore(session.storeId,
+                `✏️ *예약 변경*\n• 날짜: ${updated.date}`
+                + `\n• 시간: ${updated.startTime}~${updated.endTime}`
+                + `\n• 시술: ${updated.service ?? '-'}`
+                + `\n• (이전) ${prev.date} ${prev.startTime}~${prev.endTime} ${prev.service ?? '-'}`
+            );
+        }
+
         return res.status(200).json({reservation: dbReservationToFrontend(savedReservation), historyEntry: entry});
     }
 
@@ -219,8 +234,14 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         };
 
         if (after.status === 'cancelled') {
-            await notifySlack(
+            await notifySlackForStore(session.storeId,
                 `❌ *예약 취소*\n• 날짜: ${after.date}`
+                + `\n• 시간: ${after.startTime}~${after.endTime}`
+                + `\n• 시술: ${after.service ?? '-'}`
+            );
+        } else if (after.status === 'noshow') {
+            await notifySlackForStore(session.storeId,
+                `🚫 *노쇼*\n• 날짜: ${after.date}`
                 + `\n• 시간: ${after.startTime}~${after.endTime}`
                 + `\n• 시술: ${after.service ?? '-'}`
             );
@@ -249,7 +270,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         // 결제내역·예약이력은 cascade 삭제, 포인트이력의 참조는 SET NULL 로 정리됨.
         await prisma.reservation.delete({where: {id: dbReservation.id}});
 
-        await notifySlack(
+        await notifySlackForStore(session.storeId,
             `🗑️ *예약 삭제*\n• 날짜: ${deleted.date}`
             + `\n• 시간: ${deleted.startTime}~${deleted.endTime}`
             + `\n• 시술: ${deleted.service ?? '-'}`
