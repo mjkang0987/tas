@@ -358,9 +358,11 @@ export const ServiceManageSection = () => {
     const [manageError, setManageError] = useState('');
 
     const handleSaveEdit = (original: ServiceItem, updated: ServiceItem) => {
-        updateService(original.name, updated);
+        const appliedCount = updateService(original.name, updated);
         setEditingItem(null);
-        toast('서비스가 저장되었습니다.');
+        toast(appliedCount > 0
+            ? `서비스가 저장되었습니다. 예정된 예약 ${appliedCount}건에 반영했습니다.`
+            : '서비스가 저장되었습니다.');
     };
 
     const handleDelete = (name: string) => {
