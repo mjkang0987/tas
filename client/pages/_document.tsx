@@ -2,7 +2,7 @@ import Document, {Html, Head, Main, NextScript, DocumentContext} from 'next/docu
 
 import {ServerStyleSheet} from 'styled-components';
 
-import {SITE_DESCRIPTION, SITE_KEYWORDS, SITE_OG_DESCRIPTION, SITE_OG_IMAGE, SITE_TITLE, SITE_TWITTER_DESCRIPTION, SITE_URL} from '../lib/seo';
+import {SITE_DESCRIPTION, SITE_KEYWORDS, SITE_OG_DESCRIPTION, SITE_OG_IMAGE, SITE_OG_IMAGE_HEIGHT, SITE_OG_IMAGE_WIDTH, SITE_TITLE, SITE_TWITTER_DESCRIPTION, SITE_URL} from '../lib/seo';
 import {ADSENSE_CLIENT} from '../lib/ads';
 
 class ReservationDocument extends Document {
@@ -44,10 +44,12 @@ class ReservationDocument extends Document {
                     <meta property="og:title" content={SITE_TITLE} />
                     <meta property="og:description" content={SITE_OG_DESCRIPTION} />
                     <meta property="og:image" content={SITE_OG_IMAGE} />
+                    <meta property="og:image:width" content={SITE_OG_IMAGE_WIDTH} />
+                    <meta property="og:image:height" content={SITE_OG_IMAGE_HEIGHT} />
                     <meta property="og:url" content={SITE_URL} />
                     <meta name="twitter:title" content={SITE_TITLE} />
                     <meta name="twitter:description" content={SITE_TWITTER_DESCRIPTION} />
-                    <meta name="twitter:card" content="summary" />
+                    <meta name="twitter:card" content="summary_large_image" />
                     <meta name="twitter:image" content={SITE_OG_IMAGE} />
                     <link rel="icon"
                           href="/favicon/favicon.ico"
