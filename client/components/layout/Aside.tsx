@@ -226,7 +226,12 @@ export const Aside = () => {
                         </StyledAccordionToggle>
                         <StyledAccordionContent $open={settingsOpen}>
                             {SETTINGS_SUBMENU.filter((item) => {
-                                if (isGuest && item.tab === 'member') return false;
+                                // 서버 로그인(오너)이 필요한 기능은 오너에게만 노출.
+                                // 게스트·멤버는 물론, 세션이 아직 안 풀린 로딩 상태(isOwner=false)에서도
+                                // 절대 노출되지 않도록 isOwner 기준으로 명시 게이팅한다.
+                                if (item.tab === 'naver' || item.tab === 'sns' || item.tab === 'member') {
+                                    return isOwner;
+                                }
                                 // 멤버(staff)는 기존 노출 항목(고객 명단·계정 관리)만 유지
                                 if (isLoggedInStaff && item.tab !== 'customers' && item.tab !== 'my') return false;
                                 return true;
