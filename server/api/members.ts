@@ -35,7 +35,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         }
 
         const {membershipId, role} = req.body ?? {};
-        if (!membershipId || (role !== 'owner' && role !== 'staff')) {
+        if (!membershipId || (role !== 'owner' && role !== 'manager' && role !== 'staff')) {
             return res.status(400).json({error: '잘못된 요청입니다.'});
         }
 
