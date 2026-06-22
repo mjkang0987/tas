@@ -36,86 +36,112 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             return res.status(400).json({error: 'Invalid customers payload'});
         }
 
-        await prisma.$transaction(async (tx) => {
-            for (const customer of customers) {
-                const savedCustomer = await tx.customer.upsert({
-                    where: {storeId_legacyId: {storeId: session.storeId, legacyId: customer.id}},
-                    update: {
-                        name: customer.name,
-                        tel: customer.tel,
-                        points: customer.points ?? 0,
-                        firstVisitDate: customer.firstVisitDate ? new Date(`${customer.firstVisitDate}T00:00:00`) : null,
-                        allergyNote: customer.allergyNote ?? null,
-                        claimNote: customer.claimNote ?? null,
-                        preferenceNote: customer.preferenceNote ?? null,
-                    },
-                    create: {
-                        storeId: session.storeId,
-                        legacyId: customer.id,
-                        name: customer.name,
-                        tel: customer.tel,
-                        points: customer.points ?? 0,
-                        firstVisitDate: customer.firstVisitDate ? new Date(`${customer.firstVisitDate}T00:00:00`) : null,
-                        allergyNote: customer.allergyNote ?? null,
-                        claimNote: customer.claimNote ?? null,
-                        preferenceNote: customer.preferenceNote ?? null,
-                    },
-                });
+        // 트랜잭션 밖에서 읽기를 일괄 처리해 트랜잭션 안의 N+1 왕복을 제거한다.
+        // (고객 수가 많을 때 인터랙티브 트랜잭션 5초 제한을 넘겨 P2028로 실패하던 문제)
+        const legacyIds = customers.map((c) => c.id);
 
-                await tx.customerMemoTag.deleteMany({where: {customerId: savedCustomer.id}});
+        const existingCustomers = await prisma.customer.findMany({
+            where: {storeId: session.storeId, legacyId: {in: legacyIds}},
+            select: {id: true},
+        });
 
-                if (Array.isArray(customer.memoTags) && customer.memoTags.length > 0) {
-                    await tx.customerMemoTag.createMany({
-                        data: customer.memoTags.map((tag) => ({
-                            customerId: savedCustomer.id,
-                            text: tag.text,
-                            color: tag.color,
-                        })),
+        // 고객별 기존 포인트이력 id 집합 (중복 생성 방지용)
+        const existingHistoryByCustomer = new Map<string, Set<string>>();
+        if (existingCustomers.length > 0) {
+            const histories = await prisma.customerPointHistory.findMany({
+                where: {customerId: {in: existingCustomers.map((c) => c.id)}},
+                select: {id: true, customerId: true},
+            });
+            for (const h of histories) {
+                const set = existingHistoryByCustomer.get(h.customerId) ?? new Set<string>();
+                set.add(h.id);
+                existingHistoryByCustomer.set(h.customerId, set);
+            }
+        }
+
+        // 새 포인트이력이 참조하는 예약 legacyId → cuid 매핑 일괄 조회
+        const allRelatedLegacyIds = Array.from(new Set(
+            customers.flatMap((c) =>
+                (c.pointHistories ?? [])
+                    .filter((h) => h.relatedReservationId)
+                    .map((h) => h.relatedReservationId!),
+            ),
+        ));
+        const reservationLegacyToCuid = new Map<number, string>();
+        if (allRelatedLegacyIds.length > 0) {
+            const relatedReservations = await prisma.reservation.findMany({
+                where: {storeId: session.storeId, legacyId: {in: allRelatedLegacyIds}},
+                select: {id: true, legacyId: true},
+            });
+            for (const r of relatedReservations) {
+                if (r.legacyId != null) reservationLegacyToCuid.set(r.legacyId, r.id);
+            }
+        }
+
+        try {
+            await prisma.$transaction(async (tx) => {
+                for (const customer of customers) {
+                    const savedCustomer = await tx.customer.upsert({
+                        where: {storeId_legacyId: {storeId: session.storeId, legacyId: customer.id}},
+                        update: {
+                            name: customer.name,
+                            tel: customer.tel,
+                            points: customer.points ?? 0,
+                            firstVisitDate: customer.firstVisitDate ? new Date(`${customer.firstVisitDate}T00:00:00`) : null,
+                            allergyNote: customer.allergyNote ?? null,
+                            claimNote: customer.claimNote ?? null,
+                            preferenceNote: customer.preferenceNote ?? null,
+                        },
+                        create: {
+                            storeId: session.storeId,
+                            legacyId: customer.id,
+                            name: customer.name,
+                            tel: customer.tel,
+                            points: customer.points ?? 0,
+                            firstVisitDate: customer.firstVisitDate ? new Date(`${customer.firstVisitDate}T00:00:00`) : null,
+                            allergyNote: customer.allergyNote ?? null,
+                            claimNote: customer.claimNote ?? null,
+                            preferenceNote: customer.preferenceNote ?? null,
+                        },
                     });
-                }
 
-                const existingHistoryIds = new Set(
-                    (await tx.customerPointHistory.findMany({
-                        where: {customerId: savedCustomer.id},
-                        select: {id: true},
-                    })).map((h) => h.id)
-                );
+                    await tx.customerMemoTag.deleteMany({where: {customerId: savedCustomer.id}});
 
-                const newHistories = (customer.pointHistories ?? []).filter((h) => !existingHistoryIds.has(h.id));
-
-                if (newHistories.length > 0) {
-                    const relatedLegacyIds = newHistories
-                        .filter((h) => h.relatedReservationId)
-                        .map((h) => h.relatedReservationId!);
-
-                    const legacyToCuidMap = new Map<number, string>();
-                    if (relatedLegacyIds.length > 0) {
-                        const relatedReservations = await tx.reservation.findMany({
-                            where: {storeId: session.storeId, legacyId: {in: relatedLegacyIds}},
-                            select: {id: true, legacyId: true},
+                    if (Array.isArray(customer.memoTags) && customer.memoTags.length > 0) {
+                        await tx.customerMemoTag.createMany({
+                            data: customer.memoTags.map((tag) => ({
+                                customerId: savedCustomer.id,
+                                text: tag.text,
+                                color: tag.color,
+                            })),
                         });
-                        for (const r of relatedReservations) {
-                            if (r.legacyId != null) legacyToCuidMap.set(r.legacyId, r.id);
-                        }
                     }
 
-                    await tx.customerPointHistory.createMany({
-                        data: newHistories.map((h) => ({
-                            id: h.id,
-                            customerId: savedCustomer.id,
-                            type: h.type as PointHistoryType,
-                            delta: h.delta,
-                            balance: h.balance,
-                            description: h.description,
-                            createdAt: h.createdAt ? new Date(h.createdAt) : new Date(),
-                            relatedReservationId: h.relatedReservationId
-                                ? legacyToCuidMap.get(h.relatedReservationId) ?? null
-                                : null,
-                        })),
-                    });
+                    const existingHistoryIds = existingHistoryByCustomer.get(savedCustomer.id) ?? new Set<string>();
+                    const newHistories = (customer.pointHistories ?? []).filter((h) => !existingHistoryIds.has(h.id));
+
+                    if (newHistories.length > 0) {
+                        await tx.customerPointHistory.createMany({
+                            data: newHistories.map((h) => ({
+                                id: h.id,
+                                customerId: savedCustomer.id,
+                                type: h.type as PointHistoryType,
+                                delta: h.delta,
+                                balance: h.balance,
+                                description: h.description,
+                                createdAt: h.createdAt ? new Date(h.createdAt) : new Date(),
+                                relatedReservationId: h.relatedReservationId
+                                    ? reservationLegacyToCuid.get(h.relatedReservationId) ?? null
+                                    : null,
+                            })),
+                        });
+                    }
                 }
-            }
-        });
+            }, {timeout: 30000, maxWait: 10000});
+        } catch (error) {
+            console.error('PUT /api/customers 저장 실패:', error);
+            return res.status(500).json({error: 'Failed to save customers'});
+        }
 
         return res.status(200).json({customers});
     }
