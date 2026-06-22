@@ -124,7 +124,11 @@ export function useDialogAccessibility<T extends HTMLElement>(onClose: () => voi
 
 export const StyledOverlay = styled.div`
     position: fixed;
-    inset: 0;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 100vh;
+    height: 100dvh; /* 모바일 브라우저 툴바 제외한 실제 보이는 높이 — 모달이 헤더/푸터까지 화면 안에 들어오도록 */
     z-index: ${OVERLAY_Z_INDEX.base};
     display: flex;
     align-items: center;
@@ -140,6 +144,7 @@ export const StyledDetail = styled.div<{ $width?: number | string }>`
     width: ${({$width = 400}) => typeof $width === 'number' ? `${$width}px` : $width};
     max-width: min(360px, 90vw);
     max-height: 80vh;
+    max-height: 80dvh;
     display: flex;
     flex-direction: column;
     background: linear-gradient(180deg, rgba(255, 255, 255, 0.98) 0%, var(--bg-subtle-98) 100%);
@@ -152,6 +157,7 @@ export const StyledDetail = styled.div<{ $width?: number | string }>`
         width: 100%;
         max-width: min(360px, 90vw);
         max-height: 90vh;
+        max-height: 90dvh;
         border-radius: var(--modal-radius-mobile);
     }
 `;
