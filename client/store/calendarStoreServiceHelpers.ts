@@ -2,6 +2,8 @@ import type {ServiceItem} from '../utils/services';
 import {
     buildCatalogMap,
     calcEndTime,
+    isDurationManual,
+    isPriceManual,
     joinServiceNames,
     parseServiceString,
     sumDurationMinutes,
@@ -104,12 +106,6 @@ function localTodayKey(): string {
     return `${now.getFullYear()}-${m}-${d}`;
 }
 
-function minutesBetween(startTime: string, endTime: string): number {
-    const [sh, sm] = startTime.split(':').map(Number);
-    const [eh, em] = endTime.split(':').map(Number);
-    return (eh * 60 + em) - (sh * 60 + sm);
-}
-
 // '앞으로의 미결제 예약'만 대상: 오늘 이후 + active + 결제·완료 전
 function isApplicableReservation(reservation: Reservation, todayKey: string): boolean {
     const status = reservation.status ?? 'active';
@@ -150,8 +146,8 @@ export function buildServiceCatalogReservationUpdates(
 
             const oldTotalPrice = sumPrice(names, oldCatalogMap);
             const oldTotalDuration = sumDurationMinutes(names, oldCatalogMap);
-            const priceIsManual = (reservation.price ?? 0) !== oldTotalPrice;
-            const durationIsManual = minutesBetween(reservation.startTime, reservation.endTime) !== oldTotalDuration;
+            const priceIsManual = isPriceManual(reservation.price, oldTotalPrice);
+            const durationIsManual = isDurationManual(reservation.startTime, reservation.endTime, oldTotalDuration);
 
             const newNames = names.map((name) => (name === originalName ? updatedName : name));
             const nextService = joinServiceNames(newNames);

@@ -67,7 +67,7 @@
 - → 무기한 보류 아님. **몇 달 내** 현실화.
 
 ### 순서
-1. **지금 해도 무방(무위험)**: **B-1 공통 로직 추출** — `priceIsManual`/`durationIsManual` 등을 `features/services/model.ts`로 단일화(무동작 변경, 스케일무관). 미래 ③를 싸게 만듦. (필수는 아님)
+1. ~~**B-1 공통 로직 추출**~~ — **완료**. `calendarStoreServiceHelpers.ts`에 인라인이던 `minutesBetween`·수동판정(`isPriceManual`/`isDurationManual`)을 `features/services/model.ts`로 이동(무동작 변경, `export *`로 자동 재export, 서버 import 가능). `parseServiceString`/`sumPrice`/`sumDurationMinutes`/`calcEndTime`/`LEGACY_NAME_MAP`은 이미 model에 있었음.
 2. **네이버 연동 마일스톤에 결합**:
    - `naver-booking-sync.ts:88` 매 폴링 전체예약 풀스캔 **bound**(연동 시 그 파일 만지므로 같이) — 인덱스+범위/증분.
    - **A(매출 집계 서버화)** 를 이 마일스톤으로 끌어와 착수(연동으로 데이터 곧 늘어 명분 생김). A 스텝은 docs "A" 섹션 참조.
