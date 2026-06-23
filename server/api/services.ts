@@ -69,23 +69,28 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         }
 
         try {
-            await prisma.service.deleteMany({where: {storeId: session.storeId}});
+            // 전체 삭제 후 재생성을 한 트랜잭션으로 묶어 원자화(중간 실패 시 서비스 유실 방지)하고,
+            // N개 개별 create를 createMany 단일 호출로 교체해 N+1 왕복을 제거한다.
+            // 예약은 서비스명을 문자열로 저장(Service FK 없음)하므로 row id가 매번 바뀌어도 무방.
+            await prisma.$transaction(async (tx) => {
+                await tx.service.deleteMany({where: {storeId: session.storeId}});
 
-            for (const service of normalizedServices) {
-                await prisma.service.create({
-                    data: {
-                        storeId: session.storeId,
-                        name: service.name,
-                        category: service.category,
-                        duration: service.durationMinutes,
-                        price: service.price,
-                    },
+                if (normalizedServices.length > 0) {
+                    await tx.service.createMany({
+                        data: normalizedServices.map((service) => ({
+                            storeId: session.storeId,
+                            name: service.name,
+                            category: service.category,
+                            duration: service.durationMinutes,
+                            price: service.price,
+                        })),
+                    });
+                }
+
+                await tx.store.update({
+                    where: {id: session.storeId},
+                    data: {categoryBaseColorsJson: categoryBaseColors},
                 });
-            }
-
-            await prisma.store.update({
-                where: {id: session.storeId},
-                data: {categoryBaseColorsJson: categoryBaseColors},
             });
         } catch (error) {
             if (error instanceof Prisma.PrismaClientKnownRequestError) {
