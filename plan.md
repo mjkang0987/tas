@@ -177,3 +177,32 @@
   타임아웃 위험). 외부 Gmail fetch는 트랜잭션 밖에 유지.
 - GET 페이징은 클라 동작(달력 범위 이동 시 추가 fetch) 변경이 동반 → 별도 작업·검증 필요.
 - 운영 DB 마이그레이션 불필요(스키마 변경 없음).
+
+## 진행 현황 (감사 후속)
+- 🟠 naver-sync orphan 방지: **✅ 완료·배포(8e1741c)** — 고객+예약 트랜잭션, 정적 검증 OK.
+  (덤: Slack 환경별 채널 분리도 같이 — `slack.ts` 운영/로컬 webhook 분기)
+- 🟡 reservations PATCH 트랜잭션: **✅ 완료·커밋(b03f759)** — 로컬 DB 런타임 검증(성공·롤백·원복) 통과. 미푸시.
+- 🔴 updateService 폭주: ✅ **완료** — 서버 일괄 PUT 단일 트랜잭션 + 클라 단일 fetch. 슬랙 0회.
+- 🔴 무제한 GET 페이징: ⏳ **보류(③)** — 아키텍처 변경, 설계부터 합의 필요.
+
+## 우선순위 (확정)
+
+**① `reservations.ts` PATCH 트랜잭션화 — ✅ 완료·커밋(b03f759, 미푸시)**
+- naver-sync와 동일 패턴: `reservation.update` + `reservationHistory.create`를 한 `$transaction`으로 묶음(interactive tx, Slack 알림은 tx 밖).
+- **서버 모든 쓰기 경로가 원자적** → "비트랜잭션 쓰기" 카테고리 완결.
+- 검증: 타입체크 클린 + 로컬 DB 실데이터로 성공경로(둘 다 커밋)·롤백경로(부분커밋 없음)·원복 확인.
+- 스키마/마이그레이션 변경 없음.
+
+**② `updateService` 폭주 — ✅ 완료**
+- (과거) `client/store/calendarStore.ts`: 카탈로그 수정이 영향 예약마다 **개별 PUT 동시 발사**
+  (await·배치 없음, `.catch(()=>{})` 무음). 서버 PUT은 건당 트랜잭션 + **슬랙 웹훅**.
+  → 인기 서비스 수정 한 번에 N개 동시 트랜잭션(풀 고갈) + 슬랙 N회 + 일부 실패 시 무음 부분 유실.
+- 조치: 서버 `/api/reservations` PUT에 `{updates:[{prev,updated}]}` 일괄 분기 추가
+  (한 트랜잭션 N건 `serviceSummary/price/endTime` update + 이력, **슬랙 미발송**). 클라는 단일 fetch 1회 + 실패 로깅.
+- 검증: tsc 0 errors + 로컬 DB 실데이터 35건으로 성공(전건 반영+이력 35)·롤백(부분커밋 0)·원복 확인.
+- (후속) 확장성: N이 수백+ 되면 ⓐNext.js body 1MB, ⓑ단일 tx 2N statement, ⓒ클라 전체 메모리 적재(=③) 순으로 닿음.
+  싼 개선 후보: 이력 `create×N`→`createMany`. 규모 대응: 청크 분할 또는 서버측 affected 조회(③와 함께).
+
+**③ 무제한 GET 페이징 — 보류(독립 작업)**
+- 서버(날짜범위·페이징·이력 lazy) + 클라(달력 전체 reservationMap 의존) 동시 개편 → 설계 합의 후.
+- 현재 규모(예약 66/이력 4) 런웨이 김. 급하게 끼우면 회귀 위험 → 별도 일정.
