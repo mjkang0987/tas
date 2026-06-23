@@ -2,10 +2,11 @@ import {ViewType} from './constants';
 import type {StoreBusinessHours} from '../features/store-settings/model';
 
 // 뷰별 시간축 패딩(시간 단위). 영업시간 설정 1개를 기준으로 뷰마다 코드 규칙으로 범위를 파생한다.
-// - Day: 앞뒤 1시간 확장(여유 있게 보기)
-// - Three / Week: 영업시간 그대로
+// 현재 정책: 모든 뷰가 영업시간 그대로(패딩 0). Day 시작 패딩은 영업 전 시간대에 클릭/드래그 영역이
+// 열려 디자이너 근무시간 판정과 어긋나는 문제가 있어 제거했다.
+// 뷰별로 범위를 다르게 하고 싶으면 이 맵만 조정한다(예: Day 종료를 +1h).
 const VIEW_PADDING_HOURS: Record<string, number> = {
-    [ViewType.Day]: 1,
+    [ViewType.Day]: 0,
     [ViewType.Three]: 0,
     [ViewType.Week]: 0,
 };

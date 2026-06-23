@@ -49,7 +49,7 @@ export const Timeline = ({
     const categoryBaseColorMap = useCalendarStore((s) => s.categoryBaseColorMap);
     const designers = useCalendarStore((s) => s.designers);
 
-    // 영업시간 설정 1개를 기준으로 뷰별 시간축 범위를 파생(Day는 ±1h 확장, Three/Week는 영업시간 그대로).
+    // 영업시간 설정 1개를 기준으로 뷰별 시간축 범위를 파생(현재 모든 뷰가 영업시간 그대로, 패딩 0).
     const {start, end} = useMemo(
         () => getTimelineRange(type, storeSettings.businessHours),
         [type, storeSettings.businessHours]

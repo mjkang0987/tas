@@ -13,19 +13,19 @@
 
 ### 결정 사항
 - **영업시간 설정 1개를 기준**으로 삼고, **뷰별 범위는 코드 규칙으로 파생** (설정 UI 추가 없음).
-  - Day: 앞뒤 1시간 확장 (영업 10~20 → **9~21**)
-  - Three / Week: 영업시간 그대로 (**10~20**)
+  - **모든 뷰: 영업시간 그대로** (패딩 0). 예: 영업 10~20 → 일/3일/주 모두 10~20.
+  - (당초 Day ±1h 확장안은 폐기 — 시작 패딩이 영업 전 시간대 클릭/드래그 영역을 열어 디자이너 근무시간 판정과 어긋남. 뷰별 차등이 필요하면 `VIEW_PADDING_HOURS` 맵만 조정.)
 
 ### 구현 항목
 
 #### A. 영업시간 → 캘린더 축 연동 + 뷰별 파생 (이번 핵심, **구현 완료**)
 - 신규 순수함수 `getTimelineRange(viewType, businessHours)` (`client/utils/timelineRange.ts`):
   - `"HH:MM"` → 소수 시 파싱 후 `start = floor(open)`, `end = ceil(close)`
-  - 뷰별 패딩 상수 `{ day: 1, three: 0, week: 0 }` 적용 후 `0~24` 클램프, 비정상값(end≤start) 시 최소 1h 폭 보장
+  - 뷰별 패딩 상수 `{ day: 0, three: 0, week: 0 }`(현재 전부 0) 적용 후 `0~24` 클램프, 비정상값(end≤start) 시 최소 1h 폭 보장
 - 적용처: `Timeline.tsx`·`TimelineTitle.tsx`가 `time.start/end` 대신 이 함수 결과 사용(`view.type` + `storeSettings.businessHours` 구독, `useMemo`). 드래그·클릭은 Timeline이 넘기는 start/end를 그대로 받으므로 자동 반영.
 - `store.time.start/end` 정적값은 레거시화(슬라이스는 유지, 소비처 0). 파생 방식이라 `setTime` 도입 불필요.
-- 검증값(스크립트): Day 10~20→9~21, Three/Week→10~20, 10:30~20:30(day)→8~22, 미설정→10~20 폴백, 23:00~23:30(day)→22~24 클램프.
-- 미결: 분 단위 영업시간을 시 경계(floor/ceil)로 처리 — 현 정책 확정. Day 확장폭(±1h)은 실사용 피드백으로 재조정 여지.
+- 검증값(스크립트): 모든 뷰 10~20→10~20, 10:30~20:30→10~21(floor/ceil), 미설정→10~20 폴백, 23:00~23:30→23~24 클램프.
+- 미결: 분 단위 영업시간을 시 경계(floor/ceil)로 처리 — 현 정책 확정.
 
 #### B. 표시/동작 개선 (이미 작업, **로컬 워킹트리·미커밋**)
 - ① 30분=50px(1시간=100px) 확대. 높이를 `TIMELINE_HOUR_HEIGHT`/`_MINUTE_HEIGHT`/`_HALF_HOUR_HEIGHT`로 단일화(`utils/constants.ts`), 흩어진 `80`·`4/3` 매직넘버 제거.
