@@ -310,38 +310,45 @@ async function createReservationFromBooking(
     const serviceSummary = serviceNames.join('+') || booking.designerName;
 
     // legacyId 메모리 카운터 사용 — DB findFirst 불필요
-    const customer = await prisma.customer.create({
-        data: {
-            storeId,
-            name: booking.customerName,
-            tel: '',
-            legacyId: ctx.nextCustomerLegacyId++,
-        },
-    });
-
+    const customerLegacyId = ctx.nextCustomerLegacyId++;
     const resLegacyId = ctx.nextReservationLegacyId++;
 
     try {
-        const created = await prisma.reservation.create({
-            data: {
-                storeId,
-                customerId: customer.id,
-                designerId: designer?.id ?? null,
-                legacyId: resLegacyId,
-                date: new Date(`${booking.appointmentDate}T00:00:00`),
-                startTime: booking.appointmentTime,
-                endTime,
-                serviceSummary,
-                status: 'active',
-                price: totalPrice,
-                memo: booking.memo || null,
-                paymentCompleted: false,
-                naverBookingId: booking.bookingId,
-                naverBookingUrl: booking.bookingUrl || null,
-                naverDeposit: booking.deposit || null,
-                channel: 'naver',
-            },
-            select: {id: true},
+        // 고객+예약을 한 트랜잭션으로 묶는다. 예약 생성이 실패하면 고객 생성도 함께 롤백돼
+        // '예약 없는 빈 고객'(orphan) 잔존을 원천 차단한다. (기존엔 고객을 먼저 커밋한 뒤
+        // 예약 실패 시 best-effort 삭제라, P2002 외 오류에선 orphan이 남았다.)
+        const created = await prisma.$transaction(async (tx) => {
+            const customer = await tx.customer.create({
+                data: {
+                    storeId,
+                    name: booking.customerName,
+                    tel: '',
+                    legacyId: customerLegacyId,
+                },
+                select: {id: true},
+            });
+
+            return tx.reservation.create({
+                data: {
+                    storeId,
+                    customerId: customer.id,
+                    designerId: designer?.id ?? null,
+                    legacyId: resLegacyId,
+                    date: new Date(`${booking.appointmentDate}T00:00:00`),
+                    startTime: booking.appointmentTime,
+                    endTime,
+                    serviceSummary,
+                    status: 'active',
+                    price: totalPrice,
+                    memo: booking.memo || null,
+                    paymentCompleted: false,
+                    naverBookingId: booking.bookingId,
+                    naverBookingUrl: booking.bookingUrl || null,
+                    naverDeposit: booking.deposit || null,
+                    channel: 'naver',
+                },
+                select: {id: true},
+            });
         });
 
         // 이후 중복 체크를 위해 메모리 맵 업데이트
@@ -355,7 +362,7 @@ async function createReservationFromBooking(
         return {status: 'created', legacyId: resLegacyId};
     } catch (err) {
         if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === 'P2002') {
-            await prisma.customer.delete({where: {id: customer.id}}).catch(() => {});
+            // 트랜잭션이 고객 생성까지 롤백하므로 수동 삭제 불필요(orphan 방지).
             return {status: 'skipped'};
         }
         throw err;
