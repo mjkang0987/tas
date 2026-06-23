@@ -1,12 +1,18 @@
 const MAGIC_NUMBER = {
     TIMELINE_DAY_TOP: 40,
-    TIMELINE_TOP: 30
+    TIMELINE_TOP: 30,
+    TIMELINE_HOUR_HEIGHT: 100
 };
 
 export const {
     TIMELINE_DAY_TOP,
-    TIMELINE_TOP
+    TIMELINE_TOP,
+    TIMELINE_HOUR_HEIGHT
 } = MAGIC_NUMBER;
+
+// 타임라인 1시간 블록 높이에서 파생되는 값들. 시간축 눈금·예약 블록·현재시간 바·드래그/클릭 좌표가 모두 이 값을 공유한다.
+export const TIMELINE_MINUTE_HEIGHT = TIMELINE_HOUR_HEIGHT / 60;
+export const TIMELINE_HALF_HOUR_HEIGHT = TIMELINE_HOUR_HEIGHT / 2;
 
 interface AsideElementType {
     id: number

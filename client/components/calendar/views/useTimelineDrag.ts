@@ -1,6 +1,6 @@
 import {useEffect, useEffectEvent, useRef, useState} from 'react';
 
-import {TIMELINE_DAY_TOP, TIMELINE_TOP, ViewType} from '../../../utils/constants';
+import {TIMELINE_DAY_TOP, TIMELINE_TOP, TIMELINE_HOUR_HEIGHT, TIMELINE_MINUTE_HEIGHT, ViewType} from '../../../utils/constants';
 import {findOverlap, type Reservation, type ReservationMap} from '../../../utils/reservations';
 import type {CustomerMap} from '../../../utils/customers';
 import type {Designer} from '../../../utils/designers';
@@ -23,7 +23,7 @@ type UseTimelineDragParams = {
     onOpenReservationDetail: (reservation: Reservation) => void;
 };
 
-const PX_PER_MINUTE = 4 / 3;
+const PX_PER_MINUTE = TIMELINE_MINUTE_HEIGHT;
 
 function getStartTimeFromTop(topValue: number, durationMinutes: number, startHour: number, endHour: number, offset: number) {
     const maxStartMinutes = Math.max(0, ((endHour - startHour) * 60) - durationMinutes);
@@ -113,7 +113,7 @@ export function useTimelineDrag({
         const rawTop = clientY - rect.top - paddingTop - dragState.pointerOffsetY;
         const nextStartTime = getStartTimeFromTop(rawTop, dragState.durationMinutes, startRef.current, endRef.current, blockOffsetRef.current);
         const [nextHour, nextMinute] = nextStartTime.split(':').map(Number);
-        const nextTop = (nextHour - startRef.current) * 80 + nextMinute * PX_PER_MINUTE + blockOffsetRef.current;
+        const nextTop = (nextHour - startRef.current) * TIMELINE_HOUR_HEIGHT + nextMinute * PX_PER_MINUTE + blockOffsetRef.current;
         const movedPx = Math.abs(nextTop - dragState.originTop);
         const nextHeight = dragState.durationMinutes * PX_PER_MINUTE;
 

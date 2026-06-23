@@ -4,7 +4,15 @@
 
 ---
 
-(현재 진행 중인 작업 없음 — 현 규모의 실제 문제는 ①②로 해결·배포됨. 아래는 다가오는 작업.)
+## 완료(최근) — 캘린더 타임라인: 영업시간 연동 + 표시 개선
+
+> 배포 완료. 상세는 git 히스토리(`d5a2333`·`4fdbba4`·`456750a` 외 `9ae39ab`·`ab7fe43`).
+
+- **A 영업시간 → 축 연동**: `getTimelineRange(viewType, businessHours)`(`utils/timelineRange.ts`) 신설. `Timeline`/`TimelineTitle`이 `storeSettings.businessHours` 구독. 모든 뷰 영업시간 그대로(패딩 0). 죽은 `store.time` 슬라이스 제거.
+- **B 표시/동작**: 1시간=100px(30분=50px) 단일화, 현재시간 바 드리프트 수정, 빈 곳 클릭 예약추가 좌표 수정(이전 구버전은 클릭 단위 불일치로 하단 클릭이 ~3h 어긋남 → 수정됨).
+- **실측(Playwright)**: 영업시간 변경 시 일/3일/주 축 반영, 빈 곳 클릭·드래그 이동 시작시각 모두 정확 확인.
+
+---
 
 ## 다가오는 작업 — 읽기 과부하/페이징(③) + 매출 서버화(A)
 
@@ -16,7 +24,7 @@
 - → 무기한 보류 아님. **몇 달 내** 현실화.
 
 ### 순서
-1. **지금 해도 무방(무위험)**: **B-1 공통 로직 추출** — `priceIsManual`/`durationIsManual` 등을 `features/services/model.ts`로 단일화(무동작 변경, 스케일무관). 미래 ③를 싸게 만듦. (필수는 아님)
+1. ~~**B-1 공통 로직 추출**~~ — **완료**. `calendarStoreServiceHelpers.ts`에 인라인이던 `minutesBetween`·수동판정(`isPriceManual`/`isDurationManual`)을 `features/services/model.ts`로 이동(무동작 변경, `export *`로 자동 재export, 서버 import 가능). `parseServiceString`/`sumPrice`/`sumDurationMinutes`/`calcEndTime`/`LEGACY_NAME_MAP`은 이미 model에 있었음.
 2. **네이버 연동 마일스톤에 결합**:
    - `naver-booking-sync.ts:88` 매 폴링 전체예약 풀스캔 **bound**(연동 시 그 파일 만지므로 같이) — 인덱스+범위/증분.
    - **A(매출 집계 서버화)** 를 이 마일스톤으로 끌어와 착수(연동으로 데이터 곧 늘어 명분 생김). A 스텝은 docs "A" 섹션 참조.

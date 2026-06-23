@@ -289,14 +289,4 @@ export const GlobalStyle = createGlobalStyle`
             transform: rotate(360deg);
         }
     }
-
-    @keyframes down {
-        0% {
-            transform: translateY(var(--bar-top));
-        }
-
-        100% {
-            transform: translateY(var(--timeline-height));
-        }
-    }
 `;

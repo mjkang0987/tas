@@ -272,6 +272,23 @@ export function calcEndTime(startTime: string, durationMinutes: number): string 
     return `${String(endH).padStart(2, '0')}:${String(endM).padStart(2, '0')}`;
 }
 
+// 두 "HH:MM" 사이의 분(예약 소요시간 계산용).
+export function minutesBetween(startTime: string, endTime: string): number {
+    const [sh, sm] = startTime.split(':').map(Number);
+    const [eh, em] = endTime.split(':').map(Number);
+    return (eh * 60 + em) - (sh * 60 + sm);
+}
+
+// 수동조정 판정: 저장된 가격이 '카탈로그 합계'와 다르면 사용자가 직접 손댄 것으로 본다(보존 대상).
+export function isPriceManual(price: number | undefined, catalogTotalPrice: number): boolean {
+    return (price ?? 0) !== catalogTotalPrice;
+}
+
+// 수동조정 판정: 저장된 소요시간(시작~종료)이 '카탈로그 합계'와 다르면 직접 손댄 것으로 본다(보존 대상).
+export function isDurationManual(startTime: string, endTime: string, catalogTotalDuration: number): boolean {
+    return minutesBetween(startTime, endTime) !== catalogTotalDuration;
+}
+
 export function formatDuration(minutes: number): string {
     if (minutes <= 0) return '';
 

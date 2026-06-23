@@ -104,12 +104,6 @@ export interface ViewSlice {
     type: string;
 }
 
-export interface TimeSlice {
-    start: number;
-    end: number;
-    is12Hour: boolean;
-}
-
 export interface RouterSlice {
     arrayRouter: Array<string | number>;
     isRootPath: boolean;
@@ -126,7 +120,6 @@ export interface CalendarState {
     target: DateType;
     aside: AsideSlice;
     view: ViewSlice;
-    time: TimeSlice;
     router: RouterSlice;
     reservationMap: ReservationMap;
     customerMap: CustomerMap;
@@ -150,7 +143,6 @@ export interface CalendarState {
     setTargetFromDate: (value: Date | string | number) => void;
     setAside: (v: AsideSlice | ((prev: AsideSlice) => AsideSlice)) => void;
     setView: (v: ViewSlice | ((prev: ViewSlice) => ViewSlice)) => void;
-    setTime: (v: TimeSlice | ((prev: TimeSlice) => TimeSlice)) => void;
     setRouterSlice: (v: RouterSlice | ((prev: RouterSlice) => RouterSlice)) => void;
     setReservationMap: (map: ReservationMap) => void;
     setCustomerMap: (map: CustomerMap) => void;
@@ -252,11 +244,6 @@ export const useCalendarStore = create<CalendarState>((set) => ({
     view: {
         type: 'week'
     },
-    time: {
-        start   : 10,
-        end     : 20,
-        is12Hour: false
-    },
     router: {
         arrayRouter   : [],
         isRootPath    : false,
@@ -311,11 +298,6 @@ export const useCalendarStore = create<CalendarState>((set) => ({
     setView: (v) =>
         set((state) => ({
             view: typeof v === 'function' ? v(state.view) : v
-        })),
-
-    setTime: (v) =>
-        set((state) => ({
-            time: typeof v === 'function' ? v(state.time) : v
         })),
 
     setRouterSlice: (v) =>

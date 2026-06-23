@@ -9,12 +9,15 @@ import {ReservationMoveConfirmModal} from '../overlays/ReservationMoveConfirmMod
 import {
     TIMELINE_DAY_TOP,
     TIMELINE_TOP,
+    TIMELINE_HOUR_HEIGHT,
+    TIMELINE_MINUTE_HEIGHT,
     ViewType,
 } from '../../../utils/constants';
 
 import {buildDesignerColorMap} from '../../../utils/designers';
 import {isNewCustomerVisit} from '../../../utils/customers';
 import {buildServiceColorMap} from '../../../utils/services';
+import {getTimelineRange} from '../../../utils/timelineRange';
 
 import type {Reservation} from '../../../utils/reservations';
 import {toDateKey} from '../../../utils/reservations';
@@ -37,7 +40,7 @@ export const Timeline = ({
 
     const view = useCalendarStore((s) => s.view);
     const {type} = view;
-    const time = useCalendarStore((s) => s.time);
+    const storeSettings = useCalendarStore((s) => s.storeSettings);
     const setCreateReservationInitial = useCalendarStore((s) => s.setCreateReservationInitial);
     const reservationMap = useCalendarStore((s) => s.reservationMap);
     const openReservationDetail = useCalendarStore((s) => s.openReservationDetail);
@@ -46,7 +49,11 @@ export const Timeline = ({
     const categoryBaseColorMap = useCalendarStore((s) => s.categoryBaseColorMap);
     const designers = useCalendarStore((s) => s.designers);
 
-    const {start, end} = time;
+    // 영업시간 설정 1개를 기준으로 뷰별 시간축 범위를 파생(현재 모든 뷰가 영업시간 그대로, 패딩 0).
+    const {start, end} = useMemo(
+        () => getTimelineRange(type, storeSettings.businessHours),
+        [type, storeSettings.businessHours]
+    );
 
     const customerMap = useCalendarStore((s) => s.customerMap);
     const calendarDesignerId = useCalendarStore((s) => s.calendarDesignerId);
@@ -68,14 +75,31 @@ export const Timeline = ({
     const blockOffset = type === ViewType.Day ? 50 : 20;
     const timelineEntries = useMemo(() => buildTimelineEntries(reservations), [reservations]);
 
-    const today = new Date();
-    const hour = today.getHours();
-    const minutes = today.getMinutes();
-    const seconds = today.getSeconds();
+    // 현재시간 바: 렌더 1회 계산 + CSS 애니메이션에 의존하면 백그라운드 탭 스로틀·절전 이후
+    // 애니메이션이 실제 경과만큼 진행되지 않아 바가 과거 시각에 멈춘다.
+    // 주기적으로, 그리고 화면이 다시 보일 때 즉시 현재 시각을 재계산해 위치를 직접 지정한다.
+    const [now, setNow] = useState(() => new Date());
+    useEffect(() => {
+        if (!isToday) return;
+        const update = () => setNow(new Date());
+        update();
+        const intervalId = window.setInterval(update, 30_000);
+        const handleVisible = () => {
+            if (!document.hidden) update();
+        };
+        document.addEventListener('visibilitychange', handleVisible);
+        window.addEventListener('focus', update);
+        return () => {
+            window.clearInterval(intervalId);
+            document.removeEventListener('visibilitychange', handleVisible);
+            window.removeEventListener('focus', update);
+        };
+    }, [isToday]);
 
-    const timing = ((end - hour) * 3600) - (minutes * 60) - seconds;
-    const top = ((hour - start) * 80) + (minutes * 4 / 3);
-    const full = (end - start) * 80;
+    const barTop = blockOffset
+        + (now.getHours() - start) * TIMELINE_HOUR_HEIGHT
+        + now.getMinutes() * TIMELINE_MINUTE_HEIGHT
+        + now.getSeconds() * (TIMELINE_MINUTE_HEIGHT / 60);
     const timelineRef = useRef<HTMLDivElement | null>(null);
     const [isTouchDevice, setIsTouchDevice] = useState(false);
     const [openClusterState, setOpenClusterState] = useState<{ dateKey: string; cluster: TimelineClusterData } | null>(null);
@@ -157,10 +181,7 @@ export const Timeline = ({
 
     return (<StyledTimelineWrap ref={timelineRef}
                                 data-timeline-date={dateKey}
-                                $type={type}
-                                $timing={timing}
-                                $top={top}
-                                $full={full}>
+                                $type={type}>
         {!isTouchDevice && (
             <StyledTimelineBackground
                 type="button"
@@ -168,12 +189,12 @@ export const Timeline = ({
                 onClick={setMousePositionHandler}
             />
         )}
-        {isToday && <StyledBar className="time-bar" />}
+        {isToday && <StyledBar $top={barTop} />}
         {timelineEntries.map((entry) => {
             if (entry.kind === 'cluster') {
                 const {cluster} = entry;
-                const blockTop = (Math.floor(cluster.startMinutes / 60) - start) * 80 + (cluster.startMinutes % 60) * 4 / 3 + blockOffset;
-                const blockHeight = (cluster.endMinutes - cluster.startMinutes) * 4 / 3;
+                const blockTop = (Math.floor(cluster.startMinutes / 60) - start) * TIMELINE_HOUR_HEIGHT + (cluster.startMinutes % 60) * TIMELINE_MINUTE_HEIGHT + blockOffset;
+                const blockHeight = (cluster.endMinutes - cluster.startMinutes) * TIMELINE_MINUTE_HEIGHT;
                 return (
                     <TimelineCluster
                         key={cluster.id}
@@ -190,8 +211,8 @@ export const Timeline = ({
             const r = entry.reservation;
             const [sH, sM] = r.startTime.split(':').map(Number);
             const [eH, eM] = r.endTime.split(':').map(Number);
-            const blockTop = (sH - start) * 80 + sM * 4 / 3 + blockOffset;
-            const blockHeight = (eH - sH) * 80 + (eM - sM) * 4 / 3;
+            const blockTop = (sH - start) * TIMELINE_HOUR_HEIGHT + sM * TIMELINE_MINUTE_HEIGHT + blockOffset;
+            const blockHeight = (eH - sH) * TIMELINE_HOUR_HEIGHT + (eM - sM) * TIMELINE_MINUTE_HEIGHT;
             const customer = customerMap[r.customerId];
             const preview = dragPreview?.reservationId === r.id ? dragPreview : null;
             const durationMinutes = (eH * 60 + eM) - (sH * 60 + sM);
@@ -280,14 +301,8 @@ export const Timeline = ({
     </StyledTimelineWrap>);
 };
 const StyledTimelineWrap = styled.div<{
-    $type: string,
-    $timing: number,
-    $top: number,
-    $full: number
+    $type: string
 }>`
-    --bar-top: ${props => props.$top ? props.$top : 0}px;
-    --timeline-height: ${props => props.$full ? props.$full : 10 * 80}px;
-
     flex: 1;
     display: flex;
     flex-direction: column;
@@ -296,12 +311,6 @@ const StyledTimelineWrap = styled.div<{
     padding: ${props => props.$type === ViewType.Day ? TIMELINE_DAY_TOP : TIMELINE_TOP}px 5px 0;
     box-sizing: border-box;
     user-select: none;
-
-    .time-bar {
-        top: ${props => props.$type === ViewType.Day ? 50 : 20}px;
-        animation: down ${props => props.$timing ? props.$timing : 10 * 3600}s linear;
-    }
-
 `;
 
 const StyledTimelineBackground = styled.button`
@@ -314,8 +323,9 @@ const StyledTimelineBackground = styled.button`
     z-index: 0;
 `;
 
-const StyledBar = styled.span`
+const StyledBar = styled.span<{ $top: number }>`
     position: absolute;
+    top: ${props => props.$top}px;
     left: 0;
     width: 100%;
     height: 2px;
