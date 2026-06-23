@@ -135,6 +135,7 @@ hair_reservations/
 | `utils/revenue-export.ts` | 매출 Excel 내보내기 (xlsx) |
 | `utils/calendarDerived.ts` | 캘린더 파생 상태 |
 | `utils/timeRound.ts` | 시간 반올림 |
+| `utils/timelineRange.ts` | 캘린더 시간축 범위 파생 (`getTimelineRange(viewType, businessHours)`: 영업시간 기준 floor/ceil + 뷰별 패딩 day:±1h, three/week:0, 0~24 클램프). Timeline·TimelineTitle이 구독 |
 | `utils/labels.ts` | 표시 라벨 공통 (`ROLE_LABELS` 오너/멤버, `PROVIDER_LABELS` Google/Kakao/Naver) |
 | `utils/terms.ts` | 약관 동의 버전 상수 `CURRENT_TERMS_VERSION`(현재 `2026-06-16`) 정의 (게스트 동의 헬퍼는 `features/local-db/storage.ts`) |
 | `lib/page-data.ts` | SSR 페이지 데이터 로딩 |

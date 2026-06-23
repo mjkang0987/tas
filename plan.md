@@ -18,13 +18,14 @@
 
 ### 구현 항목
 
-#### A. 영업시간 → 캘린더 축 연동 + 뷰별 파생 (이번 핵심, **미착수**)
-- 신규 순수함수 `getTimelineRange(viewType, businessHours)`:
-  - `"HH:MM"` → 정수 시: `start = floor(open)`, `end = ceil(close)`
-  - 뷰별 패딩 상수 `{ day: 1, three: 0, week: 0 }` 적용 후 `0~24` 클램프
-- 적용처: `Timeline.tsx`·`TimelineTitle.tsx`가 `time.start/end` 대신 이 함수 결과 사용(`view.type` + `storeSettings.businessHours` 구독). 드래그·클릭에도 동일 range 전달.
-- `store.time.start/end` 정적값은 레거시화(`is12Hour`는 유지). 파생 방식이라 `setTime` 도입 불필요.
-- 미결: 영업시간이 분 단위(예 10:30)일 때 floor/ceil로 충분한지(축은 시 단위). Day 확장폭(±1h) 최종 확인.
+#### A. 영업시간 → 캘린더 축 연동 + 뷰별 파생 (이번 핵심, **구현 완료**)
+- 신규 순수함수 `getTimelineRange(viewType, businessHours)` (`client/utils/timelineRange.ts`):
+  - `"HH:MM"` → 소수 시 파싱 후 `start = floor(open)`, `end = ceil(close)`
+  - 뷰별 패딩 상수 `{ day: 1, three: 0, week: 0 }` 적용 후 `0~24` 클램프, 비정상값(end≤start) 시 최소 1h 폭 보장
+- 적용처: `Timeline.tsx`·`TimelineTitle.tsx`가 `time.start/end` 대신 이 함수 결과 사용(`view.type` + `storeSettings.businessHours` 구독, `useMemo`). 드래그·클릭은 Timeline이 넘기는 start/end를 그대로 받으므로 자동 반영.
+- `store.time.start/end` 정적값은 레거시화(슬라이스는 유지, 소비처 0). 파생 방식이라 `setTime` 도입 불필요.
+- 검증값(스크립트): Day 10~20→9~21, Three/Week→10~20, 10:30~20:30(day)→8~22, 미설정→10~20 폴백, 23:00~23:30(day)→22~24 클램프.
+- 미결: 분 단위 영업시간을 시 경계(floor/ceil)로 처리 — 현 정책 확정. Day 확장폭(±1h)은 실사용 피드백으로 재조정 여지.
 
 #### B. 표시/동작 개선 (이미 작업, **로컬 워킹트리·미커밋**)
 - ① 30분=50px(1시간=100px) 확대. 높이를 `TIMELINE_HOUR_HEIGHT`/`_MINUTE_HEIGHT`/`_HALF_HOUR_HEIGHT`로 단일화(`utils/constants.ts`), 흩어진 `80`·`4/3` 매직넘버 제거.
@@ -38,16 +39,17 @@
 - 수정: `Timeline.tsx`, `TimelineTitle.tsx`, `useTimelineDrag.ts`, `timelineInteractions.ts`, `utils/constants.ts`, `styles/globalStyle.ts`
 
 ### 검증
-- 영업시간 변경 → 일/3일/주 축이 규칙대로 즉시 반영.
-- 중간 시각 클릭 → 예약추가 시작시각 일치(디버그 로그 실측 후 확정).
-- 현재시간 바: 탭 백그라운드/복귀 후 정확.
+- 타입체크 0에러(`tsc --noEmit`). 파생값은 스크립트로 확인(위 A 검증값).
+- 남은 실측(브라우저): ① 영업시간 변경 → 일/3일/주 축 즉시 반영, ② 중간 시각 클릭 → 예약추가 시작시각 일치, ③ 현재시간 바 탭 백그라운드/복귀 후 정확.
+- (참고: ESLint는 환경 비호환(`eslint-plugin-react` × ESLint 10)으로 미실행 — 코드 무관.)
 
 ### 리스크
 - 눈금선↔블록 정렬차(±수 px) 가능 → 실측 후 `blockOffset`/마진 보정.
 - 영업시간 외 판정은 디자이너 근무시간(`DesignerSchedule`)만 사용 — 본 작업 범위 밖(불변).
 
 ### 진행 상태
-- 이번 푸시: **계획만**. B(①②③)는 로컬 미커밋, A는 미착수.
+- A(영업시간 연동 + 뷰별 파생): **구현 완료**(타입체크 통과). B(①②③): 완료(커밋 `9ae39ab`/`ab7fe43`, 디버그 로그 제거 확인).
+- 남은 것: 브라우저 실측만(위 검증). 실측 완료 시 본 「진행 중」 섹션 정리.
 
 ---
 
