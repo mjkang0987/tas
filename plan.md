@@ -39,6 +39,7 @@
 1. **공통 로직 추출 (무동작 변경, 선결)**: `parseServiceString`/`calcEndTime`/`sumPrice`·`sumDurationMinutes`/
    수동판정(`priceIsManual`·`durationIsManual`)/`LEGACY_NAME_MAP`을 `client/features/services/model.ts`로 단일화.
    서버 import 가능(이미 `server/db/mappers.ts`·`server/api/customers.ts`가 `client/features/*/model`을 import하는 기존 패턴). **복붙 금지**.
+   - 현황: `parseServiceString`·`sumPrice` 등은 이미 `model.ts`에 있으나, **수동판정(`priceIsManual`·`durationIsManual`)은 `calendarStoreServiceHelpers.ts`의 `buildServiceCatalogReservationUpdates`에 인라인** → 이걸 `model.ts`로 빼는 게 1단계 핵심.
 2. **updateService 서버화**: 요청은 `{originalName, updatedName}`만(목록 전송 제거). **old 카탈로그는 서버가 DB에서 읽음**(클라 스냅샷 trust 안 함).
    서버: 후보(`storeId·active·미결제·date≥today`) 조회 → 1단계 로직으로 affected 판정·재계산 → **청크 트랜잭션** update + 이력 `createMany`. before는 DB 실값.
    클라: 반영 건수만 받고 보이는 범위 refetch(낙관적 전체 갱신 제거). ②의 `{updates}` 배치 분기를 이걸로 대체.
