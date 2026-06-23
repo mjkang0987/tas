@@ -2,6 +2,79 @@
 
 > 진행 중인 작업의 배경·범위·구현 항목·리스크를 적는다. 완료되면 비운다.
 
+---
+
+# Slack 알림 채널 2분기 (biz / ops) — 2026-06-23
+
+## 배경 / 문제
+
+현재 Slack 알림은 단일 채널로 모인다(`server/notify/slack.ts`).
+- `resolveWebhookUrl()`이 `NODE_ENV`로 운영(`SLACK_WEBHOOK_URL`)·개발(`SLACK_WEBHOOK_URL_DEV`)만 가른다.
+- `notifySlackForStore`는 `SLACK_STORE_ID`로 지정 매장만 전송(비즈니스 알림: 예약 신규·변경·취소·노쇼·삭제, 문의).
+- **운영(클라우드) 상태 신호가 없다.** 서버 에러·네이버 동기화 실패·문의 메일 실패는 `console.error`로만 삼켜져
+  서비스 수정/개선 시 문제 발생을 즉시 알 수 없다.
+
+## 범위 / 결정사항
+
+- 채널을 **2개로 분기**한다(사용자 합의):
+  1. **biz**(기존): 지정 매장의 예약·문의 알림. 동작·env 그대로 유지(하위호환).
+  2. **ops**(신규): 운영/시스템 알림. 서버 에러·예외, 네이버 동기화 실패, 문의 메일 발송 실패 등
+     "서비스가 정상인지" 확인용. **어떤 에러인지** 알 수 있게 위치+에러내용 포함.
+- 환경 분리는 기존 패턴 유지: ops도 prod/dev webhook을 따로 둔다(운영 변수로 폴백 금지).
+- 매장 필터(`SLACK_STORE_ID`)는 biz에만 적용. ops는 매장 무관 전역(에러는 매장과 독립).
+- 중앙 에러 래퍼는 도입하지 않는다(각 핸들러가 독립 Next.js API라 비용 큼). 명시적 catch 블록에만 연결.
+
+## 구현 항목
+
+### 서버 — `server/notify/slack.ts`
+
+- `resolveWebhookUrl(channel: 'biz' | 'ops')`로 일반화.
+  - biz: prod `SLACK_WEBHOOK_URL` / dev `SLACK_WEBHOOK_URL_DEV`.
+  - ops: prod `SLACK_WEBHOOK_URL_OPS` / dev `SLACK_WEBHOOK_URL_OPS_DEV`.
+- POST 로직을 `postToSlack(url, text)`로 추출(중복 제거).
+- `notifySlack`(biz)·`notifySlackForStore`(biz) 동작 불변.
+- 신규 `notifySlackOps(text)`: ops 채널 전송, 미설정 시 no-op.
+- 신규 `notifySlackOpsError(context, err)`: `🛑 *운영 에러* \`env\`` + 위치 + `name: message` 포맷.
+
+### 서버 — 운영 에러 연결(catch 블록)
+
+- `api/inquiry.ts`: 메일 발송 실패(63).
+- `api/customers.ts`: PUT 저장 실패 500(171).
+- `api/services.ts`: 예기치 못한(non-Prisma) 실패 rethrow 직전(95).
+- `api/account/merge.ts`: 병합 실패 500(104).
+- `api/account/delete.ts`: 계정 삭제 실패 500(33).
+- `api/naver-booking-sync.ts`: 루프 종료 후 `errors.length > 0`이면 1건으로 요약 전송.
+- `api/migrate-local.ts`: 마이그레이션 실패 500(234).
+
+### 문서 / 환경변수
+
+- `.env.local`에 `SLACK_WEBHOOK_URL_OPS`, `SLACK_WEBHOOK_URL_OPS_DEV` 추가(운영 Docker/로컬 각각).
+- `index.md` 환경변수 항목·`notify/slack.ts` 설명 갱신.
+
+## 기대 결과
+
+- 예약·문의 알림은 그대로 매장 채널로, 에러·동기화 실패는 운영 채널로 분리 수신.
+- 운영 채널 메시지로 "어디서 어떤 에러"인지 즉시 파악 → 수정/배포 회귀 감지.
+
+## 리스크 / 주의
+
+- ops webhook 미설정 시 전부 no-op → 기존 동작 영향 0(점진 도입 가능).
+- 네이버 동기화는 자동 폴링이라 실패 알림이 반복될 수 있음 → 폴링 1회당 요약 1건으로 제한.
+- 스키마 변경·마이그레이션 불필요(env만 추가).
+- (후속) 전 핸들러 커버가 필요하면 공통 `withApiHandler` 래퍼 도입 검토.
+
+## 진행 현황
+
+- ✅ `slack.ts`: biz/ops 채널 분기 + `notifySlackOps`/`notifySlackOpsError` 추가.
+- ✅ 운영 에러 연결: inquiry·customers·services·account(merge/delete)·migrate-local catch + naver-sync 요약.
+- ✅ `index.md` env 항목 갱신(ops webhook 키).
+- ✅ `tsc --noEmit` 통과(0 errors).
+- ⏳ 배포 전 필요: 운영 Docker/로컬에 `SLACK_WEBHOOK_URL_OPS`(+`_DEV`) 설정. 미설정 시 ops는 no-op.
+
+---
+
+# (이전) 디자이너 스케줄 N+1 — 완료
+
 ## 배경 / 문제
 
 디자이너 저장 API(`server/api/designers.ts` PUT)가 전체 디자이너 목록을 받아

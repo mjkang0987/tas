@@ -385,7 +385,7 @@ StorePointSettings (적립률, 충전규칙)
 
 | 파일 | 설명 |
 |------|------|
-| `.env.local` | 환경변수 (DATABASE_URL, DIRECT_URL, AUTH_SECRET, OAuth 키, `SLACK_WEBHOOK_URL`, `SLACK_STORE_ID`[지정 매장만 Slack 알림]) |
+| `.env.local` | 환경변수 (DATABASE_URL, DIRECT_URL, AUTH_SECRET, OAuth 키, `SLACK_WEBHOOK_URL`(+`_DEV`)[biz 채널: 예약·문의], `SLACK_STORE_ID`[지정 매장만 biz 알림], `SLACK_WEBHOOK_URL_OPS`(+`_DEV`)[ops 채널: 서버 에러·동기화 실패 등 운영 알림]) |
 | 마이그레이션 | 운영: `prisma migrate deploy`는 DIRECT_URL(운영) 사용. **로컬은 `pnpm prisma:migrate:local`**(localhost 강제, `client/scripts/migrate-local.sh`) — 운영 실수 방지 |
 | `next.config.mjs` | URL 리라이트(/day/\*/week/\* → /, /consent/\*, /policies/:slug → /api/policies/:slug), styled-components, Turbopack |
 | `client/proxy.ts` | NextAuth 미들웨어 (온보딩 리다이렉트) |
