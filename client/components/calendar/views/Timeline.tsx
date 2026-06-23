@@ -17,6 +17,7 @@ import {
 import {buildDesignerColorMap} from '../../../utils/designers';
 import {isNewCustomerVisit} from '../../../utils/customers';
 import {buildServiceColorMap} from '../../../utils/services';
+import {getTimelineRange} from '../../../utils/timelineRange';
 
 import type {Reservation} from '../../../utils/reservations';
 import {toDateKey} from '../../../utils/reservations';
@@ -39,7 +40,7 @@ export const Timeline = ({
 
     const view = useCalendarStore((s) => s.view);
     const {type} = view;
-    const time = useCalendarStore((s) => s.time);
+    const storeSettings = useCalendarStore((s) => s.storeSettings);
     const setCreateReservationInitial = useCalendarStore((s) => s.setCreateReservationInitial);
     const reservationMap = useCalendarStore((s) => s.reservationMap);
     const openReservationDetail = useCalendarStore((s) => s.openReservationDetail);
@@ -48,7 +49,11 @@ export const Timeline = ({
     const categoryBaseColorMap = useCalendarStore((s) => s.categoryBaseColorMap);
     const designers = useCalendarStore((s) => s.designers);
 
-    const {start, end} = time;
+    // 영업시간 설정 1개를 기준으로 뷰별 시간축 범위를 파생(Day는 ±1h 확장, Three/Week는 영업시간 그대로).
+    const {start, end} = useMemo(
+        () => getTimelineRange(type, storeSettings.businessHours),
+        [type, storeSettings.businessHours]
+    );
 
     const customerMap = useCalendarStore((s) => s.customerMap);
     const calendarDesignerId = useCalendarStore((s) => s.calendarDesignerId);

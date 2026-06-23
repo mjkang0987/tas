@@ -1,15 +1,20 @@
+import {useMemo} from 'react';
+
 import styled from 'styled-components';
 
 import {useCalendarStore} from '../../../store/calendarStore';
 import {TIMELINE_HALF_HOUR_HEIGHT} from '../../../utils/constants';
+import {getTimelineRange} from '../../../utils/timelineRange';
 
 export const TimelineTitle = () => {
-    const time = useCalendarStore((s) => s.time);
+    const view = useCalendarStore((s) => s.view);
+    const storeSettings = useCalendarStore((s) => s.storeSettings);
 
-    const {
-        start,
-        end
-    } = time;
+    // Timeline과 동일한 파생 규칙으로 좌측 시간축 라벨 범위를 맞춘다(축↔블록 정렬 유지).
+    const {start, end} = useMemo(
+        () => getTimelineRange(view.type, storeSettings.businessHours),
+        [view.type, storeSettings.businessHours]
+    );
 
     const setTimes = () => {
         const arr = new Array((end - start + 1)).fill(start);
