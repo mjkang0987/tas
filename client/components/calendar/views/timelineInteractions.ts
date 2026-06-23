@@ -34,7 +34,8 @@ export function buildCreateReservationFromPointer({
     // 예약 카드/현재시간 바는 StyledTimelineWrap 안에 position:absolute; top: (경과분*분당높이 + blockOffset)으로 그려진다.
     // (padding은 absolute 자식 위치에 영향을 주지 않으므로 paddingTop은 빼지 않는다.)
     // 클릭 역변환도 이 렌더 좌표와 동일하게 blockOffset만 빼야 시각이 맞는다.
-    const blockOffset = type === ViewType.Day ? 50 : 20;
+    // ⚠️ Timeline.tsx의 blockOffset과 반드시 일치(축 눈금선 정렬값).
+    const blockOffset = type === ViewType.Day ? 55 : 25;
     const relativeY = clientY - rect.top - blockOffset;
     const totalMin = Math.max(0, relativeY) / TIMELINE_MINUTE_HEIGHT;
     let clickHour = start + Math.floor(totalMin / 60);

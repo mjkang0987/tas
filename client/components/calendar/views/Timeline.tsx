@@ -72,7 +72,9 @@ export const Timeline = ({
             ? (designers.find((designer) => designer.id === designerId)?.name ?? '미지정')
             : '미지정'
     );
-    const blockOffset = type === ViewType.Day ? 50 : 20;
+    // 카드/현재시간 바/클러스터의 세로 위치 오프셋. 축 눈금선(행 높이 50px의 중앙=+25)에 맞춤.
+    // ⚠️ timelineInteractions.ts의 동일 상수와 반드시 일치시킬 것(클릭 역변환이 같은 좌표계).
+    const blockOffset = type === ViewType.Day ? 55 : 25;
     const timelineEntries = useMemo(() => buildTimelineEntries(reservations), [reservations]);
 
     // 현재시간 바: 렌더 1회 계산 + CSS 애니메이션에 의존하면 백그라운드 탭 스로틀·절전 이후
