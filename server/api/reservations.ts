@@ -209,21 +209,26 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
         const before = dbReservationToFrontend(dbReservation);
 
-        const updatedReservation = await prisma.reservation.update({
-            where: {id: dbReservation.id},
-            data: {status: frontendReservationStatusToDb(status)},
-            include: reservationInclude,
-        });
+        // 상태 변경과 이력 기록을 한 트랜잭션으로 묶어 원자화(이력 생성 실패 시 상태도 롤백).
+        const after = await prisma.$transaction(async (tx) => {
+            const updatedReservation = await tx.reservation.update({
+                where: {id: dbReservation.id},
+                data: {status: frontendReservationStatusToDb(status)},
+                include: reservationInclude,
+            });
 
-        const after = dbReservationToFrontend(updatedReservation);
+            const afterFront = dbReservationToFrontend(updatedReservation);
 
-        await prisma.reservationHistory.create({
-            data: {
-                storeId: session.storeId,
-                reservationId: dbReservation.id,
-                beforeJson: before as object,
-                afterJson: after as object,
-            },
+            await tx.reservationHistory.create({
+                data: {
+                    storeId: session.storeId,
+                    reservationId: dbReservation.id,
+                    beforeJson: before as object,
+                    afterJson: afterFront as object,
+                },
+            });
+
+            return afterFront;
         });
 
         const entry = {
