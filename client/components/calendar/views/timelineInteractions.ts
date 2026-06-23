@@ -1,6 +1,6 @@
 import type React from 'react';
 
-import {TIMELINE_DAY_TOP, TIMELINE_TOP, ViewType} from '../../../utils/constants';
+import {TIMELINE_MINUTE_HEIGHT, ViewType} from '../../../utils/constants';
 import type {Reservation} from '../../../utils/reservations';
 import {toDateKey} from '../../../utils/reservations';
 import {roundToHalfHour, pad} from '../../../utils/timeRound';
@@ -31,9 +31,12 @@ export function buildCreateReservationFromPointer({
     date: number;
 }): CreateReservationInitial {
     const rect = container.getBoundingClientRect();
-    const paddingTop = type === ViewType.Day ? TIMELINE_DAY_TOP : TIMELINE_TOP;
-    const relativeY = clientY - rect.top - paddingTop;
-    const totalMin = Math.max(0, relativeY) / 2;
+    // 예약 카드/현재시간 바는 StyledTimelineWrap 안에 position:absolute; top: (경과분*분당높이 + blockOffset)으로 그려진다.
+    // (padding은 absolute 자식 위치에 영향을 주지 않으므로 paddingTop은 빼지 않는다.)
+    // 클릭 역변환도 이 렌더 좌표와 동일하게 blockOffset만 빼야 시각이 맞는다.
+    const blockOffset = type === ViewType.Day ? 50 : 20;
+    const relativeY = clientY - rect.top - blockOffset;
+    const totalMin = Math.max(0, relativeY) / TIMELINE_MINUTE_HEIGHT;
     let clickHour = start + Math.floor(totalMin / 60);
     const clickMinute = Math.floor(totalMin % 60);
     clickHour = Math.min(Math.max(clickHour, start), end - 1);
