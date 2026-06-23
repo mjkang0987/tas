@@ -4,56 +4,13 @@
 
 ---
 
-## 진행 중 — 캘린더 타임라인: 영업시간 연동 + 뷰별 시간범위 + 표시 개선
+## 완료(최근) — 캘린더 타임라인: 영업시간 연동 + 표시 개선
 
-### 배경
-- 캘린더 시간축(`store.time.start/end`)이 코드 고정 `10~20`. `setTime` 호출이 어디에도 없음 → **영업시간 설정과 완전 분리**.
-- 영업시간 편집 UI(`components/settings/StoreManageSection.tsx`)·저장(`PUT /api/store` → DB `StoreBusinessHour`)은 **이미 존재**하나, 저장돼도 캘린더 화면엔 미반영(항상 10~20).
-- 동시에: 30분 간격이 좁음 / 현재시간 바가 오래 두면 어긋남 / 빈 곳 클릭 예약추가 시각 불일치 문제 병행.
+> 배포 완료. 상세는 git 히스토리(`d5a2333`·`4fdbba4`·`456750a` 외 `9ae39ab`·`ab7fe43`).
 
-### 결정 사항
-- **영업시간 설정 1개를 기준**으로 삼고, **뷰별 범위는 코드 규칙으로 파생** (설정 UI 추가 없음).
-  - **모든 뷰: 영업시간 그대로** (패딩 0). 예: 영업 10~20 → 일/3일/주 모두 10~20.
-  - (당초 Day ±1h 확장안은 폐기 — 시작 패딩이 영업 전 시간대 클릭/드래그 영역을 열어 디자이너 근무시간 판정과 어긋남. 뷰별 차등이 필요하면 `VIEW_PADDING_HOURS` 맵만 조정.)
-
-### 구현 항목
-
-#### A. 영업시간 → 캘린더 축 연동 + 뷰별 파생 (이번 핵심, **구현 완료**)
-- 신규 순수함수 `getTimelineRange(viewType, businessHours)` (`client/utils/timelineRange.ts`):
-  - `"HH:MM"` → 소수 시 파싱 후 `start = floor(open)`, `end = ceil(close)`
-  - 뷰별 패딩 상수 `{ day: 0, three: 0, week: 0 }`(현재 전부 0) 적용 후 `0~24` 클램프, 비정상값(end≤start) 시 최소 1h 폭 보장
-- 적용처: `Timeline.tsx`·`TimelineTitle.tsx`가 `time.start/end` 대신 이 함수 결과 사용(`view.type` + `storeSettings.businessHours` 구독, `useMemo`). 드래그·클릭은 Timeline이 넘기는 start/end를 그대로 받으므로 자동 반영.
-- `store.time.start/end` 정적값은 레거시화(슬라이스는 유지, 소비처 0). 파생 방식이라 `setTime` 도입 불필요.
-- 검증값(스크립트): 모든 뷰 10~20→10~20, 10:30~20:30→10~21(floor/ceil), 미설정→10~20 폴백, 23:00~23:30→23~24 클램프.
-- 미결: 분 단위 영업시간을 시 경계(floor/ceil)로 처리 — 현 정책 확정.
-
-#### B. 표시/동작 개선 (이미 작업, **로컬 워킹트리·미커밋**)
-- ① 30분=50px(1시간=100px) 확대. 높이를 `TIMELINE_HOUR_HEIGHT`/`_MINUTE_HEIGHT`/`_HALF_HOUR_HEIGHT`로 단일화(`utils/constants.ts`), 흩어진 `80`·`4/3` 매직넘버 제거.
-- ② 현재시간 바: CSS `down` 애니메이션 의존 제거 → 30초 주기 + `visibilitychange`/`focus` 재계산으로 위치 직접 지정(백그라운드/절전 후 드리프트 해결).
-- ③ 빈 곳 클릭 예약추가 좌표식 수정: `(clientY - rect.top - blockOffset) / 분당높이` (paddingTop 빼지 않음 — absolute 자식은 padding 영향 없음). 카드/현재시간 바 렌더 좌표와 일치.
-  - 마감(end) 줄 클릭은 `end-1`로 클램프됨(영업종료 시각 시작 예약 불가 — 의도). 검증은 중간 시각으로.
-  - 임시 디버그 로그(`Timeline.tsx [CLICKDBG]`) 존재 → **검증 후 제거 필요**.
-
-### 영향 파일
-- 신규: `client/utils/timelineRange.ts`
-- 수정: `Timeline.tsx`, `TimelineTitle.tsx`, `useTimelineDrag.ts`, `timelineInteractions.ts`, `utils/constants.ts`, `styles/globalStyle.ts`
-
-### 검증
-- 타입체크 0에러(`tsc --noEmit`). 파생값은 스크립트로 확인(위 A 검증값).
-- **브라우저 실측 완료(Playwright, 게스트 로컬모드)**:
-  - ✅ 영업 10~20 → 일/3일/주 축 모두 **첫 10:00·끝 20:30(22라벨) 동일** = Day 패딩 없음 확인.
-  - ✅ 영업시간 08~22로 변경 → 축 **첫 08:00·끝 22:30(30라벨)** 으로 반영.
-  - ✅ 빈 곳 클릭 예약추가: 11:00 위치→모달 시작 11:00, 15:30 위치→15:30 일치.
-  - 미검증: 드래그-이동 좌표(별도 경로, 클릭과 paddingTop 비대칭 의심점은 미실측).
-- (참고: ESLint는 환경 비호환(`eslint-plugin-react` × ESLint 10)으로 미실행 — 코드 무관.)
-
-### 리스크
-- 눈금선↔블록 정렬차(±수 px) 가능 → 실측 후 `blockOffset`/마진 보정.
-- 영업시간 외 판정은 디자이너 근무시간(`DesignerSchedule`)만 사용 — 본 작업 범위 밖(불변).
-
-### 진행 상태
-- A(영업시간 연동, 모든 뷰 영업시간 그대로): **구현+실측 완료**. B(①②③): 완료(커밋 `9ae39ab`/`ab7fe43`).
-- 남은 것: 드래그-이동 좌표 실측(선택). 이후 본 「진행 중」 섹션 정리 가능.
+- **A 영업시간 → 축 연동**: `getTimelineRange(viewType, businessHours)`(`utils/timelineRange.ts`) 신설. `Timeline`/`TimelineTitle`이 `storeSettings.businessHours` 구독. 모든 뷰 영업시간 그대로(패딩 0). 죽은 `store.time` 슬라이스 제거.
+- **B 표시/동작**: 1시간=100px(30분=50px) 단일화, 현재시간 바 드리프트 수정, 빈 곳 클릭 예약추가 좌표 수정(이전 구버전은 클릭 단위 불일치로 하단 클릭이 ~3h 어긋남 → 수정됨).
+- **실측(Playwright)**: 영업시간 변경 시 일/3일/주 축 반영, 빈 곳 클릭·드래그 이동 시작시각 모두 정확 확인.
 
 ---
 
