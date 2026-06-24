@@ -58,3 +58,78 @@
 - 원격 전용 + local(`shouldUseLocalDb`)은 클라 계산 유지(모드 분기). 서버는 revenue.ts **순수함수 재사용**(query→`dbReservationToFrontend`→`groupByDate`→동일 함수 호출, 재구현 X).
 - 예외: `getRevenueInsights` 신규/재방문은 범위 밖 이력 필요 → stored `Customer.firstVisitDate` 사용.
 - 회귀=매출 오표시 → 클라==서버 합계 일치 검증.
+
+---
+
+## 업종 중립화 — 미용실 한정 용어 제거 (계획, 미착수)
+
+> 목표: "미용실·뷰티샵" 한정 색을 빼고 범용 "예약·고객 관리 서비스"로.
+> 참고: 이전 세션에서 카피 변경·plan을 작성했으나 워킹트리 정리(2026-06-24)로 전부 되돌아감. 아래는 재정리한 계획.
+
+### 0. 선작업 — 점검중(maintenance) 페이지 (rename 배포 안전장치)
+
+> rename은 "깨지는 창"이 불가피(아래 §2 참고) → 그 동안 사용자에게 **500 대신 "점검 중"**을 보여줄 장치를 먼저 만든다. rename 외 향후 마이그레이션·장애 대응에도 재사용.
+
+- **점검 페이지**: `client/pages/maintenance.tsx` — **DB/Prisma 비의존 페이지**(getServerSideProps·getInitialProps 없음). 빌드상 ƒ(서버 렌더)지만 — `_document.getInitialProps`(styled-components SSR)로 앱 전체가 ƒ — DB를 안 건드리므로 마이그레이션 중에도 안전. 로고 + "점검 중" 문구. **상태: 구현·검증 완료**(런타임 200 + noindex 확인). _app·LayoutComponent에서 bare 페이지 처리도 완료.
+- **게이트 — ⚠️ 새 `middleware.ts` 만들지 말 것**: 이미 `client/proxy.ts`가 NextAuth `auth()` 래퍼 + `export const config.matcher`로 Next 미들웨어 역할(Next는 미들웨어 1개만 허용 → 새 파일 만들면 충돌/무시). **점검 게이트는 proxy.ts 맨 앞에 통합**: `MAINTENANCE_MODE==='true'`면 `NextResponse.rewrite('/maintenance')`. bypass는 기존 matcher가 이미 처리(`/((?!api/auth|_next/static|_next/image|favicon.ico|login).*)`) → `/maintenance` 자신만 추가 확인. 세션이 `jwt`라 미들웨어가 DB 무관 → 점검 중에도 게이트 안전. **미구현(핵심 잔여 작업).**
+- **⚠️ 토글 실측 필요**: Next.js middleware는 별도 번들로 컴파일되며 `process.env.MAINTENANCE_MODE`를 **빌드 타임에 인라인**할 수 있음 → 그러면 `--update-env-vars` 런타임 토글이 안 먹힘. **반드시 검증**: 토글이 런타임에 반영되는지(안 되면 토글에 재배포 전제, 또는 env가 아닌 다른 신호 사용).
+- **헬스체크**: Cloud Run에 **HTTP 헬스 프로브가 설정돼 있지 않으면 포트 응답만 보므로 `/api/health` 불필요**할 수 있음 → 현재 서비스 프로브 설정 먼저 확인 후 항목 유지/제거 결정.
+- **rename 배포 시퀀스**: ① 점검 ON → ② 마이그레이션(RENAME) → ③ 새 코드 배포 → ④ 검증 → ⑤ 점검 OFF. 사용자는 내내 "점검 중"만 봄(500 노출 0).
+- **열린 질문**: (a) 게이트는 proxy.ts에 통합(별도 미들웨어 X). (b) 로그인/인증 포함 전체 차단이 단순·안전. (c) Cloud Run 프로브 방식 확인 후 헬스체크 경로 필요 여부 결정.
+
+### 1. 카피·문서 (이전에 했다가 원복됨 — 재적용 필요)
+- 브랜딩 카피: `about.tsx`(태그라인/meta "미용실·뷰티샵을 위한"→ 제거), `README.md`("Salon"→"Reservation & customer management"), `design-guide.html`(placeholder "헤어샵"→"매장")
+- 내부 문서: `prisma-seed-runbook.md`·`service-launch-plan.md` 영문 "salon"→"reservation"
+
+### 2. "디자이너" → "담당자" 전면 rename (이름 확정)
+
+> **방식 결정(2026-06-24): 물리 rename(DB 테이블/컬럼까지).** `@@map` 절충안 대신 DB까지 일관. 데이터가 적은 지금 실행(단, `ALTER ... RENAME`은 즉시 메타데이터 연산이라 위험·소요는 데이터 양과 무관 — "지금"의 이점은 다운타임 중 영향 사용자가 거의 0이라는 점뿐).
+
+**확정안:**
+- 화면 한글: **디자이너 → 담당자**
+- DB/코드 식별자: `Designer → Assignee`, `designerId → assigneeId`, `DesignerSchedule → AssigneeSchedule`, `DesignerStatus → AssigneeStatus`, `Store.designers → Store.assignees`
+- URL: `/settings/designer → /settings/assignee`
+- 방식: **물리 테이블/컬럼까지 진짜 rename**(`ALTER TABLE ... RENAME`, 데이터 제자리 보존). `@@map` 절충안은 폐기(반쪽 상태가 찝찝 → DB 콘솔까지 일관).
+
+**이름 충돌 검증 완료**: `Member`/`Manager`/`Staff`는 `enum MembershipRole {owner, manager, staff}`(권한 시스템)에서 이미 점유 중 → 사용 불가. `Assignee`는 어디와도 안 겹침(안전).
+
+**⚠️ Prisma 함정**: 모델명만 바꾸고 `prisma migrate`하면 `DROP TABLE Designer` + `CREATE TABLE Assignee`로 생성돼 **데이터 전부 소실**. 반드시 생성된 SQL을 손으로 `ALTER TABLE ... RENAME`으로 교체. FK는 이름이 아닌 정체성 기반이라 RENAME 시 자동 유지됨.
+
+**마이그레이션 SQL (손으로 작성):**
+> ⚠️ 테이블/컬럼/enum뿐 아니라 **Postgres 자동생성 제약·인덱스·FK·PK 이름**까지 모두 RENAME해야 함. 안 하면 다음 `prisma migrate`가 drift로 감지 → drop/recreate 시도. 실제 이름은 운영 DB에서 `\d "Designer"`·`\d "DesignerSchedule"`로 **먼저 확인**(아래는 Prisma 기본 네이밍 가정).
+```sql
+-- 테이블/컬럼/enum
+ALTER TABLE "Designer" RENAME TO "Assignee";
+ALTER TABLE "DesignerSchedule" RENAME TO "AssigneeSchedule";
+ALTER TABLE "AssigneeSchedule" RENAME COLUMN "designerId" TO "assigneeId";
+ALTER TABLE "Reservation" RENAME COLUMN "designerId" TO "assigneeId";
+ALTER TYPE "DesignerStatus" RENAME TO "AssigneeStatus";
+-- PK / unique 인덱스
+ALTER INDEX "Designer_pkey" RENAME TO "Assignee_pkey";
+ALTER INDEX "Designer_storeId_legacyId_key" RENAME TO "Assignee_storeId_legacyId_key";
+ALTER INDEX "DesignerSchedule_pkey" RENAME TO "AssigneeSchedule_pkey";
+ALTER INDEX "DesignerSchedule_designerId_dayIndex_key" RENAME TO "AssigneeSchedule_assigneeId_dayIndex_key";
+-- FK 제약 (운영 DB 실측으로 확정 — 2026-06-24)
+ALTER TABLE "Assignee" RENAME CONSTRAINT "Designer_storeId_fkey" TO "Assignee_storeId_fkey";
+ALTER TABLE "AssigneeSchedule" RENAME CONSTRAINT "DesignerSchedule_designerId_fkey" TO "AssigneeSchedule_assigneeId_fkey";
+ALTER TABLE "Reservation" RENAME CONSTRAINT "Reservation_designerId_fkey" TO "Reservation_assigneeId_fkey";
+-- (확인) Reservation.designerId 단독 인덱스 없음 → RENAME 대상 아님. Reservation 인덱스는 storeId 조합뿐.
+```
+**위 이름은 운영 DB 실측 결과(`pg_constraint`·`pg_indexes`)와 대조해 확정됨.** 단, 마이그레이션 시점에 스키마가 또 바뀌었을 수 있으니 실행 직전 재확인 권장.
+**검증**: 마이그레이션 후 `prisma migrate diff`(또는 `migrate dev`)가 **빈 diff**여야 함(drift 0). diff가 남으면 빠진 제약/인덱스 이름이 있다는 신호.
+
+**작업 범위 (영향 파일):**
+- `server/prisma/schema.prisma` — `model Designer`·`model DesignerSchedule`·`enum DesignerStatus`·`designerId` FK(Reservation/DesignerSchedule)·`Store.designers` 관계. ⚠️ **enum 값은 영문**(`active`/`on_leave`/`resigned`) — 타입 이름만 rename(`AssigneeStatus`), **값은 건드리지 말 것**(한글 아님). 한글 `재직/휴직/퇴직`은 프런트 표시값.
+- 서버: `/api/designers`→`/api/assignees`(라우트 파일·핸들러), `designers-merge`·`naver-booking-fix-designer`, `server/db/mappers.ts`(`dbReservationToFrontend`의 `designerId` 분기 + **영문↔한글 상태 매퍼 `active:'재직'` 양방향 맵의 `DesignerStatus` 타입 참조**), `resolveDesignerCuid`.
+- 클라: store(`calendarStore`·`calendarStoreHelpers`·`calendarStoreDesignerHelpers`), 타입(⚠️ `Designer`/`DesignerStatus`/`DesignerStatusMeta`는 **`features/designers/model.ts`** 정의 + **`utils/designers.ts`가 `export *` 재export**(임포트 다수가 이 배럴 경유) / `designerId?` 필드는 `features/reservations/model.ts`), 온보딩(`onboarding-types` STEP 라벨·`LocalDesigner`), 캘린더 필터(`Header.tsx`), 매출(`revenue*`), 설정(`DesignerManageSection`→`AssigneeManageSection`), URL 라우트(`Aside.tsx:54`, `pages/settings/[tab].tsx`), 모달(`GuestMigrationLayer`·`NaverSyncConflictModal` 등 "디자이너" 문구 다수), PageHero `eyebrow="DESIGNER"`→`"ASSIGNEE"`.
+- 표시 문구: 한글 "디자이너"→"담당자" 전수.
+
+**⚠️ 사이트 접속 우려 — rename은 "치환"이라 안전한 배포 순서가 없음**:
+- 마이그레이션 먼저 → 옛 코드가 `Designer`/`designerId` 조회 → 500. 배포 먼저 → 새 코드가 `assigneeId` 조회하는데 DB는 아직 `designerId` → 500.
+- Cloud Run은 새 리비전 health 통과까지 옛 리비전이 트래픽 받음 → 오버랩 깨짐 불가피.
+- 깨지는 화면: 캘린더 로드, 예약 생성/수정, 매출, 담당자 관리, 네이버 동기화 등.
+- **대응 = §0 점검중 페이지**로 창 전체를 "점검 중"으로 덮어 500 노출 0. 트래픽 최저 시간대 실행.
+
+**배포 순서 (dev-workflow 메모리)**: 마이그레이션 포함 → main 머지(=배포)와 묶어 §0 시퀀스대로 저트래픽 시간대 실행. 로컬은 `pnpm prisma:migrate:local`.
+
+**미결**: "시술"→"서비스" 동반 변경 여부(별도 판단). 이번 rename 범위엔 미포함.
