@@ -79,6 +79,16 @@
 - **rename 배포 시퀀스**: ① 점검 ON → ② 마이그레이션(RENAME) → ③ 새 코드 배포 → ④ 검증 → ⑤ 점검 OFF. 사용자는 내내 "점검 중"만 봄(500 노출 0).
 - **열린 질문**: (a) 게이트는 proxy.ts에 통합(별도 미들웨어 X). (b) 로그인/인증 포함 전체 차단이 단순·안전. (c) Cloud Run 프로브 방식 확인 후 헬스체크 경로 필요 여부 결정.
 
+### 0-1. 점검 게이트 `/login` 누수 수정 (rename 선행) — ✅ 완료
+
+> **문제**: `proxy.ts`의 `config.matcher`가 `login`을 제외(`(?!...|login)`)해 미들웨어가 `/login`에서 아예 실행 안 됨 → `MAINTENANCE_MODE='true'`여도 `/login`은 점검 페이지로 안 가고 정상 렌더. rename 마이그레이션 중 `/login` 진입 시 데이터 로드로 500 노출 위험. 열린 질문 (b)("로그인 포함 전체 차단이 단순·안전")를 코드에 반영.
+
+- **요구사항**: 점검 모드일 때 `/login`도 `/maintenance`로 덮는다. 정상 모드에서는 `/login` 동작 무변(현행 유지).
+- **접근**: `matcher`에서 `login` 토큰만 제거 → 미들웨어가 `/login`에서도 실행됨. 점검 게이트가 auth() 밖 최상단이라 ON이면 rewrite로 먼저 가로챔. OFF면 `authMiddleware`로 진입하지만 `/login`은 이미 `isExempt`(14~22줄)라 약관·온보딩 리다이렉트 없이 통과 → 정상 모드 동작 동일. `api/auth`·`_next/*`·`favicon.ico` 제외는 유지(인프라/인증 엔드포인트는 계속 살려둠).
+- **영향 파일**: `client/proxy.ts`(matcher 1줄).
+- **예상 결과**: ON → `/login`이 점검 페이지. OFF → `/login` 기존대로. 타입/빌드 무변.
+- **검증**: 타입체크/린트. 정상모드 `/login` 통과·점검모드 `/login` 차단 로직 추적.
+
 ### 1. 카피·문서 — ✅ 완료 (커밋 `ff8f8a8`)
 - 브랜딩 카피: `about.tsx`(태그라인/meta "미용실·뷰티샵을 위한"→ 제거), `README.md`("Salon"→"Reservation & customer management"), `design-guide.html`(placeholder "헤어샵"→"매장")
 - 내부 문서: `prisma-seed-runbook.md`·`service-launch-plan.md` 영문 "salon"→"reservation"
