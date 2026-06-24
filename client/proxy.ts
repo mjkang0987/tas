@@ -69,6 +69,8 @@ export default function middleware(req: NextRequest, ev: NextFetchEvent) {
     return authMiddleware(req, ev as never);
 }
 
+// 점검 모드 게이트가 /login도 덮어야 하므로 matcher에서 login은 제외하지 않는다.
+// 정상 모드에서 /login은 authMiddleware의 isExempt로 통과하므로 동작 변화 없음.
 export const config = {
-    matcher: ['/((?!api/auth|_next/static|_next/image|favicon.ico|login).*)'],
+    matcher: ['/((?!api/auth|_next/static|_next/image|favicon.ico).*)'],
 };
