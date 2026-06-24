@@ -155,7 +155,7 @@ async function main() {
             prisma.service.findMany({where: {storeId: store.id}, select: {name: true, duration: true}}),
             prisma.reservation.findMany({
                 where: {storeId: store.id, status: 'active', paymentCompleted: false, serviceSummary: {not: ''}},
-                select: {id: true, date: true, startTime: true, endTime: true, serviceSummary: true, designerId: true},
+                select: {id: true, date: true, startTime: true, endTime: true, serviceSummary: true, assigneeId: true},
             }),
         ]);
 
@@ -193,7 +193,7 @@ async function main() {
                     store: store.name,
                     id: r.id,
                     date: fmtDate(r.date),
-                    designerId: r.designerId,
+                    assigneeId: r.assigneeId,
                     service: r.serviceSummary,
                     startTime: r.startTime,
                     oldEnd: r.endTime,
@@ -203,18 +203,18 @@ async function main() {
         }
     }
 
-    // 겹침 감지: 같은 (매장·디자이너·날짜) 에서 새 endTime 이 다음 예약 startTime 을 침범
+    // 겹침 감지: 같은 (매장·담당자·날짜) 에서 새 endTime 이 다음 예약 startTime 을 침범
     const changeIds = new Set(changes.map((c) => c.id));
     const effectiveEnd = new Map(changes.map((c) => [c.id, c.newEnd]));
     const overlaps = [];
     // 전체 active+미결제 예약을 다시 모아 그룹핑(변경분은 newEnd 기준)
     const allActive = await prisma.reservation.findMany({
         where: {status: 'active', paymentCompleted: false},
-        select: {id: true, storeId: true, designerId: true, date: true, startTime: true, endTime: true},
+        select: {id: true, storeId: true, assigneeId: true, date: true, startTime: true, endTime: true},
     });
     const groups = new Map();
     for (const r of allActive) {
-        const key = `${r.storeId}|${r.designerId ?? 'none'}|${fmtDate(r.date)}`;
+        const key = `${r.storeId}|${r.assigneeId ?? 'none'}|${fmtDate(r.date)}`;
         if (!groups.has(key)) groups.set(key, []);
         groups.get(key).push(r);
     }
