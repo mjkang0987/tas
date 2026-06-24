@@ -166,7 +166,7 @@ function AppContent({Component, pageProps}: AppContentProps) {
         const path = router.pathname;
 
         // 로그인 / 약관 문서는 자유 접근
-        if (path === '/login' || path === '/about' || path === '/terms' || path === '/privacy' || path === '/logout') return;
+        if (path === '/login' || path === '/about' || path === '/terms' || path === '/privacy' || path === '/logout' || path === '/maintenance') return;
 
         const consented = getGuestTermsVersion() === CURRENT_TERMS_VERSION;
         // 영구 동의는 온보딩 완료 시점에 기록되므로, 온보딩 진입 가드는 세션 ack도 허용
@@ -383,7 +383,7 @@ function AppContent({Component, pageProps}: AppContentProps) {
     // SSR/첫 렌더 모두 status==='loading'이라 하이드레이션 불일치가 없음.
     const isAuthFlowPage = router.pathname.startsWith('/login') || router.pathname.startsWith('/onboarding')
         || router.pathname === '/consent' || router.pathname === '/about' || router.pathname === '/logout'
-        || router.pathname === '/terms' || router.pathname === '/privacy';
+        || router.pathname === '/terms' || router.pathname === '/privacy' || router.pathname === '/maintenance';
     // 미인증 + 로컬데이터 없음 = /login 리다이렉트 대기 → 달력이 깜빡이지 않게 오버레이 유지
     // (게이트가 데이터 없으면 resolved와 무관하게 /login으로 보내므로 동일 조건으로 맞춤)
     const guestRedirectPending = status === 'unauthenticated' && !isAuthFlowPage && !hasGuestData();
