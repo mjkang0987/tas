@@ -66,18 +66,20 @@
 > 목표: "미용실·뷰티샵" 한정 색을 빼고 범용 "예약·고객 관리 서비스"로.
 > 참고: 이전 세션에서 카피 변경·plan을 작성했으나 워킹트리 정리(2026-06-24)로 전부 되돌아감. 아래는 재정리한 계획.
 
-### 0. 선작업 — 점검중(maintenance) 페이지 (rename 배포 안전장치)
+### 0. 선작업 — 점검중(maintenance) 페이지 + 게이트 (rename 배포 안전장치) — ✅ 구현·검증 완료, main 배포·드라이런 대기
 
 > rename은 "깨지는 창"이 불가피(아래 §2 참고) → 그 동안 사용자에게 **500 대신 "점검 중"**을 보여줄 장치를 먼저 만든다. rename 외 향후 마이그레이션·장애 대응에도 재사용.
 
 - **점검 페이지**: `client/pages/maintenance.tsx` — **DB/Prisma 비의존 페이지**(getServerSideProps·getInitialProps 없음). 빌드상 ƒ(서버 렌더)지만 — `_document.getInitialProps`(styled-components SSR)로 앱 전체가 ƒ — DB를 안 건드리므로 마이그레이션 중에도 안전. 로고 + "점검 중" 문구. **상태: 구현·검증 완료**(런타임 200 + noindex 확인). _app·LayoutComponent에서 bare 페이지 처리도 완료.
-- **게이트 — ⚠️ 새 `middleware.ts` 만들지 말 것**: 이미 `client/proxy.ts`가 NextAuth `auth()` 래퍼 + `export const config.matcher`로 Next 미들웨어 역할(Next는 미들웨어 1개만 허용 → 새 파일 만들면 충돌/무시). **점검 게이트는 proxy.ts 맨 앞에 통합**: `MAINTENANCE_MODE==='true'`면 `NextResponse.rewrite('/maintenance')`. bypass는 기존 matcher가 이미 처리(`/((?!api/auth|_next/static|_next/image|favicon.ico|login).*)`) → `/maintenance` 자신만 추가 확인. 세션이 `jwt`라 미들웨어가 DB 무관 → 점검 중에도 게이트 안전. **미구현(핵심 잔여 작업).**
-- **⚠️ 토글 실측 필요**: Next.js middleware는 별도 번들로 컴파일되며 `process.env.MAINTENANCE_MODE`를 **빌드 타임에 인라인**할 수 있음 → 그러면 `--update-env-vars` 런타임 토글이 안 먹힘. **반드시 검증**: 토글이 런타임에 반영되는지(안 되면 토글에 재배포 전제, 또는 env가 아닌 다른 신호 사용).
+- **게이트**: `client/proxy.ts`(Next 16은 `proxy.ts`가 미들웨어 파일 — 내부상수 `PROXY_FILENAME='proxy'`). `MAINTENANCE_MODE==='true'`면 모든 요청을 `/maintenance`로 `NextResponse.rewrite`. `/maintenance`·`/_next` 바이패스. **상태: 구현·검증 완료**(커밋 `c8a4706`).
+  - ⚠️ **설계 교훈 — 게이트는 `auth()` 밖 최상단에 둘 것**: 처음엔 `auth()` 콜백 안에 넣었더니 NextAuth가 요청 URL을 `AUTH_URL` origin으로 치환 → `rewrite`가 외부 프록시로 새서 **500**(`Failed to proxy ... ECONNREFUSED`). `auth()` 밖에서 *치환 전 진짜 요청 origin*을 쓰게 해 해결(origin 불일치에서도 정상). 부수효과로 auth가 깨져도 점검 페이지가 뜸(인증 독립).
+  - env(`process.env`)만 사용 — 미들웨어 Edge 런타임이라 무거운 import(Prisma 등) 금지.
+- **토글 — ✅ 런타임 반영 검증 완료**: 로컬 프로덕션 빌드(`MAINTENANCE_MODE` 없이 빌드) 후 `next start`에서 env만 바꿔 ON→점검·OFF→정상 확인 → **빌드타임 인라인 아님**(런타임 읽기). 단 Cloud Run `--update-env-vars`는 **새 리비전 롤아웃**(이미지 재빌드 X, 인스턴스 내 즉시 전환은 아님)이라 배포 후 실제 토글 1회 드라이런 권장.
 - **헬스체크**: Cloud Run에 **HTTP 헬스 프로브가 설정돼 있지 않으면 포트 응답만 보므로 `/api/health` 불필요**할 수 있음 → 현재 서비스 프로브 설정 먼저 확인 후 항목 유지/제거 결정.
 - **rename 배포 시퀀스**: ① 점검 ON → ② 마이그레이션(RENAME) → ③ 새 코드 배포 → ④ 검증 → ⑤ 점검 OFF. 사용자는 내내 "점검 중"만 봄(500 노출 0).
 - **열린 질문**: (a) 게이트는 proxy.ts에 통합(별도 미들웨어 X). (b) 로그인/인증 포함 전체 차단이 단순·안전. (c) Cloud Run 프로브 방식 확인 후 헬스체크 경로 필요 여부 결정.
 
-### 1. 카피·문서 (이전에 했다가 원복됨 — 재적용 필요)
+### 1. 카피·문서 — ✅ 완료 (커밋 `ff8f8a8`)
 - 브랜딩 카피: `about.tsx`(태그라인/meta "미용실·뷰티샵을 위한"→ 제거), `README.md`("Salon"→"Reservation & customer management"), `design-guide.html`(placeholder "헤어샵"→"매장")
 - 내부 문서: `prisma-seed-runbook.md`·`service-launch-plan.md` 영문 "salon"→"reservation"
 
