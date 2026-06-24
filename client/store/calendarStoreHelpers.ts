@@ -147,6 +147,27 @@ export function deleteCustomerOnServer(customerId: number): Promise<void> {
     }).then(() => undefined).catch(() => {});
 }
 
+// 디자이너 영구 삭제(분리 삭제). 서버에선 스케줄이 cascade로 함께 삭제되고,
+// 예약은 보존하되 designerId가 null(미지정)로 분리된다.
+export function deleteDesignerOnServer(designerId: number): Promise<void> {
+    if (shouldUseLocalDb()) {
+        updateLocalDbSnapshot((current) => ({
+            ...current,
+            designers: current.designers.filter((d) => d.id !== designerId),
+            reservations: current.reservations.map((r) =>
+                r.designerId === designerId ? {...r, designerId: undefined} : r
+            ),
+        }));
+        return Promise.resolve();
+    }
+
+    return fetch('/api/designers', {
+        method: 'DELETE',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({id: designerId}),
+    }).then(() => undefined).catch(() => {});
+}
+
 export function syncStoreSettings(storeSettings: StoreSettings): void {
     syncToServer('/api/store', storeSettings, (c) => ({...c, storeSettings}));
 }

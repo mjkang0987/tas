@@ -22,6 +22,7 @@ import {
     persistNewCustomer,
     deleteCustomerOnServer,
     syncDesignerSettings,
+    deleteDesignerOnServer,
     syncReservationState,
     syncServiceSettings,
     syncStoreInfo,
@@ -493,12 +494,20 @@ export const useCalendarStore = create<CalendarState>((set) => ({
             return {designers: nextDesigners};
         }),
 
-    deleteDesigner: (designerId) =>
+    deleteDesigner: (designerId) => {
         set((state) => {
             const nextDesigners = buildDeletedDesignerState(state.designers, designerId);
-            syncDesignerSettings(nextDesigners);
-            return {designers: nextDesigners};
-        }),
+            // 분리 삭제: 이 디자이너의 예약은 보존하되 미지정(designerId=null)으로 전환
+            const nextReservationMap: ReservationMap = {};
+            for (const [date, list] of Object.entries(state.reservationMap)) {
+                nextReservationMap[date] = list.map((r) =>
+                    r.designerId === designerId ? {...r, designerId: undefined} : r
+                );
+            }
+            return {designers: nextDesigners, reservationMap: nextReservationMap};
+        });
+        deleteDesignerOnServer(designerId);
+    },
 
     updateCategoryBaseColor: (category, color) =>
         set((state) => {

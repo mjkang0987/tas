@@ -127,6 +127,37 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         return res.status(200).json({designers});
     }
 
-    res.setHeader('Allow', ['GET', 'PUT']);
+    if (req.method === 'DELETE') {
+        if (!requireRole(session, 'owner', res)) return;
+
+        const {id} = req.body as { id?: number };
+
+        if (typeof id !== 'number') {
+            return res.status(400).json({error: 'Invalid designer id'});
+        }
+
+        const designer = await prisma.designer.findUnique({
+            where: {storeId_legacyId: {storeId: session.storeId, legacyId: id}},
+            select: {id: true},
+        });
+
+        if (!designer) {
+            return res.status(404).json({error: 'Designer not found'});
+        }
+
+        await prisma.$transaction(async (tx) => {
+            // 분리 삭제: 예약은 보존하되 디자이너 연결만 해제(미지정).
+            // 스케줄은 onDelete Cascade로 designer.delete 시 함께 삭제된다.
+            await tx.reservation.updateMany({
+                where: {storeId: session.storeId, designerId: designer.id},
+                data: {designerId: null},
+            });
+            await tx.designer.delete({where: {id: designer.id}});
+        });
+
+        return res.status(200).json({ok: true});
+    }
+
+    res.setHeader('Allow', ['GET', 'PUT', 'DELETE']);
     return res.status(405).end(`Method ${req.method} Not Allowed`);
 }
