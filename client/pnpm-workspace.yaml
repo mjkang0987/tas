@@ -6,7 +6,10 @@ allowBuilds:
 # pnpm 11+ 설정 위치 (package.json의 pnpm 필드는 더 이상 읽지 않음)
 # 보안 패치용 override 모음 — 88eaaf9(의존성 취약점 정리)에서 이전.
 overrides:
-  brace-expansion: 5.0.6 # ReDoS 패치
+  # ReDoS(CVE-2025-5889) 패치. 단일 버전(5.0.6) 강제는 1.x API(module.exports=함수)를
+  # 기대하는 minimatch@3.x 를 깨뜨리므로(=expand is not a function) 1.x 만 패치본으로 핀.
+  # minimatch@10.x 는 brace-expansion@^5.0.2 → 5.0.6(패치본) 으로 자연 해석되어 override 불필요.
+  'brace-expansion@1': 1.1.12
   postcss: 8.5.13
   react: 19.2.7
   react-dom: 19.2.7
