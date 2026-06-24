@@ -18,13 +18,13 @@ export default function AboutPage() {
         <StyledWrapper>
             <SeoHead
                 title="서비스 소개"
-                description="미용실·뷰티샵을 위한 예약·고객 관리 서비스 TAS. 네이버·당근 등 여러 플랫폼의 예약을 한 곳에서 통합 관리하세요."
+                description="예약·고객 관리 서비스 TAS. 네이버·당근 등 여러 플랫폼의 예약을 한 곳에서 통합 관리하세요."
                 path="/about"
             />
             <StyledMain>
                 <StyledHero>
                     <StyledBrandLogo src="/logo/logo-black.svg" alt="Take a Seat" />
-                    <StyledTagline>미용실·뷰티샵을 위한 예약·고객 관리 서비스</StyledTagline>
+                    <StyledTagline>예약·고객 관리 서비스</StyledTagline>
                     <StyledLead>
                         예약 캘린더부터 고객·디자이너·매출까지, 매장 운영에 필요한 기능을 한 곳에서 관리하세요.
                         로그인 없이도 서비스가 무엇을 도와주는지 아래에서 확인할 수 있습니다.

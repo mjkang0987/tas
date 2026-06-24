@@ -2,7 +2,7 @@
 
 ## Goal
 
-Convert the current single-workspace salon reservation app into a production service that can be opened to real operators with:
+Convert the current single-workspace reservation app into a production service that can be opened to real operators with:
 
 - durable data storage
 - authenticated access

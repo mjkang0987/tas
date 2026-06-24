@@ -2,7 +2,7 @@
 
 ## Purpose
 
-Use this runbook when importing the current JSON-based salon data into PostgreSQL through Prisma.
+Use this runbook when importing the current JSON-based reservation data into PostgreSQL through Prisma.
 
 ## Required Environment Variables
 

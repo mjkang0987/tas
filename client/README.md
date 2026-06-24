@@ -1,6 +1,6 @@
 # takeaseat Client
 
-Salon reservation app built with Next.js, NextAuth, Prisma, and PostgreSQL.
+Reservation & customer management app built with Next.js, NextAuth, Prisma, and PostgreSQL.
 
 ## Local Development
 
