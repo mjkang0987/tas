@@ -95,6 +95,7 @@ function buildLegacyIdMap(items, getRawId) {
     for (const item of items) {
         const rawId = getRawId(item);
         if (!Number.isInteger(rawId) || rawId <= 0) continue;
+        if (idMap.has(rawId)) continue; // 중복 ID는 첫 매핑 유지(재매핑 시 nextId 낭비·덮어쓰기 방지)
 
         if (rawId <= MAX_INT_32) {
             idMap.set(rawId, rawId);
@@ -113,9 +114,19 @@ function buildLegacyIdMap(items, getRawId) {
     return idMap;
 }
 
-function normalizeAssignees(assigneeData) {
-    const assigneeIdMap = buildLegacyIdMap(assigneeData.assignees ?? [], (assignee) => assignee.id);
+// 담당자 legacyId 재매핑 맵은 assignees.json 을 단일 출처로 한 번만 만들어
+// 예약·이력·테스트 정규화가 모두 공유한다. (각자 따로 만들면 같은 원본 ID가
+// 서로 다른 새 ID로 매핑돼 예약-담당자 FK 가 어긋난다.)
+let assigneeIdMapPromise = null;
+function loadAssigneeIdMap() {
+    if (!assigneeIdMapPromise) {
+        assigneeIdMapPromise = readJson(seedDataPath('assignees.json'))
+            .then((data) => buildLegacyIdMap(data.assignees ?? [], (assignee) => assignee.id));
+    }
+    return assigneeIdMapPromise;
+}
 
+function normalizeAssignees(assigneeData, assigneeIdMap) {
     return {
         assignees: (assigneeData.assignees ?? []).map((assignee) => ({
             ...assignee,
@@ -124,20 +135,8 @@ function normalizeAssignees(assigneeData) {
     };
 }
 
-function normalizeReservationPayload(reservationData) {
+function normalizeReservationPayload(reservationData, assigneeIdMap) {
     const reservationIdMap = buildLegacyIdMap(reservationData.reservations ?? [], (reservation) => reservation.id);
-    const assigneeIds = [
-        ...(reservationData.reservations ?? []).map((reservation) => reservation.assigneeId),
-        ...(reservationData.history ?? []).flatMap((history) => [
-            history.reservationId,
-            history.before?.assigneeId,
-            history.after?.assigneeId,
-        ]),
-    ];
-    const assigneeIdMap = buildLegacyIdMap(
-        assigneeIds.map((id) => ({id})).filter((entry) => Number.isInteger(entry.id) && entry.id > 0),
-        (entry) => entry.id
-    );
 
     const normalizeAssigneeId = (assigneeId) => assigneeIdMap.get(assigneeId) ?? assigneeId;
     const normalizeReservationId = (reservationId) => reservationIdMap.get(reservationId) ?? reservationId;
@@ -286,7 +285,7 @@ async function seedOwnerMembership() {
 }
 
 async function seedAssignees() {
-    const assigneeData = normalizeAssignees(await readJson(seedDataPath('assignees.json')));
+    const assigneeData = normalizeAssignees(await readJson(seedDataPath('assignees.json')), await loadAssigneeIdMap());
 
     const storeId = await getDefaultStoreIdOrThrow('Default store must exist before seeding assignees.');
 
@@ -448,7 +447,7 @@ async function seedServices() {
 }
 
 async function seedReservations() {
-    const reservationData = normalizeReservationPayload(await readJson(seedDataPath('reservations.json')));
+    const reservationData = normalizeReservationPayload(await readJson(seedDataPath('reservations.json')), await loadAssigneeIdMap());
 
     const storeId = await getDefaultStoreIdOrThrow('Default store must exist before seeding reservations.');
 
@@ -579,10 +578,7 @@ async function seedTestConflicts() {
     const testData = await readJson(seedDataPath('test-conflicts.json'));
     const storeId = await getDefaultStoreIdOrThrow('Default store must exist before seeding test conflicts.');
 
-    const assigneeIdMap = buildLegacyIdMap(
-        (testData.reservations ?? []).map((r) => ({id: r.assigneeId})).filter((e) => Number.isInteger(e.id) && e.id > 0),
-        (e) => e.id,
-    );
+    const assigneeIdMap = await loadAssigneeIdMap();
 
     for (const reservation of testData.reservations ?? []) {
         const date = resolveTestDate(reservation);
