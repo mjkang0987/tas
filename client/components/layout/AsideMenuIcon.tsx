@@ -93,9 +93,10 @@ export const AsideMenuIcon = ({icon}: {icon: string}) => {
         case 'assignee':
             return (
                 <StyledMenuIcon viewBox="0 0 24 24" aria-hidden="true">
-                    <circle cx="7" cy="8" r="2" />
-                    <circle cx="7" cy="16" r="2" />
-                    <path d="M8.7 9.2L12 12L17.5 7.2M8.7 14.8L12 12L17.5 16.8" />
+                    <rect x="5" y="4" width="14" height="16" rx="2.5" />
+                    <path d="M9.5 4V2.6H14.5V4" />
+                    <circle cx="12" cy="10" r="2.2" />
+                    <path d="M8.5 16.6C8.5 14.6 10 13.6 12 13.6C14 13.6 15.5 14.6 15.5 16.6" />
                 </StyledMenuIcon>
             );
         case 'customers':
@@ -144,6 +145,13 @@ export const AsideMenuIcon = ({icon}: {icon: string}) => {
                 <StyledMenuIcon viewBox="0 0 24 24" aria-hidden="true">
                     <rect x="3" y="5" width="18" height="14" rx="3" />
                     <path d="M3 7L12 13L21 7" />
+                </StyledMenuIcon>
+            );
+        case 'guide':
+            return (
+                <StyledMenuIcon viewBox="0 0 24 24" aria-hidden="true">
+                    <path d="M12 3C8.7 3 6 5.6 6 8.9C6 11 7.1 12.6 8.7 13.6V15.5H15.3V13.6C16.9 12.6 18 11 18 8.9C18 5.6 15.3 3 12 3Z" />
+                    <path d="M9.3 18H14.7M10.3 20.6H13.7" />
                 </StyledMenuIcon>
             );
         case 'history':

@@ -265,7 +265,7 @@ export const Aside = () => {
                                       if (typeof window !== 'undefined') window.dispatchEvent(new Event('tas:start-tour'));
                                       closeMobile();
                                   }}>
-                    <AsideMenuIcon icon="inquiry" />
+                    <AsideMenuIcon icon="guide" />
                     <span>사용 안내</span>
                 </StyledHelpButton>
                 <StyledLogoutButton type="button"
