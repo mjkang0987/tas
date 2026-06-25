@@ -18,6 +18,7 @@ interface StoreManageSectionProps {
 export const StoreManageSection = ({formatDateLabel}: StoreManageSectionProps) => {
     const toast = useToastStore((s) => s.show);
     const storeName = useCalendarStore((s) => s.storeName);
+    const shopType = useCalendarStore((s) => s.shopType);
     const storeSettings = useCalendarStore((s) => s.storeSettings);
     const updateStoreInfo = useCalendarStore((s) => s.updateStoreInfo);
     const updateStoreBusinessHours = useCalendarStore((s) => s.updateStoreBusinessHours);
@@ -49,7 +50,7 @@ export const StoreManageSection = ({formatDateLabel}: StoreManageSectionProps) =
             setStoreInfoError('매장 이름을 입력해 주세요.');
             return;
         }
-        updateStoreInfo(editStoreName.trim(), null);
+        updateStoreInfo(editStoreName.trim(), shopType);
         setIsEditingStoreInfo(false);
         setStoreInfoError('');
         toast('매장 정보가 저장되었습니다.');
