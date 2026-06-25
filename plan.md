@@ -4,6 +4,48 @@
 
 ---
 
+## 진행 중 — 업종별 라벨 시스템 (매장관리 직종 표시·수정 + 담당자/서비스 문구 전환)
+
+> 매장 관리에 직종(shopType) 표시·수정 추가, 직종에 맞게 "담당자"·"서비스" 문구가 화면에 반영되게.
+> 배경: 업종 중립화(rename) 후속. 음식점 등 타 업종에서도 자연스럽게 쓰도록.
+
+### 현황 조사 결과
+- `shopType String?` (nullable, 필수 아님). 온보딩에서만 **다중 선택**(콤마 저장), 이후 수정 UI 없음. null-wipe 버그는 수정 완료(`4aa5df8`).
+- 현재 업종 목록 = 뷰티 5종뿐: `hair/nail/waxing/lash/skin`(+`etc`). 서버 `VALID_SHOP_TYPES`(onboarding.ts·migrate-local.ts)도 동일. 음식점·병원 없음.
+- 라벨 문구 분포: "담당자" ~33파일, "서비스" ~30+파일. **단 "서비스"의 상당수(terms.ts 26·privacy.ts 14·dpa.ts 5·about·maintenance)는 "(우리) 앱 서비스" 의미 → 라벨 아님, 치환 금지.** 진짜 라벨은 Assignee/ServiceManageSection·예약 폼·캘린더·매출 등.
+
+### 설계 결정
+1. **업종 확장**(사용자 확정): 음식점(food)·병원/의원(medical)·기타 등 타 업종 추가. 각 업종을 **category**로 묶고 category별 라벨셋 정의.
+
+   | category | 업종 | assignee 라벨 | service 라벨 |
+   |----------|------|--------------|-------------|
+   | beauty | 헤어/네일/왁싱/속눈썹/피부 | 담당자 | 시술 |
+   | food | 음식점 | 테이블 | 메뉴 |
+   | medical | 병원/의원 | 담당의 | 진료 |
+   | etc | 기타 | 담당자 | 서비스 |
+   (구체 라벨값은 구현 전 1차 확정)
+
+2. **다중/단일(사용자: "업종 성격 따라 다중 가능/불가")**: 라벨은 **category 기준**. 같은 category 내 세부업종 다중 허용(예: 헤어+네일), **cross-category 비허용**. → 매장관리에선 category 1개 선택(라벨 확정) + 같은 category 세부 다중. 온보딩 기존 다중 선택은 유지(같은 category 가정), 라벨은 primary(첫 업종)의 category로.
+
+3. **라벨 주입 메커니즘**: `features/store-settings/labels.ts`에 `getStoreLabels(shopType) → {assignee, service}` + category 매핑. `useStoreLabels()` 훅(calendarStore의 shopType 구독). 컴포넌트의 하드코딩 "담당자"/"서비스" → `labels.assignee`/`labels.service`. 합성문구는 템플릿(`${labels.assignee} 관리`).
+
+4. **적용 범위(단계)**:
+   - **Phase A(핵심)**: aside 메뉴, AssigneeManageSection·ServiceManageSection(제목·필드·placeholder), 예약 생성/상세 폼, 캘린더 헤더/범례.
+   - **Phase B(확장)**: 매출·모달·온보딩 등 나머지 라벨.
+   - **제외(영구)**: 약관/개인정보/DPA/about/maintenance의 "서비스"(앱 명칭). PageHero 영문 eyebrow(ASSIGNEE/SERVICE)는 유지.
+
+### 영향 파일 (예상)
+- 신규: `features/store-settings/labels.ts`, `useStoreLabels` 훅.
+- 수정: `onboarding-types.ts`(SHOP_TYPES 확장), 서버 `VALID_SHOP_TYPES`(onboarding.ts·migrate-local.ts), `StoreManageSection`(업종 표시·수정 UI), 라벨 치환 다수 컴포넌트.
+- DB: shopType 컬럼 그대로(문자열). 마이그레이션 불필요(값 종류만 확장).
+
+### 리스크
+- 약관 등 "서비스" 오치환 → 라벨 대상만 선별 치환(전수 find-replace 금지).
+- 다중 업종 시 라벨 결정 규칙 명확화(primary/category).
+- 음식점은 라벨만으론 부족(인원수·테이블 자원·회전시간은 별도 트랙) — 이번 범위는 **라벨/직종 표시까지만**.
+
+---
+
 ## 진행 중 — 매장관리: 적립금/회원권 시스템 토글 + 회원권 풀 기능
 
 > 매장 관리에서 "적립금 시스템 사용"·"회원권 시스템 사용"을 켜면 aside 설정에 메뉴가 뜨고 페이지가 열린다.
