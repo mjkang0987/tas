@@ -9,6 +9,7 @@ import {PageHero} from '../ui/PageHero';
 import {formControlStyle} from '../ui/FormControls';
 import {FieldError} from '../ui/FieldError';
 import {useToastStore} from '../../store/toastStore';
+import {SHOP_INDUSTRIES, CATEGORY_NAMES, getPrimaryIndustry, type ShopCategory} from '../../features/store-settings/labels';
 
 interface StoreManageSectionProps {
     formatDateLabel: (dateKey: string) => string;
@@ -34,7 +35,14 @@ export const StoreManageSection = ({formatDateLabel}: StoreManageSectionProps) =
     const [isEditingClosedDates, setIsEditingClosedDates] = useState(false);
     const [isEditingStoreInfo, setIsEditingStoreInfo] = useState(false);
     const [editStoreName, setEditStoreName] = useState(storeName);
+    const [editShopType, setEditShopType] = useState(getPrimaryIndustry(shopType)?.value ?? '');
     const [storeInfoError, setStoreInfoError] = useState('');
+
+    const currentIndustry = getPrimaryIndustry(shopType);
+    // optgroup 용: 카테고리 순서대로 업종 그룹화
+    const industryGroups = (Object.keys(CATEGORY_NAMES) as ShopCategory[])
+        .map((cat) => ({cat, items: SHOP_INDUSTRIES.filter((s) => s.category === cat)}))
+        .filter((g) => g.items.length > 0);
 
     useEffect(() => {
         setBusinessHours(storeSettings.businessHours);
@@ -45,12 +53,16 @@ export const StoreManageSection = ({formatDateLabel}: StoreManageSectionProps) =
         setEditStoreName(storeName);
     }, [storeName]);
 
+    useEffect(() => {
+        setEditShopType(getPrimaryIndustry(shopType)?.value ?? '');
+    }, [shopType]);
+
     const handleSaveStoreInfo = () => {
         if (!editStoreName.trim()) {
             setStoreInfoError('매장 이름을 입력해 주세요.');
             return;
         }
-        updateStoreInfo(editStoreName.trim(), shopType);
+        updateStoreInfo(editStoreName.trim(), editShopType || null);
         setIsEditingStoreInfo(false);
         setStoreInfoError('');
         toast('매장 정보가 저장되었습니다.');
@@ -115,12 +127,30 @@ export const StoreManageSection = ({formatDateLabel}: StoreManageSectionProps) =
                                 />
                                 <FieldError variant="inline">{storeInfoError}</FieldError>
                             </StyledRangeInputWrap>
+                            <StyledRangeInputWrap htmlFor="store-edit-industry">
+                                <span>업종</span>
+                                <StyledIndustrySelect
+                                    id="store-edit-industry"
+                                    value={editShopType}
+                                    onChange={(e) => setEditShopType(e.target.value)}
+                                >
+                                    <option value="">선택 안 함</option>
+                                    {industryGroups.map((g) => (
+                                        <optgroup key={g.cat} label={CATEGORY_NAMES[g.cat]}>
+                                            {g.items.map((s) => (
+                                                <option key={s.value} value={s.value}>{s.emoji} {s.label}</option>
+                                            ))}
+                                        </optgroup>
+                                    ))}
+                                </StyledIndustrySelect>
+                            </StyledRangeInputWrap>
                         </StyledStoreFieldGrid>
                         <StyledStoreActionRow>
                             <StyledCancelBtn
                                 type="button"
                                 onClick={() => {
                                     setEditStoreName(storeName);
+                                    setEditShopType(getPrimaryIndustry(shopType)?.value ?? '');
                                     setStoreInfoError('');
                                     setIsEditingStoreInfo(false);
                                 }}
@@ -133,6 +163,11 @@ export const StoreManageSection = ({formatDateLabel}: StoreManageSectionProps) =
                 ) : (
                     <StyledStoreInfoRow>
                         <StyledStoreInfoName>{storeName || <StyledInfoPlaceholder>매장 이름 없음</StyledInfoPlaceholder>}</StyledStoreInfoName>
+                        <StyledIndustryBadge>
+                            {currentIndustry
+                                ? `${currentIndustry.emoji} ${currentIndustry.label}`
+                                : <StyledInfoPlaceholder>업종 미설정</StyledInfoPlaceholder>}
+                        </StyledIndustryBadge>
                     </StyledStoreInfoRow>
                 )}
             </StyledStoreCard>
@@ -314,6 +349,18 @@ const StyledInfoPlaceholder = styled.span`
     font-size: 13px;
     font-weight: 400;
     color: var(--dark-gray-color2);
+`;
+
+const StyledIndustrySelect = styled.select`
+    ${formControlStyle};
+`;
+
+const StyledIndustryBadge = styled.span`
+    font-size: 13px;
+    color: var(--dark-gray-color);
+    background: var(--gray-color2);
+    padding: 3px 10px;
+    border-radius: var(--chip-radius);
 `;
 
 const StyledStoreCard = styled.div`

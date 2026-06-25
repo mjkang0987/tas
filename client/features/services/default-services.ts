@@ -1,11 +1,31 @@
-export type ShopType = 'hair' | 'nail' | 'waxing' | 'lash' | 'skin' | 'etc';
+export type ShopType =
+    // beauty
+    | 'hair' | 'nail' | 'waxing' | 'lash' | 'skin' | 'makeup' | 'tattoo'
+    // food
+    | 'restaurant' | 'cafe' | 'bar'
+    // medical
+    | 'clinic' | 'dental' | 'oriental' | 'vet'
+    // fitness
+    | 'gym' | 'yoga' | 'golf' | 'dance'
+    // class / education
+    | 'academy' | 'craft' | 'tutoring'
+    // pet
+    | 'petgroom'
+    // repair / auto
+    | 'carwash' | 'repair'
+    // space rental
+    | 'rentalspace' | 'practice'
+    // counseling
+    | 'counseling'
+    | 'etc';
 
-export const DEFAULT_SERVICES: Record<ShopType, Array<{
+// 신규 업종은 기본 서비스/색상 프리셋이 없을 수 있어 Partial. 소비처는 `?? []`/`?? {}` 로 폴백한다.
+export const DEFAULT_SERVICES: Partial<Record<ShopType, Array<{
     category: string;
     name: string;
     durationMinutes: number;
     price: number;
-}>> = {
+}>>> = {
     hair: [
         {category: '커트', name: '커트', durationMinutes: 30, price: 20000},
         {category: '펌', name: '일반펌', durationMinutes: 120, price: 80000},
@@ -50,7 +70,7 @@ export const DEFAULT_SERVICES: Record<ShopType, Array<{
     etc: [],
 };
 
-export const SHOP_CATEGORY_COLOR_MAP: Record<ShopType, Record<string, string>> = {
+export const SHOP_CATEGORY_COLOR_MAP: Partial<Record<ShopType, Record<string, string>>> = {
     hair: {
         '커트': '#2D7FF9',
         '펌': '#E53935',

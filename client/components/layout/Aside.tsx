@@ -19,6 +19,7 @@ import {StoreSwitcher} from './StoreSwitcher';
 import {AsideGuestLogout} from './AsideGuestLogout';
 import {clearGuestConsentAck, clearGuestEntryResolved, clearGuestTermsAgreed} from '../../lib/local-db';
 import {AsideMenuIcon, StyledMenuIcon} from './AsideMenuIcon';
+import {useStoreLabels} from '../../hooks/useStoreLabels';
 import {
     StyledAside,
     StyledBrandLink,
@@ -135,6 +136,11 @@ export const Aside = () => {
     const isLoggedInStaff = !!session?.user && !isOwner;
     const usePointSystem = useCalendarStore((s) => s.usePointSystem);
     const useMembershipSystem = useCalendarStore((s) => s.useMembershipSystem);
+    const labels = useStoreLabels();
+    const submenuLabel = (item: typeof SETTINGS_SUBMENU[number]) =>
+        item.tab === 'assignee' ? `${labels.assignee} 관리`
+            : item.tab === 'service' ? `${labels.service} 관리`
+                : item.label;
 
     return (<StyledAside $isVisible={aside.isVisible}>
             <StyledBrandLink href="/"
@@ -252,7 +258,7 @@ export const Aside = () => {
                                                   onClick={closeMobile}>
                                     <StyledMenuContent>
                                         <AsideMenuIcon icon={item.icon} />
-                                        <span>{item.label}</span>
+                                        <span>{submenuLabel(item)}</span>
                                     </StyledMenuContent>
                                 </StyledSubNavLink>
                             )}

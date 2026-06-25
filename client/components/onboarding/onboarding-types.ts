@@ -1,4 +1,5 @@
 import type {ShopType} from '../../features/services/default-services';
+import {SHOP_INDUSTRIES} from '../../features/store-settings/labels';
 
 export type OnboardingStep = 0 | 1 | 2 | 3 | 4 | 5;
 export type ExtShopType = ShopType | 'etc';
@@ -17,14 +18,9 @@ export interface AddServiceState {
     newCategory: string;
 }
 
-export const SHOP_TYPES: {type: ExtShopType; label: string; emoji: string; desc: string}[] = [
-    {type: 'hair', label: '헤어샵', emoji: '✂️', desc: '커트·펌·염색·클리닉'},
-    {type: 'nail', label: '네일샵', emoji: '💅', desc: '젤네일·케어·아트'},
-    {type: 'waxing', label: '왁싱샵', emoji: '🪷', desc: '바디·페이스 왁싱'},
-    {type: 'lash', label: '속눈썹샵', emoji: '👁️', desc: '연장·펌·리무브'},
-    {type: 'skin', label: '피부관리실', emoji: '🧴', desc: '기본·스페셜·클렌징'},
-    {type: 'etc', label: '기타', emoji: '🏪', desc: '기타 업종'},
-];
+// 업종 마스터 목록(features/store-settings/labels)에서 파생 — 신규 업종 자동 반영.
+export const SHOP_TYPES: {type: ExtShopType; label: string; emoji: string; desc: string}[] =
+    SHOP_INDUSTRIES.map(({value, label, emoji, desc}) => ({type: value, label, emoji, desc}));
 
 export const STEP_LABELS: Record<OnboardingStep, string> = {
     0: '매장 초기 설정',

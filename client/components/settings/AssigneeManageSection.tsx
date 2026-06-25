@@ -8,6 +8,7 @@ import {WEEKDAY_LABELS, getAssigneeColor, getAssigneeStatus, getAssigneeStatusMe
 import {Dot} from '../ui/Dot';
 import {LabelBadge} from '../ui/LabelBadge';
 import {formControlStyle} from '../ui/FormControls';
+import {useStoreLabels} from '../../hooks/useStoreLabels';
 import {StyledEditBtn, StyledDeleteBtn, StyledSaveBtn, StyledCancelBtn, StyledEmpty, StyledServiceFooter} from './settings-styles';
 import {
     compactInputStyle,
@@ -267,6 +268,7 @@ export const AssigneeManageSection = () => {
     const updateAssignee = useCalendarStore((s) => s.updateAssignee);
     const updateAssigneeDay = useCalendarStore((s) => s.updateAssigneeDay);
     const deleteAssignee = useCalendarStore((s) => s.deleteAssignee);
+    const labels = useStoreLabels();
     const [newName, setNewName] = useState('');
     const [newStatus, setNewStatus] = useState<AssigneeStatus>('재직');
     const [newPhone, setNewPhone] = useState('');
@@ -321,7 +323,7 @@ export const AssigneeManageSection = () => {
 
     return (
         <>
-            <PageHero eyebrow="ASSIGNEE" title="담당자 관리" subtitle="담당자 정보, 근무 일정, 재직 상태를 관리합니다." />
+            <PageHero eyebrow="ASSIGNEE" title={`${labels.assignee} 관리`} subtitle={`${labels.assignee} 정보, 근무 일정, 재직 상태를 관리합니다.`} />
             <StyledAssigneeBody>
                 <AssigneeSection
                     title="재직자"
@@ -361,12 +363,12 @@ export const AssigneeManageSection = () => {
                         <StyledAddForm>
                             <StyledAddFormGrid>
                                 <StyledAssigneeMetaField>
-                                    <StyledAssigneeMetaLabel htmlFor="new-assignee-name">담당자명</StyledAssigneeMetaLabel>
+                                    <StyledAssigneeMetaLabel htmlFor="new-assignee-name">{labels.assignee}명</StyledAssigneeMetaLabel>
                                     <StyledAddInput
                                         id="new-assignee-name"
                                         value={newName}
                                         onChange={(e) => setNewName(e.target.value)}
-                                        placeholder="새 담당자명"
+                                        placeholder={`새 ${labels.assignee}명`}
                                     />
                                 </StyledAssigneeMetaField>
                                 <StyledAssigneeMetaField>
@@ -427,14 +429,14 @@ export const AssigneeManageSection = () => {
                             </StyledAddFormActions>
                         </StyledAddForm>
                     ) : (
-                        <StyledEditBtn type="button" onClick={() => setIsAddingAssignee(true)}>담당자 추가</StyledEditBtn>
+                        <StyledEditBtn type="button" onClick={() => setIsAddingAssignee(true)}>{labels.assignee} 추가</StyledEditBtn>
                     )}
                 </StyledAssigneeFooterActions>
             </StyledServiceFooter>
             {confirmTarget && (
                 <ConfirmDialog
                     title="확인"
-                    message={`"${confirmTarget.name}" 담당자를 퇴직 처리하시겠습니까?`}
+                    message={`"${confirmTarget.name}" ${labels.assignee}를 퇴직 처리하시겠습니까?`}
                     confirmVariant="danger"
                     layerKey="assignee-confirm"
                     onConfirm={handleConfirmDelete}
@@ -445,11 +447,11 @@ export const AssigneeManageSection = () => {
                 <ConfirmDialog
                     title="영구 삭제"
                     message={
-                        `"${permanentTarget.name}" 담당자를 영구 삭제하시겠습니까?\n`
+                        `"${permanentTarget.name}" ${labels.assignee}를 영구 삭제하시겠습니까?\n`
                         + (permanentTargetReservationCount > 0
-                            ? `이 담당자의 예약 ${permanentTargetReservationCount}건은 '미지정'으로 남고, `
+                            ? `이 ${labels.assignee}의 예약 ${permanentTargetReservationCount}건은 '미지정'으로 남고, `
                             : '')
-                        + '담당자 정보와 근무 일정은 완전히 삭제됩니다. 되돌릴 수 없습니다.'
+                        + `${labels.assignee} 정보와 근무 일정은 완전히 삭제됩니다. 되돌릴 수 없습니다.`
                     }
                     confirmLabel="영구 삭제"
                     confirmVariant="danger"

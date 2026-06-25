@@ -8,8 +8,7 @@ import type {Assignee} from '../../client/features/assignees/model';
 import type {Customer} from '../../client/features/customers/model';
 import type {Reservation} from '../../client/features/reservations/model';
 import type {ServiceItem} from '../../client/features/services/model';
-
-const VALID_SHOP_TYPES = ['hair', 'nail', 'waxing', 'lash', 'skin'];
+import {sanitizeShopType} from '../../client/features/store-settings/labels';
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
     if (req.method !== 'POST') {
@@ -41,7 +40,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
 
     const name = typeof shopName === 'string' ? shopName.trim() : '';
-    const type = typeof shopType === 'string' && VALID_SHOP_TYPES.includes(shopType) ? shopType : null;
+    const type = sanitizeShopType(shopType);
     const servicesList: ServiceItem[] = Array.isArray(services) ? services : [];
     const assigneesList: Assignee[] = Array.isArray(assignees) && assignees.length > 0
         ? assignees

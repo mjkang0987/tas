@@ -1,8 +1,7 @@
 import type {NextApiRequest, NextApiResponse} from 'next';
 import {prisma} from '../db/prisma';
 import {getApiSession} from '../auth/api-session';
-
-const VALID_SHOP_TYPES = ['hair', 'nail', 'waxing', 'lash', 'skin'];
+import {sanitizeShopType} from '../../client/features/store-settings/labels';
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
     if (req.method !== 'POST') {
@@ -17,7 +16,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const {shopName, shopType, services, assignees} = req.body ?? {};
 
     const name = typeof shopName === 'string' ? shopName.trim() : '';
-    const type = typeof shopType === 'string' && VALID_SHOP_TYPES.includes(shopType) ? shopType : null;
+    const type = sanitizeShopType(shopType);
     const servicesList = Array.isArray(services) ? services : [];
     const assigneesList = Array.isArray(assignees) && assignees.length > 0
         ? assignees

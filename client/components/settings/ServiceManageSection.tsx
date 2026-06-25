@@ -3,6 +3,7 @@ import {useToastStore} from '../../store/toastStore';
 import {createPortal} from 'react-dom';
 
 import {useCalendarStore} from '../../store/calendarStore';
+import {useStoreLabels} from '../../hooks/useStoreLabels';
 import {PageHero} from '../ui/PageHero';
 import {actionButtonStyle, EMPTY_TEXT, StyledEditBtn as StyledEditBtnBase, StyledSaveBtn, StyledCancelBtn, StyledServiceFooter, StyledEmpty} from './settings-styles';
 import {buildServiceColorMap, formatPrice, formatDuration, getCategoryBaseColor, getGroupedCatalog, getServiceColor} from '../../utils/services';
@@ -330,6 +331,7 @@ const ServiceAddModal = ({categories, serviceCatalog, onAdd, onClose}: ServiceAd
 
 export const ServiceManageSection = () => {
     const toast = useToastStore((s) => s.show);
+    const labels = useStoreLabels();
     const serviceCatalog = useCalendarStore((s) => s.serviceCatalog);
     const categoryBaseColorMap = useCalendarStore((s) => s.categoryBaseColorMap);
     const addService = useCalendarStore((s) => s.addService);
@@ -455,7 +457,7 @@ export const ServiceManageSection = () => {
 
     return (
         <>
-            <PageHero eyebrow="SERVICE" title="서비스 관리" subtitle="서비스 카테고리와 메뉴를 등록하고 가격을 설정합니다." />
+            <PageHero eyebrow="SERVICE" title={`${labels.service} 관리`} subtitle={`${labels.service} 카테고리와 항목을 등록하고 가격을 설정합니다.`} />
             <StyledServiceBody>
                 {grouped.size === 0 && <StyledEmpty>{EMPTY_TEXT}</StyledEmpty>}
                 {Array.from(grouped.entries()).map(([category, items]) => (
@@ -564,7 +566,7 @@ export const ServiceManageSection = () => {
             <FieldError variant="inline">{manageError}</FieldError>
 
             <StyledServiceFooter>
-                <StyledAddButton type="button" onClick={() => setShowAddModal(true)}>+ 서비스 추가</StyledAddButton>
+                <StyledAddButton type="button" onClick={() => setShowAddModal(true)}>+ {labels.service} 추가</StyledAddButton>
             </StyledServiceFooter>
 
             {editingItem && (

@@ -5,6 +5,7 @@ import {getApiSession, requireRole} from '../auth/api-session';
 import {dbStoreToFrontend} from '../db/mappers';
 import type {StoreSettings} from '../../client/features/store-settings/model';
 import {DEFAULT_STORE_SETTINGS} from '../../client/features/store-settings/model';
+import {sanitizeShopType} from '../../client/features/store-settings/labels';
 
 function isValidTime(value: unknown): value is string {
     return typeof value === 'string' && /^\d{2}:\d{2}$/.test(value);
@@ -132,7 +133,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             where: {id: session.storeId},
             data: {
                 ...(storeName !== undefined && {name: (storeName as string).trim()}),
-                ...(shopType !== undefined && {shopType: shopType as string | null}),
+                ...(shopType !== undefined && {shopType: sanitizeShopType(shopType)}),
                 ...(usePointSystem !== undefined && {usePointSystem: usePointSystem as boolean}),
                 ...(useMembershipSystem !== undefined && {useMembershipSystem: useMembershipSystem as boolean}),
             },
