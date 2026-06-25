@@ -29,23 +29,25 @@ model Store {
   businessHours          StoreBusinessHour[]
   closedDates            StoreClosedDate[]
   pointSettings          StorePointSettings?
+  membershipProducts     MembershipProduct[]
+  customerMemberships    CustomerMembership[]
 }
 
 model User {
-  id                 String        @id @default(cuid())
-  email              String?       @unique
-  nickname           String        @unique
+  id                 String            @id @default(cuid())
+  email              String?           @unique
+  nickname           String            @unique
   name               String?
   image              String?
   agreedTermsVersion String?
   agreedTermsAt      DateTime?
-  createdAt          DateTime      @default(now())
-  updatedAt          DateTime      @updatedAt
-  accounts        AuthAccount[]
-  invitesUsed     Invite[]      @relation("InviteUsedBy")
-  invitesCreated  Invite[]      @relation("InviteCreatedBy")
-  memberships     Membership[]
-  gmailConnections GmailConnection[] @relation("GmailConnectionConnectedBy")
+  createdAt          DateTime          @default(now())
+  updatedAt          DateTime          @updatedAt
+  accounts           AuthAccount[]
+  invitesUsed        Invite[]          @relation("InviteUsedBy")
+  invitesCreated     Invite[]          @relation("InviteCreatedBy")
+  memberships        Membership[]
+  gmailConnections   GmailConnection[] @relation("GmailConnectionConnectedBy")
 }
 
 model GmailConnection {
@@ -108,6 +110,7 @@ model Customer {
   memoTags       CustomerMemoTag[]
   pointHistories CustomerPointHistory[]
   reservations   Reservation[]
+  memberships    CustomerMembership[]
 
   @@unique([storeId, legacyId])
   @@index([storeId, name])
@@ -167,16 +170,17 @@ model AssigneeSchedule {
 }
 
 model Service {
-  id         String   @id @default(cuid())
-  legacyName String?
-  storeId    String
-  name       String
-  category   String
-  duration   Int
-  price      Int
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
-  store      Store    @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  id                 String                     @id @default(cuid())
+  legacyName         String?
+  storeId            String
+  name               String
+  category           String
+  duration           Int
+  price              Int
+  createdAt          DateTime                   @default(now())
+  updatedAt          DateTime                   @updatedAt
+  store              Store                      @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  membershipProducts MembershipProductService[]
 
   @@unique([storeId, name])
 }
@@ -208,6 +212,7 @@ model Reservation {
   store            Store                     @relation(fields: [storeId], references: [id], onDelete: Cascade)
   histories        ReservationHistory[]
   paymentEntries   ReservationPaymentEntry[]
+  membershipUsages MembershipUsage[]
 
   @@unique([storeId, legacyId])
   @@unique([storeId, naverBookingId])
@@ -271,18 +276,18 @@ model StoreClosedDate {
 }
 
 model Invite {
-  id        String         @id @default(cuid())
-  storeId   String
-  code      String         @unique
-  role      MembershipRole
-  expiresAt DateTime
-  usedAt    DateTime?
-  usedById  String?
-  createdBy String
-  createdAt DateTime       @default(now())
-  store     Store          @relation(fields: [storeId], references: [id], onDelete: Cascade)
-  usedByUser User?         @relation("InviteUsedBy", fields: [usedById], references: [id])
-  creator   User           @relation("InviteCreatedBy", fields: [createdBy], references: [id])
+  id         String         @id @default(cuid())
+  storeId    String
+  code       String         @unique
+  role       MembershipRole
+  expiresAt  DateTime
+  usedAt     DateTime?
+  usedById   String?
+  createdBy  String
+  createdAt  DateTime       @default(now())
+  store      Store          @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  usedByUser User?          @relation("InviteUsedBy", fields: [usedById], references: [id])
+  creator    User           @relation("InviteCreatedBy", fields: [createdBy], references: [id])
 }
 
 enum MembershipRole {
@@ -327,14 +332,14 @@ enum PointHistoryType {
 }
 
 model CustomerMergeHistory {
-  id                    String   @id @default(cuid())
-  storeId               String
-  sourceCustomerJson    Json
-  targetCustomerJson    Json
-  movedReservationIds   Json     @default("[]")
-  movedPointHistoryIds  Json     @default("[]")
-  addedMemoTagIds       Json     @default("[]")
-  createdAt             DateTime @default(now())
+  id                   String   @id @default(cuid())
+  storeId              String
+  sourceCustomerJson   Json
+  targetCustomerJson   Json
+  movedReservationIds  Json     @default("[]")
+  movedPointHistoryIds Json     @default("[]")
+  addedMemoTagIds      Json     @default("[]")
+  createdAt            DateTime @default(now())
 
   @@index([storeId])
 }
@@ -366,4 +371,68 @@ enum AssigneeStatus {
   active
   on_leave
   resigned
+}
+
+// ── 회원권(membership) — 횟수/기간권. 적립금(금액)과 별개. ───────────────
+model MembershipProduct {
+  id                   String                     @id @default(cuid())
+  legacyId             Int?
+  storeId              String
+  name                 String
+  totalCount           Int? // 횟수 (null=무제한/기간제)
+  validDays            Int? // 발급일+유효일수 (null=무기한)
+  price                Int                        @default(0)
+  appliesToAllServices Boolean                    @default(true)
+  status               String                     @default("active") // active | archived
+  createdAt            DateTime                   @default(now())
+  updatedAt            DateTime                   @updatedAt
+  store                Store                      @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  services             MembershipProductService[]
+  issued               CustomerMembership[]
+
+  @@unique([storeId, legacyId])
+}
+
+model MembershipProductService {
+  id        String            @id @default(cuid())
+  productId String
+  serviceId String
+  product   MembershipProduct @relation(fields: [productId], references: [id], onDelete: Cascade)
+  service   Service           @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+
+  @@unique([productId, serviceId])
+}
+
+model CustomerMembership {
+  id             String             @id @default(cuid())
+  legacyId       Int?
+  storeId        String
+  customerId     String
+  productId      String?
+  name           String // 발급 시점 상품명 스냅샷
+  totalCount     Int?
+  remainingCount Int?
+  issuedAt       DateTime           @default(now())
+  expiresAt      DateTime?
+  status         String             @default("active") // active | expired | used_up | cancelled
+  createdAt      DateTime           @default(now())
+  updatedAt      DateTime           @updatedAt
+  store          Store              @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  customer       Customer           @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  product        MembershipProduct? @relation(fields: [productId], references: [id], onDelete: SetNull)
+  usages         MembershipUsage[]
+
+  @@unique([storeId, legacyId])
+}
+
+model MembershipUsage {
+  id                   String             @id @default(cuid())
+  customerMembershipId String
+  reservationId        String?
+  delta                Int // 음수=차감, 양수=환불/발급
+  type                 String // issue | use | adjust | refund
+  memo                 String?
+  createdAt            DateTime           @default(now())
+  customerMembership   CustomerMembership @relation(fields: [customerMembershipId], references: [id], onDelete: Cascade)
+  reservation          Reservation?       @relation(fields: [reservationId], references: [id], onDelete: SetNull)
 }
