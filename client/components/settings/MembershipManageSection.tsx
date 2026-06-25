@@ -199,6 +199,24 @@ export const MembershipManageSection = () => {
         }
     };
 
+    const handleUse = async (m: CustomerMembership, action: 'use' | 'restore') => {
+        try {
+            const res = await fetch('/api/membership-use', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({membershipId: m.id, action}),
+            });
+            if (!res.ok) {
+                const err = await res.json().catch(() => null) as {error?: string} | null;
+                throw new Error(err?.error || '');
+            }
+            toast(action === 'use' ? '1회 차감했습니다.' : '1회 복원했습니다.');
+            await fetchData();
+        } catch (err) {
+            toast(err instanceof Error && err.message ? err.message : '처리에 실패했습니다.', 'error');
+        }
+    };
+
     return (
         <StyledWrap>
             <PageHero
@@ -324,9 +342,17 @@ export const MembershipManageSection = () => {
                                                 <StyledItemName>{customerName(m.customerId)} · {m.name}</StyledItemName>
                                                 <StyledItemMeta>{describeBalance(m)} · {MEMBERSHIP_STATUS_LABEL[m.status]}</StyledItemMeta>
                                             </StyledItemMain>
-                                            {m.status === 'active' && (
+                                            {m.status !== 'cancelled' && (
                                                 <StyledItemActions>
-                                                    <StyledDeleteBtn type="button" onClick={() => handleCancelMembership(m)}>취소</StyledDeleteBtn>
+                                                    {m.totalCount != null && (m.remainingCount ?? 0) > 0 && (
+                                                        <StyledEditBtn type="button" onClick={() => handleUse(m, 'use')}>사용</StyledEditBtn>
+                                                    )}
+                                                    {m.totalCount != null && (m.remainingCount ?? 0) < m.totalCount && (
+                                                        <StyledEditBtn type="button" onClick={() => handleUse(m, 'restore')}>복원</StyledEditBtn>
+                                                    )}
+                                                    {m.status === 'active' && (
+                                                        <StyledDeleteBtn type="button" onClick={() => handleCancelMembership(m)}>취소</StyledDeleteBtn>
+                                                    )}
                                                 </StyledItemActions>
                                             )}
                                         </StyledItem>
