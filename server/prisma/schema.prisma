@@ -13,6 +13,8 @@ model Store {
   name                   String
   shopType               String?
   onboarded              Boolean              @default(false)
+  usePointSystem         Boolean              @default(false)
+  useMembershipSystem    Boolean              @default(false)
   categoryBaseColorsJson Json                 @default("{}")
   createdAt              DateTime             @default(now())
   updatedAt              DateTime             @updatedAt

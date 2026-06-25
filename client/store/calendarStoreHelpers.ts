@@ -185,6 +185,19 @@ export function syncStoreInfo(storeName: string, shopType: string | null): void 
     }).catch(() => {});
 }
 
+export function syncStoreFeatures(patch: {usePointSystem?: boolean; useMembershipSystem?: boolean}): void {
+    if (shouldUseLocalDb()) {
+        updateLocalDbSnapshot((c) => ({...c, ...patch}));
+        return;
+    }
+
+    fetch('/api/store', {
+        method: 'PATCH',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify(patch),
+    }).catch(() => {});
+}
+
 export function syncReservationState(reservationMap: ReservationMap, history: ReservationHistoryEntry[]): void {
     if (!shouldUseLocalDb()) {
         return;

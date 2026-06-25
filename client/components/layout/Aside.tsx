@@ -49,6 +49,7 @@ import {
 const SETTINGS_SUBMENU = [
     {tab: 'revenue', href: '/settings/revenue', label: '매출', icon: 'revenue'},
     {tab: 'point', href: '/settings/point', label: '적립금 관리', icon: 'point'},
+    {tab: 'membership', href: '/settings/membership', label: '회원권 관리', icon: 'membership'},
     {tab: 'store', href: '/settings/store', label: '매장 관리', icon: 'store'},
     {tab: 'service', href: '/settings/service', label: '서비스 관리', icon: 'service'},
     {tab: 'assignee', href: '/settings/assignee', label: '담당자 관리', icon: 'assignee'},
@@ -132,6 +133,8 @@ export const Aside = () => {
     const userRole = session?.user?.role;
     const isOwner = userRole === 'owner';
     const isLoggedInStaff = !!session?.user && !isOwner;
+    const usePointSystem = useCalendarStore((s) => s.usePointSystem);
+    const useMembershipSystem = useCalendarStore((s) => s.useMembershipSystem);
 
     return (<StyledAside $isVisible={aside.isVisible}>
             <StyledBrandLink href="/"
@@ -234,6 +237,9 @@ export const Aside = () => {
                                 }
                                 // 멤버(staff)는 기존 노출 항목(고객 명단·계정 관리)만 유지
                                 if (isLoggedInStaff && item.tab !== 'customers' && item.tab !== 'my') return false;
+                                // 매장 기능 토글로 켠 경우에만 노출
+                                if (item.tab === 'point') return usePointSystem;
+                                if (item.tab === 'membership') return useMembershipSystem;
                                 return true;
                             }).map((item) =>
                                 <StyledSubNavLink href={item.href}

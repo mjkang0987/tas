@@ -4,6 +4,54 @@
 
 ---
 
+## 진행 중 — 매장관리: 적립금/회원권 시스템 토글 + 회원권 풀 기능
+
+> 매장 관리에서 "적립금 시스템 사용"·"회원권 시스템 사용"을 켜면 aside 설정에 메뉴가 뜨고 페이지가 열린다.
+> 아이콘 교체(담당자=이름표/뱃지, 사용안내=전구)는 선행 완료(`be7fe49`).
+
+### 확정된 설계 결정 (사용자 확인)
+- **적립금 = 금액 / 회원권 = 비금액(횟수·기간)**. 금액권은 기존 적립금 충전(recharge)에 이미 있으므로 **별도로 안 만든다**(중복 방지). 적립금 화면 "충전/선불금" 라벨 정비는 회원권과 같이 진행.
+- **회원권**: 한 모델에 `횟수(옵션) + 만료(옵션)` 둘 다 담아 횟수권/기간권/복합 모두 표현. 서비스 **지정·전체 둘 다** 지원. 결제 시 **결제수단으로 차감 연동**. **선택적 만료**.
+- 적립금 토글 **기존 매장 기본값 = 꺼짐**(`default(false)`).
+- aside: 적립금 관리(기존 `point`)는 적립금 토글 ON일 때만, 회원권 관리(신규)는 회원권 토글 ON일 때만 노출.
+
+### 데이터 모델 (Prisma)
+- **Store**: `usePointSystem Boolean @default(false)`, `useMembershipSystem Boolean @default(false)`.
+- **MembershipProduct**(회원권 상품): id, storeId, legacyId(@@unique[storeId,legacyId]), name, `totalCount Int?`(횟수, null=무제한), `validDays Int?`(발급일+유효일수, null=무기한), `price Int`, `appliesToAllServices Boolean @default(true)`, status, services(MembershipProductService[]).
+- **MembershipProductService**: 회원권↔Service N:N(특정 서비스 지정 시).
+- **CustomerMembership**(고객 보유분): id, storeId, legacyId, customerId, productId?, name(스냅샷), `totalCount Int?`, `remainingCount Int?`, issuedAt, `expiresAt DateTime?`, status(active/expired/used_up/cancelled), usages.
+- **MembershipUsage**(차감/조정 이력): id, customerMembershipId, reservationId?, `delta Int`(음수=차감/양수=환불·발급), type(issue/use/adjust/refund), createdAt, memo.
+- **PaymentMethod** enum에 `membership` 추가.
+
+### 구현 단계
+1. **Phase 1 — 토글 + 메뉴/페이지 골격**(스키마: Store 토글 2개만): Store boolean 2개 + 마이그레이션, `/api/store` GET/PATCH·매퍼·클라 스토어 연동, StoreManageSection에 native 체크박스 2개, Aside 메뉴 게이팅 + 회원권 메뉴/아이콘 신설, `/settings/membership` 페이지 골격(탭 디스패치 등록), 적립금 라벨 정비. 로컬 PG 검증 → 커밋.
+2. **Phase 2 — 회원권 모델 + 관리 UI**: 위 4개 모델 + 마이그레이션, CRUD API(상품 발행/조회/수정/보관), `/settings/membership` 관리 화면(상품 목록·생성, 고객별 발급·잔여 조회).
+3. **Phase 3 — 결제 연동**: PaymentMethod.membership, 예약 결제 시 회원권 선택→차감(MembershipUsage 기록), 잔여/만료 검증, 고객 상세에 보유 회원권·이력 표시.
+
+### 리스크/주의
+- 새 테이블은 마이그레이션 → **운영 반영은 DB 접근 가능 시**(rename 배포 배치와 함께). 로컬 검증은 지금 가능.
+- 결제 차감은 트랜잭션으로(예약 결제 ↔ 회원권 차감 정합성). 만료/잔여 0 방어.
+
+---
+
+## 완료 — seed ID 재매핑 버그 수정 + ESLint 툴체인 복구
+
+> 담당자 rename 소스 검증 중 발견. 커밋 `dee8700`(seed)·`4cc4ce8`(deps). 둘 다 rename 과 독립.
+
+### 1) seed 담당자 ID 재매핑 버그 (correctness) — 수정됨
+- **증상**: `prisma:seed` 시 `reservations.json`의 모든 예약이 `assigneeId=null`(미배정)로 들어가 담당자별 예약·매출이 통째로 빔.
+- **근본 원인(2중)**: ① `normalizeAssignees`·`normalizeReservationPayload`·`seedTestConflicts`가 같은 담당자 ID를 각자 독립 맵으로 재매핑 → 불일치(담당자 legacyId 1·2·3·4 vs 예약 130·140·145). ② `buildLegacyIdMap`이 `MAX_INT_32` 초과 ID 중복을 안 걸러 nextId 낭비·덮어씀.
+- **수정**: `buildLegacyIdMap` dedup + `loadAssigneeIdMap`(assignees.json 단일 출처·메모이즈)을 세 정규화 함수가 공유.
+- **검증**: 로컬 PG 시드 → 예약 54건 전부 유효 담당자 연결, dangling 0 (수정 전 0건 연결 → 후 54건).
+
+### 2) ESLint 툴체인 복구 (infra) — 수정됨
+- **증상**: `pnpm lint` 실행 자체 불가. eslint 10 에선 react 룰 `getFilename` 비호환, eslint 9 로 내리면 brace-expansion override(5.0.6 일괄)가 minimatch@3.x(1.x API) 를 깨뜨림(`expand is not a function`).
+- **수정**: eslint 10.4.1→9.39.4(next/plugin-react peer 정렬) + brace-expansion override 를 `brace-expansion@1: 1.1.12`(1.x 만 패치)로 정정. minimatch@10.x 는 5.0.6 자연 해석, ReDoS 패치 유지.
+- **검증**: `pnpm lint` 정상 실행. tsc·next build 통과.
+- **후속(미정)**: lint 가 드러낸 기존 코드 이슈 **22 errors·51 warnings**(주로 `react-hooks/set-state-in-effect`, `no-unused-vars`)는 별도 정리 필요.
+
+---
+
 ## 완료(최근) — 캘린더 타임라인: 영업시간 연동 + 표시 개선
 
 > 배포 완료. 상세는 git 히스토리(`d5a2333`·`4fdbba4`·`456750a` 외 `9ae39ab`·`ab7fe43`).

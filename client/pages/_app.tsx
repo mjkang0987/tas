@@ -39,6 +39,7 @@ function AppContent({Component, pageProps}: AppContentProps) {
     const setCategoryBaseColorMap = useCalendarStore((s) => s.setCategoryBaseColorMap);
     const setAssignees = useCalendarStore((s) => s.setAssignees);
     const setStoreInfo = useCalendarStore((s) => s.setStoreInfo);
+    const setStoreFeatures = useCalendarStore((s) => s.setStoreFeatures);
     const setStoreSettings = useCalendarStore((s) => s.setStoreSettings);
     const setReservationMap = useCalendarStore((s) => s.setReservationMap);
     const setCustomerMap = useCalendarStore((s) => s.setCustomerMap);
@@ -301,6 +302,7 @@ function AppContent({Component, pageProps}: AppContentProps) {
         if (status === 'unauthenticated' || (status === 'authenticated' && !hasApiAccess)) {
             const localDb = loadLocalDbSnapshot();
             setStoreInfo(localDb.storeName ?? '', localDb.shopType ?? null);
+            setStoreFeatures(localDb.usePointSystem ?? false, localDb.useMembershipSystem ?? false);
             setStoreSettings(localDb.storeSettings);
             setReservationMap(groupByDate(localDb.reservations));
             setCustomerMap(toCustomerMap(localDb.customers));
@@ -324,7 +326,7 @@ function AppContent({Component, pageProps}: AppContentProps) {
                 if (!customersRes.ok) throw new Error('Failed to load customers');
 
                 return Promise.all([
-                    storeRes.json() as Promise<StoreSettings & {storeName?: string; shopType?: string | null}>,
+                    storeRes.json() as Promise<StoreSettings & {storeName?: string; shopType?: string | null; usePointSystem?: boolean; useMembershipSystem?: boolean}>,
                     reservationsRes.json() as Promise<{
                         reservations: Array<Parameters<typeof groupByDate>[0][number]>;
                         history: Parameters<typeof setReservationHistory>[0];
@@ -334,6 +336,7 @@ function AppContent({Component, pageProps}: AppContentProps) {
             })
             .then(([storeData, reservationsData, customersData]) => {
                 setStoreInfo(storeData.storeName ?? '', storeData.shopType ?? null);
+                setStoreFeatures(storeData.usePointSystem ?? false, storeData.useMembershipSystem ?? false);
                 if (storeData && typeof storeData === 'object' && storeData.businessHours && Array.isArray(storeData.closedDates)) {
                     const rawPointSettings = storeData.pointSettings as StoreSettings['pointSettings'] & {mode?: string} | undefined;
                     setStoreSettings({
@@ -377,7 +380,7 @@ function AppContent({Component, pageProps}: AppContentProps) {
                 // Keep the current in-memory data if loading fails.
                 setReservationsReady(true);
             });
-    }, [hasApiAccess, status, setStoreInfo, setStoreSettings, setReservationMap, setCustomerMap, setReservationHistory]);
+    }, [hasApiAccess, status, setStoreInfo, setStoreFeatures, setStoreSettings, setReservationMap, setCustomerMap, setReservationHistory]);
 
     // 데이터(서비스·담당자·예약)가 모두 준비될 때까지 오버레이로 가려 새로고침 플래시를 막음.
     // SSR/첫 렌더 모두 status==='loading'이라 하이드레이션 불일치가 없음.

@@ -147,6 +147,13 @@ export const AsideMenuIcon = ({icon}: {icon: string}) => {
                     <path d="M3 7L12 13L21 7" />
                 </StyledMenuIcon>
             );
+        case 'membership':
+            return (
+                <StyledMenuIcon viewBox="0 0 24 24" aria-hidden="true">
+                    <path d="M4 8.5C4 7.4 4.9 6.5 6 6.5H18C19.1 6.5 20 7.4 20 8.5V10C18.9 10 18 10.9 18 12C18 13.1 18.9 14 20 14V15.5C20 16.6 19.1 17.5 18 17.5H6C4.9 17.5 4 16.6 4 15.5V14C5.1 14 6 13.1 6 12C6 10.9 5.1 10 4 10Z" />
+                    <path d="M13.5 6.5V17.5" strokeDasharray="2 2" />
+                </StyledMenuIcon>
+            );
         case 'guide':
             return (
                 <StyledMenuIcon viewBox="0 0 24 24" aria-hidden="true">

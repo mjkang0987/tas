@@ -17,7 +17,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         if (!requireRole(session, 'staff', res)) return;
 
         const [store, businessHours, closedDates, pointSettings] = await Promise.all([
-            prisma.store.findUnique({where: {id: session.storeId}, select: {name: true, shopType: true}}),
+            prisma.store.findUnique({where: {id: session.storeId}, select: {name: true, shopType: true, usePointSystem: true, useMembershipSystem: true}}),
             prisma.storeBusinessHour.findMany({where: {storeId: session.storeId}, orderBy: {dayIndex: 'asc'}}),
             prisma.storeClosedDate.findMany({where: {storeId: session.storeId}}),
             prisma.storePointSettings.findUnique({where: {storeId: session.storeId}}),
@@ -28,6 +28,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             ...result,
             storeName: store?.name ?? '',
             shopType: store?.shopType ?? null,
+            usePointSystem: store?.usePointSystem ?? false,
+            useMembershipSystem: store?.useMembershipSystem ?? false,
         });
     }
 
@@ -109,7 +111,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     if (req.method === 'PATCH') {
         if (!requireRole(session, 'owner', res)) return;
 
-        const {storeName, shopType} = req.body as {storeName?: unknown; shopType?: unknown};
+        const {storeName, shopType, usePointSystem, useMembershipSystem} = req.body as {
+            storeName?: unknown; shopType?: unknown; usePointSystem?: unknown; useMembershipSystem?: unknown;
+        };
 
         if (storeName !== undefined && (typeof storeName !== 'string' || !storeName.trim())) {
             return res.status(400).json({error: 'Invalid storeName'});
@@ -117,16 +121,29 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         if (shopType !== undefined && shopType !== null && typeof shopType !== 'string') {
             return res.status(400).json({error: 'Invalid shopType'});
         }
+        if (usePointSystem !== undefined && typeof usePointSystem !== 'boolean') {
+            return res.status(400).json({error: 'Invalid usePointSystem'});
+        }
+        if (useMembershipSystem !== undefined && typeof useMembershipSystem !== 'boolean') {
+            return res.status(400).json({error: 'Invalid useMembershipSystem'});
+        }
 
         await prisma.store.update({
             where: {id: session.storeId},
             data: {
                 ...(storeName !== undefined && {name: (storeName as string).trim()}),
                 ...(shopType !== undefined && {shopType: shopType as string | null}),
+                ...(usePointSystem !== undefined && {usePointSystem: usePointSystem as boolean}),
+                ...(useMembershipSystem !== undefined && {useMembershipSystem: useMembershipSystem as boolean}),
             },
         });
 
-        return res.status(200).json({storeName: storeName ?? undefined, shopType: shopType ?? undefined});
+        return res.status(200).json({
+            storeName: storeName ?? undefined,
+            shopType: shopType ?? undefined,
+            usePointSystem: usePointSystem ?? undefined,
+            useMembershipSystem: useMembershipSystem ?? undefined,
+        });
     }
 
     res.setHeader('Allow', ['GET', 'PUT', 'PATCH']);

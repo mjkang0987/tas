@@ -22,6 +22,9 @@ export const StoreManageSection = ({formatDateLabel}: StoreManageSectionProps) =
     const updateStoreInfo = useCalendarStore((s) => s.updateStoreInfo);
     const updateStoreBusinessHours = useCalendarStore((s) => s.updateStoreBusinessHours);
     const updateStoreClosedDates = useCalendarStore((s) => s.updateStoreClosedDates);
+    const usePointSystem = useCalendarStore((s) => s.usePointSystem);
+    const useMembershipSystem = useCalendarStore((s) => s.useMembershipSystem);
+    const updateStoreFeatures = useCalendarStore((s) => s.updateStoreFeatures);
     const [businessHours, setBusinessHours] = useState(storeSettings.businessHours);
     const [closedDates, setClosedDates] = useState(storeSettings.closedDates);
     const [closedDateInput, setClosedDateInput] = useState('');
@@ -237,6 +240,44 @@ export const StoreManageSection = ({formatDateLabel}: StoreManageSectionProps) =
                     </StyledStoreActionRow>
                 )}
             </StyledStoreCard>
+
+            <StyledFeatureCard>
+                <StyledStoreCardHeader>
+                    <StyledStoreCardTitle>기능 사용</StyledStoreCardTitle>
+                </StyledStoreCardHeader>
+                <StyledFeatureList>
+                    <StyledFeatureItem htmlFor="feature-point">
+                        <StyledFeatureCheckbox
+                            id="feature-point"
+                            type="checkbox"
+                            checked={usePointSystem}
+                            onChange={(e) => {
+                                updateStoreFeatures({usePointSystem: e.target.checked});
+                                toast(e.target.checked ? '적립금 시스템을 켰습니다.' : '적립금 시스템을 껐습니다.');
+                            }}
+                        />
+                        <StyledFeatureText>
+                            <StyledFeatureName>적립금 시스템 사용</StyledFeatureName>
+                            <StyledFeatureDesc>결제 시 적립·선불 충전(선불금) 기능. 켜면 설정 메뉴에 ‘적립금 관리’가 나타납니다.</StyledFeatureDesc>
+                        </StyledFeatureText>
+                    </StyledFeatureItem>
+                    <StyledFeatureItem htmlFor="feature-membership">
+                        <StyledFeatureCheckbox
+                            id="feature-membership"
+                            type="checkbox"
+                            checked={useMembershipSystem}
+                            onChange={(e) => {
+                                updateStoreFeatures({useMembershipSystem: e.target.checked});
+                                toast(e.target.checked ? '회원권 시스템을 켰습니다.' : '회원권 시스템을 껐습니다.');
+                            }}
+                        />
+                        <StyledFeatureText>
+                            <StyledFeatureName>회원권 시스템 사용</StyledFeatureName>
+                            <StyledFeatureDesc>횟수·기간 회원권 발급·차감 기능. 켜면 설정 메뉴에 ‘회원권 관리’가 나타납니다.</StyledFeatureDesc>
+                        </StyledFeatureText>
+                    </StyledFeatureItem>
+                </StyledFeatureList>
+            </StyledFeatureCard>
         </StyledStoreSection>
     );
 };
@@ -282,6 +323,55 @@ const StyledStoreCard = styled.div`
     border: 1px solid var(--light-gray-color);
     border-radius: 10px;
     background: var(--white-color);
+`;
+
+const StyledFeatureCard = styled(StyledStoreCard)`
+    grid-column: 1 / -1;
+`;
+
+const StyledFeatureList = styled.div`
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+`;
+
+const StyledFeatureItem = styled.label`
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 8px 4px;
+    cursor: pointer;
+
+    & + & {
+        border-top: 1px solid var(--black-color-10);
+    }
+`;
+
+const StyledFeatureCheckbox = styled.input`
+    width: 16px;
+    height: 16px;
+    margin-top: 2px;
+    flex-shrink: 0;
+    cursor: pointer;
+`;
+
+const StyledFeatureText = styled.span`
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+`;
+
+const StyledFeatureName = styled.strong`
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--black-color);
+`;
+
+const StyledFeatureDesc = styled.em`
+    font-style: normal;
+    font-size: 12px;
+    color: var(--dark-gray-color2);
+    line-height: 1.5;
 `;
 
 const StyledStoreCardHeader = styled.div`
