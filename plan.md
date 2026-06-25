@@ -147,7 +147,10 @@ ALTER TABLE "Reservation" RENAME CONSTRAINT "Reservation_designerId_fkey" TO "Re
 - ✅ 마이그레이션 `0004_rename_designer_to_assignee/migration.sql` 작성(ALTER RENAME, 데이터 보존). enum 값 불변.
 - ✅ **정적 검증**: 0001~0003의 Designer DDL 12객체(테이블2·enum1·컬럼2·PK2·unique2·FK3) 전부 0004 RENAME으로 커버. Reservation designerId 단독 인덱스 없음 확인.
 - ⏳ **라이브 검증 대기**: 샌드박스에 Postgres 설치 불가(no sudo) → 사용자 로컬에서 `cd client && pnpm prisma:migrate:local` 후 `pnpm prisma:validate` + migrate status로 빈 diff 확인 필요.
-- ⏳ **코드 rename 미착수**: client 71 + server 11 파일, 1311줄 + 한글 '디자이너' 73곳. 식별자 매핑(Designer→Assignee, designerId→assigneeId, DesignerSchedule→AssigneeSchedule, DesignerStatus→AssigneeStatus, designers→assignees) + 파일/배럴/URL(`/settings/designer`→`/settings/assignee`)/표시문구. 빌드(tsc) 통과까지 영역별 진행 예정.
+- ✅ **코드 rename 완료**(커밋 `bd0f12a`): client 71 + server 11 파일 식별자 치환, 파일/디렉터리 15개 rename(features/assignees·pages/api/assignees·컴포넌트·스토어·유틸·서버API·seed), API URL `/api/designers`→`/api/assignees`, 라우트 `/settings/designer`→`/settings/assignee`, 한글 '디자이너'→'담당자' 전수. **tsc --noEmit 소스 에러 0**. 잔존 designer/디자이너 0.
+- ✅ `index.md` 갱신(동일 매핑).
+- ⏳ **호스트 검증 대기**(샌드박스 제약): ① `cd client && pnpm prisma generate`(오프라인 403로 샌드박스 불가 → 호스트 필수) → ② `pnpm build`(next build) 통과 확인 → ③ `pnpm prisma:migrate:local` 후 빈 diff 확인(0004 replay).
+- ⏳ **브랜치 미푸시**: `refactor/designer-to-assignee` 로컬만(호스트 검증 통과 후 push·머지). 실제 운영 전환은 §0 시퀀스(점검 ON→Cloudflare purge→마이그레이션→배포→검증→OFF)로.
 
 **작업 범위 (영향 파일):**
 - `server/prisma/schema.prisma` — `model Designer`·`model DesignerSchedule`·`enum DesignerStatus`·`designerId` FK(Reservation/DesignerSchedule)·`Store.designers` 관계. ⚠️ **enum 값은 영문**(`active`/`on_leave`/`resigned`) — 타입 이름만 rename(`AssigneeStatus`), **값은 건드리지 말 것**(한글 아님). 한글 `재직/휴직/퇴직`은 프런트 표시값.

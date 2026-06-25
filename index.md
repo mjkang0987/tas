@@ -31,7 +31,7 @@ hair_reservations/
 | `/login` | `login.tsx` | 로그인 (Google, Kakao, Naver OAuth) + 게스트 진입. 초대 링크(`?invite=CODE`) 코드 자동입력, 인앱 브라우저(WebView) 감지 시 안내 배너 + 카카오 우선 노출, 로고→루트 링크 |
 | `/logout` | `logout.tsx` | 로그아웃 후 `/login`으로 리다이렉트 |
 | `/mypage` | `mypage.tsx` | 계정 관리 (프로필, 연결된 SNS, 로그아웃, 회원탈퇴) |
-| `/settings/[tab]` | `settings/[tab].tsx` → `settings.tsx` | 설정 (탭: revenue/point/store/service/designer/member/sns/naver) |
+| `/settings/[tab]` | `settings/[tab].tsx` → `settings.tsx` | 설정 (탭: revenue/point/store/service/assignee/member/sns/naver) |
 | `/address` | `address.tsx` | 고객 명단 |
 | `/onboarding` | `onboarding/index.tsx` | 신규 매장 초기 설정 (로그인 사용자). 온보딩 완료자는 이전 페이지로 리다이렉트 |
 | `/onboarding/guest` | `onboarding/guest.tsx` | 게스트 온보딩 (index 컴포넌트 재사용, 경로로 분기) |
@@ -56,17 +56,17 @@ hair_reservations/
 
 | 폴더 | 역할 | 주요 파일 |
 |------|------|----------|
-| `calendar/views/` | 캘린더 뷰 (일/주/월/년/타임라인) | `Calendar.tsx`, `Day.tsx`, `Week.tsx`, `Month.tsx`, `Timeline.tsx`, `TimelineCluster.tsx`(중복예약 클러스터 — 디자이너 배지 표시) |
+| `calendar/views/` | 캘린더 뷰 (일/주/월/년/타임라인) | `Calendar.tsx`, `Day.tsx`, `Week.tsx`, `Month.tsx`, `Timeline.tsx`, `TimelineCluster.tsx`(중복예약 클러스터 — 담당자 배지 표시) |
 | `calendar/overlays/` | 예약 생성·상세·수정 모달 | `ReservationCreate.tsx`(+`useReservationCreateForm.ts`/`ReservationCreateCustomerFields.tsx`), `ReservationDetail.tsx`(+`ReservationDetailSections`/`Header`/`FooterActions`/`PaymentLayer`/`ViewSection`, 순수 로직은 `reservationDetailUtils.ts`·타입은 `reservationDetailTypes.ts`), `CustomerDetail.tsx`(+`CustomerDetailSections.tsx`[^3a]), `ModalStyles.ts`(공통 모달 스타일·`OVERLAY_Z_INDEX`·접근성 훅), 컴포넌트별 `*.styles.ts` |
 | `calendar/service/` | 서비스 범례·필드 | `ServiceLegend.tsx`(시술 배지 디자인), `ServiceFields.tsx` |
-| `layout/` | 공통 레이아웃 | `Header.tsx`(디자이너 필터 base-select)+`HeaderSearchLayer.tsx`(고객 검색)+`Header.styles.ts`, `Aside.tsx`(역할별 설정 메뉴 + 하단 이용약관/개인정보처리방침 링크)+`AsideMenuIcon.tsx`(메뉴 아이콘)+`AsideGuestLogout.tsx`(게스트 로그아웃 확인, 동의 플래그 초기화 포함)+`Aside.styles.ts`, `StoreSwitcher.tsx`[^17], `LayoutComponent.tsx`, `Footer.tsx`, `NaverSyncNotification.tsx`[^1](+`.styles.ts`) |
+| `layout/` | 공통 레이아웃 | `Header.tsx`(담당자 필터 base-select)+`HeaderSearchLayer.tsx`(고객 검색)+`Header.styles.ts`, `Aside.tsx`(역할별 설정 메뉴 + 하단 이용약관/개인정보처리방침 링크)+`AsideMenuIcon.tsx`(메뉴 아이콘)+`AsideGuestLogout.tsx`(게스트 로그아웃 확인, 동의 플래그 초기화 포함)+`Aside.styles.ts`, `StoreSwitcher.tsx`[^17], `LayoutComponent.tsx`, `Footer.tsx`, `NaverSyncNotification.tsx`[^1](+`.styles.ts`) |
 | `modals/` | 전역 오버레이 (layout과 분리) | `NaverSyncConflictModal.tsx`[^2](+`.styles.ts`), `CustomerMergeSuggestionModal.tsx`[^3], `GuestMigrationLayer.tsx`(게스트→계정 병합 레이어), `ConsentDpaLayer.tsx`(처리위탁 DPA 동의 레이어 — "보기"는 `PolicyViewLayer`) |
 | `policy/` | 정책 문서 표시 | `PolicyPage.tsx`(앱 인라인 페이지 레이아웃, mypage `StyledContainer` 사용), `PolicyViewLayer.tsx`(약관 "보기" — 공통 `ModalStyles` 레이어), `policyCss.ts`(인라인·풀페이지 공유 CSS + 독립 HTML 생성 `renderPolicyHtml`)[^20] |
 | `onboarding/` | 온보딩 스텝 분리 | `OnboardingStep1~5.tsx`, `onboarding-types.ts`, `onboarding-step-styles.tsx` |
-| `settings/` | 설정 화면 섹션 | `StoreManageSection.tsx`, `ServiceManageSection.tsx`, `DesignerManageSection.tsx`, `PointManageSection.tsx`(+`PointSettingsTab`/`PointAdjustTab`/`PointHistoryTab`), `MemberSection.tsx`, `SNSLinkingSection.tsx`[^14], `NaverBookingSection.tsx`[^15], `settings-styles.ts`[^16]. 큰 섹션은 본체와 `*.styles.ts` 분리 |
+| `settings/` | 설정 화면 섹션 | `StoreManageSection.tsx`, `ServiceManageSection.tsx`, `AssigneeManageSection.tsx`, `PointManageSection.tsx`(+`PointSettingsTab`/`PointAdjustTab`/`PointHistoryTab`), `MemberSection.tsx`, `SNSLinkingSection.tsx`[^14], `NaverBookingSection.tsx`[^15], `settings-styles.ts`[^16]. 큰 섹션은 본체와 `*.styles.ts` 분리 |
 | `settings/revenue/` | 매출 관리 | `RevenueSection.tsx`(+`.styles.ts`, 순수 차트 로직은 `revenueChartUtils.ts`), `RevenueChartGrid.tsx`, `RevenueKpiGrid.tsx`, `RevenueFilters.tsx`, `RevenueMetricModal.tsx`, `RevenueReservationList.tsx`, `RevenueDailyList.tsx`, `RevenueDailyDetailModal.tsx`, `revenue-styles.ts`/`revenue-chart-styles.ts` |
 | `address/` | 고객 명단 | `AddressContent.tsx`, `AddressCustomerRow.tsx`, `AddressCustomerSummary.tsx`, `AddressCustomerRecharge.tsx` |
-| `ui/` | 공통 UI | `Buttons.tsx`, `Icons.tsx`, `PageHero.tsx`, `SeoHead.tsx`, `ServiceChip.tsx`, `DesignerLabel.tsx`/`ColorTag.tsx`(디자이너 색상 배지), `LabelBadge.tsx`(tone×shape 배지), `ReservationStatusBadge.ts`(예약 상태 배지), `ReservationInfoCard.tsx`, `CsFooter.tsx`(고객센터 푸터 공통), `GuestNotice.tsx`, `FieldError.tsx`, `FormControls.ts` |
+| `ui/` | 공통 UI | `Buttons.tsx`, `Icons.tsx`, `PageHero.tsx`, `SeoHead.tsx`, `ServiceChip.tsx`, `AssigneeLabel.tsx`/`ColorTag.tsx`(담당자 색상 배지), `LabelBadge.tsx`(tone×shape 배지), `ReservationStatusBadge.ts`(예약 상태 배지), `ReservationInfoCard.tsx`, `CsFooter.tsx`(고객센터 푸터 공통), `GuestNotice.tsx`, `FieldError.tsx`, `FormControls.ts` |
 | `account/` | 계정 관련 모달 | `AccountDeleteModal.tsx` |
 
 [^1]: 네이버 동기화 알림 벨 아이콘 + 알림 목록 패널. 미읽음 카운트는 `!read || (conflict && !confirmed)` 조건으로 계산
@@ -85,9 +85,9 @@ hair_reservations/
 
 | 파일 | 모델 | 핵심 필드 |
 |------|------|----------|
-| `reservations/model.ts` | `Reservation` | id, date, startTime/endTime, customerId, designerId?, service, status[^4], price, naverBookingId?, channel[^5] |
+| `reservations/model.ts` | `Reservation` | id, date, startTime/endTime, customerId, assigneeId?, service, status[^4], price, naverBookingId?, channel[^5] |
 | `customers/model.ts` | `Customer` | id, name, tel, points, memoTags, pointHistories, allergyNote, claimNote, preferenceNote |
-| `designers/model.ts` | `Designer` | id, name, schedule(7일), status[^6], color, phone |
+| `assignees/model.ts` | `Assignee` | id, name, schedule(7일), status[^6], color, phone |
 | `services/model.ts` | `ServiceItem` | name, durationMinutes, category, price |
 | `services/default-services.ts` | - | 업종(ShopType)별 기본 서비스·카테고리 색상 (온보딩용) |
 | `store-settings/model.ts` | `StoreSettings` | businessHours, closedDates, pointSettings(적립률, 충전규칙) |
@@ -95,22 +95,22 @@ hair_reservations/
 
 [^4]: status: `active` · `completed` · `cancelled` · `noshow`
 [^5]: channel: `네이버예약` · `현장방문` · `전화예약`
-[^6]: Designer status: `재직` · `휴직` · `퇴직`
+[^6]: Assignee status: `재직` · `휴직` · `퇴직`
 
 ### 상태관리 (`client/store/`)
 
 | 파일 | 역할 |
 |------|------|
-| `calendarStore.ts` | 메인 Zustand 스토어[^7]. 캘린더 상태, 예약/고객/디자이너/서비스 데이터, UI 상태, 동기화 알림, 액션 메서드 모두 포함. `serviceCatalog`/`designers` 초기값은 빈 배열(부팅 게이트와 연동) |
+| `calendarStore.ts` | 메인 Zustand 스토어[^7]. 캘린더 상태, 예약/고객/담당자/서비스 데이터, UI 상태, 동기화 알림, 액션 메서드 모두 포함. `serviceCatalog`/`assignees` 초기값은 빈 배열(부팅 게이트와 연동) |
 | `calendarStoreHelpers.ts` | 동기화 헬퍼 (데이터 fetch & store 갱신) |
-| `calendarStoreDesignerHelpers.ts` | 디자이너 상태 빌더 (add, update, delete) |
+| `calendarStoreAssigneeHelpers.ts` | 담당자 상태 빌더 (add, update, delete) |
 | `calendarStoreReservationHelpers.ts` | 예약 상태 빌더 (reservationMap 조작) |
 | `calendarStoreOverlayHelpers.ts` | 오버레이(모달) 상태 관리 |
 | `calendarStoreServiceHelpers.ts` | 서비스 카탈로그 상태 빌더 + 서비스 변경(소요시간·가격·이름) 시 앞으로의 미결제 예약 일괄 반영(`buildServiceCatalogReservationUpdates`, 수동조정 건 보존) |
 | `calendarStoreStoreSettingsHelpers.ts` | 매장 설정 상태 빌더 |
 | `toastStore.ts` | 토스트 알림 |
 
-[^7]: 주요 상태: `reservationMap`(날짜별 예약 맵), `customerMap`(ID별 고객), `designers[]`, `serviceCatalog[]`, `storeSettings`, `syncNotifications[]`, `reservationHistory[]`
+[^7]: 주요 상태: `reservationMap`(날짜별 예약 맵), `customerMap`(ID별 고객), `assignees[]`, `serviceCatalog[]`, `storeSettings`, `syncNotifications[]`, `reservationHistory[]`
 
 ### 커스텀 훅 (`client/hooks/`)
 
@@ -130,7 +130,7 @@ hair_reservations/
 |------|------|
 | `utils/reservations.ts` | 예약 헬퍼 (groupByDate, findOverlap 등) |
 | `utils/customers.ts` | 고객 헬퍼 (toCustomerMap, syncFirstVisit) |
-| `utils/designers.ts` | 디자이너 헬퍼 (re-export from features) |
+| `utils/assignees.ts` | 담당자 헬퍼 (re-export from features) |
 | `utils/services.ts` | 서비스 헬퍼 (getServiceColor, sumPrice, calcEndTime) |
 | `utils/revenue.ts` | 매출 계산 |
 | `utils/revenue-export.ts` | 매출 Excel 내보내기 (xlsx) |
@@ -144,7 +144,7 @@ hair_reservations/
 | `lib/authz.ts` | 권한 관리 |
 | `lib/seo.ts` | SEO 상수 (`SITE_URL`, `SITE_TITLE`, OG/Twitter 메타값) |
 | `lib/gmail-status.ts` | Gmail 연동 상태 조회 (`/api/gmail/status`, 페이지 로드당 1회 캐시) |
-| `scripts/backfill-designer-legacyid.mjs` | 디자이너 null legacyId 백필 스크립트 (`--dry-run` 지원) |
+| `scripts/backfill-assignee-legacyid.mjs` | 담당자 null legacyId 백필 스크립트 (`--dry-run` 지원) |
 | `scripts/recalc-reservation-endtimes.mjs` | 서비스 duration 변경 후 기존 예약 endTime 재계산 (매장별 카탈로그 기준, 기본 dry-run / `--apply`로 반영, 대상: active·미결제) |
 
 ### 인증 (`client/auth.ts`)
@@ -161,7 +161,7 @@ NextAuth 5.0 설정. Google·Kakao·Naver OAuth 지원.
 
 ### 부팅/마이그레이션 (`client/pages/_app.tsx`)
 
-- **부팅 게이트**: 서비스·디자이너·예약 3종 데이터가 준비될 때까지 전체 오버레이로 가림 (새로고침 시 기본값 플래시 방지). 로그인/온보딩 페이지는 제외
+- **부팅 게이트**: 서비스·담당자·예약 3종 데이터가 준비될 때까지 전체 오버레이로 가림 (새로고침 시 기본값 플래시 방지). 로그인/온보딩 페이지는 제외
 - **게스트 → 서버 마이그레이션**: 인증 후 로컬 스냅샷에 데이터가 있으면 `/api/migrate-local` POST (owner만). **단, `termsVersion===CURRENT_TERMS_VERSION`(DPA 등 동의 기록 완료) 이후에만 실행** — 수탁자(서버) 저장 전에 위탁계약 동의가 선행되도록 보장. 성공 또는 409(이미 설정된 매장) 시 재시도 중단. 전체 데이터 병합 플로우는 `plan.md` 참고
 - **앱 레벨 DPA 동의 레이어**: 게스트 동의 보유자가 SNS 연동했고 DB 동의 기록만 없으면(`/consent` 우회 케이스) 앱 위에 `ConsentDpaLayer` 노출 → `POST /api/consent` 후 마이그레이션 진행
 
@@ -178,14 +178,14 @@ NextAuth 5.0 설정. Google·Kakao·Naver OAuth 지원.
 | `customers-merge.ts` | `/api/customers/merge` | POST | staff | 고객 병합 (예약·포인트·태그 이전) |
 | `customers-unmerge.ts` | `/api/customers/unmerge` | POST | staff | 병합 해제 (이력 기반 복원) |
 | `customers-merge-history.ts` | `/api/customers/merge-history` | GET | staff | 병합 이력 조회 |
-| `designers.ts` | `/api/designers` | GET(staff) / PUT(owner) / DELETE(owner) | - | 디자이너 CRUD + 일정(DesignerSchedule) upsert. DELETE는 영구 삭제(분리): 예약은 designerId=null로 보존, 스케줄은 cascade 삭제 |
-| `designers-merge.ts` | `/api/designers/merge` | POST | owner | 디자이너 병합 (source→target 예약 재배정 후 source 삭제) |
+| `assignees.ts` | `/api/assignees` | GET(staff) / PUT(owner) / DELETE(owner) | - | 담당자 CRUD + 일정(AssigneeSchedule) upsert. DELETE는 영구 삭제(분리): 예약은 assigneeId=null로 보존, 스케줄은 cascade 삭제 |
+| `assignees-merge.ts` | `/api/assignees/merge` | POST | owner | 담당자 병합 (source→target 예약 재배정 후 source 삭제) |
 | `services.ts` | `/api/services` | GET(staff) / PUT(owner) | - | 서비스 카탈로그 관리 |
 | `store.ts` | `/api/store` | GET(staff) / PUT(owner) | - | 매장 설정 (영업시간, 휴무일, 포인트 설정) |
-| `onboarding.ts` | `/api/onboarding` | POST | owner | 매장 초기 설정 (legacyId 부여). **이미 디자이너/서비스가 있으면 409 `ALREADY_SETUP` 거부** |
-| `migrate-local.ts` | `/api/migrate-local` | POST | owner | 게스트 로컬 데이터 전체 이전 (services/designers/customers/reservations). 기존 데이터 있으면 409 + `confirm` 플래그로 병합 진행 |
+| `onboarding.ts` | `/api/onboarding` | POST | owner | 매장 초기 설정 (legacyId 부여). **이미 담당자/서비스가 있으면 409 `ALREADY_SETUP` 거부** |
+| `migrate-local.ts` | `/api/migrate-local` | POST | owner | 게스트 로컬 데이터 전체 이전 (services/assignees/customers/reservations). 기존 데이터 있으면 409 + `confirm` 플래그로 병합 진행 |
 | `naver-booking-sync.ts` | `/api/naver-booking-sync` | POST | owner | 네이버 예약 동기화[^9] |
-| `naver-booking-fix-designer.ts` | `/api/naver-booking-fix-designer` | POST | owner | naverBookingId로 Gmail 검색 → 디자이너 매칭 수정[^10] |
+| `naver-booking-fix-assignee.ts` | `/api/naver-booking-fix-assignee` | POST | owner | naverBookingId로 Gmail 검색 → 담당자 매칭 수정[^10] |
 | `inquiry.ts` | `/api/inquiry` | POST | - | 문의 전송 (`server/api/mail/send-inquiry.ts`) |
 | `consent.ts` | `/api/consent` | POST | 로그인 | 약관 동의 기록 (`agreedTermsVersion`=`CURRENT_TERMS_VERSION`, `agreedTermsAt`) |
 | `backfill-point-relations.ts` | `/api/backfill-point-relations` | POST | - | 포인트 이력-예약 관계 백필 |
@@ -207,15 +207,15 @@ NextAuth 5.0 설정. Google·Kakao·Naver OAuth 지원.
 | `/api/user/stores` | GET | 로그인 | 멤버십 매장 목록 (StoreSwitcher용) |
 | `/api/user/nickname` | - | 로그인 | 닉네임 변경 (중복체크) |
 
-[^9]: Gmail에서 `from:naverbooking_noreply@navercorp.com` 메일 조회 → 파싱 → 예약 생성. 디자이너 매칭은 이름 부분매칭(`findByNameContains`), 미매칭 시 고유 컬러로 자동 생성. 중복 예약은 naverBookingId unique 제약으로 스킵하되, designerId가 null이면 재매칭 시도
-[^10]: 시간 필터 없이 Gmail에서 특정 예약번호 검색. 기존 동기화에서 디자이너 매칭 실패한 건을 사후 수정할 때 사용
+[^9]: Gmail에서 `from:naverbooking_noreply@navercorp.com` 메일 조회 → 파싱 → 예약 생성. 담당자 매칭은 이름 부분매칭(`findByNameContains`), 미매칭 시 고유 컬러로 자동 생성. 중복 예약은 naverBookingId unique 제약으로 스킵하되, assigneeId가 null이면 재매칭 시도
+[^10]: 시간 필터 없이 Gmail에서 특정 예약번호 검색. 기존 동기화에서 담당자 매칭 실패한 건을 사후 수정할 때 사용
 
 ### Gmail 연동 (`server/api/gmail/`)
 
 | 파일 | 역할 |
 |------|------|
 | `gmail-client.ts` | Gmail API 클라이언트[^11]. 이메일 목록 조회(`listNaverBookingEmails`), 본문 조회(`getEmailContent`) |
-| `naver-booking-parser.ts` | 네이버 예약 이메일 HTML 파싱[^12]. `NaverBookingData` 추출 (bookingId, customerName, designerName, date/time, services, deposit) |
+| `naver-booking-parser.ts` | 네이버 예약 이메일 HTML 파싱[^12]. `NaverBookingData` 추출 (bookingId, customerName, assigneeName, date/time, services, deposit) |
 | `token-manager.ts` | Gmail 연동 토큰 관리 (**GmailConnection** 테이블, **매장(storeId) 단위** — 한 오너가 연결하면 그 매장 모든 오너가 공유, `connectedByUserId`로 연결자 기록). 만료 시 refreshToken으로 자동 갱신 |
 | `connect.ts` | `/api/gmail/connect` (GET, owner) — Google OAuth 시작. 계정 선택 화면 강제(로그인 계정과 다른 Gmail 사용 가능) |
 | `oauth-callback.ts` | `/api/gmail/oauth-callback` (GET) — 코드 교환 → GmailConnection upsert. 실패 시 `/settings/naver?gmail=error&reason=…`로 리다이렉트 |
@@ -224,7 +224,7 @@ NextAuth 5.0 설정. Google·Kakao·Naver OAuth 지원.
 | `helpers.ts` | 네이버 결제 방법 매핑, 종료시간 계산, 동기화 타임스탬프(매월 1일부터) |
 
 [^11]: Rate limiting: 429 응답 시 15분 쿨다운. 배치 fetch (`EMAIL_FETCH_CONCURRENCY = 10`)
-[^12]: `extractLabelValue(html, '예약상품')` → 디자이너명, `extractLabelValue(html, '예약자명')` → 고객명. `parseServices(html)` → 시술 목록·예약금
+[^12]: `extractLabelValue(html, '예약상품')` → 담당자명, `extractLabelValue(html, '예약자명')` → 고객명. `parseServices(html)` → 시술 목록·예약금
 
 ### 인증·권한 (`server/auth/`)
 
@@ -243,7 +243,7 @@ NextAuth 5.0 설정. Google·Kakao·Naver OAuth 지원.
 | `prisma.ts` | Prisma 클라이언트 싱글턴 (PrismaPg driver adapter 사용) |
 | `mappers.ts` | DB ↔ 프론트엔드 변환 함수[^13] |
 
-[^13]: `dbReservationToFrontend()`, `dbCustomerToFrontend()`, `dbDesignerToFrontend()`, `dbServiceToFrontend()`, `dbStoreToFrontend()` 등. legacyId(number) ↔ CUID(string) 변환 포함. `legacyId`가 null이면 프론트 id가 깨지므로 생성 시 반드시 부여할 것
+[^13]: `dbReservationToFrontend()`, `dbCustomerToFrontend()`, `dbAssigneeToFrontend()`, `dbServiceToFrontend()`, `dbStoreToFrontend()` 등. legacyId(number) ↔ CUID(string) 변환 포함. `legacyId`가 null이면 프론트 id가 깨지므로 생성 시 반드시 부여할 것
 
 ---
 
@@ -264,7 +264,7 @@ Store ─┬── Customer ──── Reservation ──── ReservationPay
        │       ├── CustomerMemoTag    ├── ReservationHistory
        │       └── CustomerPointHistory
        │
-       ├── Designer ──── DesignerSchedule
+       ├── Assignee ──── AssigneeSchedule
        │       └──────── Reservation (optional)
        │
        ├── Service
@@ -283,7 +283,7 @@ Store ─┬── Customer ──── Reservation ──── ReservationPay
 | `MembershipRole` | owner, manager, staff (`0003_membership_role_manager`에서 manager 재추가 — 운영 등급) |
 | `ReservationStatus` | active, completed, cancelled, noshow |
 | `ReservationChannel` | naver, walk_in, phone |
-| `DesignerStatus` | active, on_leave, resigned |
+| `AssigneeStatus` | active, on_leave, resigned |
 | `PaymentMethod` | cash, cash_receipt, card, naver_pay, local_currency, local_currency_receipt, voucher, points, discount, naver_deposit |
 | `PointHistoryType` | manual_add, manual_subtract, recharge, payment_use, payment_earn, payment_adjust |
 
@@ -305,8 +305,8 @@ Gmail (네이버 예약 메일)
   → gmail-client.ts (조회)
   → naver-booking-parser.ts (파싱)
   → naver-booking-sync.ts (DB 저장)
-    ├─ 신규: 고객 생성 + 디자이너 매칭(이름) + 예약 생성
-    ├─ 중복: designerId null이면 재매칭, serviceSummary/URL 업데이트
+    ├─ 신규: 고객 생성 + 담당자 매칭(이름) + 예약 생성
+    ├─ 중복: assigneeId null이면 재매칭, serviceSummary/URL 업데이트
     └─ 취소: 상태 → cancelled
   → useNaverBookingSync.ts (알림 생성 + 중복 감지)
   → NaverSyncNotification.tsx (UI 표시)
@@ -338,10 +338,10 @@ useCustomerMergeSuggestion.ts (동명이인 감지, 게스트 모드 제외)
   → SNS 로그인 → syncAuthUser(): 새 User + Store(onboarded: true) + owner 생성
   → DPA 동의 선행: 앱 레벨 ConsentDpaLayer → POST /api/consent → termsVersion 기록 (이 전엔 마이그레이션 보류)
   → _app.tsx에서 로컬 데이터 감지 → POST /api/onboarding (owner만)
-    ├─ 빈 매장(200): 서비스·디자이너·매장명 이전 → onboarded 플래그 해제
+    ├─ 빈 매장(200): 서비스·담당자·매장명 이전 → onboarded 플래그 해제
     └─ 기존 데이터 매장(409): 자동 이전 중단
-  → 전체 데이터(고객·예약 포함) 병합: /api/migrate-local + 디자이너 병합(/api/designers/merge)
-    (확인 레이어 → append(ID remap) → 디자이너/고객 병합 → 로컬 정리. 상세는 plan.md)
+  → 전체 데이터(고객·예약 포함) 병합: /api/migrate-local + 담당자 병합(/api/assignees/merge)
+    (확인 레이어 → append(ID remap) → 담당자/고객 병합 → 로컬 정리. 상세는 plan.md)
 ```
 
 ### 약관 동의 게이트
@@ -371,7 +371,7 @@ StorePointSettings (적립률, 충전규칙)
 
 ## 권한 모델 요약
 
-| 역할 | UI 라벨 | 데이터 조회 | 예약 추가·수정·취소 | 예약 삭제 | 고객 추가·수정 | 고객 삭제 | 매장·서비스·디자이너 설정 | 멤버·초대·네이버연동 |
+| 역할 | UI 라벨 | 데이터 조회 | 예약 추가·수정·취소 | 예약 삭제 | 고객 추가·수정 | 고객 삭제 | 매장·서비스·담당자 설정 | 멤버·초대·네이버연동 |
 |------|--------|-----------|-----------|---------|------------|---------|------------------------|-------------------|
 | owner | 오너 | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ |
 | manager | 매니저 | ✅ | ✅ | ✅ | ✅ | ❌ | ❌ (403) | ❌ |
