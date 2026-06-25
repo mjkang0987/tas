@@ -2,13 +2,13 @@ import {useState} from 'react';
 
 import styled from 'styled-components';
 
-import type {Designer} from '../../../utils/designers';
-import {sortDesigners} from '../../../utils/designers';
+import type {Assignee} from '../../../utils/assignees';
+import {sortAssignees} from '../../../utils/assignees';
 import type {RevenueFilterMode} from '../../../utils/revenue';
 import {DirectionIcon} from '../../ui/DirectionIcon';
 import {actionButtonStyle, StyledDateInput} from './revenue-styles';
 
-import type {RevenueDesignerKey, RevenueQuickRange} from './RevenueSection';
+import type {RevenueAssigneeKey, RevenueQuickRange} from './RevenueSection';
 
 interface RevenueFiltersProps {
     startDateKey: string;
@@ -18,9 +18,9 @@ interface RevenueFiltersProps {
     quickRange: RevenueQuickRange | null;
     setQuickRange: (range: RevenueQuickRange) => void;
     onMoveRange: (direction: 'prev' | 'next') => void;
-    designers: Designer[];
-    designerKey: RevenueDesignerKey;
-    setDesignerKey: (key: RevenueDesignerKey) => void;
+    assignees: Assignee[];
+    assigneeKey: RevenueAssigneeKey;
+    setAssigneeKey: (key: RevenueAssigneeKey) => void;
     revenueViewTab: RevenueViewTab;
     setRevenueViewTab: (tab: RevenueViewTab) => void;
     revenueFilterMode: RevenueFilterMode;
@@ -38,9 +38,9 @@ export const RevenueFilters = ({
     quickRange,
     setQuickRange,
     onMoveRange,
-    designers,
-    designerKey,
-    setDesignerKey,
+    assignees,
+    assigneeKey,
+    setAssigneeKey,
     revenueViewTab,
     setRevenueViewTab,
     revenueFilterMode,
@@ -75,20 +75,20 @@ export const RevenueFilters = ({
                 </StyledRangeFilter>
             </StyledRow1>
 
-            {/* Row 2: Designer tabs — horizontal scroll */}
-            <StyledDesignerTabs>
-                <StyledDesignerTab type="button" $active={designerKey === 'all'} onClick={() => setDesignerKey('all')}>전체</StyledDesignerTab>
-                {sortDesigners(designers).map((designer) => (
-                    <StyledDesignerTab
-                        key={designer.id}
+            {/* Row 2: Assignee tabs — horizontal scroll */}
+            <StyledAssigneeTabs>
+                <StyledAssigneeTab type="button" $active={assigneeKey === 'all'} onClick={() => setAssigneeKey('all')}>전체</StyledAssigneeTab>
+                {sortAssignees(assignees).map((assignee) => (
+                    <StyledAssigneeTab
+                        key={assignee.id}
                         type="button"
-                        $active={designerKey === String(designer.id)}
-                        onClick={() => setDesignerKey(String(designer.id) as RevenueDesignerKey)}
+                        $active={assigneeKey === String(assignee.id)}
+                        onClick={() => setAssigneeKey(String(assignee.id) as RevenueAssigneeKey)}
                     >
-                        {designer.name}
-                    </StyledDesignerTab>
+                        {assignee.name}
+                    </StyledAssigneeTab>
                 ))}
-            </StyledDesignerTabs>
+            </StyledAssigneeTabs>
 
             {/* Row 3: View tabs (left) + Filter mode tabs (right) */}
             <StyledRow3>
@@ -215,7 +215,7 @@ const StyledRangeDivider = styled.span`
     }
 `;
 
-const StyledDesignerTabs = styled.div`
+const StyledAssigneeTabs = styled.div`
     display: flex;
     gap: 6px;
     overflow-x: auto;
@@ -224,7 +224,7 @@ const StyledDesignerTabs = styled.div`
     -webkit-overflow-scrolling: touch;
 `;
 
-const StyledDesignerTab = styled.button<{ $active: boolean }>`
+const StyledAssigneeTab = styled.button<{ $active: boolean }>`
     flex-shrink: 0;
     ${actionButtonStyle};
     min-height: 30px;

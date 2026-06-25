@@ -51,7 +51,7 @@ const SETTINGS_SUBMENU = [
     {tab: 'point', href: '/settings/point', label: '적립금 관리', icon: 'point'},
     {tab: 'store', href: '/settings/store', label: '매장 관리', icon: 'store'},
     {tab: 'service', href: '/settings/service', label: '서비스 관리', icon: 'service'},
-    {tab: 'designer', href: '/settings/designer', label: '디자이너 관리', icon: 'designer'},
+    {tab: 'assignee', href: '/settings/assignee', label: '담당자 관리', icon: 'assignee'},
     {tab: 'customers', href: '/address', label: '고객 명단', icon: 'customers'},
     {tab: 'naver', href: '/settings/naver', label: '네이버예약 연동', icon: 'naver'},
     {tab: 'sns', href: '/settings/sns', label: 'SNS 연동', icon: 'sns'},

@@ -4,7 +4,7 @@ import type {KeyboardEvent} from 'react';
 import type {Reservation} from '../../utils/reservations';
 import {hasCompletedPayment} from '../../utils/reservations';
 import {formatPrice} from '../../utils/services';
-import {DesignerLabel} from './DesignerLabel';
+import {AssigneeLabel} from './AssigneeLabel';
 import {ReservationStatusBadge} from './ReservationStatusBadge';
 import {NewCustomerBadge} from './NewCustomerBadge';
 import {ServiceChipList} from './ServiceChip';
@@ -12,8 +12,8 @@ import {ServiceChipList} from './ServiceChip';
 type ReservationInfoCardProps = {
     reservation: Reservation;
     serviceColorMap: Record<string, string>;
-    designerColor: string;
-    designerName: string;
+    assigneeColor: string;
+    assigneeName: string;
     customerName?: string;
     today?: string;
     isNewCustomer?: boolean;
@@ -45,8 +45,8 @@ function getTimeText(reservation: Reservation, timeMode: 'start' | 'range' | 'no
 export function ReservationInfoCard({
     reservation,
     serviceColorMap,
-    designerColor,
-    designerName,
+    assigneeColor,
+    assigneeName,
     customerName,
     today,
     isNewCustomer = false,
@@ -82,7 +82,7 @@ export function ReservationInfoCard({
         <StyledCard
             {...(clickable ? {as: 'button' as const, type: 'button' as const} : {})}
             className={[className, isInactive ? 'inactive' : ''].filter(Boolean).join(' ') || undefined}
-            $accentColor={accentColor ?? designerColor}
+            $accentColor={accentColor ?? assigneeColor}
             $accentBar={accentBar}
             $clickable={clickable}
             tabIndex={clickable ? 0 : undefined}
@@ -136,10 +136,10 @@ export function ReservationInfoCard({
                     keyPrefix={reservation.id}
                 />
                 <StyledMetaLine>
-                    <StyledDesignerMeta>
-                        <span>디자이너</span>
-                        <DesignerLabel color={designerColor} name={designerName} />
-                    </StyledDesignerMeta>
+                    <StyledAssigneeMeta>
+                        <span>담당자</span>
+                        <AssigneeLabel color={assigneeColor} name={assigneeName} />
+                    </StyledAssigneeMeta>
                 </StyledMetaLine>
             </StyledBody>
             {(showStatus || showPrice) && (
@@ -238,7 +238,7 @@ const StyledMetaLine = styled.div`
     color: var(--gray-color);
 `;
 
-const StyledDesignerMeta = styled.span`
+const StyledAssigneeMeta = styled.span`
     display: inline-flex;
     align-items: center;
     gap: 6px;

@@ -5,7 +5,7 @@ import styled from 'styled-components';
 import {Spinner} from '../ui/Spinner';
 import type {LocalDbSnapshot} from '../../lib/local-db';
 import {createDefaultLocalDbSnapshot, saveLocalDbSnapshot} from '../../lib/local-db';
-import type {Designer} from '../../features/designers/model';
+import type {Assignee} from '../../features/assignees/model';
 import {
     StyledConfirmOverlay,
     StyledConfirmModal,
@@ -21,11 +21,11 @@ interface Props {
     onFinish: () => void;
 }
 
-type Phase = 'confirm' | 'merging' | 'designer-merge' | 'error';
+type Phase = 'confirm' | 'merging' | 'assignee-merge' | 'error';
 
 interface MergePair {
-    newDesigner: Designer;
-    existingDesigner: Designer;
+    newAssignee: Assignee;
+    existingAssignee: Assignee;
 }
 
 function clearLocalAndReload(snapshot: LocalDbSnapshot): void {
@@ -63,7 +63,7 @@ export function GuestMigrationLayer({snapshot, storeName, onFinish}: Props) {
                     shopName: snapshot.storeName ?? '',
                     shopType: snapshot.shopType ?? null,
                     services: snapshot.services,
-                    designers: snapshot.designers.map((d) => ({id: d.id, name: d.name, color: d.color ?? null})),
+                    assignees: snapshot.assignees.map((d) => ({id: d.id, name: d.name, color: d.color ?? null})),
                     customers: snapshot.customers,
                     reservations: snapshot.reservations,
                     confirm: true,
@@ -72,30 +72,30 @@ export function GuestMigrationLayer({snapshot, storeName, onFinish}: Props) {
 
             if (!res.ok) throw new Error('migration_failed');
 
-            const data = await res.json() as {ok: boolean; newDesignerLegacyIds: number[]};
+            const data = await res.json() as {ok: boolean; newAssigneeLegacyIds: number[]};
 
-            // 디자이너 목록 로드 → 이름 중복 쌍 감지
-            const designersRes = await fetch('/api/designers');
-            if (!designersRes.ok) throw new Error('designers_failed');
-            const designersData = await designersRes.json() as {designers: Designer[]};
+            // 담당자 목록 로드 → 이름 중복 쌍 감지
+            const assigneesRes = await fetch('/api/assignees');
+            if (!assigneesRes.ok) throw new Error('assignees_failed');
+            const assigneesData = await assigneesRes.json() as {assignees: Assignee[]};
 
-            const newIdSet = new Set(data.newDesignerLegacyIds);
-            const newDesigners = designersData.designers.filter((d) => newIdSet.has(d.id));
-            const existingDesigners = designersData.designers.filter((d) => !newIdSet.has(d.id));
+            const newIdSet = new Set(data.newAssigneeLegacyIds);
+            const newAssignees = assigneesData.assignees.filter((d) => newIdSet.has(d.id));
+            const existingAssignees = assigneesData.assignees.filter((d) => !newIdSet.has(d.id));
 
             const pairs: MergePair[] = [];
-            for (const nd of newDesigners) {
-                const match = existingDesigners.find((ed) => ed.name === nd.name);
-                if (match) pairs.push({newDesigner: nd, existingDesigner: match});
+            for (const nd of newAssignees) {
+                const match = existingAssignees.find((ed) => ed.name === nd.name);
+                if (match) pairs.push({newAssignee: nd, existingAssignee: match});
             }
 
             if (pairs.length > 0) {
                 const initialDecisions = new Map<number, 'merge' | 'keep'>(
-                    pairs.map((p) => [p.newDesigner.id, 'merge']),
+                    pairs.map((p) => [p.newAssignee.id, 'merge']),
                 );
                 setMergePairs(pairs);
                 setDecisions(initialDecisions);
-                setPhase('designer-merge');
+                setPhase('assignee-merge');
             } else {
                 clearLocalAndReload(snapshot);
                 onFinish();
@@ -106,17 +106,17 @@ export function GuestMigrationLayer({snapshot, storeName, onFinish}: Props) {
         }
     }, [snapshot, onFinish]);
 
-    const handleDesignerMergeComplete = useCallback(async () => {
+    const handleAssigneeMergeComplete = useCallback(async () => {
         setProcessing(true);
         try {
             for (const pair of mergePairs) {
-                if (decisions.get(pair.newDesigner.id) !== 'merge') continue;
-                await fetch('/api/designers/merge', {
+                if (decisions.get(pair.newAssignee.id) !== 'merge') continue;
+                await fetch('/api/assignees/merge', {
                     method: 'POST',
                     headers: {'Content-Type': 'application/json'},
                     body: JSON.stringify({
-                        sourceId: pair.newDesigner.id,
-                        targetId: pair.existingDesigner.id,
+                        sourceId: pair.newAssignee.id,
+                        targetId: pair.existingAssignee.id,
                     }),
                 });
             }
@@ -124,15 +124,15 @@ export function GuestMigrationLayer({snapshot, storeName, onFinish}: Props) {
             onFinish();
         } catch {
             setProcessing(false);
-            setErrorMsg('디자이너 병합에 실패했습니다. 잠시 후 다시 시도해 주세요.');
+            setErrorMsg('담당자 병합에 실패했습니다. 잠시 후 다시 시도해 주세요.');
             setPhase('error');
         }
     }, [mergePairs, decisions, snapshot, onFinish]);
 
-    const toggleDecision = useCallback((designerId: number) => {
+    const toggleDecision = useCallback((assigneeId: number) => {
         setDecisions((prev) => {
             const next = new Map(prev);
-            next.set(designerId, prev.get(designerId) === 'merge' ? 'keep' : 'merge');
+            next.set(assigneeId, prev.get(assigneeId) === 'merge' ? 'keep' : 'merge');
             return next;
         });
     }, []);
@@ -175,40 +175,40 @@ export function GuestMigrationLayer({snapshot, storeName, onFinish}: Props) {
         );
     }
 
-    if (phase === 'designer-merge') {
+    if (phase === 'assignee-merge') {
         return (
             <StyledConfirmOverlay>
                 <StyledWiderModal>
                     <StyledHeader>
-                        <StyledHeaderTitle>디자이너 병합</StyledHeaderTitle>
+                        <StyledHeaderTitle>담당자 병합</StyledHeaderTitle>
                     </StyledHeader>
                     <StyledBody>
                         <StyledDesc>
-                            게스트 데이터에 기존 디자이너와 이름이 같은 디자이너가 있습니다.
-                            같은 디자이너라면 <strong>병합</strong>을 선택해 예약을 합쳐주세요.
+                            게스트 데이터에 기존 담당자와 이름이 같은 담당자가 있습니다.
+                            같은 담당자라면 <strong>병합</strong>을 선택해 예약을 합쳐주세요.
                         </StyledDesc>
                         <StyledPairList>
                             {mergePairs.map((pair) => {
-                                const decision = decisions.get(pair.newDesigner.id) ?? 'merge';
+                                const decision = decisions.get(pair.newAssignee.id) ?? 'merge';
                                 return (
-                                    <StyledPairRow key={pair.newDesigner.id}>
+                                    <StyledPairRow key={pair.newAssignee.id}>
                                         <StyledPairNames>
-                                            <StyledPairName>{pair.existingDesigner.name}</StyledPairName>
+                                            <StyledPairName>{pair.existingAssignee.name}</StyledPairName>
                                             <StyledPairArrow>+</StyledPairArrow>
-                                            <span>{pair.newDesigner.name} (게스트)</span>
+                                            <span>{pair.newAssignee.name} (게스트)</span>
                                         </StyledPairNames>
                                         <StyledToggleGroup>
                                             <StyledToggleBtn
                                                 type="button"
                                                 $active={decision === 'merge'}
-                                                onClick={() => toggleDecision(pair.newDesigner.id)}
+                                                onClick={() => toggleDecision(pair.newAssignee.id)}
                                             >
                                                 병합
                                             </StyledToggleBtn>
                                             <StyledToggleBtn
                                                 type="button"
                                                 $active={decision === 'keep'}
-                                                onClick={() => toggleDecision(pair.newDesigner.id)}
+                                                onClick={() => toggleDecision(pair.newAssignee.id)}
                                             >
                                                 따로 유지
                                             </StyledToggleBtn>
@@ -223,7 +223,7 @@ export function GuestMigrationLayer({snapshot, storeName, onFinish}: Props) {
                             type="button"
                             $primary
                             disabled={processing}
-                            onClick={handleDesignerMergeComplete}
+                            onClick={handleAssigneeMergeComplete}
                         >
                             {processing ? '처리 중...' : '완료'}
                         </StyledActionButton>
@@ -234,7 +234,7 @@ export function GuestMigrationLayer({snapshot, storeName, onFinish}: Props) {
     }
 
     // phase === 'confirm'
-    const {customers, reservations, designers} = snapshot;
+    const {customers, reservations, assignees} = snapshot;
     return (
         <StyledConfirmOverlay>
             <StyledConfirmModal>
@@ -247,7 +247,7 @@ export function GuestMigrationLayer({snapshot, storeName, onFinish}: Props) {
                         게스트 모드에서 만든 데이터를 어떻게 하시겠습니까?
                     </StyledDesc>
                     <StyledStats>
-                        {designers.length > 0 && <StyledStatItem>디자이너 {designers.length}명</StyledStatItem>}
+                        {assignees.length > 0 && <StyledStatItem>담당자 {assignees.length}명</StyledStatItem>}
                         {customers.length > 0 && <StyledStatItem>고객 {customers.length}명</StyledStatItem>}
                         {reservations.length > 0 && <StyledStatItem>예약 {reservations.length}건</StyledStatItem>}
                     </StyledStats>

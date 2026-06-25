@@ -28,8 +28,8 @@ type AddressCustomerRowProps = {
     tagInput: string;
     selectedColor: string;
     serviceColorMap: Record<string, string>;
-    designerColorMap: Record<number, string>;
-    designerNameMap: Record<number, string>;
+    assigneeColorMap: Record<number, string>;
+    assigneeNameMap: Record<number, string>;
     today: string;
     onTagInputChange: (value: string) => void;
     onSelectColor: (color: string) => void;
@@ -53,8 +53,8 @@ export function AddressCustomerRow({
     tagInput,
     selectedColor,
     serviceColorMap,
-    designerColorMap,
-    designerNameMap,
+    assigneeColorMap,
+    assigneeNameMap,
     today,
     onTagInputChange,
     onSelectColor,
@@ -104,8 +104,8 @@ export function AddressCustomerRow({
                     />
                     <AddressCustomerReservations
                         customerReservations={customerReservations}
-                        designerColorMap={designerColorMap}
-                        designerNameMap={designerNameMap}
+                        assigneeColorMap={assigneeColorMap}
+                        assigneeNameMap={assigneeNameMap}
                         serviceColorMap={serviceColorMap}
                         today={today}
                         onReservationClick={onReservationClick}

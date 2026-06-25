@@ -5,7 +5,7 @@ import type {Reservation} from '../../../utils/reservations';
 import {StyledArrow, StyledChangeRow, StyledNewTime} from './ModalStyles';
 import {ConfirmDialog} from '../../ui/ConfirmDialog';
 
-interface DesignerOffDayMoveConfirmModalProps {
+interface AssigneeOffDayMoveConfirmModalProps {
     reservation: Reservation;
     nextReservation: Reservation;
     customerName?: string;
@@ -14,14 +14,14 @@ interface DesignerOffDayMoveConfirmModalProps {
     onConfirm: () => void;
 }
 
-export const DesignerOffDayMoveConfirmModal = ({
+export const AssigneeOffDayMoveConfirmModal = ({
     reservation,
     nextReservation,
     customerName,
     warningMessage,
     onClose,
     onConfirm,
-}: DesignerOffDayMoveConfirmModalProps) => {
+}: AssigneeOffDayMoveConfirmModalProps) => {
     const dateChanged = reservation.date !== nextReservation.date;
 
     return (
@@ -29,7 +29,7 @@ export const DesignerOffDayMoveConfirmModal = ({
             title="휴무일 이동 확인"
             description="근무 외 일정으로 이동되기 전에 내용을 확인합니다."
             ariaLabel="휴무일 이동 확인"
-            layerKey="designer-off-day-move-confirm"
+            layerKey="assignee-off-day-move-confirm"
             confirmLabel="네"
             cancelLabel="아니오"
             onConfirm={onConfirm}

@@ -16,10 +16,10 @@ import type {CustomerMap} from '../utils/customers';
 
 import {ReservationDetail} from '../components/calendar/overlays/ReservationDetail';
 import {CustomerDetail} from '../components/calendar/overlays/CustomerDetail';
-import {DesignerManageSection} from '../components/settings/DesignerManageSection';
+import {AssigneeManageSection} from '../components/settings/AssigneeManageSection';
 import {MemberSection} from '../components/settings/MemberSection';
 import {PointManageSection} from '../components/settings/PointManageSection';
-import {RevenueSection, type RevenueDesignerKey, type RevenueQuickRange} from '../components/settings/revenue';
+import {RevenueSection, type RevenueAssigneeKey, type RevenueQuickRange} from '../components/settings/revenue';
 import {ServiceManageSection} from '../components/settings/ServiceManageSection';
 import {NaverBookingSection} from '../components/settings/NaverBookingSection';
 import {SNSLinkingSection} from '../components/settings/SNSLinkingSection';
@@ -37,7 +37,7 @@ type SettingsProps = {
     storageMode: 'remote' | 'local';
 };
 
-type SettingsTab = 'revenue' | 'point' | 'service' | 'designer' | 'store' | 'member' | 'sns' | 'naver';
+type SettingsTab = 'revenue' | 'point' | 'service' | 'assignee' | 'store' | 'member' | 'sns' | 'naver';
 
 const WEEKDAYS = ['일', '월', '화', '수', '목', '금', '토'];
 
@@ -59,7 +59,7 @@ function shiftDateKey(baseDate: Date, days: number): string {
 }
 
 function isSettingsTab(value: string): value is SettingsTab {
-    return value === 'revenue' || value === 'point' || value === 'service' || value === 'designer' || value === 'store' || value === 'member' || value === 'sns' || value === 'naver';
+    return value === 'revenue' || value === 'point' || value === 'service' || value === 'assignee' || value === 'store' || value === 'member' || value === 'sns' || value === 'naver';
 }
 
 /* ── Service Manage Section ── */
@@ -77,7 +77,7 @@ const Settings: NextPage<SettingsProps> = ({reservations, customers, history, st
     const storeCustomerMap = useCalendarStore((s) => s.customerMap);
     const setReservationMap = useCalendarStore((s) => s.setReservationMap);
     const setReservationHistory = useCalendarStore((s) => s.setReservationHistory);
-    const designers = useCalendarStore((s) => s.designers);
+    const assignees = useCalendarStore((s) => s.assignees);
     const updateReservation = useCalendarStore((s) => s.updateReservation);
     const cancelReservation = useCalendarStore((s) => s.cancelReservation);
     const restoreReservation = useCalendarStore((s) => s.restoreReservation);
@@ -123,9 +123,9 @@ const Settings: NextPage<SettingsProps> = ({reservations, customers, history, st
     const q = router.query;
     const tabQuery = typeof q.tab === 'string' ? q.tab : '';
     const tab: SettingsTab = isSettingsTab(tabQuery) ? tabQuery : 'revenue';
-    const parsedDesignerId = typeof q.designer === 'string' ? Number(q.designer) : NaN;
-    const revenueDesignerKey: RevenueDesignerKey = Number.isInteger(parsedDesignerId) && parsedDesignerId > 0
-        ? String(parsedDesignerId) as RevenueDesignerKey
+    const parsedAssigneeId = typeof q.assignee === 'string' ? Number(q.assignee) : NaN;
+    const revenueAssigneeKey: RevenueAssigneeKey = Number.isInteger(parsedAssigneeId) && parsedAssigneeId > 0
+        ? String(parsedAssigneeId) as RevenueAssigneeKey
         : 'all';
     const startDateKey = typeof q.start === 'string' && isValidDateKey(q.start) ? q.start : monthStartKey;
     const endDateKey = typeof q.end === 'string' && isValidDateKey(q.end) ? q.end : todayKey;
@@ -142,9 +142,9 @@ const Settings: NextPage<SettingsProps> = ({reservations, customers, history, st
         router.replace({pathname: `/settings/${nextTab}`, query: patch}, undefined, {shallow: true});
     };
 
-    const setRevenueDesigner = (designer: RevenueDesignerKey) => {
+    const setRevenueAssignee = (assignee: RevenueAssigneeKey) => {
         replaceQuery('revenue', {
-            designer,
+            assignee,
             start: startDateKey,
             end: endDateKey,
             date: selectedDateKey,
@@ -154,7 +154,7 @@ const Settings: NextPage<SettingsProps> = ({reservations, customers, history, st
     const setRevenueStartDate = (key: string) => {
         if (!isValidDateKey(key)) return;
         replaceQuery('revenue', {
-            designer: revenueDesignerKey,
+            assignee: revenueAssigneeKey,
             start: key,
             end: endDateKey,
             date: selectedDateKey,
@@ -164,7 +164,7 @@ const Settings: NextPage<SettingsProps> = ({reservations, customers, history, st
     const setRevenueEndDate = (key: string) => {
         if (!isValidDateKey(key)) return;
         replaceQuery('revenue', {
-            designer: revenueDesignerKey,
+            assignee: revenueAssigneeKey,
             start: startDateKey,
             end: key,
             date: selectedDateKey,
@@ -174,7 +174,7 @@ const Settings: NextPage<SettingsProps> = ({reservations, customers, history, st
     const setRevenueDateRange = (startKey: string, endKey: string, selectedKey?: string) => {
         if (!isValidDateKey(startKey) || !isValidDateKey(endKey)) return;
         replaceQuery('revenue', {
-            designer: revenueDesignerKey,
+            assignee: revenueAssigneeKey,
             start: startKey,
             end: endKey,
             date: selectedKey ?? endKey,
@@ -183,7 +183,7 @@ const Settings: NextPage<SettingsProps> = ({reservations, customers, history, st
 
     const setRevenueSelectedDate = (key: string) => {
         replaceQuery('revenue', {
-            designer: revenueDesignerKey,
+            assignee: revenueAssigneeKey,
             start: startDateKey,
             end: endDateKey,
             date: key,
@@ -193,7 +193,7 @@ const Settings: NextPage<SettingsProps> = ({reservations, customers, history, st
     const setRevenueQuickRange = (range: RevenueQuickRange) => {
         if (range === 'today') {
             replaceQuery('revenue', {
-                designer: revenueDesignerKey,
+                assignee: revenueAssigneeKey,
                 start: todayKey,
                 end: todayKey,
                 date: todayKey,
@@ -203,7 +203,7 @@ const Settings: NextPage<SettingsProps> = ({reservations, customers, history, st
 
         const start = range === 'week' ? revenueWeekStartKey : revenue30DaysStartKey;
         replaceQuery('revenue', {
-            designer: revenueDesignerKey,
+            assignee: revenueAssigneeKey,
             start,
             end: todayKey,
             date: todayKey,
@@ -238,13 +238,13 @@ const Settings: NextPage<SettingsProps> = ({reservations, customers, history, st
             <SeoHead title="설정" />
             <StyledContent>
                 {tab === 'revenue' && <RevenueSection reservationMap={reservationMap}
-                                                      designers={designers}
+                                                      assignees={assignees}
                                                       customerMap={storeCustomerMap}
                                                       serviceColorMap={serviceColorMap}
                                                       onSelectReservation={openReservationDetail}
                                                       onSelectCustomer={openCustomerDetail}
-                                                      designerKey={revenueDesignerKey}
-                                                      setDesignerKey={setRevenueDesigner}
+                                                      assigneeKey={revenueAssigneeKey}
+                                                      setAssigneeKey={setRevenueAssignee}
                                                       startDateKey={startDateKey}
                                                       setStartDateKey={setRevenueStartDate}
                                                       endDateKey={endDateKey}
@@ -257,7 +257,7 @@ const Settings: NextPage<SettingsProps> = ({reservations, customers, history, st
                 {tab === 'point' && <PointManageSection />}
                 {tab === 'store' && <StoreManageSection formatDateLabel={formatDateLabel}/>}
                 {tab === 'service' && <ServiceManageSection/>}
-                {tab === 'designer' && <DesignerManageSection/>}
+                {tab === 'assignee' && <AssigneeManageSection/>}
                 {tab === 'member' && <MemberSection/>}
                 {tab === 'sns' && <SNSLinkingSection/>}
                 {tab === 'naver' && <NaverBookingSection/>}

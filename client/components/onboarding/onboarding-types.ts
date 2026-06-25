@@ -3,7 +3,7 @@ import type {ShopType} from '../../features/services/default-services';
 export type OnboardingStep = 0 | 1 | 2 | 3 | 4 | 5;
 export type ExtShopType = ShopType | 'etc';
 
-export interface LocalDesigner {
+export interface LocalAssignee {
     id: number;
     name: string;
     color: string;
@@ -30,9 +30,9 @@ export const STEP_LABELS: Record<OnboardingStep, string> = {
     0: '매장 초기 설정',
     1: '매장 정보',
     2: '서비스 설정',
-    3: '디자이너 등록',
+    3: '담당자 등록',
     4: '네이버 예약 연동 방식 안내',
     5: '설정 완료',
 };
 
-export const DEFAULT_DESIGNER_ID_START = 1;
+export const DEFAULT_ASSIGNEE_ID_START = 1;

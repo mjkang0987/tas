@@ -15,7 +15,7 @@ import styled from 'styled-components';
 import {GlobalStyle} from '../styles/globalStyle';
 import {useCalendarStore} from '../store/calendarStore';
 import type {ServiceItem} from '../utils/services';
-import type {Designer} from '../utils/designers';
+import type {Assignee} from '../utils/assignees';
 import type {StoreSettings} from '../utils/storeSettings';
 import {groupByDate} from '../utils/reservations';
 import {toCustomerMap} from '../utils/customers';
@@ -37,7 +37,7 @@ function AppContent({Component, pageProps}: AppContentProps) {
     const router = useRouter();
     const setServiceCatalog = useCalendarStore((s) => s.setServiceCatalog);
     const setCategoryBaseColorMap = useCalendarStore((s) => s.setCategoryBaseColorMap);
-    const setDesigners = useCalendarStore((s) => s.setDesigners);
+    const setAssignees = useCalendarStore((s) => s.setAssignees);
     const setStoreInfo = useCalendarStore((s) => s.setStoreInfo);
     const setStoreSettings = useCalendarStore((s) => s.setStoreSettings);
     const setReservationMap = useCalendarStore((s) => s.setReservationMap);
@@ -53,7 +53,7 @@ function AppContent({Component, pageProps}: AppContentProps) {
         storeName: string;
     } | null>(null);
     const [servicesReady, setServicesReady] = useState(false);
-    const [designersReady, setDesignersReady] = useState(false);
+    const [assigneesReady, setAssigneesReady] = useState(false);
     const [reservationsReady, setReservationsReady] = useState(false);
     const [showGuestEntry, setShowGuestEntry] = useState(false);
     const [dpaSubmitting, setDpaSubmitting] = useState(false);
@@ -118,7 +118,7 @@ function AppContent({Component, pageProps}: AppContentProps) {
                 shopName: snapshot.storeName ?? '',
                 shopType: snapshot.shopType ?? null,
                 services: snapshot.services,
-                designers: snapshot.designers.map((d) => ({id: d.id, name: d.name, color: d.color ?? null})),
+                assignees: snapshot.assignees.map((d) => ({id: d.id, name: d.name, color: d.color ?? null})),
                 customers: snapshot.customers,
                 reservations: snapshot.reservations,
             }),
@@ -134,13 +134,13 @@ function AppContent({Component, pageProps}: AppContentProps) {
                     window.location.reload();
                 } else if (res.status === 409) {
                     // 기존 데이터 있는 매장 → 병합/삭제 결정 필요.
-                    // 단, 병합 대상은 게스트가 만든 '실제 레코드'(고객/예약/서비스/디자이너)뿐이다.
+                    // 단, 병합 대상은 게스트가 만든 '실제 레코드'(고객/예약/서비스/담당자)뿐이다.
                     // 매장명만 입력했거나 온보딩을 건너뛴(빈) 스냅샷은 합칠 게 없으므로
                     // 레이어를 띄우지 않고 로컬을 정리한 뒤 기존 매장으로 그대로 진입한다.
                     const hasRealData = snapshot.customers.length > 0
                         || snapshot.reservations.length > 0
                         || snapshot.services.length > 0
-                        || snapshot.designers.length > 0;
+                        || snapshot.assignees.length > 0;
 
                     if (hasRealData) {
                         const data = await res.json() as {storeName?: string};
@@ -271,8 +271,8 @@ function AppContent({Component, pageProps}: AppContentProps) {
     useEffect(() => {
         if (status === 'unauthenticated' || (status === 'authenticated' && !hasApiAccess)) {
             const localDb = loadLocalDbSnapshot();
-            setDesigners(localDb.designers);
-            setDesignersReady(true);
+            setAssignees(localDb.assignees);
+            setAssigneesReady(true);
             return;
         }
 
@@ -280,22 +280,22 @@ function AppContent({Component, pageProps}: AppContentProps) {
             return;
         }
 
-        fetch('/api/designers')
+        fetch('/api/assignees')
             .then((res) => {
-                if (!res.ok) throw new Error('Failed to load designers');
-                return res.json() as Promise<{ designers: Designer[] }>;
+                if (!res.ok) throw new Error('Failed to load assignees');
+                return res.json() as Promise<{ assignees: Assignee[] }>;
             })
             .then((data) => {
-                if (Array.isArray(data.designers)) {
-                    setDesigners(data.designers);
+                if (Array.isArray(data.assignees)) {
+                    setAssignees(data.assignees);
                 }
-                setDesignersReady(true);
+                setAssigneesReady(true);
             })
             .catch(() => {
-                setDesignersReady(true);
-                // Keep default designers if loading fails.
+                setAssigneesReady(true);
+                // Keep default assignees if loading fails.
             });
-    }, [hasApiAccess, status, setDesigners]);
+    }, [hasApiAccess, status, setAssignees]);
 
     useEffect(() => {
         if (status === 'unauthenticated' || (status === 'authenticated' && !hasApiAccess)) {
@@ -379,7 +379,7 @@ function AppContent({Component, pageProps}: AppContentProps) {
             });
     }, [hasApiAccess, status, setStoreInfo, setStoreSettings, setReservationMap, setCustomerMap, setReservationHistory]);
 
-    // 데이터(서비스·디자이너·예약)가 모두 준비될 때까지 오버레이로 가려 새로고침 플래시를 막음.
+    // 데이터(서비스·담당자·예약)가 모두 준비될 때까지 오버레이로 가려 새로고침 플래시를 막음.
     // SSR/첫 렌더 모두 status==='loading'이라 하이드레이션 불일치가 없음.
     const isAuthFlowPage = router.pathname.startsWith('/login') || router.pathname.startsWith('/onboarding')
         || router.pathname === '/consent' || router.pathname === '/about' || router.pathname === '/logout'
@@ -388,13 +388,13 @@ function AppContent({Component, pageProps}: AppContentProps) {
     // (게이트가 데이터 없으면 resolved와 무관하게 /login으로 보내므로 동일 조건으로 맞춤)
     const guestRedirectPending = status === 'unauthenticated' && !isAuthFlowPage && !hasGuestData();
     const isBooting = !isAuthFlowPage && (
-        status === 'loading' || guestRedirectPending || !(servicesReady && designersReady && reservationsReady)
+        status === 'loading' || guestRedirectPending || !(servicesReady && assigneesReady && reservationsReady)
     );
     // 로딩바 하단 현재 상태 문구
     const bootStatusText = status === 'loading' ? '로그인 상태 확인 중...'
         : guestRedirectPending ? '로그인 페이지로 이동 중...'
         : !servicesReady ? '서비스 정보를 불러오는 중...'
-        : !designersReady ? '디자이너 정보를 불러오는 중...'
+        : !assigneesReady ? '담당자 정보를 불러오는 중...'
         : !reservationsReady ? '예약 정보를 불러오는 중...'
         : '잠시만 기다려 주세요...';
 

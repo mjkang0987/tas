@@ -226,7 +226,7 @@ export const StyledChartAxis = styled.div`
     padding-left: 74px;
 `;
 
-/* ── Bar chart (designer) ── */
+/* ── Bar chart (assignee) ── */
 
 export const StyledBarChartList = styled.div`
     display: flex;

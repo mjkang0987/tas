@@ -8,7 +8,7 @@ import {groupByDate} from '../utils/reservations';
 import {toCustomerMap} from '../utils/customers';
 import type {Reservation, ReservationHistoryEntry} from '../utils/reservations';
 import type {Customer} from '../utils/customers';
-import type {Designer} from '../utils/designers';
+import type {Assignee} from '../utils/assignees';
 
 export interface ConflictInfo {
     newReservation: Reservation;
@@ -19,7 +19,7 @@ export interface SyncNotification {
     id: string;
     bookingId: string;
     customerName: string;
-    designerName: string;
+    assigneeName: string;
     appointmentDate: string;
     appointmentTime: string;
     reservationId: number;
@@ -39,7 +39,7 @@ export interface SyncNotification {
 interface SyncedEntry {
     bookingId: string;
     customerName: string;
-    designerName: string;
+    assigneeName: string;
     appointmentDate: string;
     appointmentTime: string;
     reservationId: number;
@@ -51,7 +51,7 @@ interface CancelledEntry {
     appointmentDate?: string;
     appointmentTime?: string;
     customerName?: string;
-    designerName?: string;
+    assigneeName?: string;
 }
 
 function conflictKey(c: ConflictInfo): string {
@@ -148,7 +148,7 @@ export function useNaverBookingSync() {
     const patchNotificationNames = useCalendarStore((s) => s.patchNotificationNames);
     const conflictDetectedRef = useRef(false);
 
-    // 빈 고객명·디자이너명 알림 보정 (데이터 로드 후)
+    // 빈 고객명·담당자명 알림 보정 (데이터 로드 후)
     useEffect(() => {
         if (Object.keys(customerMap).length === 0) return;
         patchNotificationNames();
@@ -209,7 +209,7 @@ export function useNaverBookingSync() {
         }
 
         const customerMap = useCalendarStore.getState().customerMap;
-        const designers = useCalendarStore.getState().designers;
+        const assignees = useCalendarStore.getState().assignees;
 
         const existingKeys = new Set(
             useCalendarStore.getState().syncNotifications
@@ -223,7 +223,7 @@ export function useNaverBookingSync() {
                 id: `conflict-${conflict.newReservation.id}-${index}`,
                 bookingId: String(conflict.newReservation.naverBookingId ?? conflict.newReservation.id),
                 customerName: customerMap[conflict.newReservation.customerId]?.name ?? `고객 ${conflict.newReservation.customerId}`,
-                designerName: designers.find((designer) => designer.id === conflict.newReservation.designerId)?.name ?? '미지정',
+                assigneeName: assignees.find((assignee) => assignee.id === conflict.newReservation.assigneeId)?.name ?? '미지정',
                 appointmentDate: conflict.newReservation.date,
                 appointmentTime: conflict.newReservation.startTime,
                 reservationId: conflict.newReservation.id,
@@ -316,7 +316,7 @@ export function useNaverBookingSync() {
                 id: `${Date.now()}-sync-${i}`,
                 bookingId: entry.bookingId,
                 customerName: entry.customerName,
-                designerName: entry.designerName,
+                assigneeName: entry.assigneeName,
                 appointmentDate: entry.appointmentDate,
                 appointmentTime: entry.appointmentTime,
                 reservationId: entry.reservationId,
@@ -328,7 +328,7 @@ export function useNaverBookingSync() {
                 id: `${Date.now()}-cancel-${i}`,
                 bookingId: entry.bookingId,
                 customerName: entry.customerName || '고객',
-                designerName: entry.designerName || '미지정',
+                assigneeName: entry.assigneeName || '미지정',
                 appointmentDate: entry.appointmentDate || '',
                 appointmentTime: entry.appointmentTime || '',
                 reservationId: entry.reservationId,
@@ -349,7 +349,7 @@ export function useNaverBookingSync() {
                     const detected = detectConflicts(data.synced);
                     if (detected.length > 0) {
                         const customerMap = useCalendarStore.getState().customerMap;
-                        const designers = useCalendarStore.getState().designers;
+                        const assignees = useCalendarStore.getState().assignees;
                         const existingKeys = new Set(
                             useCalendarStore.getState().syncNotifications
                                 .filter((notification) => notification.type === 'conflict')
@@ -361,7 +361,7 @@ export function useNaverBookingSync() {
                             id: `${Date.now()}-conflict-${index}`,
                             bookingId: String(conflict.newReservation.naverBookingId ?? conflict.newReservation.id),
                             customerName: customerMap[conflict.newReservation.customerId]?.name ?? '',
-                            designerName: designers.find((designer) => designer.id === conflict.newReservation.designerId)?.name ?? '미지정',
+                            assigneeName: assignees.find((assignee) => assignee.id === conflict.newReservation.assigneeId)?.name ?? '미지정',
                             appointmentDate: conflict.newReservation.date,
                             appointmentTime: conflict.newReservation.startTime,
                             reservationId: conflict.newReservation.id,
@@ -602,7 +602,7 @@ function detectConflictsFromStore(): ConflictInfo[] {
         for (const a of active) {
             for (const b of active) {
                 if (a.id >= b.id) continue;
-                if (a.designerId == null || a.designerId !== b.designerId) continue;
+                if (a.assigneeId == null || a.assigneeId !== b.assigneeId) continue;
                 if (a.startTime >= b.endTime || a.endTime <= b.startTime) continue;
 
                 const pairKey = `${a.id}-${b.id}`;
@@ -635,7 +635,7 @@ function detectConflicts(syncedEntries: SyncedEntry[]): ConflictInfo[] {
             r.id !== newRes.id
             && r.status !== 'cancelled'
             && r.status !== 'noshow'
-            && (newRes.designerId == null || r.designerId === newRes.designerId)
+            && (newRes.assigneeId == null || r.assigneeId === newRes.assigneeId)
             && newRes.startTime < r.endTime
             && newRes.endTime > r.startTime
         );
@@ -652,13 +652,13 @@ async function reloadStoreData() {
     const setReservationMap = useCalendarStore.getState().setReservationMap;
     const setCustomerMap = useCalendarStore.getState().setCustomerMap;
     const setReservationHistory = useCalendarStore.getState().setReservationHistory;
-    const setDesigners = useCalendarStore.getState().setDesigners;
+    const setAssignees = useCalendarStore.getState().setAssignees;
 
     try {
         const [resRes, custRes, desRes] = await Promise.all([
             fetch('/api/reservations'),
             fetch('/api/customers'),
-            fetch('/api/designers'),
+            fetch('/api/assignees'),
         ]);
 
         if (resRes.ok) {
@@ -676,8 +676,8 @@ async function reloadStoreData() {
         }
 
         if (desRes.ok) {
-            const desData = await desRes.json() as {designers: Designer[]};
-            setDesigners(desData.designers);
+            const desData = await desRes.json() as {assignees: Assignee[]};
+            setAssignees(desData.assignees);
         }
     } catch {
         // Silently ignore reload errors

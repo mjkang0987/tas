@@ -6,7 +6,7 @@ import * as XLSX from 'xlsx';
 
 import type {Reservation, ReservationMap} from './reservations';
 import type {CustomerMap} from './customers';
-import type {Designer} from './designers';
+import type {Assignee} from './assignees';
 import type {RevenueFilterMode} from './revenue';
 import {isRevenueReservationTarget} from './revenue';
 import {parseServiceString, sumPrice} from './services';
@@ -40,23 +40,23 @@ function formatPayment(reservation: Reservation): string {
 interface ExportParams {
     reservationMap: ReservationMap;
     customerMap: CustomerMap;
-    designers: Designer[];
+    assignees: Assignee[];
     startDateKey: string;
     endDateKey: string;
-    designerId: number | null;
+    assigneeId: number | null;
     filterMode: RevenueFilterMode;
 }
 
 export function exportRevenueToExcel({
     reservationMap,
     customerMap,
-    designers,
+    assignees,
     startDateKey,
     endDateKey,
-    designerId,
+    assigneeId,
     filterMode,
 }: ExportParams): void {
-    const designerMap = new Map(designers.map((d) => [d.id, d.name]));
+    const assigneeMap = new Map(assignees.map((d) => [d.id, d.name]));
 
     const rows: Record<string, string | number>[] = [];
 
@@ -68,7 +68,7 @@ export function exportRevenueToExcel({
         const reservations = reservationMap[dateKey] ?? [];
 
         for (const r of reservations) {
-            if (!isRevenueReservationTarget(r, designerId, filterMode)) continue;
+            if (!isRevenueReservationTarget(r, assigneeId, filterMode)) continue;
 
             const date = new Date(`${r.date}T00:00:00`);
             const weekday = WEEKDAYS[date.getDay()];
@@ -80,7 +80,7 @@ export function exportRevenueToExcel({
                 '시간': `${r.startTime}~${r.endTime}`,
                 '고객명': customer?.name ?? '',
                 '서비스': r.service,
-                '디자이너': r.designerId != null ? (designerMap.get(r.designerId) ?? '') : '',
+                '담당자': r.assigneeId != null ? (assigneeMap.get(r.assigneeId) ?? '') : '',
                 '금액': resolvePrice(r.service, r.price),
                 '결제수단': formatPayment(r),
                 '상태': STATUS_LABELS[r.status ?? 'active'] ?? r.status ?? '',
@@ -98,7 +98,7 @@ export function exportRevenueToExcel({
         {wch: 13},  // 시간
         {wch: 10},  // 고객명
         {wch: 20},  // 서비스
-        {wch: 10},  // 디자이너
+        {wch: 10},  // 담당자
         {wch: 12},  // 금액
         {wch: 20},  // 결제수단
         {wch: 6},   // 상태

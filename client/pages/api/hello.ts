@@ -15,7 +15,7 @@ const handler = async (
             include: {
                 paymentEntries: true,
                 customer: {select: {legacyId: true}},
-                designer: {select: {legacyId: true}},
+                assignee: {select: {legacyId: true}},
             },
         }),
         prisma.reservationHistory.findMany({

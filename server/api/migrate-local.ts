@@ -4,7 +4,7 @@ import {prisma} from '../db/prisma';
 import {getApiSession} from '../auth/api-session';
 import {notifySlackOpsError} from '../notify/slack';
 import {frontendReservationStatusToDb, frontendPaymentMethodToDb, frontendChannelToDb} from '../db/mappers';
-import type {Designer} from '../../client/features/designers/model';
+import type {Assignee} from '../../client/features/assignees/model';
 import type {Customer} from '../../client/features/customers/model';
 import type {Reservation} from '../../client/features/reservations/model';
 import type {ServiceItem} from '../../client/features/services/model';
@@ -21,15 +21,15 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     if (!session?.storeId) return res.status(401).json({error: '인증 필요'});
     if (session.role !== 'owner') return res.status(403).json({error: '권한 없음'});
 
-    const {shopName, shopType, services, designers, customers, reservations, confirm = false} = req.body ?? {};
+    const {shopName, shopType, services, assignees, customers, reservations, confirm = false} = req.body ?? {};
 
     const storeId = session.storeId;
 
-    const [designerCount, serviceCount] = await Promise.all([
-        prisma.designer.count({where: {storeId}}),
+    const [assigneeCount, serviceCount] = await Promise.all([
+        prisma.assignee.count({where: {storeId}}),
         prisma.service.count({where: {storeId}}),
     ]);
-    const hasExistingData = designerCount > 0 || serviceCount > 0;
+    const hasExistingData = assigneeCount > 0 || serviceCount > 0;
 
     if (hasExistingData && !confirm) {
         const store = await prisma.store.findUnique({where: {id: storeId}, select: {name: true}});
@@ -43,13 +43,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const name = typeof shopName === 'string' ? shopName.trim() : '';
     const type = typeof shopType === 'string' && VALID_SHOP_TYPES.includes(shopType) ? shopType : null;
     const servicesList: ServiceItem[] = Array.isArray(services) ? services : [];
-    const designersList: Designer[] = Array.isArray(designers) && designers.length > 0
-        ? designers
+    const assigneesList: Assignee[] = Array.isArray(assignees) && assignees.length > 0
+        ? assignees
         : [{id: 1, name: '원장', color: undefined, schedule: []}];
     const customersList: Customer[] = Array.isArray(customers) ? customers : [];
     const reservationsList: Reservation[] = Array.isArray(reservations) ? reservations : [];
 
-    const newDesignerLegacyIds: number[] = [];
+    const newAssigneeLegacyIds: number[] = [];
 
     try {
         await prisma.$transaction(async (tx) => {
@@ -73,13 +73,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                     });
                 }
 
-                // 디자이너 생성 (legacyId = 순번)
-                const designerCuidMap = new Map<number, string>();
-                await tx.designer.deleteMany({where: {storeId}});
-                for (let i = 0; i < designersList.length; i++) {
-                    const d = designersList[i];
+                // 담당자 생성 (legacyId = 순번)
+                const assigneeCuidMap = new Map<number, string>();
+                await tx.assignee.deleteMany({where: {storeId}});
+                for (let i = 0; i < assigneesList.length; i++) {
+                    const d = assigneesList[i];
                     const legacyId = i + 1;
-                    const created = await tx.designer.create({
+                    const created = await tx.assignee.create({
                         data: {
                             storeId,
                             legacyId,
@@ -88,7 +88,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                             color: d.color ?? null,
                         },
                     });
-                    designerCuidMap.set(d.id, created.id);
+                    assigneeCuidMap.set(d.id, created.id);
                 }
 
                 // 고객 생성
@@ -117,7 +117,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                     const customerCuid = customerCuidMap.get(r.customerId);
                     if (!customerCuid) continue;
 
-                    const designerCuid = r.designerId != null ? (designerCuidMap.get(r.designerId) ?? null) : null;
+                    const assigneeCuid = r.assigneeId != null ? (assigneeCuidMap.get(r.assigneeId) ?? null) : null;
                     const paymentEntries = (r.paymentEntries ?? []).map((e) => ({
                         method: frontendPaymentMethodToDb(e.method),
                         amount: e.amount,
@@ -128,7 +128,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                             storeId,
                             legacyId: i + 1,
                             customerId: customerCuid,
-                            designerId: designerCuid,
+                            assigneeId: assigneeCuid,
                             date: new Date(`${r.date}T00:00:00`),
                             startTime: r.startTime,
                             endTime: r.endTime,
@@ -147,20 +147,20 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                 }
             } else {
                 // 기존 매장 (confirm=true): legacyId remap 후 append
-                const [maxDesignerRow, maxCustomerRow, maxReservationRow] = await Promise.all([
-                    tx.designer.findFirst({where: {storeId}, orderBy: {legacyId: 'desc'}, select: {legacyId: true}}),
+                const [maxAssigneeRow, maxCustomerRow, maxReservationRow] = await Promise.all([
+                    tx.assignee.findFirst({where: {storeId}, orderBy: {legacyId: 'desc'}, select: {legacyId: true}}),
                     tx.customer.findFirst({where: {storeId}, orderBy: {legacyId: 'desc'}, select: {legacyId: true}}),
                     tx.reservation.findFirst({where: {storeId}, orderBy: {legacyId: 'desc'}, select: {legacyId: true}}),
                 ]);
 
-                let nextDesignerLegacyId = (maxDesignerRow?.legacyId ?? 0) + 1;
+                let nextAssigneeLegacyId = (maxAssigneeRow?.legacyId ?? 0) + 1;
                 let nextCustomerLegacyId = (maxCustomerRow?.legacyId ?? 0) + 1;
                 let nextReservationLegacyId = (maxReservationRow?.legacyId ?? 0) + 1;
 
-                const designerCuidMap = new Map<number, string>();
-                for (const d of designersList) {
-                    const legacyId = nextDesignerLegacyId++;
-                    const created = await tx.designer.create({
+                const assigneeCuidMap = new Map<number, string>();
+                for (const d of assigneesList) {
+                    const legacyId = nextAssigneeLegacyId++;
+                    const created = await tx.assignee.create({
                         data: {
                             storeId,
                             legacyId,
@@ -169,8 +169,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                             color: d.color ?? null,
                         },
                     });
-                    designerCuidMap.set(d.id, created.id);
-                    newDesignerLegacyIds.push(legacyId);
+                    assigneeCuidMap.set(d.id, created.id);
+                    newAssigneeLegacyIds.push(legacyId);
                 }
 
                 const customerCuidMap = new Map<number, string>();
@@ -195,7 +195,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                     const customerCuid = customerCuidMap.get(r.customerId);
                     if (!customerCuid) continue;
 
-                    const designerCuid = r.designerId != null ? (designerCuidMap.get(r.designerId) ?? null) : null;
+                    const assigneeCuid = r.assigneeId != null ? (assigneeCuidMap.get(r.assigneeId) ?? null) : null;
                     const paymentEntries = (r.paymentEntries ?? []).map((e) => ({
                         method: frontendPaymentMethodToDb(e.method),
                         amount: e.amount,
@@ -206,7 +206,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                             storeId,
                             legacyId: nextReservationLegacyId++,
                             customerId: customerCuid,
-                            designerId: designerCuid,
+                            assigneeId: assigneeCuid,
                             date: new Date(`${r.date}T00:00:00`),
                             startTime: r.startTime,
                             endTime: r.endTime,
@@ -229,7 +229,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         return res.json({
             ok: true,
             status: hasExistingData ? 'merged' : 'created',
-            newDesignerLegacyIds,
+            newAssigneeLegacyIds,
         });
     } catch (error) {
         console.error('[migrate-local] 마이그레이션 실패:', error);

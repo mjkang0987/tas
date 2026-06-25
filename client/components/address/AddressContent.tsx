@@ -24,8 +24,8 @@ type AddressContentProps = {
     tagInput: string;
     selectedColor: string;
     serviceColorMap: Record<string, string>;
-    designerColorMap: Record<number, string>;
-    designerNameMap: Record<number, string>;
+    assigneeColorMap: Record<number, string>;
+    assigneeNameMap: Record<number, string>;
     today: string;
     customerStats: Record<number, CustomerStats>;
     searchInput: string;
@@ -49,8 +49,8 @@ export function AddressContent({
     tagInput,
     selectedColor,
     serviceColorMap,
-    designerColorMap,
-    designerNameMap,
+    assigneeColorMap,
+    assigneeNameMap,
     today,
     customerStats,
     searchInput,
@@ -203,8 +203,8 @@ export function AddressContent({
                                 tagInput={tagInput}
                                 selectedColor={selectedColor}
                                 serviceColorMap={serviceColorMap}
-                                designerColorMap={designerColorMap}
-                                designerNameMap={designerNameMap}
+                                assigneeColorMap={assigneeColorMap}
+                                assigneeNameMap={assigneeNameMap}
                                 today={today}
                                 onTagInputChange={onTagInputChange}
                                 onSelectColor={onSelectColor}

@@ -32,8 +32,8 @@ const TOUR_DONE_KEY = 'tas-tour-main-v1';
 const MAIN_TOUR_STEPS: TourStep[] = [
     {targetId: 'tour-add-reservation', title: '예약 추가', description: '여기서 새 예약을 등록할 수 있어요. 달력의 빈 칸을 눌러도 바로 등록돼요.', inAside: true},
     {targetId: 'tour-views', title: '보기 전환', description: '일·주·월 등 원하는 방식으로 달력을 볼 수 있어요.', inAside: true},
-    {targetId: 'tour-settings', title: '설정', description: '매장·서비스·디자이너·멤버를 여기서 관리해요.', inAside: true},
-    {targetId: 'tour-designer-filter', title: '디자이너 필터', description: '특정 디자이너의 예약만 모아서 볼 수 있어요.'},
+    {targetId: 'tour-settings', title: '설정', description: '매장·서비스·담당자·멤버를 여기서 관리해요.', inAside: true},
+    {targetId: 'tour-assignee-filter', title: '담당자 필터', description: '특정 담당자의 예약만 모아서 볼 수 있어요.'},
     {targetId: 'tour-search', title: '고객 검색', description: '고객·예약을 빠르게 찾을 수 있어요.'},
     {targetId: 'tour-notify', title: '알림', description: '네이버 예약·중복 예약 알림이 여기에 표시돼요.'},
 ];

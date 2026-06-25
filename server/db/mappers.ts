@@ -1,34 +1,34 @@
 import type {
-    DesignerStatus as DbDesignerStatus,
+    AssigneeStatus as DbAssigneeStatus,
     PaymentMethod as DbPaymentMethod,
     ReservationChannel as DbReservationChannel,
     ReservationStatus as DbReservationStatus,
 } from '../../client/prisma/generated/prisma/client';
-import type {DesignerStatus} from '../../client/features/designers/model';
+import type {AssigneeStatus} from '../../client/features/assignees/model';
 import type {Customer, PointHistoryType} from '../../client/features/customers/model';
 import type {PaymentMethod, ReservationChannel, Reservation, ReservationHistoryEntry, ReservationStatus} from '../../client/features/reservations/model';
 
-// ── Designer Status ──
+// ── Assignee Status ──
 
-const DB_TO_FRONTEND_DESIGNER_STATUS: Record<DbDesignerStatus, DesignerStatus> = {
+const DB_TO_FRONTEND_ASSIGNEE_STATUS: Record<DbAssigneeStatus, AssigneeStatus> = {
     active: '재직',
     on_leave: '휴직',
     resigned: '퇴직',
 };
 
-const FRONTEND_TO_DB_DESIGNER_STATUS: Record<DesignerStatus, DbDesignerStatus> = {
+const FRONTEND_TO_DB_ASSIGNEE_STATUS: Record<AssigneeStatus, DbAssigneeStatus> = {
     '재직': 'active',
     '휴직': 'on_leave',
     '퇴직': 'resigned',
 };
 
-export function dbDesignerStatusToFrontend(status: DbDesignerStatus): DesignerStatus {
-    return DB_TO_FRONTEND_DESIGNER_STATUS[status];
+export function dbAssigneeStatusToFrontend(status: DbAssigneeStatus): AssigneeStatus {
+    return DB_TO_FRONTEND_ASSIGNEE_STATUS[status];
 }
 
-export function frontendDesignerStatusToDb(status: DesignerStatus | undefined): DbDesignerStatus {
+export function frontendAssigneeStatusToDb(status: AssigneeStatus | undefined): DbAssigneeStatus {
     if (!status) return 'active';
-    return FRONTEND_TO_DB_DESIGNER_STATUS[status] ?? 'active';
+    return FRONTEND_TO_DB_ASSIGNEE_STATUS[status] ?? 'active';
 }
 
 // ── Payment Method ──
@@ -112,10 +112,10 @@ function toDateKey(d: Date): string {
 
 // ── Row Converters ──
 
-type DbDesignerRow = {
+type DbAssigneeRow = {
     legacyId: number | null;
     name: string;
-    status: DbDesignerStatus;
+    status: DbAssigneeStatus;
     phone: string | null;
     note: string | null;
     color: string | null;
@@ -127,7 +127,7 @@ type DbDesignerRow = {
     }>;
 };
 
-export function dbDesignerToFrontend(row: DbDesignerRow) {
+export function dbAssigneeToFrontend(row: DbAssigneeRow) {
     const schedule = Array.from({length: 7}, (_, i) => {
         const s = row.schedules.find((sc) => sc.dayIndex === i);
         return {
@@ -141,7 +141,7 @@ export function dbDesignerToFrontend(row: DbDesignerRow) {
         id: row.legacyId!,
         name: row.name,
         schedule,
-        status: dbDesignerStatusToFrontend(row.status),
+        status: dbAssigneeStatusToFrontend(row.status),
         ...(row.phone !== null && {phone: row.phone}),
         ...(row.note !== null && {note: row.note}),
         ...(row.color !== null && {color: row.color}),
@@ -199,7 +199,7 @@ type DbReservationRow = {
     endTime: string;
     serviceSummary: string;
     customerId: string;
-    designerId: string | null;
+    assigneeId: string | null;
     status: DbReservationStatus;
     price: number;
     memo: string | null;
@@ -214,7 +214,7 @@ type DbReservationRow = {
         amount: number;
     }>;
     customer: { legacyId: number | null };
-    designer: { legacyId: number | null } | null;
+    assignee: { legacyId: number | null } | null;
 };
 
 export function dbReservationToFrontend(row: DbReservationRow): Reservation {
@@ -225,7 +225,7 @@ export function dbReservationToFrontend(row: DbReservationRow): Reservation {
         endTime: row.endTime,
         service: row.serviceSummary,
         customerId: row.customer.legacyId!,
-        ...(row.designer?.legacyId != null && {designerId: row.designer.legacyId}),
+        ...(row.assignee?.legacyId != null && {assigneeId: row.assignee.legacyId}),
         status: row.status as ReservationStatus,
         price: row.price,
         ...(row.memo !== null && {memo: row.memo}),

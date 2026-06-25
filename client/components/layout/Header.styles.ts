@@ -155,7 +155,7 @@ export const StyledPageTitle = styled.h1`
     }
 `;
 
-export const StyledDesignerFilter = styled.select`
+export const StyledAssigneeFilter = styled.select`
     min-width: 128px;
     margin-right: auto;
     padding: 0 6px 0 8px;

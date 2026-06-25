@@ -14,7 +14,7 @@ import {
     useLayerInstanceId,
 } from './ModalStyles';
 
-import {buildDesignerColorMap, buildDesignerNameMap} from '../../../utils/designers';
+import {buildAssigneeColorMap, buildAssigneeNameMap} from '../../../utils/assignees';
 import {buildServiceColorMap, formatPrice} from '../../../utils/services';
 import {formatTel, toCustomerMap} from '../../../utils/customers';
 import type {Customer as CustomerType} from '../../../utils/customers';
@@ -95,7 +95,7 @@ export const CustomerDetail = ({customer, reservationMap, onClose, onReservation
     const [isUnmerging, setIsUnmerging] = useState(false);
     const serviceCatalog = useCalendarStore((s) => s.serviceCatalog);
     const categoryBaseColorMap = useCalendarStore((s) => s.categoryBaseColorMap);
-    const designers = useCalendarStore((s) => s.designers);
+    const assignees = useCalendarStore((s) => s.assignees);
     const updateCustomer = useCalendarStore((s) => s.updateCustomer);
     const deleteCustomer = useCalendarStore((s) => s.deleteCustomer);
     const setCustomerMap = useCalendarStore((s) => s.setCustomerMap);
@@ -110,8 +110,8 @@ export const CustomerDetail = ({customer, reservationMap, onClose, onReservation
         () => buildServiceColorMap(serviceCatalog, categoryBaseColorMap),
         [serviceCatalog, categoryBaseColorMap]
     );
-    const designerColorMap = useMemo(() => buildDesignerColorMap(designers), [designers]);
-    const designerNameMap = useMemo(() => buildDesignerNameMap(designers), [designers]);
+    const assigneeColorMap = useMemo(() => buildAssigneeColorMap(assignees), [assignees]);
+    const assigneeNameMap = useMemo(() => buildAssigneeNameMap(assignees), [assignees]);
 
     const customerReservations = useMemo(() => {
         const list: Reservation[] = [];
@@ -368,8 +368,8 @@ export const CustomerDetail = ({customer, reservationMap, onClose, onReservation
                     <StyledReservationScroll>
                         <StyledReservationTitle>예약 내역 ({customerReservations.length})</StyledReservationTitle>
                         <CustomerReservationCards reservations={visibleList}
-                                                  designerColorMap={designerColorMap}
-                                                  designerNameMap={designerNameMap}
+                                                  assigneeColorMap={assigneeColorMap}
+                                                  assigneeNameMap={assigneeNameMap}
                                                   serviceColorMap={serviceColorMap}
                                                   today={today}
                                                   onReservationClick={onReservationClick} />

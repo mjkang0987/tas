@@ -15,7 +15,7 @@ import {findByNameContains} from '../utils/string-matching';
 import {notifySlackOps} from '../notify/slack';
 
 const DEFAULT_DURATION = 30;
-const DESIGNER_COLORS = [
+const ASSIGNEE_COLORS = [
     '#2D7FF9', '#E85D75', '#00A896', '#FB8C00', '#6D6F78', '#7E57C2',
 ];
 const EMAIL_FETCH_CONCURRENCY = 10;
@@ -23,7 +23,7 @@ const EMAIL_FETCH_CONCURRENCY = 10;
 interface SyncedEntry {
     bookingId: string;
     customerName: string;
-    designerName: string;
+    assigneeName: string;
     appointmentDate: string;
     appointmentTime: string;
     reservationId: number;
@@ -35,17 +35,17 @@ interface CancelledEntry {
     appointmentDate: string;
     appointmentTime: string;
     customerName: string;
-    designerName: string;
+    assigneeName: string;
 }
 
 interface SyncContext {
     storeId: string;
-    existingBookingMap: Map<string, {id: string; naverBookingUrl: string | null; serviceSummary: string | null; designerId: string | null}>;
-    designerMap: Map<string, {id: string; legacyId: number; color?: string | null}>;
+    existingBookingMap: Map<string, {id: string; naverBookingUrl: string | null; serviceSummary: string | null; assigneeId: string | null}>;
+    assigneeMap: Map<string, {id: string; legacyId: number; color?: string | null}>;
     serviceMap: Map<string, {name: string; duration: number}>;
     nextCustomerLegacyId: number;
     nextReservationLegacyId: number;
-    nextDesignerLegacyId: number;
+    nextAssigneeLegacyId: number;
 }
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
@@ -75,11 +75,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const [
         [messageIds, cancelMessageIds],
         existingBookings,
-        allDesigners,
+        allAssignees,
         allServices,
         maxCustomerLegacy,
         maxReservationLegacy,
-        maxDesignerLegacy,
+        maxAssigneeLegacy,
     ] = await Promise.all([
         Promise.all([
             listNaverBookingEmails(accessToken, afterTimestamp),
@@ -87,9 +87,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         ]),
         prisma.reservation.findMany({
             where: {storeId, naverBookingId: {not: null}},
-            select: {naverBookingId: true, id: true, naverBookingUrl: true, serviceSummary: true, designerId: true},
+            select: {naverBookingId: true, id: true, naverBookingUrl: true, serviceSummary: true, assigneeId: true},
         }),
-        prisma.designer.findMany({
+        prisma.assignee.findMany({
             where: {storeId},
             select: {id: true, name: true, legacyId: true, color: true},
         }),
@@ -107,7 +107,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             orderBy: {legacyId: 'desc'},
             select: {legacyId: true},
         }),
-        prisma.designer.findFirst({
+        prisma.assignee.findFirst({
             where: {storeId},
             orderBy: {legacyId: 'desc'},
             select: {legacyId: true},
@@ -123,15 +123,15 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         existingBookingMap: new Map(
             existingBookings
                 .filter((r) => r.naverBookingId)
-                .map((r) => [r.naverBookingId!, {id: r.id, naverBookingUrl: r.naverBookingUrl, serviceSummary: r.serviceSummary, designerId: r.designerId}])
+                .map((r) => [r.naverBookingId!, {id: r.id, naverBookingUrl: r.naverBookingUrl, serviceSummary: r.serviceSummary, assigneeId: r.assigneeId}])
         ),
-        designerMap: new Map(
-            allDesigners.map((d) => [d.name, {id: d.id, legacyId: d.legacyId ?? 0, color: d.color}])
+        assigneeMap: new Map(
+            allAssignees.map((d) => [d.name, {id: d.id, legacyId: d.legacyId ?? 0, color: d.color}])
         ),
         serviceMap: new Map(allServices.map((s) => [s.name, s])),
         nextCustomerLegacyId: (maxCustomerLegacy?.legacyId ?? 0) + 1,
         nextReservationLegacyId: (maxReservationLegacy?.legacyId ?? 0) + 1,
-        nextDesignerLegacyId: (maxDesignerLegacy?.legacyId ?? 0) + 1,
+        nextAssigneeLegacyId: (maxAssigneeLegacy?.legacyId ?? 0) + 1,
     };
 
     const synced: SyncedEntry[] = [];
@@ -165,7 +165,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                 synced.push({
                     bookingId: booking.bookingId,
                     customerName: booking.customerName,
-                    designerName: booking.designerName,
+                    assigneeName: booking.assigneeName,
                     appointmentDate: booking.appointmentDate,
                     appointmentTime: booking.appointmentTime,
                     reservationId: result.legacyId,
@@ -201,7 +201,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                     appointmentDate: result.appointmentDate,
                     appointmentTime: result.appointmentTime,
                     customerName: result.customerName,
-                    designerName: result.designerName,
+                    assigneeName: result.assigneeName,
                 });
             } else {
                 skipped.push(cancellation.bookingId);
@@ -246,7 +246,7 @@ async function createReservationFromBooking(
     ctx: SyncContext,
     booking: NaverBookingData,
 ): Promise<{status: 'created'; legacyId: number} | {status: 'skipped'}> {
-    const {storeId, existingBookingMap, designerMap, serviceMap} = ctx;
+    const {storeId, existingBookingMap, assigneeMap, serviceMap} = ctx;
 
     // 중복 확인 — DB 조회 없이 메모리에서 처리
     const existing = existingBookingMap.get(booking.bookingId);
@@ -255,15 +255,15 @@ async function createReservationFromBooking(
         if (booking.bookingUrl && !existing.naverBookingUrl && booking.bookingUrl.includes('partner.booking.naver.com')) {
             updates.naverBookingUrl = booking.bookingUrl;
         }
-        if ((!existing.serviceSummary || existing.serviceSummary === booking.designerName) && booking.services.length > 0) {
+        if ((!existing.serviceSummary || existing.serviceSummary === booking.assigneeName) && booking.services.length > 0) {
             const names = booking.services.map((s) => s.name);
             updates.serviceSummary = names.join('+');
         }
-        // 디자이너 미매칭 상태면 이메일에서 파싱한 디자이너명으로 매칭
-        if (!existing.designerId && booking.designerName) {
-            const designer = findByNameContains(designerMap, booking.designerName);
-            if (designer) {
-                updates.designerId = designer.id;
+        // 담당자 미매칭 상태면 이메일에서 파싱한 담당자명으로 매칭
+        if (!existing.assigneeId && booking.assigneeName) {
+            const assignee = findByNameContains(assigneeMap, booking.assigneeName);
+            if (assignee) {
+                updates.assigneeId = assignee.id;
             }
         }
         if (Object.keys(updates).length > 0) {
@@ -275,21 +275,21 @@ async function createReservationFromBooking(
         return {status: 'skipped'};
     }
 
-    // 디자이너 매칭 — 메모리에서 처리, 없으면 생성 후 맵 업데이트
-    let designer = findByNameContains(designerMap, booking.designerName);
-    if (!designer && booking.designerName) {
-        const legacyId = ctx.nextDesignerLegacyId++;
-        const usedColors = new Set(Array.from(designerMap.values()).map((d) => d.color).filter(Boolean));
-        const available = DESIGNER_COLORS.filter((c) => !usedColors.has(c));
+    // 담당자 매칭 — 메모리에서 처리, 없으면 생성 후 맵 업데이트
+    let assignee = findByNameContains(assigneeMap, booking.assigneeName);
+    if (!assignee && booking.assigneeName) {
+        const legacyId = ctx.nextAssigneeLegacyId++;
+        const usedColors = new Set(Array.from(assigneeMap.values()).map((d) => d.color).filter(Boolean));
+        const available = ASSIGNEE_COLORS.filter((c) => !usedColors.has(c));
         const color = available.length > 0
-            ? available[designerMap.size % available.length]
-            : DESIGNER_COLORS[designerMap.size % DESIGNER_COLORS.length];
-        const created = await prisma.designer.create({
-            data: {storeId, name: booking.designerName, status: 'active', color, legacyId},
+            ? available[assigneeMap.size % available.length]
+            : ASSIGNEE_COLORS[assigneeMap.size % ASSIGNEE_COLORS.length];
+        const created = await prisma.assignee.create({
+            data: {storeId, name: booking.assigneeName, status: 'active', color, legacyId},
             select: {id: true},
         });
-        designer = {id: created.id, legacyId, color};
-        designerMap.set(booking.designerName, designer);
+        assignee = {id: created.id, legacyId, color};
+        assigneeMap.set(booking.assigneeName, assignee);
     }
 
     // 서비스 매칭 — 메모리에서 처리
@@ -316,7 +316,7 @@ async function createReservationFromBooking(
 
     const endTime = calcEndTime(booking.appointmentTime, totalDuration);
     const totalPrice = booking.services.reduce((sum, s) => sum + s.price, 0);
-    const serviceSummary = serviceNames.join('+') || booking.designerName;
+    const serviceSummary = serviceNames.join('+') || booking.assigneeName;
 
     // legacyId 메모리 카운터 사용 — DB findFirst 불필요
     const customerLegacyId = ctx.nextCustomerLegacyId++;
@@ -341,7 +341,7 @@ async function createReservationFromBooking(
                 data: {
                     storeId,
                     customerId: customer.id,
-                    designerId: designer?.id ?? null,
+                    assigneeId: assignee?.id ?? null,
                     legacyId: resLegacyId,
                     date: new Date(`${booking.appointmentDate}T00:00:00`),
                     startTime: booking.appointmentTime,
@@ -365,7 +365,7 @@ async function createReservationFromBooking(
             id: created.id,
             naverBookingUrl: booking.bookingUrl || null,
             serviceSummary,
-            designerId: designer?.id ?? null,
+            assigneeId: assignee?.id ?? null,
         });
 
         return {status: 'created', legacyId: resLegacyId};
@@ -381,7 +381,7 @@ async function createReservationFromBooking(
 async function cancelReservationByBookingId(
     storeId: string,
     bookingId: string,
-): Promise<{status: 'cancelled'; legacyId: number; appointmentDate: string; appointmentTime: string; customerName: string; designerName: string} | {status: 'skipped'}> {
+): Promise<{status: 'cancelled'; legacyId: number; appointmentDate: string; appointmentTime: string; customerName: string; assigneeName: string} | {status: 'skipped'}> {
     const reservation = await prisma.reservation.findFirst({
         where: {storeId, naverBookingId: bookingId},
         include: reservationIncludeWithNames,
@@ -426,6 +426,6 @@ async function cancelReservationByBookingId(
         appointmentDate: before.date,
         appointmentTime: before.startTime,
         customerName: reservation.customer?.name || '고객',
-        designerName: reservation.designer?.name || '미지정',
+        assigneeName: reservation.assignee?.name || '미지정',
     };
 }

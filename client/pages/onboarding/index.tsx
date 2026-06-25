@@ -9,15 +9,15 @@ import styled from 'styled-components';
 import {GuestNotice} from '../../components/ui/GuestNotice';
 import {DEFAULT_SERVICES, SHOP_CATEGORY_COLOR_MAP} from '../../features/services/default-services';
 import type {ShopType} from '../../features/services/default-services';
-import {createDefaultSchedule, getDesignerColor} from '../../utils/designers';
+import {createDefaultSchedule, getAssigneeColor} from '../../utils/assignees';
 import {clearGuestConsentAck, createDefaultLocalDbSnapshot, loadLocalDbSnapshot, saveLocalDbSnapshot, setGuestTermsAgreed} from '../../lib/local-db';
 import {CURRENT_TERMS_VERSION} from '../../utils/terms';
 import type {ServiceItem} from '../../utils/services';
 import {SeoHead} from '../../components/ui/SeoHead';
 import {AdBanner} from '../../components/ad/AdBanner';
 import {ConfirmDialog} from '../../components/ui/ConfirmDialog';
-import type {OnboardingStep, ExtShopType, LocalDesigner} from '../../components/onboarding/onboarding-types';
-import {DEFAULT_DESIGNER_ID_START, STEP_LABELS} from '../../components/onboarding/onboarding-types';
+import type {OnboardingStep, ExtShopType, LocalAssignee} from '../../components/onboarding/onboarding-types';
+import {DEFAULT_ASSIGNEE_ID_START, STEP_LABELS} from '../../components/onboarding/onboarding-types';
 import {StyledNavRow, StyledSkipBtn, StyledNextBtn, StyledHighlight} from '../../components/onboarding/onboarding-step-styles';
 import {OnboardingStep1} from '../../components/onboarding/OnboardingStep1';
 import {OnboardingStep2} from '../../components/onboarding/OnboardingStep2';
@@ -62,8 +62,8 @@ const OnboardingPage: NextPage = () => {
 
     const [localServices, setLocalServices] = useState<ServiceItem[]>([]);
 
-    const [localDesigners, setLocalDesigners] = useState<LocalDesigner[]>([
-        {id: DEFAULT_DESIGNER_ID_START, name: '원장', color: getDesignerColor({id: DEFAULT_DESIGNER_ID_START})},
+    const [localAssignees, setLocalAssignees] = useState<LocalAssignee[]>([
+        {id: DEFAULT_ASSIGNEE_ID_START, name: '원장', color: getAssigneeColor({id: DEFAULT_ASSIGNEE_ID_START})},
     ]);
 
     const [finalError, setFinalError] = useState('');
@@ -181,7 +181,7 @@ const OnboardingPage: NextPage = () => {
                     Object.assign(mergedColors, SHOP_CATEGORY_COLOR_MAP[t] ?? {});
                 }
                 snapshot.categoryBaseColors = mergedColors;
-                snapshot.designers = localDesigners.map((d) => ({
+                snapshot.assignees = localAssignees.map((d) => ({
                     id: d.id,
                     name: d.name,
                     schedule: createDefaultSchedule(),
@@ -207,7 +207,7 @@ const OnboardingPage: NextPage = () => {
                     shopName: shopName.trim(),
                     shopType: realShopTypes.length > 0 ? realShopTypes.join(',') : null,
                     services: localServices,
-                    designers: localDesigners.map((d) => ({name: d.name, color: d.color})),
+                    assignees: localAssignees.map((d) => ({name: d.name, color: d.color})),
                 }),
             });
 
@@ -299,8 +299,8 @@ const OnboardingPage: NextPage = () => {
                 {step === 3 && (
                     <StyledStepBody>
                         <OnboardingStep3
-                            localDesigners={localDesigners}
-                            onDesignersChange={setLocalDesigners}
+                            localAssignees={localAssignees}
+                            onAssigneesChange={setLocalAssignees}
                             onNext={() => setStep(4)}
                             onSkip={() => setStep(4)}
                             onBack={() => setStep(prevStep())}
@@ -324,7 +324,7 @@ const OnboardingPage: NextPage = () => {
                             shopName={shopName}
                             realShopTypes={realShopTypes}
                             localServices={localServices}
-                            localDesigners={localDesigners}
+                            localAssignees={localAssignees}
                             finalError={finalError}
                             loading={loading}
                             onComplete={handleComplete}
@@ -341,7 +341,7 @@ const OnboardingPage: NextPage = () => {
             {showSkipConfirm && (
                 <ConfirmDialog
                     title="설정을 건너뛸까요?"
-                    message={'기본 설정 없이 바로 시작합니다.\n서비스·디자이너는 나중에 설정에서 추가할 수 있어요.'}
+                    message={'기본 설정 없이 바로 시작합니다.\n서비스·담당자는 나중에 설정에서 추가할 수 있어요.'}
                     confirmLabel="건너뛰고 시작"
                     layerKey="onboarding-skip-confirm"
                     onConfirm={handleConfirmSkip}
@@ -352,7 +352,7 @@ const OnboardingPage: NextPage = () => {
             {showSetupLayer && (
                 <ConfirmDialog
                     title="이미 설정된 매장"
-                    message={'이미 디자이너·서비스가 등록된 매장입니다.\n온보딩을 다시 진행할 수 없습니다.'}
+                    message={'이미 담당자·서비스가 등록된 매장입니다.\n온보딩을 다시 진행할 수 없습니다.'}
                     confirmLabel="홈으로"
                     hideCancel
                     layerKey="onboarding-setup-exists"

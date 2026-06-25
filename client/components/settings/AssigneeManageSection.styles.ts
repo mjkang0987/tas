@@ -1,11 +1,11 @@
 import styled, {css} from 'styled-components';
 
-import type {DesignerStatus} from '../../utils/designers';
-import {getDesignerStatusMeta} from '../../utils/designers';
+import type {AssigneeStatus} from '../../utils/assignees';
+import {getAssigneeStatusMeta} from '../../utils/assignees';
 import {LabelBadge} from '../ui/LabelBadge';
 import {formControlStyle} from '../ui/FormControls';
 import {StyledCancelBtn, StyledSaveBtn} from './settings-styles';
-const DESIGNER_STATUS_TONE: Record<DesignerStatus, 'success' | 'warning' | 'neutral'> = {
+const ASSIGNEE_STATUS_TONE: Record<AssigneeStatus, 'success' | 'warning' | 'neutral'> = {
     '재직': 'success',
     '휴직': 'warning',
     '퇴직': 'neutral',
@@ -22,14 +22,14 @@ export const StyledAddInput = styled.input`
     padding: 0 8px;
 `;
 
-export const StyledDesignerBody = styled.div`
+export const StyledAssigneeBody = styled.div`
     padding: 8px 0;
     display: flex;
     flex-direction: column;
     gap: 14px;
 `;
 
-export const StyledDesignerCardGrid = styled.div`
+export const StyledAssigneeCardGrid = styled.div`
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 10px;
@@ -39,13 +39,13 @@ export const StyledDesignerCardGrid = styled.div`
     }
 `;
 
-export const StyledDesignerSection = styled.div`
+export const StyledAssigneeSection = styled.div`
     display: flex;
     flex-direction: column;
     gap: 10px;
 `;
 
-export const StyledDesignerSectionTitle = styled.strong`
+export const StyledAssigneeSectionTitle = styled.strong`
     font-size: 14px;
     font-weight: 600;
     color: var(--dark-gray-color);
@@ -63,15 +63,15 @@ export const StyledSectionEmpty = styled.div`
     color: var(--dark-gray-color2);
 `;
 
-export const StyledDesignerCard = styled.div<{ $status: DesignerStatus; $designerColor: string; $isEditing: boolean }>`
+export const StyledAssigneeCard = styled.div<{ $status: AssigneeStatus; $assigneeColor: string; $isEditing: boolean }>`
     display: flex;
     flex-direction: column;
     gap: 10px;
-    border: 1px solid ${({$designerColor}) => `${$designerColor}44`};
-    border-left: 4px solid ${({$designerColor}) => $designerColor};
+    border: 1px solid ${({$assigneeColor}) => `${$assigneeColor}44`};
+    border-left: 4px solid ${({$assigneeColor}) => $assigneeColor};
     border-radius: 10px;
     padding: 8px;
-    background: linear-gradient(180deg, rgba(255, 255, 255, 0.96) 0%, ${({$designerColor}) => `${$designerColor}10`} 100%);
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.96) 0%, ${({$assigneeColor}) => `${$assigneeColor}10`} 100%);
     box-shadow: ${({$isEditing}) => $isEditing
             ? '0 0 0 2px var(--blue-color), var(--card-shadow)'
             : 'var(--card-shadow)'};
@@ -79,11 +79,11 @@ export const StyledDesignerCard = styled.div<{ $status: DesignerStatus; $designe
 
     @media (hover: hover) and (pointer: fine) {
         &:hover {
-            border-color: ${({$designerColor}) => `${$designerColor}66`};
+            border-color: ${({$assigneeColor}) => `${$assigneeColor}66`};
             box-shadow: ${({$isEditing}) => $isEditing
                     ? '0 0 0 2px var(--blue-color), var(--card-shadow-hover)'
                     : 'var(--card-shadow-hover)'};
-            background-color: ${({$designerColor}) => `${$designerColor}14`};
+            background-color: ${({$assigneeColor}) => `${$assigneeColor}14`};
         }
     }
     
@@ -93,7 +93,7 @@ export const StyledDesignerCard = styled.div<{ $status: DesignerStatus; $designe
     }
 `;
 
-export const StyledDesignerHeader = styled.div`
+export const StyledAssigneeHeader = styled.div`
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -104,7 +104,7 @@ export const StyledDesignerHeader = styled.div`
     }
 `;
 
-export const StyledDesignerHeaderLeft = styled.div`
+export const StyledAssigneeHeaderLeft = styled.div`
     display: flex;
     align-items: center;
     gap: 8px;
@@ -117,7 +117,7 @@ export const StyledDesignerHeaderLeft = styled.div`
     }
 `;
 
-export const StyledDesignerName = styled.span`
+export const StyledAssigneeName = styled.span`
     font-size: 14px;
     font-weight: 700;
     color: var(--dark-gray-color);
@@ -126,13 +126,13 @@ export const StyledDesignerName = styled.span`
     text-overflow: ellipsis;
 `;
 
-export const StyledDesignerHeaderActions = styled.div`
+export const StyledAssigneeHeaderActions = styled.div`
     display: flex;
     flex-shrink: 0;
     gap: 6px;
 `;
 
-export const StyledDesignerMetaGrid = styled.div`
+export const StyledAssigneeMetaGrid = styled.div`
     display: grid;
     grid-template-columns: minmax(0, 1fr) minmax(0, 1.5fr) 32px;
     gap: 4px;
@@ -149,19 +149,19 @@ export const StyledDesignerMetaGrid = styled.div`
     }
 `;
 
-export const StyledDesignerMetaField = styled.div`
+export const StyledAssigneeMetaField = styled.div`
     display: flex;
     flex-direction: column;
     gap: 4px;
     min-width: 0;
 `;
 
-export const StyledDesignerMetaLabel = styled.label`
+export const StyledAssigneeMetaLabel = styled.label`
     font-size: 11px;
     color: var(--dark-gray-color2);
 `;
 
-export const StyledDesignerColorInput = styled.input`
+export const StyledAssigneeColorInput = styled.input`
     width: 32px;
     height: 32px;
     padding: 2px;
@@ -170,7 +170,7 @@ export const StyledDesignerColorInput = styled.input`
     background: var(--white-color);
 `;
 
-export const StyledDesignerNameInput = styled.input`
+export const StyledAssigneeNameInput = styled.input`
     flex: 1;
     min-width: 80px;
     max-width: 200px;
@@ -188,7 +188,7 @@ export const StyledDesignerNameInput = styled.input`
     }
 `;
 
-export const StyledDesignerMetaInput = styled.input`
+export const StyledAssigneeMetaInput = styled.input`
     width: 100%;
     min-width: 0;
     ${compactInputStyle};
@@ -199,7 +199,7 @@ export const StyledDesignerMetaInput = styled.input`
     }
 `;
 
-export const StyledDesignerStatusSelect = styled.select`
+export const StyledAssigneeStatusSelect = styled.select`
     flex-shrink: 0;
     ${compactInputStyle};
     min-height: 28px;
@@ -208,11 +208,11 @@ export const StyledDesignerStatusSelect = styled.select`
     color: var(--dark-gray-color2);
 `;
 
-export const StyledDesignerStatusBadge = styled(LabelBadge).attrs<{ $status: DesignerStatus }>((props) => ({
-    $tone: DESIGNER_STATUS_TONE[props.$status],
+export const StyledAssigneeStatusBadge = styled(LabelBadge).attrs<{ $status: AssigneeStatus }>((props) => ({
+    $tone: ASSIGNEE_STATUS_TONE[props.$status],
     $shape: 'pill' as const,
     $size: 'sm' as const,
-}))<{ $status: DesignerStatus }>`
+}))<{ $status: AssigneeStatus }>`
     height: 24px;
     padding: 0 8px;
     font-size: 10px;
@@ -232,11 +232,11 @@ export const StyledScheduleList = styled.div`
     background: var(--bg-subtle);
 `;
 
-export const StyledScheduleCollapsedNotice = styled.div<{ $status: DesignerStatus }>`
+export const StyledScheduleCollapsedNotice = styled.div<{ $status: AssigneeStatus }>`
     padding: 10px 12px;
     border-radius: 8px;
-    border: 1px dashed ${({$status}) => getDesignerStatusMeta($status).border};
-    color: ${({$status}) => getDesignerStatusMeta($status).accent};
+    border: 1px dashed ${({$status}) => getAssigneeStatusMeta($status).border};
+    color: ${({$status}) => getAssigneeStatusMeta($status).accent};
     background: var(--white-color-60);
     font-size: 12px;
     line-height: 1.5;
@@ -343,7 +343,7 @@ export const StyledAddFormActions = styled.div`
     }
 `;
 
-export const StyledDesignerFooterActions = styled.div`
+export const StyledAssigneeFooterActions = styled.div`
     display: flex;
     flex-wrap: wrap;
     gap: 8px;

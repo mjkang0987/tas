@@ -9,7 +9,7 @@ type Feature = {title: string; desc: string};
 const FEATURES: Feature[] = [
     {title: '예약 캘린더', desc: '일·주·월 보기로 예약을 한눈에 확인하고 관리합니다.'},
     {title: '고객 관리', desc: '방문 이력·메모·적립금까지 고객 정보를 통합 관리합니다.'},
-    {title: '디자이너·서비스', desc: '디자이너별 스케줄과 시술·가격을 손쉽게 설정합니다.'},
+    {title: '담당자·서비스', desc: '담당자별 스케줄과 시술·가격을 손쉽게 설정합니다.'},
     {title: '결제·매출', desc: '결제 내역과 매출을 기록하고 자동으로 집계합니다.'},
 ];
 
@@ -26,7 +26,7 @@ export default function AboutPage() {
                     <StyledBrandLogo src="/logo/logo-black.svg" alt="Take a Seat" />
                     <StyledTagline>예약·고객 관리 서비스</StyledTagline>
                     <StyledLead>
-                        예약 캘린더부터 고객·디자이너·매출까지, 매장 운영에 필요한 기능을 한 곳에서 관리하세요.
+                        예약 캘린더부터 고객·담당자·매출까지, 매장 운영에 필요한 기능을 한 곳에서 관리하세요.
                         로그인 없이도 서비스가 무엇을 도와주는지 아래에서 확인할 수 있습니다.
                     </StyledLead>
                 </StyledHero>

@@ -29,20 +29,20 @@ export type TimelineClusterData = {
 
 type TimelineClusterLayerProps = {
     cluster: TimelineClusterData;
-    designerColorMap: Record<number, string>;
+    assigneeColorMap: Record<number, string>;
     serviceColorMap: Record<string, string>;
     customerMap: Record<number, { name: string; firstVisitDate?: string | null } | undefined>;
-    designerNameById: (designerId?: number) => string;
+    assigneeNameById: (assigneeId?: number) => string;
     onClose: () => void;
     onReservationClick: (reservation: Reservation) => void;
 };
 
 export function TimelineClusterLayer({
                                          cluster,
-                                         designerColorMap,
+                                         assigneeColorMap,
                                          serviceColorMap,
                                          customerMap,
-                                         designerNameById,
+                                         assigneeNameById,
                                          onClose,
                                          onReservationClick,
                                      }: TimelineClusterLayerProps) {
@@ -87,8 +87,8 @@ export function TimelineClusterLayer({
                                 .sort((a, b) => a.startTime.localeCompare(b.startTime) || a.endTime.localeCompare(b.endTime))
                                 .map((reservation) => {
                                     const customer = customerMap[reservation.customerId];
-                                    const designerColor = reservation.designerId
-                                        ? (designerColorMap[reservation.designerId] ?? '#8E8E93')
+                                    const assigneeColor = reservation.assigneeId
+                                        ? (assigneeColorMap[reservation.assigneeId] ?? '#8E8E93')
                                         : '#8E8E93';
                                     const isInactive = reservation.status === 'cancelled' || reservation.status === 'noshow';
 
@@ -101,15 +101,15 @@ export function TimelineClusterLayer({
                                                 <ReservationInfoCard
                                                     reservation={reservation}
                                                     serviceColorMap={serviceColorMap}
-                                                    designerColor={designerColor}
-                                                    designerName={designerNameById(reservation.designerId)}
+                                                    assigneeColor={assigneeColor}
+                                                    assigneeName={assigneeNameById(reservation.assigneeId)}
                                                     customerName={customer?.name ?? '-'}
                                                     today={today}
                                                     isNewCustomer={isNewCustomerVisit(customer?.firstVisitDate, reservation.date)}
                                                     showDate={false}
                                                     showStatus
                                                     timeMode="range"
-                                                    accentColor={designerColor}
+                                                    accentColor={assigneeColor}
                                                     accentBar
                                                     className={isInactive ? 'inactive' : undefined}
                                                 />

@@ -37,9 +37,9 @@ function getCheckStatus(actual, expected) {
 }
 
 async function main() {
-    const [customers, designers, services, reservations] = await Promise.all([
+    const [customers, assignees, services, reservations] = await Promise.all([
         readJson(seedDataPath('customers.json')),
-        readJson(seedDataPath('designers.json')),
+        readJson(seedDataPath('assignees.json')),
         readJson(seedDataPath('services.json')),
         readJson(seedDataPath('reservations.json')),
     ]);
@@ -50,7 +50,7 @@ async function main() {
             _count: {
                 select: {
                     customers: true,
-                    designers: true,
+                    assignees: true,
                     services: true,
                     reservations: true,
                     reservationEvents: true,
@@ -92,7 +92,7 @@ async function main() {
 
     const checks = [
         createCheck('customers', store._count.customers, getSourceCount(customers, 'customers')),
-        createCheck('designers', store._count.designers, getSourceCount(designers, 'designers')),
+        createCheck('assignees', store._count.assignees, getSourceCount(assignees, 'assignees')),
         createCheck('services', store._count.services, getSourceCount(services, 'services')),
         createCheck('reservations', store._count.reservations, getSourceCount(reservations, 'reservations')),
         createCheck('reservation history', store._count.reservationEvents, getSourceCount(reservations, 'history')),

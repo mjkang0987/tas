@@ -3,7 +3,7 @@ import React, {useEffect, useMemo, useRef, useState} from 'react';
 import styled from 'styled-components';
 
 import {useCalendarStore} from '../../../store/calendarStore';
-import {DesignerOffDayMoveConfirmModal} from '../overlays/DesignerOffDayMoveConfirmModal';
+import {AssigneeOffDayMoveConfirmModal} from '../overlays/AssigneeOffDayMoveConfirmModal';
 import {ReservationMoveConfirmModal} from '../overlays/ReservationMoveConfirmModal';
 
 import {
@@ -14,7 +14,7 @@ import {
     ViewType,
 } from '../../../utils/constants';
 
-import {buildDesignerColorMap} from '../../../utils/designers';
+import {buildAssigneeColorMap} from '../../../utils/assignees';
 import {isNewCustomerVisit} from '../../../utils/customers';
 import {buildServiceColorMap} from '../../../utils/services';
 import {getTimelineRange} from '../../../utils/timelineRange';
@@ -47,7 +47,7 @@ export const Timeline = ({
     const updateReservation = useCalendarStore((s) => s.updateReservation);
     const serviceCatalog = useCalendarStore((s) => s.serviceCatalog);
     const categoryBaseColorMap = useCalendarStore((s) => s.categoryBaseColorMap);
-    const designers = useCalendarStore((s) => s.designers);
+    const assignees = useCalendarStore((s) => s.assignees);
 
     // 영업시간 설정 1개를 기준으로 뷰별 시간축 범위를 파생(현재 모든 뷰가 영업시간 그대로, 패딩 0).
     const {start, end} = useMemo(
@@ -56,20 +56,20 @@ export const Timeline = ({
     );
 
     const customerMap = useCalendarStore((s) => s.customerMap);
-    const calendarDesignerId = useCalendarStore((s) => s.calendarDesignerId);
+    const calendarAssigneeId = useCalendarStore((s) => s.calendarAssigneeId);
 
     const dateKey = toDateKey(fullYear, month, date);
     const reservations = (reservationMap[dateKey] || []).filter((reservation) => (
-        calendarDesignerId == null || (calendarDesignerId === 0 ? !reservation.designerId : reservation.designerId === calendarDesignerId)
+        calendarAssigneeId == null || (calendarAssigneeId === 0 ? !reservation.assigneeId : reservation.assigneeId === calendarAssigneeId)
     ));
     const serviceColorMap = useMemo(
         () => buildServiceColorMap(serviceCatalog, categoryBaseColorMap),
         [serviceCatalog, categoryBaseColorMap]
     );
-    const designerColorMap = useMemo(() => buildDesignerColorMap(designers), [designers]);
-    const designerNameById = (designerId?: number) => (
-        designerId
-            ? (designers.find((designer) => designer.id === designerId)?.name ?? '미지정')
+    const assigneeColorMap = useMemo(() => buildAssigneeColorMap(assignees), [assignees]);
+    const assigneeNameById = (assigneeId?: number) => (
+        assigneeId
+            ? (assignees.find((assignee) => assignee.id === assigneeId)?.name ?? '미지정')
             : '미지정'
     );
     // 카드/현재시간 바/클러스터의 세로 위치 오프셋. 축 눈금선(행 높이 50px의 중앙=+25)에 맞춤.
@@ -124,7 +124,7 @@ export const Timeline = ({
         blockOffset,
         reservationMap,
         customerMap,
-        designers,
+        assignees,
         onOpenReservationDetail: openReservationDetail,
     });
 
@@ -203,8 +203,8 @@ export const Timeline = ({
                         cluster={cluster}
                         blockTop={blockTop}
                         blockHeight={blockHeight}
-                        designerColorMap={designerColorMap}
-                        designerNameById={designerNameById}
+                        assigneeColorMap={assigneeColorMap}
+                        assigneeNameById={assigneeNameById}
                         onToggle={() => setOpenClusterState({dateKey, cluster})}
                     />
                 );
@@ -235,7 +235,7 @@ export const Timeline = ({
                     customerName={customer?.name}
                     isNewCustomer={isNewCustomerVisit(customer?.firstVisitDate, r.date)}
                     customer={customer}
-                    color={r.designerId ? (designerColorMap[r.designerId] ?? '#8E8E93') : '#8E8E93'}
+                    color={r.assigneeId ? (assigneeColorMap[r.assigneeId] ?? '#8E8E93') : '#8E8E93'}
                     serviceColorMap={serviceColorMap}
                     hideOriginalBlock={hideOriginalBlock}
                     suppressClick={suppressCreateClick}
@@ -252,17 +252,17 @@ export const Timeline = ({
                 customerName={draggingCustomer?.name}
                 isNewCustomer={isNewCustomerVisit(draggingCustomer?.firstVisitDate, draggingReservation.date)}
                 customer={draggingCustomer ?? undefined}
-                color={draggingReservation.designerId ? (designerColorMap[draggingReservation.designerId] ?? '#8E8E93') : '#8E8E93'}
+                color={draggingReservation.assigneeId ? (assigneeColorMap[draggingReservation.assigneeId] ?? '#8E8E93') : '#8E8E93'}
                 serviceColorMap={serviceColorMap}
             />
         )}
         {openCluster && (
             <TimelineClusterLayer
                 cluster={openCluster}
-                designerColorMap={designerColorMap}
+                assigneeColorMap={assigneeColorMap}
                 serviceColorMap={serviceColorMap}
                 customerMap={customerMap}
-                designerNameById={designerNameById}
+                assigneeNameById={assigneeNameById}
                 onClose={() => setOpenClusterState(null)}
                 onReservationClick={(reservation) => {
                     pendingClusterReservationRef.current = reservation;
@@ -271,7 +271,7 @@ export const Timeline = ({
             />
         )}
         {pendingMove?.warningMessage && (
-            <DesignerOffDayMoveConfirmModal
+            <AssigneeOffDayMoveConfirmModal
                 reservation={pendingMove.prev}
                 nextReservation={pendingMove.next}
                 customerName={pendingMove.customerName}

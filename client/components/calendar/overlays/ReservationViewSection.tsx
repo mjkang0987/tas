@@ -3,7 +3,7 @@ import React from 'react';
 import styled from 'styled-components';
 
 import {NewCustomerBadge} from '../../ui/NewCustomerBadge';
-import {DesignerLabel} from '../../ui/DesignerLabel';
+import {AssigneeLabel} from '../../ui/AssigneeLabel';
 import {LabelBadge} from '../../ui/LabelBadge';
 import {NaverBookingInfo} from '../../ui/NaverBookingInfo';
 import {ServiceChipList} from '../../ui/ServiceChip';
@@ -18,8 +18,8 @@ interface ReservationViewSectionProps {
     reservation: Reservation;
     customerMap: CustomerMap;
     displayPrice: number;
-    displayDesignerName: string;
-    displayDesignerColor: string;
+    displayAssigneeName: string;
+    displayAssigneeColor: string;
     isNewCustomer: boolean;
     paymentCompleted: boolean;
     paymentLines: string[];
@@ -33,8 +33,8 @@ export function ReservationViewSection({
     reservation,
     customerMap,
     displayPrice,
-    displayDesignerName,
-    displayDesignerColor,
+    displayAssigneeName,
+    displayAssigneeColor,
     isNewCustomer,
     paymentCompleted,
     paymentLines,
@@ -135,9 +135,9 @@ export function ReservationViewSection({
                     )}
                     <StyledTerm>적립금</StyledTerm>
                     <StyledDesc>{formatPrice(customer?.points ?? 0)}</StyledDesc>
-                    <StyledTerm>디자이너</StyledTerm>
+                    <StyledTerm>담당자</StyledTerm>
                     <StyledDesc>
-                        <DesignerLabel color={displayDesignerColor} name={displayDesignerName} />
+                        <AssigneeLabel color={displayAssigneeColor} name={displayAssigneeName} />
                     </StyledDesc>
                     <StyledTerm>예약경로</StyledTerm>
                     <StyledDesc>

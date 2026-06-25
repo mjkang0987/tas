@@ -14,7 +14,7 @@ export const StyledCustomerValue = styled.span`
 
 export const StyledServiceChipList = styled(ServiceChipList)``;
 
-export const StyledDesignerText = styled.span`
+export const StyledAssigneeText = styled.span`
     display: inline-flex;
     align-items: center;
 `;

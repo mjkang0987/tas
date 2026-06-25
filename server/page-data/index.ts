@@ -33,7 +33,7 @@ export async function loadPageData(storeId: string) {
             include: {
                 paymentEntries: true,
                 customer: {select: {legacyId: true}},
-                designer: {select: {legacyId: true}},
+                assignee: {select: {legacyId: true}},
             },
         }),
         prisma.customer.findMany({

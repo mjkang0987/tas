@@ -4,8 +4,8 @@ import {useCalendarStore} from '../../store/calendarStore';
 import type {SyncNotification} from '../../hooks/useNaverBookingSync';
 import type {Reservation} from '../../utils/reservations';
 import type {ReservationMap} from '../../features/reservations/model';
-import type {Designer} from '../../utils/designers';
-import {DesignerLabel} from '../ui/DesignerLabel';
+import type {Assignee} from '../../utils/assignees';
+import {AssigneeLabel} from '../ui/AssigneeLabel';
 import {LabelBadge} from '../ui/LabelBadge';
 import {ConflictResolutionDetailModal} from '../modals/ConflictResolutionDetailModal';
 
@@ -27,9 +27,9 @@ function formatDate(dateStr: string): string {
     return `${Number(m)}/${Number(d)}`;
 }
 
-function getDesignerColor(designerName: string, designers: Designer[]): string {
-    const designer = designers.find((d) => d.name === designerName);
-    return designer?.color ?? 'var(--unassigned-color)';
+function getAssigneeColor(assigneeName: string, assignees: Assignee[]): string {
+    const assignee = assignees.find((d) => d.name === assigneeName);
+    return assignee?.color ?? 'var(--unassigned-color)';
 }
 
 function getConflictStatusLabel(n: SyncNotification): string {
@@ -51,7 +51,7 @@ export const NaverSyncNotification = ({
     const [showAllModal, setShowAllModal] = useState(false);
     const [hasMounted, setHasMounted] = useState(false);
     const containerRef = useRef<HTMLDivElement>(null);
-    const designers = useCalendarStore((s) => s.designers);
+    const assignees = useCalendarStore((s) => s.assignees);
 
     const toggle = useCallback(() => {
         setOpen((prev) => !prev);
@@ -145,8 +145,8 @@ export const NaverSyncNotification = ({
                                                 <span className="time">{n.appointmentTime}</span>{' '}
                                                 <span className="name">{n.customerName || '고객'}</span>{' '}
                                                 <span className="suffix">고객님</span>{' '}
-                                                <span className="name">{n.designerName || '미지정'}</span>{' '}
-                                                <span className="suffix">디자이너로 중복 예약 발생했습니다.</span>{' '}
+                                                <span className="name">{n.assigneeName || '미지정'}</span>{' '}
+                                                <span className="suffix">담당자로 중복 예약 발생했습니다.</span>{' '}
                                                 <StyledConflictTag>중복예약</StyledConflictTag>{' '}
                                                 <StyledStatusTag $status={n.conflictStatus}>{getConflictStatusLabel(n)}</StyledStatusTag>
                                             </span>
@@ -164,11 +164,11 @@ export const NaverSyncNotification = ({
                                             }
                                         </StyledItemText>
                                     )}
-                                    <StyledDesignerMeta>
-                                        <span>디자이너</span>
-                                        <DesignerLabel color={getDesignerColor(n.designerName, designers)}
-                                                       name={n.designerName} />
-                                    </StyledDesignerMeta>
+                                    <StyledAssigneeMeta>
+                                        <span>담당자</span>
+                                        <AssigneeLabel color={getAssigneeColor(n.assigneeName, assignees)}
+                                                       name={n.assigneeName} />
+                                    </StyledAssigneeMeta>
                                 </StyledItem>
                             ))}
                         </StyledPanelBody>
@@ -187,7 +187,7 @@ export const NaverSyncNotification = ({
             {showAllModal && (
                 <NotificationModal
                     notifications={notifications}
-                    designers={designers}
+                    assignees={assignees}
                     reservationMap={reservationMap}
                     markRead={markRead}
                     markAllRead={markAllRead}
@@ -237,7 +237,7 @@ import {
     StyledCancelTag,
     StyledConflictTag,
     StyledStatusTag,
-    StyledDesignerMeta,
+    StyledAssigneeMeta,
     StyledPanelFooter,
     StyledShowAllButton,
     StyledModalOverlay,
@@ -248,7 +248,7 @@ import {
 
 interface ModalProps {
     notifications: SyncNotification[];
-    designers: Designer[];
+    assignees: Assignee[];
     reservationMap: ReservationMap;
     markRead: (id: string) => void;
     markAllRead: () => void;
@@ -257,7 +257,7 @@ interface ModalProps {
     onClose: () => void;
 }
 
-const NotificationModal = ({notifications, designers, reservationMap, markRead, markAllRead, onSelectReservation, onSelectConflict, onClose}: ModalProps) => {
+const NotificationModal = ({notifications, assignees, reservationMap, markRead, markAllRead, onSelectReservation, onSelectConflict, onClose}: ModalProps) => {
     const dialogRef = useDialogAccessibility<HTMLDivElement>(onClose);
     const [resolvedDetail, setResolvedDetail] = useState<SyncNotification | null>(null);
 
@@ -309,16 +309,16 @@ const NotificationModal = ({notifications, designers, reservationMap, markRead, 
                     <span className="time">{n.appointmentTime}</span>{' '}
                     <span className="name">{n.customerName || '고객'}</span>{' '}
                     <span className="suffix">고객님</span>{' '}
-                    <span className="name">{n.designerName || '미지정'}</span>{' '}
-                    <span className="suffix">디자이너로 중복 예약 발생했습니다.</span>{' '}
+                    <span className="name">{n.assigneeName || '미지정'}</span>{' '}
+                    <span className="suffix">담당자로 중복 예약 발생했습니다.</span>{' '}
                     <StyledConflictTag>중복예약</StyledConflictTag>{' '}
                     <StyledStatusTag $status={n.conflictStatus}>{getConflictStatusLabel(n)}</StyledStatusTag>
                 </span>
             </StyledConflictItemText>
-            <StyledDesignerMeta>
-                <span>디자이너</span>
-                <DesignerLabel color={getDesignerColor(n.designerName, designers)} name={n.designerName} />
-            </StyledDesignerMeta>
+            <StyledAssigneeMeta>
+                <span>담당자</span>
+                <AssigneeLabel color={getAssigneeColor(n.assigneeName, assignees)} name={n.assigneeName} />
+            </StyledAssigneeMeta>
         </StyledModalItem>
     );
 
@@ -336,10 +336,10 @@ const NotificationModal = ({notifications, designers, reservationMap, markRead, 
                     : <><StyledNaverTag>네이버예약</StyledNaverTag><span className="suffix">확정</span></>
                 }
             </StyledItemText>
-            <StyledDesignerMeta>
-                <span>디자이너</span>
-                <DesignerLabel color={getDesignerColor(n.designerName, designers)} name={n.designerName} />
-            </StyledDesignerMeta>
+            <StyledAssigneeMeta>
+                <span>담당자</span>
+                <AssigneeLabel color={getAssigneeColor(n.assigneeName, assignees)} name={n.assigneeName} />
+            </StyledAssigneeMeta>
             <StyledFlag>{flag}</StyledFlag>
         </StyledModalItem>
     );

@@ -5,7 +5,7 @@ import {useRouter} from 'next/router';
 import {useCalendarStore} from '../../store/calendarStore';
 import {useNaverBookingSync} from '../../hooks/useNaverBookingSync';
 import {useCustomerMergeSuggestion} from '../../hooks/useCustomerMergeSuggestion';
-import {splitDesignersByStatus, getDesignerColor} from '../../utils/designers';
+import {splitAssigneesByStatus, getAssigneeColor} from '../../utils/assignees';
 import {isCalendar} from '../../utils/router';
 import type {Reservation} from '../../utils/reservations';
 
@@ -24,7 +24,7 @@ import {
     StyledAsideToggle,
     StyledAsideToggleLabel,
     StyledPageTitle,
-    StyledDesignerFilter,
+    StyledAssigneeFilter,
     StyledSyncWrap,
     StyledSyncToast,
     StyledSyncButton,
@@ -47,7 +47,7 @@ const SETTINGS_TAB_TITLES: Record<string, string> = {
     point: '적립금 관리',
     store: '매장 관리',
     service: '서비스 관리',
-    designer: '디자이너 관리',
+    assignee: '담당자 관리',
     member: '멤버 관리',
     sns: 'SNS 연동',
 };
@@ -58,9 +58,9 @@ export const Header = () => {
     const aside = useCalendarStore((s) => s.aside);
     const setAside = useCalendarStore((s) => s.setAside);
     const currValue = useCalendarStore((s) => s.target);
-    const designers = useCalendarStore((s) => s.designers);
-    const calendarDesignerId = useCalendarStore((s) => s.calendarDesignerId);
-    const setCalendarDesignerId = useCalendarStore((s) => s.setCalendarDesignerId);
+    const assignees = useCalendarStore((s) => s.assignees);
+    const calendarAssigneeId = useCalendarStore((s) => s.calendarAssigneeId);
+    const setCalendarAssigneeId = useCalendarStore((s) => s.setCalendarAssigneeId);
     const pathSegments = router.asPath.split('?')[0].split('/');
     const isRootPath = pathSegments.join('').length === 0;
     const isCalendarPage = isRootPath || isCalendar(pathSegments);
@@ -70,10 +70,10 @@ export const Header = () => {
         ? `${SETTINGS_TAB_TITLES[settingsTab] ?? SETTINGS_TAB_TITLES.revenue}`
         : PAGE_TITLES[router.pathname] ?? 'TAS';
     const {
-        active: activeDesigners,
-        onLeave: onLeaveDesigners,
-        resigned: resignedDesigners
-    } = splitDesignersByStatus(designers);
+        active: activeAssignees,
+        onLeave: onLeaveAssignees,
+        resigned: resignedAssignees
+    } = splitAssigneesByStatus(assignees);
     const reservationMap = useCalendarStore((s) => s.reservationMap);
     const setReservationMap = useCalendarStore((s) => s.setReservationMap);
     const {
@@ -172,36 +172,36 @@ export const Header = () => {
                     <CalendarHeading />
                 </StyledCalendarRow>
                 <StyledToolRow>
-                    <StyledDesignerFilter value={calendarDesignerId ?? ''}
-                                          id="tour-designer-filter"
-                                          onChange={(e) => setCalendarDesignerId(e.target.value ? Number(e.target.value) : null)}
-                                          aria-label="달력 디자이너 필터">
+                    <StyledAssigneeFilter value={calendarAssigneeId ?? ''}
+                                          id="tour-assignee-filter"
+                                          onChange={(e) => setCalendarAssigneeId(e.target.value ? Number(e.target.value) : null)}
+                                          aria-label="달력 담당자 필터">
                         <option value="">전체보기</option>
                         <option value="0" data-bg-color="#8E8E93">미지정</option>
-                        {activeDesigners.map((designer) => (
-                            <option key={designer.id} value={designer.id} data-bg-color={getDesignerColor(designer)}>
-                                {designer.name}
+                        {activeAssignees.map((assignee) => (
+                            <option key={assignee.id} value={assignee.id} data-bg-color={getAssigneeColor(assignee)}>
+                                {assignee.name}
                             </option>
                         ))}
-                        {onLeaveDesigners.length > 0 && (
+                        {onLeaveAssignees.length > 0 && (
                             <optgroup label="휴직자">
-                                {onLeaveDesigners.map((designer) => (
-                                    <option key={designer.id} value={designer.id} data-bg-color={getDesignerColor(designer)}>
-                                        {designer.name}
+                                {onLeaveAssignees.map((assignee) => (
+                                    <option key={assignee.id} value={assignee.id} data-bg-color={getAssigneeColor(assignee)}>
+                                        {assignee.name}
                                     </option>
                                 ))}
                             </optgroup>
                         )}
-                        {resignedDesigners.length > 0 && (
+                        {resignedAssignees.length > 0 && (
                             <optgroup label="퇴직자">
-                                {resignedDesigners.map((designer) => (
-                                    <option key={designer.id} value={designer.id} data-bg-color={getDesignerColor(designer)}>
-                                        {designer.name}
+                                {resignedAssignees.map((assignee) => (
+                                    <option key={assignee.id} value={assignee.id} data-bg-color={getAssigneeColor(assignee)}>
+                                        {assignee.name}
                                     </option>
                                 ))}
                             </optgroup>
                         )}
-                    </StyledDesignerFilter>
+                    </StyledAssigneeFilter>
                     {isActive && (
                         <StyledSyncWrap>
                             <StyledSyncButton type="button"

@@ -18,7 +18,7 @@ import {
 } from '../../calendar/overlays/ModalStyles';
 import {CloseIconButton} from '../../ui/CloseIconButton';
 import {formatPrice} from '../../../utils/services';
-import type {Designer} from '../../../utils/designers';
+import type {Assignee} from '../../../utils/assignees';
 import type {Reservation, ReservationMap} from '../../../utils/reservations';
 import type {CustomerMap} from '../../../utils/customers';
 import type {DailyRevenue} from '../../../utils/revenue';
@@ -36,7 +36,7 @@ interface RevenueDailyDetailModalProps {
     dateKey: string;
     daily: DailyRevenue;
     reservationMap: ReservationMap;
-    designerMap: Record<number, Designer>;
+    assigneeMap: Record<number, Assignee>;
     customerMap: CustomerMap;
     serviceColorMap: Record<string, string>;
     onClose: () => void;
@@ -48,7 +48,7 @@ export const RevenueDailyDetailModal = ({
     dateKey,
     daily,
     reservationMap,
-    designerMap,
+    assigneeMap,
     customerMap,
     serviceColorMap,
     onClose,
@@ -81,7 +81,7 @@ export const RevenueDailyDetailModal = ({
                         reservations={daily.items
                             .map((item) => (reservationMap[dateKey] || []).find((r) => r.id === item.reservationId))
                             .filter((reservation): reservation is Reservation => !!reservation)}
-                        designerMap={designerMap}
+                        assigneeMap={assigneeMap}
                         customerMap={customerMap}
                         serviceColorMap={serviceColorMap}
                         onSelectReservation={onSelectReservation}

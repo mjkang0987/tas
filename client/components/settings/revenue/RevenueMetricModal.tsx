@@ -18,7 +18,7 @@ import {
 import {CloseIconButton} from '../../ui/CloseIconButton';
 import {NewCustomerBadge} from '../../ui/NewCustomerBadge';
 import {formatPrice} from '../../../utils/services';
-import type {Designer} from '../../../utils/designers';
+import type {Assignee} from '../../../utils/assignees';
 import type {Reservation} from '../../../utils/reservations';
 import type {CustomerMap} from '../../../utils/customers';
 import {formatTel} from '../../../utils/customers';
@@ -52,7 +52,7 @@ interface RevenueMetricModalProps {
     metricLayerKey: RevenueMetricKey;
     metricLayer: MetricLayer;
     revenueFilterMode: RevenueFilterMode;
-    designerMap: Record<number, Designer>;
+    assigneeMap: Record<number, Assignee>;
     customerMap: CustomerMap;
     serviceColorMap: Record<string, string>;
     onClose: () => void;
@@ -76,7 +76,7 @@ export const RevenueMetricModal = ({
     metricLayerKey,
     metricLayer,
     revenueFilterMode,
-    designerMap,
+    assigneeMap,
     customerMap,
     serviceColorMap,
     onClose,
@@ -151,7 +151,7 @@ export const RevenueMetricModal = ({
                     ) : (
                         <RevenueReservationList
                             reservations={metricLayer.reservations}
-                            designerMap={designerMap}
+                            assigneeMap={assigneeMap}
                             customerMap={customerMap}
                             serviceColorMap={serviceColorMap}
                             onSelectReservation={onSelectReservation}

@@ -2,7 +2,7 @@ export interface NaverBookingData {
     bookingId: string;
     bookingUrl: string;
     customerName: string;
-    designerName: string;
+    assigneeName: string;
     appointmentDate: string;
     appointmentTime: string;
     services: Array<{name: string; price: number}>;
@@ -17,7 +17,7 @@ export function parseNaverBookingEmail(html: string): NaverBookingData | null {
     const customerNameRaw = extractLabelValue(html, '예약자명') ?? '';
     const customerName = customerNameRaw.replace(/님$/, '').trim();
 
-    const designerName = extractLabelValue(html, '예약상품') ?? '';
+    const assigneeName = extractLabelValue(html, '예약상품') ?? '';
 
     const dateTimeRaw = extractLabelValue(html, '이용일시') ?? '';
     const {date, time} = parseDateTimeKorean(dateTimeRaw);
@@ -31,7 +31,7 @@ export function parseNaverBookingEmail(html: string): NaverBookingData | null {
         bookingId,
         bookingUrl,
         customerName,
-        designerName,
+        assigneeName,
         appointmentDate: date,
         appointmentTime: time,
         services,

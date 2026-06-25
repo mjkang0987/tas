@@ -3,7 +3,7 @@ import styled from 'styled-components';
 import {FieldError} from '../ui/FieldError';
 import type {ServiceItem} from '../../utils/services';
 import type {ShopType} from '../../features/services/default-services';
-import type {LocalDesigner} from './onboarding-types';
+import type {LocalAssignee} from './onboarding-types';
 import {SHOP_TYPES} from './onboarding-types';
 import {StyledNavRow, StyledBackBtn} from './onboarding-step-styles';
 
@@ -11,14 +11,14 @@ interface Props {
     shopName: string;
     realShopTypes: ShopType[];
     localServices: ServiceItem[];
-    localDesigners: LocalDesigner[];
+    localAssignees: LocalAssignee[];
     finalError: string;
     loading: boolean;
     onComplete: () => void;
     onBack: () => void;
 }
 
-export const OnboardingStep5 = ({shopName, realShopTypes, localServices, localDesigners, finalError, loading, onComplete, onBack}: Props) => (
+export const OnboardingStep5 = ({shopName, realShopTypes, localServices, localAssignees, finalError, loading, onComplete, onBack}: Props) => (
     <>
         <StyledCompleteSection>
             <StyledCompleteIcon>✓</StyledCompleteIcon>
@@ -43,8 +43,8 @@ export const OnboardingStep5 = ({shopName, realShopTypes, localServices, localDe
                     <StyledSummaryValue>{localServices.length}개</StyledSummaryValue>
                 </StyledSummaryRow>
                 <StyledSummaryRow>
-                    <StyledSummaryLabel>디자이너</StyledSummaryLabel>
-                    <StyledSummaryValue>{localDesigners.length}명</StyledSummaryValue>
+                    <StyledSummaryLabel>담당자</StyledSummaryLabel>
+                    <StyledSummaryValue>{localAssignees.length}명</StyledSummaryValue>
                 </StyledSummaryRow>
             </StyledCompleteSummary>
         </StyledCompleteSection>

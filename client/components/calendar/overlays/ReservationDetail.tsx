@@ -9,7 +9,7 @@ import type {PaymentEntry, PaymentMethod, Reservation, ReservationHistoryEntry, 
 import {findOverlap, hasCompletedPayment} from '../../../utils/reservations';
 import {isNewCustomerVisit} from '../../../utils/customers';
 import type {CustomerMap} from '../../../utils/customers';
-import {buildDesignerNameMap, getDesignerAvailabilityState, getDesignerColor, splitDesignersByStatus} from '../../../utils/designers';
+import {buildAssigneeNameMap, getAssigneeAvailabilityState, getAssigneeColor, splitAssigneesByStatus} from '../../../utils/assignees';
 import {
     parseServiceString,
     joinServiceNames,
@@ -118,33 +118,33 @@ export const ReservationDetail = ({
         return reservation;
     }, [effectiveReservationMap, reservation]);
     const customer = customerMap[sourceReservation.customerId];
-    const designers = useCalendarStore((s) => s.designers);
+    const assignees = useCalendarStore((s) => s.assignees);
     const updateCustomer = useCalendarStore((s) => s.updateCustomer);
     const storeSettings = useCalendarStore((s) => s.storeSettings);
     const selectedCustomerId = useCalendarStore((s) => s.selectedCustomerId);
     const serviceCatalog = useCalendarStore((s) => s.serviceCatalog);
     const categoryBaseColorMap = useCalendarStore((s) => s.categoryBaseColorMap);
     const {
-        active: activeDesigners,
-        onLeave: onLeaveDesigners,
-        resigned: resignedDesigners
-    } = splitDesignersByStatus(designers);
-    const currentDesigner = sourceReservation.designerId
-        ? designers.find((designer) => designer.id === sourceReservation.designerId) ?? null
+        active: activeAssignees,
+        onLeave: onLeaveAssignees,
+        resigned: resignedAssignees
+    } = splitAssigneesByStatus(assignees);
+    const currentAssignee = sourceReservation.assigneeId
+        ? assignees.find((assignee) => assignee.id === sourceReservation.assigneeId) ?? null
         : null;
-    const designerNameMap = buildDesignerNameMap(designers, true);
+    const assigneeNameMap = buildAssigneeNameMap(assignees, true);
     const serviceColorMap = buildServiceColorMap(serviceCatalog, categoryBaseColorMap);
     const catalogMap = useMemo(() => buildCatalogMap(serviceCatalog), [serviceCatalog]);
     const knownServiceNames = useMemo(() => new Set(Object.keys(serviceColorMap)), [serviceColorMap]);
     const modalRoot = document.getElementById('modal-root');
     const {layerId, layerDataId} = useLayerInstanceId('reservation-detail');
     const getDefaultPointAwardAmount = (baseAmount: number) => Math.floor((baseAmount * storeSettings.pointSettings.serviceRate) / 100);
-    const latestKnownDesignerId = sourceReservation.designerId ?? history.reduce<number | undefined>((found, entry) => {
+    const latestKnownAssigneeId = sourceReservation.assigneeId ?? history.reduce<number | undefined>((found, entry) => {
         if (found) return found;
-        const afterDesignerId = entry.after?.designerId;
-        if (typeof afterDesignerId === 'number' && afterDesignerId > 0) return afterDesignerId;
-        const beforeDesignerId = entry.before?.designerId;
-        if (typeof beforeDesignerId === 'number' && beforeDesignerId > 0) return beforeDesignerId;
+        const afterAssigneeId = entry.after?.assigneeId;
+        if (typeof afterAssigneeId === 'number' && afterAssigneeId > 0) return afterAssigneeId;
+        const beforeAssigneeId = entry.before?.assigneeId;
+        if (typeof beforeAssigneeId === 'number' && beforeAssigneeId > 0) return beforeAssigneeId;
         return undefined;
     }, undefined);
 
@@ -189,15 +189,15 @@ export const ReservationDetail = ({
         setError(null);
     }, [sourceReservation, storeSettings.pointSettings.enableServiceRate, storeSettings.pointSettings.serviceRate]);
 
-    const changedFields = getChangedFields(sourceReservation, form, designerNameMap);
+    const changedFields = getChangedFields(sourceReservation, form, assigneeNameMap);
     const thisHistory = history.filter((h) => h.reservationId === sourceReservation.id);
     const totalDuration = sumDurationMinutes(selectedServices, catalogMap);
     const totalPrice = sumPrice(selectedServices, catalogMap);
-    const displayDesignerName = draftReservation.designerId
-        ? (designerNameMap[draftReservation.designerId] ?? '미지정')
+    const displayAssigneeName = draftReservation.assigneeId
+        ? (assigneeNameMap[draftReservation.assigneeId] ?? '미지정')
         : '미지정';
-    const displayDesignerColor = draftReservation.designerId
-        ? getDesignerColor(designers.find((designer) => designer.id === draftReservation.designerId))
+    const displayAssigneeColor = draftReservation.assigneeId
+        ? getAssigneeColor(assignees.find((assignee) => assignee.id === draftReservation.assigneeId))
         : '#8E8E93';
     const normalizedPaymentEntries = getPaymentEntries(sourceReservation);
     const paymentCompleted = hasCompletedPayment(sourceReservation);
@@ -268,16 +268,16 @@ export const ReservationDetail = ({
     };
 
     const validateForm = (): ReservationFieldError | null => {
-        if (activeDesigners.length > 0 && !form.designerId) return {field: 'designer', message: '디자이너를 선택해주세요.'};
+        if (activeAssignees.length > 0 && !form.assigneeId) return {field: 'assignee', message: '담당자를 선택해주세요.'};
         if (!form.service.trim()) return {field: 'service', message: '서비스를 선택해주세요.'};
         if (!form.date) return {field: 'date', message: '날짜를 선택해주세요.'};
         if (!form.startTime) return {field: 'time', message: '시작 시간을 입력해주세요.'};
         if (!form.endTime) return {field: 'time', message: '종료 시간을 입력해주세요.'};
         if (form.startTime >= form.endTime) return {field: 'time', message: '시작 시간은 종료 시간보다 앞서야 합니다.'};
 
-        const availability = getDesignerAvailabilityState(
-            designers,
-            form.designerId,
+        const availability = getAssigneeAvailabilityState(
+            assignees,
+            form.assigneeId,
             form.date,
             form.startTime,
             form.endTime
@@ -505,8 +505,8 @@ export const ReservationDetail = ({
                     reservation={draftReservation}
                     customerMap={customerMap}
                     displayPrice={displayPrice}
-                    displayDesignerName={displayDesignerName}
-                    displayDesignerColor={displayDesignerColor}
+                    displayAssigneeName={displayAssigneeName}
+                    displayAssigneeColor={displayAssigneeColor}
                     isNewCustomer={isNewCustomerVisit(customer?.firstVisitDate, sourceReservation.date)}
                     paymentCompleted={paymentCompleted}
                     paymentLines={paymentLines}
@@ -523,10 +523,10 @@ export const ReservationDetail = ({
                     priceInputValue={priceInputValue}
                     error={error}
                     customerMemoTags={customer?.memoTags ?? []}
-                    activeDesigners={activeDesigners}
-                    onLeaveDesigners={onLeaveDesigners}
-                    resignedDesigners={resignedDesigners}
-                    currentDesigner={currentDesigner}
+                    activeAssignees={activeAssignees}
+                    onLeaveAssignees={onLeaveAssignees}
+                    resignedAssignees={resignedAssignees}
+                    currentAssignee={currentAssignee}
                     selectedServices={selectedServices}
                     totalDuration={totalDuration}
                     totalPrice={totalPrice}
@@ -539,8 +539,8 @@ export const ReservationDetail = ({
                         setIsPriceManual(true);
                         setError(null);
                     }}
-                    onDesignerChange={(designerId) => {
-                        setForm((prev) => ({...prev, designerId}));
+                    onAssigneeChange={(assigneeId) => {
+                        setForm((prev) => ({...prev, assigneeId}));
                         setError(null);
                     }}
                     onFieldChange={handleChange}
@@ -712,7 +712,7 @@ export const ReservationDetail = ({
         </StyledDetail>
         <ReservationHistoryLayer
             history={thisHistory}
-            designerNameMap={designerNameMap}
+            assigneeNameMap={assigneeNameMap}
             getHistoryDiffs={getHistoryDiffs}
             formatTimestamp={formatTimestamp}
             isOpen={isHistoryOpen}

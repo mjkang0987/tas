@@ -1,8 +1,8 @@
 import styled from 'styled-components';
 import type {ReactNode} from 'react';
 
-import type {Designer} from '../../../utils/designers';
-import {getDesignerStatus, isDesignerBookable, sortDesigners} from '../../../utils/designers';
+import type {Assignee} from '../../../utils/assignees';
+import {getAssigneeStatus, isAssigneeBookable, sortAssignees} from '../../../utils/assignees';
 import type {ReservationChannel} from '../../../utils/reservations';
 import type {CustomerMemoTag} from '../../../utils/customers';
 import {ColorTag} from '../../ui/ColorTag';
@@ -35,13 +35,13 @@ export interface ReservationDetailFormState {
     startTime: string;
     endTime: string;
     service: string;
-    designerId: number;
+    assigneeId: number;
     price: number;
     memo: string;
     channel: ReservationChannel;
 }
 
-export type ReservationErrorField = 'customer' | 'service' | 'designer' | 'date' | 'time' | 'general';
+export type ReservationErrorField = 'customer' | 'service' | 'assignee' | 'date' | 'time' | 'general';
 
 export interface ReservationFieldError {
     field: ReservationErrorField;
@@ -52,21 +52,21 @@ interface ReservationFormFieldsProps {
     idPrefix: string;
     form: ReservationDetailFormState;
     priceInputValue?: string;
-    activeDesigners: Designer[];
-    onLeaveDesigners: Designer[];
-    resignedDesigners: Designer[];
-    currentDesigner?: Designer | null;
+    activeAssignees: Assignee[];
+    onLeaveAssignees: Assignee[];
+    resignedAssignees: Assignee[];
+    currentAssignee?: Assignee | null;
     selectedServices: string[];
     totalDuration: number;
     totalPrice: number;
     onServiceToggle: (serviceName: string) => void;
     onPriceChange: (value: string) => void;
-    onDesignerChange: (designerId: number) => void;
+    onAssigneeChange: (assigneeId: number) => void;
     onFieldChange: (field: keyof ReservationDetailFormState, value: string) => void;
     onStartTimeChange: (value: string) => void;
     onEndTimeChange: (value: string) => void;
     serviceErrorMessage?: string;
-    designerErrorMessage?: string;
+    assigneeErrorMessage?: string;
     dateErrorMessage?: string;
     timeErrorMessage?: string;
     children?: ReactNode;
@@ -76,21 +76,21 @@ export const ReservationFormFields = ({
     idPrefix,
     form,
     priceInputValue,
-    activeDesigners,
-    onLeaveDesigners,
-    resignedDesigners,
-    currentDesigner,
+    activeAssignees,
+    onLeaveAssignees,
+    resignedAssignees,
+    currentAssignee,
     selectedServices,
     totalDuration,
     totalPrice,
     onServiceToggle,
     onPriceChange,
-    onDesignerChange,
+    onAssigneeChange,
     onFieldChange,
     onStartTimeChange,
     onEndTimeChange,
     serviceErrorMessage,
-    designerErrorMessage,
+    assigneeErrorMessage,
     dateErrorMessage,
     timeErrorMessage,
     children,
@@ -120,33 +120,33 @@ export const ReservationFormFields = ({
                 <StyledPriceUnit>원</StyledPriceUnit>
             </StyledPriceRow>
         </label>
-        {(activeDesigners.length > 0 || currentDesigner) && (
-            <label htmlFor={`${idPrefix}-designer`}>
-                <strong>디자이너</strong>
+        {(activeAssignees.length > 0 || currentAssignee) && (
+            <label htmlFor={`${idPrefix}-assignee`}>
+                <strong>담당자</strong>
                 <select
-                    id={`${idPrefix}-designer`}
-                    value={form.designerId}
-                    onChange={(e) => onDesignerChange(Number(e.target.value))}
+                    id={`${idPrefix}-assignee`}
+                    value={form.assigneeId}
+                    onChange={(e) => onAssigneeChange(Number(e.target.value))}
                 >
                     <option value={0}>미지정</option>
-                    {currentDesigner && !isDesignerBookable(currentDesigner) && (
-                        <option value={currentDesigner.id}>
-                            {currentDesigner.name} ({getDesignerStatus(currentDesigner)} · 신규 선택 불가)
+                    {currentAssignee && !isAssigneeBookable(currentAssignee) && (
+                        <option value={currentAssignee.id}>
+                            {currentAssignee.name} ({getAssigneeStatus(currentAssignee)} · 신규 선택 불가)
                         </option>
                     )}
-                    {sortDesigners(activeDesigners).map((designer) => (
-                        <option key={designer.id} value={designer.id}>{designer.name}</option>
+                    {sortAssignees(activeAssignees).map((assignee) => (
+                        <option key={assignee.id} value={assignee.id}>{assignee.name}</option>
                     ))}
                 </select>
-                {(onLeaveDesigners.length > 0 || resignedDesigners.length > 0 || (currentDesigner && !isDesignerBookable(currentDesigner))) && (
-                    <StyledDesignerPolicyNotice>
-                        예약 화면에서는 재직 디자이너만 새로 선택할 수 있습니다.
-                        {currentDesigner && !isDesignerBookable(currentDesigner)
-                            ? ` 현재 담당자는 ${getDesignerStatus(currentDesigner)} 상태라 유지 가능하지만, 변경 후에는 다시 선택할 수 없습니다.`
+                {(onLeaveAssignees.length > 0 || resignedAssignees.length > 0 || (currentAssignee && !isAssigneeBookable(currentAssignee))) && (
+                    <StyledAssigneePolicyNotice>
+                        예약 화면에서는 재직 담당자만 새로 선택할 수 있습니다.
+                        {currentAssignee && !isAssigneeBookable(currentAssignee)
+                            ? ` 현재 담당자는 ${getAssigneeStatus(currentAssignee)} 상태라 유지 가능하지만, 변경 후에는 다시 선택할 수 없습니다.`
                             : ''}
-                    </StyledDesignerPolicyNotice>
+                    </StyledAssigneePolicyNotice>
                 )}
-                {designerErrorMessage && <StyledInlineError>{designerErrorMessage}</StyledInlineError>}
+                {assigneeErrorMessage && <StyledInlineError>{assigneeErrorMessage}</StyledInlineError>}
             </label>
         )}
         <label htmlFor={`${idPrefix}-date`}>
@@ -211,16 +211,16 @@ interface ReservationEditSectionProps {
     priceInputValue?: string;
     error: ReservationFieldError | null;
     customerMemoTags: CustomerMemoTag[];
-    activeDesigners: Designer[];
-    onLeaveDesigners: Designer[];
-    resignedDesigners: Designer[];
-    currentDesigner?: Designer | null;
+    activeAssignees: Assignee[];
+    onLeaveAssignees: Assignee[];
+    resignedAssignees: Assignee[];
+    currentAssignee?: Assignee | null;
     selectedServices: string[];
     totalDuration: number;
     totalPrice: number;
     onServiceToggle: (serviceName: string) => void;
     onPriceChange: (value: string) => void;
-    onDesignerChange: (designerId: number) => void;
+    onAssigneeChange: (assigneeId: number) => void;
     onFieldChange: (field: keyof ReservationDetailFormState, value: string) => void;
     onStartTimeChange: (value: string) => void;
     onEndTimeChange: (value: string) => void;
@@ -231,16 +231,16 @@ export const ReservationEditSection = ({
     priceInputValue,
     error,
     customerMemoTags,
-    activeDesigners,
-    onLeaveDesigners,
-    resignedDesigners,
-    currentDesigner,
+    activeAssignees,
+    onLeaveAssignees,
+    resignedAssignees,
+    currentAssignee,
     selectedServices,
     totalDuration,
     totalPrice,
     onServiceToggle,
     onPriceChange,
-    onDesignerChange,
+    onAssigneeChange,
     onFieldChange,
     onStartTimeChange,
     onEndTimeChange,
@@ -262,21 +262,21 @@ export const ReservationEditSection = ({
             idPrefix="edit"
             form={form}
             priceInputValue={priceInputValue}
-            activeDesigners={activeDesigners}
-            onLeaveDesigners={onLeaveDesigners}
-            resignedDesigners={resignedDesigners}
-            currentDesigner={currentDesigner}
+            activeAssignees={activeAssignees}
+            onLeaveAssignees={onLeaveAssignees}
+            resignedAssignees={resignedAssignees}
+            currentAssignee={currentAssignee}
             selectedServices={selectedServices}
             totalDuration={totalDuration}
             totalPrice={totalPrice}
             onServiceToggle={onServiceToggle}
             onPriceChange={onPriceChange}
-            onDesignerChange={onDesignerChange}
+            onAssigneeChange={onAssigneeChange}
             onFieldChange={onFieldChange}
             onStartTimeChange={onStartTimeChange}
             onEndTimeChange={onEndTimeChange}
             serviceErrorMessage={error?.field === 'service' ? error.message : ''}
-            designerErrorMessage={error?.field === 'designer' ? error.message : ''}
+            assigneeErrorMessage={error?.field === 'assignee' ? error.message : ''}
             dateErrorMessage={error?.field === 'date' ? error.message : ''}
             timeErrorMessage={error?.field === 'time' ? error.message : ''}
         />
@@ -369,7 +369,7 @@ const StyledMemoTagList = styled.div`
     gap: 6px;
 `;
 
-const StyledDesignerPolicyNotice = styled.p`
+const StyledAssigneePolicyNotice = styled.p`
     margin: 6px 0 0;
     font-size: 11px;
     line-height: 1.5;

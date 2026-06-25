@@ -22,13 +22,13 @@ async function resolveCustomerCuid(storeId: string, legacyId: number): Promise<s
     return customer?.id ?? null;
 }
 
-async function resolveDesignerCuid(storeId: string, legacyId: number | undefined): Promise<string | null> {
+async function resolveAssigneeCuid(storeId: string, legacyId: number | undefined): Promise<string | null> {
     if (!legacyId) return null;
-    const designer = await prisma.designer.findUnique({
+    const assignee = await prisma.assignee.findUnique({
         where: {storeId_legacyId: {storeId, legacyId}},
         select: {id: true},
     });
-    return designer?.id ?? null;
+    return assignee?.id ?? null;
 }
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
@@ -65,7 +65,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             return res.status(400).json({error: 'Customer not found'});
         }
 
-        const designerId = await resolveDesignerCuid(session.storeId, reservation.designerId);
+        const assigneeId = await resolveAssigneeCuid(session.storeId, reservation.assigneeId);
 
         const paymentEntries = (reservation.paymentEntries ?? []).map((e) => ({
             method: frontendPaymentMethodToDb(e.method),
@@ -77,7 +77,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                 storeId: session.storeId,
                 legacyId: reservation.id,
                 customerId,
-                designerId,
+                assigneeId,
                 date: new Date(`${reservation.date}T00:00:00`),
                 startTime: reservation.startTime,
                 endTime: reservation.endTime,
@@ -168,7 +168,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             return res.status(400).json({error: 'Customer not found'});
         }
 
-        const designerId = await resolveDesignerCuid(session.storeId, updated.designerId);
+        const assigneeId = await resolveAssigneeCuid(session.storeId, updated.assigneeId);
 
         const paymentEntries = (updated.paymentEntries ?? []).map((e) => ({
             method: frontendPaymentMethodToDb(e.method),
@@ -180,7 +180,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                 where: {id: dbReservation.id},
                 data: {
                     customerId,
-                    designerId,
+                    assigneeId,
                     date: new Date(`${updated.date}T00:00:00`),
                     startTime: updated.startTime,
                     endTime: updated.endTime,
@@ -216,12 +216,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             timestamp: new Date().toISOString(),
         };
 
-        // 일정·시술·디자이너가 실제로 바뀐 경우에만 알림 (결제만 저장한 경우 제외)
+        // 일정·시술·담당자가 실제로 바뀐 경우에만 알림 (결제만 저장한 경우 제외)
         const scheduleChanged = prev.date !== updated.date
             || prev.startTime !== updated.startTime
             || prev.endTime !== updated.endTime
             || prev.service !== updated.service
-            || prev.designerId !== updated.designerId;
+            || prev.assigneeId !== updated.assigneeId;
         if (scheduleChanged) {
             await notifySlackForStore(session.storeId,
                 `✏️ *예약 변경*\n• 날짜: ${updated.date}`

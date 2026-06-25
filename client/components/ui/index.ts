@@ -4,7 +4,7 @@ export {ButtonSquare, ButtonCircle, ButtonReserve, ButtonAdd} from './Buttons';
 export {CloseIconButton} from './CloseIconButton';
 export {ColorPickerButton} from './ColorPickerButton';
 export {ColorTag} from './ColorTag';
-export {DesignerLabel} from './DesignerLabel';
+export {AssigneeLabel} from './AssigneeLabel';
 export {Dot} from './Dot';
 export {FieldError} from './FieldError';
 export {formControlStyle} from './FormControls';

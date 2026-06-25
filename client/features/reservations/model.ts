@@ -14,7 +14,7 @@ export interface Reservation {
     endTime: string;
     service: string;
     customerId: number;
-    designerId?: number;
+    assigneeId?: number;
     status?: ReservationStatus;
     price?: number;
     memo?: string;

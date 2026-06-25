@@ -5,8 +5,8 @@ import {useCalendarStore} from '../../../store/calendarStore';
 import type {Reservation, ReservationChannel} from '../../../utils/reservations';
 import {findOverlap} from '../../../utils/reservations';
 import type {Customer, CustomerMap} from '../../../utils/customers';
-import type {Designer} from '../../../utils/designers';
-import {getDesignerAvailabilityState, splitDesignersByStatus} from '../../../utils/designers';
+import type {Assignee} from '../../../utils/assignees';
+import {getAssigneeAvailabilityState, splitAssigneesByStatus} from '../../../utils/assignees';
 import {buildCatalogMap, calcEndTime, joinServiceNames, sumDurationMinutes, sumPrice} from '../../../utils/services';
 import type {ReservationDetailFormState, ReservationFieldError} from './ReservationDetailSections';
 type CustomerMode = 'existing' | 'new';
@@ -17,7 +17,7 @@ type UseReservationCreateFormParams = {
     initial: CreateReservationInitial;
     customerMap: CustomerMap;
     reservationMap: Record<string, Reservation[]>;
-    designers: Designer[];
+    assignees: Assignee[];
     addCustomer: (customer: Customer) => void;
     onSave: (reservation: Reservation) => void;
 };
@@ -33,15 +33,15 @@ export function useReservationCreateForm({
     initial,
     customerMap,
     reservationMap,
-    designers,
+    assignees,
     addCustomer,
     onSave,
 }: UseReservationCreateFormParams) {
     const serviceCatalog = useCalendarStore((s) => s.serviceCatalog);
     const catalogMap = useMemo(() => buildCatalogMap(serviceCatalog), [serviceCatalog]);
 
-    const {active: activeDesigners, onLeave: onLeaveDesigners, resigned: resignedDesigners} = splitDesignersByStatus(designers);
-    const defaultDesignerId = activeDesigners[0]?.id ?? 0;
+    const {active: activeAssignees, onLeave: onLeaveAssignees, resigned: resignedAssignees} = splitAssigneesByStatus(assignees);
+    const defaultAssigneeId = activeAssignees[0]?.id ?? 0;
     const customers = Object.values(customerMap);
     const nextCustomerId = getNextNumericId(customers.map((customer) => customer.id));
     const nextReservationId = getNextNumericId(
@@ -62,7 +62,7 @@ export function useReservationCreateForm({
         startTime: initial.startTime,
         endTime: calcEndTime(initial.startTime, 30),
         service: '',
-        designerId: defaultDesignerId,
+        assigneeId: defaultAssigneeId,
         price: 0,
         memo: '',
         channel: '전화예약' as ReservationChannel,
@@ -155,7 +155,7 @@ export function useReservationCreateForm({
     const validate = (): ReservationFieldError | null => {
         const normalizedNewCustomerTel = newCustomerTel.replace(/\D/g, '');
 
-        if (activeDesigners.length > 0 && !form.designerId) return {field: 'designer', message: '디자이너를 선택해주세요.'};
+        if (activeAssignees.length > 0 && !form.assigneeId) return {field: 'assignee', message: '담당자를 선택해주세요.'};
         if (customerMode === 'existing' && !customerId) return {field: 'customer', message: '고객을 선택해주세요.'};
         if (customerMode === 'new' && !newCustomerName.trim()) return {field: 'customer', message: '신규 고객명을 입력해주세요.'};
         if (customerMode === 'new' && !newCustomerTel.trim()) return {field: 'customer', message: '신규 고객 연락처를 입력해주세요.'};
@@ -168,9 +168,9 @@ export function useReservationCreateForm({
         if (!form.endTime) return {field: 'time', message: '종료 시간을 입력해주세요.'};
         if (form.startTime >= form.endTime) return {field: 'time', message: '시작 시간은 종료 시간보다 앞서야 합니다.'};
 
-        const availability = getDesignerAvailabilityState(
-            designers,
-            form.designerId,
+        const availability = getAssigneeAvailabilityState(
+            assignees,
+            form.assigneeId,
             form.date,
             form.startTime,
             form.endTime
@@ -221,7 +221,7 @@ export function useReservationCreateForm({
             endTime: form.endTime,
             service: form.service,
             customerId: resolvedCustomerId,
-            ...(form.designerId ? {designerId: form.designerId} : {}),
+            ...(form.assigneeId ? {assigneeId: form.assigneeId} : {}),
             status: 'active',
             price: form.price,
             ...(form.memo.trim() && {memo: form.memo.trim()}),
@@ -232,16 +232,16 @@ export function useReservationCreateForm({
     };
 
     return {
-        activeDesigners,
-        onLeaveDesigners,
-        resignedDesigners,
+        activeAssignees,
+        onLeaveAssignees,
+        resignedAssignees,
         customerId,
         customerQuery,
         showSuggestions,
         customerMode,
         newCustomerName,
         newCustomerTel,
-        designerId: form.designerId,
+        assigneeId: form.assigneeId,
         selectedServices,
         form,
         error,
@@ -274,8 +274,8 @@ export function useReservationCreateForm({
             setIsPriceManual(true);
             setError(null);
         },
-        handleDesignerChange: (nextDesignerId: number) => {
-            setForm((prev) => ({...prev, designerId: nextDesignerId}));
+        handleAssigneeChange: (nextAssigneeId: number) => {
+            setForm((prev) => ({...prev, assigneeId: nextAssigneeId}));
             setError(null);
         },
         handleFieldChange: (field: keyof ReservationDetailFormState, value: string) => {

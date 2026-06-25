@@ -1,5 +1,5 @@
 import type {Customer} from '../utils/customers';
-import type {Designer} from '../utils/designers';
+import type {Assignee} from '../utils/assignees';
 import type {ServiceItem} from '../utils/services';
 import type {StoreSettings} from '../utils/storeSettings';
 import type {ReservationHistoryEntry, ReservationMap} from '../utils/reservations';
@@ -103,8 +103,8 @@ function syncToServer(
     });
 }
 
-export function syncDesignerSettings(designers: Designer[]): void {
-    void syncToServer('/api/designers', {designers}, (c) => ({...c, designers}));
+export function syncAssigneeSettings(assignees: Assignee[]): void {
+    void syncToServer('/api/assignees', {assignees}, (c) => ({...c, assignees}));
 }
 
 // 서버 저장이 끝나면 resolve. 신규 고객을 만든 직후 예약을 POST해야 하는 경우,
@@ -147,24 +147,24 @@ export function deleteCustomerOnServer(customerId: number): Promise<void> {
     }).then(() => undefined).catch(() => {});
 }
 
-// 디자이너 영구 삭제(분리 삭제). 서버에선 스케줄이 cascade로 함께 삭제되고,
-// 예약은 보존하되 designerId가 null(미지정)로 분리된다.
-export function deleteDesignerOnServer(designerId: number): Promise<void> {
+// 담당자 영구 삭제(분리 삭제). 서버에선 스케줄이 cascade로 함께 삭제되고,
+// 예약은 보존하되 assigneeId가 null(미지정)로 분리된다.
+export function deleteAssigneeOnServer(assigneeId: number): Promise<void> {
     if (shouldUseLocalDb()) {
         updateLocalDbSnapshot((current) => ({
             ...current,
-            designers: current.designers.filter((d) => d.id !== designerId),
+            assignees: current.assignees.filter((d) => d.id !== assigneeId),
             reservations: current.reservations.map((r) =>
-                r.designerId === designerId ? {...r, designerId: undefined} : r
+                r.assigneeId === assigneeId ? {...r, assigneeId: undefined} : r
             ),
         }));
         return Promise.resolve();
     }
 
-    return fetch('/api/designers', {
+    return fetch('/api/assignees', {
         method: 'DELETE',
         headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({id: designerId}),
+        body: JSON.stringify({id: assigneeId}),
     }).then(() => undefined).catch(() => {});
 }
 

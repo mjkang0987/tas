@@ -27,7 +27,7 @@ export const ConflictResolutionDetailModal = ({notification, onClose}: Props) =>
     const items: Array<{label: string; value: string}> = [
         {label: '일시', value: `${formatDate(notification.appointmentDate)} ${notification.appointmentTime}`},
         {label: '고객', value: notification.customerName || '고객'},
-        {label: '디자이너', value: notification.designerName || '미지정'},
+        {label: '담당자', value: notification.assigneeName || '미지정'},
         {label: '처리시각', value: formatResolvedAt(notification.resolvedAt)},
     ];
     if (!isAuto) {

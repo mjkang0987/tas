@@ -11,8 +11,8 @@ import {
     type RevenueFilterMode,
 } from '../../../utils/revenue';
 import {formatPrice, getServiceColor, parseServiceString} from '../../../utils/services';
-import type {Designer} from '../../../utils/designers';
-import {getDesignerColor, getDesignerStatus} from '../../../utils/designers';
+import type {Assignee} from '../../../utils/assignees';
+import {getAssigneeColor, getAssigneeStatus} from '../../../utils/assignees';
 import type {PaymentMethod, Reservation, ReservationMap} from '../../../utils/reservations';
 import {toDateKey} from '../../../utils/reservations';
 import type {CustomerMap} from '../../../utils/customers';
@@ -41,18 +41,18 @@ import {
 } from './revenueChartUtils';
 import {REVENUE_CHART_WIDTH, REVENUE_CHART_HEIGHT} from './revenue-chart-styles';
 
-export type RevenueDesignerKey = 'all' | `${number}`;
+export type RevenueAssigneeKey = 'all' | `${number}`;
 export type RevenueQuickRange = 'month' | 'week' | 'today';
 
 interface RevenueSectionProps {
     reservationMap: ReservationMap;
-    designers: Designer[];
+    assignees: Assignee[];
     customerMap: CustomerMap;
     serviceColorMap: Record<string, string>;
     onSelectReservation: (reservation: Reservation) => void;
     onSelectCustomer: (customerId: number) => void;
-    designerKey: RevenueDesignerKey;
-    setDesignerKey: (v: RevenueDesignerKey) => void;
+    assigneeKey: RevenueAssigneeKey;
+    setAssigneeKey: (v: RevenueAssigneeKey) => void;
     startDateKey: string;
     setStartDateKey: (key: string) => void;
     endDateKey: string;
@@ -66,13 +66,13 @@ interface RevenueSectionProps {
 
 export const RevenueSection = ({
     reservationMap,
-    designers,
+    assignees,
     customerMap,
     serviceColorMap,
     onSelectReservation,
     onSelectCustomer,
-    designerKey,
-    setDesignerKey,
+    assigneeKey,
+    setAssigneeKey,
     startDateKey,
     setStartDateKey,
     endDateKey,
@@ -88,19 +88,19 @@ export const RevenueSection = ({
     const [revenueViewTab, setRevenueViewTab] = useState<RevenueViewTab>('all');
     const [revenueFilterMode, setRevenueFilterMode] = useState<RevenueFilterMode>('booked');
 
-    const selectedDesignerId = designerKey === 'all' ? null : Number(designerKey);
-    const designerMap = useMemo(
-        () => Object.fromEntries(designers.map((designer) => [designer.id, designer])),
-        [designers]
+    const selectedAssigneeId = assigneeKey === 'all' ? null : Number(assigneeKey);
+    const assigneeMap = useMemo(
+        () => Object.fromEntries(assignees.map((assignee) => [assignee.id, assignee])),
+        [assignees]
     );
 
     const [fromDateKey, toDateKeyValue] = startDateKey <= endDateKey
         ? [startDateKey, endDateKey]
         : [endDateKey, startDateKey];
 
-    const rangeRevenue = getRangeRevenue(reservationMap, fromDateKey, toDateKeyValue, selectedDesignerId, revenueFilterMode);
-    const revenueInsights = getRevenueInsights(reservationMap, fromDateKey, toDateKeyValue, selectedDesignerId, revenueFilterMode);
-    const operationInsights = getOperationInsights(reservationMap, fromDateKey, toDateKeyValue, selectedDesignerId);
+    const rangeRevenue = getRangeRevenue(reservationMap, fromDateKey, toDateKeyValue, selectedAssigneeId, revenueFilterMode);
+    const revenueInsights = getRevenueInsights(reservationMap, fromDateKey, toDateKeyValue, selectedAssigneeId, revenueFilterMode);
+    const operationInsights = getOperationInsights(reservationMap, fromDateKey, toDateKeyValue, selectedAssigneeId);
     const days = [...rangeRevenue.days].sort((a, b) => b.dateKey.localeCompare(a.dateKey));
 
     const dayReservationMap = useMemo(
@@ -108,17 +108,17 @@ export const RevenueSection = ({
             days.map((day) => [
                 day.dateKey,
                 (reservationMap[day.dateKey] ?? [])
-                    .filter((reservation) => isRevenueReservationTarget(reservation, selectedDesignerId, revenueFilterMode))
+                    .filter((reservation) => isRevenueReservationTarget(reservation, selectedAssigneeId, revenueFilterMode))
                     .sort((a, b) => a.startTime.localeCompare(b.startTime)),
             ])
         ),
-        [days, reservationMap, selectedDesignerId, revenueFilterMode]
+        [days, reservationMap, selectedAssigneeId, revenueFilterMode]
     );
 
     const openedDateKey = detailDateKey && detailDateKey >= fromDateKey && detailDateKey <= toDateKeyValue
         ? detailDateKey
         : null;
-    const layerDaily = openedDateKey ? getDailyRevenue(reservationMap, openedDateKey, selectedDesignerId, revenueFilterMode) : null;
+    const layerDaily = openedDateKey ? getDailyRevenue(reservationMap, openedDateKey, selectedAssigneeId, revenueFilterMode) : null;
 
     // Chart data
     const paymentRevenueMap = useMemo(
@@ -133,31 +133,31 @@ export const RevenueSection = ({
         })),
         [paymentRevenueMap]
     );
-    const designerRevenueMap = useMemo(
-        () => new Map(revenueInsights.designers.map((entry) => [entry.designerId, entry])),
-        [revenueInsights.designers]
+    const assigneeRevenueMap = useMemo(
+        () => new Map(revenueInsights.assignees.map((entry) => [entry.assigneeId, entry])),
+        [revenueInsights.assignees]
     );
-    const designerChartItems = useMemo(() => {
-        const baseDesigners = selectedDesignerId == null
-            ? designers
-            : designers.filter((designer) => designer.id === selectedDesignerId);
-        return baseDesigners
-            .filter((designer) => {
-                const matchedRevenue = designerRevenueMap.get(designer.id);
-                if (getDesignerStatus(designer) === '퇴직' && (!matchedRevenue || matchedRevenue.total === 0)) return false;
+    const assigneeChartItems = useMemo(() => {
+        const baseAssignees = selectedAssigneeId == null
+            ? assignees
+            : assignees.filter((assignee) => assignee.id === selectedAssigneeId);
+        return baseAssignees
+            .filter((assignee) => {
+                const matchedRevenue = assigneeRevenueMap.get(assignee.id);
+                if (getAssigneeStatus(assignee) === '퇴직' && (!matchedRevenue || matchedRevenue.total === 0)) return false;
                 return true;
             })
-            .map((designer) => {
-                const matchedRevenue = designerRevenueMap.get(designer.id);
+            .map((assignee) => {
+                const matchedRevenue = assigneeRevenueMap.get(assignee.id);
                 return {
-                    designerId: designer.id,
+                    assigneeId: assignee.id,
                     total: matchedRevenue?.total ?? 0,
                     count: matchedRevenue?.count ?? 0,
-                    name: designer.name,
-                    color: getDesignerColor(designer),
+                    name: assignee.name,
+                    color: getAssigneeColor(assignee),
                 };
             });
-    }, [designers, designerRevenueMap, selectedDesignerId]);
+    }, [assignees, assigneeRevenueMap, selectedAssigneeId]);
     const customerNoshowItems = useMemo(
         () => operationInsights.customerNoshowRates.slice(0, 5).map((item) => ({
             ...item,
@@ -165,15 +165,15 @@ export const RevenueSection = ({
         })),
         [operationInsights.customerNoshowRates, customerMap]
     );
-    const designerCancellationItems = useMemo(
-        () => operationInsights.designerCancellationRates
+    const assigneeCancellationItems = useMemo(
+        () => operationInsights.assigneeCancellationRates
             .slice(0, 5)
             .map((item) => ({
                 ...item,
-                name: item.designerId == null ? '미지정' : (designerMap[item.designerId]?.name ?? '미지정'),
-                color: item.designerId == null ? '#8E8E93' : (designerMap[item.designerId]?.color ?? '#8E8E93'),
+                name: item.assigneeId == null ? '미지정' : (assigneeMap[item.assigneeId]?.name ?? '미지정'),
+                color: item.assigneeId == null ? '#8E8E93' : (assigneeMap[item.assigneeId]?.color ?? '#8E8E93'),
             })),
-        [operationInsights.designerCancellationRates, designerMap]
+        [operationInsights.assigneeCancellationRates, assigneeMap]
     );
     const chartPath = buildRevenueLinePath(revenueInsights.series.map((item) => item.total), REVENUE_CHART_WIDTH, REVENUE_CHART_HEIGHT);
     const lineMax = Math.max(...revenueInsights.series.map((item) => item.total), 1);
@@ -214,19 +214,19 @@ export const RevenueSection = ({
         while (cursor <= endCursor) {
             const dateKey = toDateKey(cursor.getFullYear(), cursor.getMonth(), cursor.getDate());
             const reservations = (reservationMap[dateKey] ?? []).filter((reservation) => (
-                isRevenueReservationTarget(reservation, selectedDesignerId, revenueFilterMode)
+                isRevenueReservationTarget(reservation, selectedAssigneeId, revenueFilterMode)
             ));
             items.push(...reservations);
             cursor.setDate(cursor.getDate() + 1);
         }
         return items.sort((a, b) => a.date.localeCompare(b.date) || a.startTime.localeCompare(b.startTime));
-    }, [fromDateKey, toDateKeyValue, reservationMap, selectedDesignerId, revenueFilterMode]);
+    }, [fromDateKey, toDateKeyValue, reservationMap, selectedAssigneeId, revenueFilterMode]);
 
     const firstVisitByCustomer = useMemo(() => {
         const firstVisit = new Map<number, string>();
         for (const [dateKey, reservations] of Object.entries(reservationMap)) {
             for (const reservation of reservations) {
-                if (!isRevenueReservationTarget(reservation, selectedDesignerId, revenueFilterMode)) continue;
+                if (!isRevenueReservationTarget(reservation, selectedAssigneeId, revenueFilterMode)) continue;
                 const current = firstVisit.get(reservation.customerId);
                 if (!current || dateKey < current) {
                     firstVisit.set(reservation.customerId, dateKey);
@@ -234,7 +234,7 @@ export const RevenueSection = ({
             }
         }
         return firstVisit;
-    }, [reservationMap, selectedDesignerId, revenueFilterMode]);
+    }, [reservationMap, selectedAssigneeId, revenueFilterMode]);
 
     const newCustomerEntries = useMemo(() => {
         const seen = new Set<number>();
@@ -267,7 +267,7 @@ export const RevenueSection = ({
         const visitDates = new Map<number, string[]>();
         for (const [dateKey, reservations] of Object.entries(reservationMap)) {
             for (const reservation of reservations) {
-                if (!isRevenueReservationTarget(reservation, selectedDesignerId, revenueFilterMode)) continue;
+                if (!isRevenueReservationTarget(reservation, selectedAssigneeId, revenueFilterMode)) continue;
                 const dates = visitDates.get(reservation.customerId) ?? [];
                 if (!dates.includes(dateKey)) dates.push(dateKey);
                 visitDates.set(reservation.customerId, dates);
@@ -281,7 +281,7 @@ export const RevenueSection = ({
             if (dates.length > 0) result.set(reservation.customerId, dates[0]);
         }
         return result;
-    }, [reservationMap, selectedDesignerId, revenueFilterMode, returningCustomerEntries]);
+    }, [reservationMap, selectedAssigneeId, revenueFilterMode, returningCustomerEntries]);
 
     const returningCustomerList = useMemo(
         () => returningCustomerEntries.map((reservation) => ({
@@ -293,8 +293,8 @@ export const RevenueSection = ({
     );
 
     const paidReservations = useMemo(
-        () => metricReservations.filter((reservation) => isPaidReservationTarget(reservation, selectedDesignerId)),
-        [metricReservations, selectedDesignerId]
+        () => metricReservations.filter((reservation) => isPaidReservationTarget(reservation, selectedAssigneeId)),
+        [metricReservations, selectedAssigneeId]
     );
 
     // All reservations in range (regardless of status, for operation detail views)
@@ -305,14 +305,14 @@ export const RevenueSection = ({
         while (cursor <= endCursor) {
             const dateKey = toDateKey(cursor.getFullYear(), cursor.getMonth(), cursor.getDate());
             const reservations = (reservationMap[dateKey] ?? []).filter((reservation) => {
-                if (selectedDesignerId == null) return true;
-                return reservation.designerId === selectedDesignerId;
+                if (selectedAssigneeId == null) return true;
+                return reservation.assigneeId === selectedAssigneeId;
             });
             items.push(...reservations);
             cursor.setDate(cursor.getDate() + 1);
         }
         return items.sort((a, b) => a.date.localeCompare(b.date) || a.startTime.localeCompare(b.startTime));
-    }, [fromDateKey, toDateKeyValue, reservationMap, selectedDesignerId]);
+    }, [fromDateKey, toDateKeyValue, reservationMap, selectedAssigneeId]);
 
     const chartDetailLayer = useMemo(() => {
         if (!chartDetailKey) return null;
@@ -344,11 +344,11 @@ export const RevenueSection = ({
                     customers: [],
                 };
             }
-            case 'designer': {
-                const did = chartDetailKey.designerId;
-                const filtered = metricReservations.filter((r) => r.designerId === did);
+            case 'assignee': {
+                const did = chartDetailKey.assigneeId;
+                const filtered = metricReservations.filter((r) => r.assigneeId === did);
                 const total = filtered.reduce((sum, r) => sum + (r.price ?? 0), 0);
-                const name = designerMap[did]?.name ?? '미지정';
+                const name = assigneeMap[did]?.name ?? '미지정';
                 return {
                     title: `${name} 매출 상세`,
                     summary: `${filtered.length}건 · ${formatPrice(total)}`,
@@ -357,12 +357,12 @@ export const RevenueSection = ({
                 };
             }
             case 'cancellation': {
-                const did = chartDetailKey.designerId;
+                const did = chartDetailKey.assigneeId;
                 const filtered = allRangeReservations.filter((r) => {
-                    const rDesignerId = r.designerId ?? null;
-                    return rDesignerId === did && r.status === 'cancelled';
+                    const rAssigneeId = r.assigneeId ?? null;
+                    return rAssigneeId === did && r.status === 'cancelled';
                 });
-                const name = did == null ? '미지정' : (designerMap[did]?.name ?? '미지정');
+                const name = did == null ? '미지정' : (assigneeMap[did]?.name ?? '미지정');
                 return {
                     title: `${name} 취소 예약 상세`,
                     summary: `${filtered.length}건`,
@@ -395,7 +395,7 @@ export const RevenueSection = ({
             default:
                 return null;
         }
-    }, [chartDetailKey, metricReservations, paidReservations, allRangeReservations, designerMap, customerMap]);
+    }, [chartDetailKey, metricReservations, paidReservations, allRangeReservations, assigneeMap, customerMap]);
 
     const metricLayer = useMemo(() => {
         switch (metricLayerKey) {
@@ -449,7 +449,7 @@ export const RevenueSection = ({
 
     return (
         <>
-            <PageHero eyebrow="REVENUE" title="매출" subtitle="기간별 매출 현황과 디자이너별 실적을 확인합니다." />
+            <PageHero eyebrow="REVENUE" title="매출" subtitle="기간별 매출 현황과 담당자별 실적을 확인합니다." />
             <RevenueFilters
                 startDateKey={startDateKey}
                 endDateKey={endDateKey}
@@ -458,9 +458,9 @@ export const RevenueSection = ({
                 quickRange={quickRange}
                 setQuickRange={setQuickRange}
                 onMoveRange={handleMoveRange}
-                designers={designers}
-                designerKey={designerKey}
-                setDesignerKey={setDesignerKey}
+                assignees={assignees}
+                assigneeKey={assigneeKey}
+                setAssigneeKey={setAssigneeKey}
                 revenueViewTab={revenueViewTab}
                 setRevenueViewTab={setRevenueViewTab}
                 revenueFilterMode={revenueFilterMode}
@@ -468,10 +468,10 @@ export const RevenueSection = ({
                 onExport={() => exportRevenueToExcel({
                     reservationMap,
                     customerMap,
-                    designers,
+                    assignees,
                     startDateKey: fromDateKey,
                     endDateKey: toDateKeyValue,
-                    designerId: selectedDesignerId,
+                    assigneeId: selectedAssigneeId,
                     filterMode: revenueFilterMode,
                 })}
             />
@@ -489,15 +489,15 @@ export const RevenueSection = ({
                     <RevenueChartGrid
                         fromDateKey={fromDateKey}
                         toDateKeyValue={toDateKeyValue}
-                        designerKey={designerKey}
+                        assigneeKey={assigneeKey}
                         chartPath={chartPath}
                         chartPoints={chartPoints}
                         lineMax={lineMax}
                         paidTotal={revenueInsights.paidTotal}
                         paymentDonutGradient={paymentDonutGradient}
                         paymentChartItems={paymentChartItems}
-                        designerChartItems={designerChartItems}
-                        designerCancellationItems={designerCancellationItems}
+                        assigneeChartItems={assigneeChartItems}
+                        assigneeCancellationItems={assigneeCancellationItems}
                         customerNoshowItems={customerNoshowItems}
                         channelChartItems={channelChartItems}
                         channelDonutGradient={channelDonutGradient}
@@ -518,7 +518,7 @@ export const RevenueSection = ({
                     <RevenueDailyList
                         days={days}
                         dayReservationMap={dayReservationMap}
-                        designerMap={designerMap}
+                        assigneeMap={assigneeMap}
                         customerMap={customerMap}
                         serviceColorMap={serviceColorMap}
                         onSelectCustomer={onSelectCustomer}
@@ -538,7 +538,7 @@ export const RevenueSection = ({
                     dateKey={openedDateKey}
                     daily={layerDaily}
                     reservationMap={reservationMap}
-                    designerMap={designerMap}
+                    assigneeMap={assigneeMap}
                     customerMap={customerMap}
                     serviceColorMap={serviceColorMap}
                     onClose={() => setDetailDateKey(null)}
@@ -552,7 +552,7 @@ export const RevenueSection = ({
                     metricLayerKey={metricLayerKey}
                     metricLayer={metricLayer}
                     revenueFilterMode={revenueFilterMode}
-                    designerMap={designerMap}
+                    assigneeMap={assigneeMap}
                     customerMap={customerMap}
                     serviceColorMap={serviceColorMap}
                     onClose={() => setMetricLayerKey(null)}
@@ -566,7 +566,7 @@ export const RevenueSection = ({
                     metricLayerKey="sales"
                     metricLayer={chartDetailLayer}
                     revenueFilterMode={revenueFilterMode}
-                    designerMap={designerMap}
+                    assigneeMap={assigneeMap}
                     customerMap={customerMap}
                     serviceColorMap={serviceColorMap}
                     onClose={() => setChartDetailKey(null)}

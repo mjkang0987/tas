@@ -2,7 +2,7 @@ import {Fragment, useState} from 'react';
 
 import {formatPrice} from '../../../utils/services';
 import type {CustomerMap} from '../../../utils/customers';
-import {compareDesignerName} from '../../../utils/designers';
+import {compareAssigneeName} from '../../../utils/assignees';
 import {EMPTY_TEXT} from '../settings-styles';
 import {StyledColorSwatch} from './revenue-styles';
 import {
@@ -41,16 +41,16 @@ interface PaymentChartItem {
     color: string;
 }
 
-interface DesignerChartItem {
-    designerId: number | null;
+interface AssigneeChartItem {
+    assigneeId: number | null;
     total: number;
     count: number;
     name: string;
     color: string;
 }
 
-interface DesignerCancellationItem {
-    designerId: number | null;
+interface AssigneeCancellationItem {
+    assigneeId: number | null;
     total: number;
     cancelled: number;
     rate: number;
@@ -75,23 +75,23 @@ interface ChannelChartItem {
 export type ChartDetailKey =
     | {kind: 'date'; dateKey: string}
     | {kind: 'payment'; method: string}
-    | {kind: 'designer'; designerId: number}
-    | {kind: 'cancellation'; designerId: number | null}
+    | {kind: 'assignee'; assigneeId: number}
+    | {kind: 'cancellation'; assigneeId: number | null}
     | {kind: 'noshow'; customerId: number}
     | {kind: 'channel'; channel: string};
 
 interface RevenueChartGridProps {
     fromDateKey: string;
     toDateKeyValue: string;
-    designerKey: string;
+    assigneeKey: string;
     chartPath: {linePath: string; areaPath: string};
     chartPoints: ChartPoint[];
     lineMax: number;
     paidTotal: number;
     paymentDonutGradient: string;
     paymentChartItems: PaymentChartItem[];
-    designerChartItems: DesignerChartItem[];
-    designerCancellationItems: DesignerCancellationItem[];
+    assigneeChartItems: AssigneeChartItem[];
+    assigneeCancellationItems: AssigneeCancellationItem[];
     customerNoshowItems: CustomerNoshowItem[];
     totalCancelledCount: number;
     totalCancelledRate: number;
@@ -108,15 +108,15 @@ interface RevenueChartGridProps {
 export const RevenueChartGrid = ({
     fromDateKey,
     toDateKeyValue,
-    designerKey,
+    assigneeKey,
     chartPath,
     chartPoints,
     lineMax,
     paidTotal,
     paymentDonutGradient,
     paymentChartItems,
-    designerChartItems,
-    designerCancellationItems,
+    assigneeChartItems,
+    assigneeCancellationItems,
     customerNoshowItems,
     totalCancelledCount,
     totalCancelledRate,
@@ -275,27 +275,27 @@ export const RevenueChartGrid = ({
                 )}
             </StyledChartCard>
 
-            {/* Designer bar */}
+            {/* Assignee bar */}
             <StyledChartCard>
                 <StyledChartHeader>
-                    <StyledChartHeaderTitle>디자이너별 매출</StyledChartHeaderTitle>
-                    <StyledChartHeaderMeta>{designerKey === 'all' ? '전체 기준' : '선택 디자이너 기준'}</StyledChartHeaderMeta>
+                    <StyledChartHeaderTitle>담당자별 매출</StyledChartHeaderTitle>
+                    <StyledChartHeaderMeta>{assigneeKey === 'all' ? '전체 기준' : '선택 담당자 기준'}</StyledChartHeaderMeta>
                 </StyledChartHeader>
-                {designerChartItems.length === 0 ? (
+                {assigneeChartItems.length === 0 ? (
                     <StyledChartEmpty>{EMPTY_TEXT}</StyledChartEmpty>
                 ) : (
                     <>
                         {(() => {
-                            const sumTotal = designerChartItems.reduce((sum, e) => sum + e.total, 0);
-                            const withPct = [...designerChartItems]
+                            const sumTotal = assigneeChartItems.reduce((sum, e) => sum + e.total, 0);
+                            const withPct = [...assigneeChartItems]
                                 .map((item) => ({...item, pct: sumTotal > 0 ? (item.total / sumTotal) * 100 : 0}))
-                                .sort((a, b) => compareDesignerName(a.name, b.name));
+                                .sort((a, b) => compareAssigneeName(a.name, b.name));
                             return (
                                 <StyledShareSection>
                                     <StyledShareSectionTitle>전체비율</StyledShareSectionTitle>
                                     <StyledShareLegend>
                                         {withPct.map((item) => (
-                                            <StyledShareLegendItem key={`legend-${item.designerId ?? 'none'}`}>
+                                            <StyledShareLegendItem key={`legend-${item.assigneeId ?? 'none'}`}>
                                                 <StyledColorSwatch $color={item.color} />
                                                 <span>{item.name}</span>
                                                 <StyledShareLegendItemValue>{Math.round(item.pct)}%</StyledShareLegendItemValue>
@@ -304,21 +304,21 @@ export const RevenueChartGrid = ({
                                     </StyledShareLegend>
                                     <StyledShareBar>
                                         {withPct.filter((item) => item.pct > 0).map((item) => (
-                                            <StyledShareSegment key={`share-${item.designerId ?? 'none'}`} $color={item.color} $width={item.pct} title={`${item.name} ${Math.round(item.pct)}%`} />
+                                            <StyledShareSegment key={`share-${item.assigneeId ?? 'none'}`} $color={item.color} $width={item.pct} title={`${item.name} ${Math.round(item.pct)}%`} />
                                         ))}
                                     </StyledShareBar>
                                 </StyledShareSection>
                             );
                         })()}
                         <StyledBarChartList>
-                            {[...designerChartItems].sort((a, b) => compareDesignerName(a.name, b.name)).map((item) => {
-                                const sumTotal = designerChartItems.reduce((sum, e) => sum + e.total, 0) || 1;
+                            {[...assigneeChartItems].sort((a, b) => compareAssigneeName(a.name, b.name)).map((item) => {
+                                const sumTotal = assigneeChartItems.reduce((sum, e) => sum + e.total, 0) || 1;
                                 const barRatio = (item.total / sumTotal) * 100;
                                 return (
                                     <StyledBarRow
-                                        key={`${item.designerId ?? 'none'}-${item.name}`}
-                                        onClick={() => item.designerId != null && onChartDetailClick({kind: 'designer', designerId: item.designerId})}
-                                        style={item.designerId != null ? {cursor: 'pointer'} : undefined}
+                                        key={`${item.assigneeId ?? 'none'}-${item.name}`}
+                                        onClick={() => item.assigneeId != null && onChartDetailClick({kind: 'assignee', assigneeId: item.assigneeId})}
+                                        style={item.assigneeId != null ? {cursor: 'pointer'} : undefined}
                                     >
                                         <StyledBarHeaderRow>
                                             <StyledBarLabel>
@@ -341,21 +341,21 @@ export const RevenueChartGrid = ({
             {/* Cancellation rate */}
             <StyledChartCard>
                 <StyledChartHeader>
-                    <StyledChartHeaderTitle>디자이너별 취소율</StyledChartHeaderTitle>
+                    <StyledChartHeaderTitle>담당자별 취소율</StyledChartHeaderTitle>
                     <StyledChartHeaderMeta>기간 내 전체 예약 기준</StyledChartHeaderMeta>
                 </StyledChartHeader>
                 <StyledOperationSummary>
                     <StyledOperationSummaryLabel>전체 취소 {totalCancelledCount}건</StyledOperationSummaryLabel>
                     <StyledOperationSummaryValue>{totalCancelledRate}%</StyledOperationSummaryValue>
                 </StyledOperationSummary>
-                {designerCancellationItems.length === 0 ? (
+                {assigneeCancellationItems.length === 0 ? (
                     <StyledChartEmpty>{EMPTY_TEXT}</StyledChartEmpty>
                 ) : (
                     <StyledOperationList>
-                        {[...designerCancellationItems].sort((a, b) => compareDesignerName(a.name, b.name)).map((item) => (
+                        {[...assigneeCancellationItems].sort((a, b) => compareAssigneeName(a.name, b.name)).map((item) => (
                             <StyledClickableOperationRow
-                                key={`cancel-${item.designerId ?? 'none'}`}
-                                onClick={() => onChartDetailClick({kind: 'cancellation', designerId: item.designerId})}
+                                key={`cancel-${item.assigneeId ?? 'none'}`}
+                                onClick={() => onChartDetailClick({kind: 'cancellation', assigneeId: item.assigneeId})}
                             >
                                 <StyledOperationLabel>
                                     <StyledChartRevenueMetaLabel>

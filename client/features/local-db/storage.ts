@@ -1,7 +1,7 @@
 import type {Customer, CustomerMap} from '../customers/model';
 import {toCustomerMap} from '../customers/model';
-import type {Designer} from '../designers/model';
-import {DEFAULT_DESIGNERS} from '../designers/model';
+import type {Assignee} from '../assignees/model';
+import {DEFAULT_ASSIGNEES} from '../assignees/model';
 import type {Reservation, ReservationHistoryEntry, ReservationMap} from '../reservations/model';
 import type {ServiceItem} from '../services/model';
 import {CATEGORY_BASE_COLOR_MAP, SERVICE_CATALOG} from '../services/model';
@@ -17,7 +17,7 @@ export interface LocalDbSnapshot {
     history: ReservationHistoryEntry[];
     services: ServiceItem[];
     categoryBaseColors: Record<string, string>;
-    designers: Designer[];
+    assignees: Assignee[];
     storeSettings: StoreSettings;
     onboarded?: boolean;
     storeName?: string;
@@ -35,7 +35,7 @@ export function createDefaultLocalDbSnapshot(): LocalDbSnapshot {
         history: [],
         services: [],
         categoryBaseColors: {},
-        designers: [],
+        assignees: [],
         storeSettings: DEFAULT_STORE_SETTINGS,
         onboarded: false,
     });
@@ -84,7 +84,7 @@ export function clearGuestTermsAgreed(): void {
     }
 }
 
-// 실제 게스트 이용 데이터(온보딩 완료 또는 고객/예약/디자이너/서비스)가 있는지
+// 실제 게스트 이용 데이터(온보딩 완료 또는 고객/예약/담당자/서비스)가 있는지
 export function hasGuestData(): boolean {
     if (typeof window === 'undefined') return false;
     const raw = window.localStorage.getItem(LOCAL_DB_KEY);
@@ -94,7 +94,7 @@ export function hasGuestData(): boolean {
         return parsed.onboarded === true
             || (Array.isArray(parsed.customers) && parsed.customers.length > 0)
             || (Array.isArray(parsed.reservations) && parsed.reservations.length > 0)
-            || (Array.isArray(parsed.designers) && parsed.designers.length > 0)
+            || (Array.isArray(parsed.assignees) && parsed.assignees.length > 0)
             || (Array.isArray(parsed.services) && parsed.services.length > 0);
     } catch {
         return false;
@@ -165,7 +165,7 @@ export function loadLocalDbSnapshot(): LocalDbSnapshot {
             ...parsed,
             categoryBaseColors: parsed.categoryBaseColors ?? CATEGORY_BASE_COLOR_MAP,
             storeSettings: parsed.storeSettings ?? DEFAULT_STORE_SETTINGS,
-            designers: Array.isArray(parsed.designers) ? parsed.designers : DEFAULT_DESIGNERS,
+            assignees: Array.isArray(parsed.assignees) ? parsed.assignees : DEFAULT_ASSIGNEES,
             services: Array.isArray(parsed.services) ? parsed.services : SERVICE_CATALOG,
             customers: Array.isArray(parsed.customers) ? parsed.customers : [],
             reservations: Array.isArray(parsed.reservations) ? parsed.reservations : [],

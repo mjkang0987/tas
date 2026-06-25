@@ -6,8 +6,8 @@ import {ReservationInfoCard} from './ReservationInfoCard';
 
 type CustomerReservationCardsProps = {
     reservations: Reservation[];
-    designerColorMap: Record<number, string>;
-    designerNameMap: Record<number, string>;
+    assigneeColorMap: Record<number, string>;
+    assigneeNameMap: Record<number, string>;
     serviceColorMap: Record<string, string>;
     today: string;
     onReservationClick?: (reservation: Reservation) => void;
@@ -17,8 +17,8 @@ type CustomerReservationCardsProps = {
 
 export function CustomerReservationCards({
     reservations,
-    designerColorMap,
-    designerNameMap,
+    assigneeColorMap,
+    assigneeNameMap,
     serviceColorMap,
     today,
     onReservationClick,
@@ -32,11 +32,11 @@ export function CustomerReservationCards({
     return (
         <StyledReservationList className={className}>
             {reservations.map((reservation) => {
-                const designerColor = reservation.designerId
-                    ? (designerColorMap[reservation.designerId] ?? '#8E8E93')
+                const assigneeColor = reservation.assigneeId
+                    ? (assigneeColorMap[reservation.assigneeId] ?? '#8E8E93')
                     : '#8E8E93';
-                const designerName = reservation.designerId
-                    ? (designerNameMap[reservation.designerId] ?? '미지정')
+                const assigneeName = reservation.assigneeId
+                    ? (assigneeNameMap[reservation.assigneeId] ?? '미지정')
                     : '미지정';
 
                 return (
@@ -44,15 +44,15 @@ export function CustomerReservationCards({
                         <ReservationInfoCard
                             reservation={reservation}
                             serviceColorMap={serviceColorMap}
-                            designerColor={designerColor}
-                            designerName={designerName}
+                            assigneeColor={assigneeColor}
+                            assigneeName={assigneeName}
                             today={today}
                             onClick={onReservationClick}
                             showDate
                             showStatus
                             showPrice
                             timeMode="range"
-                            accentColor={designerColor}
+                            accentColor={assigneeColor}
                             accentBar
                         />
                     </li>

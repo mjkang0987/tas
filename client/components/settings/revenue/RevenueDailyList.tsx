@@ -3,7 +3,7 @@ import {useState} from 'react';
 import styled from 'styled-components';
 
 import {formatPrice} from '../../../utils/services';
-import type {Designer} from '../../../utils/designers';
+import type {Assignee} from '../../../utils/assignees';
 import type {Reservation} from '../../../utils/reservations';
 import type {CustomerMap} from '../../../utils/customers';
 import {EMPTY_TEXT} from '../settings-styles';
@@ -24,7 +24,7 @@ interface DayEntry {
 interface RevenueDailyListProps {
     days: DayEntry[];
     dayReservationMap: Record<string, Reservation[]>;
-    designerMap: Record<number, Designer>;
+    assigneeMap: Record<number, Assignee>;
     customerMap: CustomerMap;
     serviceColorMap: Record<string, string>;
     onSelectCustomer: (customerId: number) => void;
@@ -50,7 +50,7 @@ function getShortDateParts(dateKey: string): {monthDay: string; yearWeekday: str
 export const RevenueDailyList = ({
     days,
     dayReservationMap,
-    designerMap,
+    assigneeMap,
     customerMap,
     serviceColorMap,
     onSelectCustomer,
@@ -102,7 +102,7 @@ export const RevenueDailyList = ({
                                 <StyledDayReservations>
                                     <RevenueReservationList
                                         reservations={reservations}
-                                        designerMap={designerMap}
+                                        assigneeMap={assigneeMap}
                                         customerMap={customerMap}
                                         serviceColorMap={serviceColorMap}
                                         onSelectReservation={onSelectReservation}

@@ -5,7 +5,7 @@ import type {Reservation, ReservationMap} from '../../utils/reservations';
 import type {ConflictInfo} from '../../hooks/useNaverBookingSync';
 import {useCalendarStore} from '../../store/calendarStore';
 import {buildServiceColorMap} from '../../utils/services';
-import {getDesignerColor} from '../../utils/designers';
+import {getAssigneeColor} from '../../utils/assignees';
 
 import {
     OVERLAY_Z_INDEX,
@@ -81,16 +81,16 @@ function findAllOverlapping(reservationMap: ReservationMap, ...seeds: Reservatio
     if (!dateKey) return seeds;
 
     const dateReservations = reservationMap[dateKey] ?? [];
-    const designerId = seeds[0]?.designerId;
+    const assigneeId = seeds[0]?.assigneeId;
 
-    // 같은 날짜, 같은 디자이너에서 seeds 중 하나라도 시간이 겹치는 예약을 모두 수집
+    // 같은 날짜, 같은 담당자에서 seeds 중 하나라도 시간이 겹치는 예약을 모두 수집
     const ids = new Set(seeds.map((s) => s.id));
     const result = [...seeds];
 
     for (const r of dateReservations) {
         if (ids.has(r.id)) continue;
         if (r.status === 'cancelled' || r.status === 'noshow') continue;
-        if (designerId != null && r.designerId !== designerId) continue;
+        if (assigneeId != null && r.assigneeId !== assigneeId) continue;
 
         // seeds 또는 기존 result 중 하나와 겹치는지 확인
         const overlaps = result.some((s) =>
@@ -119,7 +119,7 @@ export const NaverSyncConflictModal = ({
     }, []);
     const dialogRef = useDialogAccessibility<HTMLDivElement>(noop);
     const customerMap = useCalendarStore((s) => s.customerMap);
-    const designers = useCalendarStore((s) => s.designers);
+    const assignees = useCalendarStore((s) => s.assignees);
     const reservationMap = useCalendarStore((s) => s.reservationMap);
     const serviceCatalog = useCalendarStore((s) => s.serviceCatalog);
     const categoryBaseColorMap = useCalendarStore((s) => s.categoryBaseColorMap);
@@ -133,22 +133,22 @@ export const NaverSyncConflictModal = ({
     if (!modalRoot) return null;
 
     const getCustomerName = (r: Reservation) => customerMap[r.customerId]?.name ?? '고객';
-    const getDesignerName = (r: Reservation) => designers.find((d) => d.id === r.designerId)?.name ?? '미지정';
-    const getDesignerDotColor = (r: Reservation) => getDesignerColor(designers.find((d) => d.id === r.designerId));
+    const getAssigneeName = (r: Reservation) => assignees.find((d) => d.id === r.assigneeId)?.name ?? '미지정';
+    const getAssigneeDotColor = (r: Reservation) => getAssigneeColor(assignees.find((d) => d.id === r.assigneeId));
 
-    const renderReservation = (reservation: Reservation, isDangerTime: boolean, isDangerDesigner: boolean) => {
+    const renderReservation = (reservation: Reservation, isDangerTime: boolean, isDangerAssignee: boolean) => {
         return (
             <StyledConflictReservation>
-                {(isDangerTime || isDangerDesigner) && (
+                {(isDangerTime || isDangerAssignee) && (
                     <StyledConflictBadges>
                         {isDangerTime && (
                             <StyledStatusBadge $variant="danger">
                                 시간 중복 {reservation.startTime}~{reservation.endTime}
                             </StyledStatusBadge>
                         )}
-                        {isDangerDesigner && (
+                        {isDangerAssignee && (
                             <StyledStatusBadge $variant="danger">
-                                디자이너 중복 {getDesignerName(reservation)}
+                                담당자 중복 {getAssigneeName(reservation)}
                             </StyledStatusBadge>
                         )}
                     </StyledConflictBadges>
@@ -156,8 +156,8 @@ export const NaverSyncConflictModal = ({
                 <ReservationInfoCard
                     reservation={reservation}
                     serviceColorMap={serviceColorMap}
-                    designerColor={getDesignerDotColor(reservation)}
-                    designerName={getDesignerName(reservation)}
+                    assigneeColor={getAssigneeDotColor(reservation)}
+                    assigneeName={getAssigneeName(reservation)}
                     customerName={getCustomerName(reservation)}
                     showDate
                     showPrice
@@ -172,7 +172,7 @@ export const NaverSyncConflictModal = ({
     const currentNew = findCurrentReservation(reservationMap, conflict.newReservation) ?? conflict.newReservation;
     const currentExisting = findCurrentReservation(reservationMap, conflict.existingReservation) ?? conflict.existingReservation;
 
-    // 같은 날짜/디자이너에서 시간이 겹치는 모든 예약을 수집
+    // 같은 날짜/담당자에서 시간이 겹치는 모든 예약을 수집
     const allOverlapping = findAllOverlapping(reservationMap, currentNew, currentExisting);
 
     // 취소/노쇼 감지
@@ -188,9 +188,9 @@ export const NaverSyncConflictModal = ({
 
     const activeOverlapping = allOverlapping.filter((r) => r.status !== 'cancelled' && r.status !== 'noshow');
     const stillOverlapping = !isConflictDismissed && activeOverlapping.length >= 2;
-    const sameDesigner =
+    const sameAssignee =
         stillOverlapping
-        && activeOverlapping.every((r) => r.designerId != null && r.designerId === activeOverlapping[0].designerId);
+        && activeOverlapping.every((r) => r.assigneeId != null && r.assigneeId === activeOverlapping[0].assigneeId);
 
     const isCancelledNew = currentNew.status === 'cancelled' || currentNew.status === 'noshow';
     const isCancelledExisting = currentExisting.status === 'cancelled' || currentExisting.status === 'noshow';
@@ -206,10 +206,10 @@ export const NaverSyncConflictModal = ({
             if (original.startTime !== current.startTime || original.endTime !== current.endTime) {
                 lines.push(`${original.startTime}~${original.endTime} → ${current.startTime}~${current.endTime} 예약시간이 변경되었습니다.`);
             }
-            if (original.designerId !== current.designerId) {
-                const oldName = designers.find((d) => d.id === original.designerId)?.name ?? '미지정';
-                const newName = designers.find((d) => d.id === current.designerId)?.name ?? '미지정';
-                lines.push(`${oldName} → ${newName} 디자이너가 변경되었습니다.`);
+            if (original.assigneeId !== current.assigneeId) {
+                const oldName = assignees.find((d) => d.id === original.assigneeId)?.name ?? '미지정';
+                const newName = assignees.find((d) => d.id === current.assigneeId)?.name ?? '미지정';
+                lines.push(`${oldName} → ${newName} 담당자가 변경되었습니다.`);
             }
             if (original.date !== current.date) {
                 lines.push(`${original.date} → ${current.date} 예약날짜가 변경되었습니다.`);
@@ -232,7 +232,7 @@ export const NaverSyncConflictModal = ({
     const overlapEnd = conflict.newReservation.endTime < conflict.existingReservation.endTime
         ? conflict.newReservation.endTime
         : conflict.existingReservation.endTime;
-    const conflictSummary = `${getDesignerName(conflict.newReservation)} 디자이너, ${conflict.newReservation.date} ${overlapStart}~${overlapEnd}에 ${getCustomerName(conflict.newReservation)}·${getCustomerName(conflict.existingReservation)}님 예약이 겹쳤습니다`;
+    const conflictSummary = `${getAssigneeName(conflict.newReservation)} 담당자, ${conflict.newReservation.date} ${overlapStart}~${overlapEnd}에 ${getCustomerName(conflict.newReservation)}·${getCustomerName(conflict.existingReservation)}님 예약이 겹쳤습니다`;
 
     const handleAdvanceClick = () => {
         setReasonOpen(true);
@@ -306,13 +306,13 @@ export const NaverSyncConflictModal = ({
                         <StyledConflictCard>
                             <StyledCancelledWrapper $cancelled={isCancelledNew}>
                                 <StyledClickableInfo onClick={() => onSelectReservation(currentNew)}>
-                                    {renderReservation(currentNew, stillOverlapping, sameDesigner)}
+                                    {renderReservation(currentNew, stillOverlapping, sameAssignee)}
                                 </StyledClickableInfo>
                             </StyledCancelledWrapper>
 
                             <StyledCancelledWrapper $cancelled={isCancelledExisting}>
                                 <StyledClickableInfo onClick={() => onSelectReservation(currentExisting)}>
-                                    {renderReservation(currentExisting, stillOverlapping, sameDesigner)}
+                                    {renderReservation(currentExisting, stillOverlapping, sameAssignee)}
                                 </StyledClickableInfo>
                             </StyledCancelledWrapper>
 
@@ -321,7 +321,7 @@ export const NaverSyncConflictModal = ({
                                 return (
                                     <StyledCancelledWrapper key={extra.id} $cancelled={isCancelledExtra}>
                                         <StyledClickableInfo onClick={() => onSelectReservation(extra)}>
-                                            {renderReservation(extra, stillOverlapping, sameDesigner)}
+                                            {renderReservation(extra, stillOverlapping, sameAssignee)}
                                         </StyledClickableInfo>
                                     </StyledCancelledWrapper>
                                 );

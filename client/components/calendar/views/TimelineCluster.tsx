@@ -1,7 +1,7 @@
 import React from 'react';
 
 import styled from 'styled-components';
-import {DesignerLabel} from '../../ui/DesignerLabel';
+import {AssigneeLabel} from '../../ui/AssigneeLabel';
 
 import type {TimelineClusterData} from './TimelineClusterLayer';
 
@@ -9,8 +9,8 @@ type TimelineClusterProps = {
     cluster: TimelineClusterData;
     blockTop: number;
     blockHeight: number;
-    designerColorMap: Record<number, string>;
-    designerNameById: (designerId?: number) => string;
+    assigneeColorMap: Record<number, string>;
+    assigneeNameById: (assigneeId?: number) => string;
     onToggle: () => void;
 };
 
@@ -18,15 +18,15 @@ export function TimelineCluster({
     cluster,
     blockTop,
     blockHeight,
-    designerColorMap,
-    designerNameById,
+    assigneeColorMap,
+    assigneeNameById,
     onToggle,
 }: TimelineClusterProps) {
-    const designerBadges = Array.from(new Map(cluster.reservations.map((reservation) => [
-        reservation.designerId ?? 0,
+    const assigneeBadges = Array.from(new Map(cluster.reservations.map((reservation) => [
+        reservation.assigneeId ?? 0,
         {
-            color: reservation.designerId ? (designerColorMap[reservation.designerId] ?? '#8E8E93') : '#8E8E93',
-            name: designerNameById(reservation.designerId),
+            color: reservation.assigneeId ? (assigneeColorMap[reservation.assigneeId] ?? '#8E8E93') : '#8E8E93',
+            name: assigneeNameById(reservation.assigneeId),
         }
     ])).values());
 
@@ -46,8 +46,8 @@ export function TimelineCluster({
                 }}
             >
                 <StyledOverlapCount>{cluster.reservations.length}건예약</StyledOverlapCount>
-                {designerBadges.map((badge, index) => (
-                    <DesignerLabel key={`${cluster.id}-${index}`} color={badge.color} name={badge.name} />
+                {assigneeBadges.map((badge, index) => (
+                    <AssigneeLabel key={`${cluster.id}-${index}`} color={badge.color} name={badge.name} />
                 ))}
             </StyledOverlapButton>
         </StyledOverlapWrap>

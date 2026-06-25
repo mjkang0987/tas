@@ -27,8 +27,8 @@ import {LabelBadge} from '../../ui/LabelBadge';
 
 interface ReservationHistoryLayerProps {
     history: ReservationHistoryEntry[];
-    designerNameMap: Record<number, string>;
-    getHistoryDiffs: (entry: ReservationHistoryEntry, designerNameMap: Record<number, string>) => ReservationDiffItem[];
+    assigneeNameMap: Record<number, string>;
+    getHistoryDiffs: (entry: ReservationHistoryEntry, assigneeNameMap: Record<number, string>) => ReservationDiffItem[];
     formatTimestamp: (iso: string) => string;
     isOpen: boolean;
     onClose: () => void;
@@ -36,7 +36,7 @@ interface ReservationHistoryLayerProps {
 
 export function ReservationHistoryLayer({
     history,
-    designerNameMap,
+    assigneeNameMap,
     getHistoryDiffs,
     formatTimestamp,
     isOpen,
@@ -67,7 +67,7 @@ export function ReservationHistoryLayer({
                     <StyledBodyInner>
                         <StyledHistoryDetailList>
                             {[...history].reverse().map((entry, index) => {
-                                const diffs = getHistoryDiffs(entry, designerNameMap);
+                                const diffs = getHistoryDiffs(entry, assigneeNameMap);
                                 const isCancelEntry = entry.after.status === 'cancelled' && entry.before.status !== 'cancelled';
                                 const isNoshowEntry = entry.after.status === 'noshow' && entry.before.status !== 'noshow';
                                 const isCompleteEntry = entry.after.status === 'completed' && entry.before.status !== 'completed';

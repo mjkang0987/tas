@@ -243,7 +243,7 @@ export const StyledStatusTag = styled(LabelBadge).attrs<{ $status?: SyncNotifica
     font-size: 10px;
 `;
 
-export const StyledDesignerMeta = styled.span`
+export const StyledAssigneeMeta = styled.span`
     display: inline-flex;
     align-items: center;
     gap: 6px;

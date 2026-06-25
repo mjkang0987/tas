@@ -6,7 +6,7 @@ import {useCalendarStore} from '../../../store/calendarStore';
 
 import {NewCustomerBadge} from '../../ui/NewCustomerBadge';
 import {isNewCustomerVisit} from '../../../utils/customers';
-import {buildDesignerColorMap} from '../../../utils/designers';
+import {buildAssigneeColorMap} from '../../../utils/assignees';
 import {buildServiceColorMap} from '../../../utils/services';
 import {ServiceChipList} from '../../ui/ServiceChip';
 
@@ -34,12 +34,12 @@ export const ReservationList = ({
     const setCreateReservationInitial = useCalendarStore((s) => s.setCreateReservationInitial);
     const serviceCatalog = useCalendarStore((s) => s.serviceCatalog);
     const categoryBaseColorMap = useCalendarStore((s) => s.categoryBaseColorMap);
-    const designers = useCalendarStore((s) => s.designers);
+    const assignees = useCalendarStore((s) => s.assignees);
     const serviceColorMap = useMemo(
         () => buildServiceColorMap(serviceCatalog, categoryBaseColorMap),
         [serviceCatalog, categoryBaseColorMap]
     );
-    const designerColorMap = useMemo(() => buildDesignerColorMap(designers), [designers]);
+    const assigneeColorMap = useMemo(() => buildAssigneeColorMap(assignees), [assignees]);
 
     return (<>
         <StyledList $variant={variant}>
@@ -49,7 +49,7 @@ export const ReservationList = ({
                 return (
                     <li key={r.id}>
                         <StyledItem type="button"
-                                    $color={r.designerId ? (designerColorMap[r.designerId] ?? '#8E8E93') : '#8E8E93'}
+                                    $color={r.assigneeId ? (assigneeColorMap[r.assigneeId] ?? '#8E8E93') : '#8E8E93'}
                                     $inactive={r.status === 'cancelled' || r.status === 'noshow'}
                                     onClick={(e) => {
                                         e.stopPropagation();

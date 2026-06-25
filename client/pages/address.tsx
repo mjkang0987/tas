@@ -8,7 +8,7 @@ import type {Customer} from '../utils/customers';
 import {toCustomerMap} from '../utils/customers';
 import type {Reservation, ReservationHistoryEntry} from '../utils/reservations';
 import {groupByDate} from '../utils/reservations';
-import {buildDesignerColorMap, buildDesignerNameMap} from '../utils/designers';
+import {buildAssigneeColorMap, buildAssigneeNameMap} from '../utils/assignees';
 import {buildServiceColorMap} from '../utils/services';
 
 import {ReservationDetail} from '../components/calendar/overlays/ReservationDetail';
@@ -49,7 +49,7 @@ const Address: NextPage<AddressProps> = ({customers, reservations, history, stor
     const openReservationDetailFromCustomer = useCalendarStore((s) => s.openReservationDetailFromCustomer);
     const openCustomerDetail = useCalendarStore((s) => s.openCustomerDetail);
     const updateCustomer = useCalendarStore((s) => s.updateCustomer);
-    const designers = useCalendarStore((s) => s.designers);
+    const assignees = useCalendarStore((s) => s.assignees);
     const serviceCatalog = useCalendarStore((s) => s.serviceCatalog);
     const categoryBaseColorMap = useCalendarStore((s) => s.categoryBaseColorMap);
 
@@ -130,8 +130,8 @@ const Address: NextPage<AddressProps> = ({customers, reservations, history, stor
         () => buildServiceColorMap(serviceCatalog, categoryBaseColorMap),
         [serviceCatalog, categoryBaseColorMap]
     );
-    const designerColorMap = useMemo(() => buildDesignerColorMap(designers), [designers]);
-    const designerNameMap = useMemo(() => buildDesignerNameMap(designers), [designers]);
+    const assigneeColorMap = useMemo(() => buildAssigneeColorMap(assignees), [assignees]);
+    const assigneeNameMap = useMemo(() => buildAssigneeNameMap(assignees), [assignees]);
 
     const reservationsByCustomer = useMemo(() => {
         const map: Record<number, Reservation[]> = {};
@@ -307,8 +307,8 @@ const Address: NextPage<AddressProps> = ({customers, reservations, history, stor
                 tagInput={tagInput}
                 selectedColor={selectedColor}
                 serviceColorMap={serviceColorMap}
-                designerColorMap={designerColorMap}
-                designerNameMap={designerNameMap}
+                assigneeColorMap={assigneeColorMap}
+                assigneeNameMap={assigneeNameMap}
                 today={today}
                 customerStats={customerStats}
                 searchInput={searchInput}

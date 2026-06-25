@@ -3,7 +3,7 @@ import {createPortal} from 'react-dom';
 
 import styled from 'styled-components';
 
-import {buildDesignerColorMap, buildDesignerNameMap} from '../../features/designers/model';
+import {buildAssigneeColorMap, buildAssigneeNameMap} from '../../features/assignees/model';
 import {buildServiceColorMap} from '../../features/services/model';
 import type {MergeSuggestion} from '../../hooks/useCustomerMergeSuggestion';
 import {countReservations} from '../../hooks/useCustomerMergeSuggestion';
@@ -76,7 +76,7 @@ export const CustomerMergeSuggestionModal = ({
 
     const serviceCatalog = useCalendarStore((s) => s.serviceCatalog);
     const categoryBaseColorMap = useCalendarStore((s) => s.categoryBaseColorMap);
-    const designers = useCalendarStore((s) => s.designers);
+    const assignees = useCalendarStore((s) => s.assignees);
     const openReservationDetail = useCalendarStore((s) => s.openReservationDetail);
 
     const serviceColorMap = useMemo(
@@ -84,8 +84,8 @@ export const CustomerMergeSuggestionModal = ({
         [serviceCatalog, categoryBaseColorMap],
     );
 
-    const designerColorMap = useMemo(() => buildDesignerColorMap(designers), [designers]);
-    const designerNameMap = useMemo(() => buildDesignerNameMap(designers, true), [designers]);
+    const assigneeColorMap = useMemo(() => buildAssigneeColorMap(assignees), [assignees]);
+    const assigneeNameMap = useMemo(() => buildAssigneeNameMap(assignees, true), [assignees]);
 
     const modalRoot = typeof document !== 'undefined' ? document.getElementById('modal-root') : null;
     if (!modalRoot) return null;
@@ -161,11 +161,11 @@ export const CustomerMergeSuggestionModal = ({
                             const lastRes = getLastReservation(customer.id, reservationMap);
                             const hasTags = customer.memoTags && customer.memoTags.length > 0;
                             const hasNotes = customer.allergyNote || customer.claimNote || customer.preferenceNote;
-                            const designerName = lastRes?.designerId
-                                ? (designerNameMap[lastRes.designerId] ?? '미지정')
+                            const assigneeName = lastRes?.assigneeId
+                                ? (assigneeNameMap[lastRes.assigneeId] ?? '미지정')
                                 : '미지정';
-                            const designerColor = lastRes?.designerId
-                                ? (designerColorMap[lastRes.designerId] ?? '#8E8E93')
+                            const assigneeColor = lastRes?.assigneeId
+                                ? (assigneeColorMap[lastRes.assigneeId] ?? '#8E8E93')
                                 : '#8E8E93';
                             return (
                                 <StyledCustomerItem
@@ -236,8 +236,8 @@ export const CustomerMergeSuggestionModal = ({
                                                 <ReservationInfoCard
                                                     reservation={lastRes}
                                                     serviceColorMap={serviceColorMap}
-                                                    designerColor={designerColor}
-                                                    designerName={designerName}
+                                                    assigneeColor={assigneeColor}
+                                                    assigneeName={assigneeName}
                                                     showDate
                                                     showPrice
                                                     showStatus

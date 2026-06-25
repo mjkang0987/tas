@@ -143,7 +143,7 @@ const MyPage: NextPage<MyPageProps> = ({linkedProviders}) => {
         reservations: effectiveLocalSnapshot?.reservations.length ?? 0,
         history: effectiveLocalSnapshot?.history.length ?? 0,
         services: effectiveLocalSnapshot?.services.length ?? 0,
-        designers: effectiveLocalSnapshot?.designers.length ?? 0,
+        assignees: effectiveLocalSnapshot?.assignees.length ?? 0,
     }), [effectiveLocalSnapshot]);
 
     const resetGuestData = () => {
@@ -303,9 +303,9 @@ const MyPage: NextPage<MyPageProps> = ({linkedProviders}) => {
                                 <strong className="value">{localSummary.services}</strong>
                                 <span className="label">서비스</span>
                             </StyledMetricLink>
-                            <StyledMetricLink href="/settings/designer">
-                                <strong className="value">{localSummary.designers}</strong>
-                                <span className="label">디자이너</span>
+                            <StyledMetricLink href="/settings/assignee">
+                                <strong className="value">{localSummary.assignees}</strong>
+                                <span className="label">담당자</span>
                             </StyledMetricLink>
                         </StyledGrid>
                         <StyledResetBtn type="button" onClick={resetGuestData}>

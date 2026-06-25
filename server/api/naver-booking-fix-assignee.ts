@@ -32,13 +32,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     const storeId = session.storeId;
 
-    const allDesigners = await prisma.designer.findMany({
+    const allAssignees = await prisma.assignee.findMany({
         where: {storeId},
         select: {id: true, name: true, legacyId: true},
     });
-    const designerMap = new Map(allDesigners.map((d) => [d.name, d]));
+    const assigneeMap = new Map(allAssignees.map((d) => [d.name, d]));
 
-    const fixed: Array<{reservationId: number | string; naverBookingId: string; designerName: string}> = [];
+    const fixed: Array<{reservationId: number | string; naverBookingId: string; assigneeName: string}> = [];
     const errors: Array<{reservationId: number | string; error: string}> = [];
 
     for (const reservationId of reservationIds) {
@@ -48,13 +48,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             const reservation = typeof reservationId === 'number'
                 ? await prisma.reservation.findUnique({
                     where: {storeId_legacyId: {storeId, legacyId: reservationId}},
-                    select: {id: true, naverBookingId: true, designerId: true},
+                    select: {id: true, naverBookingId: true, assigneeId: true},
                 })
                 : null;
 
             const found = reservation ?? await prisma.reservation.findFirst({
                 where: {storeId, naverBookingId: idStr},
-                select: {id: true, naverBookingId: true, designerId: true},
+                select: {id: true, naverBookingId: true, assigneeId: true},
             });
 
             if (!found) {
@@ -64,8 +64,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
             const naverBookingId = found.naverBookingId ?? idStr;
 
-            if (found.designerId) {
-                errors.push({reservationId, error: '이미 디자이너가 매칭되어 있습니다'});
+            if (found.assigneeId) {
+                errors.push({reservationId, error: '이미 담당자가 매칭되어 있습니다'});
                 continue;
             }
 
@@ -90,38 +90,38 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                 continue;
             }
 
-            let designerName: string | null = null;
+            let assigneeName: string | null = null;
             for (const msg of listJson.messages) {
                 const html = await getEmailContent(accessToken, msg.id);
                 if (!html) continue;
 
                 const booking = parseNaverBookingEmail(html);
                 if (booking && booking.bookingId === naverBookingId) {
-                    designerName = booking.designerName;
+                    assigneeName = booking.assigneeName;
                     break;
                 }
             }
 
-            if (!designerName) {
-                errors.push({reservationId, error: '메일에서 디자이너명을 추출할 수 없습니다'});
+            if (!assigneeName) {
+                errors.push({reservationId, error: '메일에서 담당자명을 추출할 수 없습니다'});
                 continue;
             }
 
-            const designer = findByNameContains(designerMap, designerName);
-            if (!designer) {
-                errors.push({reservationId, error: `디자이너 "${designerName}"을 DB에서 찾을 수 없습니다`});
+            const assignee = findByNameContains(assigneeMap, assigneeName);
+            if (!assignee) {
+                errors.push({reservationId, error: `담당자 "${assigneeName}"을 DB에서 찾을 수 없습니다`});
                 continue;
             }
 
             await prisma.reservation.update({
                 where: {id: found.id},
-                data: {designerId: designer.id},
+                data: {assigneeId: assignee.id},
             });
 
             fixed.push({
                 reservationId,
                 naverBookingId,
-                designerName: designer.name,
+                assigneeName: assignee.name,
             });
         } catch (err) {
             errors.push({reservationId, error: String(err)});

@@ -34,7 +34,7 @@ export const Month = ({
     const setCurr = useCalendarStore((s) => s.setTargetFromDate);
     const setView = useCalendarStore((s) => s.setView);
     const reservationMap = useCalendarStore((s) => s.reservationMap);
-    const calendarDesignerId = useCalendarStore((s) => s.calendarDesignerId);
+    const calendarAssigneeId = useCalendarStore((s) => s.calendarAssigneeId);
     const setReservationListFilter = useCalendarStore((s) => s.setReservationListFilter);
     const setCreateReservationInitial = useCalendarStore((s) => s.setCreateReservationInitial);
 
@@ -45,7 +45,7 @@ export const Month = ({
             const normalizedDate = new Date(fullYear, currMonth, val);
             const dateKey = toDateKey(fullYear, currMonth, val);
             const dateReservations = (reservationMap[dateKey] || []).filter((reservation) => (
-                calendarDesignerId == null || (calendarDesignerId === 0 ? !reservation.designerId : reservation.designerId === calendarDesignerId)
+                calendarAssigneeId == null || (calendarAssigneeId === 0 ? !reservation.assigneeId : reservation.assigneeId === calendarAssigneeId)
             ));
             const hasReservations = dateReservations.length > 0;
             const isAdjacentMonth = type === 'prev' || type === 'next';

@@ -1,1 +1,1 @@
-export {RevenueSection, type RevenueDesignerKey, type RevenueQuickRange} from './RevenueSection';
+export {RevenueSection, type RevenueAssigneeKey, type RevenueQuickRange} from './RevenueSection';

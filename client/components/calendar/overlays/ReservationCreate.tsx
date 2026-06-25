@@ -37,22 +37,22 @@ interface ReservationCreateProps {
 
 export const ReservationCreate = ({initial, customerMap, onClose, onSave}: ReservationCreateProps) => {
     const reservationMap = useCalendarStore((s) => s.reservationMap);
-    const designers = useCalendarStore((s) => s.designers);
+    const assignees = useCalendarStore((s) => s.assignees);
     const addCustomer = useCalendarStore((s) => s.addCustomer);
     const modalRoot = document.getElementById('modal-root');
     const {layerId, layerDataId} = useLayerInstanceId('reservation-create');
     const dialogRef = useDialogAccessibility<HTMLDivElement>(onClose);
     const {
-        activeDesigners,
-        onLeaveDesigners,
-        resignedDesigners,
+        activeAssignees,
+        onLeaveAssignees,
+        resignedAssignees,
         customerId,
         customerQuery,
         showSuggestions,
         customerMode,
         newCustomerName,
         newCustomerTel,
-        designerId,
+        assigneeId,
         selectedServices,
         form,
         error,
@@ -70,20 +70,20 @@ export const ReservationCreate = ({initial, customerMap, onClose, onSave}: Reser
         handleStartTimeChange,
         handleEndTimeChange,
         handlePriceChange,
-        handleDesignerChange,
+        handleAssigneeChange,
         handleFieldChange,
         handleSave,
     } = useReservationCreateForm({
         initial,
         customerMap,
         reservationMap,
-        designers,
+        assignees,
         addCustomer,
         onSave,
     });
     const customerErrorMessage = error?.field === 'customer' ? error.message : '';
     const serviceErrorMessage = error?.field === 'service' ? error.message : '';
-    const designerErrorMessage = error?.field === 'designer' ? error.message : '';
+    const assigneeErrorMessage = error?.field === 'assignee' ? error.message : '';
     const dateErrorMessage = error?.field === 'date' ? error.message : '';
     const timeErrorMessage = error?.field === 'time' ? error.message : '';
 
@@ -122,22 +122,22 @@ export const ReservationCreate = ({initial, customerMap, onClose, onSave}: Reser
                     />
                     <ReservationFormFields
                         idPrefix="create"
-                        form={{...form, designerId}}
-                        activeDesigners={activeDesigners}
-                        onLeaveDesigners={onLeaveDesigners}
-                        resignedDesigners={resignedDesigners}
-                        currentDesigner={null}
+                        form={{...form, assigneeId}}
+                        activeAssignees={activeAssignees}
+                        onLeaveAssignees={onLeaveAssignees}
+                        resignedAssignees={resignedAssignees}
+                        currentAssignee={null}
                         selectedServices={selectedServices}
                         totalDuration={totalDuration}
                         totalPrice={totalPrice}
                         onServiceToggle={handleServiceToggle}
                         onPriceChange={handlePriceChange}
-                        onDesignerChange={handleDesignerChange}
+                        onAssigneeChange={handleAssigneeChange}
                         onFieldChange={handleFieldChange}
                         onStartTimeChange={handleStartTimeChange}
                         onEndTimeChange={handleEndTimeChange}
                         serviceErrorMessage={serviceErrorMessage}
-                        designerErrorMessage={designerErrorMessage}
+                        assigneeErrorMessage={assigneeErrorMessage}
                         dateErrorMessage={dateErrorMessage}
                         timeErrorMessage={timeErrorMessage}
                     />

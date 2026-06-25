@@ -17,7 +17,7 @@ const SEED_OWNER_NAME = process.env.SEED_OWNER_NAME ?? 'Owner';
 const SEED_DATA_DIR = '../server/prisma/seed-data';
 const MAX_INT_32 = 2147483647;
 
-function mapDesignerStatus(status) {
+function mapAssigneeStatus(status) {
     if (status === '휴직') return 'on_leave';
     if (status === '퇴직') return 'resigned';
     return 'active';
@@ -113,39 +113,39 @@ function buildLegacyIdMap(items, getRawId) {
     return idMap;
 }
 
-function normalizeDesigners(designerData) {
-    const designerIdMap = buildLegacyIdMap(designerData.designers ?? [], (designer) => designer.id);
+function normalizeAssignees(assigneeData) {
+    const assigneeIdMap = buildLegacyIdMap(assigneeData.assignees ?? [], (assignee) => assignee.id);
 
     return {
-        designers: (designerData.designers ?? []).map((designer) => ({
-            ...designer,
-            id: designerIdMap.get(designer.id) ?? designer.id,
+        assignees: (assigneeData.assignees ?? []).map((assignee) => ({
+            ...assignee,
+            id: assigneeIdMap.get(assignee.id) ?? assignee.id,
         })),
     };
 }
 
 function normalizeReservationPayload(reservationData) {
     const reservationIdMap = buildLegacyIdMap(reservationData.reservations ?? [], (reservation) => reservation.id);
-    const designerIds = [
-        ...(reservationData.reservations ?? []).map((reservation) => reservation.designerId),
+    const assigneeIds = [
+        ...(reservationData.reservations ?? []).map((reservation) => reservation.assigneeId),
         ...(reservationData.history ?? []).flatMap((history) => [
             history.reservationId,
-            history.before?.designerId,
-            history.after?.designerId,
+            history.before?.assigneeId,
+            history.after?.assigneeId,
         ]),
     ];
-    const designerIdMap = buildLegacyIdMap(
-        designerIds.map((id) => ({id})).filter((entry) => Number.isInteger(entry.id) && entry.id > 0),
+    const assigneeIdMap = buildLegacyIdMap(
+        assigneeIds.map((id) => ({id})).filter((entry) => Number.isInteger(entry.id) && entry.id > 0),
         (entry) => entry.id
     );
 
-    const normalizeDesignerId = (designerId) => designerIdMap.get(designerId) ?? designerId;
+    const normalizeAssigneeId = (assigneeId) => assigneeIdMap.get(assigneeId) ?? assigneeId;
     const normalizeReservationId = (reservationId) => reservationIdMap.get(reservationId) ?? reservationId;
     const normalizeHistorySnapshot = (snapshot) => snapshot
         ? {
             ...snapshot,
             id: normalizeReservationId(snapshot.id),
-            designerId: normalizeDesignerId(snapshot.designerId),
+            assigneeId: normalizeAssigneeId(snapshot.assigneeId),
         }
         : snapshot;
 
@@ -153,7 +153,7 @@ function normalizeReservationPayload(reservationData) {
         reservations: (reservationData.reservations ?? []).map((reservation) => ({
             ...reservation,
             id: normalizeReservationId(reservation.id),
-            designerId: normalizeDesignerId(reservation.designerId),
+            assigneeId: normalizeAssigneeId(reservation.assigneeId),
         })),
         history: (reservationData.history ?? []).map((history) => ({
             ...history,
@@ -285,42 +285,42 @@ async function seedOwnerMembership() {
     console.log(`[seed] Owner membership seeded: ${SEED_OWNER_EMAIL}`);
 }
 
-async function seedDesigners() {
-    const designerData = normalizeDesigners(await readJson(seedDataPath('designers.json')));
+async function seedAssignees() {
+    const assigneeData = normalizeAssignees(await readJson(seedDataPath('assignees.json')));
 
-    const storeId = await getDefaultStoreIdOrThrow('Default store must exist before seeding designers.');
+    const storeId = await getDefaultStoreIdOrThrow('Default store must exist before seeding assignees.');
 
-    for (const designer of designerData.designers ?? []) {
-        const savedDesigner = await prisma.designer.upsert({
+    for (const assignee of assigneeData.assignees ?? []) {
+        const savedAssignee = await prisma.assignee.upsert({
             where: {
                 storeId_legacyId: {
                     storeId,
-                    legacyId: designer.id,
+                    legacyId: assignee.id,
                 },
             },
             update: {
-                name: designer.name,
-                status: mapDesignerStatus(designer.status),
-                phone: designer.phone ?? null,
-                note: designer.note ?? null,
-                color: designer.color ?? null,
+                name: assignee.name,
+                status: mapAssigneeStatus(assignee.status),
+                phone: assignee.phone ?? null,
+                note: assignee.note ?? null,
+                color: assignee.color ?? null,
             },
             create: {
                 storeId,
-                legacyId: designer.id,
-                name: designer.name,
-                status: mapDesignerStatus(designer.status),
-                phone: designer.phone ?? null,
-                note: designer.note ?? null,
-                color: designer.color ?? null,
+                legacyId: assignee.id,
+                name: assignee.name,
+                status: mapAssigneeStatus(assignee.status),
+                phone: assignee.phone ?? null,
+                note: assignee.note ?? null,
+                color: assignee.color ?? null,
             },
         });
 
-        for (const [dayIndex, schedule] of (designer.schedule ?? []).entries()) {
-            await prisma.designerSchedule.upsert({
+        for (const [dayIndex, schedule] of (assignee.schedule ?? []).entries()) {
+            await prisma.assigneeSchedule.upsert({
                 where: {
-                    designerId_dayIndex: {
-                        designerId: savedDesigner.id,
+                    assigneeId_dayIndex: {
+                        assigneeId: savedAssignee.id,
                         dayIndex,
                     },
                 },
@@ -330,7 +330,7 @@ async function seedDesigners() {
                     endTime: schedule.end,
                 },
                 create: {
-                    designerId: savedDesigner.id,
+                    assigneeId: savedAssignee.id,
                     dayIndex,
                     enabled: !!schedule.enabled,
                     startTime: schedule.start,
@@ -340,7 +340,7 @@ async function seedDesigners() {
         }
     }
 
-    console.log(`[seed] Designers seeded: ${(designerData.designers ?? []).length}`);
+    console.log(`[seed] Assignees seeded: ${(assigneeData.assignees ?? []).length}`);
 }
 
 async function seedCustomers() {
@@ -467,12 +467,12 @@ async function seedReservations() {
             throw new Error(`Customer not found for reservation legacyId=${reservation.id}`);
         }
 
-        const designer = reservation.designerId
-            ? await prisma.designer.findUnique({
+        const assignee = reservation.assigneeId
+            ? await prisma.assignee.findUnique({
                 where: {
                     storeId_legacyId: {
                         storeId,
-                        legacyId: reservation.designerId,
+                        legacyId: reservation.assigneeId,
                     },
                 },
                 select: {id: true},
@@ -488,7 +488,7 @@ async function seedReservations() {
             },
             update: {
                 customerId: customer.id,
-                designerId: designer?.id ?? null,
+                assigneeId: assignee?.id ?? null,
                 date: new Date(`${reservation.date}T00:00:00`),
                 startTime: reservation.startTime,
                 endTime: reservation.endTime,
@@ -504,7 +504,7 @@ async function seedReservations() {
                 storeId,
                 legacyId: reservation.id,
                 customerId: customer.id,
-                designerId: designer?.id ?? null,
+                assigneeId: assignee?.id ?? null,
                 date: new Date(`${reservation.date}T00:00:00`),
                 startTime: reservation.startTime,
                 endTime: reservation.endTime,
@@ -579,8 +579,8 @@ async function seedTestConflicts() {
     const testData = await readJson(seedDataPath('test-conflicts.json'));
     const storeId = await getDefaultStoreIdOrThrow('Default store must exist before seeding test conflicts.');
 
-    const designerIdMap = buildLegacyIdMap(
-        (testData.reservations ?? []).map((r) => ({id: r.designerId})).filter((e) => Number.isInteger(e.id) && e.id > 0),
+    const assigneeIdMap = buildLegacyIdMap(
+        (testData.reservations ?? []).map((r) => ({id: r.assigneeId})).filter((e) => Number.isInteger(e.id) && e.id > 0),
         (e) => e.id,
     );
 
@@ -596,10 +596,10 @@ async function seedTestConflicts() {
             throw new Error(`Customer not found for test reservation legacyId=${reservation.id}`);
         }
 
-        const normalizedDesignerId = designerIdMap.get(reservation.designerId) ?? reservation.designerId;
-        const designer = reservation.designerId
-            ? await prisma.designer.findUnique({
-                where: {storeId_legacyId: {storeId, legacyId: normalizedDesignerId}},
+        const normalizedAssigneeId = assigneeIdMap.get(reservation.assigneeId) ?? reservation.assigneeId;
+        const assignee = reservation.assigneeId
+            ? await prisma.assignee.findUnique({
+                where: {storeId_legacyId: {storeId, legacyId: normalizedAssigneeId}},
                 select: {id: true},
             })
             : null;
@@ -608,7 +608,7 @@ async function seedTestConflicts() {
             where: {storeId_legacyId: {storeId, legacyId: reservation.id}},
             update: {
                 customerId: customer.id,
-                designerId: designer?.id ?? null,
+                assigneeId: assignee?.id ?? null,
                 date: new Date(`${date}T00:00:00`),
                 startTime: reservation.startTime,
                 endTime: reservation.endTime,
@@ -621,7 +621,7 @@ async function seedTestConflicts() {
                 storeId,
                 legacyId: reservation.id,
                 customerId: customer.id,
-                designerId: designer?.id ?? null,
+                assigneeId: assignee?.id ?? null,
                 date: new Date(`${date}T00:00:00`),
                 startTime: reservation.startTime,
                 endTime: reservation.endTime,
@@ -639,7 +639,7 @@ async function seedTestConflicts() {
 async function main() {
     await seedDefaultStore();
     await seedOwnerMembership();
-    await seedDesigners();
+    await seedAssignees();
     await seedCustomers();
     await seedServices();
     await seedReservations();

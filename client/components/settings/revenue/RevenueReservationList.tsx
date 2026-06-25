@@ -2,7 +2,7 @@ import styled from 'styled-components';
 
 import {ReservationInfoCard} from '../../ui/ReservationInfoCard';
 
-import type {Designer} from '../../../utils/designers';
+import type {Assignee} from '../../../utils/assignees';
 import type {Reservation} from '../../../utils/reservations';
 import type {CustomerMap} from '../../../utils/customers';
 import {isNewCustomerVisit} from '../../../utils/customers';
@@ -14,7 +14,7 @@ import {
 
 type RevenueReservationListProps = {
     reservations: Reservation[];
-    designerMap: Record<number, Designer>;
+    assigneeMap: Record<number, Assignee>;
     customerMap: CustomerMap;
     serviceColorMap: Record<string, string>;
     onSelectReservation: (reservation: Reservation) => void;
@@ -26,7 +26,7 @@ type RevenueReservationListProps = {
 
 export function RevenueReservationList({
     reservations,
-    designerMap,
+    assigneeMap,
     customerMap,
     serviceColorMap,
     onSelectReservation,
@@ -42,10 +42,10 @@ export function RevenueReservationList({
     return (
         <StyledReservationList className={className}>
             {reservations.map((reservation) => {
-                const accentColor = reservation.designerId
-                    ? (designerMap[reservation.designerId]?.color ?? '#8E8E93')
+                const accentColor = reservation.assigneeId
+                    ? (assigneeMap[reservation.assigneeId]?.color ?? '#8E8E93')
                     : '#8E8E93';
-                const designerName = designerMap[reservation.designerId ?? -1]?.name ?? '미지정';
+                const assigneeName = assigneeMap[reservation.assigneeId ?? -1]?.name ?? '미지정';
                 const customer = customerMap[reservation.customerId];
 
                 return (
@@ -53,8 +53,8 @@ export function RevenueReservationList({
                         key={reservation.id}
                         reservation={reservation}
                         serviceColorMap={serviceColorMap}
-                        designerColor={accentColor}
-                        designerName={designerName}
+                        assigneeColor={accentColor}
+                        assigneeName={assigneeName}
                         customerName={customer?.name ?? '고객 미지정'}
                         isNewCustomer={isNewCustomerVisit(customer?.firstVisitDate, reservation.date)}
                         onClick={onSelectReservation}

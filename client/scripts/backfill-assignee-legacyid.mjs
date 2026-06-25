@@ -13,18 +13,18 @@ async function main() {
     let totalFixed = 0;
 
     for (const store of stores) {
-        const designers = await prisma.designer.findMany({
+        const assignees = await prisma.assignee.findMany({
             where: {storeId: store.id},
             orderBy: [{createdAt: 'asc'}, {id: 'asc'}],
             select: {id: true, name: true, legacyId: true},
         });
 
-        const used = designers
+        const used = assignees
             .map((d) => d.legacyId)
             .filter((v) => typeof v === 'number');
         let next = used.length > 0 ? Math.max(...used) + 1 : 1;
 
-        const missing = designers.filter((d) => d.legacyId == null);
+        const missing = assignees.filter((d) => d.legacyId == null);
         if (missing.length === 0) continue;
 
         console.log(`\n[${store.name ?? store.id}] ${missing.length}건의 null legacyId`);
@@ -33,7 +33,7 @@ async function main() {
             const legacyId = next++;
             console.log(`  - ${d.name} → legacyId ${legacyId}`);
             if (!DRY_RUN) {
-                await prisma.designer.update({
+                await prisma.assignee.update({
                     where: {id: d.id},
                     data: {legacyId},
                 });

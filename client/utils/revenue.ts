@@ -38,8 +38,8 @@ export interface RevenueSeriesEntry {
     count: number;
 }
 
-export interface RevenueDesignerEntry {
-    designerId: number | null;
+export interface RevenueAssigneeEntry {
+    assigneeId: number | null;
     total: number;
     count: number;
 }
@@ -56,7 +56,7 @@ export interface RevenueChannelEntry {
 
 export interface RevenueInsights {
     series: RevenueSeriesEntry[];
-    designers: RevenueDesignerEntry[];
+    assignees: RevenueAssigneeEntry[];
     payments: RevenuePaymentEntry[];
     channels: RevenueChannelEntry[];
     paidTotal: number;
@@ -72,8 +72,8 @@ export interface CustomerNoshowRateEntry {
     rate: number;
 }
 
-export interface DesignerCancellationRateEntry {
-    designerId: number | null;
+export interface AssigneeCancellationRateEntry {
+    assigneeId: number | null;
     total: number;
     cancelled: number;
     rate: number;
@@ -81,7 +81,7 @@ export interface DesignerCancellationRateEntry {
 
 export interface OperationInsights {
     customerNoshowRates: CustomerNoshowRateEntry[];
-    designerCancellationRates: DesignerCancellationRateEntry[];
+    assigneeCancellationRates: AssigneeCancellationRateEntry[];
     totalReservations: number;
     totalNoshowCount: number;
     totalCancelledCount: number;
@@ -96,36 +96,36 @@ function resolvePrice(service: string, price?: number): number {
     return sumPrice(parseServiceString(service));
 }
 
-function matchDesigner(designerId: number | null | undefined, targetDesignerId: number | null): boolean {
-    if (targetDesignerId == null) return true;
-    return designerId === targetDesignerId;
+function matchAssignee(assigneeId: number | null | undefined, targetAssigneeId: number | null): boolean {
+    if (targetAssigneeId == null) return true;
+    return assigneeId === targetAssigneeId;
 }
 
-export function isCompletedReservationTarget(reservation: Reservation, designerId: number | null): boolean {
-    if (!matchDesigner(reservation.designerId, designerId)) return false;
+export function isCompletedReservationTarget(reservation: Reservation, assigneeId: number | null): boolean {
+    if (!matchAssignee(reservation.assigneeId, assigneeId)) return false;
     return reservation.status === 'completed';
 }
 
-export function isBookedReservationTarget(reservation: Reservation, designerId: number | null): boolean {
+export function isBookedReservationTarget(reservation: Reservation, assigneeId: number | null): boolean {
     return (
         reservation.status !== 'cancelled' &&
         reservation.status !== 'noshow' &&
-        matchDesigner(reservation.designerId, designerId)
+        matchAssignee(reservation.assigneeId, assigneeId)
     );
 }
 
 export function isRevenueReservationTarget(
     reservation: Reservation,
-    designerId: number | null,
+    assigneeId: number | null,
     filterMode: RevenueFilterMode
 ): boolean {
     return filterMode === 'completed'
-        ? isCompletedReservationTarget(reservation, designerId)
-        : isBookedReservationTarget(reservation, designerId);
+        ? isCompletedReservationTarget(reservation, assigneeId)
+        : isBookedReservationTarget(reservation, assigneeId);
 }
 
-export function isPaidReservationTarget(reservation: Reservation, designerId: number | null): boolean {
-    if (!matchDesigner(reservation.designerId, designerId)) return false;
+export function isPaidReservationTarget(reservation: Reservation, assigneeId: number | null): boolean {
+    if (!matchAssignee(reservation.assigneeId, assigneeId)) return false;
     if (reservation.status === 'cancelled' || reservation.status === 'noshow') return false;
 
     if (Array.isArray(reservation.paymentEntries) && reservation.paymentEntries.length > 0) {
@@ -155,11 +155,11 @@ function resolvePaymentEntries(reservation: Reservation): RevenuePaymentEntry[] 
 export function getDailyRevenue(
     reservationMap: ReservationMap,
     dateKey: string,
-    designerId: number | null = null,
+    assigneeId: number | null = null,
     filterMode: RevenueFilterMode = 'completed'
 ): DailyRevenue {
     const reservations = reservationMap[dateKey] ?? [];
-    const active = reservations.filter((r) => isRevenueReservationTarget(r, designerId, filterMode));
+    const active = reservations.filter((r) => isRevenueReservationTarget(r, assigneeId, filterMode));
 
     const items: RevenueItem[] = active.map((r) => ({
         reservationId: r.id,
@@ -179,7 +179,7 @@ export function getMonthlyRevenue(
     reservationMap: ReservationMap,
     year: number,
     month: number,
-    designerId: number | null = null,
+    assigneeId: number | null = null,
     filterMode: RevenueFilterMode = 'completed'
 ): MonthlyRevenue {
     const prefix = `${year}-${String(month + 1).padStart(2, '0')}`;
@@ -191,7 +191,7 @@ export function getMonthlyRevenue(
 
     for (let d = 1; d <= daysInMonth; d++) {
         const dateKey = `${prefix}-${String(d).padStart(2, '0')}`;
-        const daily = getDailyRevenue(reservationMap, dateKey, designerId, filterMode);
+        const daily = getDailyRevenue(reservationMap, dateKey, assigneeId, filterMode);
 
         if (daily.count > 0) {
             days.push({dateKey, total: daily.total, count: daily.count});
@@ -208,14 +208,14 @@ export function getRevenueInsights(
     reservationMap: ReservationMap,
     startDateKey: string,
     endDateKey: string,
-    designerId: number | null = null,
+    assigneeId: number | null = null,
     filterMode: RevenueFilterMode = 'completed'
 ): RevenueInsights {
     const start = new Date(startDateKey + 'T00:00:00');
     const end = new Date(endDateKey + 'T00:00:00');
     const [from, to] = start <= end ? [start, end] : [end, start];
     const series: RevenueSeriesEntry[] = [];
-    const designerTotals = new Map<number | null, RevenueDesignerEntry>();
+    const assigneeTotals = new Map<number | null, RevenueAssigneeEntry>();
     const paymentTotals = new Map<PaymentMethod, number>();
     const channelTotals = new Map<ReservationChannel, number>();
     const firstVisitByCustomer = new Map<number, string>();
@@ -226,7 +226,7 @@ export function getRevenueInsights(
 
     for (const [dateKey, reservations] of Object.entries(reservationMap)) {
         for (const reservation of reservations) {
-            if (!isRevenueReservationTarget(reservation, designerId, filterMode)) continue;
+            if (!isRevenueReservationTarget(reservation, assigneeId, filterMode)) continue;
 
             const existingDate = firstVisitByCustomer.get(reservation.customerId);
             if (!existingDate || dateKey < existingDate) {
@@ -239,7 +239,7 @@ export function getRevenueInsights(
 
     while (cursor <= to) {
         const dateKey = `${cursor.getFullYear()}-${String(cursor.getMonth() + 1).padStart(2, '0')}-${String(cursor.getDate()).padStart(2, '0')}`;
-        const reservations = (reservationMap[dateKey] ?? []).filter((reservation) => isRevenueReservationTarget(reservation, designerId, filterMode));
+        const reservations = (reservationMap[dateKey] ?? []).filter((reservation) => isRevenueReservationTarget(reservation, assigneeId, filterMode));
         const dayTotal = reservations.reduce((sum, reservation) => sum + resolvePrice(reservation.service, reservation.price), 0);
 
         series.push({
@@ -250,16 +250,16 @@ export function getRevenueInsights(
 
         for (const reservation of reservations) {
             const resolvedPrice = resolvePrice(reservation.service, reservation.price);
-            const entryKey = reservation.designerId ?? null;
+            const entryKey = reservation.assigneeId ?? null;
             customerIdsInRange.add(reservation.customerId);
-            const existingDesigner = designerTotals.get(entryKey);
+            const existingAssignee = assigneeTotals.get(entryKey);
 
-            if (existingDesigner) {
-                existingDesigner.total += resolvedPrice;
-                existingDesigner.count += 1;
+            if (existingAssignee) {
+                existingAssignee.total += resolvedPrice;
+                existingAssignee.count += 1;
             } else {
-                designerTotals.set(entryKey, {
-                    designerId: entryKey,
+                assigneeTotals.set(entryKey, {
+                    assigneeId: entryKey,
                     total: resolvedPrice,
                     count: 1,
                 });
@@ -293,7 +293,7 @@ export function getRevenueInsights(
 
     return {
         series,
-        designers: [...designerTotals.values()].sort((a, b) => b.total - a.total),
+        assignees: [...assigneeTotals.values()].sort((a, b) => b.total - a.total),
         payments: [...paymentTotals.entries()]
             .map(([method, methodTotal]) => ({method, total: methodTotal}))
             .sort((a, b) => b.total - a.total),
@@ -311,7 +311,7 @@ export function getRangeRevenue(
     reservationMap: ReservationMap,
     startDateKey: string,
     endDateKey: string,
-    designerId: number | null = null,
+    assigneeId: number | null = null,
     filterMode: RevenueFilterMode = 'completed'
 ): RangeRevenue {
     const start = new Date(startDateKey + 'T00:00:00');
@@ -326,7 +326,7 @@ export function getRangeRevenue(
 
     while (cursor <= to) {
         const dateKey = `${cursor.getFullYear()}-${String(cursor.getMonth() + 1).padStart(2, '0')}-${String(cursor.getDate()).padStart(2, '0')}`;
-        const daily = getDailyRevenue(reservationMap, dateKey, designerId, filterMode);
+        const daily = getDailyRevenue(reservationMap, dateKey, assigneeId, filterMode);
 
         if (daily.count > 0) {
             days.push({dateKey, total: daily.total, count: daily.count});
@@ -344,13 +344,13 @@ export function getOperationInsights(
     reservationMap: ReservationMap,
     startDateKey: string,
     endDateKey: string,
-    designerId: number | null = null
+    assigneeId: number | null = null
 ): OperationInsights {
     const start = new Date(startDateKey + 'T00:00:00');
     const end = new Date(endDateKey + 'T00:00:00');
     const [from, to] = start <= end ? [start, end] : [end, start];
     const customerStats = new Map<number, {total: number; noshow: number}>();
-    const designerStats = new Map<number | null, {total: number; cancelled: number}>();
+    const assigneeStats = new Map<number | null, {total: number; cancelled: number}>();
     let totalReservations = 0;
     let totalNoshowCount = 0;
     let totalCancelledCount = 0;
@@ -362,7 +362,7 @@ export function getOperationInsights(
         const reservations = reservationMap[dateKey] ?? [];
 
         for (const reservation of reservations) {
-            if (!matchDesigner(reservation.designerId, designerId)) continue;
+            if (!matchAssignee(reservation.assigneeId, assigneeId)) continue;
 
             totalReservations += 1;
 
@@ -374,14 +374,14 @@ export function getOperationInsights(
             }
             customerStats.set(reservation.customerId, customerEntry);
 
-            const designerEntryKey = reservation.designerId ?? null;
-            const designerEntry = designerStats.get(designerEntryKey) ?? {total: 0, cancelled: 0};
-            designerEntry.total += 1;
+            const assigneeEntryKey = reservation.assigneeId ?? null;
+            const assigneeEntry = assigneeStats.get(assigneeEntryKey) ?? {total: 0, cancelled: 0};
+            assigneeEntry.total += 1;
             if (reservation.status === 'cancelled') {
-                designerEntry.cancelled += 1;
+                assigneeEntry.cancelled += 1;
                 totalCancelledCount += 1;
             }
-            designerStats.set(designerEntryKey, designerEntry);
+            assigneeStats.set(assigneeEntryKey, assigneeEntry);
         }
 
         cursor.setDate(cursor.getDate() + 1);
@@ -396,9 +396,9 @@ export function getOperationInsights(
                 rate: stats.total > 0 ? Math.round((stats.noshow / stats.total) * 100) : 0,
             }))
             .sort((a, b) => b.rate - a.rate || b.noshow - a.noshow || b.total - a.total),
-        designerCancellationRates: [...designerStats.entries()]
-            .map(([designerIdValue, stats]) => ({
-                designerId: designerIdValue,
+        assigneeCancellationRates: [...assigneeStats.entries()]
+            .map(([assigneeIdValue, stats]) => ({
+                assigneeId: assigneeIdValue,
                 total: stats.total,
                 cancelled: stats.cancelled,
                 rate: stats.total > 0 ? Math.round((stats.cancelled / stats.total) * 100) : 0,

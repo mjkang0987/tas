@@ -7,22 +7,22 @@ import type {PointHistoryEntry} from '../utils/customers';
 import {appendPointHistories, syncCustomerFirstVisitDates} from '../utils/customers';
 import type {ServiceItem} from '../utils/services';
 import {CATEGORY_BASE_COLOR_MAP} from '../utils/services';
-import type {DaySchedule, Designer, DesignerStatus} from '../utils/designers';
+import type {DaySchedule, Assignee, AssigneeStatus} from '../utils/assignees';
 import type {StoreSettings} from '../utils/storeSettings';
 import type {SyncNotification} from '../hooks/useNaverBookingSync';
 import {DEFAULT_STORE_SETTINGS} from '../utils/storeSettings';
 import {
-    buildAddedDesignerState,
-    buildDeletedDesignerState,
-    buildUpdatedDesignerDayState,
-    buildUpdatedDesignerState,
-} from './calendarStoreDesignerHelpers';
+    buildAddedAssigneeState,
+    buildDeletedAssigneeState,
+    buildUpdatedAssigneeDayState,
+    buildUpdatedAssigneeState,
+} from './calendarStoreAssigneeHelpers';
 import {
     syncCustomerSettings,
     persistNewCustomer,
     deleteCustomerOnServer,
-    syncDesignerSettings,
-    deleteDesignerOnServer,
+    syncAssigneeSettings,
+    deleteAssigneeOnServer,
     syncReservationState,
     syncServiceSettings,
     syncStoreInfo,
@@ -130,10 +130,10 @@ export interface CalendarState {
     reservationListFilter: { type: 'month'; year: number; month: number } | { type: 'date'; dateKey: string } | null;
     createReservationInitial: CreateReservationInitial | null;
     selectedCustomerId: number | null;
-    calendarDesignerId: number | null;
+    calendarAssigneeId: number | null;
     serviceCatalog: ServiceItem[];
     categoryBaseColorMap: Record<string, string>;
-    designers: Designer[];
+    assignees: Assignee[];
     storeName: string;
     shopType: string | null;
     storeSettings: StoreSettings;
@@ -164,10 +164,10 @@ export interface CalendarState {
     setCreateReservationInitial: (v: CreateReservationInitial | null) => void;
     setSelectedCustomerId: (v: number | null) => void;
     openCustomerDetail: (customerId: number) => void;
-    setCalendarDesignerId: (v: number | null) => void;
+    setCalendarAssigneeId: (v: number | null) => void;
     setServiceCatalog: (catalog: ServiceItem[]) => void;
     setCategoryBaseColorMap: (colorMap: Record<string, string>) => void;
-    setDesigners: (designers: Designer[]) => void;
+    setAssignees: (assignees: Assignee[]) => void;
     setStoreInfo: (name: string, type: string | null) => void;
     updateStoreInfo: (name: string, type: string | null) => void;
     setStoreSettings: (storeSettings: StoreSettings) => void;
@@ -176,10 +176,10 @@ export interface CalendarState {
     updateStoreClosedDates: (dates: string[]) => void;
     addStoreClosedDate: (date: string) => void;
     removeStoreClosedDate: (date: string) => void;
-    addDesigner: (name: string, status?: DesignerStatus, phone?: string, note?: string, color?: string) => void;
-    updateDesigner: (designerId: number, patch: Partial<Pick<Designer, 'name' | 'status' | 'phone' | 'note' | 'color'>>) => void;
-    updateDesignerDay: (designerId: number, dayIndex: number, patch: Partial<DaySchedule>) => void;
-    deleteDesigner: (designerId: number) => void;
+    addAssignee: (name: string, status?: AssigneeStatus, phone?: string, note?: string, color?: string) => void;
+    updateAssignee: (assigneeId: number, patch: Partial<Pick<Assignee, 'name' | 'status' | 'phone' | 'note' | 'color'>>) => void;
+    updateAssigneeDay: (assigneeId: number, dayIndex: number, patch: Partial<DaySchedule>) => void;
+    deleteAssignee: (assigneeId: number) => void;
     updateCategoryBaseColor: (category: string, color: string) => void;
     addService: (item: ServiceItem) => void;
     updateService: (name: string, updated: ServiceItem) => number;
@@ -258,10 +258,10 @@ export const useCalendarStore = create<CalendarState>((set) => ({
     reservationListFilter: null,
     createReservationInitial: null,
     selectedCustomerId: null,
-    calendarDesignerId: null,
+    calendarAssigneeId: null,
     serviceCatalog: [],
     categoryBaseColorMap: CATEGORY_BASE_COLOR_MAP,
-    designers: [],
+    assignees: [],
     storeName: '',
     shopType: null,
     storeSettings: DEFAULT_STORE_SETTINGS,
@@ -421,11 +421,11 @@ export const useCalendarStore = create<CalendarState>((set) => ({
             createReservationInitial: null,
         }),
 
-    setCalendarDesignerId: (calendarDesignerId) => set({calendarDesignerId}),
+    setCalendarAssigneeId: (calendarAssigneeId) => set({calendarAssigneeId}),
 
     setServiceCatalog: (serviceCatalog) => set({serviceCatalog}),
     setCategoryBaseColorMap: (categoryBaseColorMap) => set({categoryBaseColorMap}),
-    setDesigners: (designers) => set({designers}),
+    setAssignees: (assignees) => set({assignees}),
     setStoreInfo: (storeName, shopType) => set({storeName, shopType}),
     updateStoreInfo: (storeName, shopType) => {
         set({storeName, shopType});
@@ -470,43 +470,43 @@ export const useCalendarStore = create<CalendarState>((set) => ({
             return {storeSettings: nextStoreSettings};
         }),
 
-    addDesigner: (name, status = '재직', phone = '', note = '', color) =>
+    addAssignee: (name, status = '재직', phone = '', note = '', color) =>
         set((state) => {
-            const nextDesigners = buildAddedDesignerState(state.designers, name, status, phone, note, color);
-            if (!nextDesigners) return state;
+            const nextAssignees = buildAddedAssigneeState(state.assignees, name, status, phone, note, color);
+            if (!nextAssignees) return state;
 
-            syncDesignerSettings(nextDesigners);
-            return {designers: nextDesigners};
+            syncAssigneeSettings(nextAssignees);
+            return {assignees: nextAssignees};
         }),
 
-    updateDesigner: (designerId, patch) =>
+    updateAssignee: (assigneeId, patch) =>
         set((state) => {
-            const nextDesigners = buildUpdatedDesignerState(state.designers, designerId, patch);
-            syncDesignerSettings(nextDesigners);
-            return {designers: nextDesigners};
+            const nextAssignees = buildUpdatedAssigneeState(state.assignees, assigneeId, patch);
+            syncAssigneeSettings(nextAssignees);
+            return {assignees: nextAssignees};
         }),
 
-    updateDesignerDay: (designerId, dayIndex, patch) =>
+    updateAssigneeDay: (assigneeId, dayIndex, patch) =>
         set((state) => {
-            const nextDesigners = buildUpdatedDesignerDayState(state.designers, designerId, dayIndex, patch);
-            if (!nextDesigners) return state;
-            syncDesignerSettings(nextDesigners);
-            return {designers: nextDesigners};
+            const nextAssignees = buildUpdatedAssigneeDayState(state.assignees, assigneeId, dayIndex, patch);
+            if (!nextAssignees) return state;
+            syncAssigneeSettings(nextAssignees);
+            return {assignees: nextAssignees};
         }),
 
-    deleteDesigner: (designerId) => {
+    deleteAssignee: (assigneeId) => {
         set((state) => {
-            const nextDesigners = buildDeletedDesignerState(state.designers, designerId);
-            // 분리 삭제: 이 디자이너의 예약은 보존하되 미지정(designerId=null)으로 전환
+            const nextAssignees = buildDeletedAssigneeState(state.assignees, assigneeId);
+            // 분리 삭제: 이 담당자의 예약은 보존하되 미지정(assigneeId=null)으로 전환
             const nextReservationMap: ReservationMap = {};
             for (const [date, list] of Object.entries(state.reservationMap)) {
                 nextReservationMap[date] = list.map((r) =>
-                    r.designerId === designerId ? {...r, designerId: undefined} : r
+                    r.assigneeId === assigneeId ? {...r, assigneeId: undefined} : r
                 );
             }
-            return {designers: nextDesigners, reservationMap: nextReservationMap};
+            return {assignees: nextAssignees, reservationMap: nextReservationMap};
         });
-        deleteDesignerOnServer(designerId);
+        deleteAssigneeOnServer(assigneeId);
     },
 
     updateCategoryBaseColor: (category, color) =>
@@ -877,14 +877,14 @@ export const useCalendarStore = create<CalendarState>((set) => ({
 
     patchNotificationNames: () =>
         set((state) => {
-            const designerById = new Map(state.designers.map((d) => [d.id, d.name]));
+            const assigneeById = new Map(state.assignees.map((d) => [d.id, d.name]));
             const allReservations = Object.values(state.reservationMap).flat();
 
             const needsPatch = state.syncNotifications.some((n) => {
                 if (!n.customerName || !n.appointmentDate || !n.appointmentTime) return true;
-                if (!n.designerName || n.designerName === '미지정') {
+                if (!n.assigneeName || n.assigneeName === '미지정') {
                     const reservation = allReservations.find((r) => r.id === n.reservationId);
-                    if (reservation?.designerId && designerById.has(reservation.designerId)) return true;
+                    if (reservation?.assigneeId && assigneeById.has(reservation.assigneeId)) return true;
                 }
                 return false;
             });
@@ -899,9 +899,9 @@ export const useCalendarStore = create<CalendarState>((set) => ({
                 if (!n.customerName && customer?.name) patch.customerName = customer.name;
                 if (!n.appointmentDate && reservation.date) patch.appointmentDate = reservation.date;
                 if (!n.appointmentTime && reservation.startTime) patch.appointmentTime = reservation.startTime;
-                if ((!n.designerName || n.designerName === '미지정') && reservation.designerId) {
-                    const name = designerById.get(reservation.designerId);
-                    if (name) patch.designerName = name;
+                if ((!n.assigneeName || n.assigneeName === '미지정') && reservation.assigneeId) {
+                    const name = assigneeById.get(reservation.assigneeId);
+                    if (name) patch.assigneeName = name;
                 }
                 if (Object.keys(patch).length === 0) return n;
                 changed = true;

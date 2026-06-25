@@ -6,7 +6,7 @@ import type {PaymentEntryDraft, ReservationDiffItem} from './reservationDetailTy
 
 const FIELD_LABELS: Record<keyof ReservationDetailFormState, string> = {
     service: '서비스',
-    designerId: '디자이너',
+    assigneeId: '담당자',
     date: '날짜',
     startTime: '시작시간',
     endTime: '종료시간',
@@ -66,19 +66,19 @@ export function getPaymentEntryDrafts(
 export function getChangedFields(
     before: Reservation,
     after: ReservationDetailFormState,
-    designerNameMap: Record<number, string>
+    assigneeNameMap: Record<number, string>
 ) {
     const fields: ReservationDiffItem[] = [];
     const beforePrice = before.price ?? sumPrice(parseServiceString(before.service));
 
     (Object.keys(FIELD_LABELS) as (keyof ReservationDetailFormState)[]).forEach((key) => {
-        if (key === 'designerId') {
-            const beforeDesignerId = before.designerId ?? 0;
-            if (beforeDesignerId !== after.designerId) {
+        if (key === 'assigneeId') {
+            const beforeAssigneeId = before.assigneeId ?? 0;
+            if (beforeAssigneeId !== after.assigneeId) {
                 fields.push({
                     label: FIELD_LABELS[key],
-                    before: designerNameMap[beforeDesignerId] ?? '미지정',
-                    after: designerNameMap[after.designerId] ?? '미지정'
+                    before: assigneeNameMap[beforeAssigneeId] ?? '미지정',
+                    after: assigneeNameMap[after.assigneeId] ?? '미지정'
                 });
             }
         } else if (key === 'price') {
@@ -101,7 +101,7 @@ export function getChangedFields(
     return fields;
 }
 
-export function getHistoryDiffs(entry: ReservationHistoryEntry, designerNameMap: Record<number, string>) {
+export function getHistoryDiffs(entry: ReservationHistoryEntry, assigneeNameMap: Record<number, string>) {
     const diffs: ReservationDiffItem[] = [];
 
     if (entry.after.status === 'cancelled' && entry.before.status !== 'cancelled') {
@@ -145,14 +145,14 @@ export function getHistoryDiffs(entry: ReservationHistoryEntry, designerNameMap:
     }
 
     (Object.keys(FIELD_LABELS) as (keyof ReservationDetailFormState)[]).forEach((key) => {
-        if (key === 'designerId') {
-            const beforeDesignerId = entry.before.designerId ?? 0;
-            const afterDesignerId = entry.after.designerId ?? 0;
-            if (beforeDesignerId !== afterDesignerId) {
+        if (key === 'assigneeId') {
+            const beforeAssigneeId = entry.before.assigneeId ?? 0;
+            const afterAssigneeId = entry.after.assigneeId ?? 0;
+            if (beforeAssigneeId !== afterAssigneeId) {
                 diffs.push({
                     label: FIELD_LABELS[key],
-                    before: designerNameMap[beforeDesignerId] ?? '미지정',
-                    after: designerNameMap[afterDesignerId] ?? '미지정'
+                    before: assigneeNameMap[beforeAssigneeId] ?? '미지정',
+                    after: assigneeNameMap[afterAssigneeId] ?? '미지정'
                 });
             }
         } else if (key === 'price') {
@@ -205,7 +205,7 @@ export function buildReservationFormState(reservation: Reservation): Reservation
         startTime: reservation.startTime,
         endTime: reservation.endTime,
         service: reservation.service,
-        designerId: reservation.designerId ?? 0,
+        assigneeId: reservation.assigneeId ?? 0,
         price: resolveReservationPrice(reservation),
         memo: reservation.memo ?? '',
         channel: reservation.channel ?? '전화예약',
@@ -221,7 +221,7 @@ export function buildDraftReservation(reservation: Reservation, form: Reservatio
         service: form.service,
         price: form.price,
         memo: form.memo,
-        ...(form.designerId ? {designerId: form.designerId} : {designerId: undefined}),
+        ...(form.assigneeId ? {assigneeId: form.assigneeId} : {assigneeId: undefined}),
     };
 }
 

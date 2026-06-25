@@ -15,8 +15,8 @@ const STATUS_GROUPS = [
 
 type AddressCustomerReservationsProps = {
     customerReservations: Reservation[];
-    designerColorMap: Record<number, string>;
-    designerNameMap: Record<number, string>;
+    assigneeColorMap: Record<number, string>;
+    assigneeNameMap: Record<number, string>;
     serviceColorMap: Record<string, string>;
     today: string;
     onReservationClick: (reservation: Reservation) => void;
@@ -39,8 +39,8 @@ function sortFutureFirst(a: Reservation, b: Reservation) {
 
 export function AddressCustomerReservations({
     customerReservations,
-    designerColorMap,
-    designerNameMap,
+    assigneeColorMap,
+    assigneeNameMap,
     serviceColorMap,
     today,
     onReservationClick,
@@ -78,8 +78,8 @@ export function AddressCustomerReservations({
                     <StyledGroupLabel>{group.label} ({grouped[group.key].length})</StyledGroupLabel>
                     <CustomerReservationCards
                         reservations={grouped[group.key]}
-                        designerColorMap={designerColorMap}
-                        designerNameMap={designerNameMap}
+                        assigneeColorMap={assigneeColorMap}
+                        assigneeNameMap={assigneeNameMap}
                         serviceColorMap={serviceColorMap}
                         today={today}
                         onReservationClick={onReservationClick}

@@ -8,7 +8,7 @@
             "service": "남성커트",
             "customerId": 1,
             "status": "active",
-            "designerId": 1775183550311
+            "assigneeId": 1775183550311
         },
         {
             "id": 37,
@@ -18,7 +18,7 @@
             "service": "일반펌",
             "customerId": 4,
             "status": "active",
-            "designerId": 1775183559011
+            "assigneeId": 1775183559011
         },
         {
             "id": 38,
@@ -28,7 +28,7 @@
             "service": "전체염색",
             "customerId": 6,
             "status": "active",
-            "designerId": 1775183630516
+            "assigneeId": 1775183630516
         },
         {
             "id": 39,
@@ -38,7 +38,7 @@
             "service": "크리닉 3단계",
             "customerId": 8,
             "status": "active",
-            "designerId": 1775183550311
+            "assigneeId": 1775183550311
         },
         {
             "id": 40,
@@ -57,7 +57,7 @@
             "service": "디지털/셋팅",
             "customerId": 11,
             "status": "active",
-            "designerId": 1775183630516
+            "assigneeId": 1775183630516
         },
         {
             "id": 42,
@@ -67,7 +67,7 @@
             "service": "매직",
             "customerId": 3,
             "status": "active",
-            "designerId": 1775183550311
+            "assigneeId": 1775183550311
         },
         {
             "id": 43,
@@ -77,7 +77,7 @@
             "service": "뿌리염색",
             "customerId": 7,
             "status": "noshow",
-            "designerId": 1775183559011
+            "assigneeId": 1775183559011
         },
         {
             "id": 1,
@@ -86,7 +86,7 @@
             "endTime": "10:30",
             "service": "남성커트",
             "customerId": 1,
-            "designerId": 1775183559011
+            "assigneeId": 1775183559011
         },
         {
             "id": 6,
@@ -95,7 +95,7 @@
             "endTime": "13:00",
             "service": "여자 디자인펌",
             "customerId": 6,
-            "designerId": 1775183550311
+            "assigneeId": 1775183550311
         },
         {
             "id": 2,
@@ -104,7 +104,7 @@
             "endTime": "15:30",
             "service": "뿌리/전체(멋내기)",
             "customerId": 2,
-            "designerId": 1775183630516
+            "assigneeId": 1775183630516
         },
         {
             "id": 3,
@@ -114,7 +114,7 @@
             "service": "여자 일반펌",
             "customerId": 3,
             "status": "noshow",
-            "designerId": 1775183550311
+            "assigneeId": 1775183550311
         },
         {
             "id": 7,
@@ -124,7 +124,7 @@
             "service": "남성커트",
             "customerId": 7,
             "status": "cancelled",
-            "designerId": 1775183559011
+            "assigneeId": 1775183559011
         },
         {
             "id": 8,
@@ -133,7 +133,7 @@
             "endTime": "17:00",
             "service": "클리닉 3단계",
             "customerId": 8,
-            "designerId": 1775183630516
+            "assigneeId": 1775183630516
         },
         {
             "id": 1774569817952,
@@ -143,7 +143,7 @@
             "service": "남성커트",
             "customerId": 2,
             "status": "cancelled",
-            "designerId": 1775183630516
+            "assigneeId": 1775183630516
         },
         {
             "id": 9,
@@ -153,7 +153,7 @@
             "service": "뿌리/전체(새치)+남자 일반펌",
             "customerId": 2,
             "status": "cancelled",
-            "designerId": 1775183550311
+            "assigneeId": 1775183550311
         },
         {
             "id": 11,
@@ -162,7 +162,7 @@
             "endTime": "11:00",
             "service": "남성커트",
             "customerId": 10,
-            "designerId": 1775183630516
+            "assigneeId": 1775183630516
         },
         {
             "id": 4,
@@ -171,7 +171,7 @@
             "endTime": "13:30",
             "service": "여성커트",
             "customerId": 4,
-            "designerId": 1775183559011
+            "assigneeId": 1775183559011
         },
         {
             "id": 12,
@@ -180,7 +180,7 @@
             "endTime": "16:30",
             "service": "뿌리/전체(멋내기)",
             "customerId": 6,
-            "designerId": 1775183550311
+            "assigneeId": 1775183550311
         },
         {
             "id": 13,
@@ -189,7 +189,7 @@
             "endTime": "11:30",
             "service": "여성커트",
             "customerId": 1,
-            "designerId": 1775183559011
+            "assigneeId": 1775183559011
         },
         {
             "id": 14,
@@ -198,7 +198,7 @@
             "endTime": "15:30",
             "service": "셋팅펌",
             "customerId": 11,
-            "designerId": 1775183630516
+            "assigneeId": 1775183630516
         },
         {
             "id": 15,
@@ -215,7 +215,7 @@
             "endTime": "10:30",
             "service": "남성커트",
             "customerId": 12,
-            "designerId": 1775183559011
+            "assigneeId": 1775183559011
         },
         {
             "id": 17,
@@ -224,7 +224,7 @@
             "endTime": "11:30",
             "service": "하오니코",
             "customerId": 5,
-            "designerId": 1775183630516
+            "assigneeId": 1775183630516
         },
         {
             "id": 18,
@@ -233,7 +233,7 @@
             "endTime": "16:00",
             "service": "여자 디자인펌",
             "customerId": 10,
-            "designerId": 1775183550311
+            "assigneeId": 1775183550311
         },
         {
             "id": 1774569765719,
@@ -243,7 +243,7 @@
             "service": "남자 일반펌",
             "customerId": 2,
             "status": "active",
-            "designerId": 1775183630516
+            "assigneeId": 1775183630516
         },
         {
             "id": 19,
@@ -252,7 +252,7 @@
             "endTime": "11:30",
             "service": "뿌리/전체(멋내기)",
             "customerId": 7,
-            "designerId": 1775183559011
+            "assigneeId": 1775183559011
         },
         {
             "id": 20,
@@ -269,7 +269,7 @@
             "endTime": "13:30",
             "service": "여자 일반펌+여성커트",
             "customerId": 4,
-            "designerId": 1775183550311
+            "assigneeId": 1775183550311
         },
         {
             "id": 22,
@@ -278,7 +278,7 @@
             "endTime": "16:30",
             "service": "여자 매직",
             "customerId": 8,
-            "designerId": 1775183559011
+            "assigneeId": 1775183559011
         },
         {
             "id": 23,
@@ -287,7 +287,7 @@
             "endTime": "12:00",
             "service": "남성커트+남자 일반펌",
             "customerId": 11,
-            "designerId": 1775183630516
+            "assigneeId": 1775183630516
         },
         {
             "id": 24,
@@ -296,7 +296,7 @@
             "endTime": "15:30",
             "service": "셋팅펌",
             "customerId": 12,
-            "designerId": 1775183550311
+            "assigneeId": 1775183550311
         },
         {
             "id": 5,
@@ -322,7 +322,7 @@
             "service": "여성커트",
             "customerId": 6,
             "status": "cancelled",
-            "designerId": 1775183630516
+            "assigneeId": 1775183630516
         },
         {
             "id": 27,
@@ -331,7 +331,7 @@
             "endTime": "15:30",
             "service": "뿌리/전체(멋내기)",
             "customerId": 2,
-            "designerId": 1775183550311
+            "assigneeId": 1775183550311
         },
         {
             "id": 28,
@@ -340,7 +340,7 @@
             "endTime": "17:00",
             "service": "클리닉 3단계",
             "customerId": 3,
-            "designerId": 1775183559011
+            "assigneeId": 1775183559011
         },
         {
             "id": 29,
@@ -349,7 +349,7 @@
             "endTime": "12:00",
             "service": "여자 디자인펌",
             "customerId": 4,
-            "designerId": 1775183630516
+            "assigneeId": 1775183630516
         },
         {
             "id": 30,
@@ -366,7 +366,7 @@
             "endTime": "11:30",
             "service": "주니어커트",
             "customerId": 5,
-            "designerId": 1775183559011
+            "assigneeId": 1775183559011
         },
         {
             "id": 32,
@@ -375,7 +375,7 @@
             "endTime": "17:00",
             "service": "뿌리/전체(새치)+남자 일반펌",
             "customerId": 8,
-            "designerId": 1775183630516
+            "assigneeId": 1775183630516
         },
         {
             "id": 33,
@@ -384,7 +384,7 @@
             "endTime": "10:30",
             "service": "남성커트",
             "customerId": 9,
-            "designerId": 1775183550311
+            "assigneeId": 1775183550311
         },
         {
             "id": 34,
@@ -394,7 +394,7 @@
             "service": "셋팅펌",
             "customerId": 10,
             "status": "cancelled",
-            "designerId": 1775183559011
+            "assigneeId": 1775183559011
         },
         {
             "id": 35,
@@ -411,7 +411,7 @@
             "endTime": "13:00",
             "service": "남자 매직",
             "customerId": 9,
-            "designerId": 1775183550311,
+            "assigneeId": 1775183550311,
             "price": 100000,
             "memo": ""
         },
@@ -423,7 +423,7 @@
             "service": "뿌리염색",
             "customerId": 2,
             "status": "active",
-            "designerId": 1775183630516,
+            "assigneeId": 1775183630516,
             "price": 45000,
             "memo": "ㅇ"
         },
@@ -444,7 +444,7 @@
             "service": "디자인펌",
             "customerId": 5,
             "status": "active",
-            "designerId": 1775183559011,
+            "assigneeId": 1775183559011,
             "paymentCompleted": true,
             "paymentMethod": "현금",
             "paymentEntries": [
@@ -462,7 +462,7 @@
             "service": "하오니코",
             "customerId": 12,
             "status": "active",
-            "designerId": 1775183630516
+            "assigneeId": 1775183630516
         },
         {
             "id": 48,
@@ -472,7 +472,7 @@
             "service": "디지털/셋팅",
             "customerId": 1,
             "status": "active",
-            "designerId": 1775183550311
+            "assigneeId": 1775183550311
         },
         {
             "id": 49,
@@ -482,7 +482,7 @@
             "service": "주니어커트",
             "customerId": 6,
             "status": "active",
-            "designerId": 1775183559011
+            "assigneeId": 1775183559011
         },
         {
             "id": 50,
@@ -501,7 +501,7 @@
             "service": "매직",
             "customerId": 10,
             "status": "active",
-            "designerId": 1775183550311
+            "assigneeId": 1775183550311
         },
         {
             "id": 1774569817953,
@@ -511,7 +511,7 @@
             "service": "남성커트+크리닉",
             "customerId": 1,
             "status": "active",
-            "designerId": 1775183550311
+            "assigneeId": 1775183550311
         },
         {
             "id": 1774569817954,
@@ -521,7 +521,7 @@
             "service": "뿌리염색",
             "customerId": 2,
             "status": "active",
-            "designerId": 1775183559011
+            "assigneeId": 1775183559011
         },
         {
             "id": 1774569817955,
@@ -531,7 +531,7 @@
             "service": "하오니코",
             "customerId": 3,
             "status": "completed",
-            "designerId": 1775183630516
+            "assigneeId": 1775183630516
         },
         {
             "id": 1775718654958,
@@ -540,7 +540,7 @@
             "endTime": "14:30",
             "service": "볼륨매직",
             "customerId": 2,
-            "designerId": 1775183550311,
+            "assigneeId": 1775183550311,
             "status": "active",
             "price": 150000,
             "memo": ""
@@ -556,7 +556,7 @@
                 "endTime": "12:00",
                 "service": "여성커트",
                 "customerId": 6,
-                "designerId": 1775183630516
+                "assigneeId": 1775183630516
             },
             "after": {
                 "id": 26,
@@ -566,7 +566,7 @@
                 "service": "여성커트",
                 "customerId": 6,
                 "status": "cancelled",
-                "designerId": 1775183630516
+                "assigneeId": 1775183630516
             },
             "timestamp": "2026-03-25T07:04:47.811Z"
         },
@@ -579,7 +579,7 @@
                 "endTime": "13:30",
                 "service": "여자 매직",
                 "customerId": 5,
-                "designerId": 1775183559011
+                "assigneeId": 1775183559011
             },
             "after": {
                 "id": 31,
@@ -588,7 +588,7 @@
                 "endTime": "11:30",
                 "service": "주니어커트",
                 "customerId": 5,
-                "designerId": 1775183559011
+                "assigneeId": 1775183559011
             },
             "timestamp": "2026-03-25T07:06:03.121Z"
         },
@@ -601,7 +601,7 @@
                 "endTime": "13:00",
                 "service": "여자 일반펌",
                 "customerId": 3,
-                "designerId": 1775183550311
+                "assigneeId": 1775183550311
             },
             "after": {
                 "id": 3,
@@ -611,7 +611,7 @@
                 "service": "여자 일반펌",
                 "customerId": 3,
                 "status": "noshow",
-                "designerId": 1775183550311
+                "assigneeId": 1775183550311
             },
             "timestamp": "2026-03-26T03:11:36.502Z"
         },
@@ -624,7 +624,7 @@
                 "endTime": "14:30",
                 "service": "남성커트",
                 "customerId": 7,
-                "designerId": 1775183559011
+                "assigneeId": 1775183559011
             },
             "after": {
                 "id": 7,
@@ -634,7 +634,7 @@
                 "service": "남성커트",
                 "customerId": 7,
                 "status": "cancelled",
-                "designerId": 1775183559011
+                "assigneeId": 1775183559011
             },
             "timestamp": "2026-03-26T03:11:53.174Z"
         },
@@ -648,7 +648,7 @@
                 "service": "남성커트",
                 "customerId": 2,
                 "status": "active",
-                "designerId": 1775183630516
+                "assigneeId": 1775183630516
             },
             "after": {
                 "id": 1774569817952,
@@ -658,7 +658,7 @@
                 "service": "남성커트",
                 "customerId": 2,
                 "status": "active",
-                "designerId": 1775183630516
+                "assigneeId": 1775183630516
             },
             "timestamp": "2026-03-27T00:03:56.059Z"
         },
@@ -672,7 +672,7 @@
                 "service": "남성커트",
                 "customerId": 2,
                 "status": "active",
-                "designerId": 1775183630516
+                "assigneeId": 1775183630516
             },
             "after": {
                 "id": 1774569817952,
@@ -682,7 +682,7 @@
                 "service": "남성커트",
                 "customerId": 2,
                 "status": "active",
-                "designerId": 1775183630516
+                "assigneeId": 1775183630516
             },
             "timestamp": "2026-03-27T00:04:11.029Z"
         },
@@ -696,7 +696,7 @@
                 "service": "남성커트",
                 "customerId": 2,
                 "status": "active",
-                "designerId": 1775183630516
+                "assigneeId": 1775183630516
             },
             "after": {
                 "id": 1774569817952,
@@ -706,7 +706,7 @@
                 "service": "남성커트",
                 "customerId": 2,
                 "status": "active",
-                "designerId": 1775183630516
+                "assigneeId": 1775183630516
             },
             "timestamp": "2026-03-27T00:04:37.812Z"
         },
@@ -720,7 +720,7 @@
                 "service": "남성커트",
                 "customerId": 2,
                 "status": "active",
-                "designerId": 1775183630516
+                "assigneeId": 1775183630516
             },
             "after": {
                 "id": 1774569817952,
@@ -730,7 +730,7 @@
                 "service": "남성커트",
                 "customerId": 2,
                 "status": "cancelled",
-                "designerId": 1775183630516
+                "assigneeId": 1775183630516
             },
             "timestamp": "2026-03-27T00:04:52.594Z"
         },
@@ -743,7 +743,7 @@
                 "endTime": "13:00",
                 "service": "뿌리/전체(새치)+남자 일반펌",
                 "customerId": 2,
-                "designerId": 1775183550311
+                "assigneeId": 1775183550311
             },
             "after": {
                 "id": 9,
@@ -752,7 +752,7 @@
                 "endTime": "13:00",
                 "service": "뿌리/전체(새치)+남자 일반펌",
                 "customerId": 2,
-                "designerId": 1775183550311
+                "assigneeId": 1775183550311
             },
             "timestamp": "2026-03-30T00:59:40.831Z"
         },
@@ -765,7 +765,7 @@
                 "endTime": "13:00",
                 "service": "뿌리/전체(새치)+남자 일반펌",
                 "customerId": 2,
-                "designerId": 1775183550311
+                "assigneeId": 1775183550311
             },
             "after": {
                 "id": 9,
@@ -775,7 +775,7 @@
                 "service": "뿌리/전체(새치)+남자 일반펌",
                 "customerId": 2,
                 "status": "cancelled",
-                "designerId": 1775183550311
+                "assigneeId": 1775183550311
             },
             "timestamp": "2026-03-30T00:59:43.544Z"
         },
@@ -868,7 +868,7 @@
                 "endTime": "10:30",
                 "service": "남성커트",
                 "customerId": 11,
-                "designerId": 1775183630516
+                "assigneeId": 1775183630516
             },
             "after": {
                 "id": 23,
@@ -877,7 +877,7 @@
                 "endTime": "12:00",
                 "service": "남성커트+남자 일반펌",
                 "customerId": 11,
-                "designerId": 1775183630516
+                "assigneeId": 1775183630516
             },
             "timestamp": "2026-03-30T01:39:54.309Z"
         },
@@ -910,7 +910,7 @@
                 "endTime": "13:30",
                 "service": "셋팅펌",
                 "customerId": 10,
-                "designerId": 1775183559011
+                "assigneeId": 1775183559011
             },
             "after": {
                 "id": 34,
@@ -920,7 +920,7 @@
                 "service": "셋팅펌",
                 "customerId": 10,
                 "status": "cancelled",
-                "designerId": 1775183559011
+                "assigneeId": 1775183559011
             },
             "timestamp": "2026-03-30T07:36:03.931Z"
         },
@@ -933,7 +933,7 @@
                 "endTime": "12:00",
                 "service": "하오니코",
                 "customerId": 5,
-                "designerId": 1775183630516
+                "assigneeId": 1775183630516
             },
             "after": {
                 "id": 17,
@@ -942,7 +942,7 @@
                 "endTime": "12:30",
                 "service": "하오니코",
                 "customerId": 5,
-                "designerId": 1775183630516
+                "assigneeId": 1775183630516
             },
             "timestamp": "2026-04-05T23:30:16.741Z"
         },
@@ -955,7 +955,7 @@
                 "endTime": "12:30",
                 "service": "하오니코",
                 "customerId": 5,
-                "designerId": 1775183630516
+                "assigneeId": 1775183630516
             },
             "after": {
                 "id": 17,
@@ -964,7 +964,7 @@
                 "endTime": "13:00",
                 "service": "하오니코",
                 "customerId": 5,
-                "designerId": 1775183630516
+                "assigneeId": 1775183630516
             },
             "timestamp": "2026-04-05T23:30:20.857Z"
         },
@@ -977,7 +977,7 @@
                 "endTime": "13:00",
                 "service": "하오니코",
                 "customerId": 5,
-                "designerId": 1775183630516
+                "assigneeId": 1775183630516
             },
             "after": {
                 "id": 17,
@@ -986,7 +986,7 @@
                 "endTime": "11:30",
                 "service": "하오니코",
                 "customerId": 5,
-                "designerId": 1775183630516
+                "assigneeId": 1775183630516
             },
             "timestamp": "2026-04-05T23:30:31.730Z"
         },
@@ -1000,7 +1000,7 @@
                 "service": "디자인펌",
                 "customerId": 5,
                 "status": "active",
-                "designerId": 1775183559011
+                "assigneeId": 1775183559011
             },
             "after": {
                 "id": 46,
@@ -1010,7 +1010,7 @@
                 "service": "디자인펌",
                 "customerId": 5,
                 "status": "active",
-                "designerId": 1775183559011,
+                "assigneeId": 1775183559011,
                 "paymentCompleted": true,
                 "paymentMethod": "현금",
                 "paymentEntries": [
@@ -1031,7 +1031,7 @@
                 "endTime": "17:00",
                 "service": "셋팅펌+볼륨매직",
                 "customerId": 2,
-                "designerId": 1775183550311,
+                "assigneeId": 1775183550311,
                 "status": "active",
                 "price": 230000
             },
@@ -1042,7 +1042,7 @@
                 "endTime": "14:30",
                 "service": "볼륨매직",
                 "customerId": 2,
-                "designerId": 1775183550311,
+                "assigneeId": 1775183550311,
                 "status": "active",
                 "price": 150000,
                 "memo": ""
@@ -1066,7 +1066,7 @@
                 "endTime": "12:00",
                 "service": "남자 매직",
                 "customerId": 9,
-                "designerId": 1775183550311,
+                "assigneeId": 1775183550311,
                 "price": 100000,
                 "memo": ""
             },
@@ -1081,7 +1081,7 @@
                 "endTime": "12:00",
                 "service": "남자 매직",
                 "customerId": 9,
-                "designerId": 1775183550311,
+                "assigneeId": 1775183550311,
                 "price": 100000,
                 "memo": ""
             },
@@ -1092,7 +1092,7 @@
                 "endTime": "14:00",
                 "service": "남자 매직",
                 "customerId": 9,
-                "designerId": 1775183550311,
+                "assigneeId": 1775183550311,
                 "price": 100000,
                 "memo": ""
             },
@@ -1107,7 +1107,7 @@
                 "endTime": "14:00",
                 "service": "남자 매직",
                 "customerId": 9,
-                "designerId": 1775183550311,
+                "assigneeId": 1775183550311,
                 "price": 100000,
                 "memo": ""
             },
@@ -1118,7 +1118,7 @@
                 "endTime": "14:00",
                 "service": "남자 매직",
                 "customerId": 9,
-                "designerId": 1775183550311,
+                "assigneeId": 1775183550311,
                 "price": 100000,
                 "memo": ""
             },
@@ -1133,7 +1133,7 @@
                 "endTime": "14:00",
                 "service": "남자 매직",
                 "customerId": 9,
-                "designerId": 1775183550311,
+                "assigneeId": 1775183550311,
                 "price": 100000,
                 "memo": ""
             },
@@ -1144,7 +1144,7 @@
                 "endTime": "13:00",
                 "service": "남자 매직",
                 "customerId": 9,
-                "designerId": 1775183550311,
+                "assigneeId": 1775183550311,
                 "price": 100000,
                 "memo": ""
             },
@@ -1160,7 +1160,7 @@
                 "service": "뿌리염색",
                 "customerId": 2,
                 "status": "active",
-                "designerId": 1775183630516
+                "assigneeId": 1775183630516
             },
             "after": {
                 "id": 44,
@@ -1170,7 +1170,7 @@
                 "service": "뿌리염색",
                 "customerId": 2,
                 "status": "active",
-                "designerId": 1775183630516,
+                "assigneeId": 1775183630516,
                 "price": 45000,
                 "memo": "ㅇ"
             },
@@ -1186,7 +1186,7 @@
                 "service": "하오니코",
                 "customerId": 3,
                 "status": "active",
-                "designerId": 1775183630516
+                "assigneeId": 1775183630516
             },
             "after": {
                 "id": 1774569817955,
@@ -1196,7 +1196,7 @@
                 "service": "하오니코",
                 "customerId": 3,
                 "status": "completed",
-                "designerId": 1775183630516
+                "assigneeId": 1775183630516
             },
             "timestamp": "2026-04-15T07:15:18.505Z"
         }

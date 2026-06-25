@@ -90,7 +90,7 @@ export const AsideMenuIcon = ({icon}: {icon: string}) => {
                     <path d="M7 5.5H17M7 10.5H17M7 15.5H13M5 5.5H5.01M5 10.5H5.01M5 15.5H5.01" />
                 </StyledMenuIcon>
             );
-        case 'designer':
+        case 'assignee':
             return (
                 <StyledMenuIcon viewBox="0 0 24 24" aria-hidden="true">
                     <circle cx="7" cy="8" r="2" />

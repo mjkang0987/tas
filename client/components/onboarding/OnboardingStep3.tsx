@@ -3,9 +3,9 @@ import {useState} from 'react';
 import styled from 'styled-components';
 
 import {FieldError} from '../ui/FieldError';
-import {getDesignerColor} from '../../utils/designers';
-import type {LocalDesigner} from './onboarding-types';
-import {DEFAULT_DESIGNER_ID_START} from './onboarding-types';
+import {getAssigneeColor} from '../../utils/assignees';
+import type {LocalAssignee} from './onboarding-types';
+import {DEFAULT_ASSIGNEE_ID_START} from './onboarding-types';
 import {
     StyledNavRow, StyledBackBtn, StyledSkipBtn, StyledNextBtn,
     StyledSectionNote, StyledHighlight,
@@ -14,128 +14,128 @@ import {
 } from './onboarding-step-styles';
 
 interface Props {
-    localDesigners: LocalDesigner[];
-    onDesignersChange: (designers: LocalDesigner[]) => void;
+    localAssignees: LocalAssignee[];
+    onAssigneesChange: (assignees: LocalAssignee[]) => void;
     onNext: () => void;
     onSkip: () => void;
     onBack: () => void;
 }
 
-export const OnboardingStep3 = ({localDesigners, onDesignersChange, onNext, onSkip, onBack}: Props) => {
-    const [showAddDesigner, setShowAddDesigner] = useState(false);
-    const [newDesignerName, setNewDesignerName] = useState('');
-    const [newDesignerColor, setNewDesignerColor] = useState(
-        () => getDesignerColor({id: DEFAULT_DESIGNER_ID_START + 1})
+export const OnboardingStep3 = ({localAssignees, onAssigneesChange, onNext, onSkip, onBack}: Props) => {
+    const [showAddAssignee, setShowAddAssignee] = useState(false);
+    const [newAssigneeName, setNewAssigneeName] = useState('');
+    const [newAssigneeColor, setNewAssigneeColor] = useState(
+        () => getAssigneeColor({id: DEFAULT_ASSIGNEE_ID_START + 1})
     );
-    const [editingDesignerId, setEditingDesignerId] = useState<number | null>(null);
+    const [editingAssigneeId, setEditingAssigneeId] = useState<number | null>(null);
     const [step3Error, setStep3Error] = useState('');
 
-    const handleAddDesigner = () => {
-        const name = newDesignerName.trim();
-        if (!name) { setStep3Error('디자이너 이름을 입력해 주세요.'); return; }
-        if (localDesigners.some((d) => d.name === name)) {
-            setStep3Error(`"${name}" 디자이너는 이미 있습니다.`);
+    const handleAddAssignee = () => {
+        const name = newAssigneeName.trim();
+        if (!name) { setStep3Error('담당자 이름을 입력해 주세요.'); return; }
+        if (localAssignees.some((d) => d.name === name)) {
+            setStep3Error(`"${name}" 담당자는 이미 있습니다.`);
             return;
         }
-        const newId = Math.max(...localDesigners.map((d) => d.id)) + 1;
-        onDesignersChange([...localDesigners, {id: newId, name, color: newDesignerColor}]);
-        setNewDesignerName('');
-        setNewDesignerColor(getDesignerColor({id: newId + 1}));
-        setShowAddDesigner(false);
+        const newId = Math.max(...localAssignees.map((d) => d.id)) + 1;
+        onAssigneesChange([...localAssignees, {id: newId, name, color: newAssigneeColor}]);
+        setNewAssigneeName('');
+        setNewAssigneeColor(getAssigneeColor({id: newId + 1}));
+        setShowAddAssignee(false);
         setStep3Error('');
     };
 
-    const handleRemoveDesigner = (id: number) => {
-        onDesignersChange(localDesigners.filter((d) => d.id !== id));
-        setEditingDesignerId(null);
+    const handleRemoveAssignee = (id: number) => {
+        onAssigneesChange(localAssignees.filter((d) => d.id !== id));
+        setEditingAssigneeId(null);
         setStep3Error('');
     };
 
-    const handleUpdateDesignerName = (id: number, name: string) => {
-        onDesignersChange(localDesigners.map((d) => d.id === id ? {...d, name} : d));
+    const handleUpdateAssigneeName = (id: number, name: string) => {
+        onAssigneesChange(localAssignees.map((d) => d.id === id ? {...d, name} : d));
         setStep3Error('');
     };
 
-    const handleUpdateDesignerColor = (id: number, color: string) => {
-        onDesignersChange(localDesigners.map((d) => d.id === id ? {...d, color} : d));
+    const handleUpdateAssigneeColor = (id: number, color: string) => {
+        onAssigneesChange(localAssignees.map((d) => d.id === id ? {...d, color} : d));
     };
 
     return (
         <>
             <StyledSectionNote>
-                <StyledHighlight>디자이너 변경, 추가는 초기 매장 설정 완료 이후 언제든 가능합니다.</StyledHighlight>
-                <br/>디자이너를 등록하세요.
+                <StyledHighlight>담당자 변경, 추가는 초기 매장 설정 완료 이후 언제든 가능합니다.</StyledHighlight>
+                <br/>담당자를 등록하세요.
             </StyledSectionNote>
 
-            <StyledDesignerList>
-                {localDesigners.map((d) => (
-                    <StyledDesignerCard key={d.id} $color={d.color} $isEditing={editingDesignerId === d.id}>
-                        <StyledDesignerHeader>
-                            <StyledDesignerHeaderLeft>
-                                <StyledDesignerColorDot style={{background: d.color}} />
-                                {editingDesignerId === d.id ? (
-                                    <StyledDesignerNameInput
+            <StyledAssigneeList>
+                {localAssignees.map((d) => (
+                    <StyledAssigneeCard key={d.id} $color={d.color} $isEditing={editingAssigneeId === d.id}>
+                        <StyledAssigneeHeader>
+                            <StyledAssigneeHeaderLeft>
+                                <StyledAssigneeColorDot style={{background: d.color}} />
+                                {editingAssigneeId === d.id ? (
+                                    <StyledAssigneeNameInput
                                         value={d.name}
-                                        onChange={(e) => handleUpdateDesignerName(d.id, e.target.value)}
-                                        placeholder="디자이너명"
+                                        onChange={(e) => handleUpdateAssigneeName(d.id, e.target.value)}
+                                        placeholder="담당자명"
                                         autoFocus
                                     />
                                 ) : (
-                                    <StyledDesignerName>{d.name}</StyledDesignerName>
+                                    <StyledAssigneeName>{d.name}</StyledAssigneeName>
                                 )}
-                            </StyledDesignerHeaderLeft>
-                            <StyledDesignerActions>
-                                <StyledDesignerColorPicker
+                            </StyledAssigneeHeaderLeft>
+                            <StyledAssigneeActions>
+                                <StyledAssigneeColorPicker
                                     type="color"
                                     value={d.color}
-                                    onChange={(e) => handleUpdateDesignerColor(d.id, e.target.value)}
-                                    disabled={editingDesignerId !== d.id}
+                                    onChange={(e) => handleUpdateAssigneeColor(d.id, e.target.value)}
+                                    disabled={editingAssigneeId !== d.id}
                                     title="콜러 변경"
                                 />
-                                {editingDesignerId === d.id ? (
+                                {editingAssigneeId === d.id ? (
                                     <>
-                                        {localDesigners.length > 1 && (
-                                            <StyledInlineDeleteBtn type="button" onClick={() => handleRemoveDesigner(d.id)}>삭제</StyledInlineDeleteBtn>
+                                        {localAssignees.length > 1 && (
+                                            <StyledInlineDeleteBtn type="button" onClick={() => handleRemoveAssignee(d.id)}>삭제</StyledInlineDeleteBtn>
                                         )}
-                                        <StyledConfirmBtnSm type="button" onClick={() => setEditingDesignerId(null)}>완료</StyledConfirmBtnSm>
+                                        <StyledConfirmBtnSm type="button" onClick={() => setEditingAssigneeId(null)}>완료</StyledConfirmBtnSm>
                                     </>
                                 ) : (
-                                    <StyledSmEditBtn type="button" onClick={() => setEditingDesignerId(d.id)}>수정</StyledSmEditBtn>
+                                    <StyledSmEditBtn type="button" onClick={() => setEditingAssigneeId(d.id)}>수정</StyledSmEditBtn>
                                 )}
-                            </StyledDesignerActions>
-                        </StyledDesignerHeader>
-                    </StyledDesignerCard>
+                            </StyledAssigneeActions>
+                        </StyledAssigneeHeader>
+                    </StyledAssigneeCard>
                 ))}
-            </StyledDesignerList>
+            </StyledAssigneeList>
 
-            {!showAddDesigner && <FieldError variant="inline">{step3Error}</FieldError>}
+            {!showAddAssignee && <FieldError variant="inline">{step3Error}</FieldError>}
 
-            {showAddDesigner ? (
+            {showAddAssignee ? (
                 <StyledAddForm>
                     <StyledAddFormRow>
                         <StyledAddInput
-                            id="onboard-designer-name"
-                            value={newDesignerName}
-                            onChange={(e) => { setNewDesignerName(e.target.value); setStep3Error(''); }}
-                            placeholder="디자이너명 *"
+                            id="onboard-assignee-name"
+                            value={newAssigneeName}
+                            onChange={(e) => { setNewAssigneeName(e.target.value); setStep3Error(''); }}
+                            placeholder="담당자명 *"
                             autoFocus
                         />
-                        <StyledDesignerColorPicker
+                        <StyledAssigneeColorPicker
                             type="color"
-                            value={newDesignerColor}
-                            onChange={(e) => setNewDesignerColor(e.target.value)}
+                            value={newAssigneeColor}
+                            onChange={(e) => setNewAssigneeColor(e.target.value)}
                             title="콜러"
                         />
                     </StyledAddFormRow>
                     <FieldError variant="inline">{step3Error}</FieldError>
                     <StyledAddFormActions>
-                        <StyledCancelBtnSm type="button" onClick={() => { setShowAddDesigner(false); setNewDesignerName(''); setStep3Error(''); }}>취소</StyledCancelBtnSm>
-                        <StyledConfirmBtnSm type="button" onClick={handleAddDesigner}>추가</StyledConfirmBtnSm>
+                        <StyledCancelBtnSm type="button" onClick={() => { setShowAddAssignee(false); setNewAssigneeName(''); setStep3Error(''); }}>취소</StyledCancelBtnSm>
+                        <StyledConfirmBtnSm type="button" onClick={handleAddAssignee}>추가</StyledConfirmBtnSm>
                     </StyledAddFormActions>
                 </StyledAddForm>
             ) : (
-                <StyledAddServiceBtn type="button" onClick={() => setShowAddDesigner(true)}>
-                    + 디자이너 추가
+                <StyledAddServiceBtn type="button" onClick={() => setShowAddAssignee(true)}>
+                    + 담당자 추가
                 </StyledAddServiceBtn>
             )}
 
@@ -148,13 +148,13 @@ export const OnboardingStep3 = ({localDesigners, onDesignersChange, onNext, onSk
     );
 };
 
-const StyledDesignerList = styled.div`
+const StyledAssigneeList = styled.div`
     display: flex;
     flex-direction: column;
     gap: 8px;
 `;
 
-const StyledDesignerCard = styled.div<{$color: string; $isEditing: boolean}>`
+const StyledAssigneeCard = styled.div<{$color: string; $isEditing: boolean}>`
     display: flex;
     flex-direction: column;
     gap: 8px;
@@ -178,14 +178,14 @@ const StyledDesignerCard = styled.div<{$color: string; $isEditing: boolean}>`
     }
 `;
 
-const StyledDesignerHeader = styled.div`
+const StyledAssigneeHeader = styled.div`
     display: flex;
     align-items: center;
     justify-content: space-between;
     gap: 8px;
 `;
 
-const StyledDesignerHeaderLeft = styled.div`
+const StyledAssigneeHeaderLeft = styled.div`
     display: flex;
     align-items: center;
     gap: 8px;
@@ -193,14 +193,14 @@ const StyledDesignerHeaderLeft = styled.div`
     min-width: 0;
 `;
 
-const StyledDesignerActions = styled.div`
+const StyledAssigneeActions = styled.div`
     display: flex;
     align-items: center;
     gap: 6px;
     flex-shrink: 0;
 `;
 
-const StyledDesignerColorDot = styled.span`
+const StyledAssigneeColorDot = styled.span`
     display: block;
     width: 10px;
     height: 10px;
@@ -208,7 +208,7 @@ const StyledDesignerColorDot = styled.span`
     flex-shrink: 0;
 `;
 
-const StyledDesignerName = styled.span`
+const StyledAssigneeName = styled.span`
     flex: 1;
     font-size: 14px;
     font-weight: 700;
@@ -218,7 +218,7 @@ const StyledDesignerName = styled.span`
     text-overflow: ellipsis;
 `;
 
-const StyledDesignerNameInput = styled.input`
+const StyledAssigneeNameInput = styled.input`
     flex: 1;
     min-width: 80px;
     height: 30px;
@@ -234,7 +234,7 @@ const StyledDesignerNameInput = styled.input`
     &:focus { border-color: var(--blue-color); }
 `;
 
-const StyledDesignerColorPicker = styled.input`
+const StyledAssigneeColorPicker = styled.input`
     width: 28px;
     height: 28px;
     padding: 2px;

@@ -7,7 +7,7 @@ import styled from 'styled-components';
 import {useCalendarStore} from '../../../store/calendarStore';
 
 import {isNewCustomerVisit} from '../../../utils/customers';
-import {buildDesignerColorMap, buildDesignerNameMap} from '../../../utils/designers';
+import {buildAssigneeColorMap, buildAssigneeNameMap} from '../../../utils/assignees';
 import {buildServiceColorMap} from '../../../utils/services';
 
 import {EMPTY_TEXT} from '../../settings/settings-styles';
@@ -46,8 +46,8 @@ export const ReservationListModal = () => {
     const openCustomerDetail = useCalendarStore((s) => s.openCustomerDetail);
     const serviceCatalog = useCalendarStore((s) => s.serviceCatalog);
     const categoryBaseColorMap = useCalendarStore((s) => s.categoryBaseColorMap);
-    const designers = useCalendarStore((s) => s.designers);
-    const calendarDesignerId = useCalendarStore((s) => s.calendarDesignerId);
+    const assignees = useCalendarStore((s) => s.assignees);
+    const calendarAssigneeId = useCalendarStore((s) => s.calendarAssigneeId);
     const modalRoot = document.getElementById('modal-root');
     const {layerId, layerDataId} = useLayerInstanceId('reservation-list');
     const handleClose = () => setReservationListFilter(null);
@@ -56,8 +56,8 @@ export const ReservationListModal = () => {
         () => buildServiceColorMap(serviceCatalog, categoryBaseColorMap),
         [serviceCatalog, categoryBaseColorMap]
     );
-    const designerNameMap = useMemo(() => buildDesignerNameMap(designers, true), [designers]);
-    const designerColorMap = useMemo(() => buildDesignerColorMap(designers), [designers]);
+    const assigneeNameMap = useMemo(() => buildAssigneeNameMap(assignees, true), [assignees]);
+    const assigneeColorMap = useMemo(() => buildAssigneeColorMap(assignees), [assignees]);
 
     const today = useMemo(() => {
         const d = new Date();
@@ -94,15 +94,15 @@ export const ReservationListModal = () => {
             modalTitle = `${filter.year}년 ${filter.month + 1}월`;
         }
 
-        if (calendarDesignerId != null) {
+        if (calendarAssigneeId != null) {
             list = list.filter((reservation) => (
-                calendarDesignerId === 0 ? !reservation.designerId : reservation.designerId === calendarDesignerId
+                calendarAssigneeId === 0 ? !reservation.assigneeId : reservation.assigneeId === calendarAssigneeId
             ));
-            const designerName = calendarDesignerId === 0
+            const assigneeName = calendarAssigneeId === 0
                 ? '미지정'
-                : designers.find((designer) => designer.id === calendarDesignerId)?.name;
-            if (designerName) {
-                modalTitle = `${modalTitle} · ${designerName}`;
+                : assignees.find((assignee) => assignee.id === calendarAssigneeId)?.name;
+            if (assigneeName) {
+                modalTitle = `${modalTitle} · ${assigneeName}`;
             }
         }
 
@@ -117,7 +117,7 @@ export const ReservationListModal = () => {
         }
 
         return {title: modalTitle, reservations: list, grouped: groups};
-    }, [filter, reservationMap, calendarDesignerId, designers]);
+    }, [filter, reservationMap, calendarAssigneeId, assignees]);
 
     const getStatusType = (r: Reservation) => {
         if (r.status === 'cancelled') return 'cancelled';
@@ -166,14 +166,14 @@ export const ReservationListModal = () => {
                                 <StyledList>
                                     {group.items.map((r) => {
                                         const customer = customerMap[r.customerId];
-                                        const designerName = r.designerId ? (designerNameMap[r.designerId] ?? '미지정') : '미지정';
+                                        const assigneeName = r.assigneeId ? (assigneeNameMap[r.assigneeId] ?? '미지정') : '미지정';
                                         return (
                                             <StyledItem key={r.id}>
                                                     <ReservationInfoCard
                                                         reservation={r}
                                                         serviceColorMap={serviceColorMap}
-                                                        designerColor={r.designerId ? (designerColorMap[r.designerId] ?? '#8E8E93') : '#8E8E93'}
-                                                        designerName={designerName}
+                                                        assigneeColor={r.assigneeId ? (assigneeColorMap[r.assigneeId] ?? '#8E8E93') : '#8E8E93'}
+                                                        assigneeName={assigneeName}
                                                     customerName={customer?.name ?? '-'}
                                                     today={today}
                                                     isNewCustomer={isNewCustomerVisit(customer?.firstVisitDate, r.date)}
@@ -183,7 +183,7 @@ export const ReservationListModal = () => {
                                                     showPrice
                                                     showStatus
                                                     timeMode="range"
-                                                    accentColor={r.designerId ? (designerColorMap[r.designerId] ?? '#8E8E93') : '#8E8E93'}
+                                                    accentColor={r.assigneeId ? (assigneeColorMap[r.assigneeId] ?? '#8E8E93') : '#8E8E93'}
                                                     accentBar
                                                 />
                                             </StyledItem>

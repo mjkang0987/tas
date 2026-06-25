@@ -13,7 +13,7 @@ export function AsideGuestLogout({onClose, onConfirm}: Props) {
     return (
         <ConfirmDialog
             title="로그아웃"
-            message="현재 기기에서 모든 정보(예약, 서비스, 디자이너, 고객명단)가 삭제됩니다. 로그아웃 하시겠습니까?"
+            message="현재 기기에서 모든 정보(예약, 서비스, 담당자, 고객명단)가 삭제됩니다. 로그아웃 하시겠습니까?"
             confirmLabel="로그아웃"
             confirmVariant="danger"
             layerKey="guest-logout"
