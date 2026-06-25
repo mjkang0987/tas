@@ -98,6 +98,8 @@
 - **배포(사용자 실행)**: `gcloud run deploy`로 새 코드 운영 반영. `MAINTENANCE_MODE` 미설정=OFF라 배포만으론 점검 안 켜짐.
 - **드라이런(사용자 실행)**: 운영에서 `MAINTENANCE_MODE` ON → `/maintenance` 확인 → OFF. Cloud Run env 변경은 새 리비전 롤아웃이므로 실제 1회 확인 필요.
 - **제약**: 샌드박스에 gcloud·GCP 인증 없음 → 배포·토글은 복붙 명령 제공, 실행은 사용자.
+- **드라이런 결과(2026-06-25)**: 0.9.0 운영 배포 후 토글 ON 확인. 홈(`/`)·`/maintenance`·`/login` 모두 게이트 정상 — 단 `/login`은 **Cloudflare가 캐시**해서 맨 URL은 옛 로그인 화면이 떴고, 캐시 무력화 쿼리(`?cb=`)로는 점검 페이지 확인됨. → **앱 게이트(`/login` 누수 수정)는 정상 작동**. CDN 캐시가 변수.
+- ⚠️ **rename 실배포 추가 스텝 — Cloudflare 캐시 퍼지**: 점검 ON 직후 **Cloudflare 캐시를 purge**(최소 `/login`, 안전하게 전체)해야 캐시된 페이지가 점검 화면을 새지 않음. 시퀀스: ① 점검 ON → **①' Cloudflare purge** → ② 마이그레이션 → … . 캐시 TTL 만료를 기다리지 말 것.
 
 ### 1. 카피·문서 — ✅ 완료 (커밋 `ff8f8a8`)
 - 브랜딩 카피: `about.tsx`(태그라인/meta "미용실·뷰티샵을 위한"→ 제거), `README.md`("Salon"→"Reservation & customer management"), `design-guide.html`(placeholder "헤어샵"→"매장")
