@@ -306,7 +306,8 @@ export const Header = () => {
                                         onSelectReservation={handleConflictReservationClick} />
             )}
             {!(canUseSync && currentConflict) && currentSuggestion && (
-                <CustomerMergeSuggestionModal suggestion={currentSuggestion}
+                <CustomerMergeSuggestionModal key={currentSuggestion.key}
+                                              suggestion={currentSuggestion}
                                               reservationMap={suggestionReservationMap}
                                               merging={mergeSuggestionMerging}
                                               onMerge={mergeSuggestion}
