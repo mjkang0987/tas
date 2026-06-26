@@ -45,7 +45,8 @@ export const Month = ({
             const normalizedDate = new Date(fullYear, currMonth, val);
             const dateKey = toDateKey(fullYear, currMonth, val);
             const dateReservations = (reservationMap[dateKey] || []).filter((reservation) => (
-                calendarAssigneeId == null || (calendarAssigneeId === 0 ? !reservation.assigneeId : reservation.assigneeId === calendarAssigneeId)
+                (calendarAssigneeId == null || (calendarAssigneeId === 0 ? !reservation.assigneeId : reservation.assigneeId === calendarAssigneeId))
+                && reservation.status !== 'cancelled'
             ));
             const hasReservations = dateReservations.length > 0;
             const isAdjacentMonth = type === 'prev' || type === 'next';
