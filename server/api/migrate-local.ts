@@ -6,6 +6,7 @@ import {notifySlackOpsError} from '../notify/slack';
 import {frontendReservationStatusToDb, frontendPaymentMethodToDb, frontendChannelToDb} from '../db/mappers';
 import type {Assignee} from '../../client/features/assignees/model';
 import type {Customer} from '../../client/features/customers/model';
+import {normalizeTel} from '../../client/features/customers/model';
 import type {Reservation} from '../../client/features/reservations/model';
 import type {ServiceItem} from '../../client/features/services/model';
 import {sanitizeShopType} from '../../client/features/store-settings/labels';
@@ -99,7 +100,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                             storeId,
                             legacyId: i + 1,
                             name: c.name,
-                            tel: c.tel ?? '',
+                            tel: normalizeTel(c.tel ?? ''),
                             points: c.points ?? 0,
                             firstVisitDate: c.firstVisitDate ? new Date(`${c.firstVisitDate}T00:00:00`) : null,
                             allergyNote: c.allergyNote ?? null,
@@ -179,7 +180,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                             storeId,
                             legacyId: nextCustomerLegacyId++,
                             name: c.name,
-                            tel: c.tel ?? '',
+                            tel: normalizeTel(c.tel ?? ''),
                             points: c.points ?? 0,
                             firstVisitDate: c.firstVisitDate ? new Date(`${c.firstVisitDate}T00:00:00`) : null,
                             allergyNote: c.allergyNote ?? null,

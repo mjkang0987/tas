@@ -5,6 +5,7 @@ import {getApiSession, requireRole} from '../auth/api-session';
 import {dbCustomerToFrontend} from '../db/mappers';
 import {notifySlackOpsError} from '../notify/slack';
 import type {Customer, PointHistoryType} from '../../client/features/customers/model';
+import {normalizeTel} from '../../client/features/customers/model';
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
     const session = await getApiSession(req, res);
@@ -41,7 +42,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
         const data = {
             name: customer.name,
-            tel: customer.tel,
+            tel: normalizeTel(customer.tel),
             points: customer.points ?? 0,
             firstVisitDate: customer.firstVisitDate ? new Date(`${customer.firstVisitDate}T00:00:00`) : null,
             allergyNote: customer.allergyNote ?? null,
@@ -116,7 +117,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                         where: {storeId_legacyId: {storeId: session.storeId, legacyId: customer.id}},
                         update: {
                             name: customer.name,
-                            tel: customer.tel,
+                            tel: normalizeTel(customer.tel),
                             points: customer.points ?? 0,
                             firstVisitDate: customer.firstVisitDate ? new Date(`${customer.firstVisitDate}T00:00:00`) : null,
                             allergyNote: customer.allergyNote ?? null,
@@ -127,7 +128,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                             storeId: session.storeId,
                             legacyId: customer.id,
                             name: customer.name,
-                            tel: customer.tel,
+                            tel: normalizeTel(customer.tel),
                             points: customer.points ?? 0,
                             firstVisitDate: customer.firstVisitDate ? new Date(`${customer.firstVisitDate}T00:00:00`) : null,
                             allergyNote: customer.allergyNote ?? null,

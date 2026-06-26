@@ -41,6 +41,11 @@ export interface Customer {
 
 export type CustomerMap = Record<number, Customer>;
 
+// 저장용 정규화: 숫자만 남긴다(DB엔 숫자만 저장). 표시는 formatTel이 담당.
+export function normalizeTel(tel: string): string {
+    return tel.replace(/\D/g, '');
+}
+
 export function formatTel(tel: string): string {
     const digits = tel.replace(/\D/g, '');
     if (digits.length === 11) return digits.replace(/(\d{3})(\d{4})(\d{4})/, '$1-$2-$3');

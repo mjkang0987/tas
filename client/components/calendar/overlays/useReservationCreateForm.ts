@@ -5,6 +5,7 @@ import {useCalendarStore} from '../../../store/calendarStore';
 import type {Reservation, ReservationChannel} from '../../../utils/reservations';
 import {findOverlap} from '../../../utils/reservations';
 import type {Customer, CustomerMap} from '../../../utils/customers';
+import {normalizeTel} from '../../../utils/customers';
 import type {Assignee} from '../../../utils/assignees';
 import {getAssigneeAvailabilityState, splitAssigneesByStatus} from '../../../utils/assignees';
 import {buildCatalogMap, calcEndTime, joinServiceNames, sumDurationMinutes, sumPrice} from '../../../utils/services';
@@ -205,7 +206,7 @@ export function useReservationCreateForm({
             const nextCustomer: Customer = {
                 id: nextCustomerId,
                 name: newCustomerName.trim(),
-                tel: newCustomerTel.trim(),
+                tel: normalizeTel(newCustomerTel),
                 points: 0,
                 pointHistories: [],
             };

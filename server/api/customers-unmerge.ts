@@ -2,6 +2,7 @@ import type {NextApiRequest, NextApiResponse} from 'next';
 
 import {prisma} from '../db/prisma';
 import {getApiSession, requireRole} from '../auth/api-session';
+import {normalizeTel} from '../../client/features/customers/model';
 
 type SourceSnapshot = {
     id: string;
@@ -65,7 +66,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                     storeId: session.storeId,
                     legacyId: source.legacyId,
                     name: source.name,
-                    tel: source.tel,
+                    tel: normalizeTel(source.tel),
                     points: source.points,
                     firstVisitDate: source.firstVisitDate ? new Date(source.firstVisitDate) : null,
                     allergyNote: source.allergyNote,

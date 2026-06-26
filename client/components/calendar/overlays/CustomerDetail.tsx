@@ -16,7 +16,7 @@ import {
 
 import {buildAssigneeColorMap, buildAssigneeNameMap} from '../../../utils/assignees';
 import {buildServiceColorMap, formatPrice} from '../../../utils/services';
-import {formatTel, toCustomerMap} from '../../../utils/customers';
+import {formatTel, normalizeTel, toCustomerMap} from '../../../utils/customers';
 import type {Customer as CustomerType} from '../../../utils/customers';
 import {useCalendarStore} from '../../../store/calendarStore';
 import {useToastStore} from '../../../store/toastStore';
@@ -237,7 +237,7 @@ export const CustomerDetail = ({customer, reservationMap, onClose, onReservation
 
     const handleSaveEdit = () => {
         const nextName = editForm.name.trim();
-        const nextTel = editForm.tel.trim();
+        const nextTel = normalizeTel(editForm.tel);
 
         if (!nextName) {
             setEditError('고객명을 입력해 주세요.');

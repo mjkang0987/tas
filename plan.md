@@ -4,6 +4,32 @@
 
 ---
 
+## 진행 중 — 고객 연락처 저장 포맷 통일 (DB=숫자만, 표시=000-0000-0000)
+
+> 결정(사용자): **연락처는 DB에 숫자만 저장, 화면엔 패턴(000-0000-0000)으로 노출.**
+
+### 현황 조사 결과
+- `Customer.tel String` 단일 컬럼. 쓰기 경로마다 정규화가 달라 **DB에 포맷이 섞여 저장됨**(운영 DB에서 하이픈 포함 행 실재 확인).
+  - 주소록 추가(`CustomerAddModal`): `tel.trim().replace(/\D/g,'')` → 숫자만 ✅
+  - 예약 등록 신규 고객(`useReservationCreateForm` 208행): `newCustomerTel.trim()` → 입력 원형 ⚠️
+  - 고객 상세 수정(`CustomerDetail` 254행): `editForm.tel.trim()` → 입력 원형 ⚠️
+  - 서버 `customers.ts`(POST 44·PUT 119/130): `customer.tel` 그대로 저장(정규화 없음) ⚠️
+  - 시드 데이터: 전부 숫자만 ✅
+- 표시: `formatTel`(`features/customers/model.ts`)이 이미 숫자 추출 후 10/11자리 패턴 변환 → **표시 쪽은 이미 정상**(추가 작업 거의 없음).
+- 부작용: 검색(`tel.includes`)·중복 병합 추천이 포맷 불일치로 누락.
+
+### 구현 항목
+1. **공용 헬퍼** `normalizeTel(tel) = tel.replace(/\D/g,'')`를 `features/customers/model.ts`에 추가(`formatTel` 옆, 단일 출처).
+2. **클라 쓰기 통일**(로컬DB 모드 대응): `CustomerAddModal`·`useReservationCreateForm`·`CustomerDetail` 저장 직전 `normalizeTel` 사용.
+3. **서버 쓰기 통일**(원격 모드 길목 방어): `server/api/customers.ts` POST·PUT에서 `tel` 저장 시 `normalizeTel` 적용.
+4. **기존 데이터 1회성 정규화**(운영 DB): `UPDATE "Customer" SET tel = regexp_replace(tel, '\D', '', 'g') WHERE tel ~ '[^0-9]';` — 사용자가 Supabase에서 실행.
+
+### 리스크
+- 표시는 `formatTel`이 비표준 길이(10/11 아님)면 원본 반환 → 잘못된 번호는 그대로 보임(의도된 폴백).
+- 서버/클라 양쪽 정규화 → 동작 변화는 "저장 포맷 통일"뿐, 검증/필수 로직은 유지.
+
+---
+
 ## 진행 중 — 업종별 라벨 시스템 (매장관리 직종 표시·수정 + 담당자/서비스 문구 전환)
 
 > 매장 관리에 직종(shopType) 표시·수정 추가, 직종에 맞게 "담당자"·"서비스" 문구가 화면에 반영되게.

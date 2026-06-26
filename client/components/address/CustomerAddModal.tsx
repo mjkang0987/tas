@@ -4,6 +4,7 @@ import styled from 'styled-components';
 
 import {useCalendarStore} from '../../store/calendarStore';
 import type {Customer} from '../../utils/customers';
+import {normalizeTel} from '../../utils/customers';
 import {
     StyledOverlay,
     StyledDetail,
@@ -33,7 +34,7 @@ export function CustomerAddModal({onClose}: { onClose: () => void }) {
 
     const handleSubmit = () => {
         const trimmedName = name.trim();
-        const trimmedTel = tel.trim().replace(/\D/g, '');
+        const trimmedTel = normalizeTel(tel);
 
         if (!trimmedName) {
             setError('고객명을 입력해 주세요.');
