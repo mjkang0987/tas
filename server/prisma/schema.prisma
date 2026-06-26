@@ -15,6 +15,7 @@ model Store {
   onboarded              Boolean              @default(false)
   usePointSystem         Boolean              @default(false)
   useMembershipSystem    Boolean              @default(false)
+  useCouponSystem        Boolean              @default(false)
   categoryBaseColorsJson Json                 @default("{}")
   createdAt              DateTime             @default(now())
   updatedAt              DateTime             @updatedAt
@@ -31,6 +32,8 @@ model Store {
   pointSettings          StorePointSettings?
   membershipProducts     MembershipProduct[]
   customerMemberships    CustomerMembership[]
+  couponProducts         CouponProduct[]
+  customerCoupons        CustomerCoupon[]
 }
 
 model User {
@@ -111,6 +114,7 @@ model Customer {
   pointHistories CustomerPointHistory[]
   reservations   Reservation[]
   memberships    CustomerMembership[]
+  coupons        CustomerCoupon[]
 
   @@unique([storeId, legacyId])
   @@index([storeId, name])
@@ -213,6 +217,7 @@ model Reservation {
   histories        ReservationHistory[]
   paymentEntries   ReservationPaymentEntry[]
   membershipUsages MembershipUsage[]
+  couponsUsed      CustomerCoupon[]
 
   @@unique([storeId, legacyId])
   @@unique([storeId, naverBookingId])
@@ -435,4 +440,51 @@ model MembershipUsage {
   createdAt            DateTime           @default(now())
   customerMembership   CustomerMembership @relation(fields: [customerMembershipId], references: [id], onDelete: Cascade)
   reservation          Reservation?       @relation(fields: [reservationId], references: [id], onDelete: SetNull)
+}
+
+model CouponProduct {
+  id             String           @id @default(cuid())
+  legacyId       Int?
+  storeId        String
+  name           String
+  discountType   String // amount | rate
+  discountValue  Int // 원(amount) 또는 %(rate)
+  maxDiscount    Int? // 정률 상한 (null=무제한)
+  minOrderAmount Int? // 최소 결제금액 (null=제한없음)
+  validDays      Int? // 발급일+유효일수 (null=무기한)
+  code           String? // 코드형이면 코드 (null=직접발급 전용)
+  status         String           @default("active") // active | archived
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+  store          Store            @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  issued         CustomerCoupon[]
+
+  @@unique([storeId, legacyId])
+  @@unique([storeId, code])
+}
+
+model CustomerCoupon {
+  id             String         @id @default(cuid())
+  legacyId       Int?
+  storeId        String
+  customerId     String
+  productId      String?
+  name           String // 발급 시점 상품명 스냅샷
+  discountType   String
+  discountValue  Int
+  maxDiscount    Int?
+  minOrderAmount Int?
+  issuedAt       DateTime       @default(now())
+  expiresAt      DateTime?
+  usedAt         DateTime?
+  reservationId  String? // 사용한 예약(차감 시 기록)
+  status         String         @default("active") // active | used | expired | cancelled
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+  store          Store          @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  customer       Customer       @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  product        CouponProduct? @relation(fields: [productId], references: [id], onDelete: SetNull)
+  reservation    Reservation?   @relation(fields: [reservationId], references: [id], onDelete: SetNull)
+
+  @@unique([storeId, legacyId])
 }
