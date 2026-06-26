@@ -279,6 +279,15 @@ export const StyledForm = styled.div`
             width: 100%;
             min-width: 0; /* iOS date/time 등 네이티브 컨트롤이 컨테이너를 밀어내지 않도록 */
         }
+
+        /* iOS Safari의 date/time 네이티브 컨트롤은 고유 최소폭이 있어 width:100%를
+           무시하고 박스를 넘쳐 이웃/아래 행과 겹친다. appearance:none으로 일반 입력처럼
+           폭을 따르게 한다(탭하면 네이티브 피커는 그대로 동작). */
+        input[type="date"], input[type="time"] {
+            -webkit-appearance: none;
+            appearance: none;
+            text-align: center;
+        }
     }
 `;
 
