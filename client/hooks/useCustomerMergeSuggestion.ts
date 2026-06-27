@@ -1,6 +1,7 @@
 import {useCallback, useEffect, useRef, useState} from 'react';
 
 import {useCalendarStore} from '../store/calendarStore';
+import {useToastStore} from '../store/toastStore';
 import {shouldUseLocalDb} from '../lib/local-db';
 import {toCustomerMap} from '../utils/customers';
 import type {Customer} from '../utils/customers';
@@ -161,6 +162,7 @@ export function useCustomerMergeSuggestion() {
     const reservationMap = useCalendarStore((s) => s.reservationMap);
     const setCustomerMap = useCalendarStore((s) => s.setCustomerMap);
     const setReservationMap = useCalendarStore((s) => s.setReservationMap);
+    const toast = useToastStore((s) => s.show);
 
     const [suggestions, setSuggestions] = useState<MergeSuggestion[]>([]);
     const [currentIndex, setCurrentIndex] = useState(0);
@@ -218,33 +220,39 @@ export function useCustomerMergeSuggestion() {
                 body: JSON.stringify({sourceIds, targetId}),
             });
 
-            if (res.ok) {
-                // 리뷰 완료 기록
-                saveReviewedKey(currentSuggestion.key);
-
-                // 고객 + 예약 데이터 리로드
-                const [custRes, resRes] = await Promise.all([
-                    fetch('/api/customers'),
-                    fetch('/api/reservations'),
-                ]);
-                if (custRes.ok) {
-                    const custData = await custRes.json() as {customers: Customer[]};
-                    setCustomerMap(toCustomerMap(custData.customers));
-                }
-                if (resRes.ok) {
-                    const resData = await resRes.json() as {reservations: Reservation[]};
-                    setReservationMap(groupByDate(resData.reservations));
-                }
-
-                // 다음 제안으로
-                advance();
+            if (!res.ok) {
+                // 실패를 조용히 삼키면 "둘 다 그대로 남음"으로 보여 원인 파악이 안 됨 → 사유 표면화.
+                const err = await res.json().catch(() => null) as {error?: string} | null;
+                toast(err?.error ? `병합 실패: ${err.error}` : `병합 실패 (오류 ${res.status})`, 'error');
+                return;
             }
+
+            // 리뷰 완료 기록
+            saveReviewedKey(currentSuggestion.key);
+
+            // 고객 + 예약 데이터 리로드
+            const [custRes, resRes] = await Promise.all([
+                fetch('/api/customers'),
+                fetch('/api/reservations'),
+            ]);
+            if (custRes.ok) {
+                const custData = await custRes.json() as {customers: Customer[]};
+                setCustomerMap(toCustomerMap(custData.customers));
+            }
+            if (resRes.ok) {
+                const resData = await resRes.json() as {reservations: Reservation[]};
+                setReservationMap(groupByDate(resData.reservations));
+            }
+
+            toast('병합 완료', 'success');
+            // 다음 제안으로
+            advance();
         } catch {
-            // 네트워크 오류 무시
+            toast('병합 중 네트워크 오류가 발생했습니다.', 'error');
         } finally {
             setMerging(false);
         }
-    }, [currentSuggestion, merging, advance, setCustomerMap, setReservationMap]);
+    }, [currentSuggestion, merging, advance, setCustomerMap, setReservationMap, toast]);
 
     const skip = useCallback(() => {
         if (!currentSuggestion) return;
