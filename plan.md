@@ -4,24 +4,6 @@
 
 ---
 
-## 진행 중 — 매출 라인 차트 위치 정렬 버그
-
-> 증상: "매출 그래프 위치가 이상하다" — 라인 차트의 선과 데이터 포인트/가이드가 어긋남.
-
-### 원인
-- 라인 차트 무대(`StyledLineChartStage`)는 `height: 190px`인데 SVG 선(`StyledLineChart`)은 `height: 160px`(`REVENUE_CHART_HEIGHT`)로 고정.
-- 포인트 버튼·가로 가이드·Y축 라벨은 모두 무대 높이(190px) 비율(`yRatio * 100%`)로 배치됨.
-- → SVG 선은 위쪽 160px에만 그려지고, 점/가이드/축은 190px 전체에 배치되어 아래로 갈수록 최대 30px 어긋남.
-
-### 수정
-- `StyledLineChart`의 `height`를 고정 `160px` → `100%`로 변경(무대 높이 채움). `viewBox`+`preserveAspectRatio="none"`이라 비율 유지되어 선·점·가이드·축이 정렬됨.
-- 파일: `client/components/settings/revenue/revenue-chart-styles.ts`.
-
-### 리스크
-- 시각적 회귀(차트 비율) 정도. 좌표 계산 로직(`buildRevenueLinePath`)은 변경 없음.
-
----
-
 ## 진행 예정 — 쿠폰(할인) 시스템
 
 > 결정(사용자): 할인 방식 **정액+정률 둘 다**, 발급 **직접발급+코드형 둘 다**, 결제는 **결제수단에 `coupon` 추가해 차감**.
