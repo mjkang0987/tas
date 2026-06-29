@@ -70,7 +70,7 @@ hair_reservations/
 | `ui/` | 공통 UI | `Buttons.tsx`, `Icons.tsx`, `PageHero.tsx`, `SeoHead.tsx`, `ServiceChip.tsx`, `AssigneeLabel.tsx`/`ColorTag.tsx`(담당자 색상 배지), `LabelBadge.tsx`(tone×shape 배지), `ReservationStatusBadge.ts`(예약 상태 배지), `ReservationInfoCard.tsx`, `CsFooter.tsx`(고객센터 푸터 공통), `GuestNotice.tsx`, `FieldError.tsx`, `FormControls.ts` |
 | `account/` | 계정 관련 모달 | `AccountDeleteModal.tsx` |
 
-[^1]: 네이버 동기화 알림 벨 아이콘 + 알림 목록 패널. 미읽음 카운트는 `!read || (conflict && !confirmed)` 조건으로 계산
+[^1]: 네이버 동기화 알림 벨 아이콘 + 알림 목록 패널. 미읽음 카운트는 `!read || (conflict && !confirmed)` 조건으로 계산. 알림에 박제된 고객명·담당자명은 `patchNotificationNames`(calendarStore)가 데이터 로드/변경 시 현재 이름과 다르면 자동 동기화(이름 변경 반영, 미배정은 '미지정')
 [^2]: 네이버 예약 시간 중복(conflict) 해결 모달. pending → deferred/confirmed 상태 전이
 [^3]: 동명이인·유사 고객 병합 제안 모달 (게스트 모드에서는 비활성)
 [^3a]: 고객 상세의 하위 UI 분리 — 적립금 이력 아이템(`PointHistoryItem` 공용), 메모 태그 섹션, 이력 더보기 모달, 병합 분리 확인 모달

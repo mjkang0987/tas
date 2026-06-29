@@ -887,20 +887,12 @@ export const useCalendarStore = create<CalendarState>((set) => ({
         set({syncNotifications: loadSyncNotifications()});
     },
 
+    // 알림에 박제된 고객명·담당자명을 현재 데이터와 동기화한다.
+    // 빈 값 보정뿐 아니라 '이름 변경'도 반영(현재 이름과 다르면 갱신).
     patchNotificationNames: () =>
         set((state) => {
             const assigneeById = new Map(state.assignees.map((d) => [d.id, d.name]));
             const allReservations = Object.values(state.reservationMap).flat();
-
-            const needsPatch = state.syncNotifications.some((n) => {
-                if (!n.customerName || !n.appointmentDate || !n.appointmentTime) return true;
-                if (!n.assigneeName || n.assigneeName === '미지정') {
-                    const reservation = allReservations.find((r) => r.id === n.reservationId);
-                    if (reservation?.assigneeId && assigneeById.has(reservation.assigneeId)) return true;
-                }
-                return false;
-            });
-            if (!needsPatch) return {};
 
             let changed = false;
             const next = state.syncNotifications.map((n) => {
@@ -908,12 +900,18 @@ export const useCalendarStore = create<CalendarState>((set) => ({
                 if (!reservation) return n;
                 const customer = state.customerMap[reservation.customerId];
                 const patch: Partial<typeof n> = {};
-                if (!n.customerName && customer?.name) patch.customerName = customer.name;
+                // 고객명: 현재 고객명과 다르면 갱신(빈 값·플레이스홀더 보정 + 이름 변경 반영).
+                // 고객을 못 찾으면 기존 스냅샷 유지(빈 값으로 덮지 않음).
+                if (customer?.name && n.customerName !== customer.name) patch.customerName = customer.name;
                 if (!n.appointmentDate && reservation.date) patch.appointmentDate = reservation.date;
                 if (!n.appointmentTime && reservation.startTime) patch.appointmentTime = reservation.startTime;
-                if ((!n.assigneeName || n.assigneeName === '미지정') && reservation.assigneeId) {
+                // 담당자명: 배정 담당자의 현재 이름과 다르면 갱신, 미배정이면 '미지정'.
+                // 담당자 목록이 아직 안 들어왔으면(name 미해석) 기존 값 유지.
+                if (reservation.assigneeId) {
                     const name = assigneeById.get(reservation.assigneeId);
-                    if (name) patch.assigneeName = name;
+                    if (name && n.assigneeName !== name) patch.assigneeName = name;
+                } else if (n.assigneeName !== '미지정') {
+                    patch.assigneeName = '미지정';
                 }
                 if (Object.keys(patch).length === 0) return n;
                 changed = true;
