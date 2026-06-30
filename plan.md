@@ -4,14 +4,25 @@
 
 ---
 
-## 진행 예정 — 쿠폰(할인) 시스템
+## 진행 중 — 쿠폰(할인) 시스템
 
 > 결정(사용자): 할인 방식 **정액+정률 둘 다**, 발급 **직접발급+코드형 둘 다**, 결제는 **결제수단에 `coupon` 추가해 차감**.
 > 위치: 적립금(금액)·회원권(횟수/기간)에 이어 **할인**을 담당. 회원권 시스템 패턴을 그대로 따른다.
 
-### 진행 현황 (2026-06-29 갱신)
+### 진행 현황 (2026-06-30 갱신)
 - ✅ **DB 모델 선반영**: `CouponProduct`/`CustomerCoupon` + `Store.useCouponSystem` 토글 컬럼 (마이그레이션 `0007_coupon_models`).
-- ❌ 나머지 미착수: 토글 배선(`/api/store`·StoreManageSection·calendarStore — 현재 store API는 적립금/회원권 토글만 처리), CRUD API, aside '쿠폰 관리' 메뉴/아이콘, `/settings/coupon` 탭, 발급/코드 클레임, **`PaymentMethod.coupon` enum 추가**, 결제 연동.
+- 🔶 **Phase 1 착수(이번 작업)**: 토글 배선 + 쿠폰 상품 CRUD API + aside '쿠폰 관리' 메뉴/아이콘 + `/settings/coupon` 상품 관리 탭. (회원권 패턴 미러링)
+- ❌ 미착수: Phase 2(발급/코드 클레임·보유목록), Phase 3(**`PaymentMethod.coupon` enum 추가** + 결제 자동 차감 — 머니플로우, 별도 진행).
+
+### Phase 1 구현 항목 (이번 작업)
+- **신규**: `client/features/coupons/model.ts`(프론트 타입), `server/api/coupons.ts`(상품 CRUD, owner), `client/pages/api/coupons.ts`(re-export), `client/components/settings/CouponManageSection.tsx`(상품 관리 UI).
+- **토글 배선**: `server/api/store.ts`(GET select·PATCH 수신에 `useCouponSystem` 추가), `calendarStore.ts`(상태+`setStoreFeatures`/`updateStoreFeatures` 시그니처), `calendarStoreHelpers.ts`(syncStoreFeatures patch), `_app.tsx`(로컬·원격 로딩), `features/local-db/storage.ts`(스냅샷 필드), `StoreManageSection.tsx`(체크박스).
+- **메뉴/탭**: `Aside.tsx`(SETTINGS_SUBMENU '쿠폰 관리' + `useCouponSystem` 게이팅), `AsideMenuIcon.tsx`('coupon' 아이콘), `settings.tsx`(탭 타입·디스패치).
+- 상품 필드: 이름, 할인방식(정액 amount/정률 rate), 할인값, 정률 상한(maxDiscount?), 최소 결제금액(minOrderAmount?), 유효기간(validDays?), 코드(code? — 있으면 코드형).
+
+### 리스크
+- `@@unique([storeId, code])` 충돌 시 409 처리 필요(코드형 중복). 정률 0~100 검증.
+- Phase 3(결제 차감)는 회원권 Phase 3과 함께 신중히 — 이번 범위 밖.
 
 ### 현황 조사 결과
 - 결제 = `ReservationPaymentEntry`(method `PaymentMethod` + amount Int, 예약당 다건=분할결제). 결제 UI는 `ReservationDetailPaymentLayer`(method 셀렉트 + 금액 + 추가/삭제).
