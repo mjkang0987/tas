@@ -56,6 +56,8 @@ hair_reservations/
 
 캘린더 뷰 경로는 `/{view}/{year}/{month}/{date}` 형태(예: `/month/2026/7`). `asides`(day/three/week/month/year)는 `next.config.mjs`에서 `/`로 rewrite되고, LayoutComponent가 `router.asPath`를 파싱해 뷰·날짜를 store에 반영한다.
 
+- **기본 보기 = 월별**: 루트(`/`)·비캘린더 경로로 진입하면 기본 뷰는 `ViewType.Month`(PC·모바일 공통, 모바일 전용 뷰 분기 없음). store 초기값(`calendarStore` `view.type`)도 `'month'`. 특정 뷰 URL(`/week/…` 등)로 진입하면 그 뷰를 따른다.
+
 - **뷰 전용 경로 방어**: `/month`처럼 날짜 세그먼트가 없거나 잘못된 경로는 `resolveCalendarDate()`가 오늘로 폴백(연도 세그먼트가 유효한 양수가 아니면 `initDate`). 과거엔 `new Date(NaN,…)` Invalid Date → 파생 계산 NaN → `new Array(NaN)` 크래시가 났다. `computeTargetDerived`도 `fullYear` NaN이면 방어적으로 early-return.
 - **북마크 최초 진입 = 오늘**: 브라우저 북마크는 `/month/2026/6`처럼 날짜가 박힌 URL을 저장하므로, 시간이 지나면 지난 달이 열린다. 이를 막기 위해 **최초 진입**(`initializedPath === null` — 북마크·새로고침·직접 URL)에서는 URL 날짜를 무시하고 **오늘**로 열고(뷰 종류는 URL 값 유지), URL은 동기화 effect가 오늘 기준으로 정규화한다. 부팅 이후 인앱 이동(이전/다음·`popstate`)은 URL 날짜를 존중. 트레이드오프: 다른 달을 보던 중 새로고침하면 오늘로 돌아옴.
 

@@ -26,6 +26,10 @@
 - 구현: `LayoutComponent`의 초기화 effect에서 `initializedPath === null`(최초 진입)이면 `setCurr(initDate)`(오늘), 이후엔 `setCurr(currDate)`(URL 날짜). URL 동기화 effect가 `/month/2026/7`로 정규화.
 - 트레이드오프(수용): 다른 달을 보던 중 새로고침하면 오늘로 돌아옴.
 
+### 추가 — 기본 보기 월별로 변경 (PC·모바일 공통)
+- 결정(사용자): 기본 보기를 **월별**로. 모바일 전용 뷰 분기는 없어 한 번에 적용.
+- 구현: `calendarStore` 초기 `view.type` `'week'→'month'`, `LayoutComponent` 루트/비캘린더 진입 기본값 `ViewType.Week→ViewType.Month`.
+
 ---
 
 ## 진행 중 — 쿠폰(할인) 시스템
