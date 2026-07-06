@@ -79,17 +79,54 @@ export async function getEmailContent(
 
     if (!res.ok) {
         handleRateLimit(res);
-        console.error('[gmail-client] get message failed', res.status);
+        console.error('[gmail-client] get message failed', res.status, messageId);
         return null;
     }
 
     const json = await res.json() as GmailMessage;
-    return extractHtmlBody(json.payload);
+    const htmlPart = findHtmlPart(json.payload);
+    if (!htmlPart) return null;
+
+    // 인라인 본문(data)이면 그대로 디코드
+    if (htmlPart.body?.data) {
+        return decodeBase64Url(htmlPart.body.data);
+    }
+
+    // 큰 메일은 본문이 인라인이 아니라 첨부(attachmentId)로 전달된다 → 별도 조회.
+    // (Gmail API는 파트가 일정 크기를 넘으면 body.data 대신 body.attachmentId를 내려줌)
+    if (htmlPart.body?.attachmentId) {
+        return getAttachmentData(accessToken, messageId, htmlPart.body.attachmentId);
+    }
+
+    return null;
+}
+
+async function getAttachmentData(
+    accessToken: string,
+    messageId: string,
+    attachmentId: string,
+): Promise<string | null> {
+    if (isRateLimited()) return null;
+
+    const url = `${GMAIL_API}/messages/${messageId}/attachments/${attachmentId}`;
+
+    const res = await fetch(url, {
+        headers: {Authorization: `Bearer ${accessToken}`},
+    });
+
+    if (!res.ok) {
+        handleRateLimit(res);
+        console.error('[gmail-client] get attachment failed', res.status, messageId);
+        return null;
+    }
+
+    const json = await res.json() as {data?: string};
+    return json.data ? decodeBase64Url(json.data) : null;
 }
 
 interface GmailMessagePart {
     mimeType: string;
-    body?: {data?: string};
+    body?: {data?: string; attachmentId?: string};
     parts?: GmailMessagePart[];
 }
 
@@ -97,15 +134,15 @@ interface GmailMessage {
     payload: GmailMessagePart;
 }
 
-function extractHtmlBody(part: GmailMessagePart): string | null {
-    if (part.mimeType === 'text/html' && part.body?.data) {
-        return decodeBase64Url(part.body.data);
+function findHtmlPart(part: GmailMessagePart): GmailMessagePart | null {
+    if (part.mimeType === 'text/html' && (part.body?.data || part.body?.attachmentId)) {
+        return part;
     }
 
     if (part.parts) {
         for (const child of part.parts) {
-            const html = extractHtmlBody(child);
-            if (html) return html;
+            const found = findHtmlPart(child);
+            if (found) return found;
         }
     }
 
