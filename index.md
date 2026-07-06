@@ -242,7 +242,7 @@ NextAuth 5.0 설정. Google·Kakao·Naver OAuth 지원.
 | `disconnect.ts` | `/api/gmail/disconnect` (POST, owner) — 연동 해제 |
 | `helpers.ts` | 네이버 결제 방법 매핑, 종료시간 계산, 동기화 타임스탬프(매월 1일부터) |
 
-[^11]: Rate limiting: 429 응답 시 15분 쿨다운. 배치 fetch (`EMAIL_FETCH_CONCURRENCY = 10`)
+[^11]: Rate limiting: 429 응답 시 15분 쿨다운. 배치 fetch (`EMAIL_FETCH_CONCURRENCY = 10`). **본문 조회**: HTML 파트가 인라인 `body.data`면 바로 디코드, 없고 `body.attachmentId`면(큰 메일은 Gmail이 본문을 첨부로 내려줌) `messages/{id}/attachments/{attachmentId}`로 별도 조회 후 디코드 — 과거엔 인라인만 읽어 큰 메일이 "Failed to fetch email"로 반복 실패했음
 [^12]: `extractLabelValue(html, '예약상품')` → 담당자명, `extractLabelValue(html, '예약자명')` → 고객명. `parseServices(html)` → 시술 목록·예약금
 
 ### 인증·권한 (`server/auth/`)

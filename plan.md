@@ -4,6 +4,33 @@
 
 ---
 
+## 진행 중 — 네이버 예약 동기화 "Failed to fetch email" 반복 실패 수정
+
+> 배경: Slack `#cloud-alerts`에 `🛑 네이버 동기화 실패 … • Failed to fetch email <id>`가 매 폴링마다 반복 발생. 특정 메일 ID(`19f2704bd3d09432` 등)가 여러 폴링에 걸쳐 계속 실패.
+
+### 원인
+- `getEmailContent`가 `null`을 반환하면 sync가 `Failed to fetch email`로 집계한다.
+- `extractHtmlBody`는 HTML 파트의 **인라인 `body.data`만** 읽는다. 그러나 Gmail API는 메일 파트가 일정 크기를 넘으면 `format=full` 응답에서 본문을 `body.data`가 아니라 **`body.attachmentId`**(+`size`)로 내려준다. 큰 네이버 예약 확정 메일은 HTML 본문이 첨부로 전달되어 `body.data`가 없음 → `extractHtmlBody`가 `null` → "Failed to fetch email".
+- 작은 메일은 인라인이라 성공, 큰 메일만 결정적으로 실패 → 관찰된 패턴 일치.
+- `getLastNaverSyncTimestamp`가 항상 이달 1일부터 재스캔하므로 같은 실패 메일이 매 폴링마다 다시 알림 → 노이즈.
+
+### 구현 항목
+- `server/api/gmail/gmail-client.ts`:
+  - `GmailMessagePart.body`에 `attachmentId?: string` 추가.
+  - `extractHtmlBody`(파트 재귀 탐색) → `findHtmlPart`로 분리(HTML 파트 자체를 반환, `data`뿐 아니라 `attachmentId` 보유 파트도 매칭).
+  - `getEmailContent`: HTML 파트가 `body.data`면 기존대로 디코드, 없고 `attachmentId`면 `getAttachmentData`로 별도 조회 후 디코드.
+  - `getAttachmentData` 신규: `GET /messages/{id}/attachments/{attachmentId}` → base64url 디코드. rate-limit·에러 처리 동일 패턴.
+  - `get message failed`/`get attachment failed` 로그에 messageId 포함(진단성).
+
+### 기대 결과
+- 큰 네이버 예약 확정 메일도 본문을 조회해 정상 동기화 → "Failed to fetch email" 반복 알림 해소.
+- additive 변경(인라인 있으면 기존 경로 그대로)이라 회귀 위험 없음.
+
+### 검증 한계
+- 실제 실패 메일은 매장의 `GmailConnection` 계정(세션 MCP Gmail 계정과 별개)에 있어 직접 열람 불가. 원인은 코드 경로 + 실패 패턴 + Gmail API 동작으로 추론. 수정은 방어적·후방호환.
+
+---
+
 ## 진행 중 — 북마크(직접 URL 진입) 크래시 수정
 
 > 배경: 사용자가 `/month` 같은 캘린더 URL을 즐겨찾기했다가 다시 진입하면 화면이 에러남.
