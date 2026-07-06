@@ -249,7 +249,7 @@ export const useCalendarStore = create<CalendarState>((set) => ({
         isVisible: false,
     },
     view: {
-        type: 'week'
+        type: 'month'
     },
     router: {
         arrayRouter   : [],

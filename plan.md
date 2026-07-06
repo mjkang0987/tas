@@ -4,6 +4,34 @@
 
 ---
 
+## 진행 중 — 북마크(직접 URL 진입) 크래시 수정
+
+> 배경: 사용자가 `/month` 같은 캘린더 URL을 즐겨찾기했다가 다시 진입하면 화면이 에러남.
+
+### 원인
+- 앱 내부 네비게이션은 항상 `/month/2026/7`처럼 날짜 세그먼트를 포함한 전체 경로를 만든다.
+- 하지만 **뷰 이름만 있는 경로**(`/month`·`/week`·`/year`·`/three`·`/day`)로 직접 진입하면 `LayoutComponent`가 `new Date(Number(array[2]), …)`에서 연도 세그먼트(`array[2]`)가 `undefined` → `new Date(NaN,…)` = **Invalid Date**를 만든다.
+- `setTargetFromDate(Invalid Date)` → `target.full`이 truthy(Invalid Date 객체)라 `computeTargetDerived`가 early-return하지 않고 `fullYear/month/date`가 전부 `NaN` → 주 계산 `new Array(NaN)` → `RangeError: Invalid array length` 크래시.
+
+### 구현 항목
+- `client/components/layout/LayoutComponent.tsx`: `currDate` 산출과 `popstate` 핸들러에서 연도 세그먼트가 유효한 양수가 아니면 오늘(`initDate`)로 폴백. → `/month`는 이번 달 월별 뷰로 열리고, 기존 URL 동기화 effect가 `/month/2026/7`로 자동 정정.
+- `client/utils/calendarDerived.ts`: `fullYear`가 `NaN`이면 방어적으로 early-return(재발 방지 안전망).
+
+### 기대 결과
+- `/month`·`/week`·`/year`·`/three`·`/day` 직접 진입 시 크래시 없이 오늘 기준 해당 뷰 표시 + URL 정규화.
+
+### 추가 — 날짜 박제 북마크 문제 (최초 진입 시 오늘로)
+- 배경: 사용자가 특정 시점에 북마크하면 브라우저가 `/month/2026/6`처럼 **날짜가 박힌** 전체 URL을 저장 → 시간이 지나면 그 북마크로 들어올 때 계속 "지난 달"이 보인다.
+- 결정(사용자): **최초 진입(북마크·새로고침·직접 URL)은 URL 날짜를 무시하고 항상 오늘로.** 뷰 종류(월/주/일)는 북마크 값 유지. 앱 안에서의 이전/다음·뒤로가기는 URL 날짜 존중.
+- 구현: `LayoutComponent`의 초기화 effect에서 `initializedPath === null`(최초 진입)이면 `setCurr(initDate)`(오늘), 이후엔 `setCurr(currDate)`(URL 날짜). URL 동기화 effect가 `/month/2026/7`로 정규화.
+- 트레이드오프(수용): 다른 달을 보던 중 새로고침하면 오늘로 돌아옴.
+
+### 추가 — 기본 보기 월별로 변경 (PC·모바일 공통)
+- 결정(사용자): 기본 보기를 **월별**로. 모바일 전용 뷰 분기는 없어 한 번에 적용.
+- 구현: `calendarStore` 초기 `view.type` `'week'→'month'`, `LayoutComponent` 루트/비캘린더 진입 기본값 `ViewType.Week→ViewType.Month`.
+
+---
+
 ## 진행 중 — 쿠폰(할인) 시스템
 
 > 결정(사용자): 할인 방식 **정액+정률 둘 다**, 발급 **직접발급+코드형 둘 다**, 결제는 **결제수단에 `coupon` 추가해 차감**.
