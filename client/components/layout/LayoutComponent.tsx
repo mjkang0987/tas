@@ -119,7 +119,7 @@ export default function LayoutComponent({children}: NodeType) {
         setCurr(isFirstEntry ? initDate : currDate);
 
         setView({
-            type: isRootPath || !isCalendarPath ? ViewType.Week : array[1]
+            type: isRootPath || !isCalendarPath ? ViewType.Month : array[1]
         });
     }, [array, currDate, initDate, initializedPath, isCalendarPath, isRootPath, router.asPath, setCurr, setToday, setView]);
 
