@@ -70,10 +70,19 @@ export default function LayoutComponent({children}: NodeType) {
         const parsedMonth = Number(rawMonth);
         return Number.isFinite(parsedMonth) && parsedMonth > 0 ? parsedMonth - 1 : 0;
     };
+    // 캘린더 경로에서 날짜(연/월/일) 세그먼트를 Date로 변환. 연도 세그먼트가 없거나(뷰만
+    // 있는 북마크 경로 `/month` 등) 유효한 양수가 아니면 오늘로 폴백해 Invalid Date를 막는다.
+    const resolveCalendarDate = (segments: string[], fallback: Date) => {
+        const parsedYear = Number(segments[2]);
+        if (!Number.isFinite(parsedYear) || parsedYear <= 0) {
+            return fallback;
+        }
+        return new Date(parsedYear, getMonthIndex(segments[3]), Number(segments[4]) || 1);
+    };
     const currDate = useMemo(
         () => !isCalendarPath || isRootPath
             ? initDate
-            : new Date(Number(array[2]), getMonthIndex(array[3]), Number(array[4]) || 1),
+            : resolveCalendarDate(array, initDate),
         [array, initDate, isCalendarPath, isRootPath]
     );
 
@@ -117,12 +126,9 @@ export default function LayoutComponent({children}: NodeType) {
             if (!isCalPath || isRoot) return;
 
             const viewType = segments[1];
-            const year = Number(segments[2]);
-            const month = getMonthIndex(segments[3]);
-            const date = Number(segments[4]) || 1;
 
             setView({type: viewType});
-            setCurr(new Date(year, month, date));
+            setCurr(resolveCalendarDate(segments, initDate));
         };
 
         window.addEventListener('popstate', handlePopState);
