@@ -107,10 +107,16 @@ export default function LayoutComponent({children}: NodeType) {
             return;
         }
 
+        // 최초 진입(initializedPath === null): 북마크·새로고침·직접 URL로 들어온 경우.
+        // URL에 박제된 날짜를 무시하고 오늘로 연다(시간이 지나 북마크가 과거 달을 가리키는
+        // 문제 방지). 뷰 종류(월/주/일)는 URL 값을 유지하고, URL 은 동기화 effect 가
+        // 오늘 기준으로 정규화한다. 이후 인앱 이동(이전/다음·뒤로가기)은 URL 날짜를 존중.
+        const isFirstEntry = initializedPath === null;
+
         setInitializedPath(router.asPath);
         setLoading(true);
         setToday(initDate);
-        setCurr(currDate);
+        setCurr(isFirstEntry ? initDate : currDate);
 
         setView({
             type: isRootPath || !isCalendarPath ? ViewType.Week : array[1]
