@@ -4,6 +4,55 @@
 
 ---
 
+## 계획 중 — 고객 공개 예약 시스템 (Online Booking)
+
+> 결정(사용자): **셀프 예약 생성 + 고객 변경/취소 요청**, **인증 없이 이름+연락처**, **담당자 선택(+무관)**, **알림·취소까지** 풀 범위.
+> 배경: 현재 예약은 네이버예약(Gmail 동기화)·수기 입력만. 고객 접근 화면 전무. 자체 공개 부킹 페이지를 신설(네이버와 별개 채널 `online`).
+
+### 핵심 설계 원칙
+- **공개(비로그인) 엔드포인트 신설**: 기존 API는 전부 로그인/역할 검증. 공개 API(`/api/book/*`)는 매장 스코프 + 최소 노출 + 레이트리밋 + 슬롯 재검증(트랜잭션 overlap 체크)로 방어.
+- **데이터 최소 노출**: 공개 API는 매장명·업종라벨·예약가능 서비스(이름/소요/가격)·담당자(이름/색상)·영업시간·휴무일만. 다른 고객 정보·예약 내역 절대 비노출.
+- **고객 예약 관리는 per-예약 토큰**: 인증이 없으므로 예약 생성 시 `publicToken`(추측 불가 랜덤) 발급 → 확인/변경/취소 링크 `/(book)/r/[token]`로만 접근.
+
+### URL / 진입 (기본안, 확정 필요)
+- 매장 공개 페이지: `/book/[slug]` (매장별 `bookingSlug`). 예약 확인: `/book/[slug]/r/[token]`.
+- 오너 설정: `/settings/booking` 탭 (온라인예약 토글 + slug + 예약규칙 + 노출 서비스/담당자 선택). 쿠폰/회원권 토글 패턴 미러링.
+
+### DB 변경 (Prisma 마이그레이션)
+1. `ReservationChannel` enum에 `online` 추가.
+2. `Store`: `useOnlineBooking Boolean @default(false)`, `bookingSlug String? @unique`.
+3. 예약 규칙: `StoreBookingSettings`(신규) 또는 Store 컬럼 — `slotIntervalMin`(예: 30), `minLeadMinutes`(최소 사전예약 시간), `maxAdvanceDays`(최대 며칠 후까지), `bookableServiceIds?`/`bookableAssigneeIds?`(미지정=전체 노출). → 신규 모델로 분리 예정.
+4. `Reservation`: `publicToken String? @unique`(고객 관리 링크), 고객 변경/취소 요청 표현 필드(아래 "변경/취소" 결정에 따름).
+
+### 단계(Phase) — 각 단계별로 빌드·검증·PR·머지
+- **Phase 0 — 스키마·오너 설정 기반**: 마이그레이션(위) + `/settings/booking` 탭(토글·slug·규칙·노출 대상). slug 중복 검증. 공개 페이지는 토글 ON일 때만 활성.
+- **Phase 1 — 공개 부킹 페이지(셀프 예약 생성)**:
+  - `/book/[slug]`: 서비스 선택 → 담당자 선택(+무관) → 날짜 선택(영업시간/휴무일/최대일수 반영) → 가능 슬롯 선택 → 이름+연락처 → 예약 확정.
+  - 공개 API: `GET /api/book/[slug]`(매장 공개정보), `GET /api/book/[slug]/availability`(날짜·담당자·서비스 → 가능 슬롯), `POST /api/book/[slug]/reserve`(예약 생성, `publicToken` 반환).
+  - 슬롯 계산 유틸: 영업시간 − 기존 예약 − 담당자 스케줄 − 서비스 소요 − 최소 사전시간. 생성 시 트랜잭션 재검증(동시성).
+  - 예약 생성: channel=`online`, status=`active`, assigneeId 또는 null, legacyId 부여, customer upsert(이름+정규화 tel).
+- **Phase 2 — 고객 확인·변경·취소 (오너 승인형 요청)**:
+  - `/book/[slug]/r/[token]`: 예약 상태 표시 + **취소 요청** + **변경 요청**(다른 슬롯 재선택). 고객은 "요청"만 하고 즉시 반영되지 않음.
+  - 요청 저장: 예약에 대기 요청 표현(신설 `ReservationRequest` 모델 또는 Reservation 필드 `pendingAction`(none/cancel/change)+`pendingPayload`(JSON: 요청 날짜/시간/담당자)+`pendingRequestedAt`). 구현 시 확정.
+  - 오너 승인 UI: 오너 앱에서 대기 요청을 보고 수락/거절. 네이버 알림 벨 패턴 또는 예약 상세/캘린더 배지로 노출. 수락 시 예약 반영(취소=cancelled, 변경=슬롯 갱신), 거절 시 요청 폐기.
+  - 공개 API: `GET /api/book/reservation/[token]`, `POST .../request-cancel`, `POST .../request-change`. 오너 승인 API는 로그인/역할 검증(기존 패턴).
+- **Phase 3 — 알림**:
+  - 매장(오너) 측: 신규 온라인예약·변경/취소 **요청** 발생 시 Slack(`notifySlackForStore`) 재사용 + 오너 앱 내 알림/대기 목록(네이버 알림 벨 패턴 참고).
+  - 고객 측: **문자/이메일 발송 없음(확정)**. 앱에 SMS/이메일 인프라 부재. 고객은 예약 후 받은 **확인 링크**(`/book/[slug]/r/[token]`)를 다시 열어 상태·승인 결과를 확인. 실제 문자/알림톡은 향후 공급사 연동 시 별도 추가.
+
+### 확정된 결정
+1. 공개 URL: **`/book/[매장slug]`** (매장별 slug, 오너 설정에서 지정·중복검증).
+2. 변경/취소: **오너 승인형 요청** (고객은 요청만, 오너가 앱에서 수락/거절).
+3. 고객 알림: **확인 링크만** (문자/이메일 없음).
+
+### 리스크/주의
+- **보안**: 공개 엔드포인트 abuse(스팸 예약). 레이트리밋(IP+매장), 슬롯 재검증, 하루 예약 상한 등 필요.
+- **동시성**: 같은 슬롯 동시 예약 → 트랜잭션 + `[storeId, assigneeId, date, startTime]` 겹침 검증으로 방지.
+- **고객 알림 한계**: SMS/이메일 없음(위). 사용자에게 명확히 고지하고 진행.
+- **네이버예약과 병존**: 같은 시간대 겹침은 매장이 최종 관리. 온라인 슬롯 계산 시 네이버 예약도 점유로 반영.
+
+---
+
 ## 완료 — 온보딩 업종 선택 화면 레이아웃 틀어짐 수정
 
 > 증상(사용자): 온보딩 업종 선택 부분이 틀어짐. `body{height:100%}` 관련 의심.
