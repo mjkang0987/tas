@@ -76,12 +76,14 @@ const DB_TO_FRONTEND_CHANNEL: Record<DbReservationChannel, ReservationChannel> =
     naver: '네이버예약',
     walk_in: '현장방문',
     phone: '전화예약',
+    online: '온라인예약',
 };
 
 const FRONTEND_TO_DB_CHANNEL: Record<ReservationChannel, DbReservationChannel> = {
     '네이버예약': 'naver',
     '현장방문': 'walk_in',
     '전화예약': 'phone',
+    '온라인예약': 'online',
 };
 
 export function dbChannelToFrontend(channel: DbReservationChannel): ReservationChannel {
