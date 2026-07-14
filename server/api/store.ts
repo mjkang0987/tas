@@ -17,13 +17,37 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     if (req.method === 'GET') {
         if (!requireRole(session, 'staff', res)) return;
 
-        const [store, businessHours, closedDates, pointSettings, bookingSettings] = await Promise.all([
-            prisma.store.findUnique({where: {id: session.storeId}, select: {name: true, shopType: true, usePointSystem: true, useMembershipSystem: true, useCouponSystem: true, useOnlineBooking: true, bookingSlug: true}}),
+        const [store, businessHours, closedDates, pointSettings] = await Promise.all([
+            prisma.store.findUnique({where: {id: session.storeId}, select: {name: true, shopType: true, usePointSystem: true, useMembershipSystem: true, useCouponSystem: true}}),
             prisma.storeBusinessHour.findMany({where: {storeId: session.storeId}, orderBy: {dayIndex: 'asc'}}),
             prisma.storeClosedDate.findMany({where: {storeId: session.storeId}}),
             prisma.storePointSettings.findUnique({where: {storeId: session.storeId}}),
-            prisma.storeBookingSettings.findUnique({where: {storeId: session.storeId}}),
         ]);
+
+        // 온라인 예약 필드는 마이그레이션(0008) 이전이면 컬럼/테이블이 없어 조회가 실패할 수 있다.
+        // 별도로 분리 조회하고 실패 시 기본값으로 폴백해, 마이그레이션 순서와 무관하게 앱이 500 없이 부팅되게 한다.
+        let useOnlineBooking = false;
+        let bookingSlug: string | null = null;
+        let bookingSettings: BookingSettings = DEFAULT_BOOKING_SETTINGS;
+        try {
+            const [bookingStore, bs] = await Promise.all([
+                prisma.store.findUnique({where: {id: session.storeId}, select: {useOnlineBooking: true, bookingSlug: true}}),
+                prisma.storeBookingSettings.findUnique({where: {storeId: session.storeId}}),
+            ]);
+            useOnlineBooking = bookingStore?.useOnlineBooking ?? false;
+            bookingSlug = bookingStore?.bookingSlug ?? null;
+            if (bs) {
+                bookingSettings = {
+                    slotIntervalMin: bs.slotIntervalMin,
+                    minLeadMinutes: bs.minLeadMinutes,
+                    maxAdvanceDays: bs.maxAdvanceDays,
+                    allowAssigneeChoice: bs.allowAssigneeChoice,
+                    noticeText: bs.noticeText,
+                };
+            }
+        } catch {
+            // 마이그레이션 미적용 등 — 기본값 유지 (앱 부팅 보장)
+        }
 
         const result = dbStoreToFrontend({businessHours, closedDates, pointSettings});
         return res.status(200).json({
@@ -33,17 +57,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             usePointSystem: store?.usePointSystem ?? false,
             useMembershipSystem: store?.useMembershipSystem ?? false,
             useCouponSystem: store?.useCouponSystem ?? false,
-            useOnlineBooking: store?.useOnlineBooking ?? false,
-            bookingSlug: store?.bookingSlug ?? null,
-            bookingSettings: bookingSettings
-                ? {
-                    slotIntervalMin: bookingSettings.slotIntervalMin,
-                    minLeadMinutes: bookingSettings.minLeadMinutes,
-                    maxAdvanceDays: bookingSettings.maxAdvanceDays,
-                    allowAssigneeChoice: bookingSettings.allowAssigneeChoice,
-                    noticeText: bookingSettings.noticeText,
-                }
-                : DEFAULT_BOOKING_SETTINGS,
+            useOnlineBooking,
+            bookingSlug,
+            bookingSettings,
         });
     }
 
