@@ -195,6 +195,7 @@ export const StyledHeader = styled.div`
 
 export const StyledHeaderTitle = styled.strong`
     display: block;
+    align-self: center;
     margin: 0;
     font-size: var(--modal-title-font);
     font-weight: 700;
@@ -207,6 +208,12 @@ export const StyledHeaderTitleGroup = styled.div`
     flex-direction: column;
     gap: 4px;
     min-width: 0;
+
+    /* 그룹(제목+부제목) 안에서는 제목의 align-self:center(헤더 직접 자식용)를 무효화해
+       가로 중앙 정렬로 튀는 것을 막고 원래 좌측 정렬을 유지한다. */
+    ${StyledHeaderTitle} {
+        align-self: stretch;
+    }
 `;
 
 export const StyledHeaderTitleGroupText = styled.p`
