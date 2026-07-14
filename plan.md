@@ -4,6 +4,26 @@
 
 ---
 
+## 진행 중 — `h3` 태그를 `strong`으로 교체
+
+> 배경(사용자 요청): `h3`가 사용된 곳의 태그를 `strong`으로 바꾼다. 범위는 전부(일반 태그 + styled.h3 + CSS 선택자).
+
+### 구현 항목
+- 일반 `<h3>` → `<strong>`
+  - `client/components/modals/CustomerMergeSuggestionModal.tsx` (모달 제목)
+  - `client/components/modals/NaverSyncConflictModal.tsx` (모달 제목)
+- `styled.h3` → `styled.strong` (인라인→블록 방지 위해 `display: block;` 추가)
+  - `client/components/calendar/overlays/ModalStyles.ts` (`StyledHeaderTitle`)
+  - `client/components/calendar/overlays/ReservationDetailHeader.tsx` (`StyledReservationTitle`, ellipsis 유지 위해 block 필수)
+  - `client/components/settings/MemberSection.styles.ts` (`StyledGuestTitle`)
+  - `client/components/settings/settings-styles.ts` (`StyledSettingsCardTitle`)
+- 정책 문서(`client/content/policies/privacy.ts` 소제목 4곳): 본문이 `<strong>`을 인라인 강조로 광범위하게 사용 → 소제목엔 `.policy-subhead` 클래스를 붙이고 `policyCss.ts`의 `h3 {}` 선택자를 `.policy-subhead {}`로 교체(`display:block` 추가). 인라인 `<strong>` 오염 방지 + "태그 선택자 대신 클래스" 원칙 준수.
+
+### 리스크/주의
+- 접근성: 소제목/모달 제목이 heading 아웃라인에서 빠짐(사용자 명시 요청으로 수용). 모달은 `role="dialog"`+`aria-label`이 있어 이름 지정은 유지됨.
+
+---
+
 ## 진행 중 — 북마크(직접 URL 진입) 크래시 수정
 
 > 배경: 사용자가 `/month` 같은 캘린더 URL을 즐겨찾기했다가 다시 진입하면 화면이 에러남.

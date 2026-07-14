@@ -144,7 +144,7 @@ export const CustomerMergeSuggestionModal = ({
             <StyledMergeModal ref={dialogRef} tabIndex={-1} onClick={(e) => e.stopPropagation()}>
                 <StyledHeader>
                     <StyledHeaderTitleGroup>
-                        <h3>같은 고객인가요?</h3>
+                        <StyledMergeTitle>같은 고객인가요?</StyledMergeTitle>
                         <StyledHeaderTitleGroupText>
                             이름 패턴이 유사한 고객이 {allIds.length}명 발견되었습니다.
                             {isMulti && ' 병합할 고객을 선택하세요.'}
@@ -280,6 +280,10 @@ const StyledMergeOverlay = styled(StyledOverlay)`
 const StyledMergeModal = styled(StyledDetail)`
     width: min(400px, 90vw);
     max-width: min(400px, 90vw);
+`;
+
+const StyledMergeTitle = styled.strong`
+    font-size: 18px;
 `;
 
 const StyledScrollArea = styled.div`

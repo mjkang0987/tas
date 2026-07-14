@@ -26,6 +26,7 @@ import {CloseIconButton} from '../ui/CloseIconButton';
 import {ReservationInfoCard} from '../ui/ReservationInfoCard';
 import {NaverBookingInfo} from '../ui/NaverBookingInfo';
 import {
+    StyledConflictTitle,
     StyledConfirmOverlay,
     StyledConfirmModal,
     StyledScrollArea,
@@ -256,7 +257,7 @@ export const NaverSyncConflictModal = ({
                                 onClick={(e) => e.stopPropagation()}>
                 <StyledHeader>
                     <StyledHeaderTitleGroup>
-                        <h3>{isConfirmed ? '예약 시간 중복 처리 완료' : '예약 시간 중복 안내'}</h3>
+                        <StyledConflictTitle>{isConfirmed ? '예약 시간 중복 처리 완료' : '예약 시간 중복 안내'}</StyledConflictTitle>
                         <StyledHeaderTitleGroupText>{isConfirmed ? '처리 완료된 예약 중복 내역입니다.' : '네이버 예약 동기화 중 시간이 겹치는 예약이 발견되었습니다.'}</StyledHeaderTitleGroupText>
                     </StyledHeaderTitleGroup>
                     <CloseIconButton onClick={onDismiss} />

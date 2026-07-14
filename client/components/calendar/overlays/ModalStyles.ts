@@ -164,7 +164,7 @@ export const StyledDetail = styled.div<{ $width?: number | string }>`
 
 export const StyledHeader = styled.div`
     display: flex;
-    align-items: center;
+    align-items: flex-start;
     justify-content: space-between;
     flex-shrink: 0;
     gap: var(--modal-header-gap);
@@ -193,7 +193,8 @@ export const StyledHeader = styled.div`
     }
 `;
 
-export const StyledHeaderTitle = styled.h3`
+export const StyledHeaderTitle = styled.strong`
+    display: block;
     margin: 0;
     font-size: var(--modal-title-font);
     font-weight: 700;

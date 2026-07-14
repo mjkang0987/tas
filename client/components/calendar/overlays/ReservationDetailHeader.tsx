@@ -39,8 +39,10 @@ const StyledReservationTitleGroup = styled.div`
     overflow: hidden;
 `;
 
-const StyledReservationTitle = styled.h3`
+const StyledReservationTitle = styled.strong`
+    display: block;
     margin: 0;
+    font-size: 18px;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;

@@ -7,6 +7,10 @@ export const StyledConfirmOverlay = styled(StyledOverlay)`
     z-index: ${OVERLAY_Z_INDEX.supporting};
 `;
 
+export const StyledConflictTitle = styled.strong`
+    font-size: 18px;
+`;
+
 export const StyledCustomerValue = styled.span`
     font-weight: 600;
     color: #0f172a;
