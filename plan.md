@@ -35,7 +35,10 @@
 4. `Reservation`: `publicToken String? @unique`(고객 관리 링크), 고객 변경/취소 요청 표현 필드(아래 "변경/취소" 결정에 따름).
 
 ### 단계(Phase) — 각 단계별로 빌드·검증·PR·머지
-- **Phase 0 — 스키마·오너 설정 기반**: 마이그레이션(위) + `/settings/booking` 탭(토글·slug·규칙·노출 대상). slug 중복 검증. 공개 페이지는 토글 ON일 때만 활성.
+- **Phase 0 — 스키마·오너 설정 기반 ✅ 완료**:
+  - (0a) 마이그레이션 `0008_online_booking`(online 채널·`useOnlineBooking`·`bookingSlug`·`StoreBookingSettings`), 채널 매퍼(`online`↔`온라인예약`), `/api/store` GET/PATCH 확장(토글·슬러그 검증+중복409·규칙).
+  - (0b) 매장 관리 '고객 예약 서비스 사용' 토글 + 전역 스토어 `useOnlineBooking` 배선 + aside '고객 예약 설정'(토글 ON시) + `/settings/booking` 탭(`BookingManageSection`: 슬러그·URL 미리보기·예약 규칙 저장).
+  - 남은 것: 온라인예약 매출 채널 색/순서(Phase 1에서), 실제 공개 페이지(Phase 1).
 - **Phase 1 — 공개 부킹 페이지(셀프 예약 생성)**:
   - `/book/[slug]`: 서비스 선택 → 담당자 선택(+무관) → 날짜 선택(영업시간/휴무일/최대일수 반영) → 가능 슬롯 선택 → 이름+연락처 → 예약 확정.
   - 공개 API: `GET /api/book/[slug]`(매장 공개정보), `GET /api/book/[slug]/availability`(날짜·담당자·서비스 → 가능 슬롯), `POST /api/book/[slug]/reserve`(예약 생성, `publicToken` 반환).
