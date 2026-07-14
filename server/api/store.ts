@@ -17,6 +17,23 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     if (req.method === 'GET') {
         if (!requireRole(session, 'staff', res)) return;
 
+        // 영문 매장명(슬러그) 중복 확인 — 설정 화면의 "중복 확인" 버튼용
+        const checkSlug = typeof req.query.checkSlug === 'string' ? req.query.checkSlug : null;
+        if (checkSlug !== null) {
+            const normalized = checkSlug.trim().toLowerCase();
+            if (!isValidBookingSlug(normalized)) {
+                return res.status(200).json({available: false, reason: 'format'});
+            }
+            try {
+                const existing = await prisma.store.findUnique({where: {bookingSlug: normalized}, select: {id: true}});
+                const available = !existing || existing.id === session.storeId;
+                return res.status(200).json({available});
+            } catch {
+                // 마이그레이션 미적용 등 — 확인 불가
+                return res.status(200).json({available: true, reason: 'unverified'});
+            }
+        }
+
         const [store, businessHours, closedDates, pointSettings] = await Promise.all([
             prisma.store.findUnique({where: {id: session.storeId}, select: {name: true, shopType: true, usePointSystem: true, useMembershipSystem: true, useCouponSystem: true}}),
             prisma.storeBusinessHour.findMany({where: {storeId: session.storeId}, orderBy: {dayIndex: 'asc'}}),
