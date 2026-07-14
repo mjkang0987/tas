@@ -10,6 +10,7 @@ import {formControlStyle} from '../ui/FormControls';
 import {FieldError} from '../ui/FieldError';
 import {useToastStore} from '../../store/toastStore';
 import {SHOP_INDUSTRIES, CATEGORY_NAMES, getPrimaryIndustry, type ShopCategory} from '../../features/store-settings/labels';
+import {BookingManageSection} from './BookingManageSection';
 
 interface StoreManageSectionProps {
     formatDateLabel: (dateKey: string) => string;
@@ -27,6 +28,7 @@ export const StoreManageSection = ({formatDateLabel}: StoreManageSectionProps) =
     const usePointSystem = useCalendarStore((s) => s.usePointSystem);
     const useMembershipSystem = useCalendarStore((s) => s.useMembershipSystem);
     const useCouponSystem = useCalendarStore((s) => s.useCouponSystem);
+    const useOnlineBooking = useCalendarStore((s) => s.useOnlineBooking);
     const updateStoreFeatures = useCalendarStore((s) => s.updateStoreFeatures);
     const [businessHours, setBusinessHours] = useState(storeSettings.businessHours);
     const [closedDates, setClosedDates] = useState(storeSettings.closedDates);
@@ -328,11 +330,36 @@ export const StoreManageSection = ({formatDateLabel}: StoreManageSectionProps) =
                             <StyledFeatureDesc>정액·정률 할인 쿠폰 발급 기능. 켜면 설정 메뉴에 ‘쿠폰 관리’가 나타납니다.</StyledFeatureDesc>
                         </StyledFeatureText>
                     </StyledFeatureItem>
+                    <StyledFeatureItem htmlFor="feature-booking">
+                        <StyledFeatureCheckbox
+                            id="feature-booking"
+                            type="checkbox"
+                            checked={useOnlineBooking}
+                            onChange={(e) => {
+                                updateStoreFeatures({useOnlineBooking: e.target.checked});
+                                toast(e.target.checked ? '고객 예약 서비스를 켰습니다.' : '고객 예약 서비스를 껐습니다.');
+                            }}
+                        />
+                        <StyledFeatureText>
+                            <StyledFeatureName>고객 예약 서비스 사용</StyledFeatureName>
+                            <StyledFeatureDesc>고객이 직접 예약하는 공개 예약 페이지. 켜면 아래에 예약 설정이 나타납니다.</StyledFeatureDesc>
+                        </StyledFeatureText>
+                    </StyledFeatureItem>
                 </StyledFeatureList>
             </StyledFeatureCard>
+
+            {useOnlineBooking && (
+                <StyledBookingWrap>
+                    <BookingManageSection />
+                </StyledBookingWrap>
+            )}
         </StyledStoreSection>
     );
 };
+
+const StyledBookingWrap = styled.div`
+    margin-top: 24px;
+`;
 
 
 const StyledStoreSection = styled.div`

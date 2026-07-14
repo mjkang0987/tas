@@ -3,8 +3,8 @@ import type {NextApiRequest, NextApiResponse} from 'next';
 import {prisma} from '../db/prisma';
 import {getApiSession, requireRole} from '../auth/api-session';
 import {dbStoreToFrontend} from '../db/mappers';
-import type {StoreSettings} from '../../client/features/store-settings/model';
-import {DEFAULT_STORE_SETTINGS} from '../../client/features/store-settings/model';
+import type {StoreSettings, BookingSettings} from '../../client/features/store-settings/model';
+import {DEFAULT_STORE_SETTINGS, DEFAULT_BOOKING_SETTINGS, isValidBookingSlug} from '../../client/features/store-settings/model';
 import {sanitizeShopType} from '../../client/features/store-settings/labels';
 
 function isValidTime(value: unknown): value is string {
@@ -24,6 +24,31 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             prisma.storePointSettings.findUnique({where: {storeId: session.storeId}}),
         ]);
 
+        // 온라인 예약 필드는 마이그레이션(0008) 이전이면 컬럼/테이블이 없어 조회가 실패할 수 있다.
+        // 별도로 분리 조회하고 실패 시 기본값으로 폴백해, 마이그레이션 순서와 무관하게 앱이 500 없이 부팅되게 한다.
+        let useOnlineBooking = false;
+        let bookingSlug: string | null = null;
+        let bookingSettings: BookingSettings = DEFAULT_BOOKING_SETTINGS;
+        try {
+            const [bookingStore, bs] = await Promise.all([
+                prisma.store.findUnique({where: {id: session.storeId}, select: {useOnlineBooking: true, bookingSlug: true}}),
+                prisma.storeBookingSettings.findUnique({where: {storeId: session.storeId}}),
+            ]);
+            useOnlineBooking = bookingStore?.useOnlineBooking ?? false;
+            bookingSlug = bookingStore?.bookingSlug ?? null;
+            if (bs) {
+                bookingSettings = {
+                    slotIntervalMin: bs.slotIntervalMin,
+                    minLeadMinutes: bs.minLeadMinutes,
+                    maxAdvanceDays: bs.maxAdvanceDays,
+                    allowAssigneeChoice: bs.allowAssigneeChoice,
+                    noticeText: bs.noticeText,
+                };
+            }
+        } catch {
+            // 마이그레이션 미적용 등 — 기본값 유지 (앱 부팅 보장)
+        }
+
         const result = dbStoreToFrontend({businessHours, closedDates, pointSettings});
         return res.status(200).json({
             ...result,
@@ -32,6 +57,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             usePointSystem: store?.usePointSystem ?? false,
             useMembershipSystem: store?.useMembershipSystem ?? false,
             useCouponSystem: store?.useCouponSystem ?? false,
+            useOnlineBooking,
+            bookingSlug,
+            bookingSettings,
         });
     }
 
@@ -113,8 +141,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     if (req.method === 'PATCH') {
         if (!requireRole(session, 'owner', res)) return;
 
-        const {storeName, shopType, usePointSystem, useMembershipSystem, useCouponSystem} = req.body as {
+        const {storeName, shopType, usePointSystem, useMembershipSystem, useCouponSystem, useOnlineBooking, bookingSlug, bookingSettings} = req.body as {
             storeName?: unknown; shopType?: unknown; usePointSystem?: unknown; useMembershipSystem?: unknown; useCouponSystem?: unknown;
+            useOnlineBooking?: unknown; bookingSlug?: unknown; bookingSettings?: unknown;
         };
 
         if (storeName !== undefined && (typeof storeName !== 'string' || !storeName.trim())) {
@@ -132,17 +161,71 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         if (useCouponSystem !== undefined && typeof useCouponSystem !== 'boolean') {
             return res.status(400).json({error: 'Invalid useCouponSystem'});
         }
+        if (useOnlineBooking !== undefined && typeof useOnlineBooking !== 'boolean') {
+            return res.status(400).json({error: 'Invalid useOnlineBooking'});
+        }
+        // 슬러그: null(해제) 또는 유효 형식 문자열만
+        let normalizedSlug: string | null | undefined;
+        if (bookingSlug !== undefined) {
+            if (bookingSlug === null || bookingSlug === '') {
+                normalizedSlug = null;
+            } else if (typeof bookingSlug === 'string' && isValidBookingSlug(bookingSlug.toLowerCase())) {
+                normalizedSlug = bookingSlug.toLowerCase();
+            } else {
+                return res.status(400).json({error: 'Invalid bookingSlug', reason: 'format'});
+            }
+        }
+        // 예약 규칙 검증
+        let nextBooking: BookingSettings | undefined;
+        if (bookingSettings !== undefined) {
+            const b = bookingSettings as Partial<BookingSettings>;
+            const okInt = (v: unknown, min: number, max: number) => typeof v === 'number' && Number.isInteger(v) && v >= min && v <= max;
+            if (
+                !okInt(b.slotIntervalMin, 5, 240)
+                || !okInt(b.minLeadMinutes, 0, 43200)
+                || !okInt(b.maxAdvanceDays, 1, 365)
+                || typeof b.allowAssigneeChoice !== 'boolean'
+                || (b.noticeText !== null && b.noticeText !== undefined && typeof b.noticeText !== 'string')
+            ) {
+                return res.status(400).json({error: 'Invalid bookingSettings'});
+            }
+            nextBooking = {
+                slotIntervalMin: b.slotIntervalMin!,
+                minLeadMinutes: b.minLeadMinutes!,
+                maxAdvanceDays: b.maxAdvanceDays!,
+                allowAssigneeChoice: b.allowAssigneeChoice,
+                noticeText: (b.noticeText ?? null) as string | null,
+            };
+        }
 
-        await prisma.store.update({
-            where: {id: session.storeId},
-            data: {
-                ...(storeName !== undefined && {name: (storeName as string).trim()}),
-                ...(shopType !== undefined && {shopType: sanitizeShopType(shopType)}),
-                ...(usePointSystem !== undefined && {usePointSystem: usePointSystem as boolean}),
-                ...(useMembershipSystem !== undefined && {useMembershipSystem: useMembershipSystem as boolean}),
-                ...(useCouponSystem !== undefined && {useCouponSystem: useCouponSystem as boolean}),
-            },
-        });
+        try {
+            await prisma.store.update({
+                where: {id: session.storeId},
+                data: {
+                    ...(storeName !== undefined && {name: (storeName as string).trim()}),
+                    ...(shopType !== undefined && {shopType: sanitizeShopType(shopType)}),
+                    ...(usePointSystem !== undefined && {usePointSystem: usePointSystem as boolean}),
+                    ...(useMembershipSystem !== undefined && {useMembershipSystem: useMembershipSystem as boolean}),
+                    ...(useCouponSystem !== undefined && {useCouponSystem: useCouponSystem as boolean}),
+                    ...(useOnlineBooking !== undefined && {useOnlineBooking: useOnlineBooking as boolean}),
+                    ...(normalizedSlug !== undefined && {bookingSlug: normalizedSlug}),
+                },
+            });
+        } catch (e) {
+            // 슬러그 unique 충돌
+            if (e && typeof e === 'object' && 'code' in e && (e as {code?: string}).code === 'P2002') {
+                return res.status(409).json({error: 'bookingSlug already taken', reason: 'duplicate'});
+            }
+            throw e;
+        }
+
+        if (nextBooking !== undefined) {
+            await prisma.storeBookingSettings.upsert({
+                where: {storeId: session.storeId},
+                update: {...nextBooking},
+                create: {storeId: session.storeId, ...nextBooking},
+            });
+        }
 
         return res.status(200).json({
             storeName: storeName ?? undefined,
@@ -150,6 +233,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             usePointSystem: usePointSystem ?? undefined,
             useMembershipSystem: useMembershipSystem ?? undefined,
             useCouponSystem: useCouponSystem ?? undefined,
+            useOnlineBooking: useOnlineBooking ?? undefined,
+            bookingSlug: normalizedSlug,
+            bookingSettings: nextBooking,
         });
     }
 

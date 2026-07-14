@@ -16,6 +16,8 @@ model Store {
   usePointSystem         Boolean              @default(false)
   useMembershipSystem    Boolean              @default(false)
   useCouponSystem        Boolean              @default(false)
+  useOnlineBooking       Boolean              @default(false)
+  bookingSlug            String?              @unique
   categoryBaseColorsJson Json                 @default("{}")
   createdAt              DateTime             @default(now())
   updatedAt              DateTime             @updatedAt
@@ -30,6 +32,7 @@ model Store {
   businessHours          StoreBusinessHour[]
   closedDates            StoreClosedDate[]
   pointSettings          StorePointSettings?
+  bookingSettings        StoreBookingSettings?
   membershipProducts     MembershipProduct[]
   customerMemberships    CustomerMembership[]
   couponProducts         CouponProduct[]
@@ -280,6 +283,20 @@ model StoreClosedDate {
   @@unique([storeId, date])
 }
 
+// 공개(고객) 온라인 예약 규칙. Store.useOnlineBooking ON일 때만 의미.
+model StoreBookingSettings {
+  id                  String   @id @default(cuid())
+  storeId             String   @unique
+  slotIntervalMin     Int      @default(30)
+  minLeadMinutes      Int      @default(60)
+  maxAdvanceDays      Int      @default(30)
+  allowAssigneeChoice Boolean  @default(true)
+  noticeText          String?
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+  store               Store    @relation(fields: [storeId], references: [id], onDelete: Cascade)
+}
+
 model Invite {
   id         String         @id @default(cuid())
   storeId    String
@@ -325,6 +342,7 @@ enum ReservationChannel {
   naver
   walk_in
   phone
+  online
 }
 
 enum PointHistoryType {
