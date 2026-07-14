@@ -5,7 +5,7 @@ import styled from 'styled-components';
 import {useToastStore} from '../../store/toastStore';
 import {DEFAULT_BOOKING_SETTINGS, isValidBookingSlug} from '../../features/store-settings/model';
 import type {BookingSettings} from '../../features/store-settings/model';
-import {StyledSettingsCard, StyledSettingsCardTitle, StyledSettingsHint, StyledSaveBtn, StyledSelect} from './settings-styles';
+import {StyledSettingsCard, StyledSettingsCardTitle, StyledSettingsHint, StyledSaveBtn} from './settings-styles';
 
 const BOOKING_HOST = process.env.NEXT_PUBLIC_BOOKING_HOST ?? 'book.takeaseat.co.kr';
 const SLOT_OPTIONS = [10, 15, 20, 30, 60];
@@ -79,9 +79,9 @@ export function BookingManageSection() {
 
             <StyledSettingsCard>
                 <StyledSettingsCardTitle>공개 예약 페이지 주소</StyledSettingsCardTitle>
-                <StyledSettingsHint>영문 소문자·숫자·하이픈, 3~32자. 예약 페이지 URL에 사용됩니다.</StyledSettingsHint>
+                <StyledSettingsHint>영문 매장명이 예약 페이지 주소가 됩니다. 영문 소문자·숫자·하이픈, 3~32자.</StyledSettingsHint>
                 <StyledField>
-                    <StyledLabel htmlFor="booking-slug">슬러그</StyledLabel>
+                    <StyledLabel htmlFor="booking-slug">영문 매장명</StyledLabel>
                     <StyledInput
                         id="booking-slug"
                         type="text"
@@ -100,14 +100,14 @@ export function BookingManageSection() {
                 <StyledSettingsCardTitle>예약 규칙</StyledSettingsCardTitle>
                 <StyledField>
                     <StyledLabel htmlFor="booking-slot">예약 시간 간격</StyledLabel>
-                    <StyledSelect
+                    <StyledFullSelect
                         id="booking-slot"
                         value={settings.slotIntervalMin}
                         onChange={(e) => setNum('slotIntervalMin', Number(e.target.value))}
                         disabled={loading}
                     >
                         {SLOT_OPTIONS.map((m) => <option key={m} value={m}>{m}분</option>)}
-                    </StyledSelect>
+                    </StyledFullSelect>
                 </StyledField>
                 <StyledField>
                     <StyledLabel htmlFor="booking-lead">최소 사전 예약 시간(분)</StyledLabel>
@@ -203,6 +203,21 @@ const StyledInput = styled.input<{$invalid?: boolean}>`
     color: var(--black-color);
     background: var(--white-color);
     box-sizing: border-box;
+
+    &:focus { outline: none; border-color: var(--blue-color); }
+`;
+
+const StyledFullSelect = styled.select`
+    width: 100%;
+    height: 42px;
+    padding: 0 12px;
+    border: 1px solid var(--light-gray-color);
+    border-radius: 8px;
+    font-size: 14px;
+    color: var(--black-color);
+    background: var(--white-color);
+    box-sizing: border-box;
+    cursor: pointer;
 
     &:focus { outline: none; border-color: var(--blue-color); }
 `;
