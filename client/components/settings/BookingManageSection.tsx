@@ -2,9 +2,7 @@ import {useEffect, useState} from 'react';
 
 import styled from 'styled-components';
 
-import {PageHero} from '../ui/PageHero';
 import {useToastStore} from '../../store/toastStore';
-import {useCalendarStore} from '../../store/calendarStore';
 import {DEFAULT_BOOKING_SETTINGS, isValidBookingSlug} from '../../features/store-settings/model';
 import type {BookingSettings} from '../../features/store-settings/model';
 import {StyledSettingsCard, StyledSettingsCardTitle, StyledSettingsHint, StyledSaveBtn, StyledSelect} from './settings-styles';
@@ -14,7 +12,6 @@ const SLOT_OPTIONS = [10, 15, 20, 30, 60];
 
 export function BookingManageSection() {
     const toast = useToastStore((s) => s.show);
-    const useOnlineBooking = useCalendarStore((s) => s.useOnlineBooking);
 
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
@@ -77,13 +74,8 @@ export function BookingManageSection() {
 
     return (
         <div>
-            <PageHero eyebrow="설정" title="고객 예약 설정" subtitle="고객이 직접 예약하는 공개 예약 페이지의 주소와 규칙을 설정합니다." />
-
-            {!useOnlineBooking && (
-                <StyledNotice>
-                    고객 예약 서비스가 꺼져 있습니다. <strong>매장 관리 → ‘고객 예약 서비스 사용’</strong>을 켜야 공개 페이지가 활성화됩니다. (설정 값은 미리 저장해 둘 수 있어요.)
-                </StyledNotice>
-            )}
+            <StyledSectionHeading>고객 예약 설정</StyledSectionHeading>
+            <StyledSectionSub>고객이 직접 예약하는 공개 예약 페이지의 주소와 규칙을 설정합니다.</StyledSectionSub>
 
             <StyledSettingsCard>
                 <StyledSettingsCardTitle>공개 예약 페이지 주소</StyledSettingsCardTitle>
@@ -173,15 +165,19 @@ export function BookingManageSection() {
     );
 }
 
-const StyledNotice = styled.p`
-    margin: 0 0 16px;
-    padding: 12px 14px;
-    border: 1px solid var(--light-gray-color);
-    border-radius: 8px;
-    background: var(--bg-subtle-92, #f7f8fa);
+const StyledSectionHeading = styled.strong`
+    display: block;
+    margin: 0;
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--black-color);
+`;
+
+const StyledSectionSub = styled.p`
+    margin: 4px 0 16px;
     font-size: 13px;
-    line-height: 1.6;
-    color: var(--dark-gray-color);
+    line-height: 1.5;
+    color: var(--dark-gray-color2);
 `;
 
 const StyledField = styled.div`
