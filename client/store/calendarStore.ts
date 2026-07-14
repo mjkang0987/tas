@@ -140,6 +140,7 @@ export interface CalendarState {
     usePointSystem: boolean;
     useMembershipSystem: boolean;
     useCouponSystem: boolean;
+    useOnlineBooking: boolean;
     storeSettings: StoreSettings;
     syncNotifications: SyncNotification[];
 
@@ -174,8 +175,8 @@ export interface CalendarState {
     setAssignees: (assignees: Assignee[]) => void;
     setStoreInfo: (name: string, type: string | null) => void;
     updateStoreInfo: (name: string, type: string | null) => void;
-    setStoreFeatures: (usePointSystem: boolean, useMembershipSystem: boolean, useCouponSystem: boolean) => void;
-    updateStoreFeatures: (patch: {usePointSystem?: boolean; useMembershipSystem?: boolean; useCouponSystem?: boolean}) => void;
+    setStoreFeatures: (usePointSystem: boolean, useMembershipSystem: boolean, useCouponSystem: boolean, useOnlineBooking: boolean) => void;
+    updateStoreFeatures: (patch: {usePointSystem?: boolean; useMembershipSystem?: boolean; useCouponSystem?: boolean; useOnlineBooking?: boolean}) => void;
     setStoreSettings: (storeSettings: StoreSettings) => void;
     updateStoreBusinessHours: (hours: Partial<StoreSettings['businessHours']>) => void;
     updateStorePointSettings: (pointSettings: Partial<StoreSettings['pointSettings']>) => void;
@@ -273,6 +274,7 @@ export const useCalendarStore = create<CalendarState>((set) => ({
     usePointSystem: false,
     useMembershipSystem: false,
     useCouponSystem: false,
+    useOnlineBooking: false,
     storeSettings: DEFAULT_STORE_SETTINGS,
     syncNotifications: [],
 
@@ -440,7 +442,7 @@ export const useCalendarStore = create<CalendarState>((set) => ({
         set({storeName, shopType});
         syncStoreInfo(storeName, shopType);
     },
-    setStoreFeatures: (usePointSystem, useMembershipSystem, useCouponSystem) => set({usePointSystem, useMembershipSystem, useCouponSystem}),
+    setStoreFeatures: (usePointSystem, useMembershipSystem, useCouponSystem, useOnlineBooking) => set({usePointSystem, useMembershipSystem, useCouponSystem, useOnlineBooking}),
     updateStoreFeatures: (patch) => {
         set(patch);
         syncStoreFeatures(patch);

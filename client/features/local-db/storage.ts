@@ -25,6 +25,7 @@ export interface LocalDbSnapshot {
     usePointSystem?: boolean;
     useMembershipSystem?: boolean;
     useCouponSystem?: boolean;
+    useOnlineBooking?: boolean;
 }
 
 function cloneSnapshot(snapshot: LocalDbSnapshot): LocalDbSnapshot {

@@ -302,7 +302,7 @@ function AppContent({Component, pageProps}: AppContentProps) {
         if (status === 'unauthenticated' || (status === 'authenticated' && !hasApiAccess)) {
             const localDb = loadLocalDbSnapshot();
             setStoreInfo(localDb.storeName ?? '', localDb.shopType ?? null);
-            setStoreFeatures(localDb.usePointSystem ?? false, localDb.useMembershipSystem ?? false, localDb.useCouponSystem ?? false);
+            setStoreFeatures(localDb.usePointSystem ?? false, localDb.useMembershipSystem ?? false, localDb.useCouponSystem ?? false, localDb.useOnlineBooking ?? false);
             setStoreSettings(localDb.storeSettings);
             setReservationMap(groupByDate(localDb.reservations));
             setCustomerMap(toCustomerMap(localDb.customers));
@@ -326,7 +326,7 @@ function AppContent({Component, pageProps}: AppContentProps) {
                 if (!customersRes.ok) throw new Error('Failed to load customers');
 
                 return Promise.all([
-                    storeRes.json() as Promise<StoreSettings & {storeName?: string; shopType?: string | null; usePointSystem?: boolean; useMembershipSystem?: boolean; useCouponSystem?: boolean}>,
+                    storeRes.json() as Promise<StoreSettings & {storeName?: string; shopType?: string | null; usePointSystem?: boolean; useMembershipSystem?: boolean; useCouponSystem?: boolean; useOnlineBooking?: boolean}>,
                     reservationsRes.json() as Promise<{
                         reservations: Array<Parameters<typeof groupByDate>[0][number]>;
                         history: Parameters<typeof setReservationHistory>[0];
@@ -336,7 +336,7 @@ function AppContent({Component, pageProps}: AppContentProps) {
             })
             .then(([storeData, reservationsData, customersData]) => {
                 setStoreInfo(storeData.storeName ?? '', storeData.shopType ?? null);
-                setStoreFeatures(storeData.usePointSystem ?? false, storeData.useMembershipSystem ?? false, storeData.useCouponSystem ?? false);
+                setStoreFeatures(storeData.usePointSystem ?? false, storeData.useMembershipSystem ?? false, storeData.useCouponSystem ?? false, storeData.useOnlineBooking ?? false);
                 if (storeData && typeof storeData === 'object' && storeData.businessHours && Array.isArray(storeData.closedDates)) {
                     const rawPointSettings = storeData.pointSettings as StoreSettings['pointSettings'] & {mode?: string} | undefined;
                     setStoreSettings({
