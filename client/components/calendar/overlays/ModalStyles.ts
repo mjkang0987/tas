@@ -164,7 +164,7 @@ export const StyledDetail = styled.div<{ $width?: number | string }>`
 
 export const StyledHeader = styled.div`
     display: flex;
-    align-items: center;
+    align-items: flex-start;
     justify-content: space-between;
     flex-shrink: 0;
     gap: var(--modal-header-gap);
