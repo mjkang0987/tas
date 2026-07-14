@@ -14,9 +14,19 @@
 - **데이터 최소 노출**: 공개 API는 매장명·업종라벨·예약가능 서비스(이름/소요/가격)·담당자(이름/색상)·영업시간·휴무일만. 다른 고객 정보·예약 내역 절대 비노출.
 - **고객 예약 관리는 per-예약 토큰**: 인증이 없으므로 예약 생성 시 `publicToken`(추측 불가 랜덤) 발급 → 확인/변경/취소 링크 `/(book)/r/[token]`로만 접근.
 
-### URL / 진입 (기본안, 확정 필요)
-- 매장 공개 페이지: `/book/[slug]` (매장별 `bookingSlug`). 예약 확인: `/book/[slug]/r/[token]`.
-- 오너 설정: `/settings/booking` 탭 (온라인예약 토글 + slug + 예약규칙 + 노출 서비스/담당자 선택). 쿠폰/회원권 토글 패턴 미러링.
+### URL / 진입 — 서브도메인 (확정)
+- **고객 공개 도메인: `book.takeaseat.co.kr/[slug]`** (매장별 `bookingSlug`가 서브도메인 루트 바로 아래). 예약 확인: `book.takeaseat.co.kr/[slug]/r/[token]`.
+- 운영자 도메인 `takeaseat.co.kr`는 그대로. 하나의 Next.js 앱이 두 호스트를 서빙(hostname 분기).
+- **내부 라우트는 `pages/book/[slug].tsx`·`pages/book/[slug]/r/[token].tsx`**로 두고, 미들웨어가 `book.` 호스트의 루트 경로(`/[slug]`)를 내부 `/book/[slug]`로 rewrite. (내부 구조 깔끔 유지 + 공개 URL엔 `/book` 안 보임.)
+- 오너 설정: `/settings/booking` 탭 (온라인예약 토글 + slug + 예약규칙 + 노출 서비스/담당자). 쿠폰/회원권 토글 패턴 미러링.
+
+### 서브도메인 라우팅·격리 (Phase 1에서 배선)
+- `proxy.ts` **최상단**(auth() 밖, 점검모드 게이트처럼)에서 hostname 판정:
+  - `host === book 서브도메인` → **공개 구역**: 인증/약관/온보딩 게이트 전부 우회. `/[slug]*` → `/book/[slug]*`로 rewrite. 운영자 전용 경로 접근은 404/차단.
+  - `host === 메인` → 기존대로. `/book/*` 직접 접근은 차단(또는 서브도메인으로 안내).
+- `_app.tsx` 게스트 라우팅·`LayoutComponent` 앱 셸: 부킹 페이지는 `isBarePage`처럼 셸 없이 렌더 + 게스트 리다이렉트 예외.
+- **쿠키 격리 확인**: NextAuth 세션 쿠키가 host-only(도메인 `.takeaseat.co.kr` 와일드카드 아님)여야 `book.` 서브도메인에 세션이 안 샌다. 배선 시 검증.
+- **인프라(사용자 직접, GCP/DNS)**: `book` CNAME → Cloud Run, Cloud Run 도메인 매핑(+관리형 SSL). 앱은 부킹 호스트를 `NEXT_PUBLIC_BOOKING_HOST` 등 env로 인지. (코드는 내가, 인프라 세팅은 사용자.)
 
 ### DB 변경 (Prisma 마이그레이션)
 1. `ReservationChannel` enum에 `online` 추가.
