@@ -88,7 +88,8 @@ export const StyledSettingsCard = styled.div`
     margin-bottom: 16px;
 `;
 
-export const StyledSettingsCardTitle = styled.h3`
+export const StyledSettingsCardTitle = styled.strong`
+    display: block;
     margin: 0 0 12px;
     font-size: 13px;
     font-weight: 600;

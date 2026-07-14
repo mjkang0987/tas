@@ -193,7 +193,8 @@ export const StyledHeader = styled.div`
     }
 `;
 
-export const StyledHeaderTitle = styled.h3`
+export const StyledHeaderTitle = styled.strong`
+    display: block;
     margin: 0;
     font-size: var(--modal-title-font);
     font-weight: 700;
