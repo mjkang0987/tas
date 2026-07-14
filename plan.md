@@ -4,6 +4,22 @@
 
 ---
 
+## 완료 — 온보딩 업종 선택 화면 레이아웃 틀어짐 수정
+
+> 증상(사용자): 온보딩 업종 선택 부분이 틀어짐. `body{height:100%}` 관련 의심.
+
+### 원인
+- 온보딩은 `isBarePage`라 `LayoutComponent`가 `<>{children}</>`로 렌더 → `StyledPage`가 `#__next`(`display:flex; flex-direction:column; height:100%`)의 직접 flex 자식.
+- 내용(업종 그리드)이 뷰포트보다 길면 기본 `flex-shrink:1`이 `StyledPage`를 뷰포트 높이로 압축 → `StyledCard`(`min-height:480px`)까지 눌려 내부 요소가 겹치고, `justify-content:center`가 위쪽을 잘라 "틀어짐".
+
+### 구현
+- `client/pages/onboarding/index.tsx`의 `StyledPage`에 `flex-shrink: 0` 추가. 전역 `body/#__next` 높이는 달력 앱(고정 높이+내부 스크롤)이 의존하므로 건드리지 않음.
+
+### 검증
+- Playwright 실측(뷰포트 460px): 수정 전 카드 633→480px 압축(FAIL) → 수정 후 633px 유지·스크롤 정상(PASS). `next build` 통과.
+
+---
+
 ## 진행 중 — `h3` 태그를 `strong`으로 교체
 
 > 배경(사용자 요청): `h3`가 사용된 곳의 태그를 `strong`으로 바꾼다. 범위는 전부(일반 태그 + styled.h3 + CSS 선택자).
