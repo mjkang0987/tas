@@ -13,8 +13,13 @@ name: Claude Code Review (Reusable)
 on:
   workflow_call:
     secrets:
+      # 둘 중 하나만 등록하면 된다.
+      # - claude_code_oauth_token: Claude Pro/Max 구독 토큰(`claude setup-token`). API 종량 과금 없음(구독 한도 사용).
+      # - anthropic_api_key: Anthropic API 키(종량 과금).
+      claude_code_oauth_token:
+        required: false
       anthropic_api_key:
-        required: true
+        required: false
     inputs:
       prompt:
         description: "리뷰 프롬프트 (미지정 시 기본값 사용)"
@@ -50,6 +55,8 @@ jobs:
       - name: Claude Code Review
         uses: anthropics/claude-code-action@v1
         with:
+          # OAuth 토큰(구독) 우선, 없으면 API 키 사용
+          claude_code_oauth_token: ${{ secrets.claude_code_oauth_token }}
           anthropic_api_key: ${{ secrets.anthropic_api_key }}
           github_token: ${{ secrets.GITHUB_TOKEN }}
           prompt: ${{ inputs.prompt }}
