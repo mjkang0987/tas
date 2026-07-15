@@ -132,7 +132,20 @@ export default function BookingPage() {
             .then(async (res) => {
                 const data = await res.json().catch(() => ({}));
                 if (res.status === 201) { setResult(data as ReserveResult); return; }
-                if (res.status === 409) { setSubmitError('선택하신 시간이 방금 마감되었습니다. 다른 시간을 선택해 주세요.'); fetchSlots(); setSelectedSlot(''); return; }
+                if (res.status === 409) {
+                    const code = typeof data.error === 'string' ? data.error : '';
+                    if (code === 'duplicate') {
+                        setSubmitError('이미 같은 시간에 예약이 있습니다. 다른 시간을 선택해 주세요.');
+                    } else if (code === 'unavailable_date') {
+                        setSubmitError('선택하신 날짜는 예약할 수 없습니다. 다른 날짜를 선택해 주세요.');
+                    } else {
+                        // slot_taken · retry_exhausted: 슬롯이 방금 마감됨 → 재조회
+                        setSubmitError('선택하신 시간이 방금 마감되었습니다. 다른 시간을 선택해 주세요.');
+                    }
+                    fetchSlots();
+                    setSelectedSlot('');
+                    return;
+                }
                 setSubmitError('예약에 실패했습니다. 잠시 후 다시 시도해 주세요.');
             })
             .catch(() => setSubmitError('예약에 실패했습니다. 잠시 후 다시 시도해 주세요.'))
@@ -155,7 +168,6 @@ export default function BookingPage() {
     }
 
     if (result) {
-        const bookHref = `/book/${encodeURIComponent(slug)}/r/${result.publicToken}`;
         return (
             <StyledWrap>
                 <SeoHead title={`${info.storeName} 예약 완료`} />
@@ -167,8 +179,7 @@ export default function BookingPage() {
                         <StyledSummaryRow><span>시간</span><StyledSummaryValue>{result.startTime} ~ {result.endTime}</StyledSummaryValue></StyledSummaryRow>
                         <StyledSummaryRow><span>{labels.service}</span><StyledSummaryValue>{result.serviceSummary}</StyledSummaryValue></StyledSummaryRow>
                     </StyledSummary>
-                    <StyledNotice>예약 확인·변경·취소는 아래 링크에서 하실 수 있습니다. 링크를 저장해 주세요.</StyledNotice>
-                    <StyledLink href={bookHref}>내 예약 보기</StyledLink>
+                    <StyledNotice>예약이 정상 접수되었습니다. 위 예약 정보를 확인해 주세요. 변경·취소가 필요하면 매장으로 문의해 주세요.</StyledNotice>
                 </StyledCard>
             </StyledWrap>
         );
@@ -221,7 +232,13 @@ export default function BookingPage() {
                             <>
                                 <StyledSectionLabel>시간 선택</StyledSectionLabel>
                                 {slotsLoading && <StyledMuted>시간을 불러오는 중…</StyledMuted>}
-                                {!slotsLoading && slots.length === 0 && <StyledMuted>선택하신 날짜에 예약 가능한 시간이 없습니다.</StyledMuted>}
+                                {!slotsLoading && slots.length === 0 && (
+                                    <StyledMuted>
+                                        {totalDuration === 0
+                                            ? `선택하신 ${labels.service}는 소요시간이 0분이라 시간 예약을 할 수 없습니다. 다른 ${labels.service}를 선택해 주세요.`
+                                            : '선택하신 날짜에 예약 가능한 시간이 없습니다.'}
+                                    </StyledMuted>
+                                )}
                                 {!slotsLoading && slots.length > 0 && (
                                     <StyledSlotGrid>
                                         {slots.map((slot) => (
@@ -472,20 +489,6 @@ const StyledNextBtn = styled.button`
     font-weight: 700;
     cursor: pointer;
     &:disabled { opacity: 0.45; cursor: not-allowed; }
-`;
-
-const StyledLink = styled.a`
-    margin-top: 8px;
-    display: block;
-    height: 50px;
-    line-height: 50px;
-    text-align: center;
-    border-radius: 12px;
-    background: var(--brand-color, #6526d9);
-    color: #fff;
-    font-size: 16px;
-    font-weight: 700;
-    text-decoration: none;
 `;
 
 const StyledMuted = styled.p`
