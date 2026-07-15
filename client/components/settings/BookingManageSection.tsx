@@ -3,6 +3,7 @@ import {useEffect, useState} from 'react';
 import styled from 'styled-components';
 
 import {useToastStore} from '../../store/toastStore';
+import {useCalendarStore} from '../../store/calendarStore';
 import {DEFAULT_BOOKING_SETTINGS, isValidBookingSlug} from '../../features/store-settings/model';
 import type {BookingSettings} from '../../features/store-settings/model';
 import {StyledSettingsCard, StyledSettingsCardTitle, StyledSettingsHint, StyledSaveBtn} from './settings-styles';
@@ -12,6 +13,7 @@ const SLOT_OPTIONS = [10, 15, 20, 30, 60];
 
 export function BookingManageSection() {
     const toast = useToastStore((s) => s.show);
+    const serviceCatalog = useCalendarStore((s) => s.serviceCatalog);
 
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
@@ -100,6 +102,18 @@ export function BookingManageSection() {
 
     const setNum = (key: 'slotIntervalMin' | 'minLeadMinutes' | 'maxAdvanceDays', value: number) => {
         setSettings((prev) => ({...prev, [key]: value}));
+    };
+
+    // 노출 서비스(1c): null=전체 노출. 체크 = 노출. 전체 선택이면 null로 저장(전체 노출).
+    const allServiceNames = serviceCatalog.map((s) => s.name);
+    const isServiceExposed = (name: string) => settings.bookableServiceNames === null || settings.bookableServiceNames.includes(name);
+    const toggleServiceExposure = (name: string) => {
+        setSettings((prev) => {
+            const current = new Set(prev.bookableServiceNames ?? allServiceNames);
+            if (current.has(name)) current.delete(name); else current.add(name);
+            const next = allServiceNames.filter((n) => current.has(n));
+            return {...prev, bookableServiceNames: next.length === allServiceNames.length ? null : next};
+        });
     };
 
     return (
@@ -193,6 +207,27 @@ export function BookingManageSection() {
                     />
                 </StyledField>
             </StyledSettingsCard>
+
+            {serviceCatalog.length > 0 && (
+                <StyledSettingsCard>
+                    <StyledSettingsCardTitle>노출 서비스</StyledSettingsCardTitle>
+                    <StyledSettingsHint>고객 예약 페이지에 보여줄 서비스를 선택합니다. 하나도 선택하지 않으면 전체가 노출됩니다.</StyledSettingsHint>
+                    <StyledServiceCheckList>
+                        {serviceCatalog.map((s, idx) => (
+                            <StyledServiceCheckRow key={s.name} htmlFor={`book-svc-${idx}`}>
+                                <input
+                                    id={`book-svc-${idx}`}
+                                    type="checkbox"
+                                    checked={isServiceExposed(s.name)}
+                                    onChange={() => toggleServiceExposure(s.name)}
+                                    disabled={loading}
+                                />
+                                <span>{s.name}</span>
+                            </StyledServiceCheckRow>
+                        ))}
+                    </StyledServiceCheckList>
+                </StyledSettingsCard>
+            )}
 
             <StyledFooter>
                 <StyledSaveBtn type="button" onClick={handleSave} disabled={saving || loading || !slugValid}>
@@ -314,6 +349,22 @@ const StyledCheckboxRow = styled.label`
     align-items: center;
     gap: 8px;
     margin-top: 16px;
+    font-size: 14px;
+    color: var(--dark-gray-color);
+    cursor: pointer;
+`;
+
+const StyledServiceCheckList = styled.div`
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-top: 14px;
+`;
+
+const StyledServiceCheckRow = styled.label`
+    display: flex;
+    align-items: center;
+    gap: 8px;
     font-size: 14px;
     color: var(--dark-gray-color);
     cursor: pointer;
