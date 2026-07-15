@@ -31,16 +31,24 @@
 
 ## Work Request Flow (업무 처리 절차)
 > 사용자가 업무를 요청하면 아래 순서를 따른다. 각 단계는 지정 도구를 사용한다.
+
+**세부 규약:**
+- **이슈당 브랜치 · 이슈당 PR.** 브랜치명 `claude/issue-<번호>-<짧은슬러그>`, `main`에서 분기. 한 번에 한 이슈.
+- **자동 머지.** 8단계(코드검증·자동리뷰·CI)가 모두 그린이면 사용자 승인 없이 머지한다.
+- **라벨**: `feature`/`fix`/`chore`/`refactor`/`docs` + `phase-*` (없으면 생성). 하위 작업 3개 이상이면 상위(에픽) 이슈 + 서브이슈.
+- **검증 범위**: 항상 빌드/타입체크. 런타임 변경은 `/verify`로 구동. 문서·설정만이면 빌드만.
+
 1. **업무 요청 접수** — 요구사항이 모호하면 먼저 질문해 범위를 확정한다(추측 금지).
 2. **이슈 분할·생성** — 작업을 단위로 쪼개 GitHub 이슈를 만든다. 큰 기능은 상위(에픽) 이슈 + 서브이슈. 각 이슈에 배경·작업 체크리스트·완료 조건·관련 파일을 적는다.
-3. **작업** — 지정 브랜치에서 이슈 단위로 구현. 커밋은 최소 단위·한국어·conventional prefix (`On Commit` 준수). `plan.md` 계획 선행은 `Development Workflow` 준수.
+3. **작업** — 이슈당 브랜치(`claude/issue-<번호>-<슬러그>`)를 `main`에서 만들어 구현. 커밋은 최소 단위·한국어·conventional prefix (`On Commit` 준수). `plan.md` 계획 선행은 `Development Workflow` 준수.
 4. **검증** — `/verify`로 빌드 + 실제 동작 확인(테스트만이 아니라 대상 흐름을 구동).
 5. **코드리뷰** — `/code-review`로 현재 diff를 리뷰한다.
    1. **리팩토링** — 리뷰 지적사항 반영 + 재사용·단순화(`/simplify`).
 6. **재검증** — 리팩토링 후 다시 빌드·검증.
 7. **PR 생성** — 본문에 `Closes #<이슈>`를 포함한다. PR 생성 시 자동 코드리뷰 Action(`.github/workflows/pr-review.yml`)이 실행된다.
 8. **코드 검증** — PR 상태에서 코드를 최종 검증한다(`/verify` 빌드+구동). 자동 리뷰·CI 결과도 함께 확인. 지적이 있으면 4~6을 반복한다.
-9. **머지** — `package.json` semver 버전 범프(`Development Workflow`). 머지되면 이슈 자동 종료, `index.md`·`plan.md` 갱신(`Documentation Maintenance`).
+9. **머지** — 8단계가 그린이면 자동 머지. `package.json` semver 버전 범프(`Development Workflow`). 머지되면 이슈 자동 종료, `index.md`·`plan.md` 갱신(`Documentation Maintenance`).
+10. **배포** — `main` 머지 시 배포 파이프라인이 (a) 운영 마이그레이션(`prisma:deploy`, direct 5432) → (b) Cloud Run 배포를 수행한다. 자동화(GitHub Action + GCP 인증)가 갖춰지기 전까지는 사용자가 수동 실행하며, 스키마 변경 PR은 "마이그레이션 먼저, 코드 배포 나중" 순서를 지킨다.
 
 ## Front-End Standards
 - Do not use tag selectors. Use IDs or class names only.
