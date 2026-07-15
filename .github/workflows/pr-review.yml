@@ -16,6 +16,8 @@ jobs:
     # 같은 저장소의 로컬 재사용 워크플로 호출
     uses: ./.github/workflows/claude-review-reusable.yml
     secrets:
+      # Claude Max 구독 토큰(있으면 이걸로 — 종량 과금 없음). API 키만 있으면 아래로.
+      claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
       anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
     with:
       max_turns: 4
