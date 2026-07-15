@@ -211,6 +211,7 @@ model Reservation {
   naverBookingUrl  String?
   naverDeposit     Int?
   channel          ReservationChannel        @default(phone)
+  publicToken      String?                   @unique
   createdAt        DateTime                  @default(now())
   updatedAt        DateTime                  @updatedAt
   pointHistories   CustomerPointHistory[]
