@@ -4,7 +4,7 @@ import {prisma} from '../db/prisma';
 import {getApiSession, requireRole} from '../auth/api-session';
 import {dbStoreToFrontend} from '../db/mappers';
 import type {StoreSettings, BookingSettings} from '../../client/features/store-settings/model';
-import {DEFAULT_STORE_SETTINGS, DEFAULT_BOOKING_SETTINGS, isValidBookingSlug} from '../../client/features/store-settings/model';
+import {DEFAULT_STORE_SETTINGS, DEFAULT_BOOKING_SETTINGS, isValidBookingSlug, parseBookableServiceNames} from '../../client/features/store-settings/model';
 import {sanitizeShopType} from '../../client/features/store-settings/labels';
 
 function isValidTime(value: unknown): value is string {
@@ -60,6 +60,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                     maxAdvanceDays: bs.maxAdvanceDays,
                     allowAssigneeChoice: bs.allowAssigneeChoice,
                     noticeText: bs.noticeText,
+                    bookableServiceNames: parseBookableServiceNames(bs.bookableServiceIdsJson),
                 };
             }
         } catch {
@@ -197,12 +198,16 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         if (bookingSettings !== undefined) {
             const b = bookingSettings as Partial<BookingSettings>;
             const okInt = (v: unknown, min: number, max: number) => typeof v === 'number' && Number.isInteger(v) && v >= min && v <= max;
+            const okServiceNames = b.bookableServiceNames === undefined
+                || b.bookableServiceNames === null
+                || (Array.isArray(b.bookableServiceNames) && b.bookableServiceNames.every((n) => typeof n === 'string'));
             if (
                 !okInt(b.slotIntervalMin, 5, 240)
                 || !okInt(b.minLeadMinutes, 0, 43200)
                 || !okInt(b.maxAdvanceDays, 1, 365)
                 || typeof b.allowAssigneeChoice !== 'boolean'
                 || (b.noticeText !== null && b.noticeText !== undefined && typeof b.noticeText !== 'string')
+                || !okServiceNames
             ) {
                 return res.status(400).json({error: 'Invalid bookingSettings'});
             }
@@ -212,6 +217,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                 maxAdvanceDays: b.maxAdvanceDays!,
                 allowAssigneeChoice: b.allowAssigneeChoice,
                 noticeText: (b.noticeText ?? null) as string | null,
+                bookableServiceNames: (b.bookableServiceNames ?? null) as string[] | null,
             };
         }
 
@@ -237,10 +243,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         }
 
         if (nextBooking !== undefined) {
+            // BookingSettings.bookableServiceNames ↔ DB 컬럼 bookableServiceIdsJson 로 매핑.
+            const {bookableServiceNames, ...rules} = nextBooking;
+            const bookingData = {...rules, bookableServiceIdsJson: bookableServiceNames ?? []};
             await prisma.storeBookingSettings.upsert({
                 where: {storeId: session.storeId},
-                update: {...nextBooking},
-                create: {storeId: session.storeId, ...nextBooking},
+                update: bookingData,
+                create: {storeId: session.storeId, ...bookingData},
             });
         }
 

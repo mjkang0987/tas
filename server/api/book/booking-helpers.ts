@@ -1,6 +1,6 @@
 // 공개 온라인 예약 API 공용 헬퍼(availability·reserve 공유).
 import {prisma} from '../../db/prisma';
-import {DEFAULT_BOOKING_SETTINGS} from '../../../client/features/store-settings/model';
+import {DEFAULT_BOOKING_SETTINGS, parseBookableServiceNames} from '../../../client/features/store-settings/model';
 import type {BookingSettings} from '../../../client/features/store-settings/model';
 
 const KST_OFFSET_MIN = 9 * 60; // Asia/Seoul (UTC+9), 이 앱은 한국 전용
@@ -92,5 +92,6 @@ export async function loadBookingSettings(storeId: string): Promise<BookingSetti
         maxAdvanceDays: row.maxAdvanceDays,
         allowAssigneeChoice: row.allowAssigneeChoice,
         noticeText: row.noticeText,
+        bookableServiceNames: parseBookableServiceNames(row.bookableServiceIdsJson),
     };
 }

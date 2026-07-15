@@ -6,6 +6,7 @@ import {
     type SlotAssignee,
     type SlotReservation,
 } from '../../../../client/features/booking/availability';
+import {areServicesBookable} from '../../../../client/features/store-settings/model';
 import {
     dayIndexOf,
     evaluateDateWindow,
@@ -47,6 +48,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     // 모르는 서비스가 섞였으면 거부(공개 API 최소 신뢰)
     if (services.length !== serviceNames.length) return res.status(400).json({error: 'unknown_service'});
+    // 노출 화이트리스트(1c) 밖 서비스는 거부
+    if (!areServicesBookable(serviceNames, settings.bookableServiceNames)) return res.status(400).json({error: 'not_bookable'});
     const durationMin = services.reduce((sum, s) => sum + s.duration, 0);
 
     const closedDates = closedRows.map((c) => c.date.toISOString().slice(0, 10));

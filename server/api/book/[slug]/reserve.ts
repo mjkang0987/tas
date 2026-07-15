@@ -5,6 +5,7 @@ import type {NextApiRequest, NextApiResponse} from 'next';
 import {prisma} from '../../../db/prisma';
 import {normalizeTel} from '../../../../client/features/customers/model';
 import {calcEndTime, joinServiceNames} from '../../../../client/features/services/model';
+import {areServicesBookable} from '../../../../client/features/store-settings/model';
 import {
     computeAvailableSlots,
     pickAssigneeForSlot,
@@ -75,6 +76,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     ]);
 
     if (services.length !== serviceNames.length) return res.status(400).json({error: 'unknown_service'});
+    // 노출 화이트리스트(1c) 밖 서비스는 거부
+    if (!areServicesBookable(serviceNames, settings.bookableServiceNames)) return res.status(400).json({error: 'not_bookable'});
     const durationMin = services.reduce((sum, s) => sum + s.duration, 0);
     const price = services.reduce((sum, s) => sum + s.price, 0);
     const endTime = calcEndTime(startTime, durationMin);
