@@ -39,7 +39,7 @@
    1. **리팩토링** — 리뷰 지적사항 반영 + 재사용·단순화(`/simplify`).
 6. **재검증** — 리팩토링 후 다시 빌드·검증.
 7. **PR 생성** — 본문에 `Closes #<이슈>`를 포함한다. PR 생성 시 자동 코드리뷰 Action(`.github/workflows/pr-review.yml`)이 실행된다.
-8. **PR 검증** — 자동 리뷰·CI 결과를 확인(그린)한다. 지적이 있으면 4~6을 반복한다.
+8. **코드 검증** — PR 상태에서 코드를 최종 검증한다(`/verify` 빌드+구동). 자동 리뷰·CI 결과도 함께 확인. 지적이 있으면 4~6을 반복한다.
 9. **머지** — `package.json` semver 버전 범프(`Development Workflow`). 머지되면 이슈 자동 종료, `index.md`·`plan.md` 갱신(`Documentation Maintenance`).
 
 ## Front-End Standards
