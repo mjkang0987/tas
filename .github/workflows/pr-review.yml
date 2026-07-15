@@ -1,23 +1,50 @@
-# tas 저장소의 PR 자동 리뷰 — 공통 재사용 워크플로를 호출한다.
-# ANTHROPIC_API_KEY 시크릿이 등록돼 있어야 동작한다.
-name: PR Review
+# PR 자동 검증 (무료 정적분석) — 린트 + 빌드/타입체크.
+# AI 코드리뷰는 작성자(Claude)가 절차 5단계(/code-review)에서 세션 내에서 수행한다.
+# 이 CI는 자동 게이트: 타입/빌드 오류를 머지 전에 잡는다.
+name: CI
 
 on:
   pull_request:
     types: [opened, synchronize, reopened]
     paths-ignore:
+      - "**/*.md"
       - "**/*.lock"
       - "pnpm-lock.yaml"
       - "client/prisma/generated/**"
-      - "**/*.md"
+
+permissions:
+  contents: read
 
 jobs:
-  review:
-    # 같은 저장소의 로컬 재사용 워크플로 호출
-    uses: ./.github/workflows/claude-review-reusable.yml
-    secrets:
-      # Claude Max 구독 토큰(있으면 이걸로 — 종량 과금 없음). API 키만 있으면 아래로.
-      claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
-      anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
-    with:
-      max_turns: 4
+  static-analysis:
+    runs-on: ubuntu-latest
+    # 포크 PR은 스킵(보안)
+    if: github.event.pull_request.head.repo.full_name == github.repository
+    defaults:
+      run:
+        working-directory: client
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+          cache-dependency-path: client/pnpm-lock.yaml
+
+      - name: Install (client)
+        run: pnpm install --frozen-lockfile
+
+      - name: Lint (advisory)
+        run: pnpm lint
+        continue-on-error: true
+
+      - name: Build + typecheck
+        run: pnpm build
