@@ -118,9 +118,13 @@ export function computeAvailableSlots(input: AvailabilityInput): string[] {
 
 // 상관없음(자동 배정) 시 슬롯을 실제로 맡길 담당자 하나를 고른다.
 // 근무 중이며 그 슬롯에 배정 예약이 없는 첫 담당자. 없으면 null(미배정).
-export function pickAssigneeForSlot(
-    input: Omit<AvailabilityInput, 'minStartMinute'> & {startMinute: number},
-): string | null {
+export function pickAssigneeForSlot(input: {
+    dayIndex: number;
+    durationMin: number;
+    reservations: SlotReservation[];
+    assignees: SlotAssignee[];
+    startMinute: number;
+}): string | null {
     const {dayIndex, durationMin, reservations, assignees, startMinute} = input;
     if (assignees.length === 0) return null;
     const end = startMinute + durationMin;

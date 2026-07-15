@@ -89,12 +89,15 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         ? requestedAssigneeId
         : null;
 
+    const date = new Date(`${dateStr}T00:00:00`);
+
     // 겹침 재검증 + 생성을 원자화(Serializable). legacyId/token 충돌 시 재시도.
+    let publicToken: string | null = null;
     for (let attempt = 0; attempt < 3; attempt++) {
         try {
             const result = await prisma.$transaction(async (tx) => {
                 const reservationRows = await tx.reservation.findMany({
-                    where: {storeId: store.id, date: new Date(`${dateStr}T00:00:00`), status: 'active'},
+                    where: {storeId: store.id, date, status: 'active'},
                     select: {assigneeId: true, startTime: true, endTime: true},
                 });
                 const reservations: SlotReservation[] = reservationRows.map((r) => ({
@@ -113,15 +116,22 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                     assigneeId,
                     assignees,
                 });
-                if (!slots.includes(startTime)) return {conflict: true as const};
+                if (!slots.includes(startTime)) return {status: 'slot_taken' as const};
 
                 // 상관없음이면 그 슬롯에 실제 배정할 담당자 하나 선택(없으면 미배정)
                 const finalAssigneeId = assigneeId
-                    ?? pickAssigneeForSlot({dayIndex, businessHour: businessHour ?? null, durationMin, slotIntervalMin: settings.slotIntervalMin, reservations, assigneeId: null, assignees, startMinute: timeToMinutes(startTime)});
+                    ?? pickAssigneeForSlot({dayIndex, durationMin, reservations, assignees, startMinute: timeToMinutes(startTime)});
 
                 // 고객 upsert: 정규화 tel로 조회, 없으면 legacyId 부여 생성
                 let customer = await tx.customer.findFirst({where: {storeId: store.id, tel}, select: {id: true}});
-                if (!customer) {
+                if (customer) {
+                    // 더블클릭·재시도 중복 방지: 같은 고객이 같은 슬롯에 이미 active 예약이 있으면 거부
+                    const dup = await tx.reservation.findFirst({
+                        where: {storeId: store.id, customerId: customer.id, date, startTime, status: 'active'},
+                        select: {id: true},
+                    });
+                    if (dup) return {status: 'duplicate' as const};
+                } else {
                     const maxCustomer = await tx.customer.findFirst({where: {storeId: store.id}, orderBy: {legacyId: 'desc'}, select: {legacyId: true}});
                     customer = await tx.customer.create({
                         data: {storeId: store.id, legacyId: (maxCustomer?.legacyId ?? 0) + 1, name, tel},
@@ -136,7 +146,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                         legacyId: (maxReservation?.legacyId ?? 0) + 1,
                         customerId: customer.id,
                         assigneeId: finalAssigneeId,
-                        date: new Date(`${dateStr}T00:00:00`),
+                        date,
                         startTime,
                         endTime,
                         serviceSummary,
@@ -148,19 +158,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                     select: {publicToken: true},
                 });
 
-                return {conflict: false as const, publicToken: created.publicToken};
+                return {status: 'ok' as const, publicToken: created.publicToken};
             }, {isolationLevel: 'Serializable'});
 
-            if (result.conflict) return res.status(409).json({error: 'slot_taken'});
-
-            await notifySlackForStore(store.id,
-                `🌐 *온라인 예약*\n• 날짜: ${dateStr}`
-                + `\n• 시간: ${startTime}~${endTime}`
-                + `\n• 시술: ${serviceSummary}`
-                + `\n• 고객: ${name}`,
-            );
-
-            return res.status(201).json({publicToken: result.publicToken, date: dateStr, startTime, endTime, serviceSummary, storeName: store.name});
+            if (result.status === 'slot_taken') return res.status(409).json({error: 'slot_taken'});
+            if (result.status === 'duplicate') return res.status(409).json({error: 'duplicate'});
+            publicToken = result.publicToken;
+            break;
         } catch (e) {
             const code = (e as {code?: string}).code;
             // P2002=unique 충돌(legacyId/token), P2034=직렬화 재시도 → 다음 시도
@@ -169,5 +173,17 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         }
     }
 
-    return res.status(409).json({error: 'retry_exhausted'});
+    if (!publicToken) return res.status(409).json({error: 'retry_exhausted'});
+
+    // 알림은 커밋 성공 후 별도 격리 — 실패해도 예약 성공(201)에는 영향 주지 않는다.
+    try {
+        await notifySlackForStore(store.id,
+            `🌐 *온라인 예약*\n• 날짜: ${dateStr}`
+            + `\n• 시간: ${startTime}~${endTime}`
+            + `\n• 시술: ${serviceSummary}`
+            + `\n• 고객: ${name}`,
+        );
+    } catch { /* 알림 실패는 무시 */ }
+
+    return res.status(201).json({publicToken, date: dateStr, startTime, endTime, serviceSummary, storeName: store.name});
 }

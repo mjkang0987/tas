@@ -36,10 +36,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const serviceNames = servicesParam.split(',').map((s) => s.trim()).filter(Boolean);
     if (serviceNames.length === 0) return res.status(400).json({error: 'no_service'});
 
+    const dayIndex = dayIndexOf(dateStr);
     const [services, closedRows, businessHour, assigneeRows, reservationRows] = await Promise.all([
         prisma.service.findMany({where: {storeId: store.id, name: {in: serviceNames}}, select: {name: true, duration: true}}),
         prisma.storeClosedDate.findMany({where: {storeId: store.id}, select: {date: true}}),
-        prisma.storeBusinessHour.findUnique({where: {storeId_dayIndex: {storeId: store.id, dayIndex: dayIndexOf(dateStr)}}, select: {openTime: true, closeTime: true, enabled: true}}),
+        prisma.storeBusinessHour.findUnique({where: {storeId_dayIndex: {storeId: store.id, dayIndex}}, select: {openTime: true, closeTime: true, enabled: true}}),
         prisma.assignee.findMany({where: {storeId: store.id, status: 'active'}, select: {id: true, schedules: {select: {dayIndex: true, enabled: true, startTime: true, endTime: true}}}}),
         prisma.reservation.findMany({where: {storeId: store.id, date: new Date(`${dateStr}T00:00:00`), status: 'active'}, select: {assigneeId: true, startTime: true, endTime: true}}),
     ]);
@@ -65,7 +66,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }));
 
     const slots = computeAvailableSlots({
-        dayIndex: dayIndexOf(dateStr),
+        dayIndex,
         businessHour: businessHour ?? null,
         durationMin,
         slotIntervalMin: settings.slotIntervalMin,
