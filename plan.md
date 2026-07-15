@@ -45,7 +45,9 @@
     - `proxy.ts`(`/book/` isExempt), `_app.tsx`(게스트 리다이렉트·부팅 오버레이 예외), `LayoutComponent`(`/book/`=isBarePage) — 비로그인 공개.
     - `GET /api/book/[slug]`(server/api/book/[slug].ts + pages 재export): 온라인예약 ON 매장만, 매장명·서비스·담당자(허용 시)·영업시간·휴무일·규칙·안내문 **최소 노출**(고객/예약정보 절대 미노출).
     - `pages/book/[slug].tsx`: 매장명·안내문·서비스 다중선택·담당자(+상관없음) 선택. 슬롯/예약은 1b에서.
-  - **1b (다음, 마이그레이션 필요)**: 슬롯 계산 + 예약 생성. `GET /api/book/[slug]/availability`, `POST /api/book/[slug]/reserve`. 마이그레이션 0009: `Reservation.publicToken`(고객 관리 링크). 예약 생성: channel=`online`, status=`active`, legacyId 부여, customer upsert(이름+정규화 tel), 트랜잭션 겹침 재검증.
+  - **1b (진행 중, 마이그레이션 필요)**: 슬롯 계산 + 예약 생성. `GET /api/book/[slug]/availability`, `POST /api/book/[slug]/reserve`. 마이그레이션 0009: `Reservation.publicToken`(고객 관리 링크). 예약 생성: channel=`online`, status=`active`, legacyId 부여, customer upsert(이름+정규화 tel), 트랜잭션 겹침 재검증.
+    - ⚠️ **재구현 메모(2026-07-15)**: 직전 세션이 1b를 구현하다 세션 크래시로 **커밋 전 유실**. 커밋 안 된 변경은 원격 컨테이너 초기화로 복구 불가(stash·dangling 확인 결과 없음). plan.md 스펙 기준으로 재구현하며, 이번엔 조각별로 즉시 커밋·푸시해 재유실 방지.
+    - 구현 순서: ① 슬롯 계산 순수 유틸(`features/booking/slots.ts`) → ② 스키마 0009(`publicToken`) → ③ availability API → ④ reserve API → ⑤ 클라 시간선택·확정 UI → ⑥ 빌드·검증.
   - **1c**: 노출 서비스 선택(오너). `StoreBookingSettings.bookableServiceIdsJson`(0009에 포함) + BookingManageSection에 서비스 다중선택 + 공개 API가 그 필터 적용. (결정: 노출할 서비스만.)
   - **1d**: 고객 확인·변경·취소(오너 승인형) — Phase 2 내용.
   - **1e**: host 분기 — `book.takeaseat.co.kr/[slug]`(루트) → 내부 `/book/[slug]` rewrite. **단 Cloudflare Worker가 Host를 유지하는지 확인 필요**(현재 앱이 `book.` 호스트를 보는지). Worker 코드 확인 후 설계.
