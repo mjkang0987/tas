@@ -45,9 +45,12 @@
     - `proxy.ts`(`/book/` isExempt), `_app.tsx`(게스트 리다이렉트·부팅 오버레이 예외), `LayoutComponent`(`/book/`=isBarePage) — 비로그인 공개.
     - `GET /api/book/[slug]`(server/api/book/[slug].ts + pages 재export): 온라인예약 ON 매장만, 매장명·서비스·담당자(허용 시)·영업시간·휴무일·규칙·안내문 **최소 노출**(고객/예약정보 절대 미노출).
     - `pages/book/[slug].tsx`: 매장명·안내문·서비스 다중선택·담당자(+상관없음) 선택. 슬롯/예약은 1b에서.
-  - **1b (진행 중, 마이그레이션 필요)**: 슬롯 계산 + 예약 생성. `GET /api/book/[slug]/availability`, `POST /api/book/[slug]/reserve`. 마이그레이션 0009: `Reservation.publicToken`(고객 관리 링크). 예약 생성: channel=`online`, status=`active`, legacyId 부여, customer upsert(이름+정규화 tel), 트랜잭션 겹침 재검증.
-    - ⚠️ **재구현 메모(2026-07-15)**: 직전 세션이 1b를 구현하다 세션 크래시로 **커밋 전 유실**. 커밋 안 된 변경은 원격 컨테이너 초기화로 복구 불가(stash·dangling 확인 결과 없음). plan.md 스펙 기준으로 재구현하며, 이번엔 조각별로 즉시 커밋·푸시해 재유실 방지.
-    - 구현 순서: ① 슬롯 계산 순수 유틸(`features/booking/slots.ts`) → ② 스키마 0009(`publicToken`) → ③ availability API → ④ reserve API → ⑤ 클라 시간선택·확정 UI → ⑥ 빌드·검증.
+  - **1b ✅ 완료(마이그레이션 필요 — 머지 전 수동 선적용)**: 슬롯 계산 + 예약 생성. `GET /api/book/[slug]/availability`, `POST /api/book/[slug]/reserve`. 마이그레이션 0009: `Reservation.publicToken`(고객 관리 링크). 예약 생성: channel=`online`, status=`active`, legacyId 채번, customer upsert(정규화 tel), 트랜잭션 겹침 재검증.
+    - ⚠️ **재구현 메모(2026-07-15)**: 직전 세션이 1b를 구현하다 세션 크래시로 **커밋 전 유실**(stash·dangling 확인 결과 복구 불가). plan.md 스펙 기준으로 재구현, 조각별 즉시 커밋·푸시로 재유실 방지.
+    - 구현: ① 슬롯 순수 유틸 `features/booking/slots.ts` → ② 스키마/마이그레이션 0009(`publicToken`) → ③ `slots-service.ts`(공유) + availability API → ④ reserve API → ⑤ 클라 시간선택·확정 UI(`pages/book/[slug].tsx`) → ⑥ 검증.
+    - 검증: `next build` 통과, 슬롯 유틸 동작 확인(경계·최소사전시간·비정상값), 엔드포인트 no-DB 경로 스모크(405/400) 통과. **DB 의존 경로(실 슬롯·예약 생성)는 배포 환경에서 재확인 필요.**
+    - **배포 순서 주의**: 스키마 변경이라 머지 전 Supabase에 `0009` 수동 선적용(direct 5432) 후 코드 머지(자동 배포). 안 그러면 `publicToken` 컬럼 부재로 reserve 500.
+    - **잔여(1b 범위 밖, 후속)**: `allowAssigneeChoice` 무관(any) 예약의 트랜잭션 용량 재검증은 스케줄 무시 근사(활성 담당자 수 기준) — 동시성 극단에서 미세 초과 가능. 슬롯 단위 유니크 제약은 미도입(볼륨 낮아 트랜잭션 검증으로 갈음). 고객 확인/변경/취소(`/book/[slug]/r/[token]`)는 Phase 2.
   - **1c**: 노출 서비스 선택(오너). `StoreBookingSettings.bookableServiceIdsJson`(0009에 포함) + BookingManageSection에 서비스 다중선택 + 공개 API가 그 필터 적용. (결정: 노출할 서비스만.)
   - **1d**: 고객 확인·변경·취소(오너 승인형) — Phase 2 내용.
   - **1e**: host 분기 — `book.takeaseat.co.kr/[slug]`(루트) → 내부 `/book/[slug]` rewrite. **단 Cloudflare Worker가 Host를 유지하는지 확인 필요**(현재 앱이 `book.` 호스트를 보는지). Worker 코드 확인 후 설계.

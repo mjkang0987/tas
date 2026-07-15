@@ -211,6 +211,16 @@ NextAuth 5.0 설정. Google·Kakao·Naver OAuth 지원.
 | `backfill-reservation-prices.ts` | `/api/backfill-reservation-prices` | POST | - | 예약 가격 백필 |
 | `test-mode.ts` | `/api/test-mode` | POST | - | 테스트 모드 토글 |
 
+### 공개 예약 API (`server/api/book/` — 비로그인, 매장 스코프 + 최소 노출)
+
+| 파일 | 엔드포인트 | 메서드 | 권한 | 설명 |
+|------|-----------|-------|------|------|
+| `book/[slug].ts` | `/api/book/[slug]` | GET | 공개 | 온라인예약 ON 매장의 공개 정보(매장명·서비스·담당자[허용 시]·영업시간·휴무일·규칙·안내문). 고객/예약 상세 절대 미노출 |
+| `book/[slug]/availability.ts` | `/api/book/[slug]/availability` | GET | 공개 | 슬롯 조회(`date`·`duration`·`assigneeId`). 규칙·영업시간·휴무·기존예약·담당자스케줄 반영해 가능 시작시각만. KST(+9h) 직접 계산 |
+| `book/[slug]/reserve.ts` | `/api/book/[slug]/reserve` | POST | 공개 | 예약 생성. 서버 카탈로그로 소요/가격 산정, 슬롯 권위 재검증(409), 트랜잭션(겹침 재검증+고객 upsert+legacyId 채번+`publicToken` 발급), Slack 오너 알림 |
+
+> 슬롯 계산은 `server/api/book/slots-service.ts`(availability/reserve 공유)가 순수 유틸 `client/features/booking/slots.ts`를 사용. `client/pages/book/[slug].tsx`가 고객 예약 화면(서비스·담당자·날짜·시간·예약자정보→접수).
+
 ### 계정·멤버 API (`server/api/account/`, `server/api/user/`, `server/api/{members,invites}.ts`)
 
 | 엔드포인트 | 메서드 | 권한 | 설명 |
