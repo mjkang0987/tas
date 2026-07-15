@@ -48,7 +48,7 @@
 7. **PR 생성** — 본문에 `Closes #<이슈>`를 포함한다. PR 생성 시 자동 코드리뷰 Action(`.github/workflows/pr-review.yml`)이 실행된다.
 8. **코드 검증** — PR 상태에서 코드를 최종 검증한다(`/verify` 빌드+구동). 자동 리뷰·CI 결과도 함께 확인. 지적이 있으면 4~6을 반복한다.
 9. **머지** — 8단계가 그린이면 자동 머지. `package.json` semver 버전 범프(`Development Workflow`). 머지되면 이슈 자동 종료, `index.md`·`plan.md` 갱신(`Documentation Maintenance`).
-10. **배포** — `main` 머지 시 배포 파이프라인이 (a) 운영 마이그레이션(`prisma:deploy`, direct 5432) → (b) Cloud Run 배포를 수행한다. 자동화(GitHub Action + GCP 인증)가 갖춰지기 전까지는 사용자가 수동 실행하며, 스키마 변경 PR은 "마이그레이션 먼저, 코드 배포 나중" 순서를 지킨다.
+10. **배포** — `main` 머지 시 **Google Cloud Build 트리거가 자동으로 빌드·Cloud Run 배포**한다(코드). **DB 마이그레이션은 자동화돼 있지 않고**, 스키마 변경 시 사용자가 **Supabase에서 수동으로**(direct 5432) 적용한다. 그래서 스키마 변경 PR은 "**마이그레이션 먼저(수동), 코드 배포(자동) 나중**" 순서를 지킨다 — 머지되면 코드가 자동 배포되므로, 마이그레이션은 그 전에 적용돼 있어야 500이 안 난다.
 
 ## Front-End Standards
 - Do not use tag selectors. Use IDs or class names only.
