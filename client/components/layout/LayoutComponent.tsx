@@ -35,10 +35,12 @@ export default function LayoutComponent({children}: NodeType) {
     const isOnboardingPage = router.pathname.startsWith('/onboarding');
     const isPublicPolicyPage = router.pathname === '/terms' || router.pathname === '/privacy';
     const isMaintenancePage = router.pathname === '/maintenance';
+    const isBookingPage = router.pathname.startsWith('/book/');
     // 로그인/소개/온보딩/동의/점검은 항상 풀페이지. 약관·개인정보는 미인증(로그인 전)일 때만
     // 앱 셸(Aside·Header) 없이 풀페이지로, 로그인 사용자에겐 셸 안에서 보여준다.
     // (DPA 는 운영자 전용 — 미인증 접근은 proxy.ts 에서 /login 으로 리다이렉트)
     const isBarePage = isLoginPage || isAboutPage || isOnboardingPage || isMaintenancePage
+        || isBookingPage
         || router.pathname === '/consent'
         || (isPublicPolicyPage && status !== 'authenticated');
 
