@@ -39,11 +39,18 @@
   - (0a) 마이그레이션 `0008_online_booking`(online 채널·`useOnlineBooking`·`bookingSlug`·`StoreBookingSettings`), 채널 매퍼(`online`↔`온라인예약`), `/api/store` GET/PATCH 확장(토글·슬러그 검증+중복409·규칙).
   - (0b) 매장 관리 '고객 예약 서비스 사용' 토글 + 전역 스토어 `useOnlineBooking` 배선 + aside '고객 예약 설정'(토글 ON시) + `/settings/booking` 탭(`BookingManageSection`: 슬러그·URL 미리보기·예약 규칙 저장).
   - 남은 것: 온라인예약 매출 채널 색/순서(Phase 1에서), 실제 공개 페이지(Phase 1).
-- **Phase 1 — 공개 부킹 페이지(셀프 예약 생성)**:
-  - `/book/[slug]`: 서비스 선택 → 담당자 선택(+무관) → 날짜 선택(영업시간/휴무일/최대일수 반영) → 가능 슬롯 선택 → 이름+연락처 → 예약 확정.
-  - 공개 API: `GET /api/book/[slug]`(매장 공개정보), `GET /api/book/[slug]/availability`(날짜·담당자·서비스 → 가능 슬롯), `POST /api/book/[slug]/reserve`(예약 생성, `publicToken` 반환).
-  - 슬롯 계산 유틸: 영업시간 − 기존 예약 − 담당자 스케줄 − 서비스 소요 − 최소 사전시간. 생성 시 트랜잭션 재검증(동시성).
-  - 예약 생성: channel=`online`, status=`active`, assigneeId 또는 null, legacyId 부여, customer upsert(이름+정규화 tel).
+- **인프라 ✅ 완료**: `book.takeaseat.co.kr` 서브도메인 연결. Cloudflare에 `book` CNAME(→`tas-ses3gted5a-du.a.run.app`, 🟠주황/프록시, apex 복제) 추가 → 기존 `*.takeaseat.co.kr` Cloudflare Worker Route 경유 → Cloud Run 앱까지 200 확인. (도메인 매핑/회색 CNAME 불필요.)
+- **Phase 1 — 공개 부킹 페이지(셀프 예약 생성)** — 세부 단계로 분할:
+  - **1a ✅ 완료(마이그레이션 없음)**: 공개 구역 카빙 + 매장 공개정보 API + 페이지 스캐폴드.
+    - `proxy.ts`(`/book/` isExempt), `_app.tsx`(게스트 리다이렉트·부팅 오버레이 예외), `LayoutComponent`(`/book/`=isBarePage) — 비로그인 공개.
+    - `GET /api/book/[slug]`(server/api/book/[slug].ts + pages 재export): 온라인예약 ON 매장만, 매장명·서비스·담당자(허용 시)·영업시간·휴무일·규칙·안내문 **최소 노출**(고객/예약정보 절대 미노출).
+    - `pages/book/[slug].tsx`: 매장명·안내문·서비스 다중선택·담당자(+상관없음) 선택. 슬롯/예약은 1b에서.
+  - **1b (다음, 마이그레이션 필요)**: 슬롯 계산 + 예약 생성. `GET /api/book/[slug]/availability`, `POST /api/book/[slug]/reserve`. 마이그레이션 0009: `Reservation.publicToken`(고객 관리 링크). 예약 생성: channel=`online`, status=`active`, legacyId 부여, customer upsert(이름+정규화 tel), 트랜잭션 겹침 재검증.
+  - **1c**: 노출 서비스 선택(오너). `StoreBookingSettings.bookableServiceIdsJson`(0009에 포함) + BookingManageSection에 서비스 다중선택 + 공개 API가 그 필터 적용. (결정: 노출할 서비스만.)
+  - **1d**: 고객 확인·변경·취소(오너 승인형) — Phase 2 내용.
+  - **1e**: host 분기 — `book.takeaseat.co.kr/[slug]`(루트) → 내부 `/book/[slug]` rewrite. **단 Cloudflare Worker가 Host를 유지하는지 확인 필요**(현재 앱이 `book.` 호스트를 보는지). Worker 코드 확인 후 설계.
+  - **1f**: 알림(Slack) — Phase 3 내용.
+  - 슬롯 계산 유틸: 영업시간 − 기존 예약(네이버 포함) − 담당자 스케줄 − 서비스 소요 − 최소 사전시간, slotInterval 간격, maxAdvanceDays 범위.
 - **Phase 2 — 고객 확인·변경·취소 (오너 승인형 요청)**:
   - `/book/[slug]/r/[token]`: 예약 상태 표시 + **취소 요청** + **변경 요청**(다른 슬롯 재선택). 고객은 "요청"만 하고 즉시 반영되지 않음.
   - 요청 저장: 예약에 대기 요청 표현(신설 `ReservationRequest` 모델 또는 Reservation 필드 `pendingAction`(none/cancel/change)+`pendingPayload`(JSON: 요청 날짜/시간/담당자)+`pendingRequestedAt`). 구현 시 확정.
@@ -54,9 +61,12 @@
   - 고객 측: **문자/이메일 발송 없음(확정)**. 앱에 SMS/이메일 인프라 부재. 고객은 예약 후 받은 **확인 링크**(`/book/[slug]/r/[token]`)를 다시 열어 상태·승인 결과를 확인. 실제 문자/알림톡은 향후 공급사 연동 시 별도 추가.
 
 ### 확정된 결정
-1. 공개 URL: **`/book/[매장slug]`** (매장별 slug, 오너 설정에서 지정·중복검증).
-2. 변경/취소: **오너 승인형 요청** (고객은 요청만, 오너가 앱에서 수락/거절).
-3. 고객 알림: **확인 링크만** (문자/이메일 없음).
+1. 공개 URL: **`book.takeaseat.co.kr/[영문매장명]`** (서브도메인 + slug=영문 매장명). 내부 라우트는 `/book/[slug]`, 1e에서 서브도메인 루트를 rewrite.
+2. 영문 매장명(slug): **필수**(온라인예약 ON 시), 오너 설정에서 지정 + **중복 확인 버튼**(실시간 아님) + 저장 시 unique 409.
+3. 서비스: **노출할 서비스만 선택**해서 공개(1c).
+4. 담당자: 고객 선택(+상관없음), `allowAssigneeChoice` OFF면 매장 배정.
+5. 변경/취소: **오너 승인형 요청** (고객은 요청만, 오너가 앱에서 수락/거절).
+6. 고객 알림: **확인 링크만** (문자/이메일 없음).
 
 ### 리스크/주의
 - **보안**: 공개 엔드포인트 abuse(스팸 예약). 레이트리밋(IP+매장), 슬롯 재검증, 하루 예약 상한 등 필요.

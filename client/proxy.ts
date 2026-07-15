@@ -13,6 +13,7 @@ const authMiddleware = auth((req) => {
     const isExempt =
         pathname.startsWith('/api/') ||
         pathname.startsWith('/_next') ||
+        pathname.startsWith('/book/') ||
         pathname.startsWith('/login') ||
         pathname.startsWith('/about') ||
         pathname.startsWith('/logout') ||

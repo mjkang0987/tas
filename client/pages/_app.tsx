@@ -166,8 +166,8 @@ function AppContent({Component, pageProps}: AppContentProps) {
         if (status === 'loading' || status === 'authenticated') return;
         const path = router.pathname;
 
-        // 로그인 / 약관 문서는 자유 접근
-        if (path === '/login' || path === '/about' || path === '/terms' || path === '/privacy' || path === '/logout' || path === '/maintenance') return;
+        // 로그인 / 약관 문서 / 공개 예약 페이지는 자유 접근
+        if (path === '/login' || path === '/about' || path === '/terms' || path === '/privacy' || path === '/logout' || path === '/maintenance' || path.startsWith('/book/')) return;
 
         const consented = getGuestTermsVersion() === CURRENT_TERMS_VERSION;
         // 영구 동의는 온보딩 완료 시점에 기록되므로, 온보딩 진입 가드는 세션 ack도 허용
@@ -385,6 +385,7 @@ function AppContent({Component, pageProps}: AppContentProps) {
     // 데이터(서비스·담당자·예약)가 모두 준비될 때까지 오버레이로 가려 새로고침 플래시를 막음.
     // SSR/첫 렌더 모두 status==='loading'이라 하이드레이션 불일치가 없음.
     const isAuthFlowPage = router.pathname.startsWith('/login') || router.pathname.startsWith('/onboarding')
+        || router.pathname.startsWith('/book/')
         || router.pathname === '/consent' || router.pathname === '/about' || router.pathname === '/logout'
         || router.pathname === '/terms' || router.pathname === '/privacy' || router.pathname === '/maintenance';
     // 미인증 + 로컬데이터 없음 = /login 리다이렉트 대기 → 달력이 깜빡이지 않게 오버레이 유지

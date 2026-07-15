@@ -1,0 +1,21 @@
+# tas 저장소의 PR 자동 리뷰 — 공통 재사용 워크플로를 호출한다.
+# ANTHROPIC_API_KEY 시크릿이 등록돼 있어야 동작한다.
+name: PR Review
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+    paths-ignore:
+      - "**/*.lock"
+      - "pnpm-lock.yaml"
+      - "client/prisma/generated/**"
+      - "**/*.md"
+
+jobs:
+  review:
+    # 같은 저장소의 로컬 재사용 워크플로 호출
+    uses: ./.github/workflows/claude-review-reusable.yml
+    secrets:
+      anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+    with:
+      max_turns: 4

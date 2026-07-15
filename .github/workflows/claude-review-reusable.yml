@@ -1,0 +1,56 @@
+# 재사용 가능한 Claude 코드리뷰 워크플로 (사내 여러 저장소 공통).
+# 다른 저장소는 아래처럼 얇은 caller 워크플로로 이걸 호출한다:
+#
+#   jobs:
+#     review:
+#       uses: mjkang0987/tas/.github/workflows/claude-review-reusable.yml@main
+#       secrets:
+#         anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+#
+# 사전 준비: 호출 저장소(또는 계정)에 시크릿 ANTHROPIC_API_KEY 등록.
+name: Claude Code Review (Reusable)
+
+on:
+  workflow_call:
+    secrets:
+      anthropic_api_key:
+        required: true
+    inputs:
+      prompt:
+        description: "리뷰 프롬프트 (미지정 시 기본값 사용)"
+        type: string
+        required: false
+        default: |
+          이 PR의 변경분을 한국어로 코드리뷰해줘.
+          우선순위: (1) 정확성/버그 (2) 보안(특히 공개 API·인증·권한·데이터 노출) (3) 회귀 위험
+          (4) 리팩토링·재사용·단순화 기회(중복 제거, 기존 유틸/컴포넌트 재사용, 과한 복잡도 완화).
+          스타일/네이밍은 사소(nit)로만. 저장소 루트의 REVIEW.md·CLAUDE.md 규칙이 있으면 따를 것.
+          확실한 문제·개선점만 근거와 함께 지적하고(코드는 직접 커밋하지 말고 제안만), 문제 없으면 간단히 승인 코멘트를 남겨.
+      max_turns:
+        description: "Claude 최대 턴 수 (비용 제어)"
+        type: number
+        required: false
+        default: 4
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  claude-review:
+    runs-on: ubuntu-latest
+    # 포크에서 온 PR은 시크릿 접근 불가 + 보안/비용 이슈 → 스킵
+    if: github.event.pull_request.head.repo.full_name == github.repository
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Claude Code Review
+        uses: anthropics/claude-code-action@v1
+        with:
+          anthropic_api_key: ${{ secrets.anthropic_api_key }}
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          prompt: ${{ inputs.prompt }}
+          claude_args: "--max-turns ${{ inputs.max_turns }}"
