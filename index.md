@@ -92,7 +92,7 @@ hair_reservations/
 [^20]: **정책 문서 단일 소스 구조** — 법률 본문은 문서당 파일 하나(`content/policies/{terms,privacy,dpa}.ts`)에만 두고, 제목 메타는 `content/policies/index.ts` 레지스트리(`navTitle`/`docTitle`/`body`)로 관리. 이 본문을 **인라인 페이지**(`/terms`·`/privacy`·`/dpa` → `PolicyPage`)·**보기 레이어**(`PolicyViewLayer`)·**풀페이지**(`/policies/:slug` → `api/policies/[slug].ts`가 `renderPolicyHtml`로 독립 HTML 응답)가 모두 공유 → 한 곳만 고치면 전체 반영. 공통 CSS도 `components/policy/policyCss.ts`(`POLICY_VARS_*`·`POLICY_ELEMENT_CSS`)에서 styled-components(인라인)·`<style>`(풀페이지) 양쪽이 같은 문자열 사용. DPA는 서버 보관(수탁) 개시 시점에 필요하므로 SNS 연동(인증) 이후에만 노출
 [^21]: 회원권 관리는 `Store.useMembershipSystem` 토글 ON일 때만 aside 메뉴·`/settings/membership` 탭 노출. 상품(횟수/기간권) CRUD + 고객 발급·수동 차감까지 구현(Phase 1·2). **결제 연동(예약 결제수단으로 자동 차감, `PaymentMethod.membership`)은 미구현(Phase 3 예정)**
 [^22]: 쿠폰 관리는 `Store.useCouponSystem` 토글 ON일 때만 aside 메뉴·`/settings/coupon` 탭 노출. **Phase 1만 구현** — 상품(정액 amount/정률 rate, maxDiscount·minOrderAmount·validDays·code) CRUD(`/api/coupons` owner, `server/api/coupons.ts`). **발급(직접·코드형, Phase 2)·결제 자동 차감(`PaymentMethod.coupon`, Phase 3)은 미구현.** 회원권 시스템 패턴 미러링
-[^23]: **고객 공개 온라인 예약**(`Store.useOnlineBooking` ON + `bookingSlug` 매장만). 공개 구역은 비로그인 — `proxy.ts`/`_app.tsx`/`LayoutComponent`가 `/book/*`를 인증·게이트에서 제외. 공개 API(`server/api/book/*`)는 **매장 스코프 + 데이터 최소 노출**(고객/예약 정보 절대 미반환). 페이지 `pages/book/[slug].tsx`: 서비스·담당자·날짜·시간 선택 + 이름/연락처 → 예약 생성 → `publicToken` 발급(고객 관리 링크 `/book/[slug]/r/[token]`는 Phase 1d). 슬롯 계산은 `features/booking/availability.ts` 순수함수, 예약 생성은 트랜잭션(Serializable) 슬롯 재검증으로 동시성 방어. **Phase 1b까지 구현**(공개정보·슬롯·예약생성). 노출 서비스 선택(1c)·확인/변경/취소(1d, Phase 2)·알림(1f, Phase 3)·서브도메인 rewrite(1e)는 미구현. 마이그레이션 `0008`(채널·토글·슬러그·규칙)·`0009`(`Reservation.publicToken`·`StoreBookingSettings.bookableServiceIdsJson`)
+[^23]: **고객 공개 온라인 예약**(`Store.useOnlineBooking` ON + `bookingSlug` 매장만). 공개 구역은 비로그인 — `proxy.ts`/`_app.tsx`/`LayoutComponent`가 `/book/*`를 인증·게이트에서 제외. 공개 API(`server/api/book/*`)는 **매장 스코프 + 데이터 최소 노출**(고객/예약 정보 절대 미반환). 페이지 `pages/book/[slug].tsx`: 서비스·담당자·날짜·시간 선택 + 이름/연락처 → 예약 생성 → `publicToken` 발급(고객 관리 링크 `/book/[slug]/r/[token]`는 Phase 1d). 슬롯 계산은 `features/booking/availability.ts` 순수함수, 예약 생성은 트랜잭션(Serializable) 슬롯 재검증으로 동시성 방어. **노출 서비스 선택(1c)**: 오너가 `/settings/booking`에서 공개할 서비스만 선택(`BookingSettings.bookableServiceNames`→DB `bookableServiceIdsJson`), 공개 API가 필터·거부(`not_bookable`). **Phase 1c까지 구현**(공개정보·슬롯·예약생성·노출서비스). 확인/변경/취소(1d, Phase 2)·알림(1f, Phase 3)·서브도메인 rewrite(1e)는 미구현. 마이그레이션 `0008`(채널·토글·슬러그·규칙)·`0009`(`Reservation.publicToken`·`StoreBookingSettings.bookableServiceIdsJson`)
 
 ### 도메인 모델 (`client/features/`)
 
@@ -104,7 +104,7 @@ hair_reservations/
 | `assignees/model.ts` | `Assignee` | id, name, schedule(7일), status[^6], color, phone |
 | `services/model.ts` | `ServiceItem` | name, durationMinutes, category, price |
 | `services/default-services.ts` | - | 업종(ShopType) union + 업종별 기본 서비스·카테고리 색상(Partial, 온보딩용) |
-| `store-settings/model.ts` | `StoreSettings`/`BookingSettings` | businessHours, closedDates, pointSettings(적립률, 충전규칙). `BookingSettings`(공개 예약 규칙: slotIntervalMin·minLeadMinutes·maxAdvanceDays·allowAssigneeChoice·noticeText) + slug 검증(`isValidBookingSlug`) |
+| `store-settings/model.ts` | `StoreSettings`/`BookingSettings` | businessHours, closedDates, pointSettings(적립률, 충전규칙). `BookingSettings`(공개 예약 규칙: slotIntervalMin·minLeadMinutes·maxAdvanceDays·allowAssigneeChoice·noticeText·`bookableServiceNames`[노출 서비스 화이트리스트, null=전체]) + slug 검증(`isValidBookingSlug`)·노출 헬퍼(`parseBookableServiceNames`/`areServicesBookable`) |
 | `booking/availability.ts` | - | 공개 온라인 예약 슬롯 계산 순수 함수(`computeAvailableSlots`/`pickAssigneeForSlot`). 서버 API가 재사용. 영업시간−기존예약−담당자스케줄−소요−최소사전시간, 담당자 용량 모델[^23] |
 | `store-settings/labels.ts` | - | 업종 마스터 목록·category별 표시어(담당자/서비스)·`getStoreLabels`/`sanitizeShopType` ([업종별 라벨](#업종별-라벨-담당자서비스-표시어)) |
 | `local-db/storage.ts` | - | 게스트 모드 로컬 스냅샷 (`takeaseat.local-db.v1`). `shouldUseLocalDb()`로 모드 판정, 게스트 약관 동의 버전 헬퍼(`getGuestTermsVersion`/`setGuestTermsAgreed`) — `lib/local-db`로 re-export |
@@ -198,7 +198,7 @@ NextAuth 5.0 설정. Google·Kakao·Naver OAuth 지원.
 | `assignees.ts` | `/api/assignees` | GET(staff) / PUT(owner) / DELETE(owner) | - | 담당자 CRUD + 일정(AssigneeSchedule) upsert. DELETE는 영구 삭제(분리): 예약은 assigneeId=null로 보존, 스케줄은 cascade 삭제 |
 | `assignees-merge.ts` | `/api/assignees/merge` | POST | owner | 담당자 병합 (source→target 예약 재배정 후 source 삭제) |
 | `services.ts` | `/api/services` | GET(staff) / PUT(owner) | - | 서비스 카탈로그 관리 |
-| `store.ts` | `/api/store` | GET(staff) / PUT(owner) | - | 매장 설정 (영업시간, 휴무일, 포인트 설정, 업종, **적립금/회원권 시스템 토글** `usePointSystem`/`useMembershipSystem`) |
+| `store.ts` | `/api/store` | GET(staff) / PUT(owner) | - | 매장 설정 (영업시간, 휴무일, 포인트 설정, 업종, **적립금/회원권 시스템 토글** `usePointSystem`/`useMembershipSystem`, **온라인예약** 토글·슬러그·규칙·노출서비스 `bookableServiceNames`) |
 | `memberships.ts` | `/api/memberships` | GET(staff) / POST·PUT·DELETE(owner) | - | 회원권 상품(횟수/기간권) CRUD + 보유 목록 조회 |
 | `membership-issue.ts` | `/api/membership-issue` | POST(staff) | - | 고객에게 회원권 발급/취소 (상품 스냅샷 → CustomerMembership) |
 | `membership-use.ts` | `/api/membership-use` | POST(staff) | - | 회원권 횟수 수동 차감/복원 (결제 흐름과 독립, MembershipUsage 기록) |

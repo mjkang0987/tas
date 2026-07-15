@@ -51,7 +51,10 @@
     - **`GET /api/book/[slug]/availability`**(`?date&services&assignee`): 날짜 유효성(과거·maxAdvanceDays·휴무일·영업요일) 검증 후 가용 슬롯 배열 반환. KST 기준 today/now 계산.
     - **`POST /api/book/[slug]/reserve`**(`{date,startTime,services[],assigneeId?,name,tel}`): 서버 권위 재검증(트랜잭션 Serializable + 슬롯 재계산 겹침 체크) → customer upsert(정규화 tel로 findFirst, 없으면 legacyId 부여 생성) → 예약 생성(channel=`online`, status=`active`, legacyId 부여, `publicToken` 랜덤). legacyId/token 충돌(P2002) 재시도. Slack 알림. 응답에 `publicToken`.
     - **공개 페이지**(`pages/book/[slug].tsx`): 서비스·담당자 선택 아래에 날짜(native date, min=오늘/max=+maxAdvanceDays)·슬롯 버튼·고객 이름/연락처 폼·예약 확정 → 완료 시 확인 링크(`/book/[slug]/r/[token]`) 안내(페이지 본체는 1d).
-  - **1c**: 노출 서비스 선택(오너). `StoreBookingSettings.bookableServiceIdsJson`(0009에 포함) + BookingManageSection에 서비스 다중선택 + 공개 API가 그 필터 적용. (결정: 노출할 서비스만.)
+  - **1c ✅ 완료(마이그레이션 없음 — 컬럼은 0009에 포함)**: 노출 서비스 선택(오너).
+    - `BookingSettings.bookableServiceNames`(서비스명 화이트리스트, null/[]=전체 노출) + 순수 헬퍼 `parseBookableServiceNames`/`areServicesBookable`(model.ts).
+    - `/api/store` GET/PATCH: `bookableServiceNames` 왕복(DB 컬럼 `bookableServiceIdsJson` 매핑). `BookingManageSection`에 '노출 서비스' 체크박스(전체 선택=null 저장, 미선택 시 전체 노출 안내).
+    - 공개 API: `GET /api/book/[slug]`가 화이트리스트로 서비스 목록 필터(고객 응답엔 화이트리스트 미노출), `availability`·`reserve`가 화이트리스트 밖 서비스 요청은 400 `not_bookable`로 거부.
   - **1d**: 고객 확인·변경·취소(오너 승인형) — Phase 2 내용.
   - **1e**: host 분기 — `book.takeaseat.co.kr/[slug]`(루트) → 내부 `/book/[slug]` rewrite. **단 Cloudflare Worker가 Host를 유지하는지 확인 필요**(현재 앱이 `book.` 호스트를 보는지). Worker 코드 확인 후 설계.
   - **1f**: 알림(Slack) — Phase 3 내용.
