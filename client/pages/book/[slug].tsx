@@ -163,9 +163,9 @@ export default function BookingPage() {
                     <StyledStore>{info.storeName}</StyledStore>
                     <StyledTitle>예약이 접수되었습니다</StyledTitle>
                     <StyledSummary>
-                        <StyledSummaryRow><span>날짜</span><strong>{result.date}</strong></StyledSummaryRow>
-                        <StyledSummaryRow><span>시간</span><strong>{result.startTime} ~ {result.endTime}</strong></StyledSummaryRow>
-                        <StyledSummaryRow><span>{labels.service}</span><strong>{result.serviceSummary}</strong></StyledSummaryRow>
+                        <StyledSummaryRow><span>날짜</span><StyledSummaryValue>{result.date}</StyledSummaryValue></StyledSummaryRow>
+                        <StyledSummaryRow><span>시간</span><StyledSummaryValue>{result.startTime} ~ {result.endTime}</StyledSummaryValue></StyledSummaryRow>
+                        <StyledSummaryRow><span>{labels.service}</span><StyledSummaryValue>{result.serviceSummary}</StyledSummaryValue></StyledSummaryRow>
                     </StyledSummary>
                     <StyledNotice>예약 확인·변경·취소는 아래 링크에서 하실 수 있습니다. 링크를 저장해 주세요.</StyledNotice>
                     <StyledLink href={bookHref}>내 예약 보기</StyledLink>
@@ -250,7 +250,7 @@ export default function BookingPage() {
 
                         <StyledTotal>
                             <span>합계</span>
-                            <strong>{totalPrice.toLocaleString()}원 · {totalDuration}분</strong>
+                            <StyledTotalValue>{totalPrice.toLocaleString()}원 · {totalDuration}분</StyledTotalValue>
                         </StyledTotal>
                     </>
                 )}
@@ -424,7 +424,11 @@ const StyledTotal = styled.div`
     border-radius: 10px;
     font-size: 14px;
     color: var(--dark-gray-color, #444);
-    strong { color: var(--black-color, #111); font-weight: 800; }
+`;
+
+const StyledTotalValue = styled.strong`
+    color: var(--black-color, #111);
+    font-weight: 800;
 `;
 
 const StyledSummary = styled.div`
@@ -443,7 +447,12 @@ const StyledSummaryRow = styled.div`
     gap: 12px;
     font-size: 14px;
     color: var(--dark-gray-color2, #667);
-    strong { color: var(--black-color, #111); font-weight: 700; text-align: right; }
+`;
+
+const StyledSummaryValue = styled.strong`
+    color: var(--black-color, #111);
+    font-weight: 700;
+    text-align: right;
 `;
 
 const StyledError = styled.p`

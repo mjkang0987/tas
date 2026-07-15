@@ -22,9 +22,11 @@ function dayNumber(dateStr: string): number {
     return Math.floor(Date.parse(`${dateStr}T00:00:00Z`) / (MINUTES_PER_DAY * 60000));
 }
 
-// 해당 달력일의 요일(0=일 … 6=토). 시간대 영향 없이 UTC 정오로 계산.
+// 해당 달력일의 스케줄 인덱스(0=월 … 6=일). 앱이 AssigneeSchedule.dayIndex·StoreBusinessHour.dayIndex를
+// (getDay()+6)%7 = 월=0 규칙으로 저장하므로 동일 규칙으로 맞춘다(요일 어긋남 방지).
+// 시간대 영향 없이 UTC 정오로 계산.
 export function dayIndexOf(dateStr: string): number {
-    return new Date(`${dateStr}T12:00:00Z`).getUTCDay();
+    return (new Date(`${dateStr}T12:00:00Z`).getUTCDay() + 6) % 7;
 }
 
 // KST 기준 "오늘"(YYYY-MM-DD)과 자정 이후 경과 분.

@@ -27,7 +27,7 @@ export interface SlotReservation {
 }
 
 export interface AvailabilityInput {
-    dayIndex: number; // 0=일 … 6=토 (해당 날짜의 요일)
+    dayIndex: number; // 스케줄 인덱스(0=월 … 6=일) — AssigneeSchedule.dayIndex와 같은 규칙
     businessHour: SlotBusinessHour | null;
     durationMin: number; // 선택 서비스 총 소요(분)
     slotIntervalMin: number;
@@ -117,7 +117,9 @@ export function computeAvailableSlots(input: AvailabilityInput): string[] {
 }
 
 // 상관없음(자동 배정) 시 슬롯을 실제로 맡길 담당자 하나를 고른다.
-// 근무 중이며 그 슬롯에 배정 예약이 없는 첫 담당자. 없으면 null(미배정).
+// computeAvailableSlots 용량 모델과 일치: 근무 중이며 배정 예약이 없는 담당자 중,
+// 앞쪽 unassignedLoad명은 미배정(네이버 등) 예약 몫으로 남기고 그 다음 담당자를 배정.
+// 여유가 없으면 null(미배정).
 export function pickAssigneeForSlot(input: {
     dayIndex: number;
     durationMin: number;
@@ -131,11 +133,12 @@ export function pickAssigneeForSlot(input: {
 
     const overlapping = reservations.filter((r) =>
         overlaps(startMinute, end, timeToMinutes(r.startTime), timeToMinutes(r.endTime)));
+    const unassignedLoad = overlapping.filter((r) => !r.assigneeId).length;
     const busyAssigneeIds = new Set(
         overlapping.map((r) => r.assigneeId).filter((id): id is string => Boolean(id)),
     );
 
-    const free = assignees.find((a) =>
+    const workingFree = assignees.filter((a) =>
         isAssigneeWorking(a, dayIndex, startMinute, end) && !busyAssigneeIds.has(a.id));
-    return free ? free.id : null;
+    return workingFree[unassignedLoad]?.id ?? null;
 }
