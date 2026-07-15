@@ -1,9 +1,9 @@
 import type {PaymentMethod} from '../../../utils/reservations';
 import {toDateKey} from '../../../utils/reservations';
 
-export const CHANNEL_ORDER = ['전화예약', '현장방문', '네이버예약'] as const;
+export const CHANNEL_ORDER = ['전화예약', '현장방문', '네이버예약', '온라인예약'] as const;
 
-export const CHANNEL_COLORS: Record<string, string> = {'전화예약': '#FB8C00', '현장방문': '#4285F4', '네이버예약': '#2DB400'};
+export const CHANNEL_COLORS: Record<string, string> = {'전화예약': '#FB8C00', '현장방문': '#4285F4', '네이버예약': '#2DB400', '온라인예약': '#7C3AED'};
 
 export const PAYMENT_METHOD_COLORS = ['#2D7FF9', '#00A896', '#FB8C00', '#E85D75', '#7E57C2', '#4C6EF5', '#8E8E93', '#34A853'] as const;
 
