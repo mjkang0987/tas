@@ -4,7 +4,24 @@
 
 ---
 
-## 진행 중 — 신규예약 개선: 전화번호 안내·메모·라우팅·스크롤 (#110)
+## 진행 중 — 예약 변경 UI 픽커화 + 조회/변경/취소 디자인 정렬 (#112)
+
+> 배치 2·3: `/r/[token]` 변경 폼을 예약 화면과 동일한 픽커 UI로, 디자인 가이드(토큰) 정렬.
+
+### 구현
+- 변경 폼: 세로 서비스카드·담당자 셀렉트·네이티브 date·슬롯그리드 → `BookingPickers`(PillChip 담당자 가로줄·DateCell 날짜 스트립·ServiceChoiceChip·SlotGrid/SlotCell). 담당자 offDays로 날짜 비활성 + 휴무 badge, 담당자 선택 시 근무 첫 날짜 이동. openChange에서 현재 예약 날짜 기본 선택.
+- 디자인: 하드코딩(#f4f6f8·`--accent-soft`(미정의)·16px·100vh) → 토큰. 페이지 화이트, 카드 box-sizing:border-box·--radius-lg·100dvh. 구식 styled 8개 제거.
+- BookStoreInfo에 businessHours·closedDates·담당자 offDays 타입 추가(엔드포인트 기존 반환).
+
+### 검증
+- 타입체크·빌드.
+
+### 남은 배치
+- C: 관리자 예약 상세 '예약확정'(6).
+
+---
+
+## 완료 — 신규예약 개선: 전화번호 안내·메모·라우팅·스크롤 (#110)
 
 > 배치 요청 1·3·4·5 중 book 신규예약/랜딩 파트.
 
