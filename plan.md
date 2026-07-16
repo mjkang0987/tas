@@ -301,3 +301,22 @@
 
 ### 검증
 - `pnpm build` + 고객 요청→오너 수락/거절→반영 흐름 구동.
+
+## 진행 중 — 온라인 예약을 "신청→오너 확정형"으로 전환 (+슬롯 차단, 네이버 2중검증)
+
+### 결정 (사용자 확정)
+- 온라인 신규 예약 = **`requested`(신청)** 상태로 생성(즉시확정 X). 오너 수락 시 `active`(확정), 거절 시 `cancelled`.
+- 슬롯 점유 판정 = **`active` + `requested`** 둘 다. 차단은 오너 확정/거절 때까지(자동만료 없음).
+- 오너 확정 위치: **알림 벨 + 캘린더에 '신청' 상태 구별 표시**.
+- 겹침 검증: 신청 생성 시 Serializable 트랜잭션에서 active+requested 재검증.
+- 네이버 2중검증: **비동기(fire-and-forget)** — 신청 접수 후 백그라운드 네이버 동기화 트리거, 겹침은 기존 충돌감지/벨로 오너 확정 전 노출. Gmail 미연동/실패 시 신청 안 막음.
+- 내부(오너) 예약은 종전대로 DB 직접+즉시 확정+즉시 Slack(변경 없음).
+
+### 영향 범위(파급) — 매핑 후 확정
+- 스키마: `ReservationStatus`에 `requested` 추가(마이그레이션 0011, ADD VALUE IF NOT EXISTS).
+- 공개 API: `reserve.ts`(requested 생성, 슬롯점유 active+requested, 비동기 네이버 동기화, Slack '신규 신청'), `availability.ts`·`request-change.ts` 슬롯점유 확장.
+- 오너 API/UI: `book-requests`(신규 신청도 목록/수락·거절), 알림 벨, 캘린더 렌더·상태배지·매퍼·매출집계(requested 미집계)·충돌감지·필터.
+- 고객: 완료화면 "신청됨(확정대기)", 관리 페이지 requested 상태 라벨.
+
+### 검증
+- `pnpm build` + 신청→차단→오너 확정/거절 흐름 구동(스크린샷). 매출·캘린더 회귀 없음 확인.
