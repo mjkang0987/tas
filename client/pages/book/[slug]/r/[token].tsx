@@ -222,7 +222,11 @@ export default function ReservationManagePage() {
                     </StyledActions>
                 )}
 
-                {!reservation.canRequest && !pending && (
+                {reservation.status === 'requested' && (
+                    <StyledNotice>매장이 예약을 확인 중입니다. 확정되면 이 페이지에서 변경·취소 요청을 하실 수 있어요.</StyledNotice>
+                )}
+
+                {!reservation.canRequest && !pending && reservation.status !== 'requested' && (
                     <StyledMuted>이 예약은 변경·취소 요청을 할 수 없는 상태입니다.</StyledMuted>
                 )}
 
