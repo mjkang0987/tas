@@ -265,3 +265,21 @@
 - 원격 전용 + local(`shouldUseLocalDb`)은 클라 계산 유지(모드 분기). 서버는 revenue.ts **순수함수 재사용**(query→`dbReservationToFrontend`→`groupByDate`→동일 함수 호출, 재구현 X).
 - 예외: `getRevenueInsights` 신규/재방문은 범위 밖 이력 필요 → stored `Customer.firstVisitDate` 사용.
 - 회귀=매출 오표시 → 클라==서버 합계 일치 검증.
+
+## 의존성 보안 패치 스윕 (#85)
+
+### 요구사항
+- Dependabot 취약점 9건(high 8, moderate 1) 대응. 알림 목록 조회 불가 → **블라인드 패치 스윕**.
+
+### 구현 방침
+- `pnpm update`로 semver 범위 내 최신 패치 반영(transitive 완화 포함), pin된 `next` 등은 패치 범프 검토.
+- **제외**: `xlsx@0.18.5`(npm 패치본 없음, export-only 수용 리스크 — `revenue-export.ts` 문서화), `next-auth`(beta)·`react`(pin) major/beta 범프.
+
+### 영향 파일
+- `client/package.json`, `pnpm-lock.yaml`
+
+### 검증
+- `pnpm build`(prisma generate + next build) + 타입체크 그린 = 회귀 없음.
+
+### 완료 조건
+- 빌드 그린, 안전 범위 취약 의존성 패치 갱신. 남은 알림(xlsx)은 수용 리스크로 명시.
