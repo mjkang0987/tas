@@ -6,10 +6,13 @@ import type {ReservationDetailMode} from './reservationDetailTypes';
 type ReservationDetailFooterActionsProps = {
     mode: ReservationDetailMode;
     isInactive: boolean;
+    isRequested: boolean;
     isCompleted: boolean;
     paymentCompleted: boolean;
     isNaverBooking: boolean;
     canDelete: boolean;
+    onConfirmBooking: () => void;
+    onRejectBooking: () => void;
     onOpenCompleting: () => void;
     onOpenCancelling: () => void;
     onOpenNoshow: () => void;
@@ -32,10 +35,13 @@ type ReservationDetailFooterActionsProps = {
 export function ReservationDetailFooterActions({
                                                    mode,
                                                    isInactive,
+                                                   isRequested,
                                                    isCompleted,
                                                    paymentCompleted,
                                                    isNaverBooking,
                                                    canDelete,
+                                                   onConfirmBooking,
+                                                   onRejectBooking,
                                                    onOpenCompleting,
                                                    onOpenCancelling,
                                                    onOpenNoshow,
@@ -55,6 +61,19 @@ export function ReservationDetailFooterActions({
                                                    onBackToView,
                                                }: ReservationDetailFooterActionsProps) {
     if (mode === 'view') {
+        // 온라인 예약 신청(확정 대기): 결제·완료 등 활성 액션 대신 예약확정/거절만 노출.
+        if (isRequested) {
+            return (
+                <>
+                    <StyledActionButton type="button"
+                                        $primary
+                                        onClick={onConfirmBooking}>예약확정</StyledActionButton>
+                    <StyledActionButton type="button"
+                                        $dangerOutline
+                                        onClick={onRejectBooking}>거절</StyledActionButton>
+                </>
+            );
+        }
         if (isInactive) {
             return (
                 <>

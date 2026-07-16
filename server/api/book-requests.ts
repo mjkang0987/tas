@@ -11,6 +11,7 @@ import {getApiSession, requireRole} from '../auth/api-session';
 
 interface DecideBody {
     id?: unknown;
+    legacyId?: unknown;
     decision?: unknown;
 }
 
@@ -104,12 +105,14 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         if (!requireRole(session, 'staff', res)) return;
 
         const body = (req.body ?? {}) as DecideBody;
+        // 오너 벨은 cuid(id), 예약 상세 레이어는 클라 Reservation의 legacyId로 대상 지정.
         const id = typeof body.id === 'string' ? body.id : '';
+        const legacyId = typeof body.legacyId === 'number' ? body.legacyId : null;
         const decision = body.decision === 'approve' || body.decision === 'reject' ? body.decision : null;
-        if (!id || !decision) return res.status(400).json({error: 'invalid_input'});
+        if ((!id && legacyId === null) || !decision) return res.status(400).json({error: 'invalid_input'});
 
         const reservation = await prisma.reservation.findFirst({
-            where: {id, storeId: session.storeId},
+            where: {storeId: session.storeId, ...(id ? {id} : {legacyId: legacyId as number})},
             select: PENDING_SELECT,
         });
         if (!reservation) return res.status(404).json({error: 'not_found'});
@@ -121,19 +124,19 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         // 신규 예약 신청 확정/거절
         if (kind === 'new') {
             const status = decision === 'approve' ? 'active' : 'cancelled';
-            await prisma.reservation.update({where: {id}, data: {status}});
+            await prisma.reservation.update({where: {id: reservation.id}, data: {status}});
             return res.status(200).json({ok: true, applied: decision === 'approve' ? 'confirmed' : 'rejected'});
         }
 
         // 변경/취소 요청 거절 → 요청만 폐기(예약 유지)
         if (decision === 'reject') {
-            await prisma.reservation.update({where: {id}, data: CLEAR_PENDING});
+            await prisma.reservation.update({where: {id: reservation.id}, data: CLEAR_PENDING});
             return res.status(200).json({ok: true, applied: 'rejected'});
         }
 
         // 취소 요청 수락
         if (kind === 'cancel') {
-            await prisma.reservation.update({where: {id}, data: {status: 'cancelled', ...CLEAR_PENDING}});
+            await prisma.reservation.update({where: {id: reservation.id}, data: {status: 'cancelled', ...CLEAR_PENDING}});
             return res.status(200).json({ok: true, applied: 'cancelled'});
         }
 

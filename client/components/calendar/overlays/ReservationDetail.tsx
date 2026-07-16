@@ -474,6 +474,21 @@ export const ReservationDetail = ({
     const isCompleted = sourceReservation.status === 'completed';
     const isNoshow = sourceReservation.status === 'noshow';
     const isInactive = isCancelled || isNoshow || isCompleted;
+    // 온라인 예약 신청(확정 대기). 상세 레이어에서 바로 확정/거절할 수 있게 한다.
+    const isRequested = sourceReservation.status === 'requested';
+
+    // 예약확정/거절 → 오너 승인 API(book-requests) 재사용. legacyId로 대상 지정.
+    // 성공 시 새로고침으로 캘린더·요청벨을 갱신(오너 벨과 동일 패턴).
+    const decideBooking = (decision: 'approve' | 'reject') => {
+        if (decision === 'reject' && !window.confirm('이 예약 신청을 거절할까요? 거절하면 취소됩니다.')) return;
+        fetch('/api/book-requests', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({legacyId: sourceReservation.id, decision}),
+        })
+            .then((res) => { if (res.ok) window.location.reload(); else setError({field: 'general', message: '처리에 실패했습니다. 잠시 후 다시 시도해 주세요.'}); })
+            .catch(() => setError({field: 'general', message: '처리에 실패했습니다. 잠시 후 다시 시도해 주세요.'}));
+    };
     const isNaverBooking = Boolean(sourceReservation.naverBookingId);
     const dialogLabel = MODE_LABELS[mode] ?? '예약 상세';
     const headerService = mode === 'view' ? draftReservation.service : form.service;
@@ -668,9 +683,12 @@ export const ReservationDetail = ({
                     <ReservationDetailFooterActions
                         mode={mode}
                         isInactive={isInactive}
+                        isRequested={isRequested}
                         isCompleted={isCompleted}
                         paymentCompleted={paymentCompleted}
                         isNaverBooking={isNaverBooking}
+                        onConfirmBooking={() => decideBooking('approve')}
+                        onRejectBooking={() => decideBooking('reject')}
                         onOpenCompleting={() => {
                             if (!hasCompletedPayment(sourceReservation)) {
                                 setError({field: 'general', message: '결제 완료된 예약만 완료 처리할 수 있습니다.'});
