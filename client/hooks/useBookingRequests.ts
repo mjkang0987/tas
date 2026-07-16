@@ -1,5 +1,7 @@
 import {useCallback, useEffect, useState} from 'react';
 
+import {shouldUseLocalDb} from '../lib/local-db';
+
 // 고객이 보낸 온라인 예약 변경/취소 요청(오너 승인 대기)을 불러오고 수락/거절한다.
 export interface BookingRequestDto {
     id: string;
@@ -17,6 +19,8 @@ export function useBookingRequests() {
     const [loading, setLoading] = useState(false);
 
     const refetch = useCallback(() => {
+        // 게스트/로컬DB 모드(비로그인)에선 서버 세션이 없어 401만 나므로 호출하지 않는다.
+        if (shouldUseLocalDb()) { setRequests([]); return; }
         setLoading(true);
         fetch('/api/book-requests')
             .then((res) => (res.ok ? res.json() : Promise.reject(new Error('load failed'))))
