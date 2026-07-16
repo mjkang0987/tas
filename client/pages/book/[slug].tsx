@@ -434,22 +434,32 @@ const StyledWrap = styled.div`
     justify-content: center;
     padding: 24px 16px;
     box-sizing: border-box;
-    background: #f4f6f8;
+    background: var(--white-color);
     @media (max-width: 640px) { padding: 0; }
 `;
 
+// 온보딩 카드와 톤 정렬: 화이트 배경 + 카드 그림자(데스크탑), 모바일은 풀블리드.
+// box-sizing:border-box 필수 — 없으면 width:100% + 좌우 padding이 더해져
+// 모바일(max-width:none)에서 카드가 뷰포트보다 넓어져 가로 스크롤·배경 잘림이 생긴다.
 const StyledCard = styled.div`
+    box-sizing: border-box;
     width: 100%;
     max-width: 480px;
     margin: auto 0;
     display: flex;
     flex-direction: column;
-    gap: 12px;
-    padding: 32px 24px 40px;
-    background: var(--white-color, #fff);
-    border-radius: 16px;
-    box-shadow: var(--shadow-md, 0 6px 24px rgba(0,0,0,0.08));
-    @media (max-width: 640px) { max-width: none; border-radius: 0; box-shadow: none; min-height: 100vh; }
+    gap: 16px;
+    padding: 32px 28px;
+    background: var(--white-color);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-md);
+    @media (max-width: 640px) {
+        max-width: none;
+        border-radius: 0;
+        box-shadow: none;
+        min-height: 100vh;
+        padding: 24px 18px;
+    }
 `;
 
 const StyledStore = styled.strong`
@@ -477,10 +487,10 @@ const StyledNotice = styled.p`
 
 const StyledSectionLabel = styled.strong`
     display: block;
-    margin-top: 12px;
-    font-size: var(--small-font);
+    margin-top: 6px;
+    font-size: var(--font);
     font-weight: 700;
-    color: var(--dark-gray-color);
+    color: var(--black-color);
 `;
 
 const StyledField = styled.div`
@@ -510,7 +520,7 @@ const StyledTotal = styled.div`
     align-items: center;
     margin-top: 8px;
     padding: 12px;
-    background: #f4f6f8;
+    background: var(--gray-color2);
     border-radius: var(--radius-md);
     font-size: var(--small-font);
     color: var(--dark-gray-color);
@@ -527,7 +537,7 @@ const StyledSummary = styled.div`
     gap: 8px;
     margin-top: 4px;
     padding: 16px;
-    background: #f4f6f8;
+    background: var(--gray-color2);
     border-radius: var(--radius-md);
 `;
 
