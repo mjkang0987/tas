@@ -6,6 +6,11 @@ import styled from 'styled-components';
 
 import {getStoreLabels} from '../../../../features/store-settings/labels';
 import {SeoHead} from '../../../../components/ui/SeoHead';
+import {LabelBadge} from '../../../../components/ui/LabelBadge';
+import {
+    PickerScrollRow, PillChip, DateCell, ServiceChoiceChip, ServiceChoiceWrap,
+    SlotGrid, SlotCell,
+} from '../../../../components/booking/BookingPickers';
 
 interface PendingChange {
     date: string;
@@ -30,12 +35,15 @@ interface ReservationView {
 }
 
 interface BookServiceInfo {name: string; category: string; duration: number; price: number}
-interface BookAssigneeInfo {id: string; name: string; color: string | null}
+interface BookAssigneeInfo {id: string; name: string; color: string | null; offDays: number[]}
+interface BookBusinessHour {dayIndex: number; openTime: string; closeTime: string; enabled: boolean}
 interface BookStoreInfo {
     storeName: string;
     shopType: string | null;
     services: BookServiceInfo[];
     assignees: BookAssigneeInfo[];
+    businessHours: BookBusinessHour[];
+    closedDates: string[];
     settings: {allowAssigneeChoice: boolean; noticeText: string | null; maxAdvanceDays: number};
 }
 
@@ -49,6 +57,8 @@ const STATUS_LABEL: Record<ReservationView['status'], string> = {
     noshow: '노쇼',
 };
 
+const DOW = ['월', '화', '수', '목', '금', '토', '일'];
+
 function localDateStr(offsetDays = 0): string {
     const d = new Date();
     d.setDate(d.getDate() + offsetDays);
@@ -56,6 +66,18 @@ function localDateStr(offsetDays = 0): string {
     const m = String(d.getMonth() + 1).padStart(2, '0');
     const day = String(d.getDate()).padStart(2, '0');
     return `${y}-${m}-${day}`;
+}
+
+// 서버 dayIndexOf와 동일(0=월…6=일).
+function clientDayIndex(dateStr: string): number {
+    return (new Date(`${dateStr}T12:00:00Z`).getUTCDay() + 6) % 7;
+}
+
+// 매장 휴무일·영업요일 아님 → 날짜 비활성.
+function isDateClosed(store: BookStoreInfo, dateStr: string): boolean {
+    if (store.closedDates.includes(dateStr)) return true;
+    const bh = store.businessHours.find((b) => b.dayIndex === clientDayIndex(dateStr));
+    return !bh || !bh.enabled;
 }
 
 export default function ReservationManagePage() {
@@ -102,11 +124,27 @@ export default function ReservationManagePage() {
     const openChange = () => {
         setChangeOpen(true);
         setActionMsg('');
+        // 현재 예약 날짜를 기본 선택(날짜 스트립에서 하이라이트).
+        if (reservation && !date) setDate(reservation.date);
         if (store || !slug) return;
         fetch(`/api/book/${encodeURIComponent(slug)}`)
             .then((res) => (res.ok ? res.json() : Promise.reject(new Error('store failed'))))
             .then((data) => setStore(data as BookStoreInfo))
             .catch(() => setActionMsg('예약 정보를 불러오지 못했습니다. 잠시 후 다시 시도해 주세요.'));
+    };
+
+    // 담당자 선택 시 현재 날짜가 그 담당자 휴무면 근무하는 첫 날짜로 이동(예약 화면과 동일).
+    const pickChangeAssignee = (id: string) => {
+        setAssigneeId(id);
+        setSelectedSlot('');
+        if (!store) return;
+        const off = id !== ASSIGNEE_ANY ? (store.assignees.find((a) => a.id === id)?.offDays ?? []) : [];
+        if (date && off.includes(clientDayIndex(date))) {
+            for (let i = 0; i <= store.settings.maxAdvanceDays; i += 1) {
+                const d = localDateStr(i);
+                if (!isDateClosed(store, d) && !off.includes(clientDayIndex(d))) { setDate(d); break; }
+            }
+        }
     };
 
     const toggleService = (name: string) => {
@@ -232,49 +270,68 @@ export default function ReservationManagePage() {
 
                 {changeOpen && (
                     <>
-                        <StyledSectionLabel>변경할 {labels.service} 선택</StyledSectionLabel>
                         {!store && <StyledMuted>불러오는 중…</StyledMuted>}
                         {store && (
                             <>
-                                <StyledServiceList>
-                                    {store.services.map((s) => {
-                                        const on = selectedServices.includes(s.name);
-                                        return (
-                                            <StyledServiceCard key={s.name} type="button" $on={on} aria-pressed={on} onClick={() => toggleService(s.name)}>
-                                                <StyledServiceName>{s.name}</StyledServiceName>
-                                                <StyledServiceMeta>{s.duration}분 · {s.price.toLocaleString()}원</StyledServiceMeta>
-                                            </StyledServiceCard>
-                                        );
-                                    })}
-                                </StyledServiceList>
-
                                 {store.settings.allowAssigneeChoice && store.assignees.length > 0 && (
                                     <>
                                         <StyledSectionLabel>{labels.assignee} 선택</StyledSectionLabel>
-                                        <StyledSelect value={assigneeId} onChange={(e) => { setAssigneeId(e.target.value); setSelectedSlot(''); }}>
-                                            <option value={ASSIGNEE_ANY}>상관없음</option>
-                                            {store.assignees.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}
-                                        </StyledSelect>
+                                        <PickerScrollRow>
+                                            <PillChip type="button" $on={assigneeId === ASSIGNEE_ANY} aria-pressed={assigneeId === ASSIGNEE_ANY} onClick={() => pickChangeAssignee(ASSIGNEE_ANY)}>
+                                                상관없음
+                                            </PillChip>
+                                            {store.assignees.map((a) => {
+                                                const off = date ? a.offDays.includes(clientDayIndex(date)) : false;
+                                                return (
+                                                    <PillChip key={a.id} type="button" $on={assigneeId === a.id} aria-pressed={assigneeId === a.id} disabled={off} title={off ? '해당 날짜 휴무' : undefined} onClick={() => pickChangeAssignee(a.id)}>
+                                                        {a.name}{off && <LabelBadge $tone="neutral">휴무</LabelBadge>}
+                                                    </PillChip>
+                                                );
+                                            })}
+                                        </PickerScrollRow>
                                     </>
                                 )}
 
-                                {selectedServices.length > 0 && (
+                                <StyledSectionLabel>날짜 선택</StyledSectionLabel>
+                                <PickerScrollRow>
+                                    {Array.from({length: store.settings.maxAdvanceDays + 1}, (_, i) => i).map((off) => {
+                                        const d = localDateStr(off);
+                                        const di = clientDayIndex(d);
+                                        const assigneeOff = assigneeId !== ASSIGNEE_ANY ? (store.assignees.find((a) => a.id === assigneeId)?.offDays ?? []) : [];
+                                        const disabled = isDateClosed(store, d) || assigneeOff.includes(di);
+                                        return (
+                                            <DateCell key={d} type="button" $on={date === d} $weekend={di >= 5} aria-pressed={date === d} disabled={disabled} onClick={() => { setDate(d); setSelectedSlot(''); }}>
+                                                <span className="dow">{off === 0 ? '오늘' : DOW[di]}</span>
+                                                <span className="day">{Number(d.slice(8, 10))}</span>
+                                            </DateCell>
+                                        );
+                                    })}
+                                </PickerScrollRow>
+
+                                <StyledSectionLabel>변경할 {labels.service} 선택</StyledSectionLabel>
+                                <ServiceChoiceWrap>
+                                    {store.services.map((s) => {
+                                        const on = selectedServices.includes(s.name);
+                                        return (
+                                            <ServiceChoiceChip key={s.name} type="button" $on={on} aria-pressed={on} onClick={() => toggleService(s.name)}>
+                                                <span className="nm">{s.name}</span>
+                                                <span className="mt">{s.duration}분 · {s.price.toLocaleString()}원</span>
+                                            </ServiceChoiceChip>
+                                        );
+                                    })}
+                                </ServiceChoiceWrap>
+
+                                {selectedServices.length > 0 && date && (
                                     <>
-                                        <StyledSectionLabel>날짜 선택</StyledSectionLabel>
-                                        <StyledDateInput type="date" value={date} min={localDateStr(0)} max={localDateStr(store.settings.maxAdvanceDays)} onChange={(e) => { setDate(e.target.value); setSelectedSlot(''); }} />
-                                        {date && (
-                                            <>
-                                                <StyledSectionLabel>시간 선택</StyledSectionLabel>
-                                                {slotsLoading && <StyledMuted>시간을 불러오는 중…</StyledMuted>}
-                                                {!slotsLoading && slots.length === 0 && <StyledMuted>예약 가능한 시간이 없습니다.</StyledMuted>}
-                                                {!slotsLoading && slots.length > 0 && (
-                                                    <StyledSlotGrid>
-                                                        {slots.map((slot) => (
-                                                            <StyledSlotBtn key={slot} type="button" $on={selectedSlot === slot} aria-pressed={selectedSlot === slot} onClick={() => setSelectedSlot(slot)}>{slot}</StyledSlotBtn>
-                                                        ))}
-                                                    </StyledSlotGrid>
-                                                )}
-                                            </>
+                                        <StyledSectionLabel>시간 선택</StyledSectionLabel>
+                                        {slotsLoading && <StyledMuted>시간을 불러오는 중…</StyledMuted>}
+                                        {!slotsLoading && slots.length === 0 && <StyledMuted>예약 가능한 시간이 없습니다.</StyledMuted>}
+                                        {!slotsLoading && slots.length > 0 && (
+                                            <SlotGrid>
+                                                {slots.map((slot) => (
+                                                    <SlotCell key={slot} type="button" $on={selectedSlot === slot} aria-pressed={selectedSlot === slot} onClick={() => setSelectedSlot(slot)}>{slot}</SlotCell>
+                                                ))}
+                                            </SlotGrid>
                                         )}
                                     </>
                                 )}
@@ -300,22 +357,30 @@ const StyledWrap = styled.div`
     justify-content: center;
     padding: 24px 16px;
     box-sizing: border-box;
-    background: #f4f6f8;
+    background: var(--white-color);
     @media (max-width: 640px) { padding: 0; }
 `;
 
+// 예약 화면과 동일 톤: box-sizing:border-box(모바일 가로 오버플로 방지), 화이트 배경 + 그림자.
 const StyledCard = styled.div`
+    box-sizing: border-box;
     width: 100%;
     max-width: 480px;
     margin: auto 0;
     display: flex;
     flex-direction: column;
-    gap: 12px;
-    padding: 32px 24px 40px;
-    background: var(--white-color, #fff);
-    border-radius: 16px;
-    box-shadow: var(--shadow-md, 0 6px 24px rgba(0,0,0,0.08));
-    @media (max-width: 640px) { max-width: none; border-radius: 0; box-shadow: none; min-height: 100vh; }
+    gap: 16px;
+    padding: 32px 28px;
+    background: var(--white-color);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-md);
+    @media (max-width: 640px) {
+        max-width: none;
+        border-radius: 0;
+        box-shadow: none;
+        min-height: 100dvh;
+        padding: 24px 18px;
+    }
 `;
 
 const StyledStore = styled.strong`
@@ -347,19 +412,19 @@ const StyledStatusBadge = styled.span<{$status: ReservationView['status']}>`
 const StyledNotice = styled.p`
     margin: 4px 0 0;
     padding: 10px 12px;
-    background: var(--accent-soft, #f1ecfb);
-    border-radius: 8px;
-    font-size: 13px;
+    background: var(--brand-color-bg);
+    border-radius: var(--radius-md);
+    font-size: var(--small-font);
     line-height: 1.5;
-    color: var(--dark-gray-color, #444);
+    color: var(--dark-gray-color);
 `;
 
 const StyledSectionLabel = styled.strong`
     display: block;
-    margin-top: 12px;
-    font-size: 13px;
+    margin-top: 6px;
+    font-size: var(--font);
     font-weight: 700;
-    color: var(--dark-gray-color, #444);
+    color: var(--black-color);
 `;
 
 const StyledSummary = styled.div`
@@ -368,8 +433,8 @@ const StyledSummary = styled.div`
     gap: 8px;
     margin-top: 4px;
     padding: 16px;
-    background: #f4f6f8;
-    border-radius: 12px;
+    background: var(--gray-color2);
+    border-radius: var(--radius-md);
 `;
 
 const StyledSummaryRow = styled.div`
@@ -396,7 +461,7 @@ const StyledPrimaryBtn = styled.button`
     flex: 1;
     height: 48px;
     border: none;
-    border-radius: 12px;
+    border-radius: var(--radius-md);
     background: var(--brand-color, #6526d9);
     color: #fff;
     font-size: 15px;
@@ -409,7 +474,7 @@ const StyledSecondaryBtn = styled.button`
     flex: 1;
     height: 48px;
     border: 2px solid var(--light-gray-color, #e4e7eb);
-    border-radius: 12px;
+    border-radius: var(--radius-md);
     background: var(--white-color, #fff);
     color: var(--dark-gray-color, #444);
     font-size: 15px;
@@ -422,82 +487,13 @@ const StyledDangerBtn = styled.button`
     flex: 1;
     height: 48px;
     border: 2px solid var(--danger-color, #d64545);
-    border-radius: 12px;
+    border-radius: var(--radius-md);
     background: var(--white-color, #fff);
     color: var(--danger-color, #d64545);
     font-size: 15px;
     font-weight: 700;
     cursor: pointer;
     &:disabled { opacity: 0.45; cursor: not-allowed; }
-`;
-
-const StyledServiceList = styled.div`
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-`;
-
-const StyledServiceCard = styled.button<{$on: boolean}>`
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    gap: 10px;
-    padding: 14px;
-    border: 2px solid ${(p) => (p.$on ? 'var(--brand-color, #6526d9)' : 'var(--light-gray-color, #e4e7eb)')};
-    border-radius: 12px;
-    background: ${(p) => (p.$on ? 'var(--accent-soft, #f1ecfb)' : 'var(--white-color, #fff)')};
-    cursor: pointer;
-    text-align: left;
-`;
-
-const StyledServiceName = styled.span`
-    font-size: 15px;
-    font-weight: 600;
-    color: var(--black-color, #111);
-`;
-
-const StyledServiceMeta = styled.span`
-    flex-shrink: 0;
-    font-size: 13px;
-    color: var(--dark-gray-color2, #667);
-`;
-
-const StyledSelect = styled.select`
-    width: 100%;
-    height: 44px;
-    padding: 0 12px;
-    border: 1px solid var(--light-gray-color, #e4e7eb);
-    border-radius: 10px;
-    font-size: 15px;
-    background: var(--white-color, #fff);
-`;
-
-const StyledDateInput = styled.input`
-    width: 100%;
-    height: 44px;
-    padding: 0 12px;
-    border: 1px solid var(--light-gray-color, #e4e7eb);
-    border-radius: 10px;
-    font-size: 15px;
-    background: var(--white-color, #fff);
-    box-sizing: border-box;
-`;
-
-const StyledSlotGrid = styled.div`
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
-    gap: 8px;
-`;
-
-const StyledSlotBtn = styled.button<{$on: boolean}>`
-    height: 42px;
-    border: 2px solid ${(p) => (p.$on ? 'var(--brand-color, #6526d9)' : 'var(--light-gray-color, #e4e7eb)')};
-    border-radius: 10px;
-    background: ${(p) => (p.$on ? 'var(--brand-color, #6526d9)' : 'var(--white-color, #fff)')};
-    color: ${(p) => (p.$on ? '#fff' : 'var(--black-color, #111)')};
-    font-size: 14px;
-    font-weight: 600;
-    cursor: pointer;
 `;
 
 const StyledMuted = styled.p`
