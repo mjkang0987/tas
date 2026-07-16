@@ -4,7 +4,18 @@
 
 ---
 
-## 진행 중 — 요청사항 textarea 세로 정렬 (#116)
+## 진행 중 — 온라인 예약 상세 진입·확정대기 배지·채널 표시 (#118)
+
+> 3건: (1) 예약 요청 벨 항목 클릭→상세 레이어(미래 날짜는 캘린더 미노출→벨로 접근), (2) 확정대기 배지, (3) 온라인예약이 전화예약으로 뜨는 버그.
+
+### 수정
+- `ReservationViewSection`: 예약경로 하드코딩(현장방문?:전화예약) → 실제 `reservation.channel`. requested면 "확정대기" 배지(스타일 기존 존재).
+- `BookingRequestNotification`: 항목 본문 클릭 → legacyId로 reservationMap에서 찾아 `openReservationDetail` + 패널 닫기.
+- `TimelineReservationCard`: "(신청)"→"(확정대기)".
+
+---
+
+## 완료 — 요청사항 textarea 세로 정렬 (#116)
 
 > 버그: 메모 textarea 세로 정렬 틀어짐. 원인: formControlStyle의 height:32px(input용)가 textarea에 먹음.
 

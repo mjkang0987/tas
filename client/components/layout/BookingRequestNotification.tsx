@@ -4,6 +4,7 @@ import styled from 'styled-components';
 
 import {useBookingRequests, type BookingRequestDto} from '../../hooks/useBookingRequests';
 import {LabelBadge} from '../ui/LabelBadge';
+import {useCalendarStore} from '../../store/calendarStore';
 
 function formatMd(dateStr: string): string {
     if (!dateStr || !dateStr.includes('-')) return dateStr || '-';
@@ -14,9 +15,20 @@ function formatMd(dateStr: string): string {
 // 오너용 온라인 예약 변경/취소 요청 승인 벨. 대기 요청이 있을 때만 노출된다.
 export const BookingRequestNotification = () => {
     const {requests, loading, refetch, decide} = useBookingRequests();
+    const openReservationDetail = useCalendarStore((s) => s.openReservationDetail);
+    const reservationMap = useCalendarStore((s) => s.reservationMap);
     const [open, setOpen] = useState(false);
     const [busyId, setBusyId] = useState<string>('');
     const containerRef = useRef<HTMLDivElement>(null);
+
+    // 벨 항목 클릭 → legacyId로 예약을 찾아 상세 레이어를 연다(미래 날짜 예약도 상세 접근 가능).
+    const openDetail = useCallback((req: BookingRequestDto) => {
+        if (req.legacyId == null) return;
+        for (const list of Object.values(reservationMap)) {
+            const found = list.find((r) => r.id === req.legacyId);
+            if (found) { openReservationDetail(found); setOpen(false); return; }
+        }
+    }, [reservationMap, openReservationDetail]);
 
     useEffect(() => {
         if (!open) return;
@@ -69,20 +81,22 @@ export const BookingRequestNotification = () => {
                         {!loading && requests.length === 0 && <StyledEmpty>대기 중인 요청이 없습니다</StyledEmpty>}
                         {requests.map((req) => (
                             <StyledItem key={req.id}>
-                                <StyledItemHead>
-                                    <StyledCustomer>{req.customerName || '고객'}</StyledCustomer>
-                                    {req.kind === 'new' && <LabelBadge $tone="warning" $shape="pill">신규 예약 신청</LabelBadge>}
-                                    {req.kind === 'change' && <LabelBadge $tone="purple" $shape="pill">변경 요청</LabelBadge>}
-                                    {req.kind === 'cancel' && <LabelBadge $tone="danger" $shape="pill">취소 요청</LabelBadge>}
-                                </StyledItemHead>
-                                <StyledItemLine>
-                                    {req.kind === 'new' ? '신청' : '현재'}: {formatMd(req.current.date)} {req.current.startTime}~{req.current.endTime} ({req.current.serviceSummary})
-                                </StyledItemLine>
-                                {req.kind === 'change' && req.requestedChange && (
-                                    <StyledItemLine $accent>
-                                        변경: {formatMd(req.requestedChange.date)} {req.requestedChange.startTime}~{req.requestedChange.endTime} ({req.requestedChange.serviceSummary})
+                                <StyledItemBody type="button" onClick={() => openDetail(req)} title="예약 상세 보기">
+                                    <StyledItemHead>
+                                        <StyledCustomer>{req.customerName || '고객'}</StyledCustomer>
+                                        {req.kind === 'new' && <LabelBadge $tone="warning" $shape="pill">신규 예약 신청</LabelBadge>}
+                                        {req.kind === 'change' && <LabelBadge $tone="purple" $shape="pill">변경 요청</LabelBadge>}
+                                        {req.kind === 'cancel' && <LabelBadge $tone="danger" $shape="pill">취소 요청</LabelBadge>}
+                                    </StyledItemHead>
+                                    <StyledItemLine>
+                                        {req.kind === 'new' ? '신청' : '현재'}: {formatMd(req.current.date)} {req.current.startTime}~{req.current.endTime} ({req.current.serviceSummary})
                                     </StyledItemLine>
-                                )}
+                                    {req.kind === 'change' && req.requestedChange && (
+                                        <StyledItemLine $accent>
+                                            변경: {formatMd(req.requestedChange.date)} {req.requestedChange.startTime}~{req.requestedChange.endTime} ({req.requestedChange.serviceSummary})
+                                        </StyledItemLine>
+                                    )}
+                                </StyledItemBody>
                                 <StyledItemActions>
                                     <StyledRejectBtn type="button" disabled={!!busyId} onClick={() => onDecide(req, 'reject')}>거절</StyledRejectBtn>
                                     <StyledApproveBtn type="button" disabled={!!busyId} onClick={() => onDecide(req, 'approve')}>수락</StyledApproveBtn>
@@ -175,6 +189,18 @@ const StyledItem = styled.div`
     gap: 4px;
     padding: 12px 14px;
     border-bottom: 1px solid var(--light-gray-color, #f1f3f5);
+`;
+
+const StyledItemBody = styled.button`
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    width: 100%;
+    padding: 0;
+    border: none;
+    background: none;
+    text-align: left;
+    cursor: pointer;
 `;
 
 const StyledItemHead = styled.div`
