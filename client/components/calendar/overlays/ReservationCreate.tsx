@@ -49,9 +49,7 @@ export const ReservationCreate = ({initial, customerMap, onClose, onSave}: Reser
         customerId,
         customerQuery,
         showSuggestions,
-        customerMode,
-        newCustomerName,
-        newCustomerTel,
+        customerTel,
         assigneeId,
         selectedServices,
         form,
@@ -59,9 +57,7 @@ export const ReservationCreate = ({initial, customerMap, onClose, onSave}: Reser
         filteredCustomers,
         totalDuration,
         totalPrice,
-        setCustomerMode,
-        setNewCustomerName,
-        setNewCustomerTel,
+        setCustomerTel,
         handleCustomerSelect,
         handleCustomerInputChange,
         handleCustomerFocus,
@@ -104,21 +100,17 @@ export const ReservationCreate = ({initial, customerMap, onClose, onSave}: Reser
             <StyledBody><StyledBodyInner>
                 <StyledCreateForm>
                     <ReservationCreateCustomerFields
-                        customerMode={customerMode}
                         customerId={customerId}
                         customerQuery={customerQuery}
                         showSuggestions={showSuggestions}
                         filteredCustomers={filteredCustomers}
-                        newCustomerName={newCustomerName}
-                        newCustomerTel={newCustomerTel}
+                        customerTel={customerTel}
                         customerErrorMessage={customerErrorMessage}
-                        onChangeCustomerMode={setCustomerMode}
                         onChangeCustomerQuery={handleCustomerInputChange}
                         onFocusCustomerQuery={handleCustomerFocus}
                         onBlurCustomerQuery={handleCustomerBlur}
                         onSelectCustomer={handleCustomerSelect}
-                        onChangeNewCustomerName={setNewCustomerName}
-                        onChangeNewCustomerTel={setNewCustomerTel}
+                        onChangeCustomerTel={setCustomerTel}
                     />
                     <ReservationFormFields
                         idPrefix="create"

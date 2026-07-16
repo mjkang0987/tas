@@ -4,7 +4,22 @@
 
 ---
 
-## 진행 중 — 고객 전화번호 중복 경고 + 병합 유도 (#98)
+## 진행 중 — 예약 추가 고객 입력 UX (#100)
+
+> 요청: (1) 고객 추천 목록에 전화번호가 안 보임(색이 너무 옅음) → 동명이인 구분 불가. (2) 기존/신규 탭 없이 연락처 란 상시 노출 — 기존 선택 시 이름·연락처 자동 채움, 새 이름 입력 시 연락처 수동.
+
+### 구현
+- `CustomerAutocomplete.tsx`: 추천 번호 색 `--gray-color`→`--dark-gray-color2`, 12px·tabular-nums로 또렷하게. 이름 weight 500.
+- `useReservationCreateForm.ts`: `customerMode`/`newCustomerName`/`newCustomerTel` 제거, 단일 `customerTel`. 이름=`customerQuery`. 기존선택=`customerId≠0`(연락처 자동 채움), 새이름=`customerId=0`(이름 재입력 시 선택 해제+연락처 비움). validate/handleSave 단일 경로(신규만 번호 형식 검사).
+- `ReservationCreateCustomerFields.tsx`: 탭 제거, 고객명(자동완성)+연락처(상시) 2필드.
+- `ReservationCreate.tsx`: props 배선 갱신.
+
+### 검증
+- 타입체크·lint 통과. 프로덕션 빌드로 확인.
+
+---
+
+## 완료 — 고객 전화번호 중복 경고 + 병합 유도 (#98)
 
 > 배경: 고객 정보 레이어에서 이름·전화번호 수정 시, 같은 매장 내 다른 고객이 이미 그 번호를 써도 무검증 저장 → 동일 번호 고객이 조용히 중복. 서버 PUT은 legacyId 단건 저장뿐이고 `(storeId, tel)`은 인덱스(비-unique). 기존 병합 제안은 마스킹 이름만 감지.
 
