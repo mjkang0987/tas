@@ -47,6 +47,16 @@ interface ReserveResult {
     endTime: string;
     serviceSummary: string;
 }
+// 예약 조회 결과 항목. /api/book/[slug]/lookup 응답.
+interface LookupResult {
+    token: string;
+    status: 'requested' | 'active';
+    date: string;
+    startTime: string;
+    endTime: string;
+    serviceSummary: string;
+}
+type BookView = 'home' | 'new' | 'lookup';
 // 하루 예약현황(용량표). /api/book/[slug]/day 응답.
 interface DaySlotCapacity {
     time: string;
@@ -115,6 +125,15 @@ export default function BookingPage() {
     const [submitting, setSubmitting] = useState(false);
     const [submitError, setSubmitError] = useState<string>('');
     const [result, setResult] = useState<ReserveResult | null>(null);
+
+    // 랜딩(예약 서비스) → 신규 예약 / 예약 조회 분기.
+    const [view, setView] = useState<BookView>('home');
+    const [lookupName, setLookupName] = useState('');
+    const [lookupTel, setLookupTel] = useState('');
+    const [lookupResults, setLookupResults] = useState<LookupResult[]>([]);
+    const [lookupLoading, setLookupLoading] = useState(false);
+    const [lookupError, setLookupError] = useState('');
+    const [lookupSearched, setLookupSearched] = useState(false);
 
     useEffect(() => {
         if (!slug) return;
@@ -259,6 +278,33 @@ export default function BookingPage() {
             .finally(() => setSubmitting(false));
     };
 
+    const lookupTelValid = normalizeTel(lookupTel).length >= 10 && normalizeTel(lookupTel).length <= 11;
+    const lookupCanSubmit = lookupName.trim().length > 0 && lookupTelValid && !lookupLoading;
+
+    const doLookup = () => {
+        if (!lookupCanSubmit) return;
+        setLookupLoading(true);
+        setLookupError('');
+        fetch(`/api/book/${encodeURIComponent(slug)}/lookup`, {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({name: lookupName.trim(), tel: normalizeTel(lookupTel)}),
+        })
+            .then(async (res) => {
+                const data = await res.json().catch(() => ({}));
+                if (res.ok) { setLookupResults((data.reservations ?? []) as LookupResult[]); setLookupSearched(true); return; }
+                setLookupError('조회에 실패했습니다. 잠시 후 다시 시도해 주세요.');
+            })
+            .catch(() => setLookupError('조회에 실패했습니다. 잠시 후 다시 시도해 주세요.'))
+            .finally(() => setLookupLoading(false));
+    };
+
+    const goHome = () => {
+        setView('home');
+        setLookupSearched(false);
+        setLookupError('');
+    };
+
     if (loading) {
         return <StyledWrap><StyledCard><StyledMuted>불러오는 중…</StyledMuted></StyledCard></StyledWrap>;
     }
@@ -293,6 +339,75 @@ export default function BookingPage() {
         );
     }
 
+    // 랜딩: 예약 서비스 안내 + 신규 예약 / 예약 조회 분기.
+    if (view === 'home') {
+        return (
+            <StyledWrap>
+                <SeoHead title={`${info.storeName} 예약`} />
+                <StyledCard>
+                    <StyledStore>{info.storeName}</StyledStore>
+                    <StyledTitle>예약 서비스</StyledTitle>
+                    {info.settings.noticeText && <StyledNotice>{info.settings.noticeText}</StyledNotice>}
+                    <StyledHomeActions>
+                        <StyledHomeBtn type="button" $primary onClick={() => setView('new')}>
+                            <span className="t">신규 예약</span>
+                            <span className="d">{labels.service}·날짜·시간을 골라 예약하기</span>
+                        </StyledHomeBtn>
+                        <StyledHomeBtn type="button" onClick={() => { setView('lookup'); setLookupSearched(false); setLookupError(''); }}>
+                            <span className="t">예약 조회 / 변경 / 취소</span>
+                            <span className="d">이름·연락처로 내 예약 확인하기</span>
+                        </StyledHomeBtn>
+                    </StyledHomeActions>
+                </StyledCard>
+            </StyledWrap>
+        );
+    }
+
+    // 예약 조회: 이름 + 연락처로 본인 예약을 찾아 관리 페이지로 연결.
+    if (view === 'lookup') {
+        return (
+            <StyledWrap>
+                <SeoHead title={`${info.storeName} 예약 조회`} />
+                <StyledCard>
+                    <StyledBackBtn type="button" onClick={goHome}>← 처음으로</StyledBackBtn>
+                    <StyledStore>{info.storeName}</StyledStore>
+                    <StyledTitle>예약 조회</StyledTitle>
+                    <StyledMuted>예약 시 입력한 이름과 연락처로 조회합니다.</StyledMuted>
+                    <StyledField>
+                        <StyledFieldLabel htmlFor="lookup-name">이름</StyledFieldLabel>
+                        <StyledTextInput id="lookup-name" type="text" value={lookupName} maxLength={40} placeholder="이름" onChange={(e) => { setLookupName(e.target.value); setLookupError(''); }} />
+                    </StyledField>
+                    <StyledField>
+                        <StyledFieldLabel htmlFor="lookup-tel">연락처</StyledFieldLabel>
+                        <StyledTextInput id="lookup-tel" type="tel" inputMode="numeric" value={lookupTel} placeholder="010-0000-0000" onChange={(e) => { setLookupTel(e.target.value); setLookupError(''); }} onBlur={() => setLookupTel((t) => formatTel(t))} />
+                    </StyledField>
+                    {lookupError && <StyledError role="alert">{lookupError}</StyledError>}
+                    <StyledNextBtn type="button" disabled={!lookupCanSubmit} onClick={doLookup}>
+                        {lookupLoading ? '조회 중…' : '조회하기'}
+                    </StyledNextBtn>
+
+                    {lookupSearched && !lookupLoading && (
+                        lookupResults.length === 0 ? (
+                            <StyledMuted>조회된 예약이 없습니다. 이름·연락처를 확인해 주세요.</StyledMuted>
+                        ) : (
+                            <StyledLookupList>
+                                {lookupResults.map((r) => (
+                                    <StyledLookupItem key={r.token} href={`/book/${encodeURIComponent(slug)}/r/${r.token}`}>
+                                        <StyledLookupStatus $status={r.status}>
+                                            {r.status === 'active' ? '예약 확정' : '확정 대기'}
+                                        </StyledLookupStatus>
+                                        <StyledLookupWhen>{r.date} · {r.startTime}~{r.endTime}</StyledLookupWhen>
+                                        <StyledLookupSvc>{r.serviceSummary}</StyledLookupSvc>
+                                    </StyledLookupItem>
+                                ))}
+                            </StyledLookupList>
+                        )
+                    )}
+                </StyledCard>
+            </StyledWrap>
+        );
+    }
+
     const showAssignees = info.settings.allowAssigneeChoice && info.assignees.length > 0;
     const dateOffsets = Array.from({length: info.settings.maxAdvanceDays + 1}, (_, i) => i);
 
@@ -312,6 +427,7 @@ export default function BookingPage() {
         <StyledWrap>
             <SeoHead title={`${info.storeName} 예약`} />
             <StyledCard>
+                <StyledBackBtn type="button" onClick={goHome}>← 처음으로</StyledBackBtn>
                 <StyledStore>{info.storeName}</StyledStore>
                 <StyledTitle>온라인 예약</StyledTitle>
                 {info.settings.noticeText && <StyledNotice>{info.settings.noticeText}</StyledNotice>}
@@ -714,4 +830,85 @@ const StyledManageLink = styled.a`
     font-weight: 700;
     text-align: center;
     text-decoration: none;
+`;
+
+// 랜딩 분기 버튼(신규 예약 / 예약 조회)
+const StyledHomeActions = styled.div`
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin-top: 8px;
+`;
+
+const StyledHomeBtn = styled.button<{$primary?: boolean}>`
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
+    padding: 18px 20px;
+    border: 1px solid ${(p) => (p.$primary ? 'var(--brand-color)' : 'var(--light-gray-color)')};
+    border-radius: var(--radius-lg);
+    background: ${(p) => (p.$primary ? 'var(--brand-color)' : 'var(--white-color)')};
+    cursor: pointer;
+    text-align: left;
+
+    .t {
+        font-size: var(--big-font);
+        font-weight: 800;
+        color: ${(p) => (p.$primary ? 'var(--white-color)' : 'var(--black-color)')};
+    }
+    .d {
+        font-size: var(--small-font);
+        color: ${(p) => (p.$primary ? 'var(--white-color-80)' : 'var(--dark-gray-color2)')};
+    }
+`;
+
+const StyledBackBtn = styled.button`
+    align-self: flex-start;
+    padding: 4px 0;
+    border: none;
+    background: none;
+    color: var(--dark-gray-color2);
+    font-size: var(--small-font);
+    font-weight: 600;
+    cursor: pointer;
+`;
+
+const StyledLookupList = styled.div`
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-top: 4px;
+`;
+
+const StyledLookupItem = styled.a`
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    padding: 14px;
+    border: 1px solid var(--light-gray-color);
+    border-radius: var(--radius-lg);
+    background: var(--white-color);
+    text-decoration: none;
+`;
+
+const StyledLookupStatus = styled.span<{$status: 'requested' | 'active'}>`
+    align-self: flex-start;
+    padding: 2px 10px;
+    border-radius: 999px;
+    font-size: var(--xsmall-font);
+    font-weight: 700;
+    color: var(--white-color);
+    background: ${(p) => (p.$status === 'active' ? 'var(--brand-color)' : 'var(--caution-color)')};
+`;
+
+const StyledLookupWhen = styled.strong`
+    font-size: var(--small-font);
+    font-weight: 700;
+    color: var(--black-color);
+`;
+
+const StyledLookupSvc = styled.span`
+    font-size: var(--small-font);
+    color: var(--dark-gray-color2);
 `;
