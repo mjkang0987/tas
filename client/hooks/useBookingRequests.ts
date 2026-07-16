@@ -4,10 +4,10 @@ import {useCallback, useEffect, useState} from 'react';
 export interface BookingRequestDto {
     id: string;
     legacyId: number | null;
+    kind: 'new' | 'cancel' | 'change';
     customerName: string;
     assigneeName: string | null;
-    pendingAction: 'cancel' | 'change';
-    pendingRequestedAt: string | null;
+    requestedAt: string | null;
     current: {date: string; startTime: string; endTime: string; serviceSummary: string};
     requestedChange: {date: string; startTime: string; endTime: string; serviceSummary: string} | null;
 }

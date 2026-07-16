@@ -33,6 +33,7 @@ type ReservationInfoCardProps = {
 function getReservationState(reservation: Reservation, today?: string) {
     if (reservation.status === 'cancelled') return {type: 'cancelled', label: '취소'};
     if (reservation.status === 'noshow') return {type: 'noshow', label: '노쇼'};
+    if (reservation.status === 'requested') return {type: 'requested', label: '신청'};
     if (hasCompletedPayment(reservation)) return {type: 'paid', label: '결제완료'};
     return {type: 'booked', label: '예약'};
 }

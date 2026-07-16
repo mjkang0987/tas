@@ -35,6 +35,7 @@ import {hasCompletedPayment} from '../../../utils/reservations';
 const STATUS_LABELS: Record<string, string> = {
     cancelled: '취소',
     noshow: '노쇼',
+    requested: '신청',
 };
 
 export const ReservationListModal = () => {
@@ -122,6 +123,7 @@ export const ReservationListModal = () => {
     const getStatusType = (r: Reservation) => {
         if (r.status === 'cancelled') return 'cancelled';
         if (r.status === 'noshow') return 'noshow';
+        if (r.status === 'requested') return 'requested';
         if (hasCompletedPayment(r)) return 'paid';
         return 'booked';
     };

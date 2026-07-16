@@ -48,6 +48,14 @@ interface SyncContext {
     nextAssigneeLegacyId: number;
 }
 
+export interface NaverSyncResult {
+    error?: string;
+    synced: SyncedEntry[];
+    cancelled: CancelledEntry[];
+    skipped: string[];
+    errors: string[];
+}
+
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
     if (req.method !== 'POST') {
         res.setHeader('Allow', ['POST']);
@@ -57,19 +65,25 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const session = await getApiSession(req, res);
     if (!requireRole(session, 'owner', res)) return;
 
-    const {token: accessToken, reason: tokenFailReason} = await getValidAccessTokenWithReason(session.storeId);
+    const result = await syncNaverBookingsForStore(session.storeId);
+    return res.status(200).json(result);
+}
+
+// 매장 Gmail을 파싱해 네이버 예약을 DB에 동기화한다. 세션 무관(storeId만) — 공개 예약 신청 흐름에서
+// 비동기(fire-and-forget)로도 호출해 예약 겹침을 2중 검증한다.
+export async function syncNaverBookingsForStore(storeId: string): Promise<NaverSyncResult> {
+    const {token: accessToken, reason: tokenFailReason} = await getValidAccessTokenWithReason(storeId);
     if (!accessToken) {
-        return res.status(200).json({
+        return {
             error: tokenFailReason === 'token_expired' ? 'gmail_token_expired' : 'gmail_not_connected',
             synced: [],
             cancelled: [],
             skipped: [],
             errors: [],
-        });
+        };
     }
 
-    const afterTimestamp = await getLastNaverSyncTimestamp(session.storeId);
-    const storeId = session.storeId;
+    const afterTimestamp = await getLastNaverSyncTimestamp(storeId);
 
     // 이메일 목록 조회 + 참조 데이터 DB 로드를 병렬 실행
     const [
@@ -219,7 +233,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         await notifySlackOps(`🛑 *네이버 동기화 실패* (${errors.length}건)\n${head}${more}`);
     }
 
-    return res.status(200).json({synced, cancelled, skipped, errors});
+    return {synced, cancelled, skipped, errors};
 }
 
 async function fetchEmailContentsInBatches(

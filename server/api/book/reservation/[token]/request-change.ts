@@ -63,7 +63,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         prisma.storeClosedDate.findMany({where: {storeId}, select: {date: true}}),
         prisma.storeBusinessHour.findUnique({where: {storeId_dayIndex: {storeId, dayIndex}}, select: {openTime: true, closeTime: true, enabled: true}}),
         prisma.assignee.findMany({where: {storeId, status: 'active'}, select: {id: true, schedules: {select: {dayIndex: true, enabled: true, startTime: true, endTime: true}}}}),
-        prisma.reservation.findMany({where: {storeId, date: new Date(`${dateStr}T00:00:00`), status: 'active'}, select: {id: true, assigneeId: true, startTime: true, endTime: true}}),
+        prisma.reservation.findMany({where: {storeId, date: new Date(`${dateStr}T00:00:00`), status: {in: ['active', 'requested']}}, select: {id: true, assigneeId: true, startTime: true, endTime: true}}),
     ]);
 
     if (services.length !== serviceNames.length) return res.status(400).json({error: 'unknown_service'});

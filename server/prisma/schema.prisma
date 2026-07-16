@@ -329,6 +329,7 @@ enum ReservationStatus {
   completed
   cancelled
   noshow
+  requested
 }
 
 enum PaymentMethod {

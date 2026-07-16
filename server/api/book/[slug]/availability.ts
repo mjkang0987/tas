@@ -43,7 +43,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         prisma.storeClosedDate.findMany({where: {storeId: store.id}, select: {date: true}}),
         prisma.storeBusinessHour.findUnique({where: {storeId_dayIndex: {storeId: store.id, dayIndex}}, select: {openTime: true, closeTime: true, enabled: true}}),
         prisma.assignee.findMany({where: {storeId: store.id, status: 'active'}, select: {id: true, schedules: {select: {dayIndex: true, enabled: true, startTime: true, endTime: true}}}}),
-        prisma.reservation.findMany({where: {storeId: store.id, date: new Date(`${dateStr}T00:00:00`), status: 'active'}, select: {assigneeId: true, startTime: true, endTime: true}}),
+        prisma.reservation.findMany({where: {storeId: store.id, date: new Date(`${dateStr}T00:00:00`), status: {in: ['active', 'requested']}}, select: {assigneeId: true, startTime: true, endTime: true}}),
     ]);
 
     // 모르는 서비스가 섞였으면 거부(공개 API 최소 신뢰)

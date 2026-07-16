@@ -100,6 +100,7 @@ export function frontendReservationStatusToDb(status: string | undefined): DbRes
     if (status === 'completed') return 'completed';
     if (status === 'cancelled') return 'cancelled';
     if (status === 'noshow') return 'noshow';
+    if (status === 'requested') return 'requested';
     return 'active';
 }
 

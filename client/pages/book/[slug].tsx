@@ -173,13 +173,13 @@ export default function BookingPage() {
                 <SeoHead title={`${info.storeName} 예약 완료`} />
                 <StyledCard>
                     <StyledStore>{info.storeName}</StyledStore>
-                    <StyledTitle>예약이 접수되었습니다</StyledTitle>
+                    <StyledTitle>예약이 신청되었습니다</StyledTitle>
                     <StyledSummary>
                         <StyledSummaryRow><span>날짜</span><StyledSummaryValue>{result.date}</StyledSummaryValue></StyledSummaryRow>
                         <StyledSummaryRow><span>시간</span><StyledSummaryValue>{result.startTime} ~ {result.endTime}</StyledSummaryValue></StyledSummaryRow>
                         <StyledSummaryRow><span>{labels.service}</span><StyledSummaryValue>{result.serviceSummary}</StyledSummaryValue></StyledSummaryRow>
                     </StyledSummary>
-                    <StyledNotice>예약이 정상 접수되었습니다. 아래 링크에서 예약 확인·변경·취소를 할 수 있어요. 링크를 저장해 두시면 편리합니다.</StyledNotice>
+                    <StyledNotice>예약 신청이 접수되었습니다. <strong>매장 확인 후 확정</strong>되며, 아래 링크에서 진행 상태를 확인하실 수 있어요. 링크를 저장해 두시면 편리합니다.</StyledNotice>
                     <StyledManageLink href={`/book/${encodeURIComponent(slug)}/r/${result.publicToken}`}>내 예약 확인·변경·취소</StyledManageLink>
                 </StyledCard>
             </StyledWrap>

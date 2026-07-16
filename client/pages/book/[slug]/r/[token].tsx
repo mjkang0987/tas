@@ -14,7 +14,7 @@ interface PendingChange {
     serviceSummary: string;
 }
 interface ReservationView {
-    status: 'active' | 'completed' | 'cancelled' | 'noshow';
+    status: 'active' | 'completed' | 'cancelled' | 'noshow' | 'requested';
     date: string;
     startTime: string;
     endTime: string;
@@ -42,6 +42,7 @@ interface BookStoreInfo {
 const ASSIGNEE_ANY = '__any__';
 
 const STATUS_LABEL: Record<ReservationView['status'], string> = {
+    requested: '신청 접수 · 확정 대기',
     active: '예약 확정',
     completed: '방문 완료',
     cancelled: '취소됨',
@@ -334,6 +335,7 @@ const StyledStatusBadge = styled.span<{$status: ReservationView['status']}>`
     font-weight: 700;
     color: #fff;
     background: ${(p) => (p.$status === 'active' ? 'var(--brand-color, #6526d9)'
+        : p.$status === 'requested' ? 'var(--caution-color, #a88417)'
         : p.$status === 'completed' ? 'var(--success-color, #2f9e44)'
         : 'var(--dark-gray-color2, #667)')};
 `;
