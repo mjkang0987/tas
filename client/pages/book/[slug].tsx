@@ -5,7 +5,7 @@ import {useRouter} from 'next/router';
 import styled from 'styled-components';
 
 import {getStoreLabels} from '../../features/store-settings/labels';
-import {formatTel, normalizeTel} from '../../features/customers/model';
+import {normalizeTel} from '../../features/customers/model';
 import {SeoHead} from '../../components/ui/SeoHead';
 import {formControlStyle} from '../../components/ui/FormControls';
 import {LabelBadge} from '../../components/ui/LabelBadge';
@@ -123,6 +123,7 @@ export default function BookingPage() {
 
     const [name, setName] = useState('');
     const [tel, setTel] = useState('');
+    const [memo, setMemo] = useState('');
     const [submitting, setSubmitting] = useState(false);
     const [submitError, setSubmitError] = useState<string>('');
     const [result, setResult] = useState<ReserveResult | null>(null);
@@ -149,6 +150,14 @@ export default function BookingPage() {
             .finally(() => { if (alive) setLoading(false); });
         return () => { alive = false; };
     }, [slug]);
+
+    // 뷰(home/new/lookup)를 URL 쿼리(?m=)와 동기화 → 새로고침·뒤로가기 유지.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    useEffect(() => {
+        if (!router.isReady) return;
+        const m = router.query.m;
+        setView(m === 'new' || m === 'lookup' ? m : 'home');
+    }, [router.isReady, router.query.m]);
 
     // 정보 로드 후 예약 가능한 첫 날짜를 기본 선택.
     // eslint-disable-next-line react-hooks/set-state-in-effect
@@ -259,7 +268,7 @@ export default function BookingPage() {
         fetch(`/api/book/${encodeURIComponent(slug)}/reserve`, {
             method: 'POST',
             headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify({date, startTime: selectedSlot, services: selectedServices, assigneeId: assigneeId !== ASSIGNEE_ANY ? assigneeId : null, name: name.trim(), tel: normalizeTel(tel)}),
+            body: JSON.stringify({date, startTime: selectedSlot, services: selectedServices, assigneeId: assigneeId !== ASSIGNEE_ANY ? assigneeId : null, name: name.trim(), tel: normalizeTel(tel), memo: memo.trim() || undefined}),
         })
             .then(async (res) => {
                 const data = await res.json().catch(() => ({}));
@@ -304,10 +313,16 @@ export default function BookingPage() {
             .finally(() => setLookupLoading(false));
     };
 
+    // 뷰 전환은 URL 쿼리로 (shallow) — 위 동기화 effect가 view 상태를 갱신. 새로고침해도 유지.
+    const goView = (v: BookView) => {
+        const query = v === 'home' ? {slug} : {slug, m: v};
+        router.push({pathname: '/book/[slug]', query}, undefined, {shallow: true});
+    };
+
     const goHome = () => {
-        setView('home');
         setLookupSearched(false);
         setLookupError('');
+        goView('home');
     };
 
     if (loading) {
@@ -354,11 +369,11 @@ export default function BookingPage() {
                     <StyledTitle>예약 서비스</StyledTitle>
                     {info.settings.noticeText && <StyledNotice>{info.settings.noticeText}</StyledNotice>}
                     <StyledHomeActions>
-                        <StyledHomeBtn type="button" $primary onClick={() => setView('new')}>
+                        <StyledHomeBtn type="button" $primary onClick={() => goView('new')}>
                             <span className="t">신규 예약</span>
                             <span className="d">{labels.service}·날짜·시간을 골라 예약하기</span>
                         </StyledHomeBtn>
-                        <StyledHomeBtn type="button" onClick={() => { setView('lookup'); setLookupSearched(false); setLookupError(''); }}>
+                        <StyledHomeBtn type="button" onClick={() => { setLookupSearched(false); setLookupError(''); goView('lookup'); }}>
                             <span className="t">예약 조회 / 변경 / 취소</span>
                             <span className="d">이름·연락처로 내 예약 확인하기</span>
                         </StyledHomeBtn>
@@ -384,7 +399,8 @@ export default function BookingPage() {
                     </StyledField>
                     <StyledField>
                         <StyledFieldLabel htmlFor="lookup-tel">연락처</StyledFieldLabel>
-                        <StyledTextInput id="lookup-tel" type="tel" inputMode="numeric" value={lookupTel} placeholder="010-0000-0000" onChange={(e) => { setLookupTel(e.target.value); setLookupError(''); }} onBlur={() => setLookupTel((t) => formatTel(t))} />
+                        <StyledTextInput id="lookup-tel" type="tel" inputMode="numeric" value={lookupTel} placeholder="01012345678" onChange={(e) => { setLookupTel(e.target.value); setLookupError(''); }} />
+                        <StyledFieldHint>하이픈(-) 없이 숫자만 입력해 주세요.</StyledFieldHint>
                     </StyledField>
                     {lookupError && <StyledError role="alert">{lookupError}</StyledError>}
                     <StyledNextBtn type="button" disabled={!lookupCanSubmit} onClick={doLookup}>
@@ -550,7 +566,12 @@ export default function BookingPage() {
                         </StyledField>
                         <StyledField>
                             <StyledFieldLabel htmlFor="book-tel">연락처</StyledFieldLabel>
-                            <StyledTextInput id="book-tel" type="tel" inputMode="numeric" value={tel} placeholder="010-0000-0000" onChange={(e) => setTel(e.target.value)} onBlur={() => setTel((t) => formatTel(t))} />
+                            <StyledTextInput id="book-tel" type="tel" inputMode="numeric" value={tel} placeholder="01012345678" onChange={(e) => setTel(e.target.value)} />
+                            <StyledFieldHint>하이픈(-) 없이 숫자만 입력해 주세요.</StyledFieldHint>
+                        </StyledField>
+                        <StyledField>
+                            <StyledFieldLabel htmlFor="book-memo">요청사항 (선택)</StyledFieldLabel>
+                            <StyledTextArea id="book-memo" value={memo} maxLength={200} rows={3} placeholder="매장에 남길 요청사항이 있으면 적어주세요." onChange={(e) => setMemo(e.target.value)} />
                         </StyledField>
                     </>
                 )}
@@ -640,7 +661,7 @@ const StyledCard = styled.div`
         max-width: none;
         border-radius: 0;
         box-shadow: none;
-        min-height: 100vh;
+        min-height: 100dvh;
         padding: 24px 18px;
     }
 `;
@@ -695,6 +716,21 @@ const StyledTextInput = styled.input`
     height: 40px;
     padding: 0 12px;
     font-size: var(--small-font);
+`;
+
+const StyledTextArea = styled.textarea`
+    ${formControlStyle};
+    width: 100%;
+    padding: 10px 12px;
+    font-size: var(--small-font);
+    line-height: 1.5;
+    resize: vertical;
+    font-family: inherit;
+`;
+
+const StyledFieldHint = styled.span`
+    font-size: var(--xsmall-font);
+    color: var(--dark-gray-color2);
 `;
 
 // 하단 sticky 요약 바. 카드 폭 풀블리드(negative margin)로 뷰포트 하단에 고정.
