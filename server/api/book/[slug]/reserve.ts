@@ -185,7 +185,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             `🔔 *온라인 예약 신청*\n• 날짜: ${dateStr}`
             + `\n• 시간: ${startTime}~${endTime}`
             + `\n• 시술: ${serviceSummary}`
-            + `\n• 고객: ${name}`
+            + `\n• 고객: ${name} (${tel})`
             + `\n앱에서 확정/거절해 주세요.`,
         );
     } catch { /* 알림 실패는 무시 */ }
