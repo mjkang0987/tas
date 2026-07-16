@@ -1,6 +1,6 @@
 {
     "name": "client",
-    "version": "0.22.2",
+    "version": "0.22.3",
     "private": true,
     "scripts": {
         "dev": "next dev",
@@ -34,23 +34,23 @@
         "@prisma/adapter-pg": "^7.8.0",
         "@prisma/client": "^7.8.0",
         "dotenv": "^17.4.2",
-        "next": "16.2.9",
+        "next": "16.2.10",
         "next-auth": "5.0.0-beta.30",
-        "nodemailer": "^8.0.10",
+        "nodemailer": "^8.0.11",
         "react": "19.2.7",
         "react-dom": "19.2.7",
-        "styled-components": "^6.4.2",
+        "styled-components": "^6.4.3",
         "xlsx": "0.18.5",
         "zustand": "^5.0.14"
     },
     "devDependencies": {
         "@types/node": "25.9.3",
-        "@types/nodemailer": "^8.0.0",
+        "@types/nodemailer": "^8.0.1",
         "@types/react": "^19.2.17",
         "@types/react-dom": "^19.2.3",
         "@types/styled-components": "^5.1.36",
         "eslint": "9.39.4",
-        "eslint-config-next": "16.2.9",
+        "eslint-config-next": "16.2.10",
         "fsevents": "^2.3.3",
         "prisma": "^7.8.0",
         "typescript": "6.0.3"
