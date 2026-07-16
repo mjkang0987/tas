@@ -22,7 +22,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     const [services, assignees, businessHours, closedDates, bookingSettings] = await Promise.all([
         prisma.service.findMany({where: {storeId: store.id}, select: {name: true, category: true, duration: true, price: true}, orderBy: {name: 'asc'}}),
-        prisma.assignee.findMany({where: {storeId: store.id, status: 'active'}, select: {id: true, name: true, color: true}, orderBy: {name: 'asc'}}),
+        prisma.assignee.findMany({where: {storeId: store.id, status: 'active'}, select: {id: true, name: true, color: true, schedules: {select: {dayIndex: true, enabled: true}}}, orderBy: {name: 'asc'}}),
         prisma.storeBusinessHour.findMany({where: {storeId: store.id}, orderBy: {dayIndex: 'asc'}, select: {dayIndex: true, openTime: true, closeTime: true, enabled: true}}),
         prisma.storeClosedDate.findMany({where: {storeId: store.id}, select: {date: true}}),
         prisma.storeBookingSettings.findUnique({where: {storeId: store.id}}),
@@ -53,8 +53,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         storeName: store.name,
         shopType: store.shopType,
         services: visibleServices.map((s) => ({name: s.name, category: s.category, duration: s.duration, price: s.price})),
-        // 담당자 선택을 허용할 때만 목록 노출
-        assignees: settings.allowAssigneeChoice ? assignees.map((a) => ({id: a.id, name: a.name, color: a.color})) : [],
+        // 담당자 선택을 허용할 때만 목록 노출. offDays=주간 스케줄이 disabled인 요일(0=월…6=일).
+        // 클라가 이 담당자를 고르면 그 요일 날짜를 비활성화한다. (assigneeWorksOnDay와 동일 규칙: 행 없으면 근무)
+        assignees: settings.allowAssigneeChoice
+            ? assignees.map((a) => ({id: a.id, name: a.name, color: a.color, offDays: a.schedules.filter((s) => !s.enabled).map((s) => s.dayIndex)}))
+            : [],
         businessHours: businessHours.map((b) => ({dayIndex: b.dayIndex, openTime: b.openTime, closeTime: b.closeTime, enabled: b.enabled})),
         closedDates: closedDates.map((c) => c.date.toISOString().slice(0, 10)),
         settings,
