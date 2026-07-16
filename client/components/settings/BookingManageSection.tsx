@@ -1,4 +1,4 @@
-import {useEffect, useState} from 'react';
+import {useEffect, useMemo, useState} from 'react';
 
 import styled from 'styled-components';
 
@@ -6,6 +6,8 @@ import {useToastStore} from '../../store/toastStore';
 import {useCalendarStore} from '../../store/calendarStore';
 import {DEFAULT_BOOKING_SETTINGS, isValidBookingSlug} from '../../features/store-settings/model';
 import type {BookingSettings} from '../../features/store-settings/model';
+import {buildServiceColorMap} from '../../utils/services';
+import {ServiceChipList} from '../ui/ServiceChip';
 import {StyledSettingsCard, StyledSettingsCardTitle, StyledSettingsHint, StyledSaveBtn} from './settings-styles';
 
 const BOOKING_HOST = process.env.NEXT_PUBLIC_BOOKING_HOST ?? 'book.takeaseat.co.kr';
@@ -14,6 +16,12 @@ const SLOT_OPTIONS = [10, 15, 20, 30, 60];
 export function BookingManageSection() {
     const toast = useToastStore((s) => s.show);
     const serviceCatalog = useCalendarStore((s) => s.serviceCatalog);
+    const categoryBaseColorMap = useCalendarStore((s) => s.categoryBaseColorMap);
+    // 노출 서비스 목록의 시술명을 캘린더 공통 색상 칩(ServiceChipList)으로 표시.
+    const serviceColorMap = useMemo(
+        () => buildServiceColorMap(serviceCatalog, categoryBaseColorMap),
+        [serviceCatalog, categoryBaseColorMap],
+    );
 
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
@@ -222,7 +230,7 @@ export function BookingManageSection() {
                                     onChange={() => toggleServiceExposure(s.name)}
                                     disabled={loading}
                                 />
-                                <span>{s.name}</span>
+                                <ServiceChipList serviceNames={[s.name]} serviceColorMap={serviceColorMap} keyPrefix={`book-svc-${idx}`} />
                             </StyledServiceCheckRow>
                         ))}
                     </StyledServiceCheckList>
