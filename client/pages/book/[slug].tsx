@@ -291,7 +291,7 @@ const StyledWrap = styled.div`
     justify-content: center;
     padding: 24px 16px;
     box-sizing: border-box;
-    background: var(--aside-bg, #f4f6f8);
+    background: #f4f6f8;
     @media (max-width: 640px) { padding: 0; }
 `;
 
@@ -438,7 +438,7 @@ const StyledTotal = styled.div`
     align-items: center;
     margin-top: 8px;
     padding: 12px;
-    background: var(--aside-bg, #f4f6f8);
+    background: #f4f6f8;
     border-radius: 10px;
     font-size: 14px;
     color: var(--dark-gray-color, #444);
@@ -455,7 +455,7 @@ const StyledSummary = styled.div`
     gap: 8px;
     margin-top: 4px;
     padding: 16px;
-    background: var(--aside-bg, #f4f6f8);
+    background: #f4f6f8;
     border-radius: 12px;
 `;
 
