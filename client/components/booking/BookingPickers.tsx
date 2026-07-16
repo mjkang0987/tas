@@ -3,7 +3,7 @@ import styled, {css} from 'styled-components';
 // 공개 예약(영화관식) 선택 UI 컴포넌트. 디자인 토큰 준수(색·radius·font 전부 전역 토큰).
 // 선택 가능 항목은 채워진 브랜드색, 비활성은 흐리게(마감/휴무/불가) — 좌석 선택 UX.
 
-// 가로 스크롤 줄(디자이너·날짜)
+// 가로 스크롤 줄(디자이너·날짜). 스크롤 스냅으로 셀 단위로 부드럽게 멈춘다.
 export const PickerScrollRow = styled.div`
     display: flex;
     gap: 8px;
@@ -12,6 +12,8 @@ export const PickerScrollRow = styled.div`
     margin: 0 -2px;
     -webkit-overflow-scrolling: touch;
     scrollbar-width: thin;
+    scroll-snap-type: x proximity;
+    scroll-padding-left: 2px;
 `;
 
 const selectableBase = css<{$on: boolean}>`
@@ -39,6 +41,7 @@ export const PillChip = styled.button<{$on: boolean}>`
     font-size: var(--small-font);
     font-weight: 600;
     white-space: nowrap;
+    scroll-snap-align: start;
 `;
 
 // 날짜 셀(요일 + 일자)
@@ -51,6 +54,7 @@ export const DateCell = styled.button<{$on: boolean; $weekend: boolean}>`
     min-width: 52px;
     padding: 8px 6px;
     border-radius: var(--radius-lg);
+    scroll-snap-align: start;
     color: ${(p) => (p.$on ? 'var(--white-color)' : p.$weekend ? 'var(--danger-color)' : 'var(--black-color)')};
 
     .dow { font-size: var(--xsmall-font); opacity: 0.85; }
