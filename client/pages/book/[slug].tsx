@@ -7,6 +7,12 @@ import styled from 'styled-components';
 import {getStoreLabels} from '../../features/store-settings/labels';
 import {formatTel, normalizeTel} from '../../features/customers/model';
 import {SeoHead} from '../../components/ui/SeoHead';
+import {formControlStyle} from '../../components/ui/FormControls';
+import {LabelBadge} from '../../components/ui/LabelBadge';
+import {
+    PickerScrollRow, PillChip, DateCell, ServiceChoiceChip, ServiceChoiceWrap,
+    SlotGrid, SlotCell, SlotLegend,
+} from '../../components/booking/BookingPickers';
 
 interface BookServiceInfo {
     name: string;
@@ -292,14 +298,14 @@ export default function BookingPage() {
                 {showAssignees && (
                     <>
                         <StyledSectionLabel>{labels.assignee} 선택</StyledSectionLabel>
-                        <StyledScrollRow>
-                            <StyledPickChip type="button" $on={assigneeId === ASSIGNEE_ANY} aria-pressed={assigneeId === ASSIGNEE_ANY} onClick={() => pickAssignee(ASSIGNEE_ANY)}>
+                        <PickerScrollRow>
+                            <PillChip type="button" $on={assigneeId === ASSIGNEE_ANY} aria-pressed={assigneeId === ASSIGNEE_ANY} onClick={() => pickAssignee(ASSIGNEE_ANY)}>
                                 상관없음
-                            </StyledPickChip>
+                            </PillChip>
                             {info.assignees.map((a) => {
                                 const working = day?.assignees.find((x) => x.id === a.id)?.working ?? true;
                                 return (
-                                    <StyledPickChip
+                                    <PillChip
                                         key={a.id}
                                         type="button"
                                         $on={assigneeId === a.id}
@@ -308,22 +314,22 @@ export default function BookingPage() {
                                         title={!working ? '해당 날짜 휴무' : undefined}
                                         onClick={() => pickAssignee(a.id)}
                                     >
-                                        {a.name}{!working && ' (휴무)'}
-                                    </StyledPickChip>
+                                        {a.name}{!working && <LabelBadge $tone="neutral">휴무</LabelBadge>}
+                                    </PillChip>
                                 );
                             })}
-                        </StyledScrollRow>
+                        </PickerScrollRow>
                     </>
                 )}
 
                 <StyledSectionLabel>날짜 선택</StyledSectionLabel>
-                <StyledScrollRow>
+                <PickerScrollRow>
                     {dateOffsets.map((off) => {
                         const d = localDateStr(off);
                         const disabled = isDateClosed(info, d);
                         const di = clientDayIndex(d);
                         return (
-                            <StyledDateChip
+                            <DateCell
                                 key={d}
                                 type="button"
                                 $on={date === d}
@@ -334,18 +340,18 @@ export default function BookingPage() {
                             >
                                 <span className="dow">{off === 0 ? '오늘' : DOW[di]}</span>
                                 <span className="day">{Number(d.slice(8, 10))}</span>
-                            </StyledDateChip>
+                            </DateCell>
                         );
                     })}
-                </StyledScrollRow>
+                </PickerScrollRow>
 
                 <StyledSectionLabel>{labels.service} 선택</StyledSectionLabel>
                 {info.services.length === 0 && <StyledMuted>등록된 {labels.service}가 없습니다.</StyledMuted>}
-                <StyledServiceWrap>
+                <ServiceChoiceWrap>
                     {info.services.map((s) => {
                         const on = selectedServices.includes(s.name);
                         return (
-                            <StyledServiceChip
+                            <ServiceChoiceChip
                                 key={s.name}
                                 type="button"
                                 $on={on}
@@ -355,10 +361,10 @@ export default function BookingPage() {
                             >
                                 <span className="nm">{s.name}</span>
                                 <span className="mt">{s.duration}분 · {s.price.toLocaleString()}원</span>
-                            </StyledServiceChip>
+                            </ServiceChoiceChip>
                         );
                     })}
-                </StyledServiceWrap>
+                </ServiceChoiceWrap>
 
                 <StyledSectionLabel>예약 가능한 시간</StyledSectionLabel>
                 {dayLoading && <StyledMuted>시간을 불러오는 중…</StyledMuted>}
@@ -368,9 +374,9 @@ export default function BookingPage() {
                 )}
                 {!dayLoading && day && day.dateOk && day.slots.length > 0 && (
                     <>
-                        <StyledSlotGrid>
+                        <SlotGrid>
                             {day.slots.map((s) => (
-                                <StyledSlotBtn
+                                <SlotCell
                                     key={s.time}
                                     type="button"
                                     $on={selectedSlot === s.time}
@@ -379,13 +385,13 @@ export default function BookingPage() {
                                     onClick={() => pickSlot(s.time)}
                                 >
                                     {s.time}
-                                </StyledSlotBtn>
+                                </SlotCell>
                             ))}
-                        </StyledSlotGrid>
-                        <StyledLegend>
+                        </SlotGrid>
+                        <SlotLegend>
                             <span><i className="ok" /> 예약가능</span>
                             <span><i className="off" /> 마감</span>
-                        </StyledLegend>
+                        </SlotLegend>
                     </>
                 )}
 
@@ -447,136 +453,34 @@ const StyledCard = styled.div`
 `;
 
 const StyledStore = styled.strong`
-    font-size: 14px;
-    color: var(--brand-color, #6526d9);
+    font-size: var(--small-font);
+    color: var(--brand-color);
     font-weight: 700;
 `;
 
 const StyledTitle = styled.h1`
     margin: 0;
-    font-size: 22px;
+    font-size: var(--big-font);
     font-weight: 800;
-    color: var(--black-color, #111);
+    color: var(--black-color);
 `;
 
 const StyledNotice = styled.p`
     margin: 4px 0 0;
     padding: 10px 12px;
-    background: var(--accent-soft, #f1ecfb);
-    border-radius: 8px;
-    font-size: 13px;
+    background: var(--brand-color-bg);
+    border-radius: var(--radius-md);
+    font-size: var(--small-font);
     line-height: 1.5;
-    color: var(--dark-gray-color, #444);
+    color: var(--dark-gray-color);
 `;
 
 const StyledSectionLabel = styled.strong`
     display: block;
     margin-top: 12px;
-    font-size: 13px;
+    font-size: var(--small-font);
     font-weight: 700;
-    color: var(--dark-gray-color, #444);
-`;
-
-// 가로 스크롤 줄(디자이너·날짜). 좌석표처럼 옆으로 쭉.
-const StyledScrollRow = styled.div`
-    display: flex;
-    gap: 8px;
-    overflow-x: auto;
-    padding: 2px 2px 8px;
-    margin: 0 -2px;
-    -webkit-overflow-scrolling: touch;
-    scrollbar-width: thin;
-`;
-
-const StyledPickChip = styled.button<{$on: boolean}>`
-    flex: 0 0 auto;
-    padding: 9px 16px;
-    border: 2px solid ${(p) => (p.$on ? 'var(--brand-color, #6526d9)' : 'var(--light-gray-color, #e4e7eb)')};
-    border-radius: 999px;
-    background: ${(p) => (p.$on ? 'var(--brand-color, #6526d9)' : 'var(--white-color, #fff)')};
-    color: ${(p) => (p.$on ? '#fff' : 'var(--black-color, #111)')};
-    font-size: 14px;
-    font-weight: 600;
-    white-space: nowrap;
-    cursor: pointer;
-    &:disabled { opacity: 0.4; cursor: not-allowed; }
-`;
-
-const StyledDateChip = styled.button<{$on: boolean; $weekend: boolean}>`
-    flex: 0 0 auto;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 2px;
-    min-width: 52px;
-    padding: 8px 6px;
-    border: 2px solid ${(p) => (p.$on ? 'var(--brand-color, #6526d9)' : 'var(--light-gray-color, #e4e7eb)')};
-    border-radius: 12px;
-    background: ${(p) => (p.$on ? 'var(--brand-color, #6526d9)' : 'var(--white-color, #fff)')};
-    color: ${(p) => (p.$on ? '#fff' : p.$weekend ? 'var(--danger-color, #d64545)' : 'var(--black-color, #111)')};
-    cursor: pointer;
-    &:disabled { opacity: 0.35; cursor: not-allowed; }
-    .dow { font-size: 11px; opacity: 0.85; }
-    .day { font-size: 17px; font-weight: 800; }
-`;
-
-const StyledServiceWrap = styled.div`
-    display: flex;
-    flex-wrap: wrap;
-    gap: 8px;
-`;
-
-const StyledServiceChip = styled.button<{$on: boolean}>`
-    flex: 0 0 auto;
-    display: flex;
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 2px;
-    padding: 8px 14px;
-    border: 2px solid ${(p) => (p.$on ? 'var(--brand-color, #6526d9)' : 'var(--light-gray-color, #e4e7eb)')};
-    border-radius: 12px;
-    background: ${(p) => (p.$on ? 'var(--accent-soft, #f1ecfb)' : 'var(--white-color, #fff)')};
-    cursor: pointer;
-    text-align: left;
-    &:disabled { opacity: 0.4; cursor: not-allowed; }
-    .nm { font-size: 14px; font-weight: 600; color: var(--black-color, #111); }
-    .mt { font-size: 12px; color: var(--dark-gray-color2, #667); }
-`;
-
-const StyledSlotGrid = styled.div`
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(72px, 1fr));
-    gap: 8px;
-`;
-
-const StyledSlotBtn = styled.button<{$on: boolean}>`
-    height: 42px;
-    border: 2px solid ${(p) => (p.$on ? 'var(--brand-color, #6526d9)' : 'var(--light-gray-color, #e4e7eb)')};
-    border-radius: 10px;
-    background: ${(p) => (p.$on ? 'var(--brand-color, #6526d9)' : 'var(--white-color, #fff)')};
-    color: ${(p) => (p.$on ? '#fff' : 'var(--black-color, #111)')};
-    font-size: 14px;
-    font-weight: 600;
-    cursor: pointer;
-    &:disabled { opacity: 0.35; cursor: not-allowed; text-decoration: line-through; background: #f4f6f8; }
-`;
-
-const StyledLegend = styled.div`
-    display: flex;
-    gap: 16px;
-    margin-top: 2px;
-    font-size: 12px;
-    color: var(--dark-gray-color2, #667);
-    i {
-        display: inline-block;
-        width: 10px;
-        height: 10px;
-        margin-right: 4px;
-        border-radius: 3px;
-        vertical-align: middle;
-    }
-    i.ok { border: 2px solid var(--light-gray-color, #e4e7eb); }
-    i.off { background: #dfe3e8; }
+    color: var(--dark-gray-color);
 `;
 
 const StyledField = styled.div`
@@ -586,20 +490,18 @@ const StyledField = styled.div`
 `;
 
 const StyledFieldLabel = styled.label`
-    font-size: 12px;
+    font-size: var(--xsmall-font);
     font-weight: 600;
-    color: var(--dark-gray-color2, #667);
+    color: var(--dark-gray-color2);
 `;
 
+// 공유 formControlStyle 재사용(radius·포커스링·비활성 상태 디자인 가이드 준수).
 const StyledTextInput = styled.input`
+    ${formControlStyle};
     width: 100%;
-    height: 44px;
+    height: 40px;
     padding: 0 12px;
-    border: 1px solid var(--light-gray-color, #e4e7eb);
-    border-radius: 10px;
-    font-size: 15px;
-    background: var(--white-color, #fff);
-    box-sizing: border-box;
+    font-size: var(--small-font);
 `;
 
 const StyledTotal = styled.div`
@@ -609,13 +511,13 @@ const StyledTotal = styled.div`
     margin-top: 8px;
     padding: 12px;
     background: #f4f6f8;
-    border-radius: 10px;
-    font-size: 14px;
-    color: var(--dark-gray-color, #444);
+    border-radius: var(--radius-md);
+    font-size: var(--small-font);
+    color: var(--dark-gray-color);
 `;
 
 const StyledTotalValue = styled.strong`
-    color: var(--black-color, #111);
+    color: var(--black-color);
     font-weight: 800;
 `;
 
@@ -626,37 +528,37 @@ const StyledSummary = styled.div`
     margin-top: 4px;
     padding: 16px;
     background: #f4f6f8;
-    border-radius: 12px;
+    border-radius: var(--radius-md);
 `;
 
 const StyledSummaryRow = styled.div`
     display: flex;
     justify-content: space-between;
     gap: 12px;
-    font-size: 14px;
-    color: var(--dark-gray-color2, #667);
+    font-size: var(--small-font);
+    color: var(--dark-gray-color2);
 `;
 
 const StyledSummaryValue = styled.strong`
-    color: var(--black-color, #111);
+    color: var(--black-color);
     font-weight: 700;
     text-align: right;
 `;
 
 const StyledError = styled.p`
     margin: 8px 0 0;
-    font-size: 13px;
-    color: var(--danger-color, #d64545);
+    font-size: var(--small-font);
+    color: var(--danger-color);
 `;
 
 const StyledNextBtn = styled.button`
     margin-top: 20px;
     height: 50px;
     border: none;
-    border-radius: 12px;
-    background: var(--brand-color, #6526d9);
-    color: #fff;
-    font-size: 16px;
+    border-radius: var(--radius-md);
+    background: var(--brand-color);
+    color: var(--white-color);
+    font-size: var(--big-font);
     font-weight: 700;
     cursor: pointer;
     &:disabled { opacity: 0.45; cursor: not-allowed; }
@@ -664,19 +566,19 @@ const StyledNextBtn = styled.button`
 
 const StyledMuted = styled.p`
     margin: 0;
-    font-size: 14px;
-    color: var(--dark-gray-color2, #667);
+    font-size: var(--small-font);
+    color: var(--dark-gray-color2);
 `;
 
 const StyledManageLink = styled.a`
     display: block;
     margin-top: 4px;
     padding: 14px;
-    border: 2px solid var(--brand-color, #6526d9);
-    border-radius: 12px;
-    background: var(--white-color, #fff);
-    color: var(--brand-color, #6526d9);
-    font-size: 15px;
+    border: 1px solid var(--brand-color);
+    border-radius: var(--radius-md);
+    background: var(--white-color);
+    color: var(--brand-color);
+    font-size: var(--small-font);
     font-weight: 700;
     text-align: center;
     text-decoration: none;
