@@ -19,11 +19,19 @@ interface BookAssigneeInfo {
     name: string;
     color: string | null;
 }
+interface BookBusinessHour {
+    dayIndex: number;
+    openTime: string;
+    closeTime: string;
+    enabled: boolean;
+}
 interface BookStoreInfo {
     storeName: string;
     shopType: string | null;
     services: BookServiceInfo[];
     assignees: BookAssigneeInfo[];
+    businessHours: BookBusinessHour[];
+    closedDates: string[];
     settings: {allowAssigneeChoice: boolean; noticeText: string | null; maxAdvanceDays: number};
 }
 interface ReserveResult {
@@ -33,10 +41,24 @@ interface ReserveResult {
     endTime: string;
     serviceSummary: string;
 }
+// 하루 예약현황(용량표). /api/book/[slug]/day 응답.
+interface DaySlotCapacity {
+    time: string;
+    maxDurationMin: number;
+}
+interface DayData {
+    date: string;
+    dateOk: boolean;
+    businessHour: {openTime: string; closeTime: string; enabled: boolean} | null;
+    slotIntervalMin: number;
+    slots: DaySlotCapacity[];
+    assignees: {id: string; working: boolean}[];
+}
 
 const ASSIGNEE_ANY = '__any__';
+const DOW = ['월', '화', '수', '목', '금', '토', '일'];
 
-// 오늘(로컬=KST) 기준 YYYY-MM-DD. date input min/max·기본값용.
+// 오늘(로컬=KST) 기준 YYYY-MM-DD.
 function localDateStr(offsetDays = 0): string {
     const d = new Date();
     d.setDate(d.getDate() + offsetDays);
@@ -44,6 +66,18 @@ function localDateStr(offsetDays = 0): string {
     const m = String(d.getMonth() + 1).padStart(2, '0');
     const day = String(d.getDate()).padStart(2, '0');
     return `${y}-${m}-${day}`;
+}
+
+// 서버 dayIndexOf와 동일(0=월 … 6=일).
+function clientDayIndex(dateStr: string): number {
+    return (new Date(`${dateStr}T12:00:00Z`).getUTCDay() + 6) % 7;
+}
+
+// 날짜가 예약 불가(휴무일·영업요일 아님)인가 — 날짜 스트립 비활성 판정.
+function isDateClosed(info: BookStoreInfo, dateStr: string): boolean {
+    if (info.closedDates.includes(dateStr)) return true;
+    const bh = info.businessHours.find((b) => b.dayIndex === clientDayIndex(dateStr));
+    return !bh || !bh.enabled;
 }
 
 export default function BookingPage() {
@@ -57,8 +91,8 @@ export default function BookingPage() {
     const [selectedServices, setSelectedServices] = useState<string[]>([]);
     const [assigneeId, setAssigneeId] = useState<string>(ASSIGNEE_ANY);
     const [date, setDate] = useState<string>('');
-    const [slots, setSlots] = useState<string[]>([]);
-    const [slotsLoading, setSlotsLoading] = useState(false);
+    const [day, setDay] = useState<DayData | null>(null);
+    const [dayLoading, setDayLoading] = useState(false);
     const [selectedSlot, setSelectedSlot] = useState<string>('');
 
     const [name, setName] = useState('');
@@ -81,41 +115,100 @@ export default function BookingPage() {
         return () => { alive = false; };
     }, [slug]);
 
+    // 정보 로드 후 예약 가능한 첫 날짜를 기본 선택.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    useEffect(() => {
+        if (!info || date) return;
+        for (let i = 0; i <= info.settings.maxAdvanceDays; i += 1) {
+            const d = localDateStr(i);
+            if (!isDateClosed(info, d)) { setDate(d); break; }
+        }
+    }, [info, date]);
+
     const labels = useMemo(() => getStoreLabels(info?.shopType ?? null), [info?.shopType]);
 
-    const toggleService = (serviceName: string) => {
-        setSelectedServices((prev) => prev.includes(serviceName) ? prev.filter((n) => n !== serviceName) : [...prev, serviceName]);
-        setSelectedSlot('');
-    };
-
-    // 서비스·담당자·날짜가 정해지면 가용 슬롯 조회
-    const fetchSlots = useCallback(() => {
-        if (!slug || !date || selectedServices.length === 0) { setSlots([]); return; }
+    // 선택 날짜(+담당자)의 용량표를 불러온다. selectedSlot 초기화는 날짜·담당자 핸들러가 담당.
+    const fetchDay = useCallback(() => {
+        if (!slug || !date) { setDay(null); return; }
         let alive = true;
-        setSlotsLoading(true);
-        const params = new URLSearchParams({date, services: selectedServices.join(',')});
+        setDayLoading(true);
+        const params = new URLSearchParams({date});
         if (assigneeId !== ASSIGNEE_ANY) params.set('assignee', assigneeId);
-        fetch(`/api/book/${encodeURIComponent(slug)}/availability?${params.toString()}`)
-            .then((res) => (res.ok ? res.json() : Promise.reject(new Error('slots failed'))))
-            .then((data) => { if (alive) setSlots(Array.isArray(data.slots) ? data.slots : []); })
-            .catch(() => { if (alive) setSlots([]); })
-            .finally(() => { if (alive) setSlotsLoading(false); });
+        fetch(`/api/book/${encodeURIComponent(slug)}/day?${params.toString()}`)
+            .then((res) => (res.ok ? res.json() : Promise.reject(new Error('day failed'))))
+            .then((data) => { if (alive) setDay(data as DayData); })
+            .catch(() => { if (alive) setDay(null); })
+            .finally(() => { if (alive) setDayLoading(false); });
         return () => { alive = false; };
-    }, [slug, date, selectedServices, assigneeId]);
+    }, [slug, date, assigneeId]);
 
-    // 서비스·담당자·날짜가 바뀌면 슬롯을 다시 불러온다. selectedSlot 초기화는 각 입력 핸들러가 담당.
-    // fetchSlots는 요청 중 로딩 플래그를 세우는 표준 fetch-in-effect 패턴이라 규칙을 로컬 예외 처리.
+    // 날짜·담당자가 바뀌면 용량표 재조회. fetch-in-effect 표준 패턴이라 규칙 로컬 예외.
     // eslint-disable-next-line react-hooks/set-state-in-effect
-    useEffect(() => fetchSlots(), [fetchSlots]);
+    useEffect(() => fetchDay(), [fetchDay]);
 
+    // 선택 담당자가 그날 휴무면 '상관없음'으로 되돌린다.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    useEffect(() => {
+        if (!day || assigneeId === ASSIGNEE_ANY) return;
+        const a = day.assignees.find((x) => x.id === assigneeId);
+        if (a && !a.working) { setAssigneeId(ASSIGNEE_ANY); setSelectedSlot(''); }
+    }, [day, assigneeId]);
+
+    const durationOf = useCallback(
+        (n: string) => info?.services.find((s) => s.name === n)?.duration ?? 0,
+        [info],
+    );
     const totalDuration = useMemo(
-        () => selectedServices.reduce((sum, n) => sum + (info?.services.find((s) => s.name === n)?.duration ?? 0), 0),
-        [selectedServices, info],
+        () => selectedServices.reduce((sum, n) => sum + durationOf(n), 0),
+        [selectedServices, durationOf],
     );
     const totalPrice = useMemo(
         () => selectedServices.reduce((sum, n) => sum + (info?.services.find((s) => s.name === n)?.price ?? 0), 0),
         [selectedServices, info],
     );
+    const minServiceDuration = useMemo(() => {
+        const ds = (info?.services ?? []).map((s) => s.duration).filter((d) => d > 0);
+        return ds.length ? Math.min(...ds) : 0;
+    }, [info]);
+
+    const capByTime = useMemo(() => {
+        const m = new Map<string, number>();
+        for (const s of day?.slots ?? []) m.set(s.time, s.maxDurationMin);
+        return m;
+    }, [day]);
+
+    // 시간 활성: 이 시각에서 (선택 시술 총소요, 없으면 최소 시술소요)만큼 연속 예약 가능한가.
+    const isTimeEnabled = useCallback((t: string) => {
+        const cap = capByTime.get(t) ?? 0;
+        const need = totalDuration > 0 ? totalDuration : minServiceDuration;
+        return need > 0 && cap >= need;
+    }, [capByTime, totalDuration, minServiceDuration]);
+
+    // 시술 활성: 이미 선택된 건 항상(해제 가능). 시간 선택 시 그 시각에 맞아야, 아니면 어느 시각이든 맞으면.
+    const isServiceEnabled = useCallback((name: string) => {
+        const dur = durationOf(name);
+        if (dur <= 0) return false;
+        if (selectedServices.includes(name)) return true;
+        const need = totalDuration + dur;
+        if (selectedSlot) return (capByTime.get(selectedSlot) ?? 0) >= need;
+        for (const cap of capByTime.values()) if (cap >= need) return true;
+        return false;
+    }, [durationOf, selectedServices, totalDuration, selectedSlot, capByTime]);
+
+    const toggleService = (name: string) => {
+        if (!isServiceEnabled(name)) return;
+        const next = selectedServices.includes(name)
+            ? selectedServices.filter((n) => n !== name)
+            : [...selectedServices, name];
+        setSelectedServices(next);
+        // 선택 시간이 새 총소요를 못 담으면 시간 선택 해제.
+        const nextTotal = next.reduce((sum, n) => sum + durationOf(n), 0);
+        if (selectedSlot && (capByTime.get(selectedSlot) ?? 0) < nextTotal) setSelectedSlot('');
+    };
+
+    const pickDate = (d: string) => { setDate(d); setSelectedSlot(''); };
+    const pickAssignee = (id: string) => { setAssigneeId(id); setSelectedSlot(''); };
+    const pickSlot = (t: string) => { if (isTimeEnabled(t)) setSelectedSlot((prev) => (prev === t ? '' : t)); };
 
     const telValid = normalizeTel(tel).length >= 10 && normalizeTel(tel).length <= 11;
     const canSubmit = selectedServices.length > 0 && !!date && !!selectedSlot && name.trim().length > 0 && telValid && !submitting;
@@ -139,10 +232,9 @@ export default function BookingPage() {
                     } else if (code === 'unavailable_date') {
                         setSubmitError('선택하신 날짜는 예약할 수 없습니다. 다른 날짜를 선택해 주세요.');
                     } else {
-                        // slot_taken · retry_exhausted: 슬롯이 방금 마감됨 → 재조회
                         setSubmitError('선택하신 시간이 방금 마감되었습니다. 다른 시간을 선택해 주세요.');
                     }
-                    fetchSlots();
+                    fetchDay();
                     setSelectedSlot('');
                     return;
                 }
@@ -186,6 +278,9 @@ export default function BookingPage() {
         );
     }
 
+    const showAssignees = info.settings.allowAssigneeChoice && info.assignees.length > 0;
+    const dateOffsets = Array.from({length: info.settings.maxAdvanceDays + 1}, (_, i) => i);
+
     return (
         <StyledWrap>
             <SeoHead title={`${info.storeName} 예약`} />
@@ -194,67 +289,114 @@ export default function BookingPage() {
                 <StyledTitle>온라인 예약</StyledTitle>
                 {info.settings.noticeText && <StyledNotice>{info.settings.noticeText}</StyledNotice>}
 
+                {showAssignees && (
+                    <>
+                        <StyledSectionLabel>{labels.assignee} 선택</StyledSectionLabel>
+                        <StyledScrollRow>
+                            <StyledPickChip type="button" $on={assigneeId === ASSIGNEE_ANY} aria-pressed={assigneeId === ASSIGNEE_ANY} onClick={() => pickAssignee(ASSIGNEE_ANY)}>
+                                상관없음
+                            </StyledPickChip>
+                            {info.assignees.map((a) => {
+                                const working = day?.assignees.find((x) => x.id === a.id)?.working ?? true;
+                                return (
+                                    <StyledPickChip
+                                        key={a.id}
+                                        type="button"
+                                        $on={assigneeId === a.id}
+                                        aria-pressed={assigneeId === a.id}
+                                        disabled={!working}
+                                        title={!working ? '해당 날짜 휴무' : undefined}
+                                        onClick={() => pickAssignee(a.id)}
+                                    >
+                                        {a.name}{!working && ' (휴무)'}
+                                    </StyledPickChip>
+                                );
+                            })}
+                        </StyledScrollRow>
+                    </>
+                )}
+
+                <StyledSectionLabel>날짜 선택</StyledSectionLabel>
+                <StyledScrollRow>
+                    {dateOffsets.map((off) => {
+                        const d = localDateStr(off);
+                        const disabled = isDateClosed(info, d);
+                        const di = clientDayIndex(d);
+                        return (
+                            <StyledDateChip
+                                key={d}
+                                type="button"
+                                $on={date === d}
+                                $weekend={di >= 5}
+                                aria-pressed={date === d}
+                                disabled={disabled}
+                                onClick={() => pickDate(d)}
+                            >
+                                <span className="dow">{off === 0 ? '오늘' : DOW[di]}</span>
+                                <span className="day">{Number(d.slice(8, 10))}</span>
+                            </StyledDateChip>
+                        );
+                    })}
+                </StyledScrollRow>
+
                 <StyledSectionLabel>{labels.service} 선택</StyledSectionLabel>
-                <StyledServiceList>
-                    {info.services.length === 0 && <StyledMuted>등록된 {labels.service}가 없습니다.</StyledMuted>}
+                {info.services.length === 0 && <StyledMuted>등록된 {labels.service}가 없습니다.</StyledMuted>}
+                <StyledServiceWrap>
                     {info.services.map((s) => {
                         const on = selectedServices.includes(s.name);
                         return (
-                            <StyledServiceCard key={s.name} type="button" $on={on} aria-pressed={on} onClick={() => toggleService(s.name)}>
-                                <StyledServiceName>{s.name}</StyledServiceName>
-                                <StyledServiceMeta>{s.duration}분 · {s.price.toLocaleString()}원</StyledServiceMeta>
-                            </StyledServiceCard>
+                            <StyledServiceChip
+                                key={s.name}
+                                type="button"
+                                $on={on}
+                                aria-pressed={on}
+                                disabled={!isServiceEnabled(s.name)}
+                                onClick={() => toggleService(s.name)}
+                            >
+                                <span className="nm">{s.name}</span>
+                                <span className="mt">{s.duration}분 · {s.price.toLocaleString()}원</span>
+                            </StyledServiceChip>
                         );
                     })}
-                </StyledServiceList>
+                </StyledServiceWrap>
 
-                {info.settings.allowAssigneeChoice && info.assignees.length > 0 && (
+                <StyledSectionLabel>예약 가능한 시간</StyledSectionLabel>
+                {dayLoading && <StyledMuted>시간을 불러오는 중…</StyledMuted>}
+                {!dayLoading && day && !day.dateOk && <StyledMuted>선택하신 날짜는 예약할 수 없습니다.</StyledMuted>}
+                {!dayLoading && day && day.dateOk && day.slots.length === 0 && (
+                    <StyledMuted>예약 가능한 시간이 없습니다.</StyledMuted>
+                )}
+                {!dayLoading && day && day.dateOk && day.slots.length > 0 && (
                     <>
-                        <StyledSectionLabel>{labels.assignee} 선택</StyledSectionLabel>
-                        <StyledSelect value={assigneeId} onChange={(e) => { setAssigneeId(e.target.value); setSelectedSlot(''); }}>
-                            <option value={ASSIGNEE_ANY}>상관없음</option>
-                            {info.assignees.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}
-                        </StyledSelect>
+                        <StyledSlotGrid>
+                            {day.slots.map((s) => (
+                                <StyledSlotBtn
+                                    key={s.time}
+                                    type="button"
+                                    $on={selectedSlot === s.time}
+                                    aria-pressed={selectedSlot === s.time}
+                                    disabled={!isTimeEnabled(s.time)}
+                                    onClick={() => pickSlot(s.time)}
+                                >
+                                    {s.time}
+                                </StyledSlotBtn>
+                            ))}
+                        </StyledSlotGrid>
+                        <StyledLegend>
+                            <span><i className="ok" /> 예약가능</span>
+                            <span><i className="off" /> 마감</span>
+                        </StyledLegend>
                     </>
                 )}
 
                 {selectedServices.length > 0 && (
-                    <>
-                        <StyledSectionLabel>날짜 선택</StyledSectionLabel>
-                        <StyledDateInput
-                            type="date"
-                            value={date}
-                            min={localDateStr(0)}
-                            max={localDateStr(info.settings.maxAdvanceDays)}
-                            onChange={(e) => { setDate(e.target.value); setSelectedSlot(''); }}
-                        />
-
-                        {date && (
-                            <>
-                                <StyledSectionLabel>시간 선택</StyledSectionLabel>
-                                {slotsLoading && <StyledMuted>시간을 불러오는 중…</StyledMuted>}
-                                {!slotsLoading && slots.length === 0 && (
-                                    <StyledMuted>
-                                        {totalDuration === 0
-                                            ? `선택하신 ${labels.service}는 소요시간이 0분이라 시간 예약을 할 수 없습니다. 다른 ${labels.service}를 선택해 주세요.`
-                                            : '선택하신 날짜에 예약 가능한 시간이 없습니다.'}
-                                    </StyledMuted>
-                                )}
-                                {!slotsLoading && slots.length > 0 && (
-                                    <StyledSlotGrid>
-                                        {slots.map((slot) => (
-                                            <StyledSlotBtn key={slot} type="button" $on={selectedSlot === slot} aria-pressed={selectedSlot === slot} onClick={() => setSelectedSlot(slot)}>
-                                                {slot}
-                                            </StyledSlotBtn>
-                                        ))}
-                                    </StyledSlotGrid>
-                                )}
-                            </>
-                        )}
-                    </>
+                    <StyledTotal>
+                        <span>합계</span>
+                        <StyledTotalValue>{totalPrice.toLocaleString()}원 · {totalDuration}분</StyledTotalValue>
+                    </StyledTotal>
                 )}
 
-                {selectedSlot && (
+                {selectedSlot && selectedServices.length > 0 && (
                     <>
                         <StyledSectionLabel>예약자 정보</StyledSectionLabel>
                         <StyledField>
@@ -265,11 +407,6 @@ export default function BookingPage() {
                             <StyledFieldLabel htmlFor="book-tel">연락처</StyledFieldLabel>
                             <StyledTextInput id="book-tel" type="tel" inputMode="numeric" value={tel} placeholder="010-0000-0000" onChange={(e) => setTel(e.target.value)} onBlur={() => setTel((t) => formatTel(t))} />
                         </StyledField>
-
-                        <StyledTotal>
-                            <span>합계</span>
-                            <StyledTotalValue>{totalPrice.toLocaleString()}원 · {totalDuration}분</StyledTotalValue>
-                        </StyledTotal>
                     </>
                 )}
 
@@ -340,61 +477,75 @@ const StyledSectionLabel = styled.strong`
     color: var(--dark-gray-color, #444);
 `;
 
-const StyledServiceList = styled.div`
+// 가로 스크롤 줄(디자이너·날짜). 좌석표처럼 옆으로 쭉.
+const StyledScrollRow = styled.div`
+    display: flex;
+    gap: 8px;
+    overflow-x: auto;
+    padding: 2px 2px 8px;
+    margin: 0 -2px;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: thin;
+`;
+
+const StyledPickChip = styled.button<{$on: boolean}>`
+    flex: 0 0 auto;
+    padding: 9px 16px;
+    border: 2px solid ${(p) => (p.$on ? 'var(--brand-color, #6526d9)' : 'var(--light-gray-color, #e4e7eb)')};
+    border-radius: 999px;
+    background: ${(p) => (p.$on ? 'var(--brand-color, #6526d9)' : 'var(--white-color, #fff)')};
+    color: ${(p) => (p.$on ? '#fff' : 'var(--black-color, #111)')};
+    font-size: 14px;
+    font-weight: 600;
+    white-space: nowrap;
+    cursor: pointer;
+    &:disabled { opacity: 0.4; cursor: not-allowed; }
+`;
+
+const StyledDateChip = styled.button<{$on: boolean; $weekend: boolean}>`
+    flex: 0 0 auto;
     display: flex;
     flex-direction: column;
+    align-items: center;
+    gap: 2px;
+    min-width: 52px;
+    padding: 8px 6px;
+    border: 2px solid ${(p) => (p.$on ? 'var(--brand-color, #6526d9)' : 'var(--light-gray-color, #e4e7eb)')};
+    border-radius: 12px;
+    background: ${(p) => (p.$on ? 'var(--brand-color, #6526d9)' : 'var(--white-color, #fff)')};
+    color: ${(p) => (p.$on ? '#fff' : p.$weekend ? 'var(--danger-color, #d64545)' : 'var(--black-color, #111)')};
+    cursor: pointer;
+    &:disabled { opacity: 0.35; cursor: not-allowed; }
+    .dow { font-size: 11px; opacity: 0.85; }
+    .day { font-size: 17px; font-weight: 800; }
+`;
+
+const StyledServiceWrap = styled.div`
+    display: flex;
+    flex-wrap: wrap;
     gap: 8px;
 `;
 
-const StyledServiceCard = styled.button<{$on: boolean}>`
+const StyledServiceChip = styled.button<{$on: boolean}>`
+    flex: 0 0 auto;
     display: flex;
-    justify-content: space-between;
-    align-items: center;
-    gap: 10px;
-    padding: 14px;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 2px;
+    padding: 8px 14px;
     border: 2px solid ${(p) => (p.$on ? 'var(--brand-color, #6526d9)' : 'var(--light-gray-color, #e4e7eb)')};
     border-radius: 12px;
     background: ${(p) => (p.$on ? 'var(--accent-soft, #f1ecfb)' : 'var(--white-color, #fff)')};
     cursor: pointer;
     text-align: left;
-`;
-
-const StyledServiceName = styled.span`
-    font-size: 15px;
-    font-weight: 600;
-    color: var(--black-color, #111);
-`;
-
-const StyledServiceMeta = styled.span`
-    flex-shrink: 0;
-    font-size: 13px;
-    color: var(--dark-gray-color2, #667);
-`;
-
-const StyledSelect = styled.select`
-    width: 100%;
-    height: 44px;
-    padding: 0 12px;
-    border: 1px solid var(--light-gray-color, #e4e7eb);
-    border-radius: 10px;
-    font-size: 15px;
-    background: var(--white-color, #fff);
-`;
-
-const StyledDateInput = styled.input`
-    width: 100%;
-    height: 44px;
-    padding: 0 12px;
-    border: 1px solid var(--light-gray-color, #e4e7eb);
-    border-radius: 10px;
-    font-size: 15px;
-    background: var(--white-color, #fff);
-    box-sizing: border-box;
+    &:disabled { opacity: 0.4; cursor: not-allowed; }
+    .nm { font-size: 14px; font-weight: 600; color: var(--black-color, #111); }
+    .mt { font-size: 12px; color: var(--dark-gray-color2, #667); }
 `;
 
 const StyledSlotGrid = styled.div`
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(72px, 1fr));
     gap: 8px;
 `;
 
@@ -407,6 +558,25 @@ const StyledSlotBtn = styled.button<{$on: boolean}>`
     font-size: 14px;
     font-weight: 600;
     cursor: pointer;
+    &:disabled { opacity: 0.35; cursor: not-allowed; text-decoration: line-through; background: #f4f6f8; }
+`;
+
+const StyledLegend = styled.div`
+    display: flex;
+    gap: 16px;
+    margin-top: 2px;
+    font-size: 12px;
+    color: var(--dark-gray-color2, #667);
+    i {
+        display: inline-block;
+        width: 10px;
+        height: 10px;
+        margin-right: 4px;
+        border-radius: 3px;
+        vertical-align: middle;
+    }
+    i.ok { border: 2px solid var(--light-gray-color, #e4e7eb); }
+    i.off { background: #dfe3e8; }
 `;
 
 const StyledField = styled.div`

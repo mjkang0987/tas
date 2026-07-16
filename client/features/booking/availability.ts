@@ -68,6 +68,40 @@ function isAssigneeWorking(a: SlotAssignee, dayIndex: number, start: number, end
  * 미배정 예약(네이버 미매칭 등)은 어느 담당자인지 모르므로 여유 인원을 소모하는 것으로 계산.
  * 담당자가 0명인 매장은 단일 자원(1)으로 취급 — 겹치는 예약이 하나도 없을 때만 가용.
  */
+// [start,end) 한 블록이 예약 가능한지(담당자 용량 모델). 슬롯·용량 계산이 공유한다.
+function isBlockAvailable(
+    start: number,
+    end: number,
+    dayIndex: number,
+    reservations: SlotReservation[],
+    assigneeId: string | null,
+    assignees: SlotAssignee[],
+): boolean {
+    const overlapping = reservations.filter((r) =>
+        overlaps(start, end, timeToMinutes(r.startTime), timeToMinutes(r.endTime)));
+
+    // 담당자가 없는 매장: 단일 자원으로 취급
+    if (assignees.length === 0) return overlapping.length === 0;
+
+    const unassignedLoad = overlapping.filter((r) => !r.assigneeId).length;
+    const busyAssigneeIds = new Set(
+        overlapping.map((r) => r.assigneeId).filter((id): id is string => Boolean(id)),
+    );
+    const workingFree = assignees.filter((a) =>
+        isAssigneeWorking(a, dayIndex, start, end) && !busyAssigneeIds.has(a.id));
+
+    if (assigneeId) {
+        return workingFree.some((a) => a.id === assigneeId) && workingFree.length > unassignedLoad;
+    }
+    return workingFree.length > unassignedLoad;
+}
+
+// 담당자가 해당 요일에 아예 근무하는가(휴무 판정). 스케줄 미설정=근무, 있으면 enabled 따름.
+export function assigneeWorksOnDay(a: SlotAssignee, dayIndex: number): boolean {
+    const sch = a.schedules.find((s) => s.dayIndex === dayIndex);
+    return sch ? sch.enabled : true;
+}
+
 export function computeAvailableSlots(input: AvailabilityInput): string[] {
     const {
         dayIndex, businessHour, durationMin, slotIntervalMin,
@@ -83,37 +117,66 @@ export function computeAvailableSlots(input: AvailabilityInput): string[] {
     if (close <= open) return [];
 
     const slots: string[] = [];
-
     for (let start = open; start + durationMin <= close; start += interval) {
         if (start < minStartMinute) continue;
-        const end = start + durationMin;
-
-        const overlapping = reservations.filter((r) =>
-            overlaps(start, end, timeToMinutes(r.startTime), timeToMinutes(r.endTime)));
-
-        // 담당자가 없는 매장: 단일 자원으로 취급
-        if (assignees.length === 0) {
-            if (overlapping.length === 0) slots.push(minutesToTime(start));
-            continue;
-        }
-
-        const unassignedLoad = overlapping.filter((r) => !r.assigneeId).length;
-        const busyAssigneeIds = new Set(
-            overlapping.map((r) => r.assigneeId).filter((id): id is string => Boolean(id)),
-        );
-
-        const workingFree = assignees.filter((a) =>
-            isAssigneeWorking(a, dayIndex, start, end) && !busyAssigneeIds.has(a.id));
-
-        if (assigneeId) {
-            const chosenFree = workingFree.some((a) => a.id === assigneeId);
-            if (chosenFree && workingFree.length > unassignedLoad) slots.push(minutesToTime(start));
-        } else if (workingFree.length > unassignedLoad) {
+        if (isBlockAvailable(start, start + durationMin, dayIndex, reservations, assigneeId, assignees)) {
             slots.push(minutesToTime(start));
         }
     }
-
     return slots;
+}
+
+export interface SlotCapacity {
+    time: string; // "HH:MM"
+    maxDurationMin: number; // 이 시작시각에서 예약 가능한 최대 연속 시간(분). 0=불가.
+}
+
+/**
+ * 각 시작 슬롯의 "예약 가능한 최대 연속 시간(분)"을 계산한다(서비스 소요와 무관).
+ * 프런트가 시술↔시간 양방향 활성/비활성에 사용: 시술 총소요 ≤ maxDurationMin 이면 그 시간 예약 가능.
+ * 예약 상세(고객·구간)를 노출하지 않기 위해 서버가 이 용량표만 내려준다.
+ *
+ * 단조성: 긴 블록이 가능하면 짧은 블록도 가능(겹침·근무 제약은 end가 커질수록 악화만) →
+ * 용량이 바뀌는 경계(예약 시작/끝, 담당자 근무 끝, 마감)만 큰 쪽부터 검사해 최대 end를 찾는다.
+ */
+export function computeSlotCapacities(input: Omit<AvailabilityInput, 'durationMin'>): SlotCapacity[] {
+    const {
+        dayIndex, businessHour, slotIntervalMin,
+        minStartMinute, reservations, assigneeId, assignees,
+    } = input;
+
+    if (!businessHour || !businessHour.enabled) return [];
+    const interval = slotIntervalMin > 0 ? slotIntervalMin : 30;
+    const open = timeToMinutes(businessHour.openTime);
+    const close = timeToMinutes(businessHour.closeTime);
+    if (close <= open) return [];
+
+    // 용량이 변할 수 있는 경계들
+    const boundaries = new Set<number>([close]);
+    for (const r of reservations) {
+        boundaries.add(timeToMinutes(r.startTime));
+        boundaries.add(timeToMinutes(r.endTime));
+    }
+    for (const a of assignees) {
+        const sch = a.schedules.find((s) => s.dayIndex === dayIndex);
+        if (sch) boundaries.add(timeToMinutes(sch.endTime));
+    }
+
+    const out: SlotCapacity[] = [];
+    for (let start = open; start < close; start += interval) {
+        let maxDur = 0;
+        if (start >= minStartMinute) {
+            const ends = [...boundaries].filter((e) => e > start && e <= close).sort((a, b) => b - a);
+            for (const end of ends) {
+                if (isBlockAvailable(start, end, dayIndex, reservations, assigneeId, assignees)) {
+                    maxDur = end - start;
+                    break;
+                }
+            }
+        }
+        out.push({time: minutesToTime(start), maxDurationMin: maxDur});
+    }
+    return out;
 }
 
 // 상관없음(자동 배정) 시 슬롯을 실제로 맡길 담당자 하나를 고른다.

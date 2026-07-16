@@ -4,6 +4,28 @@
 
 ---
 
+## 완료 — 예약 페이지 UI 영화관(CGV)식 개편 + 시술↔시간 양방향 필터
+
+> 배경: 기존 공개 예약 페이지가 "예약 가능한 시간만" 듬성듬성 버튼으로 떠 불편. CGV 예매 UI처럼 재구성 요청.
+
+### 레이아웃 (위→아래)
+- **디자이너(담당자) 선택**: 가로 스크롤 칩. `allowAssigneeChoice` 꺼지면 숨김. 그날 휴무 담당자는 **노출하되 비활성**.
+- **날짜 선택**: 가로 스크롤 스트립(오늘~maxAdvanceDays). 휴무일·영업요일 아님 → 비활성.
+- **시술 선택**: inline 칩(wrap).
+- **예약 가능한 시간**: 하단 그리드. 하루 전체 슬롯을 좌석처럼 깔고 마감/불가는 비활성(취소선).
+
+### 양방향 필터 (핵심)
+- 서버가 슬롯별 **최대 연속 가용분(maxDurationMin)** 만 내려줌(예약 상세·고객정보 비노출) → 클라가 즉시 계산.
+- 시술 선택 시 → 총소요 ≤ maxDuration 인 시간만 활성 / 시간 선택 시 → 그 시각에 담기는 시술만 활성. 나머지 비활성.
+
+### 구현 파일
+- `client/features/booking/availability.ts`: `isBlockAvailable` 추출, `computeSlotCapacities`(경계 스캔·단조성 이용), `assigneeWorksOnDay` 추가. (브루트포스 대조 검증 완료)
+- `server/api/book/[slug]/day.ts` (+ `client/pages/api/book/[slug]/day.ts` 래퍼): 날짜(+담당자) 용량표·담당자 근무여부 반환.
+- `server/api/book/[slug].ts`: 공개 info에 `businessHours`·`closedDates` 이미 포함(클라 날짜 비활성 판정에 사용).
+- `client/pages/book/[slug].tsx`: 전면 재구성.
+
+---
+
 ## 완료 — 배포순서 장애 재발방지 (예약 조회 select 하드닝)
 
 > 배경: PR #80(온라인예약 1b·1c) 머지 후 마이그레이션 0009(`Reservation.publicToken`) 미적용 상태로 자동 배포 → 메인 캘린더/예약 API가 500(앱 전체 다운). 원인: 예약 조회가 Prisma `include`(모델 전체 컬럼 SELECT)라, DB에 없는 새 컬럼(`publicToken`)까지 SELECT하다 "column does not exist"로 실패.
