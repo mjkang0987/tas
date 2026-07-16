@@ -9,7 +9,7 @@ import {
     frontendPaymentMethodToDb,
     frontendChannelToDb,
 } from '../db/mappers';
-import {reservationInclude} from '../db/prisma-includes';
+import {reservationSelect} from '../db/prisma-includes';
 import {notifySlackForStore} from '../notify/slack';
 import type {Reservation, ReservationStatus} from '../../client/features/reservations/model';
 import {hasCompletedPayment} from '../../client/features/reservations/model';
@@ -40,7 +40,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         const [dbReservations, dbHistories] = await Promise.all([
             prisma.reservation.findMany({
                 where: {storeId: session.storeId},
-                include: reservationInclude,
+                select: reservationSelect,
             }),
             prisma.reservationHistory.findMany({
                 where: {storeId: session.storeId},
@@ -92,7 +92,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                     ? {createMany: {data: paymentEntries}}
                     : undefined,
             },
-            include: reservationInclude,
+            select: reservationSelect,
         });
 
         await notifySlackForStore(session.storeId,
@@ -191,7 +191,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                     paymentCompleted: updated.paymentCompleted ?? false,
                     pointEarned: updated.pointEarned ?? 0,
                 },
-                include: reservationInclude,
+                select: reservationSelect,
             }),
             prisma.reservationPaymentEntry.deleteMany({where: {reservationId: dbReservation.id}}),
             ...(paymentEntries.length > 0
@@ -241,7 +241,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
         const dbReservation = await prisma.reservation.findUnique({
             where: {storeId_legacyId: {storeId: session.storeId, legacyId: id}},
-            include: reservationInclude,
+            select: reservationSelect,
         });
 
         if (!dbReservation) {
@@ -255,7 +255,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             const updatedReservation = await tx.reservation.update({
                 where: {id: dbReservation.id},
                 data: {status: frontendReservationStatusToDb(status)},
-                include: reservationInclude,
+                select: reservationSelect,
             });
 
             const afterFront = dbReservationToFrontend(updatedReservation);
@@ -304,7 +304,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
         const dbReservation = await prisma.reservation.findUnique({
             where: {storeId_legacyId: {storeId: session.storeId, legacyId: id}},
-            include: reservationInclude,
+            select: reservationSelect,
         });
 
         if (!dbReservation) {
