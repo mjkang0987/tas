@@ -4,8 +4,10 @@ import {Prisma} from '../../client/prisma/generated/prisma/client';
 import {prisma} from '../db/prisma';
 import {getApiSession, requireRole} from '../auth/api-session';
 
-// 고객이 보낸 변경/취소 요청(오너 승인형)을 오너가 수락/거절하는 인증 API.
-// 로그인 + staff 이상 역할 + storeId 스코프.
+// 오너 확정 대기 항목을 오너가 수락/거절하는 인증 API. 로그인 + staff 이상 + storeId 스코프.
+// 두 종류:
+//  - 신규 예약 신청(status='requested', pendingAction='none') → 수락=확정(active), 거절=취소(cancelled)
+//  - 변경/취소 요청(pendingAction != 'none', active 예약) → 수락 시 반영, 거절 시 요청 폐기(예약 유지)
 
 interface DecideBody {
     id?: unknown;
@@ -33,6 +35,7 @@ const PENDING_SELECT = {
     pendingAction: true,
     pendingPayloadJson: true,
     pendingRequestedAt: true,
+    createdAt: true,
     customer: {select: {name: true}},
     assignee: {select: {name: true}},
 } as const;
@@ -43,6 +46,14 @@ const CLEAR_PENDING = {
     pendingRequestedAt: null,
 } as const;
 
+type PendingRow = Prisma.ReservationGetPayload<{select: typeof PENDING_SELECT}>;
+
+// 항목 종류: 신규 신청 vs 변경/취소 요청
+function kindOf(r: PendingRow): 'new' | 'cancel' | 'change' {
+    if (r.status === 'requested' && r.pendingAction === 'none') return 'new';
+    return r.pendingAction === 'change' ? 'change' : 'cancel';
+}
+
 function isChangePayload(v: unknown): v is ChangePayload {
     if (!v || typeof v !== 'object') return false;
     const p = v as Record<string, unknown>;
@@ -50,21 +61,22 @@ function isChangePayload(v: unknown): v is ChangePayload {
         && typeof p.endTime === 'string' && typeof p.serviceSummary === 'string';
 }
 
-function toRequestDto(r: Prisma.ReservationGetPayload<{select: typeof PENDING_SELECT}>) {
+function toRequestDto(r: PendingRow) {
+    const kind = kindOf(r);
     return {
         id: r.id,
         legacyId: r.legacyId,
+        kind,
         customerName: r.customer?.name ?? '',
         assigneeName: r.assignee?.name ?? null,
-        pendingAction: r.pendingAction,
-        pendingRequestedAt: r.pendingRequestedAt?.toISOString() ?? null,
+        requestedAt: (r.pendingRequestedAt ?? r.createdAt)?.toISOString() ?? null,
         current: {
             date: r.date.toISOString().slice(0, 10),
             startTime: r.startTime,
             endTime: r.endTime,
             serviceSummary: r.serviceSummary,
         },
-        requestedChange: r.pendingAction === 'change' && isChangePayload(r.pendingPayloadJson)
+        requestedChange: kind === 'change' && isChangePayload(r.pendingPayloadJson)
             ? {
                 date: r.pendingPayloadJson.date,
                 startTime: r.pendingPayloadJson.startTime,
@@ -81,9 +93,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     if (req.method === 'GET') {
         if (!requireRole(session, 'staff', res)) return;
         const rows = await prisma.reservation.findMany({
-            where: {storeId: session.storeId, pendingAction: {not: 'none'}},
+            where: {storeId: session.storeId, OR: [{status: 'requested'}, {pendingAction: {not: 'none'}}]},
             select: PENDING_SELECT,
-            orderBy: {pendingRequestedAt: 'asc'},
+            orderBy: {createdAt: 'asc'},
         });
         return res.status(200).json({requests: rows.map(toRequestDto)});
     }
@@ -101,23 +113,33 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             select: PENDING_SELECT,
         });
         if (!reservation) return res.status(404).json({error: 'not_found'});
-        if (reservation.pendingAction === 'none') return res.status(409).json({error: 'no_pending'});
 
+        const kind = kindOf(reservation);
+        const hasPending = reservation.status === 'requested' || reservation.pendingAction !== 'none';
+        if (!hasPending) return res.status(409).json({error: 'no_pending'});
+
+        // 신규 예약 신청 확정/거절
+        if (kind === 'new') {
+            const status = decision === 'approve' ? 'active' : 'cancelled';
+            await prisma.reservation.update({where: {id}, data: {status}});
+            return res.status(200).json({ok: true, applied: decision === 'approve' ? 'confirmed' : 'rejected'});
+        }
+
+        // 변경/취소 요청 거절 → 요청만 폐기(예약 유지)
         if (decision === 'reject') {
             await prisma.reservation.update({where: {id}, data: CLEAR_PENDING});
             return res.status(200).json({ok: true, applied: 'rejected'});
         }
 
-        // 수락(approve)
-        if (reservation.pendingAction === 'cancel') {
+        // 취소 요청 수락
+        if (kind === 'cancel') {
             await prisma.reservation.update({where: {id}, data: {status: 'cancelled', ...CLEAR_PENDING}});
             return res.status(200).json({ok: true, applied: 'cancelled'});
         }
 
-        // pendingAction === 'change' → 저장된 payload 적용
+        // 변경 요청 수락 → 저장된 payload 적용
         const payload = reservation.pendingPayloadJson;
         if (!isChangePayload(payload)) return res.status(422).json({error: 'invalid_payload'});
-
         await prisma.reservation.update({
             where: {id},
             data: {

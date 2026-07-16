@@ -4,6 +4,28 @@
 
 ---
 
+## 완료 — 예약 페이지 UI 영화관(CGV)식 개편 + 시술↔시간 양방향 필터
+
+> 배경: 기존 공개 예약 페이지가 "예약 가능한 시간만" 듬성듬성 버튼으로 떠 불편. CGV 예매 UI처럼 재구성 요청.
+
+### 레이아웃 (위→아래)
+- **디자이너(담당자) 선택**: 가로 스크롤 칩. `allowAssigneeChoice` 꺼지면 숨김. 그날 휴무 담당자는 **노출하되 비활성**.
+- **날짜 선택**: 가로 스크롤 스트립(오늘~maxAdvanceDays). 휴무일·영업요일 아님 → 비활성.
+- **시술 선택**: inline 칩(wrap).
+- **예약 가능한 시간**: 하단 그리드. 하루 전체 슬롯을 좌석처럼 깔고 마감/불가는 비활성(취소선).
+
+### 양방향 필터 (핵심)
+- 서버가 슬롯별 **최대 연속 가용분(maxDurationMin)** 만 내려줌(예약 상세·고객정보 비노출) → 클라가 즉시 계산.
+- 시술 선택 시 → 총소요 ≤ maxDuration 인 시간만 활성 / 시간 선택 시 → 그 시각에 담기는 시술만 활성. 나머지 비활성.
+
+### 구현 파일
+- `client/features/booking/availability.ts`: `isBlockAvailable` 추출, `computeSlotCapacities`(경계 스캔·단조성 이용), `assigneeWorksOnDay` 추가. (브루트포스 대조 검증 완료)
+- `server/api/book/[slug]/day.ts` (+ `client/pages/api/book/[slug]/day.ts` 래퍼): 날짜(+담당자) 용량표·담당자 근무여부 반환.
+- `server/api/book/[slug].ts`: 공개 info에 `businessHours`·`closedDates` 이미 포함(클라 날짜 비활성 판정에 사용).
+- `client/pages/book/[slug].tsx`: 전면 재구성.
+
+---
+
 ## 완료 — 배포순서 장애 재발방지 (예약 조회 select 하드닝)
 
 > 배경: PR #80(온라인예약 1b·1c) 머지 후 마이그레이션 0009(`Reservation.publicToken`) 미적용 상태로 자동 배포 → 메인 캘린더/예약 API가 500(앱 전체 다운). 원인: 예약 조회가 Prisma `include`(모델 전체 컬럼 SELECT)라, DB에 없는 새 컬럼(`publicToken`)까지 SELECT하다 "column does not exist"로 실패.
@@ -301,3 +323,22 @@
 
 ### 검증
 - `pnpm build` + 고객 요청→오너 수락/거절→반영 흐름 구동.
+
+## 진행 중 — 온라인 예약을 "신청→오너 확정형"으로 전환 (+슬롯 차단, 네이버 2중검증)
+
+### 결정 (사용자 확정)
+- 온라인 신규 예약 = **`requested`(신청)** 상태로 생성(즉시확정 X). 오너 수락 시 `active`(확정), 거절 시 `cancelled`.
+- 슬롯 점유 판정 = **`active` + `requested`** 둘 다. 차단은 오너 확정/거절 때까지(자동만료 없음).
+- 오너 확정 위치: **알림 벨 + 캘린더에 '신청' 상태 구별 표시**.
+- 겹침 검증: 신청 생성 시 Serializable 트랜잭션에서 active+requested 재검증.
+- 네이버 2중검증: **비동기(fire-and-forget)** — 신청 접수 후 백그라운드 네이버 동기화 트리거, 겹침은 기존 충돌감지/벨로 오너 확정 전 노출. Gmail 미연동/실패 시 신청 안 막음.
+- 내부(오너) 예약은 종전대로 DB 직접+즉시 확정+즉시 Slack(변경 없음).
+
+### 영향 범위(파급) — 매핑 후 확정
+- 스키마: `ReservationStatus`에 `requested` 추가(마이그레이션 0011, ADD VALUE IF NOT EXISTS).
+- 공개 API: `reserve.ts`(requested 생성, 슬롯점유 active+requested, 비동기 네이버 동기화, Slack '신규 신청'), `availability.ts`·`request-change.ts` 슬롯점유 확장.
+- 오너 API/UI: `book-requests`(신규 신청도 목록/수락·거절), 알림 벨, 캘린더 렌더·상태배지·매퍼·매출집계(requested 미집계)·충돌감지·필터.
+- 고객: 완료화면 "신청됨(확정대기)", 관리 페이지 requested 상태 라벨.
+
+### 검증
+- `pnpm build` + 신청→차단→오너 확정/거절 흐름 구동(스크린샷). 매출·캘린더 회귀 없음 확인.

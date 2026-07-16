@@ -3,6 +3,7 @@ import {useCallback, useEffect, useRef, useState} from 'react';
 import styled from 'styled-components';
 
 import {useBookingRequests, type BookingRequestDto} from '../../hooks/useBookingRequests';
+import {LabelBadge} from '../ui/LabelBadge';
 
 function formatMd(dateStr: string): string {
     if (!dateStr || !dateStr.includes('-')) return dateStr || '-';
@@ -32,8 +33,9 @@ export const BookingRequestNotification = () => {
         const ok = await decide(req.id, decision);
         setBusyId('');
         if (!ok) return;
-        // 수락은 예약을 변경/취소하므로 캘린더에 반영하기 위해 새로고침. 거절은 목록만 갱신.
-        if (decision === 'approve') {
+        // 예약 상태가 바뀌는 경우 캘린더 반영을 위해 새로고침:
+        //  - 수락(확정/변경/취소 반영), 신규 신청 거절(→취소). 변경/취소 요청 거절은 예약 불변 → 목록만 갱신.
+        if (decision === 'approve' || req.kind === 'new') {
             window.location.reload();
             return;
         }
@@ -60,7 +62,7 @@ export const BookingRequestNotification = () => {
             {open && (
                 <StyledPanel>
                     <StyledPanelHeader>
-                        <StyledPanelTitle>예약 변경·취소 요청</StyledPanelTitle>
+                        <StyledPanelTitle>예약 신청·변경·취소</StyledPanelTitle>
                     </StyledPanelHeader>
                     <StyledPanelBody>
                         {loading && requests.length === 0 && <StyledEmpty>불러오는 중…</StyledEmpty>}
@@ -69,14 +71,14 @@ export const BookingRequestNotification = () => {
                             <StyledItem key={req.id}>
                                 <StyledItemHead>
                                     <StyledCustomer>{req.customerName || '고객'}</StyledCustomer>
-                                    {req.pendingAction === 'cancel'
-                                        ? <StyledTag $danger>취소 요청</StyledTag>
-                                        : <StyledTag>변경 요청</StyledTag>}
+                                    {req.kind === 'new' && <LabelBadge $tone="warning" $shape="pill">신규 예약 신청</LabelBadge>}
+                                    {req.kind === 'change' && <LabelBadge $tone="purple" $shape="pill">변경 요청</LabelBadge>}
+                                    {req.kind === 'cancel' && <LabelBadge $tone="danger" $shape="pill">취소 요청</LabelBadge>}
                                 </StyledItemHead>
                                 <StyledItemLine>
-                                    현재: {formatMd(req.current.date)} {req.current.startTime}~{req.current.endTime} ({req.current.serviceSummary})
+                                    {req.kind === 'new' ? '신청' : '현재'}: {formatMd(req.current.date)} {req.current.startTime}~{req.current.endTime} ({req.current.serviceSummary})
                                 </StyledItemLine>
-                                {req.pendingAction === 'change' && req.requestedChange && (
+                                {req.kind === 'change' && req.requestedChange && (
                                     <StyledItemLine $accent>
                                         변경: {formatMd(req.requestedChange.date)} {req.requestedChange.startTime}~{req.requestedChange.endTime} ({req.requestedChange.serviceSummary})
                                     </StyledItemLine>
@@ -186,16 +188,6 @@ const StyledCustomer = styled.span`
     font-size: 14px;
     font-weight: 700;
     color: var(--black-color, #111);
-`;
-
-const StyledTag = styled.span<{$danger?: boolean}>`
-    flex-shrink: 0;
-    padding: 2px 8px;
-    border-radius: 999px;
-    font-size: 11px;
-    font-weight: 700;
-    color: #fff;
-    background: ${(p) => (p.$danger ? 'var(--danger-color, #d64545)' : 'var(--brand-color, #6526d9)')};
 `;
 
 const StyledItemLine = styled.span<{$accent?: boolean}>`

@@ -10,7 +10,7 @@ import {
     frontendChannelToDb,
 } from '../db/mappers';
 import {reservationSelect} from '../db/prisma-includes';
-import {notifySlackForStore} from '../notify/slack';
+import {notifySlackForStore, customerNoteLine} from '../notify/slack';
 import type {Reservation, ReservationStatus} from '../../client/features/reservations/model';
 import {hasCompletedPayment} from '../../client/features/reservations/model';
 
@@ -99,6 +99,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             `🗓️ *새 예약*\n• 날짜: ${reservation.date}`
             + `\n• 시간: ${reservation.startTime}~${reservation.endTime}`
             + `\n• 시술: ${reservation.service ?? '-'}`
+            + await customerNoteLine(customerId)
         );
 
         return res.status(201).json({reservation: dbReservationToFrontend(created)});
@@ -227,6 +228,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                 `✏️ *예약 변경*\n• 날짜: ${updated.date}`
                 + `\n• 시간: ${updated.startTime}~${updated.endTime}`
                 + `\n• 시술: ${updated.service ?? '-'}`
+                + await customerNoteLine(customerId)
                 + `\n• (이전) ${prev.date} ${prev.startTime}~${prev.endTime} ${prev.service ?? '-'}`
             );
         }
@@ -284,12 +286,14 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                 `❌ *예약 취소*\n• 날짜: ${after.date}`
                 + `\n• 시간: ${after.startTime}~${after.endTime}`
                 + `\n• 시술: ${after.service ?? '-'}`
+                + await customerNoteLine(dbReservation.customerId)
             );
         } else if (after.status === 'noshow') {
             await notifySlackForStore(session.storeId,
                 `🚫 *노쇼*\n• 날짜: ${after.date}`
                 + `\n• 시간: ${after.startTime}~${after.endTime}`
                 + `\n• 시술: ${after.service ?? '-'}`
+                + await customerNoteLine(dbReservation.customerId)
             );
         }
 
@@ -320,6 +324,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             `🗑️ *예약 삭제*\n• 날짜: ${deleted.date}`
             + `\n• 시간: ${deleted.startTime}~${deleted.endTime}`
             + `\n• 시술: ${deleted.service ?? '-'}`
+            + await customerNoteLine(dbReservation.customerId)
         );
 
         return res.status(200).json({ok: true});

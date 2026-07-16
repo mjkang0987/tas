@@ -14,7 +14,7 @@ interface PendingChange {
     serviceSummary: string;
 }
 interface ReservationView {
-    status: 'active' | 'completed' | 'cancelled' | 'noshow';
+    status: 'active' | 'completed' | 'cancelled' | 'noshow' | 'requested';
     date: string;
     startTime: string;
     endTime: string;
@@ -42,6 +42,7 @@ interface BookStoreInfo {
 const ASSIGNEE_ANY = '__any__';
 
 const STATUS_LABEL: Record<ReservationView['status'], string> = {
+    requested: '신청 접수 · 확정 대기',
     active: '예약 확정',
     completed: '방문 완료',
     cancelled: '취소됨',
@@ -221,7 +222,11 @@ export default function ReservationManagePage() {
                     </StyledActions>
                 )}
 
-                {!reservation.canRequest && !pending && (
+                {reservation.status === 'requested' && (
+                    <StyledNotice>매장이 예약을 확인 중입니다. 확정되면 이 페이지에서 변경·취소 요청을 하실 수 있어요.</StyledNotice>
+                )}
+
+                {!reservation.canRequest && !pending && reservation.status !== 'requested' && (
                     <StyledMuted>이 예약은 변경·취소 요청을 할 수 없는 상태입니다.</StyledMuted>
                 )}
 
@@ -295,7 +300,7 @@ const StyledWrap = styled.div`
     justify-content: center;
     padding: 24px 16px;
     box-sizing: border-box;
-    background: var(--aside-bg, #f4f6f8);
+    background: #f4f6f8;
     @media (max-width: 640px) { padding: 0; }
 `;
 
@@ -334,6 +339,7 @@ const StyledStatusBadge = styled.span<{$status: ReservationView['status']}>`
     font-weight: 700;
     color: #fff;
     background: ${(p) => (p.$status === 'active' ? 'var(--brand-color, #6526d9)'
+        : p.$status === 'requested' ? 'var(--caution-color, #a88417)'
         : p.$status === 'completed' ? 'var(--success-color, #2f9e44)'
         : 'var(--dark-gray-color2, #667)')};
 `;
@@ -362,7 +368,7 @@ const StyledSummary = styled.div`
     gap: 8px;
     margin-top: 4px;
     padding: 16px;
-    background: var(--aside-bg, #f4f6f8);
+    background: #f4f6f8;
     border-radius: 12px;
 `;
 

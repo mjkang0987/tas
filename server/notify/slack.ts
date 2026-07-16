@@ -52,6 +52,16 @@ export async function notifySlackOpsError(context: string, err: unknown): Promis
     await notifySlackOps(`🛑 *운영 에러* \`${env}\`\n• 위치: ${context}\n• 내용: ${detail}`);
 }
 
+// 예약 알림에 붙일 고객 식별 줄: "• 고객: 이름 (연락처)".
+// customerId(cuid)로 조회하며, 미존재/미지정 시 빈 문자열(알림은 그대로 나간다).
+// 사고 복구 교훈: 알림에 고객명·연락처가 없으면 로그만으로 예약을 되살릴 수 없다.
+export async function customerNoteLine(customerId: string | null | undefined): Promise<string> {
+    if (!customerId) return '';
+    const c = await prisma.customer.findUnique({where: {id: customerId}, select: {name: true, tel: true}});
+    if (!c) return '';
+    return `\n• 고객: ${c.name}${c.tel ? ` (${c.tel})` : ''}`;
+}
+
 // 지정한 매장(SLACK_STORE_ID)의 알림만 biz 채널로 전송. 웹훅이 전역(단일 채널)이라
 // 다른 매장 알림이 섞이지 않도록, 설정된 매장 외에는 보내지 않는다.
 // SLACK_STORE_ID 미설정 시 모든 매장 전송(매장명 prefix 부착).

@@ -2,11 +2,11 @@ import type {NextApiRequest, NextApiResponse} from 'next';
 
 import {prisma} from '../../../db/prisma';
 import {
-    computeAvailableSlots,
+    assigneeWorksOnDay,
+    computeSlotCapacities,
     type SlotAssignee,
     type SlotReservation,
 } from '../../../../client/features/booking/availability';
-import {areServicesBookable} from '../../../../client/features/store-settings/model';
 import {
     dayIndexOf,
     evaluateDateWindow,
@@ -15,7 +15,8 @@ import {
     loadBookingSettings,
 } from '../booking-helpers';
 
-// 공개(비로그인) 슬롯 조회. 선택한 서비스·담당자 기준으로 예약 가능한 시작 시각만 반환한다.
+// 공개(비로그인) 하루 예약현황. 선택 날짜(+담당자)의 시작시각별 "최대 가용 분"과 담당자 근무여부를 반환.
+// 시술↔시간 양방향 활성/비활성을 프런트가 즉시 계산하도록 용량표만 내려준다(예약 상세·고객정보 비노출).
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
     if (req.method !== 'GET') {
         res.setHeader('Allow', ['GET']);
@@ -24,7 +25,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     const slug = typeof req.query.slug === 'string' ? req.query.slug : '';
     const dateStr = typeof req.query.date === 'string' ? req.query.date : '';
-    const servicesParam = typeof req.query.services === 'string' ? req.query.services : '';
     const assigneeParam = typeof req.query.assignee === 'string' ? req.query.assignee : '';
 
     if (!isValidDateStr(dateStr)) return res.status(400).json({error: 'invalid_date'});
@@ -33,31 +33,32 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     if (!store) return res.status(404).json({error: 'not_found'});
 
     const settings = await loadBookingSettings(store.id);
-
-    const serviceNames = servicesParam.split(',').map((s) => s.trim()).filter(Boolean);
-    if (serviceNames.length === 0) return res.status(400).json({error: 'no_service'});
-
     const dayIndex = dayIndexOf(dateStr);
-    const [services, closedRows, businessHour, assigneeRows, reservationRows] = await Promise.all([
-        prisma.service.findMany({where: {storeId: store.id, name: {in: serviceNames}}, select: {name: true, duration: true}}),
+
+    const [closedRows, businessHour, assigneeRows, reservationRows] = await Promise.all([
         prisma.storeClosedDate.findMany({where: {storeId: store.id}, select: {date: true}}),
         prisma.storeBusinessHour.findUnique({where: {storeId_dayIndex: {storeId: store.id, dayIndex}}, select: {openTime: true, closeTime: true, enabled: true}}),
         prisma.assignee.findMany({where: {storeId: store.id, status: 'active'}, select: {id: true, schedules: {select: {dayIndex: true, enabled: true, startTime: true, endTime: true}}}}),
         prisma.reservation.findMany({where: {storeId: store.id, date: new Date(`${dateStr}T00:00:00`), status: {in: ['active', 'requested']}}, select: {assigneeId: true, startTime: true, endTime: true}}),
     ]);
 
-    // 모르는 서비스가 섞였으면 거부(공개 API 최소 신뢰)
-    if (services.length !== serviceNames.length) return res.status(400).json({error: 'unknown_service'});
-    // 노출 화이트리스트(1c) 밖 서비스는 거부
-    if (!areServicesBookable(serviceNames, settings.bookableServiceNames)) return res.status(400).json({error: 'not_bookable'});
-    const durationMin = services.reduce((sum, s) => sum + s.duration, 0);
+    const assignees: SlotAssignee[] = assigneeRows.map((a) => ({id: a.id, schedules: a.schedules}));
+    // 담당자 근무여부(휴무 판정)는 날짜에만 의존 — 선택 담당자와 무관하게 항상 반환.
+    const assigneeStatus = assignees.map((a) => ({id: a.id, working: assigneeWorksOnDay(a, dayIndex)}));
 
     const closedDates = closedRows.map((c) => c.date.toISOString().slice(0, 10));
     const window = evaluateDateWindow(dateStr, settings, closedDates);
-    if (!window.ok) return res.status(200).json({date: dateStr, durationMin, slots: []});
 
-    // 담당자 선택 허용 + 실재 담당자일 때만 특정 담당자로 계산
-    const assignees: SlotAssignee[] = assigneeRows.map((a) => ({id: a.id, schedules: a.schedules}));
+    const bh = businessHour
+        ? {openTime: businessHour.openTime, closeTime: businessHour.closeTime, enabled: businessHour.enabled}
+        : null;
+
+    // 예약창 밖·휴무일이면 슬롯 없음(dateOk=false). 담당자 근무여부는 그대로 노출.
+    if (!window.ok) {
+        return res.status(200).json({date: dateStr, dateOk: false, businessHour: bh, slotIntervalMin: settings.slotIntervalMin, slots: [], assignees: assigneeStatus});
+    }
+
+    // 담당자 선택 허용 + 실재 담당자일 때만 특정 담당자 기준 용량. 아니면 상관없음(null).
     const assigneeId = settings.allowAssigneeChoice && assigneeParam && assignees.some((a) => a.id === assigneeParam)
         ? assigneeParam
         : null;
@@ -68,10 +69,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         endTime: r.endTime,
     }));
 
-    const slots = computeAvailableSlots({
+    const slots = computeSlotCapacities({
         dayIndex,
-        businessHour: businessHour ?? null,
-        durationMin,
+        businessHour: bh,
         slotIntervalMin: settings.slotIntervalMin,
         minStartMinute: window.minStartMinute,
         reservations,
@@ -79,5 +79,5 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         assignees,
     });
 
-    return res.status(200).json({date: dateStr, durationMin, slots});
+    return res.status(200).json({date: dateStr, dateOk: true, businessHour: bh, slotIntervalMin: settings.slotIntervalMin, slots, assignees: assigneeStatus});
 }

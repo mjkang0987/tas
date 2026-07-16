@@ -28,7 +28,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             `🔔 *예약 취소 요청*\n• 날짜: ${reservation.date.toISOString().slice(0, 10)}`
             + `\n• 시간: ${reservation.startTime}~${reservation.endTime}`
             + `\n• 시술: ${reservation.serviceSummary}`
-            + `\n• 고객: ${reservation.customer?.name ?? ''}`
+            + `\n• 고객: ${reservation.customer?.name ?? ''}${reservation.customer?.tel ? ` (${reservation.customer.tel})` : ''}`
             + `\n앱에서 수락/거절해 주세요.`,
         );
     } catch { /* 알림 실패는 무시 */ }

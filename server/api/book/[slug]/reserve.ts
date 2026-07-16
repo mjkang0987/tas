@@ -14,6 +14,7 @@ import {
     type SlotReservation,
 } from '../../../../client/features/booking/availability';
 import {notifySlackForStore} from '../../../notify/slack';
+import {syncNaverBookingsForStore} from '../../naver-booking-sync';
 import {
     dayIndexOf,
     evaluateDateWindow,
@@ -100,7 +101,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         try {
             const result = await prisma.$transaction(async (tx) => {
                 const reservationRows = await tx.reservation.findMany({
-                    where: {storeId: store.id, date, status: 'active'},
+                    where: {storeId: store.id, date, status: {in: ['active', 'requested']}},
                     select: {assigneeId: true, startTime: true, endTime: true},
                 });
                 const reservations: SlotReservation[] = reservationRows.map((r) => ({
@@ -130,7 +131,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                 if (customer) {
                     // 더블클릭·재시도 중복 방지: 같은 고객이 같은 슬롯에 이미 active 예약이 있으면 거부
                     const dup = await tx.reservation.findFirst({
-                        where: {storeId: store.id, customerId: customer.id, date, startTime, status: 'active'},
+                        where: {storeId: store.id, customerId: customer.id, date, startTime, status: {in: ['active', 'requested']}},
                         select: {id: true},
                     });
                     if (dup) return {status: 'duplicate' as const};
@@ -153,7 +154,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                         startTime,
                         endTime,
                         serviceSummary,
-                        status: 'active',
+                        status: 'requested',
                         price,
                         channel: 'online',
                         publicToken: newPublicToken(),
@@ -181,12 +182,17 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     // 알림은 커밋 성공 후 별도 격리 — 실패해도 예약 성공(201)에는 영향 주지 않는다.
     try {
         await notifySlackForStore(store.id,
-            `🌐 *온라인 예약*\n• 날짜: ${dateStr}`
+            `🔔 *온라인 예약 신청*\n• 날짜: ${dateStr}`
             + `\n• 시간: ${startTime}~${endTime}`
             + `\n• 시술: ${serviceSummary}`
-            + `\n• 고객: ${name}`,
+            + `\n• 고객: ${name} (${tel})`
+            + `\n앱에서 확정/거절해 주세요.`,
         );
     } catch { /* 알림 실패는 무시 */ }
+
+    // 네이버 예약 겹침 2중 검증: 신청 접수 후 백그라운드로 매장 Gmail 동기화(비동기, 실패 무시).
+    // 동기화로 새 네이버 예약이 들어와 겹치면 기존 충돌감지·오너 확정 흐름에서 걸러진다.
+    void syncNaverBookingsForStore(store.id).catch(() => { /* 백그라운드 — 실패 무시 */ });
 
     return res.status(201).json({publicToken, date: dateStr, startTime, endTime, serviceSummary, storeName: store.name});
 }

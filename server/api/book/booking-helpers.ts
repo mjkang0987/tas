@@ -102,7 +102,7 @@ export async function findReservationByPublicToken(token: string) {
             pendingRequestedAt: true,
             store: {select: {name: true, shopType: true, bookingSlug: true, useOnlineBooking: true}},
             assignee: {select: {name: true}},
-            customer: {select: {name: true}},
+            customer: {select: {name: true, tel: true}},
         },
     });
 }
