@@ -24,6 +24,7 @@ interface BookAssigneeInfo {
     id: string;
     name: string;
     color: string | null;
+    offDays: number[]; // 주간 휴무 요일(0=월…6=일). 이 담당자 선택 시 해당 요일 날짜 비활성.
 }
 interface BookBusinessHour {
     dayIndex: number;
@@ -180,14 +181,6 @@ export default function BookingPage() {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     useEffect(() => fetchDay(), [fetchDay]);
 
-    // 선택 담당자가 그날 휴무면 '상관없음'으로 되돌린다.
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    useEffect(() => {
-        if (!day || assigneeId === ASSIGNEE_ANY) return;
-        const a = day.assignees.find((x) => x.id === assigneeId);
-        if (a && !a.working) { setAssigneeId(ASSIGNEE_ANY); setSelectedSlot(''); }
-    }, [day, assigneeId]);
-
     const durationOf = useCallback(
         (n: string) => info?.services.find((s) => s.name === n)?.duration ?? 0,
         [info],
@@ -241,7 +234,19 @@ export default function BookingPage() {
     };
 
     const pickDate = (d: string) => { setDate(d); setSelectedSlot(''); };
-    const pickAssignee = (id: string) => { setAssigneeId(id); setSelectedSlot(''); };
+    const pickAssignee = (id: string) => {
+        setAssigneeId(id);
+        setSelectedSlot('');
+        // 새 담당자가 현재 선택 날짜에 휴무면, 근무하는 첫 날짜로 이동.
+        if (!info) return;
+        const off = id !== ASSIGNEE_ANY ? (info.assignees.find((a) => a.id === id)?.offDays ?? []) : [];
+        if (date && off.includes(clientDayIndex(date))) {
+            for (let i = 0; i <= info.settings.maxAdvanceDays; i += 1) {
+                const d = localDateStr(i);
+                if (!isDateClosed(info, d) && !off.includes(clientDayIndex(d))) { setDate(d); break; }
+            }
+        }
+    };
     const pickSlot = (t: string) => { if (isTimeEnabled(t)) setSelectedSlot((prev) => (prev === t ? '' : t)); };
 
     const telValid = normalizeTel(tel).length >= 10 && normalizeTel(tel).length <= 11;
@@ -410,6 +415,10 @@ export default function BookingPage() {
 
     const showAssignees = info.settings.allowAssigneeChoice && info.assignees.length > 0;
     const dateOffsets = Array.from({length: info.settings.maxAdvanceDays + 1}, (_, i) => i);
+    // 특정 담당자 선택 시 그 담당자 휴무 요일 → 날짜 비활성.
+    const selectedAssigneeOffDays = assigneeId !== ASSIGNEE_ANY
+        ? (info.assignees.find((a) => a.id === assigneeId)?.offDays ?? [])
+        : [];
 
     // 하단 '예약 내용' 요약용 파생값.
     const selectedAssigneeName = assigneeId === ASSIGNEE_ANY
@@ -463,8 +472,8 @@ export default function BookingPage() {
                 <PickerScrollRow>
                     {dateOffsets.map((off) => {
                         const d = localDateStr(off);
-                        const disabled = isDateClosed(info, d);
                         const di = clientDayIndex(d);
+                        const disabled = isDateClosed(info, d) || selectedAssigneeOffDays.includes(di);
                         return (
                             <DateCell
                                 key={d}
