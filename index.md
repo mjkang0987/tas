@@ -267,7 +267,7 @@ NextAuth 5.0 설정. Google·Kakao·Naver OAuth 지원.
 | `prisma.ts` | Prisma 클라이언트 싱글턴 (PrismaPg driver adapter 사용) |
 | `mappers.ts` | DB ↔ 프론트엔드 변환 함수[^13] |
 
-[^13]: `dbReservationToFrontend()`, `dbCustomerToFrontend()`, `dbAssigneeToFrontend()`, `dbServiceToFrontend()`, `dbStoreToFrontend()` 등. legacyId(number) ↔ CUID(string) 변환 포함. `legacyId`가 null이면 프론트 id가 깨지므로 생성 시 반드시 부여할 것
+[^13]: `dbReservationToFrontend()`, `dbCustomerToFrontend()`, `dbAssigneeToFrontend()`, `dbServiceToFrontend()`, `dbStoreToFrontend()` 등. legacyId(number) ↔ CUID(string) 변환 포함. `legacyId`가 null이면 프론트 id가 깨지므로 생성 시 반드시 부여할 것. **예약 조회는 `prisma-includes.ts`의 명시적 `select`(`reservationSelect`/`reservationSelectWithNames`)만 사용** — `include`(전체 컬럼 SELECT)는 금지. 새 컬럼을 추가한 뒤 마이그레이션이 미적용된 채 배포되면 `include`가 없는 컬럼까지 SELECT하다 전체 예약 조회가 500나기 때문(2026-07 `publicToken` 배포순서 사고 재발방지)
 
 ---
 

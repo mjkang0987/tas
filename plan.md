@@ -4,6 +4,20 @@
 
 ---
 
+## 완료 — 배포순서 장애 재발방지 (예약 조회 select 하드닝)
+
+> 배경: PR #80(온라인예약 1b·1c) 머지 후 마이그레이션 0009(`Reservation.publicToken`) 미적용 상태로 자동 배포 → 메인 캘린더/예약 API가 500(앱 전체 다운). 원인: 예약 조회가 Prisma `include`(모델 전체 컬럼 SELECT)라, DB에 없는 새 컬럼(`publicToken`)까지 SELECT하다 "column does not exist"로 실패.
+
+### 구현
+- `server/db/prisma-includes.ts`: `reservationInclude`/`reservationIncludeWithNames`(include) → **명시적 `select`** `reservationSelect`/`reservationSelectWithNames`로 교체. 프런트 매퍼가 실제 쓰는 컬럼만 나열(신규 컬럼은 이 목록에 넣기 전까지 미조회 → 배포가 마이그레이션 순서에 독립).
+- 호출부 전부 `include:` → `select:` 전환: `reservations.ts`(6곳), `naver-booking-sync.ts`(2곳), **`page-data/index.ts`(메인 캘린더 SSR — 실제 장애 쿼리)**.
+- 검증: 타입체크가 select 완전성 보증(매퍼/호출부가 쓰는 필드 누락 시 컴파일 에러), build 통과. 배포는 컬럼을 늘리지 않고 줄이기만 하므로 마이그레이션 상태와 무관하게 안전.
+
+### 남은 권장(후속)
+- 네이버 동기화·백필·마이그레이션 경로의 `create`/`update`(암묵적 전체 컬럼 RETURNING)는 앱 전체 다운은 아니나 동일 위험 존재 → 필요 시 select 명시. 신규 마이그레이션(예: 0010)은 여전히 "**적용 먼저, 배포 나중**" 원칙 유지.
+
+---
+
 ## 계획 중 — 고객 공개 예약 시스템 (Online Booking)
 
 > 결정(사용자): **셀프 예약 생성 + 고객 변경/취소 요청**, **인증 없이 이름+연락처**, **담당자 선택(+무관)**, **알림·취소까지** 풀 범위.

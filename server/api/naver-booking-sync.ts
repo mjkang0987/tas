@@ -9,7 +9,7 @@ import {listNaverBookingEmails, listNaverCancellationEmails, getEmailContent} fr
 import {parseNaverBookingEmail, parseNaverCancellationEmail} from './gmail/naver-booking-parser';
 import type {NaverBookingData} from './gmail/naver-booking-parser';
 import {dbReservationToFrontend} from '../db/mappers';
-import {reservationIncludeWithNames} from '../db/prisma-includes';
+import {reservationSelectWithNames} from '../db/prisma-includes';
 import {calcEndTime, getLastNaverSyncTimestamp} from './gmail/helpers';
 import {findByNameContains} from '../utils/string-matching';
 import {notifySlackOps} from '../notify/slack';
@@ -384,7 +384,7 @@ async function cancelReservationByBookingId(
 ): Promise<{status: 'cancelled'; legacyId: number; appointmentDate: string; appointmentTime: string; customerName: string; assigneeName: string} | {status: 'skipped'}> {
     const reservation = await prisma.reservation.findFirst({
         where: {storeId, naverBookingId: bookingId},
-        include: reservationIncludeWithNames,
+        select: reservationSelectWithNames,
     });
 
     if (!reservation) return {status: 'skipped'};
@@ -406,7 +406,7 @@ async function cancelReservationByBookingId(
     const updatedReservation = await prisma.reservation.update({
         where: {id: reservation.id},
         data: {status: 'cancelled'},
-        include: reservationIncludeWithNames,
+        select: reservationSelectWithNames,
     });
 
     const after = dbReservationToFrontend(updatedReservation);
