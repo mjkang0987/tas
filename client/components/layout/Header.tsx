@@ -15,6 +15,7 @@ import {CalendarDirection} from '../calendar/CalendarDirection';
 import {CalendarHeading} from '../calendar/CalendarHeading';
 import {ReservationDetail} from '../calendar/overlays/ReservationDetail';
 import {NaverSyncNotification} from './NaverSyncNotification';
+import {BookingRequestNotification} from './BookingRequestNotification';
 import {NaverSyncConflictModal} from '../modals/NaverSyncConflictModal';
 import {CustomerMergeSuggestionModal} from '../modals/CustomerMergeSuggestionModal';
 import {HeaderSearchLayer} from './HeaderSearchLayer';
@@ -238,6 +239,7 @@ export const Header = () => {
                                                onSelectReservation={handleHeaderReservationClick}
                                                onSelectConflict={openConflictByKey} />
                     )}
+                    <BookingRequestNotification />
                     <StyledCustomerSearchButton type="button"
                                                 id="tour-search"
                                                 onClick={() => setIsSearchOpen(true)}
@@ -284,6 +286,7 @@ export const Header = () => {
                                            onSelectReservation={handleHeaderReservationClick}
                                            onSelectConflict={openConflictByKey} />
                 )}
+                <BookingRequestNotification />
                 <StyledCustomerSearchButton type="button"
                                             onClick={() => setIsSearchOpen(true)}
                                             aria-label="고객검색">
