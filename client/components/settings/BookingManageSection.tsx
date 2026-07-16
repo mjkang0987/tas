@@ -154,6 +154,11 @@ export function BookingManageSection() {
                     {!slugFormatInvalid && checkState === 'invalid' && <StyledError>형식을 확인해 주세요.</StyledError>}
                 </StyledField>
                 <StyledUrlPreview>공개 주소: <strong>{publicUrl}</strong></StyledUrlPreview>
+                {slugValid && (
+                    <StyledPreviewLink href={`/book/${trimmedSlug}`} target="_blank" rel="noopener noreferrer">
+                        예약 페이지 열어보기 ↗
+                    </StyledPreviewLink>
+                )}
             </StyledSettingsCard>
 
             <StyledSettingsCard>
@@ -388,6 +393,22 @@ const StyledUrlPreview = styled.p`
     font-size: 13px;
     color: var(--dark-gray-color2);
     word-break: break-all;
+`;
+
+// 저장된 슬러그로 실제 작동하는 예약 페이지(/book/[slug])를 새 탭에서 바로 확인.
+// 서브도메인(book.*)은 #77 전까지 미작동이라, 링크는 현재 오리진의 /book 경로로 연다.
+const StyledPreviewLink = styled.a`
+    display: inline-flex;
+    align-items: center;
+    margin-top: 8px;
+    padding: 7px 12px;
+    border: 1px solid var(--brand-color);
+    border-radius: var(--radius-md);
+    background: var(--brand-color-bg);
+    color: var(--brand-color);
+    font-size: 12px;
+    font-weight: 700;
+    text-decoration: none;
 `;
 
 const StyledFooter = styled.div`
