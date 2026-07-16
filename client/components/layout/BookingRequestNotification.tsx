@@ -17,6 +17,7 @@ export const BookingRequestNotification = () => {
     const {requests, loading, refetch, decide} = useBookingRequests();
     const openReservationDetail = useCalendarStore((s) => s.openReservationDetail);
     const reservationMap = useCalendarStore((s) => s.reservationMap);
+    const useOnlineBooking = useCalendarStore((s) => s.useOnlineBooking);
     const [open, setOpen] = useState(false);
     const [busyId, setBusyId] = useState<string>('');
     const containerRef = useRef<HTMLDivElement>(null);
@@ -54,8 +55,9 @@ export const BookingRequestNotification = () => {
         refetch();
     }, [busyId, decide, refetch]);
 
-    // 대기 요청이 없으면 벨 자체를 숨긴다(온라인예약 미사용 매장엔 노출 안 됨).
-    if (!loading && requests.length === 0) return null;
+    // 온라인 예약을 쓰는 매장은 대기 건이 없어도 아이콘을 상시 노출(헤더 진입점 유지).
+    // 온라인 미사용 매장에는 노출하지 않는다.
+    if (!useOnlineBooking) return null;
 
     const count = requests.length;
 
