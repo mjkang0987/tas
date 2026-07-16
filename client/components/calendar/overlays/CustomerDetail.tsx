@@ -6,6 +6,7 @@ import {useSession} from 'next-auth/react';
 import {ConfirmDialog} from '../../ui/ConfirmDialog';
 import type {Customer, CustomerMemoTag, PointHistoryEntry} from '../../../utils/customers';
 import type {Reservation, ReservationMap} from '../../../utils/reservations';
+import {groupByDate} from '../../../utils/reservations';
 
 import {
     StyledHeader,
@@ -17,6 +18,7 @@ import {
 import {buildAssigneeColorMap, buildAssigneeNameMap} from '../../../utils/assignees';
 import {buildServiceColorMap, formatPrice} from '../../../utils/services';
 import {formatTel, normalizeTel, toCustomerMap} from '../../../utils/customers';
+import {shouldUseLocalDb} from '../../../lib/local-db';
 import type {Customer as CustomerType} from '../../../utils/customers';
 import {useCalendarStore} from '../../../store/calendarStore';
 import {useToastStore} from '../../../store/toastStore';
@@ -47,6 +49,10 @@ import {
     StyledEditFieldLabelText,
     StyledEditFieldInput,
     StyledPointInfo,
+    StyledDupWarning,
+    StyledDupWarningText,
+    StyledDupWarningActions,
+    StyledDupWarningButton,
     StyledReservationSection,
     StyledPointHistorySection,
     StyledPointHistoryTitle,
@@ -93,12 +99,17 @@ export const CustomerDetail = ({customer, reservationMap, onClose, onReservation
     const [mergeHistories, setMergeHistories] = useState<MergeHistorySummary[]>([]);
     const [isUnmergeConfirm, setIsUnmergeConfirm] = useState(false);
     const [isUnmerging, setIsUnmerging] = useState(false);
+    // 수정 저장 시 같은 번호를 쓰는 다른 고객이 있으면 여기 담아 경고·병합 유도.
+    const [dupWarning, setDupWarning] = useState<{match: Customer; name: string; tel: string} | null>(null);
+    const [isMergingDup, setIsMergingDup] = useState(false);
     const serviceCatalog = useCalendarStore((s) => s.serviceCatalog);
     const categoryBaseColorMap = useCalendarStore((s) => s.categoryBaseColorMap);
     const assignees = useCalendarStore((s) => s.assignees);
     const updateCustomer = useCalendarStore((s) => s.updateCustomer);
     const deleteCustomer = useCalendarStore((s) => s.deleteCustomer);
     const setCustomerMap = useCalendarStore((s) => s.setCustomerMap);
+    const customerMap = useCalendarStore((s) => s.customerMap);
+    const setReservationMap = useCalendarStore((s) => s.setReservationMap);
     const {data: session} = useSession();
     const isOwner = session?.user?.role === 'owner';
     const [isDeleteConfirm, setIsDeleteConfirm] = useState(false);
@@ -193,6 +204,7 @@ export const CustomerDetail = ({customer, reservationMap, onClose, onReservation
     const handleFieldChange = (field: keyof Omit<CustomerEditForm, 'memoTags'>, value: string) => {
         setEditForm((prev) => ({...prev, [field]: value}));
         setEditError('');
+        setDupWarning(null);
     };
 
     const handleStartEdit = () => {
@@ -200,6 +212,7 @@ export const CustomerDetail = ({customer, reservationMap, onClose, onReservation
         setNewTagText('');
         setSelectedTagColor(MEMO_TAG_COLORS[0]);
         setEditError('');
+        setDupWarning(null);
         setIsEditing(true);
     };
 
@@ -208,6 +221,7 @@ export const CustomerDetail = ({customer, reservationMap, onClose, onReservation
         setNewTagText('');
         setSelectedTagColor(MEMO_TAG_COLORS[0]);
         setEditError('');
+        setDupWarning(null);
         setIsEditing(false);
     };
 
@@ -235,6 +249,17 @@ export const CustomerDetail = ({customer, reservationMap, onClose, onReservation
         setEditError('');
     };
 
+    const commitEdit = (nextName: string, nextTel: string) => {
+        updateCustomer(customer.id, {
+            name: nextName,
+            tel: nextTel,
+            memoTags: editForm.memoTags,
+        });
+        setEditError('');
+        setDupWarning(null);
+        setIsEditing(false);
+    };
+
     const handleSaveEdit = () => {
         const nextName = editForm.name.trim();
         const nextTel = normalizeTel(editForm.tel);
@@ -249,13 +274,61 @@ export const CustomerDetail = ({customer, reservationMap, onClose, onReservation
             return;
         }
 
-        updateCustomer(customer.id, {
-            name: nextName,
-            tel: nextTel,
-            memoTags: editForm.memoTags,
-        });
-        setEditError('');
-        setIsEditing(false);
+        // 같은 매장 내 다른 고객이 이미 이 번호를 쓰면 하드 차단 대신 경고·병합 유도.
+        // (가족 공유번호 등 정상 케이스가 있어 차단하지 않는다. 이름 중복은 검증 안 함.)
+        const telDup = Object.values(customerMap).find(
+            (c) => c.id !== customer.id && !!c.tel && normalizeTel(c.tel) === nextTel,
+        );
+        if (telDup) {
+            setEditError('');
+            setDupWarning({match: telDup, name: nextName, tel: nextTel});
+            return;
+        }
+
+        commitEdit(nextName, nextTel);
+    };
+
+    // "같은 분이에요" → 편집 중 고객을 기존 번호 보유 고객으로 병합.
+    // target = 기존 번호 보유 고객, source = 현재(편집 중) 고객. 예약·포인트·메모 이전 후
+    // source 삭제(분리로 복원 가능). 현재 레이어의 고객은 사라지므로 병합 후 닫는다.
+    const handleMergeDuplicate = async () => {
+        if (!dupWarning || isMergingDup) return;
+        setIsMergingDup(true);
+        try {
+            const res = await fetch('/api/customers/merge', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({sourceIds: [customer.id], targetId: dupWarning.match.id}),
+            });
+
+            if (!res.ok) {
+                const err = await res.json().catch(() => null) as {error?: string} | null;
+                toast(err?.error ? `병합 실패: ${err.error}` : `병합 실패 (오류 ${res.status})`, 'error');
+                return;
+            }
+
+            // 고객·예약 데이터 리로드 후 레이어 닫기.
+            const [custRes, resRes] = await Promise.all([
+                fetch('/api/customers'),
+                fetch('/api/reservations'),
+            ]);
+            if (custRes.ok) {
+                const custData = await custRes.json() as {customers: Customer[]};
+                setCustomerMap(toCustomerMap(custData.customers));
+            }
+            if (resRes.ok) {
+                const resData = await resRes.json() as {reservations: Reservation[]};
+                setReservationMap(groupByDate(resData.reservations));
+            }
+
+            toast('병합 완료', 'success');
+            setDupWarning(null);
+            onClose();
+        } catch {
+            toast('병합 중 네트워크 오류가 발생했습니다.', 'error');
+        } finally {
+            setIsMergingDup(false);
+        }
     };
 
     if (!modalRoot) return null;
@@ -322,6 +395,35 @@ export const CustomerDetail = ({customer, reservationMap, onClose, onReservation
                                 />
                             </StyledEditFieldLabel>
                             <StyledPointInfo>적립금 {formatPrice(customer.points ?? 0)}</StyledPointInfo>
+                            {dupWarning && (
+                                <StyledDupWarning role="alert">
+                                    <StyledDupWarningText>
+                                        이 번호는 이미 <strong>{dupWarning.match.name}</strong> 고객에게 등록되어 있습니다. 같은 분이면 병합하고, 다른 분(가족 공유번호 등)이면 그대로 저장하세요.
+                                    </StyledDupWarningText>
+                                    <StyledDupWarningActions>
+                                        {!shouldUseLocalDb() && (
+                                            <StyledDupWarningButton type="button"
+                                                                    $variant="merge"
+                                                                    disabled={isMergingDup}
+                                                                    onClick={handleMergeDuplicate}>
+                                                {isMergingDup ? '병합 중…' : `${dupWarning.match.name} 고객과 병합`}
+                                            </StyledDupWarningButton>
+                                        )}
+                                        <StyledDupWarningButton type="button"
+                                                                $variant="keep"
+                                                                disabled={isMergingDup}
+                                                                onClick={() => commitEdit(dupWarning.name, dupWarning.tel)}>
+                                            다른 분 — 그대로 저장
+                                        </StyledDupWarningButton>
+                                        <StyledDupWarningButton type="button"
+                                                                $variant="cancel"
+                                                                disabled={isMergingDup}
+                                                                onClick={() => setDupWarning(null)}>
+                                            취소
+                                        </StyledDupWarningButton>
+                                    </StyledDupWarningActions>
+                                </StyledDupWarning>
+                            )}
                         </StyledEditFields>
                     ) : (
                         <StyledInfoList>
