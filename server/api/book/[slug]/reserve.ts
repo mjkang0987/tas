@@ -31,6 +31,7 @@ interface ReserveBody {
     assigneeId?: unknown;
     name?: unknown;
     tel?: unknown;
+    memo?: unknown;
 }
 
 function newPublicToken(): string {
@@ -51,6 +52,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const startTime = body.startTime;
     const name = typeof body.name === 'string' ? body.name.trim() : '';
     const tel = normalizeTel(typeof body.tel === 'string' ? body.tel : '');
+    const memo = typeof body.memo === 'string' ? body.memo.trim().slice(0, 200) : '';
     const serviceNames = Array.isArray(body.services)
         ? body.services.filter((s): s is string => typeof s === 'string' && s.length > 0)
         : [];
@@ -158,6 +160,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                         price,
                         channel: 'online',
                         publicToken: newPublicToken(),
+                        ...(memo ? {memo} : {}),
                     },
                     select: {publicToken: true},
                 });
@@ -186,6 +189,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             + `\n• 시간: ${startTime}~${endTime}`
             + `\n• 시술: ${serviceSummary}`
             + `\n• 고객: ${name} (${tel})`
+            + (memo ? `\n• 요청사항: ${memo}` : '')
             + `\n앱에서 확정/거절해 주세요.`,
         );
     } catch { /* 알림 실패는 무시 */ }
