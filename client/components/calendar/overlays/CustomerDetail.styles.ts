@@ -112,6 +112,63 @@ export const StyledPointInfo = styled.div`
     color: var(--brand-color);
 `;
 
+export const StyledDupWarning = styled.div`
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 10px 12px;
+    border: 1px solid var(--warning-border-soft);
+    border-radius: var(--radius-lg);
+    background: var(--warning-bg-soft);
+`;
+
+export const StyledDupWarningText = styled.p`
+    margin: 0;
+    font-size: var(--small-font);
+    line-height: 1.5;
+    color: var(--warning-text);
+
+    strong {
+        font-weight: 700;
+    }
+`;
+
+export const StyledDupWarningActions = styled.div`
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+`;
+
+export const StyledDupWarningButton = styled.button<{$variant: 'merge' | 'keep' | 'cancel'}>`
+    height: 30px;
+    padding: 0 12px;
+    border-radius: var(--radius-md);
+    font-size: var(--small-font);
+    font-weight: 600;
+    cursor: pointer;
+
+    ${({$variant}) => $variant === 'merge' && `
+        border: 1px solid var(--brand-color);
+        background: var(--brand-color);
+        color: var(--white-color);
+    `}
+    ${({$variant}) => $variant === 'keep' && `
+        border: 1px solid var(--light-gray-color);
+        background: var(--white-color);
+        color: var(--black-color);
+    `}
+    ${({$variant}) => $variant === 'cancel' && `
+        border: 1px solid transparent;
+        background: transparent;
+        color: var(--dark-gray-color2);
+    `}
+
+    &:disabled {
+        opacity: .5;
+        cursor: default;
+    }
+`;
+
 export const StyledNotesSection = styled.div`
     display: flex;
     flex-direction: column;
