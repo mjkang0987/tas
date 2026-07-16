@@ -212,6 +212,9 @@ model Reservation {
   naverDeposit     Int?
   channel          ReservationChannel        @default(phone)
   publicToken      String?                   @unique
+  pendingAction    ReservationPendingAction  @default(none)
+  pendingPayloadJson Json?
+  pendingRequestedAt DateTime?
   createdAt        DateTime                  @default(now())
   updatedAt        DateTime                  @updatedAt
   pointHistories   CustomerPointHistory[]
@@ -346,6 +349,13 @@ enum ReservationChannel {
   walk_in
   phone
   online
+}
+
+// 고객 변경/취소 요청(오너 승인형)의 대기 상태. 예약당 대기 요청 1건.
+enum ReservationPendingAction {
+  none
+  cancel
+  change
 }
 
 enum PointHistoryType {

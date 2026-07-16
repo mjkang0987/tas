@@ -179,7 +179,8 @@ export default function BookingPage() {
                         <StyledSummaryRow><span>시간</span><StyledSummaryValue>{result.startTime} ~ {result.endTime}</StyledSummaryValue></StyledSummaryRow>
                         <StyledSummaryRow><span>{labels.service}</span><StyledSummaryValue>{result.serviceSummary}</StyledSummaryValue></StyledSummaryRow>
                     </StyledSummary>
-                    <StyledNotice>예약이 정상 접수되었습니다. 위 예약 정보를 확인해 주세요. 변경·취소가 필요하면 매장으로 문의해 주세요.</StyledNotice>
+                    <StyledNotice>예약이 정상 접수되었습니다. 아래 링크에서 예약 확인·변경·취소를 할 수 있어요. 링크를 저장해 두시면 편리합니다.</StyledNotice>
+                    <StyledManageLink href={`/book/${encodeURIComponent(slug)}/r/${result.publicToken}`}>내 예약 확인·변경·취소</StyledManageLink>
                 </StyledCard>
             </StyledWrap>
         );
@@ -495,4 +496,18 @@ const StyledMuted = styled.p`
     margin: 0;
     font-size: 14px;
     color: var(--dark-gray-color2, #667);
+`;
+
+const StyledManageLink = styled.a`
+    display: block;
+    margin-top: 4px;
+    padding: 14px;
+    border: 2px solid var(--brand-color, #6526d9);
+    border-radius: 12px;
+    background: var(--white-color, #fff);
+    color: var(--brand-color, #6526d9);
+    font-size: 15px;
+    font-weight: 700;
+    text-align: center;
+    text-decoration: none;
 `;

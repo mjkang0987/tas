@@ -283,3 +283,21 @@
 
 ### 완료 조건
 - 빌드 그린, 안전 범위 취약 의존성 패치 갱신. 남은 알림(xlsx)은 수용 리스크로 명시.
+
+## 진행 중 — 1d 고객 확인·변경·취소 (오너 승인형) (#76)
+
+### 결정 (사용자 확정)
+- **데이터 모델**: Reservation에 `pendingAction`(none/cancel/change) + `pendingPayloadJson`(Json) + `pendingRequestedAt` 컬럼 추가. (별도 모델 X — 대기 요청 1건/예약)
+- **범위**: 한 PR로 통째(스키마·마이그레이션·공개 API 3종·고객 페이지·오너 승인 UI).
+
+### 구현
+1. **스키마+마이그레이션 0010**(멱등 `IF NOT EXISTS`, 신규 enum은 `DO $$ EXCEPTION duplicate_object`). `reservationSelect`에는 넣지 않음(배포순서 독립 유지) — 오너 승인 조회는 전용 select로.
+2. **공개 API**(`server/api/book/reservation/`): `GET [token]`(예약 상태 최소 노출), `POST [token]/request-cancel`, `POST [token]/request-change`(새 슬롯 검증 후 payload 저장). Slack로 오너 알림.
+3. **고객 페이지** `pages/book/[slug]/r/[token].tsx`: 상태 표시 + 취소/변경 요청. 완료화면(`[slug].tsx`)에 확인 링크 노출.
+4. **오너 승인**: 인증 API(`book-requests` GET 목록 + POST 수락/거절, `requireRole staff`) + Header 알림 벨(NaverSyncNotification 패턴 참고).
+
+### 배포순서 (⚠️ 중요)
+- 마이그레이션 0010을 **Supabase에 수동 선적용** 후 코드 배포. 예약 조회는 `include` 금지·명시적 select 유지 → 미적용 상태에서도 메인 흐름 500 없음.
+
+### 검증
+- `pnpm build` + 고객 요청→오너 수락/거절→반영 흐름 구동.
