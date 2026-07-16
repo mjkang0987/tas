@@ -4,7 +4,16 @@
 
 ---
 
-## 진행 중 — 관리자 예약 상세 '예약확정' (#114)
+## 진행 중 — 요청사항 textarea 세로 정렬 (#116)
+
+> 버그: 메모 textarea 세로 정렬 틀어짐. 원인: formControlStyle의 height:32px(input용)가 textarea에 먹음.
+
+### 수정
+- `StyledTextArea`에 display:block, height:auto, min-height:76px, vertical-align:top로 고정 높이 덮음.
+
+---
+
+## 완료 — 관리자 예약 상세 '예약확정' (#114)
 
 > 배치 6: 온라인 예약(requested)을 예약 상세 레이어에서 확정/거절.
 

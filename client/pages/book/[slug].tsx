@@ -720,12 +720,17 @@ const StyledTextInput = styled.input`
 
 const StyledTextArea = styled.textarea`
     ${formControlStyle};
+    /* formControlStyle의 height:32px(input용) 고정을 덮어 rows/패딩이 먹도록 한다. */
+    display: block;
     width: 100%;
+    height: auto;
+    min-height: 76px;
     padding: 10px 12px;
     font-size: var(--small-font);
     line-height: 1.5;
     resize: vertical;
     font-family: inherit;
+    vertical-align: top;
 `;
 
 const StyledFieldHint = styled.span`
