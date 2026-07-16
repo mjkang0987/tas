@@ -4,7 +4,24 @@
 
 ---
 
-## 진행 중 — 예약 변경 UI 픽커화 + 조회/변경/취소 디자인 정렬 (#112)
+## 진행 중 — 관리자 예약 상세 '예약확정' (#114)
+
+> 배치 6: 온라인 예약(requested)을 예약 상세 레이어에서 확정/거절.
+
+### 구현
+- `POST /api/book-requests`가 `legacyId`로도 대상 지정(기존 cuid `id` 유지). update where를 `reservation.id`로 고정.
+- `ReservationDetailFooterActions` view 모드: `isRequested`면 예약확정/거절만 노출.
+- `ReservationDetail`: `status==='requested'` 판정 + decideBooking(approve/reject by legacyId) → 성공 시 reload(벨과 동일). 거절은 confirm.
+
+### 검증
+- 타입체크·빌드.
+
+### 배치 완료
+- 1·3·4·5(#110/#111 ✅), 2·3(#112/#113 ✅), 6(#114 진행).
+
+---
+
+## 완료 — 예약 변경 UI 픽커화 + 조회/변경/취소 디자인 정렬 (#112)
 
 > 배치 2·3: `/r/[token]` 변경 폼을 예약 화면과 동일한 픽커 UI로, 디자인 가이드(토큰) 정렬.
 
