@@ -55,6 +55,7 @@ export function TimelineReservationCard({
             $height={blockHeight}
             $color={color}
             $cancelled={isCancelled}
+            $requested={reservation.status === 'requested'}
             onClick={(event: React.MouseEvent) => {
                 event.stopPropagation();
                 if (suppressClick) return;

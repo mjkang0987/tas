@@ -14,6 +14,7 @@ interface Props {
     $height?: number | undefined;
     $color?: string | undefined;
     $cancelled?: boolean | undefined;
+    $requested?: boolean | undefined;
     $active?: boolean | undefined;
     'aria-label'?: string | undefined;
 }
@@ -74,9 +75,11 @@ const StyledReserveButton = styled.button <Props>`
     width: calc(100% - 6px);
     height: ${props => props.$height}px;
     max-height: ${props => props.$height}px;
-    background-color: ${props => `${props.$color}12`};
+    background-color: ${props => props.$requested ? 'rgba(168, 132, 23, 0.10)' : `${props.$color}12`};
     border: 1px solid ${props => props.$color};
     border-left-width: 4px;
+    border-style: ${props => props.$requested ? 'dashed' : 'solid'};
+    border-left-color: ${props => props.$requested ? 'var(--caution-color)' : props.$color};
     border-radius: var(--radius-sm);
     padding: 4px 6px;
     color: ${props => 'var(--dark-gray-color)'};
