@@ -211,6 +211,7 @@ model Reservation {
   naverBookingUrl  String?
   naverDeposit     Int?
   channel          ReservationChannel        @default(phone)
+  publicToken      String?                   @unique
   createdAt        DateTime                  @default(now())
   updatedAt        DateTime                  @updatedAt
   pointHistories   CustomerPointHistory[]
@@ -292,6 +293,8 @@ model StoreBookingSettings {
   maxAdvanceDays      Int      @default(30)
   allowAssigneeChoice Boolean  @default(true)
   noticeText          String?
+  // (1c) 공개 노출 서비스 화이트리스트(서비스명 배열). null/미지정 = 전체 노출. 배선은 1c.
+  bookableServiceIdsJson Json?
   createdAt           DateTime @default(now())
   updatedAt           DateTime @updatedAt
   store               Store    @relation(fields: [storeId], references: [id], onDelete: Cascade)

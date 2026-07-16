@@ -1,7 +1,7 @@
 import type {NextApiRequest, NextApiResponse} from 'next';
 
 import {prisma} from '../../db/prisma';
-import {DEFAULT_BOOKING_SETTINGS} from '../../../client/features/store-settings/model';
+import {DEFAULT_BOOKING_SETTINGS, parseBookableServiceNames} from '../../../client/features/store-settings/model';
 
 // 공개(비로그인) 예약 매장 정보. 데이터 최소 노출 — 고객/예약 정보는 절대 반환하지 않는다.
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
@@ -28,6 +28,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         prisma.storeBookingSettings.findUnique({where: {storeId: store.id}}),
     ]);
 
+    // 고객 응답엔 규칙 5개만 노출(화이트리스트는 미노출 — 데이터 최소화).
     const settings = bookingSettings
         ? {
             slotIntervalMin: bookingSettings.slotIntervalMin,
@@ -36,12 +37,22 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             allowAssigneeChoice: bookingSettings.allowAssigneeChoice,
             noticeText: bookingSettings.noticeText,
         }
-        : DEFAULT_BOOKING_SETTINGS;
+        : {
+            slotIntervalMin: DEFAULT_BOOKING_SETTINGS.slotIntervalMin,
+            minLeadMinutes: DEFAULT_BOOKING_SETTINGS.minLeadMinutes,
+            maxAdvanceDays: DEFAULT_BOOKING_SETTINGS.maxAdvanceDays,
+            allowAssigneeChoice: DEFAULT_BOOKING_SETTINGS.allowAssigneeChoice,
+            noticeText: DEFAULT_BOOKING_SETTINGS.noticeText,
+        };
+
+    // 노출 서비스 화이트리스트(1c): 지정 시 그 서비스만 공개.
+    const whitelist = parseBookableServiceNames(bookingSettings?.bookableServiceIdsJson);
+    const visibleServices = whitelist ? services.filter((s) => whitelist.includes(s.name)) : services;
 
     return res.status(200).json({
         storeName: store.name,
         shopType: store.shopType,
-        services: services.map((s) => ({name: s.name, category: s.category, duration: s.duration, price: s.price})),
+        services: visibleServices.map((s) => ({name: s.name, category: s.category, duration: s.duration, price: s.price})),
         // 담당자 선택을 허용할 때만 목록 노출
         assignees: settings.allowAssigneeChoice ? assignees.map((a) => ({id: a.id, name: a.name, color: a.color})) : [],
         businessHours: businessHours.map((b) => ({dayIndex: b.dayIndex, openTime: b.openTime, closeTime: b.closeTime, enabled: b.enabled})),

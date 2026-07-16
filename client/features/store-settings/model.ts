@@ -28,6 +28,9 @@ export interface BookingSettings {
     maxAdvanceDays: number;
     allowAssigneeChoice: boolean;
     noticeText: string | null;
+    // 공개 노출할 서비스명 화이트리스트. null 또는 []=전체 노출, 비어있지 않으면 그 서비스만 노출.
+    // (이 앱은 서비스를 name으로 식별 — DB 컬럼명은 bookableServiceIdsJson) 오너 설정에만 쓰이고 고객 응답엔 미노출.
+    bookableServiceNames: string[] | null;
 }
 
 export const DEFAULT_BOOKING_SETTINGS: BookingSettings = {
@@ -36,7 +39,21 @@ export const DEFAULT_BOOKING_SETTINGS: BookingSettings = {
     maxAdvanceDays: 30,
     allowAssigneeChoice: true,
     noticeText: null,
+    bookableServiceNames: null,
 };
+
+// bookableServiceIdsJson(Prisma Json) → 화이트리스트. 배열이면서 비어있지 않을 때만 유효, 그 외 null(전체 노출).
+export function parseBookableServiceNames(json: unknown): string[] | null {
+    if (!Array.isArray(json)) return null;
+    const names = json.filter((x): x is string => typeof x === 'string');
+    return names.length > 0 ? names : null;
+}
+
+// 요청 서비스가 모두 노출 허용 범위인지. 화이트리스트가 null이면 전체 허용.
+export function areServicesBookable(requested: string[], whitelist: string[] | null): boolean {
+    if (!whitelist) return true;
+    return requested.every((name) => whitelist.includes(name));
+}
 
 // 공개 URL 슬러그: 소문자 영숫자·하이픈, 3~32자, 하이픈으로 시작/끝 불가.
 export const BOOKING_SLUG_PATTERN = /^[a-z0-9](?:[a-z0-9-]{1,30}[a-z0-9])$/;
