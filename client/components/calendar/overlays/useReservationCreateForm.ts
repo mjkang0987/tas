@@ -11,7 +11,6 @@ import {getAssigneeAvailabilityState, splitAssigneesByStatus} from '../../../uti
 import {buildCatalogMap, calcEndTime, joinServiceNames, sumDurationMinutes, sumPrice} from '../../../utils/services';
 import {useStoreLabels} from '../../../hooks/useStoreLabels';
 import type {ReservationDetailFormState, ReservationFieldError} from './ReservationDetailSections';
-type CustomerMode = 'existing' | 'new';
 
 const KOREAN_MOBILE_PHONE_PATTERN = /^01[016789]\d{7,8}$/;
 
@@ -55,9 +54,10 @@ export function useReservationCreateForm({
     const [customerQuery, setCustomerQuery] = useState('');
     const [showSuggestions, setShowSuggestions] = useState(false);
     const blurTimerRef = useRef<ReturnType<typeof setTimeout>>(undefined);
-    const [customerMode, setCustomerMode] = useState<CustomerMode>('existing');
-    const [newCustomerName, setNewCustomerName] = useState('');
-    const [newCustomerTel, setNewCustomerTel] = useState('');
+    // 기존/신규 탭을 없애고 단일 입력으로 통합.
+    // 고객명 = customerQuery, 연락처 = customerTel(항상 노출).
+    // 기존 고객 선택 시 customerId≠0 + 이름·연락처 자동 채움. 새 이름 입력 시 customerId=0(신규).
+    const [customerTel, setCustomerTel] = useState('');
     const [selectedServices, setSelectedServices] = useState<string[]>([]);
     const [isPriceManual, setIsPriceManual] = useState(false);
     const [form, setForm] = useState({
@@ -85,6 +85,7 @@ export function useReservationCreateForm({
         if (customer) {
             setCustomerId(id);
             setCustomerQuery(customer.name);
+            setCustomerTel(customer.tel); // 기존 고객 선택 → 연락처 자동 채움
         }
         setShowSuggestions(false);
         setError(null);
@@ -92,7 +93,12 @@ export function useReservationCreateForm({
 
     const handleCustomerInputChange = (value: string) => {
         setCustomerQuery(value);
-        setCustomerId(0);
+        // 기존 선택 상태에서 이름을 다시 입력하면 신규로 전환 → 자동 채운 연락처를 비워
+        // 수동 입력을 받는다. 이미 신규(customerId=0)면 수동 입력한 연락처를 건드리지 않는다.
+        if (customerId !== 0) {
+            setCustomerId(0);
+            setCustomerTel('');
+        }
         setShowSuggestions(true);
         setError(null);
     };
@@ -156,14 +162,16 @@ export function useReservationCreateForm({
     };
 
     const validate = (): ReservationFieldError | null => {
-        const normalizedNewCustomerTel = newCustomerTel.replace(/\D/g, '');
+        const normalizedTel = customerTel.replace(/\D/g, '');
+        const isNewCustomer = customerId === 0;
 
         if (activeAssignees.length > 0 && !form.assigneeId) return {field: 'assignee', message: `${labels.assignee}를 선택해주세요.`};
-        if (customerMode === 'existing' && !customerId) return {field: 'customer', message: '고객을 선택해주세요.'};
-        if (customerMode === 'new' && !newCustomerName.trim()) return {field: 'customer', message: '신규 고객명을 입력해주세요.'};
-        if (customerMode === 'new' && !newCustomerTel.trim()) return {field: 'customer', message: '신규 고객 연락처를 입력해주세요.'};
-        if (customerMode === 'new' && !KOREAN_MOBILE_PHONE_PATTERN.test(normalizedNewCustomerTel)) {
-            return {field: 'customer', message: '신규 고객 연락처 형식을 확인해주세요.'};
+        // 기존 고객(customerId≠0)은 추천에서 선택된 상태 → 이름·연락처는 자동 채움.
+        // 신규(customerId==0)만 이름·연락처를 직접 검증한다.
+        if (!customerQuery.trim()) return {field: 'customer', message: '고객명을 입력해주세요.'};
+        if (isNewCustomer && !customerTel.trim()) return {field: 'customer', message: '연락처를 입력해주세요.'};
+        if (isNewCustomer && !KOREAN_MOBILE_PHONE_PATTERN.test(normalizedTel)) {
+            return {field: 'customer', message: '연락처 형식을 확인해주세요.'};
         }
         if (selectedServices.length === 0) return {field: 'service', message: `${labels.service}를 선택해주세요.`};
         if (!form.date) return {field: 'date', message: '날짜를 선택해주세요.'};
@@ -202,11 +210,12 @@ export function useReservationCreateForm({
         //  legacyId 0 한 칸에 덮어써지는 치명적 버그가 있었음)
         let resolvedCustomerId = customerId;
 
-        if (customerMode === 'new') {
+        // customerId==0 → 추천에서 고른 기존 고객이 없으므로 신규로 생성.
+        if (customerId === 0) {
             const nextCustomer: Customer = {
                 id: nextCustomerId,
-                name: newCustomerName.trim(),
-                tel: normalizeTel(newCustomerTel),
+                name: customerQuery.trim(),
+                tel: normalizeTel(customerTel),
                 points: 0,
                 pointHistories: [],
             };
@@ -241,9 +250,7 @@ export function useReservationCreateForm({
         customerId,
         customerQuery,
         showSuggestions,
-        customerMode,
-        newCustomerName,
-        newCustomerTel,
+        customerTel,
         assigneeId: form.assigneeId,
         selectedServices,
         form,
@@ -251,16 +258,8 @@ export function useReservationCreateForm({
         filteredCustomers,
         totalDuration,
         totalPrice,
-        setCustomerMode: (mode: CustomerMode) => {
-            setCustomerMode(mode);
-            setError(null);
-        },
-        setNewCustomerName: (value: string) => {
-            setNewCustomerName(value);
-            setError(null);
-        },
-        setNewCustomerTel: (value: string) => {
-            setNewCustomerTel(value);
+        setCustomerTel: (value: string) => {
+            setCustomerTel(value);
             setError(null);
         },
         handleCustomerSelect,
