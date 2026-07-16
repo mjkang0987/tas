@@ -79,6 +79,15 @@ function clientDayIndex(dateStr: string): number {
     return (new Date(`${dateStr}T12:00:00Z`).getUTCDay() + 6) % 7;
 }
 
+// "HH:MM" + 분 → "HH:MM" (종료 시각 계산용).
+function addMinutes(hhmm: string, min: number): string {
+    const [h, m] = hhmm.split(':').map(Number);
+    const total = h * 60 + m + min;
+    const nh = Math.floor(total / 60) % 24;
+    const nm = total % 60;
+    return `${String(nh).padStart(2, '0')}:${String(nm).padStart(2, '0')}`;
+}
+
 // 날짜가 예약 불가(휴무일·영업요일 아님)인가 — 날짜 스트립 비활성 판정.
 function isDateClosed(info: BookStoreInfo, dateStr: string): boolean {
     if (info.closedDates.includes(dateStr)) return true;
@@ -287,6 +296,18 @@ export default function BookingPage() {
     const showAssignees = info.settings.allowAssigneeChoice && info.assignees.length > 0;
     const dateOffsets = Array.from({length: info.settings.maxAdvanceDays + 1}, (_, i) => i);
 
+    // 하단 '예약 내용' 요약용 파생값.
+    const selectedAssigneeName = assigneeId === ASSIGNEE_ANY
+        ? '상관없음'
+        : (info.assignees.find((a) => a.id === assigneeId)?.name ?? '상관없음');
+    const selectedDateLabel = date
+        ? `${Number(date.slice(5, 7))}월 ${Number(date.slice(8, 10))}일 (${DOW[clientDayIndex(date)]})`
+        : '미선택';
+    const selectedEnd = selectedSlot && totalDuration > 0 ? addMinutes(selectedSlot, totalDuration) : '';
+    const selectedServiceItems = selectedServices
+        .map((n) => info.services.find((s) => s.name === n))
+        .filter((s): s is BookServiceInfo => !!s);
+
     return (
         <StyledWrap>
             <SeoHead title={`${info.storeName} 예약`} />
@@ -395,13 +416,6 @@ export default function BookingPage() {
                     </>
                 )}
 
-                {selectedServices.length > 0 && (
-                    <StyledTotal>
-                        <span>합계</span>
-                        <StyledTotalValue>{totalPrice.toLocaleString()}원 · {totalDuration}분</StyledTotalValue>
-                    </StyledTotal>
-                )}
-
                 {selectedSlot && selectedServices.length > 0 && (
                     <>
                         <StyledSectionLabel>예약자 정보</StyledSectionLabel>
@@ -416,11 +430,55 @@ export default function BookingPage() {
                     </>
                 )}
 
-                {submitError && <StyledError role="alert">{submitError}</StyledError>}
+                {/* 하단 sticky '예약 내용' 요약 — 스크롤 내려도 담당자·날짜 등 선택이 항상 보인다. */}
+                <StyledStickyFooter>
+                    <StyledSummaryCard>
+                        <StyledSummaryHead>예약 내용</StyledSummaryHead>
+                        {showAssignees && (
+                            <StyledSumRow>
+                                <StyledSumLabel>{labels.assignee}</StyledSumLabel>
+                                <StyledSumValue>{selectedAssigneeName}</StyledSumValue>
+                            </StyledSumRow>
+                        )}
+                        <StyledSumRow>
+                            <StyledSumLabel>날짜</StyledSumLabel>
+                            <StyledSumValue>{selectedDateLabel}</StyledSumValue>
+                        </StyledSumRow>
+                        <StyledSumRow>
+                            <StyledSumLabel>시간</StyledSumLabel>
+                            <StyledSumValue $muted={!selectedSlot}>
+                                {selectedSlot ? `${selectedSlot}${selectedEnd ? ` ~ ${selectedEnd}` : ''}` : '시간을 선택하세요'}
+                            </StyledSumValue>
+                        </StyledSumRow>
+                        <StyledSumRow $top>
+                            <StyledSumLabel>{labels.service}</StyledSumLabel>
+                            {selectedServiceItems.length > 0 ? (
+                                <StyledSumServiceList>
+                                    {selectedServiceItems.map((s) => (
+                                        <StyledSumServiceRow key={s.name}>
+                                            <span className="nm">{s.name}</span>
+                                            <span className="mt">{s.duration}분 · {s.price.toLocaleString()}원</span>
+                                        </StyledSumServiceRow>
+                                    ))}
+                                </StyledSumServiceList>
+                            ) : (
+                                <StyledSumValue $muted>{labels.service}를 선택하세요</StyledSumValue>
+                            )}
+                        </StyledSumRow>
+                        {selectedServiceItems.length > 0 && (
+                            <StyledSumTotalRow>
+                                <span>합계</span>
+                                <strong>{totalPrice.toLocaleString()}원 · {totalDuration}분</strong>
+                            </StyledSumTotalRow>
+                        )}
+                    </StyledSummaryCard>
 
-                <StyledNextBtn type="button" disabled={!canSubmit} onClick={submit}>
-                    {submitting ? '예약 중…' : '예약하기'}
-                </StyledNextBtn>
+                    {submitError && <StyledError role="alert">{submitError}</StyledError>}
+
+                    <StyledNextBtn type="button" disabled={!canSubmit} onClick={submit}>
+                        {submitting ? '예약 중…' : '예약하기'}
+                    </StyledNextBtn>
+                </StyledStickyFooter>
             </StyledCard>
         </StyledWrap>
     );
@@ -514,21 +572,86 @@ const StyledTextInput = styled.input`
     font-size: var(--small-font);
 `;
 
-const StyledTotal = styled.div`
+// 하단 sticky 요약 바. 카드 폭 풀블리드(negative margin)로 뷰포트 하단에 고정.
+const StyledStickyFooter = styled.div`
+    position: sticky;
+    bottom: 0;
+    z-index: 5;
+    margin: 8px -28px -32px;
+    padding: 14px 28px calc(env(safe-area-inset-bottom, 0px) + 18px);
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    background: var(--white-color);
+    border-top: 1px solid var(--light-gray-color);
+    box-shadow: 0 -6px 20px rgba(0, 0, 0, 0.06);
+    @media (max-width: 640px) {
+        margin: 8px -18px -24px;
+        padding: 12px 18px calc(env(safe-area-inset-bottom, 0px) + 16px);
+    }
+`;
+
+const StyledSummaryCard = styled.div`
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    padding: 12px 14px;
+    background: var(--gray-color2);
+    border-radius: var(--radius-md);
+`;
+
+const StyledSummaryHead = styled.strong`
+    font-size: var(--small-font);
+    font-weight: 700;
+    color: var(--black-color);
+`;
+
+const StyledSumRow = styled.div<{$top?: boolean}>`
+    display: flex;
+    justify-content: space-between;
+    align-items: ${(p) => (p.$top ? 'flex-start' : 'center')};
+    gap: 12px;
+    font-size: var(--small-font);
+`;
+
+const StyledSumLabel = styled.span`
+    flex: 0 0 auto;
+    color: var(--dark-gray-color2);
+`;
+
+const StyledSumValue = styled.span<{$muted?: boolean}>`
+    text-align: right;
+    font-weight: 600;
+    color: ${(p) => (p.$muted ? 'var(--dark-gray-color2)' : 'var(--black-color)')};
+`;
+
+const StyledSumServiceList = styled.div`
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    text-align: right;
+`;
+
+const StyledSumServiceRow = styled.div`
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+
+    .nm { font-weight: 600; color: var(--black-color); }
+    .mt { font-size: var(--xsmall-font); color: var(--dark-gray-color2); }
+`;
+
+const StyledSumTotalRow = styled.div`
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-top: 8px;
-    padding: 12px;
-    background: var(--gray-color2);
-    border-radius: var(--radius-md);
+    margin-top: 2px;
+    padding-top: 8px;
+    border-top: 1px solid var(--light-gray-color);
     font-size: var(--small-font);
     color: var(--dark-gray-color);
-`;
 
-const StyledTotalValue = styled.strong`
-    color: var(--black-color);
-    font-weight: 800;
+    strong { color: var(--black-color); font-weight: 800; }
 `;
 
 const StyledSummary = styled.div`
@@ -562,7 +685,6 @@ const StyledError = styled.p`
 `;
 
 const StyledNextBtn = styled.button`
-    margin-top: 20px;
     height: 50px;
     border: none;
     border-radius: var(--radius-md);
