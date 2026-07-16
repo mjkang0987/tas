@@ -82,6 +82,31 @@ export async function findBookableStore(slug: string): Promise<PublicStore | nul
     });
 }
 
+// 공개 예약 관리 링크(토큰)로 예약을 조회. 토큰이 추측 불가·unique 라 매장 스코프를 대신한다.
+// 전용 select(공유 reservationSelect 미사용) — 새 컬럼을 메인 예약 조회에 노출하지 않아 배포순서 독립 유지.
+export async function findReservationByPublicToken(token: string) {
+    if (!token) return null;
+    return prisma.reservation.findFirst({
+        where: {publicToken: token},
+        select: {
+            id: true,
+            storeId: true,
+            status: true,
+            date: true,
+            startTime: true,
+            endTime: true,
+            serviceSummary: true,
+            assigneeId: true,
+            pendingAction: true,
+            pendingPayloadJson: true,
+            pendingRequestedAt: true,
+            store: {select: {name: true, shopType: true, bookingSlug: true, useOnlineBooking: true}},
+            assignee: {select: {name: true}},
+            customer: {select: {name: true}},
+        },
+    });
+}
+
 // 매장 예약 규칙(없으면 기본값).
 export async function loadBookingSettings(storeId: string): Promise<BookingSettings> {
     const row = await prisma.storeBookingSettings.findUnique({where: {storeId}});
