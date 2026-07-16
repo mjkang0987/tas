@@ -358,7 +358,9 @@ export const StoreManageSection = ({formatDateLabel}: StoreManageSectionProps) =
 };
 
 const StyledBookingWrap = styled.div`
+    grid-column: 1 / -1;
     margin-top: 24px;
+    min-width: 0;
 `;
 
 

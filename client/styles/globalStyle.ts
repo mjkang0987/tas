@@ -226,6 +226,17 @@ export const GlobalStyle = createGlobalStyle`
         width: 100%;
     }
 
+    /* 체크박스·라디오는 위 input{width:100%} 대상에서 제외하고, 폰트에 맞춰 키운다. */
+    input[type="checkbox"],
+    input[type="radio"] {
+        width: 18px;
+        height: 18px;
+        flex-shrink: 0;
+        margin: 0;
+        accent-color: var(--brand-color);
+        cursor: pointer;
+    }
+
     .a11y {
         overflow: hidden;
         position: absolute;
