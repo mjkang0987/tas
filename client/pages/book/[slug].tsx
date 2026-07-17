@@ -5,6 +5,7 @@ import {useRouter} from 'next/router';
 import styled from 'styled-components';
 
 import {getStoreLabels} from '../../features/store-settings/labels';
+import {formatDuration} from '../../features/services/model';
 import {normalizeTel} from '../../features/customers/model';
 import {SeoHead} from '../../components/ui/SeoHead';
 import {formControlStyle} from '../../components/ui/FormControls';
@@ -522,7 +523,7 @@ export default function BookingPage() {
                                 onClick={() => toggleService(s.name)}
                             >
                                 <span className="nm">{s.name}</span>
-                                <span className="mt">{s.duration}분 · {s.price.toLocaleString()}원</span>
+                                <span className="mt">{formatDuration(s.duration)} · {s.price.toLocaleString()}원</span>
                             </ServiceChoiceChip>
                         );
                     })}
@@ -603,7 +604,7 @@ export default function BookingPage() {
                                     {selectedServiceItems.map((s) => (
                                         <StyledSumServiceRow key={s.name}>
                                             <span className="nm">{s.name}</span>
-                                            <span className="mt">{s.duration}분 · {s.price.toLocaleString()}원</span>
+                                            <span className="mt">{formatDuration(s.duration)} · {s.price.toLocaleString()}원</span>
                                         </StyledSumServiceRow>
                                     ))}
                                 </StyledSumServiceList>
@@ -614,7 +615,7 @@ export default function BookingPage() {
                         {selectedServiceItems.length > 0 && (
                             <StyledSumTotalRow>
                                 <span>합계</span>
-                                <strong>{totalPrice.toLocaleString()}원 · {totalDuration}분</strong>
+                                <strong>{totalPrice.toLocaleString()}원 · {formatDuration(totalDuration)}</strong>
                             </StyledSumTotalRow>
                         )}
                     </StyledSummaryCard>
