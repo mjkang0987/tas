@@ -32,6 +32,7 @@ interface ReservationView {
     pendingAction: 'none' | 'cancel' | 'change';
     pendingChange: PendingChange | null;
     canRequest: boolean;
+    canCancel: boolean;
 }
 
 interface BookServiceInfo {name: string; category: string; duration: number; price: number}
@@ -253,18 +254,18 @@ export default function ReservationManagePage() {
 
                 {actionMsg && <StyledNotice role="status">{actionMsg}</StyledNotice>}
 
-                {reservation.canRequest && !pending && !changeOpen && (
+                {(reservation.canRequest || reservation.canCancel) && !pending && !changeOpen && (
                     <StyledActions>
-                        <StyledSecondaryBtn type="button" onClick={openChange} disabled={busy}>변경 요청</StyledSecondaryBtn>
-                        <StyledDangerBtn type="button" onClick={submitCancel} disabled={busy}>취소 요청</StyledDangerBtn>
+                        {reservation.canRequest && <StyledSecondaryBtn type="button" onClick={openChange} disabled={busy}>변경 요청</StyledSecondaryBtn>}
+                        {reservation.canCancel && <StyledDangerBtn type="button" onClick={submitCancel} disabled={busy}>취소 요청</StyledDangerBtn>}
                     </StyledActions>
                 )}
 
-                {reservation.status === 'requested' && (
-                    <StyledNotice>매장이 예약을 확인 중입니다. 확정되면 이 페이지에서 변경·취소 요청을 하실 수 있어요.</StyledNotice>
+                {reservation.status === 'requested' && !pending && (
+                    <StyledNotice>매장이 예약을 확인 중입니다. 확정 전에도 취소 요청은 하실 수 있어요.</StyledNotice>
                 )}
 
-                {!reservation.canRequest && !pending && reservation.status !== 'requested' && (
+                {!reservation.canRequest && !reservation.canCancel && !pending && reservation.status !== 'requested' && (
                     <StyledMuted>이 예약은 변경·취소 요청을 할 수 없는 상태입니다.</StyledMuted>
                 )}
 

@@ -30,7 +30,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         pendingAction: reservation.pendingAction,
         pendingChange,
         pendingRequestedAt: reservation.pendingRequestedAt?.toISOString() ?? null,
-        // active 예약만 변경/취소 요청 가능
+        // 변경 요청은 active 예약만. 취소 요청은 확정 대기(requested)도 가능(신청 철회).
         canRequest: reservation.status === 'active',
+        canCancel: reservation.status === 'active' || reservation.status === 'requested',
     });
 }
