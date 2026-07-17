@@ -14,7 +14,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const token = typeof req.query.token === 'string' ? req.query.token : '';
     const reservation = await findReservationByPublicToken(token);
     if (!reservation) return res.status(404).json({error: 'not_found'});
-    if (reservation.status !== 'active') return res.status(409).json({error: 'not_active'});
+    // 확정된(active) 예약뿐 아니라 확정 대기(requested) 예약도 취소 요청 가능(고객이 신청 철회).
+    if (reservation.status !== 'active' && reservation.status !== 'requested') return res.status(409).json({error: 'not_active'});
     if (reservation.pendingAction !== 'none') return res.status(409).json({error: 'already_pending'});
 
     await prisma.reservation.update({
