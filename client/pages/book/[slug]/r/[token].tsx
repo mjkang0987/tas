@@ -458,15 +458,18 @@ const StyledActions = styled.div`
     margin-top: 16px;
 `;
 
+// 디자인 가이드/StyledActionButton 정렬: radius 8(--radius-lg), weight 600/500,
+// 1px 토큰 보더, shadow-sm, 취소는 danger-outline. 공용 페이지라 터치 높이(48px)는 유지.
 const StyledPrimaryBtn = styled.button`
     flex: 1;
     height: 48px;
     border: none;
-    border-radius: var(--radius-md);
-    background: var(--brand-color, #6526d9);
-    color: #fff;
+    border-radius: var(--radius-lg);
+    background: var(--brand-color);
+    color: var(--white-color);
     font-size: 15px;
-    font-weight: 700;
+    font-weight: 600;
+    box-shadow: var(--shadow-sm);
     cursor: pointer;
     &:disabled { opacity: 0.45; cursor: not-allowed; }
 `;
@@ -474,12 +477,13 @@ const StyledPrimaryBtn = styled.button`
 const StyledSecondaryBtn = styled.button`
     flex: 1;
     height: 48px;
-    border: 2px solid var(--light-gray-color, #e4e7eb);
-    border-radius: var(--radius-md);
-    background: var(--white-color, #fff);
-    color: var(--dark-gray-color, #444);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-lg);
+    background: var(--white-color);
+    color: var(--dark-gray-color);
     font-size: 15px;
-    font-weight: 700;
+    font-weight: 500;
+    box-shadow: var(--shadow-sm);
     cursor: pointer;
     &:disabled { opacity: 0.45; cursor: not-allowed; }
 `;
@@ -487,12 +491,13 @@ const StyledSecondaryBtn = styled.button`
 const StyledDangerBtn = styled.button`
     flex: 1;
     height: 48px;
-    border: 2px solid var(--danger-color, #d64545);
-    border-radius: var(--radius-md);
-    background: var(--white-color, #fff);
-    color: var(--danger-color, #d64545);
+    border: 1px solid var(--danger-border);
+    border-radius: var(--radius-lg);
+    background: var(--white-color);
+    color: var(--danger-color);
     font-size: 15px;
-    font-weight: 700;
+    font-weight: 600;
+    box-shadow: var(--shadow-sm);
     cursor: pointer;
     &:disabled { opacity: 0.45; cursor: not-allowed; }
 `;
