@@ -5,6 +5,7 @@ import {useRouter} from 'next/router';
 import styled from 'styled-components';
 
 import {getStoreLabels} from '../../../../features/store-settings/labels';
+import {formatDuration} from '../../../../features/services/model';
 import {SeoHead} from '../../../../components/ui/SeoHead';
 import {LabelBadge} from '../../../../components/ui/LabelBadge';
 import {
@@ -316,7 +317,7 @@ export default function ReservationManagePage() {
                                         return (
                                             <ServiceChoiceChip key={s.name} type="button" $on={on} aria-pressed={on} onClick={() => toggleService(s.name)}>
                                                 <span className="nm">{s.name}</span>
-                                                <span className="mt">{s.duration}분 · {s.price.toLocaleString()}원</span>
+                                                <span className="mt">{formatDuration(s.duration)} · {s.price.toLocaleString()}원</span>
                                             </ServiceChoiceChip>
                                         );
                                     })}
