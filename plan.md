@@ -4,6 +4,32 @@
 
 ---
 
+## 진행 중 — 예약/고객 추가 시 legacyId 충돌 방지 (네이버 동기화와 번호 경쟁)
+
+> 증상(사용자): "네이버예약이 계속 중복", "고객 예약추가하는 쪽 수정에서 오류 발생".
+
+### 근본 원인 (코드로 확정)
+- 클라이언트는 예약·고객 번호(`legacyId`)를 **화면에 로드된 목록 기준**(`getNextNumericId`, `useReservationCreateForm.ts`)으로 매긴다.
+- 그런데 서버의 **네이버 백그라운드 동기화**가 legacyId를 **독립적으로**(DB max+1) 올린다. 특히 공개예약마다 `reserve.ts:199`에서 `void syncNaverBookingsForStore(...)`로 fire-and-forget 실행되고, 시간별 폴링·타 세션도 있음. 클라가 그 사이 새로고침을 안 하면 번호가 겹친다.
+- 충돌 결과:
+  - **예약 POST**(`reservations.ts`) — `prisma.reservation.create`에 try/catch가 없어 `@@unique([storeId, legacyId])` 위반 시 **P2002 → 500**. 예약이 저장 안 되고 화면에만 떠 있다 새로고침하면 사라짐.
+  - **고객 POST**(`customers.ts`) — `upsert`라 같은 번호의 **다른 고객(네이버가 만든 고객)을 조용히 덮어씀** → 데이터 섞임/중복처럼 보임.
+- 네이버가 예약번호(`naverBookingId`)로 dedup + `@@unique([storeId, naverBookingId])`(0001부터 존재)라, **같은 예약번호의 진짜 중복은 불가**. 위 번호 경쟁이 "중복/오류"의 실제 경로.
+
+### 수정
+- `server/api/reservations.ts`: POST가 client legacyId로 create하다 P2002면 서버가 빈 번호(`allocateReservationLegacyId`, null-safe max+1)를 다시 매겨 재시도 → 500 없이 반드시 저장.
+- `server/api/customers.ts`: 단건 POST가 그 번호를 **다른 고객**(이름 불일치)이 쓰고 있으면 덮어쓰지 않고 빈 번호를 새로 매겨 생성, **실제 부여 번호를 응답**. 같은 이름이면 멱등 저장(중복 클릭 방어). null-safe `allocateCustomerLegacyId`.
+- 클라 배선: `persistNewCustomer`→`addCustomer`가 **서버가 부여한 실제 id를 반환**, 충돌 시 로컬 맵도 그 번호로 이동. `useReservationCreateForm.handleSave`가 반환된 id로 예약을 걸어 'Customer not found' 방지.
+
+### 검증
+- 타입체크 통과. 프로덕션 빌드로 확인. (런타임 DB 검증은 별도 — 로컬 DB 필요)
+
+### 후속 처리 결과
+- 네이버 동기화의 예약별 고객 신규 생성 → **정상 동작 확정(사용자)**. 네이버 메일엔 연락처가 없어 고객 특정이 불가능하므로 dedup 대상 아님. 수정 안 함.
+- #101 회귀(추천 클릭 없이 기존 고객 이름을 직접 타이핑하면 무조건 신규 고객 생성) → **수정 완료**. `handleSave`에서 **이름+연락처(normalizeTel) 모두 일치**하는 기존 고객이 있으면 신규 생성 대신 재사용. 이름만 일치(동명이인)·연락처만 일치(가족 공유번호, #98 방침)는 신규 생성 유지. 공개예약 `reserve.ts`의 tel 기준 재사용 선례를 따름.
+
+---
+
 ## 진행 중 — 서비스 소요시간 분→시간+분 표기 (#126)
 
 > book/[slug], r/[token]의 시술 소요시간 `N분`을 기존 `formatDuration`으로 `1시간30분` 형식 노출(칩·요약·합계).

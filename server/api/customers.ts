@@ -1,11 +1,24 @@
 import type {NextApiRequest, NextApiResponse} from 'next';
 
+import {Prisma} from '../../client/prisma/generated/prisma/client';
+
 import {prisma} from '../db/prisma';
 import {getApiSession, requireRole} from '../auth/api-session';
 import {dbCustomerToFrontend} from '../db/mappers';
 import {notifySlackOpsError} from '../notify/slack';
 import type {Customer, PointHistoryType} from '../../client/features/customers/model';
 import {normalizeTel} from '../../client/features/customers/model';
+
+// 다음 고객 legacyId(빈 번호) = 현재 최대 + 1. null legacyId 행이 desc 정렬에서
+// 먼저 오지 않도록 not-null로 걸러 안전하게 계산한다.
+async function allocateCustomerLegacyId(storeId: string): Promise<number> {
+    const max = await prisma.customer.findFirst({
+        where: {storeId, legacyId: {not: null}},
+        orderBy: {legacyId: 'desc'},
+        select: {legacyId: true},
+    });
+    return (max?.legacyId ?? 0) + 1;
+}
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
     const session = await getApiSession(req, res);
@@ -50,13 +63,41 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             preferenceNote: customer.preferenceNote ?? null,
         };
 
-        await prisma.customer.upsert({
+        // 클라이언트는 화면에 로드된 목록 기준으로 legacyId를 매긴다. 그 사이 네이버 백그라운드
+        // 동기화 등이 만든 '다른' 고객이 같은 번호를 이미 쓰고 있으면, 예전 upsert는 그 남의 고객을
+        // 조용히 덮어써 데이터가 섞였다. 이제: 그 번호가 비었거나 같은 고객(동명)이면 그대로 저장(멱등),
+        // 다른 고객이면 서버가 빈 번호를 새로 매겨 생성하고 실제 부여 번호를 응답으로 돌려준다.
+        // (호출측이 이 번호로 곧바로 예약을 걸어 올바른 고객을 참조하도록.)
+        const existing = await prisma.customer.findUnique({
             where: {storeId_legacyId: {storeId: session.storeId, legacyId: customer.id}},
-            update: data,
-            create: {storeId: session.storeId, legacyId: customer.id, ...data},
+            select: {name: true},
         });
 
-        return res.status(201).json({ok: true, id: customer.id});
+        let assignedId = customer.id;
+        // 이미 있는데 다른 사람(이름 불일치)이면 번호를 새로 매긴다. 같은 이름이면 재저장(멱등, 중복 클릭 방어).
+        if (existing && existing.name !== customer.name) {
+            assignedId = await allocateCustomerLegacyId(session.storeId);
+        }
+
+        for (let attempt = 0; ; attempt++) {
+            try {
+                await prisma.customer.upsert({
+                    where: {storeId_legacyId: {storeId: session.storeId, legacyId: assignedId}},
+                    update: data,
+                    create: {storeId: session.storeId, legacyId: assignedId, ...data},
+                });
+                break;
+            } catch (err) {
+                // 새로 매긴 번호가 동시 요청과 겹치면 P2002 → 다시 매겨 재시도.
+                if (attempt < 5 && err instanceof Prisma.PrismaClientKnownRequestError && err.code === 'P2002') {
+                    assignedId = await allocateCustomerLegacyId(session.storeId);
+                    continue;
+                }
+                throw err;
+            }
+        }
+
+        return res.status(201).json({ok: true, id: assignedId});
     }
 
     if (req.method === 'PUT') {

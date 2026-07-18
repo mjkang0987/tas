@@ -1,5 +1,7 @@
 import type {NextApiRequest, NextApiResponse} from 'next';
 
+import {Prisma} from '../../client/prisma/generated/prisma/client';
+
 import {prisma} from '../db/prisma';
 import {getApiSession, requireRole} from '../auth/api-session';
 import {
@@ -13,6 +15,17 @@ import {reservationSelect} from '../db/prisma-includes';
 import {notifySlackForStore, customerNoteLine} from '../notify/slack';
 import type {Reservation, ReservationStatus} from '../../client/features/reservations/model';
 import {hasCompletedPayment} from '../../client/features/reservations/model';
+
+// 다음 예약 legacyId(빈 번호) = 현재 최대 + 1. null legacyId 행이 desc 정렬에서
+// 먼저 오지 않도록 not-null로 걸러 안전하게 계산한다.
+async function allocateReservationLegacyId(storeId: string): Promise<number> {
+    const max = await prisma.reservation.findFirst({
+        where: {storeId, legacyId: {not: null}},
+        orderBy: {legacyId: 'desc'},
+        select: {legacyId: true},
+    });
+    return (max?.legacyId ?? 0) + 1;
+}
 
 async function resolveCustomerCuid(storeId: string, legacyId: number): Promise<string | null> {
     const customer = await prisma.customer.findUnique({
@@ -72,28 +85,47 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             amount: e.amount,
         }));
 
-        const created = await prisma.reservation.create({
-            data: {
-                storeId: session.storeId,
-                legacyId: reservation.id,
-                customerId,
-                assigneeId,
-                date: new Date(`${reservation.date}T00:00:00`),
-                startTime: reservation.startTime,
-                endTime: reservation.endTime,
-                serviceSummary: reservation.service,
-                status: frontendReservationStatusToDb(reservation.status),
-                price: reservation.price ?? 0,
-                memo: reservation.memo ?? null,
-                paymentCompleted: reservation.paymentCompleted ?? false,
-                pointEarned: reservation.pointEarned ?? 0,
-                ...(reservation.channel && { channel: frontendChannelToDb(reservation.channel) }),
-                paymentEntries: paymentEntries.length > 0
-                    ? {createMany: {data: paymentEntries}}
-                    : undefined,
-            },
-            select: reservationSelect,
-        });
+        const baseData = {
+            storeId: session.storeId,
+            customerId,
+            assigneeId,
+            date: new Date(`${reservation.date}T00:00:00`),
+            startTime: reservation.startTime,
+            endTime: reservation.endTime,
+            serviceSummary: reservation.service,
+            status: frontendReservationStatusToDb(reservation.status),
+            price: reservation.price ?? 0,
+            memo: reservation.memo ?? null,
+            paymentCompleted: reservation.paymentCompleted ?? false,
+            pointEarned: reservation.pointEarned ?? 0,
+            ...(reservation.channel && { channel: frontendChannelToDb(reservation.channel) }),
+            paymentEntries: paymentEntries.length > 0
+                ? {createMany: {data: paymentEntries}}
+                : undefined,
+        };
+
+        // 클라이언트는 화면에 로드된 목록 기준(getNextNumericId)으로 legacyId를 매긴다.
+        // 그런데 그 사이 네이버 백그라운드 동기화(공개예약마다 fire-and-forget 실행)나 다른 세션이
+        // DB에 예약을 추가하면 그 번호가 이미 쓰인 번호와 충돌한다. 예전엔 create가 P2002로 터져
+        // 500 → 예약이 저장되지 않고 화면에서만 떠 있다 새로고침하면 사라졌다.
+        // 충돌 시 서버가 빈 번호를 다시 매겨 재시도해 반드시 저장되게 한다.
+        let legacyId = reservation.id;
+        let created;
+        for (let attempt = 0; ; attempt++) {
+            try {
+                created = await prisma.reservation.create({
+                    data: {...baseData, legacyId},
+                    select: reservationSelect,
+                });
+                break;
+            } catch (err) {
+                if (attempt < 5 && err instanceof Prisma.PrismaClientKnownRequestError && err.code === 'P2002') {
+                    legacyId = await allocateReservationLegacyId(session.storeId);
+                    continue;
+                }
+                throw err;
+            }
+        }
 
         await notifySlackForStore(session.storeId,
             `🗓️ *새 예약*\n• 날짜: ${reservation.date}`
