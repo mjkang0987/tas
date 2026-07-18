@@ -111,6 +111,7 @@ export function ReservationInfoCard({
                         {isNewCustomer && <NewCustomerBadge>N</NewCustomerBadge>}
                         {onCustomerClick ? (
                             <StyledCustomerButton
+                                className={isInactive ? 'strike' : undefined}
                                 role="button"
                                 tabIndex={0}
                                 onClick={(event) => {
@@ -128,7 +129,7 @@ export function ReservationInfoCard({
                                 {customerName}
                             </StyledCustomerButton>
                         ) : (
-                            <StyledCustomerName>{customerName}</StyledCustomerName>
+                            <StyledCustomerName className={isInactive ? 'strike' : undefined}>{customerName}</StyledCustomerName>
                         )}
                     </StyledCustomerMeta>
                 )}
@@ -187,6 +188,24 @@ const StyledCard = styled.div<{
         &:hover {
             border-color: ${(props) => props.$clickable ? `${props.$accentColor}66` : `${props.$accentColor}44`};
             background-color: ${(props) => props.$clickable ? `${props.$accentColor}16` : 'transparent'};
+        }
+    }
+
+    /* 취소·노쇼: 빗금(해치) 배경 + 무채색 보더 — 활성 예약과 확실히 분기 */
+    &.inactive {
+        border-color: var(--gray-color);
+        border-left-color: var(--gray-color);
+        background:
+            repeating-linear-gradient(-45deg, rgba(0, 0, 0, 0.05) 0 6px, transparent 6px 12px),
+            var(--gray-color2);
+    }
+
+    @media (hover: hover) and (pointer: fine) {
+        &.inactive:hover {
+            border-color: var(--gray-color);
+            background:
+                repeating-linear-gradient(-45deg, rgba(0, 0, 0, 0.05) 0 6px, transparent 6px 12px),
+                var(--gray-color2);
         }
     }
 
@@ -265,6 +284,13 @@ const StyledCustomerName = styled.span`
     line-height: 1.35;
     word-break: keep-all;
     font-size: var(--small-font);
+
+    &.strike {
+        text-decoration: line-through;
+        text-decoration-color: var(--gray-color);
+        text-decoration-thickness: 1.5px;
+        color: var(--dark-gray-color2);
+    }
 `;
 
 const StyledCustomerButton = styled.span`
@@ -276,6 +302,13 @@ const StyledCustomerButton = styled.span`
     line-height: 1.35;
     word-break: keep-all;
     font-size: var(--small-font);
+
+    &.strike {
+        text-decoration: line-through;
+        text-decoration-color: var(--gray-color);
+        text-decoration-thickness: 1.5px;
+        color: var(--dark-gray-color2);
+    }
 
     @media (hover: hover) and (pointer: fine) {
         &:hover {
