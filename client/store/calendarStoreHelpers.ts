@@ -116,17 +116,22 @@ export function syncCustomerSettings(customers: Customer[]): Promise<void> {
 // 신규 고객 1명만 빠르게 저장(서버는 단일 POST). 전체 목록 PUT(고객 수에 비례해 수 초)
 // 대신 단건이라 수십 ms 안에 끝나고, await 가능해 직후 예약 POST 시 'Customer not found'를
 // 막는다. 로컬 모드에선 스냅샷의 전체 고객 배열을 갱신한다.
-export function persistNewCustomer(customer: Customer, allCustomers: Customer[]): Promise<void> {
+// 서버가 실제로 부여한 고객 legacyId를 반환한다. 번호 충돌 시 서버가 빈 번호를 새로 매기므로,
+// 호출측은 이 번호로 곧바로 예약을 걸어 올바른 고객을 참조해야 한다(충돌해도 'Customer not found' 방지).
+export function persistNewCustomer(customer: Customer, allCustomers: Customer[]): Promise<number> {
     if (shouldUseLocalDb()) {
         updateLocalDbSnapshot((current) => ({...current, customers: allCustomers}));
-        return Promise.resolve();
+        return Promise.resolve(customer.id);
     }
 
     return fetch('/api/customers', {
         method: 'POST',
         headers: {'Content-Type': 'application/json'},
         body: JSON.stringify({customer}),
-    }).then(() => undefined).catch(() => {});
+    })
+        .then((r) => (r.ok ? r.json() : null))
+        .then((body: {id?: number} | null) => (typeof body?.id === 'number' ? body.id : customer.id))
+        .catch(() => customer.id);
 }
 
 // 고객 영구 삭제. 서버에선 그 고객의 예약·적립금·메모가 cascade로 함께 삭제된다.

@@ -19,7 +19,7 @@ type UseReservationCreateFormParams = {
     customerMap: CustomerMap;
     reservationMap: Record<string, Reservation[]>;
     assignees: Assignee[];
-    addCustomer: (customer: Customer) => void;
+    addCustomer: (customer: Customer) => Promise<number>;
     onSave: (reservation: Reservation) => void;
 };
 
@@ -222,8 +222,8 @@ export function useReservationCreateForm({
 
             // 신규 고객을 서버에 먼저 저장(await)한 뒤 예약을 POST해야
             // 'Customer not found'(400)가 나지 않는다. (단건 저장이라 빠름)
-            await addCustomer(nextCustomer);
-            resolvedCustomerId = nextCustomer.id;
+            // 서버가 번호 충돌로 다른 legacyId를 부여할 수 있으니, 반환된 실제 번호로 예약을 건다.
+            resolvedCustomerId = await addCustomer(nextCustomer);
         }
 
         const reservation: Reservation = {

@@ -152,7 +152,7 @@ export interface CalendarState {
     setRouterSlice: (v: RouterSlice | ((prev: RouterSlice) => RouterSlice)) => void;
     setReservationMap: (map: ReservationMap) => void;
     setCustomerMap: (map: CustomerMap) => void;
-    addCustomer: (customer: Customer) => Promise<void>;
+    addCustomer: (customer: Customer) => Promise<number>;
     updateCustomer: (
         customerId: number,
         patch: Partial<Customer>,
@@ -348,7 +348,21 @@ export const useCalendarStore = create<CalendarState>((set) => ({
             return {customerMap: normalizedCustomerMap};
         });
         // 단건 저장(빠름) + await 가능 → 신규 고객을 서버에 먼저 만든 뒤 예약 POST.
-        return toSync ? persistNewCustomer(customer, toSync) : Promise.resolve();
+        if (!toSync) return Promise.resolve(customer.id);
+        return persistNewCustomer(customer, toSync).then((assignedId) => {
+            // 서버가 번호 충돌로 다른 legacyId를 부여했으면 로컬 맵도 그 번호로 옮긴다.
+            // (이어지는 예약이 올바른 고객을 참조하고, 새로고침 전에도 화면이 어긋나지 않도록.)
+            if (assignedId !== customer.id) {
+                set((state) => {
+                    if (!state.customerMap[customer.id]) return state;
+                    const nextCustomerMap = {...state.customerMap};
+                    delete nextCustomerMap[customer.id];
+                    nextCustomerMap[assignedId] = {...customer, id: assignedId};
+                    return {customerMap: nextCustomerMap};
+                });
+            }
+            return assignedId;
+        });
     },
 
     updateCustomer: (customerId, patch, pointHistory) =>
