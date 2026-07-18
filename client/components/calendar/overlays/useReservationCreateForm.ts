@@ -210,20 +210,34 @@ export function useReservationCreateForm({
         //  legacyId 0 한 칸에 덮어써지는 치명적 버그가 있었음)
         let resolvedCustomerId = customerId;
 
-        // customerId==0 → 추천에서 고른 기존 고객이 없으므로 신규로 생성.
+        // customerId==0 → 추천에서 고른 기존 고객이 없음.
         if (customerId === 0) {
-            const nextCustomer: Customer = {
-                id: nextCustomerId,
-                name: customerQuery.trim(),
-                tel: normalizeTel(customerTel),
-                points: 0,
-                pointHistories: [],
-            };
+            const trimmedName = customerQuery.trim();
+            const normalizedTel = normalizeTel(customerTel);
 
-            // 신규 고객을 서버에 먼저 저장(await)한 뒤 예약을 POST해야
-            // 'Customer not found'(400)가 나지 않는다. (단건 저장이라 빠름)
-            // 서버가 번호 충돌로 다른 legacyId를 부여할 수 있으니, 반환된 실제 번호로 예약을 건다.
-            resolvedCustomerId = await addCustomer(nextCustomer);
+            // 추천을 클릭하지 않고 기존 고객 이름을 직접 타이핑한 경우:
+            // 이름+연락처가 모두 일치하면 같은 사람이 확실하므로 신규 생성 대신 재사용한다.
+            // (이름만 같으면 동명이인, 연락처만 같으면 가족 공유번호일 수 있어 신규 생성 유지 — #98 방침)
+            const exactMatch = customers.find(
+                (c) => c.name === trimmedName && normalizeTel(c.tel) === normalizedTel
+            );
+
+            if (exactMatch) {
+                resolvedCustomerId = exactMatch.id;
+            } else {
+                const nextCustomer: Customer = {
+                    id: nextCustomerId,
+                    name: trimmedName,
+                    tel: normalizedTel,
+                    points: 0,
+                    pointHistories: [],
+                };
+
+                // 신규 고객을 서버에 먼저 저장(await)한 뒤 예약을 POST해야
+                // 'Customer not found'(400)가 나지 않는다. (단건 저장이라 빠름)
+                // 서버가 번호 충돌로 다른 legacyId를 부여할 수 있으니, 반환된 실제 번호로 예약을 건다.
+                resolvedCustomerId = await addCustomer(nextCustomer);
+            }
         }
 
         const reservation: Reservation = {
