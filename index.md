@@ -190,8 +190,8 @@ NextAuth 5.0 설정. Google·Kakao·Naver OAuth 지원.
 
 | 파일 | 엔드포인트 | 메서드 | 권한 | 설명 |
 |------|-----------|-------|------|------|
-| `reservations.ts` | `/api/reservations` | GET/POST/PUT/PATCH(staff) / DELETE(manager) | - | 예약 CRUD + 상태 변경. legacyId↔CUID 변환. 신규/취소/노쇼/삭제/변경 시 Slack 알림(`notifySlackForStore`). DELETE=영구삭제(매니저 이상) |
-| `customers.ts` | `/api/customers` | GET/PUT/POST(staff) / DELETE(owner) | - | GET 조회, PUT 다건 upsert, **POST 단건 저장(신규 고객→예약 레이스 방지)**, DELETE 고객 영구삭제(예약·적립금 cascade, 오너 전용) |
+| `reservations.ts` | `/api/reservations` | GET/POST/PUT/PATCH(staff) / DELETE(manager) | - | 예약 CRUD + 상태 변경. legacyId↔CUID 변환(POST는 legacyId 충돌 시 서버가 빈 번호 재발급·재시도 — 네이버 백그라운드 동기화와의 번호 경쟁으로 500 나던 문제 방지). 신규/취소/노쇼/삭제/변경 시 Slack 알림(`notifySlackForStore`). DELETE=영구삭제(매니저 이상) |
+| `customers.ts` | `/api/customers` | GET/PUT/POST(staff) / DELETE(owner) | - | GET 조회, PUT 다건 upsert, **POST 단건 저장(신규 고객→예약 레이스 방지. legacyId 충돌 시 다른 고객을 덮어쓰지 않고 새 번호 부여 후 실제 번호 응답 — 클라가 그 번호로 예약 생성)**, DELETE 고객 영구삭제(예약·적립금 cascade, 오너 전용) |
 | `customers-merge.ts` | `/api/customers/merge` | POST | staff | 고객 병합 (예약·포인트·태그 이전) |
 | `customers-unmerge.ts` | `/api/customers/unmerge` | POST | staff | 병합 해제 (이력 기반 복원) |
 | `customers-merge-history.ts` | `/api/customers/merge-history` | GET | staff | 병합 이력 조회 |
