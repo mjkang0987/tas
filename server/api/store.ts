@@ -4,7 +4,7 @@ import {prisma} from '../db/prisma';
 import {getApiSession, requireRole} from '../auth/api-session';
 import {dbStoreToFrontend} from '../db/mappers';
 import type {StoreSettings, BookingSettings} from '../../client/features/store-settings/model';
-import {DEFAULT_STORE_SETTINGS, DEFAULT_BOOKING_SETTINGS, isValidBookingSlug, parseBookableServiceNames} from '../../client/features/store-settings/model';
+import {DEFAULT_STORE_SETTINGS, DEFAULT_BOOKING_SETTINGS, isValidBookingSlug, parseBookableServiceNames, sanitizeClosedWeekdays} from '../../client/features/store-settings/model';
 import {sanitizeShopType} from '../../client/features/store-settings/labels';
 
 function isValidTime(value: unknown): value is string {
@@ -84,7 +84,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     if (req.method === 'PUT') {
         if (!requireRole(session, 'owner', res)) return;
 
-        const {businessHours, closedDates, pointSettings} = req.body as StoreSettings;
+        const {businessHours, closedDates, closedWeekdays, pointSettings} = req.body as StoreSettings;
 
         if (
             typeof businessHours !== 'object' ||
@@ -98,6 +98,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         if (!Array.isArray(closedDates) || closedDates.some((date) => typeof date !== 'string')) {
             return res.status(400).json({error: 'Invalid closedDates payload'});
         }
+
+        // 정기 휴무 요일(0~6). 미전송(구클라)은 빈 배열 = 전 요일 영업(현행 유지).
+        const nextClosedWeekdays = sanitizeClosedWeekdays(closedWeekdays);
 
         const nextPointSettings = pointSettings ?? DEFAULT_STORE_SETTINGS.pointSettings;
         const isValidPointMode = typeof nextPointSettings.enableServiceRate === 'boolean'
@@ -118,13 +121,14 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         const weekdays = Array.from({length: 7}, (_, i) => i);
 
         await prisma.$transaction([
-            ...weekdays.map((dayIndex) =>
-                prisma.storeBusinessHour.upsert({
+            ...weekdays.map((dayIndex) => {
+                const enabled = !nextClosedWeekdays.includes(dayIndex);
+                return prisma.storeBusinessHour.upsert({
                     where: {storeId_dayIndex: {storeId: session.storeId, dayIndex}},
-                    update: {openTime: businessHours.start, closeTime: businessHours.end, enabled: true},
-                    create: {storeId: session.storeId, dayIndex, openTime: businessHours.start, closeTime: businessHours.end, enabled: true},
-                })
-            ),
+                    update: {openTime: businessHours.start, closeTime: businessHours.end, enabled},
+                    create: {storeId: session.storeId, dayIndex, openTime: businessHours.start, closeTime: businessHours.end, enabled},
+                });
+            }),
             prisma.storeClosedDate.deleteMany({where: {storeId: session.storeId}}),
             ...(closedDates.length > 0
                 ? [prisma.storeClosedDate.createMany({
@@ -152,7 +156,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             }),
         ]);
 
-        const nextData: StoreSettings = {businessHours, closedDates, pointSettings: nextPointSettings};
+        const nextData: StoreSettings = {businessHours, closedDates, closedWeekdays: nextClosedWeekdays, pointSettings: nextPointSettings};
         return res.status(200).json(nextData);
     }
 
