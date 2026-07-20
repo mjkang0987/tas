@@ -4,12 +4,15 @@ import {useRouter} from 'next/router';
 
 import styled from 'styled-components';
 
-import {getStoreLabels} from '../../features/store-settings/labels';
-import {formatDuration} from '../../features/services/model';
 import {normalizeTel} from '../../features/customers/model';
+import {
+    BOOK_STRINGS, formatBookDateLabel, formatDurationL, formatPriceL,
+    localizedStoreLabels, lookupStatusL, dowLabelL, todayLabelL,
+} from '../../features/booking/i18n';
 import {SeoHead} from '../../components/ui/SeoHead';
 import {formControlStyle} from '../../components/ui/FormControls';
 import {LabelBadge} from '../../components/ui/LabelBadge';
+import {LangSwitcher, useBookLang, LANG_BAR_OFFSET} from '../../components/booking/LangSwitcher';
 import {
     PickerScrollRow, PillChip, DateCell, ServiceChoiceChip, ServiceChoiceWrap,
     SlotGrid, SlotCell, SlotLegend,
@@ -74,7 +77,6 @@ interface DayData {
 }
 
 const ASSIGNEE_ANY = '__any__';
-const DOW = ['월', '화', '수', '목', '금', '토', '일'];
 
 // 오늘(로컬=KST) 기준 YYYY-MM-DD.
 function localDateStr(offsetDays = 0): string {
@@ -110,6 +112,9 @@ function isDateClosed(info: BookStoreInfo, dateStr: string): boolean {
 export default function BookingPage() {
     const router = useRouter();
     const slug = typeof router.query.slug === 'string' ? router.query.slug : '';
+
+    const [lang, setLang] = useBookLang();
+    const t = BOOK_STRINGS[lang];
 
     const [loading, setLoading] = useState(true);
     const [notFound, setNotFound] = useState(false);
@@ -170,7 +175,7 @@ export default function BookingPage() {
         }
     }, [info, date]);
 
-    const labels = useMemo(() => getStoreLabels(info?.shopType ?? null), [info?.shopType]);
+    const labels = useMemo(() => localizedStoreLabels(info?.shopType ?? null, lang), [info?.shopType, lang]);
 
     // 선택 날짜(+담당자)의 용량표를 불러온다. selectedSlot 초기화는 날짜·담당자 핸들러가 담당.
     const fetchDay = useCallback(() => {
@@ -277,19 +282,19 @@ export default function BookingPage() {
                 if (res.status === 409) {
                     const code = typeof data.error === 'string' ? data.error : '';
                     if (code === 'duplicate') {
-                        setSubmitError('이미 같은 시간에 예약이 있습니다. 다른 시간을 선택해 주세요.');
+                        setSubmitError(t.errDuplicate);
                     } else if (code === 'unavailable_date') {
-                        setSubmitError('선택하신 날짜는 예약할 수 없습니다. 다른 날짜를 선택해 주세요.');
+                        setSubmitError(t.errUnavailableDate);
                     } else {
-                        setSubmitError('선택하신 시간이 방금 마감되었습니다. 다른 시간을 선택해 주세요.');
+                        setSubmitError(t.errSlotTaken);
                     }
                     fetchDay();
                     setSelectedSlot('');
                     return;
                 }
-                setSubmitError('예약에 실패했습니다. 잠시 후 다시 시도해 주세요.');
+                setSubmitError(t.errReserveFailed);
             })
-            .catch(() => setSubmitError('예약에 실패했습니다. 잠시 후 다시 시도해 주세요.'))
+            .catch(() => setSubmitError(t.errReserveFailed))
             .finally(() => setSubmitting(false));
     };
 
@@ -308,9 +313,9 @@ export default function BookingPage() {
             .then(async (res) => {
                 const data = await res.json().catch(() => ({}));
                 if (res.ok) { setLookupResults((data.reservations ?? []) as LookupResult[]); setLookupSearched(true); return; }
-                setLookupError('조회에 실패했습니다. 잠시 후 다시 시도해 주세요.');
+                setLookupError(t.errLookupFailed);
             })
-            .catch(() => setLookupError('조회에 실패했습니다. 잠시 후 다시 시도해 주세요.'))
+            .catch(() => setLookupError(t.errLookupFailed))
             .finally(() => setLookupLoading(false));
     };
 
@@ -327,16 +332,22 @@ export default function BookingPage() {
     };
 
     if (loading) {
-        return <StyledWrap><StyledCard><StyledMuted>불러오는 중…</StyledMuted></StyledCard></StyledWrap>;
+        return (
+            <StyledWrap>
+                <StyledCard><StyledMuted>{t.loading}</StyledMuted></StyledCard>
+                <LangSwitcher lang={lang} onChange={setLang} />
+            </StyledWrap>
+        );
     }
     if (notFound || !info) {
         return (
             <StyledWrap>
-                <SeoHead title="예약 페이지를 찾을 수 없습니다" />
+                <SeoHead title={t.bookNotFoundTitle} />
                 <StyledCard>
-                    <StyledTitle>예약 페이지를 찾을 수 없습니다</StyledTitle>
-                    <StyledMuted>주소가 올바른지 확인해 주세요.</StyledMuted>
+                    <StyledTitle>{t.bookNotFoundTitle}</StyledTitle>
+                    <StyledMuted>{t.bookNotFoundDesc}</StyledMuted>
                 </StyledCard>
+                <LangSwitcher lang={lang} onChange={setLang} />
             </StyledWrap>
         );
     }
@@ -344,18 +355,19 @@ export default function BookingPage() {
     if (result) {
         return (
             <StyledWrap>
-                <SeoHead title={`${info.storeName} 예약 완료`} />
+                <SeoHead title={`${info.storeName} · ${t.reserveDoneTitle}`} />
                 <StyledCard>
                     <StyledStore>{info.storeName}</StyledStore>
-                    <StyledTitle>예약이 신청되었습니다</StyledTitle>
+                    <StyledTitle>{t.reserveDoneTitle}</StyledTitle>
                     <StyledSummary>
-                        <StyledSummaryRow><span>날짜</span><StyledSummaryValue>{result.date}</StyledSummaryValue></StyledSummaryRow>
-                        <StyledSummaryRow><span>시간</span><StyledSummaryValue>{result.startTime} ~ {result.endTime}</StyledSummaryValue></StyledSummaryRow>
+                        <StyledSummaryRow><span>{t.date}</span><StyledSummaryValue>{result.date}</StyledSummaryValue></StyledSummaryRow>
+                        <StyledSummaryRow><span>{t.time}</span><StyledSummaryValue>{result.startTime} ~ {result.endTime}</StyledSummaryValue></StyledSummaryRow>
                         <StyledSummaryRow><span>{labels.service}</span><StyledSummaryValue>{result.serviceSummary}</StyledSummaryValue></StyledSummaryRow>
                     </StyledSummary>
-                    <StyledNotice>예약 신청이 접수되었습니다. <strong>매장 확인 후 확정</strong>되며, 아래 링크에서 진행 상태를 확인하실 수 있어요. 링크를 저장해 두시면 편리합니다.</StyledNotice>
-                    <StyledManageLink href={`/book/${encodeURIComponent(slug)}/r/${result.publicToken}`}>내 예약 확인·변경·취소</StyledManageLink>
+                    <StyledNotice>{t.reserveDoneNoticePrefix}<strong>{t.reserveDoneNoticeStrong}</strong>{t.reserveDoneNoticeSuffix}</StyledNotice>
+                    <StyledManageLink href={`/book/${encodeURIComponent(slug)}/r/${result.publicToken}`}>{t.manageLink}</StyledManageLink>
                 </StyledCard>
+                <LangSwitcher lang={lang} onChange={setLang} />
             </StyledWrap>
         );
     }
@@ -364,22 +376,23 @@ export default function BookingPage() {
     if (view === 'home') {
         return (
             <StyledWrap>
-                <SeoHead title={`${info.storeName} 예약`} />
+                <SeoHead title={`${info.storeName} · ${t.homeTitle}`} />
                 <StyledCard>
                     <StyledStore>{info.storeName}</StyledStore>
-                    <StyledTitle>예약 서비스</StyledTitle>
+                    <StyledTitle>{t.homeTitle}</StyledTitle>
                     {info.settings.noticeText && <StyledNotice>{info.settings.noticeText}</StyledNotice>}
                     <StyledHomeActions>
                         <StyledHomeBtn type="button" $primary onClick={() => goView('new')}>
-                            <span className="t">신규 예약</span>
-                            <span className="d">{labels.service}·날짜·시간을 골라 예약하기</span>
+                            <span className="t">{t.newReservation}</span>
+                            <span className="d">{t.newReservationDesc(labels.service)}</span>
                         </StyledHomeBtn>
                         <StyledHomeBtn type="button" onClick={() => { setLookupSearched(false); setLookupError(''); goView('lookup'); }}>
-                            <span className="t">예약 조회 / 변경 / 취소</span>
-                            <span className="d">이름·연락처로 내 예약 확인하기</span>
+                            <span className="t">{t.lookupReservation}</span>
+                            <span className="d">{t.lookupReservationDesc}</span>
                         </StyledHomeBtn>
                     </StyledHomeActions>
                 </StyledCard>
+                <LangSwitcher lang={lang} onChange={setLang} />
             </StyledWrap>
         );
     }
@@ -388,35 +401,35 @@ export default function BookingPage() {
     if (view === 'lookup') {
         return (
             <StyledWrap>
-                <SeoHead title={`${info.storeName} 예약 조회`} />
+                <SeoHead title={`${info.storeName} · ${t.lookupTitle}`} />
                 <StyledCard>
-                    <StyledBackBtn type="button" onClick={goHome}>← 처음으로</StyledBackBtn>
+                    <StyledBackBtn type="button" onClick={goHome}>{t.backToStart}</StyledBackBtn>
                     <StyledStore>{info.storeName}</StyledStore>
-                    <StyledTitle>예약 조회</StyledTitle>
-                    <StyledMuted>예약 시 입력한 이름과 연락처로 조회합니다.</StyledMuted>
+                    <StyledTitle>{t.lookupTitle}</StyledTitle>
+                    <StyledMuted>{t.lookupGuide}</StyledMuted>
                     <StyledField>
-                        <StyledFieldLabel htmlFor="lookup-name">이름</StyledFieldLabel>
-                        <StyledTextInput id="lookup-name" type="text" value={lookupName} maxLength={40} placeholder="이름" onChange={(e) => { setLookupName(e.target.value); setLookupError(''); }} />
+                        <StyledFieldLabel htmlFor="lookup-name">{t.name}</StyledFieldLabel>
+                        <StyledTextInput id="lookup-name" type="text" value={lookupName} maxLength={40} placeholder={t.name} onChange={(e) => { setLookupName(e.target.value); setLookupError(''); }} />
                     </StyledField>
                     <StyledField>
-                        <StyledFieldLabel htmlFor="lookup-tel">연락처</StyledFieldLabel>
+                        <StyledFieldLabel htmlFor="lookup-tel">{t.contact}</StyledFieldLabel>
                         <StyledTextInput id="lookup-tel" type="tel" inputMode="numeric" value={lookupTel} placeholder="01012345678" onChange={(e) => { setLookupTel(e.target.value); setLookupError(''); }} />
-                        <StyledFieldHint>하이픈(-) 없이 숫자만 입력해 주세요.</StyledFieldHint>
+                        <StyledFieldHint>{t.telHint}</StyledFieldHint>
                     </StyledField>
                     {lookupError && <StyledError role="alert">{lookupError}</StyledError>}
                     <StyledNextBtn type="button" disabled={!lookupCanSubmit} onClick={doLookup}>
-                        {lookupLoading ? '조회 중…' : '조회하기'}
+                        {lookupLoading ? t.lookupSubmitting : t.lookupSubmit}
                     </StyledNextBtn>
 
                     {lookupSearched && !lookupLoading && (
                         lookupResults.length === 0 ? (
-                            <StyledMuted>조회된 예약이 없습니다. 이름·연락처를 확인해 주세요.</StyledMuted>
+                            <StyledMuted>{t.lookupEmpty}</StyledMuted>
                         ) : (
                             <StyledLookupList>
                                 {lookupResults.map((r) => (
                                     <StyledLookupItem key={r.token} href={`/book/${encodeURIComponent(slug)}/r/${r.token}`}>
                                         <StyledLookupStatus $status={r.status}>
-                                            {r.status === 'active' ? '예약 확정' : '확정 대기'}
+                                            {lookupStatusL(r.status, lang)}
                                         </StyledLookupStatus>
                                         <StyledLookupWhen>{r.date} · {r.startTime}~{r.endTime}</StyledLookupWhen>
                                         <StyledLookupSvc>{r.serviceSummary}</StyledLookupSvc>
@@ -426,6 +439,7 @@ export default function BookingPage() {
                         )
                     )}
                 </StyledCard>
+                <LangSwitcher lang={lang} onChange={setLang} />
             </StyledWrap>
         );
     }
@@ -439,11 +453,11 @@ export default function BookingPage() {
 
     // 하단 '예약 내용' 요약용 파생값.
     const selectedAssigneeName = assigneeId === ASSIGNEE_ANY
-        ? '상관없음'
-        : (info.assignees.find((a) => a.id === assigneeId)?.name ?? '상관없음');
+        ? t.anyAssignee
+        : (info.assignees.find((a) => a.id === assigneeId)?.name ?? t.anyAssignee);
     const selectedDateLabel = date
-        ? `${Number(date.slice(5, 7))}월 ${Number(date.slice(8, 10))}일 (${DOW[clientDayIndex(date)]})`
-        : '미선택';
+        ? formatBookDateLabel(date, clientDayIndex(date), lang)
+        : '—';
     const selectedEnd = selectedSlot && totalDuration > 0 ? addMinutes(selectedSlot, totalDuration) : '';
     const selectedServiceItems = selectedServices
         .map((n) => info.services.find((s) => s.name === n))
@@ -451,19 +465,19 @@ export default function BookingPage() {
 
     return (
         <StyledWrap>
-            <SeoHead title={`${info.storeName} 예약`} />
+            <SeoHead title={`${info.storeName} · ${t.onlineReservation}`} />
             <StyledCard>
-                <StyledBackBtn type="button" onClick={goHome}>← 처음으로</StyledBackBtn>
+                <StyledBackBtn type="button" onClick={goHome}>{t.backToStart}</StyledBackBtn>
                 <StyledStore>{info.storeName}</StyledStore>
-                <StyledTitle>온라인 예약</StyledTitle>
+                <StyledTitle>{t.onlineReservation}</StyledTitle>
                 {info.settings.noticeText && <StyledNotice>{info.settings.noticeText}</StyledNotice>}
 
                 {showAssignees && (
                     <>
-                        <StyledSectionLabel>{labels.assignee} 선택</StyledSectionLabel>
+                        <StyledSectionLabel>{t.selectAssignee(labels.assignee)}</StyledSectionLabel>
                         <PickerScrollRow>
                             <PillChip type="button" $on={assigneeId === ASSIGNEE_ANY} aria-pressed={assigneeId === ASSIGNEE_ANY} onClick={() => pickAssignee(ASSIGNEE_ANY)}>
-                                상관없음
+                                {t.anyAssignee}
                             </PillChip>
                             {info.assignees.map((a) => {
                                 const working = day?.assignees.find((x) => x.id === a.id)?.working ?? true;
@@ -474,10 +488,10 @@ export default function BookingPage() {
                                         $on={assigneeId === a.id}
                                         aria-pressed={assigneeId === a.id}
                                         disabled={!working}
-                                        title={!working ? '해당 날짜 휴무' : undefined}
+                                        title={!working ? t.dayOffTitle : undefined}
                                         onClick={() => pickAssignee(a.id)}
                                     >
-                                        {a.name}{!working && <LabelBadge $tone="neutral">휴무</LabelBadge>}
+                                        {a.name}{!working && <LabelBadge $tone="neutral">{t.dayOff}</LabelBadge>}
                                     </PillChip>
                                 );
                             })}
@@ -485,7 +499,7 @@ export default function BookingPage() {
                     </>
                 )}
 
-                <StyledSectionLabel>날짜 선택</StyledSectionLabel>
+                <StyledSectionLabel>{t.selectDate}</StyledSectionLabel>
                 <PickerScrollRow>
                     {dateOffsets.map((off) => {
                         const d = localDateStr(off);
@@ -501,15 +515,15 @@ export default function BookingPage() {
                                 disabled={disabled}
                                 onClick={() => pickDate(d)}
                             >
-                                <span className="dow">{off === 0 ? '오늘' : DOW[di]}</span>
+                                <span className="dow">{off === 0 ? todayLabelL(lang) : dowLabelL(di, lang)}</span>
                                 <span className="day">{Number(d.slice(8, 10))}</span>
                             </DateCell>
                         );
                     })}
                 </PickerScrollRow>
 
-                <StyledSectionLabel>{labels.service} 선택</StyledSectionLabel>
-                {info.services.length === 0 && <StyledMuted>등록된 {labels.service}가 없습니다.</StyledMuted>}
+                <StyledSectionLabel>{t.selectService(labels.service)}</StyledSectionLabel>
+                {info.services.length === 0 && <StyledMuted>{t.noServices(labels.service)}</StyledMuted>}
                 <ServiceChoiceWrap>
                     {info.services.map((s) => {
                         const on = selectedServices.includes(s.name);
@@ -523,17 +537,17 @@ export default function BookingPage() {
                                 onClick={() => toggleService(s.name)}
                             >
                                 <span className="nm">{s.name}</span>
-                                <span className="mt">{formatDuration(s.duration)} · {s.price.toLocaleString()}원</span>
+                                <span className="mt">{formatDurationL(s.duration, lang)} · {formatPriceL(s.price, lang)}</span>
                             </ServiceChoiceChip>
                         );
                     })}
                 </ServiceChoiceWrap>
 
-                <StyledSectionLabel>예약 가능한 시간</StyledSectionLabel>
-                {dayLoading && <StyledMuted>시간을 불러오는 중…</StyledMuted>}
-                {!dayLoading && day && !day.dateOk && <StyledMuted>선택하신 날짜는 예약할 수 없습니다.</StyledMuted>}
+                <StyledSectionLabel>{t.availableTime}</StyledSectionLabel>
+                {dayLoading && <StyledMuted>{t.loadingTime}</StyledMuted>}
+                {!dayLoading && day && !day.dateOk && <StyledMuted>{t.dateUnavailable}</StyledMuted>}
                 {!dayLoading && day && day.dateOk && day.slots.length === 0 && (
-                    <StyledMuted>예약 가능한 시간이 없습니다.</StyledMuted>
+                    <StyledMuted>{t.noAvailableTime}</StyledMuted>
                 )}
                 {!dayLoading && day && day.dateOk && day.slots.length > 0 && (
                     <>
@@ -552,27 +566,27 @@ export default function BookingPage() {
                             ))}
                         </SlotGrid>
                         <SlotLegend>
-                            <span><i className="ok" /> 예약가능</span>
-                            <span><i className="off" /> 마감</span>
+                            <span><i className="ok" /> {t.legendAvailable}</span>
+                            <span><i className="off" /> {t.legendClosed}</span>
                         </SlotLegend>
                     </>
                 )}
 
                 {selectedSlot && selectedServices.length > 0 && (
                     <>
-                        <StyledSectionLabel>예약자 정보</StyledSectionLabel>
+                        <StyledSectionLabel>{t.reserverInfo}</StyledSectionLabel>
                         <StyledField>
-                            <StyledFieldLabel htmlFor="book-name">이름</StyledFieldLabel>
-                            <StyledTextInput id="book-name" type="text" value={name} maxLength={40} placeholder="이름" onChange={(e) => setName(e.target.value)} />
+                            <StyledFieldLabel htmlFor="book-name">{t.name}</StyledFieldLabel>
+                            <StyledTextInput id="book-name" type="text" value={name} maxLength={40} placeholder={t.name} onChange={(e) => setName(e.target.value)} />
                         </StyledField>
                         <StyledField>
-                            <StyledFieldLabel htmlFor="book-tel">연락처</StyledFieldLabel>
+                            <StyledFieldLabel htmlFor="book-tel">{t.contact}</StyledFieldLabel>
                             <StyledTextInput id="book-tel" type="tel" inputMode="numeric" value={tel} placeholder="01012345678" onChange={(e) => setTel(e.target.value)} />
-                            <StyledFieldHint>하이픈(-) 없이 숫자만 입력해 주세요.</StyledFieldHint>
+                            <StyledFieldHint>{t.telHint}</StyledFieldHint>
                         </StyledField>
                         <StyledField>
-                            <StyledFieldLabel htmlFor="book-memo">요청사항 (선택)</StyledFieldLabel>
-                            <StyledTextArea id="book-memo" value={memo} maxLength={200} rows={3} placeholder="매장에 남길 요청사항이 있으면 적어주세요." onChange={(e) => setMemo(e.target.value)} />
+                            <StyledFieldLabel htmlFor="book-memo">{t.memoLabel}</StyledFieldLabel>
+                            <StyledTextArea id="book-memo" value={memo} maxLength={200} rows={3} placeholder={t.memoPlaceholder} onChange={(e) => setMemo(e.target.value)} />
                         </StyledField>
                     </>
                 )}
@@ -580,7 +594,7 @@ export default function BookingPage() {
                 {/* 하단 sticky '예약 내용' 요약 — 스크롤 내려도 담당자·날짜 등 선택이 항상 보인다. */}
                 <StyledStickyFooter>
                     <StyledSummaryCard>
-                        <StyledSummaryHead>예약 내용</StyledSummaryHead>
+                        <StyledSummaryHead>{t.summaryHead}</StyledSummaryHead>
                         {showAssignees && (
                             <StyledSumRow>
                                 <StyledSumLabel>{labels.assignee}</StyledSumLabel>
@@ -588,13 +602,13 @@ export default function BookingPage() {
                             </StyledSumRow>
                         )}
                         <StyledSumRow>
-                            <StyledSumLabel>날짜</StyledSumLabel>
+                            <StyledSumLabel>{t.date}</StyledSumLabel>
                             <StyledSumValue>{selectedDateLabel}</StyledSumValue>
                         </StyledSumRow>
                         <StyledSumRow>
-                            <StyledSumLabel>시간</StyledSumLabel>
+                            <StyledSumLabel>{t.time}</StyledSumLabel>
                             <StyledSumValue $muted={!selectedSlot}>
-                                {selectedSlot ? `${selectedSlot}${selectedEnd ? ` ~ ${selectedEnd}` : ''}` : '시간을 선택하세요'}
+                                {selectedSlot ? `${selectedSlot}${selectedEnd ? ` ~ ${selectedEnd}` : ''}` : t.pickTime}
                             </StyledSumValue>
                         </StyledSumRow>
                         <StyledSumRow $top>
@@ -604,18 +618,18 @@ export default function BookingPage() {
                                     {selectedServiceItems.map((s) => (
                                         <StyledSumServiceRow key={s.name}>
                                             <span className="nm">{s.name}</span>
-                                            <span className="mt">{formatDuration(s.duration)} · {s.price.toLocaleString()}원</span>
+                                            <span className="mt">{formatDurationL(s.duration, lang)} · {formatPriceL(s.price, lang)}</span>
                                         </StyledSumServiceRow>
                                     ))}
                                 </StyledSumServiceList>
                             ) : (
-                                <StyledSumValue $muted>{labels.service}를 선택하세요</StyledSumValue>
+                                <StyledSumValue $muted>{t.pickService(labels.service)}</StyledSumValue>
                             )}
                         </StyledSumRow>
                         {selectedServiceItems.length > 0 && (
                             <StyledSumTotalRow>
-                                <span>합계</span>
-                                <strong>{totalPrice.toLocaleString()}원 · {formatDuration(totalDuration)}</strong>
+                                <span>{t.total}</span>
+                                <strong>{formatPriceL(totalPrice, lang)} · {formatDurationL(totalDuration, lang)}</strong>
                             </StyledSumTotalRow>
                         )}
                     </StyledSummaryCard>
@@ -623,10 +637,11 @@ export default function BookingPage() {
                     {submitError && <StyledError role="alert">{submitError}</StyledError>}
 
                     <StyledNextBtn type="button" disabled={!canSubmit} onClick={submit}>
-                        {submitting ? '예약 중…' : '예약하기'}
+                        {submitting ? t.submitting : t.submit}
                     </StyledNextBtn>
                 </StyledStickyFooter>
             </StyledCard>
+            <LangSwitcher lang={lang} onChange={setLang} />
         </StyledWrap>
     );
 }
@@ -637,10 +652,11 @@ const StyledWrap = styled.div`
     min-height: 100%;
     display: flex;
     justify-content: center;
-    padding: 24px 16px;
+    /* 하단 여백은 고정 언어 바 높이만큼 확보(콘텐츠가 바에 가리지 않도록). */
+    padding: 24px 16px ${LANG_BAR_OFFSET};
     box-sizing: border-box;
     background: var(--white-color);
-    @media (max-width: 640px) { padding: 0; }
+    @media (max-width: 640px) { padding: 0 0 ${LANG_BAR_OFFSET}; }
 `;
 
 // 온보딩 카드와 톤 정렬: 화이트 배경 + 카드 그림자(데스크탑), 모바일은 풀블리드.
@@ -742,10 +758,11 @@ const StyledFieldHint = styled.span`
 // 하단 sticky 요약 바. 카드 폭 풀블리드(negative margin)로 뷰포트 하단에 고정.
 const StyledStickyFooter = styled.div`
     position: sticky;
-    bottom: 0;
+    /* 고정 언어 바 위에 붙도록 바 높이만큼 올린다(z-index는 바가 더 위). */
+    bottom: ${LANG_BAR_OFFSET};
     z-index: 5;
     margin: 8px -28px -32px;
-    padding: 14px 28px calc(env(safe-area-inset-bottom, 0px) + 18px);
+    padding: 14px 28px 18px;
     display: flex;
     flex-direction: column;
     gap: 10px;
@@ -754,7 +771,7 @@ const StyledStickyFooter = styled.div`
     box-shadow: 0 -6px 20px rgba(0, 0, 0, 0.06);
     @media (max-width: 640px) {
         margin: 8px -18px -24px;
-        padding: 12px 18px calc(env(safe-area-inset-bottom, 0px) + 16px);
+        padding: 12px 18px 16px;
     }
 `;
 

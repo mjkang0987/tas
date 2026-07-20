@@ -4,10 +4,13 @@ import {useRouter} from 'next/router';
 
 import styled from 'styled-components';
 
-import {getStoreLabels} from '../../../../features/store-settings/labels';
-import {formatDuration} from '../../../../features/services/model';
+import {
+    BOOK_STRINGS, formatDurationL, formatPriceL, localizedStoreLabels,
+    statusLabelL, dowLabelL, todayLabelL,
+} from '../../../../features/booking/i18n';
 import {SeoHead} from '../../../../components/ui/SeoHead';
 import {LabelBadge} from '../../../../components/ui/LabelBadge';
+import {LangSwitcher, useBookLang, LANG_BAR_OFFSET} from '../../../../components/booking/LangSwitcher';
 import {
     PickerScrollRow, PillChip, DateCell, ServiceChoiceChip, ServiceChoiceWrap,
     SlotGrid, SlotCell,
@@ -51,16 +54,6 @@ interface BookStoreInfo {
 
 const ASSIGNEE_ANY = '__any__';
 
-const STATUS_LABEL: Record<ReservationView['status'], string> = {
-    requested: '신청 접수 · 확정 대기',
-    active: '예약 확정',
-    completed: '방문 완료',
-    cancelled: '취소됨',
-    noshow: '노쇼',
-};
-
-const DOW = ['월', '화', '수', '목', '금', '토', '일'];
-
 function localDateStr(offsetDays = 0): string {
     const d = new Date();
     d.setDate(d.getDate() + offsetDays);
@@ -86,6 +79,9 @@ export default function ReservationManagePage() {
     const router = useRouter();
     const slug = typeof router.query.slug === 'string' ? router.query.slug : '';
     const token = typeof router.query.token === 'string' ? router.query.token : '';
+
+    const [lang, setLang] = useBookLang();
+    const t = BOOK_STRINGS[lang];
 
     const [loading, setLoading] = useState(true);
     const [notFound, setNotFound] = useState(false);
@@ -120,7 +116,7 @@ export default function ReservationManagePage() {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     useEffect(() => { loadReservation(); }, [loadReservation]);
 
-    const labels = useMemo(() => getStoreLabels(reservation?.shopType ?? null), [reservation?.shopType]);
+    const labels = useMemo(() => localizedStoreLabels(reservation?.shopType ?? null, lang), [reservation?.shopType, lang]);
 
     // 변경 폼 열 때 매장 정보(서비스·담당자·규칙) 로드
     const openChange = () => {
@@ -132,7 +128,7 @@ export default function ReservationManagePage() {
         fetch(`/api/book/${encodeURIComponent(slug)}`)
             .then((res) => (res.ok ? res.json() : Promise.reject(new Error('store failed'))))
             .then((data) => setStore(data as BookStoreInfo))
-            .catch(() => setActionMsg('예약 정보를 불러오지 못했습니다. 잠시 후 다시 시도해 주세요.'));
+            .catch(() => setActionMsg(t.storeLoadFailed));
     };
 
     // 담당자 선택 시 현재 날짜가 그 담당자 휴무면 근무하는 첫 날짜로 이동(예약 화면과 동일).
@@ -173,16 +169,16 @@ export default function ReservationManagePage() {
 
     const submitCancel = () => {
         if (busy) return;
-        if (!window.confirm('예약 취소를 요청하시겠어요? 매장 확인 후 취소됩니다.')) return;
+        if (!window.confirm(t.confirmCancel)) return;
         setBusy(true);
         setActionMsg('');
         fetch(`/api/book/reservation/${encodeURIComponent(token)}/request-cancel`, {method: 'POST'})
             .then(async (res) => {
-                if (res.ok) { setActionMsg('취소 요청이 접수되었습니다. 매장 확인을 기다려 주세요.'); loadReservation(); return; }
+                if (res.ok) { setActionMsg(t.cancelRequested); loadReservation(); return; }
                 const data = await res.json().catch(() => ({}));
-                setActionMsg(data.error === 'already_pending' ? '이미 처리 대기 중인 요청이 있습니다.' : '요청에 실패했습니다. 잠시 후 다시 시도해 주세요.');
+                setActionMsg(data.error === 'already_pending' ? t.alreadyPending : t.requestFailed);
             })
-            .catch(() => setActionMsg('요청에 실패했습니다. 잠시 후 다시 시도해 주세요.'))
+            .catch(() => setActionMsg(t.requestFailed))
             .finally(() => setBusy(false));
     };
 
@@ -198,29 +194,35 @@ export default function ReservationManagePage() {
             body: JSON.stringify({date, startTime: selectedSlot, services: selectedServices, assigneeId: assigneeId !== ASSIGNEE_ANY ? assigneeId : null}),
         })
             .then(async (res) => {
-                if (res.ok) { setChangeOpen(false); setActionMsg('변경 요청이 접수되었습니다. 매장 확인을 기다려 주세요.'); loadReservation(); return; }
+                if (res.ok) { setChangeOpen(false); setActionMsg(t.changeRequested); loadReservation(); return; }
                 const data = await res.json().catch(() => ({}));
                 const code = typeof data.error === 'string' ? data.error : '';
-                if (code === 'already_pending') setActionMsg('이미 처리 대기 중인 요청이 있습니다.');
-                else if (code === 'slot_taken') { setActionMsg('선택하신 시간이 방금 마감되었습니다. 다른 시간을 선택해 주세요.'); fetchSlots(); setSelectedSlot(''); }
-                else if (code === 'unavailable_date') setActionMsg('선택하신 날짜는 예약할 수 없습니다.');
-                else setActionMsg('요청에 실패했습니다. 잠시 후 다시 시도해 주세요.');
+                if (code === 'already_pending') setActionMsg(t.alreadyPending);
+                else if (code === 'slot_taken') { setActionMsg(t.errSlotTaken); fetchSlots(); setSelectedSlot(''); }
+                else if (code === 'unavailable_date') setActionMsg(t.dateUnavailable);
+                else setActionMsg(t.requestFailed);
             })
-            .catch(() => setActionMsg('요청에 실패했습니다. 잠시 후 다시 시도해 주세요.'))
+            .catch(() => setActionMsg(t.requestFailed))
             .finally(() => setBusy(false));
     };
 
     if (loading) {
-        return <StyledWrap><StyledCard><StyledMuted>불러오는 중…</StyledMuted></StyledCard></StyledWrap>;
+        return (
+            <StyledWrap>
+                <StyledCard><StyledMuted>{t.loading}</StyledMuted></StyledCard>
+                <LangSwitcher lang={lang} onChange={setLang} />
+            </StyledWrap>
+        );
     }
     if (notFound || !reservation) {
         return (
             <StyledWrap>
-                <SeoHead title="예약을 찾을 수 없습니다" />
+                <SeoHead title={t.resNotFoundTitle} />
                 <StyledCard>
-                    <StyledTitle>예약을 찾을 수 없습니다</StyledTitle>
-                    <StyledMuted>링크가 올바른지 확인해 주세요.</StyledMuted>
+                    <StyledTitle>{t.resNotFoundTitle}</StyledTitle>
+                    <StyledMuted>{t.resNotFoundDesc}</StyledMuted>
                 </StyledCard>
+                <LangSwitcher lang={lang} onChange={setLang} />
             </StyledWrap>
         );
     }
@@ -229,26 +231,26 @@ export default function ReservationManagePage() {
 
     return (
         <StyledWrap>
-            <SeoHead title={`${reservation.storeName} 예약 확인`} />
+            <SeoHead title={`${reservation.storeName} · ${t.myReservation}`} />
             <StyledCard>
                 <StyledStore>{reservation.storeName}</StyledStore>
-                <StyledTitle>내 예약</StyledTitle>
+                <StyledTitle>{t.myReservation}</StyledTitle>
 
-                <StyledStatusBadge $status={reservation.status}>{STATUS_LABEL[reservation.status]}</StyledStatusBadge>
+                <StyledStatusBadge $status={reservation.status}>{statusLabelL(reservation.status, lang)}</StyledStatusBadge>
 
                 <StyledSummary>
-                    <StyledSummaryRow><span>날짜</span><StyledSummaryValue>{reservation.date}</StyledSummaryValue></StyledSummaryRow>
-                    <StyledSummaryRow><span>시간</span><StyledSummaryValue>{reservation.startTime} ~ {reservation.endTime}</StyledSummaryValue></StyledSummaryRow>
+                    <StyledSummaryRow><span>{t.date}</span><StyledSummaryValue>{reservation.date}</StyledSummaryValue></StyledSummaryRow>
+                    <StyledSummaryRow><span>{t.time}</span><StyledSummaryValue>{reservation.startTime} ~ {reservation.endTime}</StyledSummaryValue></StyledSummaryRow>
                     <StyledSummaryRow><span>{labels.service}</span><StyledSummaryValue>{reservation.serviceSummary}</StyledSummaryValue></StyledSummaryRow>
                     {reservation.assigneeName && <StyledSummaryRow><span>{labels.assignee}</span><StyledSummaryValue>{reservation.assigneeName}</StyledSummaryValue></StyledSummaryRow>}
                 </StyledSummary>
 
                 {pending && (
                     <StyledNotice>
-                        {reservation.pendingAction === 'cancel' && '취소 요청이 접수되어 매장 확인을 기다리고 있습니다.'}
+                        {reservation.pendingAction === 'cancel' && t.pendingCancel}
                         {reservation.pendingAction === 'change' && reservation.pendingChange && (
-                            <>변경 요청이 접수되어 매장 확인을 기다리고 있습니다.<br />
-                            요청: {reservation.pendingChange.date} {reservation.pendingChange.startTime}~{reservation.pendingChange.endTime} ({reservation.pendingChange.serviceSummary})</>
+                            <>{t.pendingChangePrefix}<br />
+                            {t.requestLabel}: {reservation.pendingChange.date} {reservation.pendingChange.startTime}~{reservation.pendingChange.endTime} ({reservation.pendingChange.serviceSummary})</>
                         )}
                     </StyledNotice>
                 )}
@@ -257,36 +259,36 @@ export default function ReservationManagePage() {
 
                 {(reservation.canRequest || reservation.canCancel) && !pending && !changeOpen && (
                     <StyledActions>
-                        {reservation.canRequest && <StyledSecondaryBtn type="button" onClick={openChange} disabled={busy}>변경 요청</StyledSecondaryBtn>}
-                        {reservation.canCancel && <StyledDangerBtn type="button" onClick={submitCancel} disabled={busy}>취소 요청</StyledDangerBtn>}
+                        {reservation.canRequest && <StyledSecondaryBtn type="button" onClick={openChange} disabled={busy}>{t.changeRequestBtn}</StyledSecondaryBtn>}
+                        {reservation.canCancel && <StyledDangerBtn type="button" onClick={submitCancel} disabled={busy}>{t.cancelRequestBtn}</StyledDangerBtn>}
                     </StyledActions>
                 )}
 
                 {reservation.status === 'requested' && !pending && (
-                    <StyledNotice>매장이 예약을 확인 중입니다. 확정 전에도 취소 요청은 하실 수 있어요.</StyledNotice>
+                    <StyledNotice>{t.requestedNotice}</StyledNotice>
                 )}
 
                 {!reservation.canRequest && !reservation.canCancel && !pending && reservation.status !== 'requested' && (
-                    <StyledMuted>이 예약은 변경·취소 요청을 할 수 없는 상태입니다.</StyledMuted>
+                    <StyledMuted>{t.noActionAvailable}</StyledMuted>
                 )}
 
                 {changeOpen && (
                     <>
-                        {!store && <StyledMuted>불러오는 중…</StyledMuted>}
+                        {!store && <StyledMuted>{t.loading}</StyledMuted>}
                         {store && (
                             <>
                                 {store.settings.allowAssigneeChoice && store.assignees.length > 0 && (
                                     <>
-                                        <StyledSectionLabel>{labels.assignee} 선택</StyledSectionLabel>
+                                        <StyledSectionLabel>{t.selectAssignee(labels.assignee)}</StyledSectionLabel>
                                         <PickerScrollRow>
                                             <PillChip type="button" $on={assigneeId === ASSIGNEE_ANY} aria-pressed={assigneeId === ASSIGNEE_ANY} onClick={() => pickChangeAssignee(ASSIGNEE_ANY)}>
-                                                상관없음
+                                                {t.anyAssignee}
                                             </PillChip>
                                             {store.assignees.map((a) => {
                                                 const off = date ? a.offDays.includes(clientDayIndex(date)) : false;
                                                 return (
-                                                    <PillChip key={a.id} type="button" $on={assigneeId === a.id} aria-pressed={assigneeId === a.id} disabled={off} title={off ? '해당 날짜 휴무' : undefined} onClick={() => pickChangeAssignee(a.id)}>
-                                                        {a.name}{off && <LabelBadge $tone="neutral">휴무</LabelBadge>}
+                                                    <PillChip key={a.id} type="button" $on={assigneeId === a.id} aria-pressed={assigneeId === a.id} disabled={off} title={off ? t.dayOffTitle : undefined} onClick={() => pickChangeAssignee(a.id)}>
+                                                        {a.name}{off && <LabelBadge $tone="neutral">{t.dayOff}</LabelBadge>}
                                                     </PillChip>
                                                 );
                                             })}
@@ -294,7 +296,7 @@ export default function ReservationManagePage() {
                                     </>
                                 )}
 
-                                <StyledSectionLabel>날짜 선택</StyledSectionLabel>
+                                <StyledSectionLabel>{t.selectDate}</StyledSectionLabel>
                                 <PickerScrollRow>
                                     {Array.from({length: store.settings.maxAdvanceDays + 1}, (_, i) => i).map((off) => {
                                         const d = localDateStr(off);
@@ -303,21 +305,21 @@ export default function ReservationManagePage() {
                                         const disabled = isDateClosed(store, d) || assigneeOff.includes(di);
                                         return (
                                             <DateCell key={d} type="button" $on={date === d} $weekend={di >= 5} aria-pressed={date === d} disabled={disabled} onClick={() => { setDate(d); setSelectedSlot(''); }}>
-                                                <span className="dow">{off === 0 ? '오늘' : DOW[di]}</span>
+                                                <span className="dow">{off === 0 ? todayLabelL(lang) : dowLabelL(di, lang)}</span>
                                                 <span className="day">{Number(d.slice(8, 10))}</span>
                                             </DateCell>
                                         );
                                     })}
                                 </PickerScrollRow>
 
-                                <StyledSectionLabel>변경할 {labels.service} 선택</StyledSectionLabel>
+                                <StyledSectionLabel>{t.selectServiceToChange(labels.service)}</StyledSectionLabel>
                                 <ServiceChoiceWrap>
                                     {store.services.map((s) => {
                                         const on = selectedServices.includes(s.name);
                                         return (
                                             <ServiceChoiceChip key={s.name} type="button" $on={on} aria-pressed={on} onClick={() => toggleService(s.name)}>
                                                 <span className="nm">{s.name}</span>
-                                                <span className="mt">{formatDuration(s.duration)} · {s.price.toLocaleString()}원</span>
+                                                <span className="mt">{formatDurationL(s.duration, lang)} · {formatPriceL(s.price, lang)}</span>
                                             </ServiceChoiceChip>
                                         );
                                     })}
@@ -325,9 +327,9 @@ export default function ReservationManagePage() {
 
                                 {selectedServices.length > 0 && date && (
                                     <>
-                                        <StyledSectionLabel>시간 선택</StyledSectionLabel>
-                                        {slotsLoading && <StyledMuted>시간을 불러오는 중…</StyledMuted>}
-                                        {!slotsLoading && slots.length === 0 && <StyledMuted>예약 가능한 시간이 없습니다.</StyledMuted>}
+                                        <StyledSectionLabel>{t.selectTime}</StyledSectionLabel>
+                                        {slotsLoading && <StyledMuted>{t.loadingTime}</StyledMuted>}
+                                        {!slotsLoading && slots.length === 0 && <StyledMuted>{t.noAvailableTime}</StyledMuted>}
                                         {!slotsLoading && slots.length > 0 && (
                                             <SlotGrid>
                                                 {slots.map((slot) => (
@@ -339,14 +341,15 @@ export default function ReservationManagePage() {
                                 )}
 
                                 <StyledActions>
-                                    <StyledSecondaryBtn type="button" onClick={() => { setChangeOpen(false); setActionMsg(''); }} disabled={busy}>취소</StyledSecondaryBtn>
-                                    <StyledPrimaryBtn type="button" onClick={submitChange} disabled={!canSubmitChange}>{busy ? '요청 중…' : '변경 요청 보내기'}</StyledPrimaryBtn>
+                                    <StyledSecondaryBtn type="button" onClick={() => { setChangeOpen(false); setActionMsg(''); }} disabled={busy}>{t.changeCancel}</StyledSecondaryBtn>
+                                    <StyledPrimaryBtn type="button" onClick={submitChange} disabled={!canSubmitChange}>{busy ? t.changeSubmitting : t.changeSubmit}</StyledPrimaryBtn>
                                 </StyledActions>
                             </>
                         )}
                     </>
                 )}
             </StyledCard>
+            <LangSwitcher lang={lang} onChange={setLang} />
         </StyledWrap>
     );
 }
@@ -357,10 +360,11 @@ const StyledWrap = styled.div`
     min-height: 100%;
     display: flex;
     justify-content: center;
-    padding: 24px 16px;
+    /* 하단 여백은 고정 언어 바 높이만큼 확보(콘텐츠가 바에 가리지 않도록). */
+    padding: 24px 16px ${LANG_BAR_OFFSET};
     box-sizing: border-box;
     background: var(--white-color);
-    @media (max-width: 640px) { padding: 0; }
+    @media (max-width: 640px) { padding: 0 0 ${LANG_BAR_OFFSET}; }
 `;
 
 // 예약 화면과 동일 톤: box-sizing:border-box(모바일 가로 오버플로 방지), 화이트 배경 + 그림자.
