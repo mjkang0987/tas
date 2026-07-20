@@ -1,3 +1,4 @@
+import {sanitizeClosedWeekdays} from '../utils/storeSettings';
 import type {StoreSettings} from '../utils/storeSettings';
 
 export function buildUpdatedStoreBusinessHoursState(
@@ -30,6 +31,13 @@ export function buildUpdatedStoreClosedDatesState(storeSettings: StoreSettings, 
     return {
         ...storeSettings,
         closedDates: [...dates].sort()
+    };
+}
+
+export function buildUpdatedStoreClosedWeekdaysState(storeSettings: StoreSettings, weekdays: number[]) {
+    return {
+        ...storeSettings,
+        closedWeekdays: sanitizeClosedWeekdays(weekdays),
     };
 }
 

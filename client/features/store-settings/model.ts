@@ -18,6 +18,8 @@ export interface PointSettings {
 export interface StoreSettings {
     businessHours: StoreBusinessHours;
     closedDates: string[];
+    // 정기 휴무 요일(매주). 0=월 … 6=일 (앱 공통 dayIndex 규칙). DB는 StoreBusinessHour.enabled=false로 저장.
+    closedWeekdays: number[];
     pointSettings: PointSettings;
 }
 
@@ -55,6 +57,16 @@ export function areServicesBookable(requested: string[], whitelist: string[] | n
     return requested.every((name) => whitelist.includes(name));
 }
 
+// 정기 휴무 요일 정규화: 0~6 정수만·중복 제거·오름차순. 그 외 값은 버린다.
+export function sanitizeClosedWeekdays(value: unknown): number[] {
+    if (!Array.isArray(value)) return [];
+    const set = new Set<number>();
+    for (const v of value) {
+        if (typeof v === 'number' && Number.isInteger(v) && v >= 0 && v <= 6) set.add(v);
+    }
+    return [...set].sort((a, b) => a - b);
+}
+
 // 공개 URL 슬러그: 소문자 영숫자·하이픈, 3~32자, 하이픈으로 시작/끝 불가.
 export const BOOKING_SLUG_PATTERN = /^[a-z0-9](?:[a-z0-9-]{1,30}[a-z0-9])$/;
 
@@ -68,6 +80,7 @@ export const DEFAULT_STORE_SETTINGS: StoreSettings = {
         end: '20:00',
     },
     closedDates: [],
+    closedWeekdays: [],
     pointSettings: {
         enableServiceRate: false,
         enableRecharge: false,

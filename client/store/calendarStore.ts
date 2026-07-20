@@ -52,6 +52,7 @@ import {
     buildRemovedStoreClosedDateState,
     buildUpdatedStoreBusinessHoursState,
     buildUpdatedStoreClosedDatesState,
+    buildUpdatedStoreClosedWeekdaysState,
     buildUpdatedStorePointSettingsState,
 } from './calendarStoreStoreSettingsHelpers';
 import {shouldUseLocalDb} from '../lib/local-db';
@@ -181,6 +182,7 @@ export interface CalendarState {
     updateStoreBusinessHours: (hours: Partial<StoreSettings['businessHours']>) => void;
     updateStorePointSettings: (pointSettings: Partial<StoreSettings['pointSettings']>) => void;
     updateStoreClosedDates: (dates: string[]) => void;
+    updateStoreClosedWeekdays: (weekdays: number[]) => void;
     addStoreClosedDate: (date: string) => void;
     removeStoreClosedDate: (date: string) => void;
     addAssignee: (name: string, status?: AssigneeStatus, phone?: string, note?: string, color?: string) => void;
@@ -466,6 +468,13 @@ export const useCalendarStore = create<CalendarState>((set) => ({
     updateStoreClosedDates: (dates) =>
         set((state) => {
             const nextStoreSettings = buildUpdatedStoreClosedDatesState(state.storeSettings, dates);
+            syncStoreSettings(nextStoreSettings);
+            return {storeSettings: nextStoreSettings};
+        }),
+
+    updateStoreClosedWeekdays: (weekdays) =>
+        set((state) => {
+            const nextStoreSettings = buildUpdatedStoreClosedWeekdaysState(state.storeSettings, weekdays);
             syncStoreSettings(nextStoreSettings);
             return {storeSettings: nextStoreSettings};
         }),

@@ -104,7 +104,7 @@ hair_reservations/
 | `assignees/model.ts` | `Assignee` | id, name, schedule(7일), status[^6], color, phone |
 | `services/model.ts` | `ServiceItem` | name, durationMinutes, category, price |
 | `services/default-services.ts` | - | 업종(ShopType) union + 업종별 기본 서비스·카테고리 색상(Partial, 온보딩용) |
-| `store-settings/model.ts` | `StoreSettings`/`BookingSettings` | businessHours, closedDates, pointSettings(적립률, 충전규칙). `BookingSettings`(공개 예약 규칙: slotIntervalMin·minLeadMinutes·maxAdvanceDays·allowAssigneeChoice·noticeText·`bookableServiceNames`[노출 서비스 화이트리스트, null=전체]) + slug 검증(`isValidBookingSlug`)·노출 헬퍼(`parseBookableServiceNames`/`areServicesBookable`) |
+| `store-settings/model.ts` | `StoreSettings`/`BookingSettings` | businessHours, closedDates(특정 날짜 휴업일), `closedWeekdays`(정기 휴무 요일, 0=월…6=일 — DB는 `StoreBusinessHour.enabled=false`로 저장, `sanitizeClosedWeekdays`로 정규화), pointSettings(적립률, 충전규칙). `BookingSettings`(공개 예약 규칙: slotIntervalMin·minLeadMinutes·maxAdvanceDays·allowAssigneeChoice·noticeText·`bookableServiceNames`[노출 서비스 화이트리스트, null=전체]) + slug 검증(`isValidBookingSlug`)·노출 헬퍼(`parseBookableServiceNames`/`areServicesBookable`) |
 | `booking/availability.ts` | - | 공개 온라인 예약 슬롯 계산 순수 함수(`computeAvailableSlots`/`pickAssigneeForSlot`). 서버 API가 재사용. 영업시간−기존예약−담당자스케줄−소요−최소사전시간, 담당자 용량 모델[^23] |
 | `store-settings/labels.ts` | - | 업종 마스터 목록·category별 표시어(담당자/서비스)·`getStoreLabels`/`sanitizeShopType` ([업종별 라벨](#업종별-라벨-담당자서비스-표시어)) |
 | `local-db/storage.ts` | - | 게스트 모드 로컬 스냅샷 (`takeaseat.local-db.v1`). `shouldUseLocalDb()`로 모드 판정, 게스트 약관 동의 버전 헬퍼(`getGuestTermsVersion`/`setGuestTermsAgreed`) — `lib/local-db`로 re-export |
@@ -198,7 +198,7 @@ NextAuth 5.0 설정. Google·Kakao·Naver OAuth 지원.
 | `assignees.ts` | `/api/assignees` | GET(staff) / PUT(owner) / DELETE(owner) | - | 담당자 CRUD + 일정(AssigneeSchedule) upsert. DELETE는 영구 삭제(분리): 예약은 assigneeId=null로 보존, 스케줄은 cascade 삭제 |
 | `assignees-merge.ts` | `/api/assignees/merge` | POST | owner | 담당자 병합 (source→target 예약 재배정 후 source 삭제) |
 | `services.ts` | `/api/services` | GET(staff) / PUT(owner) | - | 서비스 카탈로그 관리 |
-| `store.ts` | `/api/store` | GET(staff) / PUT(owner) | - | 매장 설정 (영업시간, 휴무일, 포인트 설정, 업종, **적립금/회원권 시스템 토글** `usePointSystem`/`useMembershipSystem`, **온라인예약** 토글·슬러그·규칙·노출서비스 `bookableServiceNames`) |
+| `store.ts` | `/api/store` | GET(staff) / PUT(owner) | - | 매장 설정 (영업시간, 휴업일, **정기 휴무 요일**(`closedWeekdays`→`StoreBusinessHour.enabled`), 포인트 설정, 업종, **적립금/회원권 시스템 토글** `usePointSystem`/`useMembershipSystem`, **온라인예약** 토글·슬러그·규칙·노출서비스 `bookableServiceNames`) |
 | `memberships.ts` | `/api/memberships` | GET(staff) / POST·PUT·DELETE(owner) | - | 회원권 상품(횟수/기간권) CRUD + 보유 목록 조회 |
 | `membership-issue.ts` | `/api/membership-issue` | POST(staff) | - | 고객에게 회원권 발급/취소 (상품 스냅샷 → CustomerMembership) |
 | `membership-use.ts` | `/api/membership-use` | POST(staff) | - | 회원권 횟수 수동 차감/복원 (결제 흐름과 독립, MembershipUsage 기록) |

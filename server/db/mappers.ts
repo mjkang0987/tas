@@ -297,6 +297,8 @@ export function dbStoreToFrontend(data: DbStoreData) {
             end: firstHour?.closeTime ?? '20:00',
         },
         closedDates: data.closedDates.map((cd) => toDateKey(cd.date)),
+        // 정기 휴무 요일 = 영업시간 행이 비활성(enabled=false)인 요일(0=월…6=일).
+        closedWeekdays: data.businessHours.filter((b) => !b.enabled).map((b) => b.dayIndex).sort((a, b) => a - b),
         pointSettings: {
             enableServiceRate: data.pointSettings?.enableServiceRate ?? false,
             enableRecharge: data.pointSettings?.enableRecharge ?? false,

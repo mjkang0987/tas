@@ -16,6 +16,9 @@ interface StoreManageSectionProps {
     formatDateLabel: (dateKey: string) => string;
 }
 
+// 정기 휴무 요일 라벨 — 인덱스 0=월 … 6=일 (앱 공통 dayIndex 규칙).
+const WEEKDAY_LABELS = ['월', '화', '수', '목', '금', '토', '일'];
+
 
 export const StoreManageSection = ({formatDateLabel}: StoreManageSectionProps) => {
     const toast = useToastStore((s) => s.show);
@@ -25,6 +28,7 @@ export const StoreManageSection = ({formatDateLabel}: StoreManageSectionProps) =
     const updateStoreInfo = useCalendarStore((s) => s.updateStoreInfo);
     const updateStoreBusinessHours = useCalendarStore((s) => s.updateStoreBusinessHours);
     const updateStoreClosedDates = useCalendarStore((s) => s.updateStoreClosedDates);
+    const updateStoreClosedWeekdays = useCalendarStore((s) => s.updateStoreClosedWeekdays);
     const usePointSystem = useCalendarStore((s) => s.usePointSystem);
     const useMembershipSystem = useCalendarStore((s) => s.useMembershipSystem);
     const useCouponSystem = useCalendarStore((s) => s.useCouponSystem);
@@ -34,8 +38,10 @@ export const StoreManageSection = ({formatDateLabel}: StoreManageSectionProps) =
     const [closedDates, setClosedDates] = useState(storeSettings.closedDates);
     const [closedDateInput, setClosedDateInput] = useState('');
     const [closedDateError, setClosedDateError] = useState('');
+    const [closedWeekdays, setClosedWeekdays] = useState(storeSettings.closedWeekdays ?? []);
     const [isEditingBusinessHours, setIsEditingBusinessHours] = useState(false);
     const [isEditingClosedDates, setIsEditingClosedDates] = useState(false);
+    const [isEditingClosedWeekdays, setIsEditingClosedWeekdays] = useState(false);
     const [isEditingStoreInfo, setIsEditingStoreInfo] = useState(false);
     const [editStoreName, setEditStoreName] = useState(storeName);
     const [editShopType, setEditShopType] = useState(getPrimaryIndustry(shopType)?.value ?? '');
@@ -50,6 +56,7 @@ export const StoreManageSection = ({formatDateLabel}: StoreManageSectionProps) =
     useEffect(() => {
         setBusinessHours(storeSettings.businessHours);
         setClosedDates(storeSettings.closedDates);
+        setClosedWeekdays(storeSettings.closedWeekdays ?? []);
     }, [storeSettings]);
 
     useEffect(() => {
@@ -74,6 +81,20 @@ export const StoreManageSection = ({formatDateLabel}: StoreManageSectionProps) =
     const isBusinessHoursDirty = businessHours.start !== storeSettings.businessHours.start
         || businessHours.end !== storeSettings.businessHours.end;
     const isClosedDatesDirty = closedDates.join('|') !== storeSettings.closedDates.join('|');
+    const sortedClosedWeekdays = [...closedWeekdays].sort((a, b) => a - b);
+    const isClosedWeekdaysDirty = sortedClosedWeekdays.join('|') !== [...(storeSettings.closedWeekdays ?? [])].sort((a, b) => a - b).join('|');
+
+    const toggleClosedWeekday = (dayIndex: number) => {
+        setClosedWeekdays((prev) => (
+            prev.includes(dayIndex) ? prev.filter((d) => d !== dayIndex) : [...prev, dayIndex]
+        ));
+    };
+
+    const handleSaveClosedWeekdays = () => {
+        updateStoreClosedWeekdays(sortedClosedWeekdays);
+        setIsEditingClosedWeekdays(false);
+        toast('정기 휴무가 저장되었습니다.');
+    };
 
     const handleSaveBusinessHours = () => {
         updateStoreBusinessHours(businessHours);
@@ -215,6 +236,54 @@ export const StoreManageSection = ({formatDateLabel}: StoreManageSectionProps) =
                             취소
                         </StyledCancelBtn>
                         <StyledSaveBtn type="button" onClick={handleSaveBusinessHours} disabled={!isBusinessHoursDirty}>저장</StyledSaveBtn>
+                    </StyledStoreActionRow>
+                )}
+            </StyledStoreCard>
+
+            <StyledStoreCard>
+                <StyledStoreCardHeader>
+                    <StyledStoreCardTitle>정기 휴무</StyledStoreCardTitle>
+                    {!isEditingClosedWeekdays && (
+                        <StyledEditBtn type="button" onClick={() => setIsEditingClosedWeekdays(true)}>수정</StyledEditBtn>
+                    )}
+                </StyledStoreCardHeader>
+                <StyledWeekdayHint>매주 쉬는 요일을 선택하면 고객 예약 페이지에서 해당 요일은 예약할 수 없습니다.</StyledWeekdayHint>
+                <StyledWeekdayRow role="group" aria-label="정기 휴무 요일">
+                    {WEEKDAY_LABELS.map((label, dayIndex) => {
+                        const checked = sortedClosedWeekdays.includes(dayIndex);
+                        return (
+                            <StyledWeekdayChip
+                                key={dayIndex}
+                                htmlFor={`closed-weekday-${dayIndex}`}
+                                className={`${checked ? 'is-on' : ''}${isEditingClosedWeekdays ? '' : ' is-readonly'}`}
+                            >
+                                <input
+                                    id={`closed-weekday-${dayIndex}`}
+                                    type="checkbox"
+                                    checked={checked}
+                                    disabled={!isEditingClosedWeekdays}
+                                    onChange={() => toggleClosedWeekday(dayIndex)}
+                                />
+                                <span>{label}</span>
+                            </StyledWeekdayChip>
+                        );
+                    })}
+                </StyledWeekdayRow>
+                {sortedClosedWeekdays.length === 0 && !isEditingClosedWeekdays && (
+                    <StyledEmpty>정기 휴무 없음</StyledEmpty>
+                )}
+                {isEditingClosedWeekdays && (
+                    <StyledStoreActionRow>
+                        <StyledCancelBtn
+                            type="button"
+                            onClick={() => {
+                                setClosedWeekdays(storeSettings.closedWeekdays ?? []);
+                                setIsEditingClosedWeekdays(false);
+                            }}
+                        >
+                            취소
+                        </StyledCancelBtn>
+                        <StyledSaveBtn type="button" onClick={handleSaveClosedWeekdays} disabled={!isClosedWeekdaysDirty}>저장</StyledSaveBtn>
                     </StyledStoreActionRow>
                 )}
             </StyledStoreCard>
@@ -519,6 +588,53 @@ const StyledClosedDateItem = styled.div`
     border-bottom: 1px solid var(--black-color-10);
     font-size: 13px;
     color: var(--dark-gray-color);
+`;
+
+const StyledWeekdayHint = styled.em`
+    font-style: normal;
+    font-size: 12px;
+    color: var(--dark-gray-color2);
+    line-height: 1.5;
+`;
+
+const StyledWeekdayRow = styled.div`
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+`;
+
+const StyledWeekdayChip = styled.label`
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 40px;
+    padding: 8px 12px;
+    border: 1px solid var(--light-gray-color);
+    border-radius: var(--chip-radius);
+    background: var(--white-color);
+    color: var(--black-color);
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+
+    /* 네이티브 체크박스는 시각적으로 숨기되 접근성 유지(라벨 클릭·키보드 토글 동작) */
+    input {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        opacity: 0;
+        pointer-events: none;
+    }
+
+    &.is-on {
+        border-color: var(--brand-color);
+        background: var(--brand-color);
+        color: var(--white-color);
+    }
+
+    &.is-readonly {
+        cursor: default;
+    }
 `;
 
 const StyledRangeInputWrap = styled.label`

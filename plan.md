@@ -4,6 +4,31 @@
 
 ---
 
+## 완료 — 매장관리 정기 휴무 요일(매주) + 고객 예약 페이지 비활성 (PR #132)
+
+> 배경(사용자): 매장관리에 "휴무일"(정기 휴무 요일, 매주) 설정을 넣고, 고객 예약 페이지에서 해당 요일 날짜는 무조건 예약 비활성 처리.
+
+### 현황 파악 (기존 구현 재사용)
+- **특정 날짜 지정 "휴업일"(`StoreClosedDate`)은 이미 구현** — 매장관리 UI + 예약 페이지 날짜 비활성 + 서버 슬롯 거부까지 완비. 이번 작업 대상 아님.
+- **소비 측(정기 휴무)은 이미 요일별 `StoreBusinessHour.enabled`로 완전 지원** — `computeAvailableSlots`가 `!businessHour.enabled`면 빈 슬롯(`availability.ts`), reserve API도 동일 재검증, 고객 예약 페이지 `isDateClosed`가 `businessHours[dayIndex].enabled===false`를 휴무로 판정해 날짜 비활성(`book/[slug].tsx`).
+- **빠진 것은 오너가 정기 휴무 요일을 설정하는 저장 경로뿐** — 현재 `store.ts` PUT이 7일 모두 `enabled:true` 강제.
+
+### 구현 항목
+1. `features/store-settings/model.ts`: `StoreSettings.closedWeekdays: number[]`(0=월…6=일) 추가 + DEFAULT `[]`.
+2. `server/db/mappers.ts` `dbStoreToFrontend`: `businessHours` 중 `!enabled`인 `dayIndex`로 `closedWeekdays` 파생.
+3. `server/api/store.ts` PUT: `closedWeekdays` 수신·검증(0~6 정수 배열), 각 요일 upsert `enabled = !closedWeekdays.includes(dayIndex)`.
+4. `calendarStoreStoreSettingsHelpers.ts` + `calendarStore.ts`: `updateStoreClosedWeekdays` 액션(전체 `storeSettings` PUT로 반영).
+5. `settings/StoreManageSection.tsx`: "정기 휴무" 카드 — 월~일 네이티브 체크박스 토글(수정→저장 패턴, 프론트 표준 준수).
+
+### 비고
+- 고객 예약 API/페이지는 무수정(이미 `enabled` 소비). 마이그레이션 불필요(기존 컬럼 활용).
+- 하위호환: `closedWeekdays` 미전송(구클라)=빈 배열=전 요일 영업(현행 유지).
+
+### 검증
+- 타입체크·빌드. 오너가 특정 요일 휴무 저장 → 예약 페이지 해당 요일 날짜 비활성 확인.
+
+---
+
 ## 진행 중 — 취소/노쇼 예약 시각 분기 통일 (빗금 + 고객명 취소선)
 
 > 배경(사용자): 연별/월별 뷰에서 취소된 예약 구분이 약함(흐림 처리만). 타임라인은 취소를 숨기지만 월/연·전체보기·고객명단·고객상세에는 노출됨. 취소·노쇼를 **일괄 동일**하게 **빗금(해치) 배경 + 고객명 취소선**으로 확실히 구별.
