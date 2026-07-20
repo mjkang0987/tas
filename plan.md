@@ -4,6 +4,43 @@
 
 ---
 
+## 완료 — 고객 예약 페이지(book.takeaseat.co.kr) 다국어 (영어·중국어·일본어)
+
+> 요청(사용자): 고객 공개 예약 페이지에 영어·중국어·일본어 추가. (기존 한국어 + 3개 언어 = 4개) + 언어 전환기를 **하단 고정** 노출, 기존 경로에서 즉시 전환.
+
+### 범위
+- 대상 페이지: `client/pages/book/[slug].tsx`(랜딩·신규예약·조회·완료), `client/pages/book/[slug]/r/[token].tsx`(내 예약 확인·변경·취소).
+- **번역 대상 = 앱이 제공하는 UI 문구만**: 섹션 라벨·버튼·안내문·상태 라벨·에러 메시지·소요시간(시간/분)·요일/날짜·업종 라벨(담당자/서비스).
+- **번역 제외 = 매장 오너 콘텐츠**: 매장명·서비스명·안내문(noticeText)·담당자명·고객 본인 이름. (서버에서 온 한국어 조합 문자열 `serviceSummary`도 매장 콘텐츠라 그대로.)
+
+### 구현 항목
+1. **신규** `client/features/booking/i18n.ts` — 순수 모듈:
+   - `BookLang`('ko'|'en'|'zh'|'ja') + `BOOK_LANGS`(스위처용 네이티브 라벨).
+   - `BOOK_STRINGS: Record<BookLang, BookI18n>` — 두 페이지 전체 문구 사전(정적 문자열 + 템플릿 함수).
+   - 로케일 포매터: `formatDurationL`(시간/분), `formatBookDateLabel`·`dowLabel`·`todayLabel`(요일/날짜), `formatPriceL`(₩/원), `statusLabelL`(예약 상태).
+   - `localizedStoreLabels(shopType, lang)` — 업종 category 기준 담당자/서비스 라벨 번역(`getPrimaryIndustry` 재사용).
+2. **신규** `client/components/booking/LangSwitcher.tsx` — 네이티브 `<select>` 언어 전환기 + `useBookLang` 훅(localStorage `tas-book-lang` 영속 + `navigator.language` 자동감지 + `<html lang>` 갱신).
+3. **수정** `book/[slug].tsx`·`r/[token].tsx` — 하드코딩 한국어 → `t.*`/포매터로 전면 치환, 카드 상단에 `LangSwitcher` 배치.
+
+### 프론트 표준 준수
+- 언어 선택 = **네이티브 `<select>`**(커스텀 드롭다운 금지 규칙). 태그 셀렉터 미사용, ID/클래스만.
+- 접근성: 스위처 `<label htmlFor>`, `document.documentElement.lang` 동기화.
+
+### 비고/리스크
+- `formatDuration`(features/services/model.ts)은 앱 전역 사용 → **전역 수정 금지**, 예약페이지 전용 `formatDurationL` 신설.
+- SSR: 두 페이지는 `getServerSideProps` 빈 props + 클라 데이터 로드. lang 초기값 'ko' → mount 후 감지 반영(하이드레이션 안전).
+- 서버 API·스키마 무변경(코드-온리 배포).
+
+### 검증 (완료)
+- 타입체크 0 에러(전체), `next build` 성공(두 부킹 라우트 컴파일). eslint: 신규 파일 클린, 기존 두 페이지 문제 수 baseline과 동일(신규 유입 0).
+- 포매터 4개 언어 실행 확인: 소요시간(1시간30분/1h 30m/1時間30分/1小时30分钟)·금액(원/₩)·날짜(요일 로케일)·상태·업종 라벨(category별) 정상.
+
+### 결과물
+- 신규: `client/features/booking/i18n.ts`, `client/components/booking/LangSwitcher.tsx`.
+- 수정: `client/pages/book/[slug].tsx`, `client/pages/book/[slug]/r/[token].tsx`.
+
+---
+
 ## 완료 — 매장관리 정기 휴무 요일(매주) + 고객 예약 페이지 비활성 (PR #132)
 
 > 배경(사용자): 매장관리에 "휴무일"(정기 휴무 요일, 매주) 설정을 넣고, 고객 예약 페이지에서 해당 요일 날짜는 무조건 예약 비활성 처리.
