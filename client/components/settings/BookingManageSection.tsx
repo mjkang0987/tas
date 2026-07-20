@@ -219,6 +219,24 @@ export function BookingManageSection() {
                         rows={3}
                     />
                 </StyledField>
+                <StyledSettingsHint>안내문 다국어 (선택) — 고객 예약 페이지에서 해당 언어로 보입니다. 비우면 위 안내문이 그대로 표시됩니다.</StyledSettingsHint>
+                {([['en', 'English'], ['ja', '日本語'], ['zh', '中文']] as const).map(([code, label]) => (
+                    <StyledField key={code}>
+                        <StyledLabel htmlFor={`booking-notice-${code}`}>{label}</StyledLabel>
+                        <StyledTextarea
+                            id={`booking-notice-${code}`}
+                            value={settings.noticeI18n?.[code] ?? ''}
+                            placeholder={label}
+                            onChange={(e) => setSettings((prev) => {
+                                const next = {...(prev.noticeI18n ?? {})};
+                                if (e.target.value.trim()) next[code] = e.target.value; else delete next[code];
+                                return {...prev, noticeI18n: Object.keys(next).length > 0 ? next : null};
+                            })}
+                            disabled={loading}
+                            rows={2}
+                        />
+                    </StyledField>
+                ))}
             </StyledSettingsCard>
 
             {serviceCatalog.length > 0 && (

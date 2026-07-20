@@ -11,6 +11,8 @@ datasource db {
 model Store {
   id                     String               @id @default(cuid())
   name                   String
+  // 공개 예약 페이지 다국어(오너 입력, {en?,ja?,zh?}). 없으면 name 폴백.
+  nameI18nJson           Json?
   shopType               String?
   onboarded              Boolean              @default(false)
   usePointSystem         Boolean              @default(false)
@@ -151,6 +153,8 @@ model Assignee {
   legacyId     Int?
   storeId      String
   name         String
+  // 공개 예약 페이지 다국어(오너 입력, {en?,ja?,zh?}). 없으면 name 폴백.
+  nameI18nJson Json?
   status       AssigneeStatus     @default(active)
   phone        String?
   note         String?
@@ -181,6 +185,8 @@ model Service {
   legacyName         String?
   storeId            String
   name               String
+  // 공개 예약 페이지 다국어(오너 입력, {en?,ja?,zh?}). 없으면 name(한국어) 폴백. 식별은 항상 name.
+  nameI18nJson       Json?
   category           String
   duration           Int
   price              Int
@@ -296,6 +302,8 @@ model StoreBookingSettings {
   maxAdvanceDays      Int      @default(30)
   allowAssigneeChoice Boolean  @default(true)
   noticeText          String?
+  // 공개 예약 페이지 안내문 다국어(오너 입력, {en?,ja?,zh?}). 없으면 noticeText 폴백.
+  noticeI18nJson      Json?
   // (1c) 공개 노출 서비스 화이트리스트(서비스명 배열). null/미지정 = 전체 노출. 배선은 1c.
   bookableServiceIdsJson Json?
   createdAt           DateTime @default(now())

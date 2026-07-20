@@ -10,7 +10,6 @@ import {formControlStyle} from '../ui/FormControls';
 import {FieldError} from '../ui/FieldError';
 import {useToastStore} from '../../store/toastStore';
 import {SHOP_INDUSTRIES, CATEGORY_NAMES, getPrimaryIndustry, type ShopCategory} from '../../features/store-settings/labels';
-import {BookingManageSection} from './BookingManageSection';
 
 interface StoreManageSectionProps {
     formatDateLabel: (dateKey: string) => string;
@@ -23,6 +22,7 @@ const WEEKDAY_LABELS = ['월', '화', '수', '목', '금', '토', '일'];
 export const StoreManageSection = ({formatDateLabel}: StoreManageSectionProps) => {
     const toast = useToastStore((s) => s.show);
     const storeName = useCalendarStore((s) => s.storeName);
+    const storeNameI18n = useCalendarStore((s) => s.storeNameI18n);
     const shopType = useCalendarStore((s) => s.shopType);
     const storeSettings = useCalendarStore((s) => s.storeSettings);
     const updateStoreInfo = useCalendarStore((s) => s.updateStoreInfo);
@@ -44,6 +44,7 @@ export const StoreManageSection = ({formatDateLabel}: StoreManageSectionProps) =
     const [isEditingClosedWeekdays, setIsEditingClosedWeekdays] = useState(false);
     const [isEditingStoreInfo, setIsEditingStoreInfo] = useState(false);
     const [editStoreName, setEditStoreName] = useState(storeName);
+    const [editStoreNameI18n, setEditStoreNameI18n] = useState<{en?: string | null; ja?: string | null; zh?: string | null} | null>(storeNameI18n);
     const [editShopType, setEditShopType] = useState(getPrimaryIndustry(shopType)?.value ?? '');
     const [storeInfoError, setStoreInfoError] = useState('');
 
@@ -64,6 +65,10 @@ export const StoreManageSection = ({formatDateLabel}: StoreManageSectionProps) =
     }, [storeName]);
 
     useEffect(() => {
+        setEditStoreNameI18n(storeNameI18n);
+    }, [storeNameI18n]);
+
+    useEffect(() => {
         setEditShopType(getPrimaryIndustry(shopType)?.value ?? '');
     }, [shopType]);
 
@@ -72,7 +77,7 @@ export const StoreManageSection = ({formatDateLabel}: StoreManageSectionProps) =
             setStoreInfoError('매장 이름을 입력해 주세요.');
             return;
         }
-        updateStoreInfo(editStoreName.trim(), editShopType || null);
+        updateStoreInfo(editStoreName.trim(), editShopType || null, editStoreNameI18n);
         setIsEditingStoreInfo(false);
         setStoreInfoError('');
         toast('매장 정보가 저장되었습니다.');
@@ -166,6 +171,22 @@ export const StoreManageSection = ({formatDateLabel}: StoreManageSectionProps) =
                                 />
                                 <FieldError variant="inline">{storeInfoError}</FieldError>
                             </StyledRangeInputWrap>
+                            {useOnlineBooking && ([['en', 'English'], ['ja', '日本語'], ['zh', '中文']] as const).map(([code, label]) => (
+                                <StyledRangeInputWrap key={code} htmlFor={`store-edit-name-${code}`}>
+                                    <span>매장명 {label}</span>
+                                    <StyledDateInput
+                                        id={`store-edit-name-${code}`}
+                                        type="text"
+                                        value={editStoreNameI18n?.[code] ?? ''}
+                                        onChange={(e) => setEditStoreNameI18n((prev) => {
+                                            const next = {...(prev ?? {})};
+                                            if (e.target.value.trim()) next[code] = e.target.value; else delete next[code];
+                                            return Object.keys(next).length > 0 ? next : null;
+                                        })}
+                                        placeholder={`고객 예약 페이지 표시 (${label})`}
+                                    />
+                                </StyledRangeInputWrap>
+                            ))}
                             <StyledRangeInputWrap htmlFor="store-edit-industry">
                                 <span>업종</span>
                                 <StyledIndustrySelect
@@ -409,26 +430,15 @@ export const StoreManageSection = ({formatDateLabel}: StoreManageSectionProps) =
                         />
                         <StyledFeatureText>
                             <StyledFeatureName>고객 예약 서비스 사용</StyledFeatureName>
-                            <StyledFeatureDesc>고객이 직접 예약하는 공개 예약 페이지. 켜면 아래에 예약 설정이 나타납니다.</StyledFeatureDesc>
+                            <StyledFeatureDesc>고객이 직접 예약하는 공개 예약 페이지. 켜면 왼쪽 메뉴에 '고객 예약 설정'이 나타납니다.</StyledFeatureDesc>
                         </StyledFeatureText>
                     </StyledFeatureItem>
                 </StyledFeatureList>
             </StyledFeatureCard>
-
-            {useOnlineBooking && (
-                <StyledBookingWrap>
-                    <BookingManageSection />
-                </StyledBookingWrap>
-            )}
         </StyledStoreSection>
     );
 };
 
-const StyledBookingWrap = styled.div`
-    grid-column: 1 / -1;
-    margin-top: 24px;
-    min-width: 0;
-`;
 
 
 const StyledStoreSection = styled.div`

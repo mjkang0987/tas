@@ -25,6 +25,8 @@ const DEFAULT_ASSIGNEE_COLORS = [
 export interface Assignee {
     id: number;
     name: string;
+    // 공개 예약 페이지 다국어 표시용(오너 입력, {en?,ja?,zh?}). 식별은 id, 표시만 번역.
+    nameI18n?: {en?: string | null; ja?: string | null; zh?: string | null} | null;
     schedule: DaySchedule[];
     status?: AssigneeStatus;
     phone?: string;

@@ -30,6 +30,8 @@ export interface BookingSettings {
     maxAdvanceDays: number;
     allowAssigneeChoice: boolean;
     noticeText: string | null;
+    // 안내문 다국어(오너 입력, {en?,ja?,zh?}). 없으면 noticeText 폴백. 공개 페이지 표시용.
+    noticeI18n?: {en?: string | null; ja?: string | null; zh?: string | null} | null;
     // 공개 노출할 서비스명 화이트리스트. null 또는 []=전체 노출, 비어있지 않으면 그 서비스만 노출.
     // (이 앱은 서비스를 name으로 식별 — DB 컬럼명은 bookableServiceIdsJson) 오너 설정에만 쓰이고 고객 응답엔 미노출.
     bookableServiceNames: string[] | null;
@@ -41,6 +43,7 @@ export const DEFAULT_BOOKING_SETTINGS: BookingSettings = {
     maxAdvanceDays: 30,
     allowAssigneeChoice: true,
     noticeText: null,
+    noticeI18n: null,
     bookableServiceNames: null,
 };
 

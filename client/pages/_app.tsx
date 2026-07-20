@@ -326,7 +326,7 @@ function AppContent({Component, pageProps}: AppContentProps) {
                 if (!customersRes.ok) throw new Error('Failed to load customers');
 
                 return Promise.all([
-                    storeRes.json() as Promise<StoreSettings & {storeName?: string; shopType?: string | null; usePointSystem?: boolean; useMembershipSystem?: boolean; useCouponSystem?: boolean; useOnlineBooking?: boolean}>,
+                    storeRes.json() as Promise<StoreSettings & {storeName?: string; storeNameI18n?: {en?: string | null; ja?: string | null; zh?: string | null} | null; shopType?: string | null; usePointSystem?: boolean; useMembershipSystem?: boolean; useCouponSystem?: boolean; useOnlineBooking?: boolean}>,
                     reservationsRes.json() as Promise<{
                         reservations: Array<Parameters<typeof groupByDate>[0][number]>;
                         history: Parameters<typeof setReservationHistory>[0];
@@ -335,7 +335,7 @@ function AppContent({Component, pageProps}: AppContentProps) {
                 ]);
             })
             .then(([storeData, reservationsData, customersData]) => {
-                setStoreInfo(storeData.storeName ?? '', storeData.shopType ?? null);
+                setStoreInfo(storeData.storeName ?? '', storeData.shopType ?? null, storeData.storeNameI18n ?? null);
                 setStoreFeatures(storeData.usePointSystem ?? false, storeData.useMembershipSystem ?? false, storeData.useCouponSystem ?? false, storeData.useOnlineBooking ?? false);
                 if (storeData && typeof storeData === 'object' && storeData.businessHours && Array.isArray(storeData.closedDates)) {
                     const rawPointSettings = storeData.pointSettings as StoreSettings['pointSettings'] & {mode?: string} | undefined;

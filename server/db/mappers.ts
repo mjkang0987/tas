@@ -118,6 +118,7 @@ function toDateKey(d: Date): string {
 type DbAssigneeRow = {
     legacyId: number | null;
     name: string;
+    nameI18nJson?: unknown;
     status: DbAssigneeStatus;
     phone: string | null;
     note: string | null;
@@ -140,6 +141,7 @@ export function dbAssigneeToFrontend(row: DbAssigneeRow) {
         };
     });
 
+    const nameI18n = parseI18nText(row.nameI18nJson);
     return {
         id: row.legacyId!,
         name: row.name,
@@ -148,6 +150,7 @@ export function dbAssigneeToFrontend(row: DbAssigneeRow) {
         ...(row.phone !== null && {phone: row.phone}),
         ...(row.note !== null && {note: row.note}),
         ...(row.color !== null && {color: row.color}),
+        ...(nameI18n && {nameI18n}),
     };
 }
 
@@ -267,6 +270,7 @@ type DbServiceRow = {
     category: string;
     duration: number;
     price: number;
+    nameI18nJson?: unknown;
 };
 
 export function dbServiceToFrontend(row: DbServiceRow) {
@@ -275,7 +279,20 @@ export function dbServiceToFrontend(row: DbServiceRow) {
         durationMinutes: row.duration,
         category: row.category,
         price: row.price,
+        nameI18n: parseI18nText(row.nameI18nJson),
     };
+}
+
+// DB JSON 컬럼(nameI18nJson 등) → {en?,ja?,zh?} 정규화. 문자열 값만 취하고 나머지는 버린다.
+export function parseI18nText(raw: unknown): {en?: string; ja?: string; zh?: string} | null {
+    if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return null;
+    const src = raw as Record<string, unknown>;
+    const out: {en?: string; ja?: string; zh?: string} = {};
+    for (const k of ['en', 'ja', 'zh'] as const) {
+        const v = src[k];
+        if (typeof v === 'string' && v.trim()) out[k] = v.trim();
+    }
+    return Object.keys(out).length > 0 ? out : null;
 }
 
 type DbStoreData = {

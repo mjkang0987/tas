@@ -1,8 +1,10 @@
 import type {NextApiRequest, NextApiResponse} from 'next';
 
+import {Prisma} from '../../client/prisma/generated/prisma/client';
+
 import {prisma} from '../db/prisma';
 import {getApiSession, requireRole} from '../auth/api-session';
-import {dbStoreToFrontend} from '../db/mappers';
+import {dbStoreToFrontend, parseI18nText} from '../db/mappers';
 import type {StoreSettings, BookingSettings} from '../../client/features/store-settings/model';
 import {DEFAULT_STORE_SETTINGS, DEFAULT_BOOKING_SETTINGS, isValidBookingSlug, parseBookableServiceNames, sanitizeClosedWeekdays} from '../../client/features/store-settings/model';
 import {sanitizeShopType} from '../../client/features/store-settings/labels';
@@ -35,7 +37,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         }
 
         const [store, businessHours, closedDates, pointSettings] = await Promise.all([
-            prisma.store.findUnique({where: {id: session.storeId}, select: {name: true, shopType: true, usePointSystem: true, useMembershipSystem: true, useCouponSystem: true}}),
+            prisma.store.findUnique({where: {id: session.storeId}, select: {name: true, nameI18nJson: true, shopType: true, usePointSystem: true, useMembershipSystem: true, useCouponSystem: true}}),
             prisma.storeBusinessHour.findMany({where: {storeId: session.storeId}, orderBy: {dayIndex: 'asc'}}),
             prisma.storeClosedDate.findMany({where: {storeId: session.storeId}}),
             prisma.storePointSettings.findUnique({where: {storeId: session.storeId}}),
@@ -60,6 +62,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                     maxAdvanceDays: bs.maxAdvanceDays,
                     allowAssigneeChoice: bs.allowAssigneeChoice,
                     noticeText: bs.noticeText,
+                    noticeI18n: parseI18nText(bs.noticeI18nJson),
                     bookableServiceNames: parseBookableServiceNames(bs.bookableServiceIdsJson),
                 };
             }
@@ -71,6 +74,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         return res.status(200).json({
             ...result,
             storeName: store?.name ?? '',
+            storeNameI18n: parseI18nText(store?.nameI18nJson),
             shopType: store?.shopType ?? null,
             usePointSystem: store?.usePointSystem ?? false,
             useMembershipSystem: store?.useMembershipSystem ?? false,
@@ -163,13 +167,17 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     if (req.method === 'PATCH') {
         if (!requireRole(session, 'owner', res)) return;
 
-        const {storeName, shopType, usePointSystem, useMembershipSystem, useCouponSystem, useOnlineBooking, bookingSlug, bookingSettings} = req.body as {
-            storeName?: unknown; shopType?: unknown; usePointSystem?: unknown; useMembershipSystem?: unknown; useCouponSystem?: unknown;
+        const {storeName, storeNameI18n, shopType, usePointSystem, useMembershipSystem, useCouponSystem, useOnlineBooking, bookingSlug, bookingSettings} = req.body as {
+            storeName?: unknown; storeNameI18n?: unknown; shopType?: unknown; usePointSystem?: unknown; useMembershipSystem?: unknown; useCouponSystem?: unknown;
             useOnlineBooking?: unknown; bookingSlug?: unknown; bookingSettings?: unknown;
         };
 
         if (storeName !== undefined && (typeof storeName !== 'string' || !storeName.trim())) {
             return res.status(400).json({error: 'Invalid storeName'});
+        }
+        // 매장명 번역: 객체(정규화는 parseI18nText가 담당) 또는 null만. 형식만 방어.
+        if (storeNameI18n !== undefined && storeNameI18n !== null && (typeof storeNameI18n !== 'object' || Array.isArray(storeNameI18n))) {
+            return res.status(400).json({error: 'Invalid storeNameI18n'});
         }
         if (shopType !== undefined && shopType !== null && typeof shopType !== 'string') {
             return res.status(400).json({error: 'Invalid shopType'});
@@ -221,6 +229,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                 maxAdvanceDays: b.maxAdvanceDays!,
                 allowAssigneeChoice: b.allowAssigneeChoice,
                 noticeText: (b.noticeText ?? null) as string | null,
+                noticeI18n: parseI18nText(b.noticeI18n),
                 bookableServiceNames: (b.bookableServiceNames ?? null) as string[] | null,
             };
         }
@@ -230,6 +239,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                 where: {id: session.storeId},
                 data: {
                     ...(storeName !== undefined && {name: (storeName as string).trim()}),
+                    ...(storeNameI18n !== undefined && {nameI18nJson: parseI18nText(storeNameI18n) ?? Prisma.JsonNull}),
                     ...(shopType !== undefined && {shopType: sanitizeShopType(shopType)}),
                     ...(usePointSystem !== undefined && {usePointSystem: usePointSystem as boolean}),
                     ...(useMembershipSystem !== undefined && {useMembershipSystem: useMembershipSystem as boolean}),
@@ -247,9 +257,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         }
 
         if (nextBooking !== undefined) {
-            // BookingSettings.bookableServiceNames ↔ DB 컬럼 bookableServiceIdsJson 로 매핑.
-            const {bookableServiceNames, ...rules} = nextBooking;
-            const bookingData = {...rules, bookableServiceIdsJson: bookableServiceNames ?? []};
+            // BookingSettings.bookableServiceNames ↔ bookableServiceIdsJson, noticeI18n ↔ noticeI18nJson 로 매핑.
+            const {bookableServiceNames, noticeI18n, ...rules} = nextBooking;
+            const bookingData = {
+                ...rules,
+                bookableServiceIdsJson: bookableServiceNames ?? [],
+                noticeI18nJson: noticeI18n ?? Prisma.JsonNull,
+            };
             await prisma.storeBookingSettings.upsert({
                 where: {storeId: session.storeId},
                 update: bookingData,

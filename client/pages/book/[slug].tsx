@@ -8,6 +8,7 @@ import {normalizeTel} from '../../features/customers/model';
 import {
     BOOK_STRINGS, formatBookDateLabel, formatDurationL, formatPriceL,
     localizedStoreLabels, lookupStatusL, dowLabelL, todayLabelL,
+    pickI18n, bookHref, type I18nText,
 } from '../../features/booking/i18n';
 import {SeoHead} from '../../components/ui/SeoHead';
 import {formControlStyle} from '../../components/ui/FormControls';
@@ -20,6 +21,7 @@ import {
 
 interface BookServiceInfo {
     name: string;
+    nameI18n?: I18nText; // 표시용 번역(오너 입력). 선택·전송 키는 항상 name(한국어).
     category: string;
     duration: number;
     price: number;
@@ -27,6 +29,7 @@ interface BookServiceInfo {
 interface BookAssigneeInfo {
     id: string;
     name: string;
+    nameI18n?: I18nText; // 표시용 번역. 식별은 id.
     color: string | null;
     offDays: number[]; // 주간 휴무 요일(0=월…6=일). 이 담당자 선택 시 해당 요일 날짜 비활성.
 }
@@ -38,12 +41,13 @@ interface BookBusinessHour {
 }
 interface BookStoreInfo {
     storeName: string;
+    storeNameI18n?: I18nText;
     shopType: string | null;
     services: BookServiceInfo[];
     assignees: BookAssigneeInfo[];
     businessHours: BookBusinessHour[];
     closedDates: string[];
-    settings: {allowAssigneeChoice: boolean; noticeText: string | null; maxAdvanceDays: number};
+    settings: {allowAssigneeChoice: boolean; noticeText: string | null; noticeI18n?: I18nText; maxAdvanceDays: number};
 }
 interface ReserveResult {
     publicToken: string;
@@ -319,10 +323,9 @@ export default function BookingPage() {
             .finally(() => setLookupLoading(false));
     };
 
-    // 뷰 전환은 URL 쿼리로 (shallow) — 위 동기화 effect가 view 상태를 갱신. 새로고침해도 유지.
+    // 뷰 전환 — 언어 접두를 보존한 채 ?m= 갱신. 같은 라우트라 리마운트/재요청 없음.
     const goView = (v: BookView) => {
-        const query = v === 'home' ? {slug} : {slug, m: v};
-        router.push({pathname: '/book/[slug]', query}, undefined, {shallow: true});
+        router.push(bookHref(lang, slug, v === 'home' ? undefined : {m: v}), undefined, {scroll: false});
     };
 
     const goHome = () => {
@@ -352,12 +355,16 @@ export default function BookingPage() {
         );
     }
 
+    // 표시용 매장명(오너 번역 있으면 그것, 없으면 한국어 원문).
+    const storeDisplay = pickI18n(info.storeNameI18n, lang, info.storeName);
+    const noticeDisplay = pickI18n(info.settings.noticeI18n, lang, info.settings.noticeText ?? '');
+
     if (result) {
         return (
             <StyledWrap>
-                <SeoHead title={`${info.storeName} · ${t.reserveDoneTitle}`} />
+                <SeoHead title={`${storeDisplay} · ${t.reserveDoneTitle}`} />
                 <StyledCard>
-                    <StyledStore>{info.storeName}</StyledStore>
+                    <StyledStore>{storeDisplay}</StyledStore>
                     <StyledTitle>{t.reserveDoneTitle}</StyledTitle>
                     <StyledSummary>
                         <StyledSummaryRow><span>{t.date}</span><StyledSummaryValue>{result.date}</StyledSummaryValue></StyledSummaryRow>
@@ -365,7 +372,7 @@ export default function BookingPage() {
                         <StyledSummaryRow><span>{labels.service}</span><StyledSummaryValue>{result.serviceSummary}</StyledSummaryValue></StyledSummaryRow>
                     </StyledSummary>
                     <StyledNotice>{t.reserveDoneNoticePrefix}<strong>{t.reserveDoneNoticeStrong}</strong>{t.reserveDoneNoticeSuffix}</StyledNotice>
-                    <StyledManageLink href={`/book/${encodeURIComponent(slug)}/r/${result.publicToken}`}>{t.manageLink}</StyledManageLink>
+                    <StyledManageLink href={bookHref(lang, slug, {token: result.publicToken})}>{t.manageLink}</StyledManageLink>
                 </StyledCard>
                 <LangSwitcher lang={lang} onChange={setLang} />
             </StyledWrap>
@@ -376,11 +383,11 @@ export default function BookingPage() {
     if (view === 'home') {
         return (
             <StyledWrap>
-                <SeoHead title={`${info.storeName} · ${t.homeTitle}`} />
+                <SeoHead title={`${storeDisplay} · ${t.homeTitle}`} />
                 <StyledCard>
-                    <StyledStore>{info.storeName}</StyledStore>
+                    <StyledStore>{storeDisplay}</StyledStore>
                     <StyledTitle>{t.homeTitle}</StyledTitle>
-                    {info.settings.noticeText && <StyledNotice>{info.settings.noticeText}</StyledNotice>}
+                    {noticeDisplay && <StyledNotice>{noticeDisplay}</StyledNotice>}
                     <StyledHomeActions>
                         <StyledHomeBtn type="button" $primary onClick={() => goView('new')}>
                             <span className="t">{t.newReservation}</span>
@@ -401,10 +408,10 @@ export default function BookingPage() {
     if (view === 'lookup') {
         return (
             <StyledWrap>
-                <SeoHead title={`${info.storeName} · ${t.lookupTitle}`} />
+                <SeoHead title={`${storeDisplay} · ${t.lookupTitle}`} />
                 <StyledCard>
                     <StyledBackBtn type="button" onClick={goHome}>{t.backToStart}</StyledBackBtn>
-                    <StyledStore>{info.storeName}</StyledStore>
+                    <StyledStore>{storeDisplay}</StyledStore>
                     <StyledTitle>{t.lookupTitle}</StyledTitle>
                     <StyledMuted>{t.lookupGuide}</StyledMuted>
                     <StyledField>
@@ -427,7 +434,7 @@ export default function BookingPage() {
                         ) : (
                             <StyledLookupList>
                                 {lookupResults.map((r) => (
-                                    <StyledLookupItem key={r.token} href={`/book/${encodeURIComponent(slug)}/r/${r.token}`}>
+                                    <StyledLookupItem key={r.token} href={bookHref(lang, slug, {token: r.token})}>
                                         <StyledLookupStatus $status={r.status}>
                                             {lookupStatusL(r.status, lang)}
                                         </StyledLookupStatus>
@@ -452,9 +459,10 @@ export default function BookingPage() {
         : [];
 
     // 하단 '예약 내용' 요약용 파생값.
-    const selectedAssigneeName = assigneeId === ASSIGNEE_ANY
-        ? t.anyAssignee
-        : (info.assignees.find((a) => a.id === assigneeId)?.name ?? t.anyAssignee);
+    const selectedAssignee = assigneeId === ASSIGNEE_ANY ? null : info.assignees.find((a) => a.id === assigneeId);
+    const selectedAssigneeName = selectedAssignee
+        ? pickI18n(selectedAssignee.nameI18n, lang, selectedAssignee.name)
+        : t.anyAssignee;
     const selectedDateLabel = date
         ? formatBookDateLabel(date, clientDayIndex(date), lang)
         : '—';
@@ -465,12 +473,12 @@ export default function BookingPage() {
 
     return (
         <StyledWrap>
-            <SeoHead title={`${info.storeName} · ${t.onlineReservation}`} />
-            <StyledCard>
+            <SeoHead title={`${storeDisplay} · ${t.onlineReservation}`} />
+            <StyledCard $flush>
                 <StyledBackBtn type="button" onClick={goHome}>{t.backToStart}</StyledBackBtn>
-                <StyledStore>{info.storeName}</StyledStore>
+                <StyledStore>{storeDisplay}</StyledStore>
                 <StyledTitle>{t.onlineReservation}</StyledTitle>
-                {info.settings.noticeText && <StyledNotice>{info.settings.noticeText}</StyledNotice>}
+                {noticeDisplay && <StyledNotice>{noticeDisplay}</StyledNotice>}
 
                 {showAssignees && (
                     <>
@@ -491,7 +499,7 @@ export default function BookingPage() {
                                         title={!working ? t.dayOffTitle : undefined}
                                         onClick={() => pickAssignee(a.id)}
                                     >
-                                        {a.name}{!working && <LabelBadge $tone="neutral">{t.dayOff}</LabelBadge>}
+                                        {pickI18n(a.nameI18n, lang, a.name)}{!working && <LabelBadge $tone="neutral">{t.dayOff}</LabelBadge>}
                                     </PillChip>
                                 );
                             })}
@@ -536,7 +544,7 @@ export default function BookingPage() {
                                 disabled={!isServiceEnabled(s.name)}
                                 onClick={() => toggleService(s.name)}
                             >
-                                <span className="nm">{s.name}</span>
+                                <span className="nm">{pickI18n(s.nameI18n, lang, s.name)}</span>
                                 <span className="mt">{formatDurationL(s.duration, lang)} · {formatPriceL(s.price, lang)}</span>
                             </ServiceChoiceChip>
                         );
@@ -617,7 +625,7 @@ export default function BookingPage() {
                                 <StyledSumServiceList>
                                     {selectedServiceItems.map((s) => (
                                         <StyledSumServiceRow key={s.name}>
-                                            <span className="nm">{s.name}</span>
+                                            <span className="nm">{pickI18n(s.nameI18n, lang, s.name)}</span>
                                             <span className="mt">{formatDurationL(s.duration, lang)} · {formatPriceL(s.price, lang)}</span>
                                         </StyledSumServiceRow>
                                     ))}
@@ -662,7 +670,7 @@ const StyledWrap = styled.div`
 // 온보딩 카드와 톤 정렬: 화이트 배경 + 카드 그림자(데스크탑), 모바일은 풀블리드.
 // box-sizing:border-box 필수 — 없으면 width:100% + 좌우 padding이 더해져
 // 모바일(max-width:none)에서 카드가 뷰포트보다 넓어져 가로 스크롤·배경 잘림이 생긴다.
-const StyledCard = styled.div`
+const StyledCard = styled.div<{$flush?: boolean}>`
     box-sizing: border-box;
     width: 100%;
     max-width: 480px;
@@ -671,6 +679,10 @@ const StyledCard = styled.div`
     flex-direction: column;
     gap: 16px;
     padding: 32px 28px;
+    /* sticky 요약 바(bottom:LANG_BAR_OFFSET)의 containing block은 카드다. 카드 하단에
+       그만큼 여백을 둬야 최하단 스크롤에서 요약 바가 natural 위치로 '풀려' 마지막 필드를
+       가리지 않는다. (wrap 패딩은 카드 밖이라 sticky 해제에 기여 못 함) */
+    ${(p) => (p.$flush ? `padding-bottom: ${LANG_BAR_OFFSET};` : '')}
     background: var(--white-color);
     border-radius: var(--radius-lg);
     box-shadow: var(--shadow-md);
@@ -680,6 +692,7 @@ const StyledCard = styled.div`
         box-shadow: none;
         min-height: 100dvh;
         padding: 24px 18px;
+        ${(p) => (p.$flush ? `padding-bottom: ${LANG_BAR_OFFSET};` : '')}
     }
 `;
 
@@ -755,13 +768,14 @@ const StyledFieldHint = styled.span`
     color: var(--dark-gray-color2);
 `;
 
-// 하단 sticky 요약 바. 카드 폭 풀블리드(negative margin)로 뷰포트 하단에 고정.
+// 하단 sticky 요약 바. 좌우만 풀블리드(negative margin), 하단 마진 0 — 카드 $flush(하단패딩0)와
+// 맞물려 요약 바가 flow 공간을 온전히 차지하게 해 마지막 필드가 가리지 않게 한다.
 const StyledStickyFooter = styled.div`
     position: sticky;
     /* 고정 언어 바 위에 붙도록 바 높이만큼 올린다(z-index는 바가 더 위). */
     bottom: ${LANG_BAR_OFFSET};
     z-index: 5;
-    margin: 8px -28px -32px;
+    margin: 8px -28px 0;
     padding: 14px 28px 18px;
     display: flex;
     flex-direction: column;
@@ -770,7 +784,7 @@ const StyledStickyFooter = styled.div`
     border-top: 1px solid var(--light-gray-color);
     box-shadow: 0 -6px 20px rgba(0, 0, 0, 0.06);
     @media (max-width: 640px) {
-        margin: 8px -18px -24px;
+        margin: 8px -18px 0;
         padding: 12px 18px 16px;
     }
 `;

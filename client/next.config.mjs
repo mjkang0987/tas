@@ -55,6 +55,10 @@ const nextConfig = {
                 source: `/${aside}/:path*`,
                 destination: '/',
             })),
+            // 공개 예약 페이지 언어 접두(/en|ja|zh). 한국어는 접두 없음.
+            // 내부 페이지는 그대로 두고 lang 쿼리만 주입 → 페이지가 router.query.lang로 언어 결정.
+            {source: '/book/:lang(en|ja|zh)/:slug', destination: '/book/:slug?lang=:lang'},
+            {source: '/book/:lang(en|ja|zh)/:slug/r/:token', destination: '/book/:slug/r/:token?lang=:lang'},
             // /consent/<돌아갈 경로> → consent 페이지 (쿼리스트링 대신 슬래시 경로)
             {source: '/consent/:slug*', destination: '/consent'},
             // /policies/<slug> → 독립 HTML 정책 문서 (앱 셸 없는 풀페이지)

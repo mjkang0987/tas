@@ -161,6 +161,14 @@ export const AsideMenuIcon = ({icon}: {icon: string}) => {
                     <path d="M14 9L10 15" strokeDasharray="0.1 3" />
                 </StyledMenuIcon>
             );
+        case 'booking':
+            return (
+                <StyledMenuIcon viewBox="0 0 24 24" aria-hidden="true">
+                    <rect x="4" y="5.5" width="16" height="14" rx="2" />
+                    <path d="M4 9.5H20M8 3.5V6.5M16 3.5V6.5" />
+                    <path d="M9.2 14L11 15.8L14.8 12" />
+                </StyledMenuIcon>
+            );
         case 'guide':
             return (
                 <StyledMenuIcon viewBox="0 0 24 24" aria-hidden="true">
