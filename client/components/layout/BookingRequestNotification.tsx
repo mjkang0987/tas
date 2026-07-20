@@ -5,7 +5,8 @@ import styled from 'styled-components';
 import {useBookingRequests, type BookingRequestDto} from '../../hooks/useBookingRequests';
 import {LabelBadge} from '../ui/LabelBadge';
 import {useCalendarStore} from '../../store/calendarStore';
-import {groupByDate, type ReservationMap} from '../../utils/reservations';
+import {groupByDate, type Reservation, type ReservationMap} from '../../utils/reservations';
+import {ReservationDetail} from '../calendar/overlays/ReservationDetail';
 
 function formatMd(dateStr: string): string {
     if (!dateStr || !dateStr.includes('-')) return dateStr || '-';
@@ -16,38 +17,52 @@ function formatMd(dateStr: string): string {
 // 오너용 온라인 예약 변경/취소 요청 승인 벨. 대기 요청이 있을 때만 노출된다.
 export const BookingRequestNotification = () => {
     const {requests, loading, refetch, decide} = useBookingRequests();
-    const openReservationDetail = useCalendarStore((s) => s.openReservationDetail);
     const reservationMap = useCalendarStore((s) => s.reservationMap);
     const setReservationMap = useCalendarStore((s) => s.setReservationMap);
+    const customerMap = useCalendarStore((s) => s.customerMap);
+    const reservationHistory = useCalendarStore((s) => s.reservationHistory);
     const setReservationHistory = useCalendarStore((s) => s.setReservationHistory);
+    const openCustomerDetail = useCalendarStore((s) => s.openCustomerDetail);
+    const updateReservation = useCalendarStore((s) => s.updateReservation);
+    const cancelReservation = useCalendarStore((s) => s.cancelReservation);
+    const restoreReservation = useCalendarStore((s) => s.restoreReservation);
+    const deleteReservation = useCalendarStore((s) => s.deleteReservation);
     const useOnlineBooking = useCalendarStore((s) => s.useOnlineBooking);
     const [open, setOpen] = useState(false);
     const [busyId, setBusyId] = useState<string>('');
+    // 벨이 직접 여는 상세 대상(예약 객체). 페이지의 오버레이 렌더러에 의존하지 않고
+    // 벨 자신이 ReservationDetail을 렌더한다 — 어느 페이지(달력·고객명단 등)에서든 동일하게 열린다.
+    const [detailReservation, setDetailReservation] = useState<Reservation | null>(null);
     const containerRef = useRef<HTMLDivElement>(null);
 
     // 벨 항목 클릭 → legacyId로 예약을 찾아 상세 레이어를 연다(미래 날짜 예약도 상세 접근 가능).
-    // reservationMap이 오래돼(페이지 로드 후 들어온 신규 예약이 맵에 없을 수 있음) 못 찾으면
-    // 예약을 다시 불러와 재시도한다. (예전엔 못 찾으면 조용히 실패 → 상세가 안 떴다)
+    // 예전엔 전역 스토어(openReservationDetail)로 열어 "그 페이지가 오버레이를 렌더하는지"에 의존했다.
+    // 달력(id→reservationMap 조회) 등 일부 페이지에선 대기 예약이 맵에 없어 안 떴다.
+    // 이제 벨이 예약 객체를 직접 들고 상세를 렌더하므로 페이지·맵 상태와 무관하게 열린다.
+    const findInMap = (map: ReservationMap, legacyId: number): Reservation | null => {
+        for (const list of Object.values(map)) {
+            const found = list.find((r) => r.id === legacyId);
+            if (found) return found;
+        }
+        return null;
+    };
     const openDetail = useCallback(async (req: BookingRequestDto) => {
         if (req.legacyId == null) return;
-        const findAndOpen = (map: ReservationMap): boolean => {
-            for (const list of Object.values(map)) {
-                const found = list.find((r) => r.id === req.legacyId);
-                if (found) { openReservationDetail(found); setOpen(false); return true; }
-            }
-            return false;
-        };
-        if (findAndOpen(reservationMap)) return;
+        const inMap = findInMap(reservationMap, req.legacyId);
+        if (inMap) { setDetailReservation(inMap); setOpen(false); return; }
+        // 맵에 없으면(페이지 로드 후 들어온 신규 예약) 다시 불러와 찾는다.
         try {
             const res = await fetch('/api/reservations');
             if (!res.ok) return;
             const data = await res.json();
-            const nextMap = groupByDate(Array.isArray(data.reservations) ? data.reservations : []);
-            setReservationMap(nextMap); // 전역 상세 오버레이도 이 맵에서 조회하므로 먼저 갱신
+            const list: Reservation[] = Array.isArray(data.reservations) ? data.reservations : [];
+            const nextMap = groupByDate(list);
+            setReservationMap(nextMap); // 앱 전역 상태도 최신으로 맞춰둔다.
             if (Array.isArray(data.history)) setReservationHistory(data.history);
-            findAndOpen(nextMap);
+            const found = list.find((r) => r.id === req.legacyId) ?? null;
+            if (found) { setDetailReservation(found); setOpen(false); }
         } catch { /* 네트워크 실패 무시 */ }
-    }, [reservationMap, openReservationDetail, setReservationMap, setReservationHistory]);
+    }, [reservationMap, setReservationMap, setReservationHistory]);
 
     useEffect(() => {
         if (!open) return;
@@ -80,6 +95,7 @@ export const BookingRequestNotification = () => {
     const count = requests.length;
 
     return (
+        <>
         <StyledContainer ref={containerRef}>
             <StyledBellButton type="button" onClick={() => setOpen((v) => !v)}
                               aria-label={count > 0 ? `예약 요청 ${count}건` : '예약 요청'}>
@@ -127,6 +143,24 @@ export const BookingRequestNotification = () => {
                 </StyledPanel>
             )}
         </StyledContainer>
+
+        {/* 벨이 직접 여는 상세 오버레이. ReservationDetail은 createPortal로 body에 렌더돼
+            어느 페이지에서든 동일하게 뜬다(페이지별 오버레이 렌더러 의존 제거). */}
+        {detailReservation && (
+            <ReservationDetail
+                reservation={detailReservation}
+                customerMap={customerMap}
+                reservationMap={reservationMap}
+                history={reservationHistory}
+                onClose={() => setDetailReservation(null)}
+                onCustomerClick={openCustomerDetail}
+                onUpdate={(prev, updated) => { updateReservation(prev, updated); setDetailReservation(updated); }}
+                onCancel={(target, status) => { cancelReservation(target, status); setDetailReservation(null); }}
+                onRestore={restoreReservation}
+                onDelete={(target) => { deleteReservation(target); setDetailReservation(null); }}
+            />
+        )}
+        </>
     );
 };
 
