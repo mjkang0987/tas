@@ -13,6 +13,60 @@ import {StyledSettingsCard, StyledSettingsCardTitle, StyledSettingsHint, StyledS
 const BOOKING_HOST = process.env.NEXT_PUBLIC_BOOKING_HOST ?? 'book.takeaseat.co.kr';
 const SLOT_OPTIONS = [10, 15, 20, 30, 60];
 
+type MessageI18n = {en?: string | null; ja?: string | null; zh?: string | null} | null | undefined;
+const MESSAGE_LANGS = [['en', 'English'], ['ja', '日本語'], ['zh', '中文']] as const;
+
+// 오너 입력 문구 1개 = 한국어 본문 + 언어별(영/일/중) 번역 입력. 예약 안내문구 4종이 공통으로 쓴다.
+// 언어칸을 비우면 해당 키를 지워, 완전히 비면 i18n을 null로(한국어 폴백) 유지한다.
+function LocalizedMessageField({
+    idBase, label, caption, placeholder, mainValue, i18nValue, disabled, onMainChange, onI18nChange,
+}: {
+    idBase: string;
+    label: string;
+    caption: string;
+    placeholder: string;
+    mainValue: string;
+    i18nValue: MessageI18n;
+    disabled: boolean;
+    onMainChange: (value: string) => void;
+    onI18nChange: (next: {en?: string | null; ja?: string | null; zh?: string | null} | null) => void;
+}) {
+    const setLangValue = (code: 'en' | 'ja' | 'zh', value: string) => {
+        const next = {...(i18nValue ?? {})};
+        if (value.trim()) next[code] = value; else delete next[code];
+        onI18nChange(Object.keys(next).length > 0 ? next : null);
+    };
+    return (
+        <StyledMessageBlock>
+            <StyledField>
+                <StyledLabel htmlFor={`${idBase}-ko`}>{label}</StyledLabel>
+                <StyledFieldCaption>{caption}</StyledFieldCaption>
+                <StyledTextarea
+                    id={`${idBase}-ko`}
+                    value={mainValue}
+                    placeholder={placeholder}
+                    onChange={(e) => onMainChange(e.target.value)}
+                    disabled={disabled}
+                    rows={3}
+                />
+            </StyledField>
+            {MESSAGE_LANGS.map(([code, langLabel]) => (
+                <StyledField key={code}>
+                    <StyledLabel htmlFor={`${idBase}-${code}`}>{langLabel}</StyledLabel>
+                    <StyledTextarea
+                        id={`${idBase}-${code}`}
+                        value={i18nValue?.[code] ?? ''}
+                        placeholder={langLabel}
+                        onChange={(e) => setLangValue(code, e.target.value)}
+                        disabled={disabled}
+                        rows={2}
+                    />
+                </StyledField>
+            ))}
+        </StyledMessageBlock>
+    );
+}
+
 export function BookingManageSection() {
     const toast = useToastStore((s) => s.show);
     const serviceCatalog = useCalendarStore((s) => s.serviceCatalog);
@@ -208,35 +262,55 @@ export function BookingManageSection() {
                     />
                     <span>고객이 담당자를 선택할 수 있게 하기 (끄면 매장이 배정)</span>
                 </StyledCheckboxRow>
-                <StyledField>
-                    <StyledLabel htmlFor="booking-notice">예약 안내문 (선택)</StyledLabel>
-                    <StyledTextarea
-                        id="booking-notice"
-                        value={settings.noticeText ?? ''}
-                        placeholder="예) 예약 확정은 매장 확인 후 안내됩니다."
-                        onChange={(e) => setSettings((prev) => ({...prev, noticeText: e.target.value || null}))}
-                        disabled={loading}
-                        rows={3}
-                    />
-                </StyledField>
-                <StyledSettingsHint>안내문 다국어 (선택) — 고객 예약 페이지에서 해당 언어로 보입니다. 비우면 위 안내문이 그대로 표시됩니다.</StyledSettingsHint>
-                {([['en', 'English'], ['ja', '日本語'], ['zh', '中文']] as const).map(([code, label]) => (
-                    <StyledField key={code}>
-                        <StyledLabel htmlFor={`booking-notice-${code}`}>{label}</StyledLabel>
-                        <StyledTextarea
-                            id={`booking-notice-${code}`}
-                            value={settings.noticeI18n?.[code] ?? ''}
-                            placeholder={label}
-                            onChange={(e) => setSettings((prev) => {
-                                const next = {...(prev.noticeI18n ?? {})};
-                                if (e.target.value.trim()) next[code] = e.target.value; else delete next[code];
-                                return {...prev, noticeI18n: Object.keys(next).length > 0 ? next : null};
-                            })}
-                            disabled={loading}
-                            rows={2}
-                        />
-                    </StyledField>
-                ))}
+            </StyledSettingsCard>
+
+            <StyledSettingsCard>
+                <StyledSettingsCardTitle>안내문구</StyledSettingsCardTitle>
+                <StyledSettingsHint>예약 흐름의 각 단계에서 고객에게 보여줄 문구입니다. 모두 선택 사항이며, 비우면 표시되지 않습니다. 언어별 칸을 비우면 한국어 문구가 그대로 표시됩니다.</StyledSettingsHint>
+                <LocalizedMessageField
+                    idBase="booking-notice"
+                    label="사전 안내문"
+                    caption="예약 페이지 상단(예약 시작 전)에 표시됩니다."
+                    placeholder="예) 예약 확정은 매장 확인 후 안내됩니다."
+                    mainValue={settings.noticeText ?? ''}
+                    i18nValue={settings.noticeI18n}
+                    disabled={loading}
+                    onMainChange={(v) => setSettings((prev) => ({...prev, noticeText: v || null}))}
+                    onI18nChange={(next) => setSettings((prev) => ({...prev, noticeI18n: next}))}
+                />
+                <LocalizedMessageField
+                    idBase="booking-done"
+                    label="예약완료 안내문"
+                    caption="고객이 예약을 신청하고 완료 화면에서 표시됩니다."
+                    placeholder="예) 예약 신청이 접수되었습니다. 확정 시 다시 안내드립니다."
+                    mainValue={settings.doneText ?? ''}
+                    i18nValue={settings.doneI18n}
+                    disabled={loading}
+                    onMainChange={(v) => setSettings((prev) => ({...prev, doneText: v || null}))}
+                    onI18nChange={(next) => setSettings((prev) => ({...prev, doneI18n: next}))}
+                />
+                <LocalizedMessageField
+                    idBase="booking-confirm"
+                    label="예약 확정 안내문"
+                    caption="예약이 확정된 뒤 고객이 예약 조회 페이지를 열면 표시됩니다."
+                    placeholder="예) 예약이 확정되었습니다. 예약 시간에 맞춰 방문해 주세요."
+                    mainValue={settings.confirmText ?? ''}
+                    i18nValue={settings.confirmI18n}
+                    disabled={loading}
+                    onMainChange={(v) => setSettings((prev) => ({...prev, confirmText: v || null}))}
+                    onI18nChange={(next) => setSettings((prev) => ({...prev, confirmI18n: next}))}
+                />
+                <LocalizedMessageField
+                    idBase="booking-cancel"
+                    label="예약 취소 안내문"
+                    caption="예약이 취소된 뒤 고객이 예약 조회 페이지를 열면 표시됩니다."
+                    placeholder="예) 예약이 취소되었습니다. 다시 예약해 주세요."
+                    mainValue={settings.cancelText ?? ''}
+                    i18nValue={settings.cancelI18n}
+                    disabled={loading}
+                    onMainChange={(v) => setSettings((prev) => ({...prev, cancelText: v || null}))}
+                    onI18nChange={(next) => setSettings((prev) => ({...prev, cancelI18n: next}))}
+                />
             </StyledSettingsCard>
 
             {serviceCatalog.length > 0 && (
@@ -295,6 +369,24 @@ const StyledLabel = styled.label`
     font-size: 13px;
     font-weight: 600;
     color: var(--dark-gray-color);
+`;
+
+// 안내문구 한 종(본문+번역)을 시각적으로 묶는다. 종끼리 구분선으로 나눠 가독성 확보.
+const StyledMessageBlock = styled.div`
+    margin-top: 8px;
+    padding-top: 8px;
+
+    & + & {
+        margin-top: 18px;
+        padding-top: 18px;
+        border-top: 1px solid var(--light-gray-color);
+    }
+`;
+
+const StyledFieldCaption = styled.span`
+    font-size: 12px;
+    line-height: 1.5;
+    color: var(--dark-gray-color2);
 `;
 
 const StyledInput = styled.input<{$invalid?: boolean}>`

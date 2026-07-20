@@ -1,5 +1,6 @@
 // 공개 온라인 예약 API 공용 헬퍼(availability·reserve 공유).
 import {prisma} from '../../db/prisma';
+import {parseI18nText} from '../../db/mappers';
 import {DEFAULT_BOOKING_SETTINGS, parseBookableServiceNames} from '../../../client/features/store-settings/model';
 import type {BookingSettings} from '../../../client/features/store-settings/model';
 
@@ -117,6 +118,13 @@ export async function loadBookingSettings(storeId: string): Promise<BookingSetti
         maxAdvanceDays: row.maxAdvanceDays,
         allowAssigneeChoice: row.allowAssigneeChoice,
         noticeText: row.noticeText,
+        noticeI18n: parseI18nText(row.noticeI18nJson),
+        doneText: row.doneText,
+        doneI18n: parseI18nText(row.doneI18nJson),
+        confirmText: row.confirmText,
+        confirmI18n: parseI18nText(row.confirmI18nJson),
+        cancelText: row.cancelText,
+        cancelI18n: parseI18nText(row.cancelI18nJson),
         bookableServiceNames: parseBookableServiceNames(row.bookableServiceIdsJson),
     };
 }

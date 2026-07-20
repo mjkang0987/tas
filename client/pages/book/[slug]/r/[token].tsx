@@ -6,7 +6,7 @@ import styled from 'styled-components';
 
 import {
     BOOK_STRINGS, formatDurationL, formatPriceL, localizedStoreLabels,
-    statusLabelL, dowLabelL, todayLabelL,
+    statusLabelL, dowLabelL, todayLabelL, pickI18n, type I18nText,
 } from '../../../../features/booking/i18n';
 import {SeoHead} from '../../../../components/ui/SeoHead';
 import {LabelBadge} from '../../../../components/ui/LabelBadge';
@@ -37,6 +37,8 @@ interface ReservationView {
     pendingChange: PendingChange | null;
     canRequest: boolean;
     canCancel: boolean;
+    // 상태별 오너 안내문구(#139): 확정·취소일 때만 서버가 채운다. 없으면 null.
+    statusMessage: {text: string | null; i18n: I18nText} | null;
 }
 
 interface BookServiceInfo {name: string; category: string; duration: number; price: number}
@@ -228,6 +230,10 @@ export default function ReservationManagePage() {
     }
 
     const pending = reservation.pendingAction !== 'none';
+    // 확정/취소 상태에서 오너가 설정한 안내문구(선택 언어, 비면 한국어 폴백). 없으면 미표시.
+    const statusMsg = reservation.statusMessage
+        ? pickI18n(reservation.statusMessage.i18n, lang, reservation.statusMessage.text ?? '')
+        : '';
 
     return (
         <StyledWrap>
@@ -244,6 +250,8 @@ export default function ReservationManagePage() {
                     <StyledSummaryRow><span>{labels.service}</span><StyledSummaryValue>{reservation.serviceSummary}</StyledSummaryValue></StyledSummaryRow>
                     {reservation.assigneeName && <StyledSummaryRow><span>{labels.assignee}</span><StyledSummaryValue>{reservation.assigneeName}</StyledSummaryValue></StyledSummaryRow>}
                 </StyledSummary>
+
+                {statusMsg && <StyledNotice>{statusMsg}</StyledNotice>}
 
                 {pending && (
                     <StyledNotice>

@@ -47,7 +47,7 @@ interface BookStoreInfo {
     assignees: BookAssigneeInfo[];
     businessHours: BookBusinessHour[];
     closedDates: string[];
-    settings: {allowAssigneeChoice: boolean; noticeText: string | null; noticeI18n?: I18nText; maxAdvanceDays: number};
+    settings: {allowAssigneeChoice: boolean; noticeText: string | null; noticeI18n?: I18nText; doneText?: string | null; doneI18n?: I18nText; maxAdvanceDays: number};
 }
 interface ReserveResult {
     publicToken: string;
@@ -358,6 +358,7 @@ export default function BookingPage() {
     // 표시용 매장명(오너 번역 있으면 그것, 없으면 한국어 원문).
     const storeDisplay = pickI18n(info.storeNameI18n, lang, info.storeName);
     const noticeDisplay = pickI18n(info.settings.noticeI18n, lang, info.settings.noticeText ?? '');
+    const doneDisplay = pickI18n(info.settings.doneI18n, lang, info.settings.doneText ?? '');
 
     if (result) {
         return (
@@ -372,6 +373,7 @@ export default function BookingPage() {
                         <StyledSummaryRow><span>{labels.service}</span><StyledSummaryValue>{result.serviceSummary}</StyledSummaryValue></StyledSummaryRow>
                     </StyledSummary>
                     <StyledNotice>{t.reserveDoneNoticePrefix}<strong>{t.reserveDoneNoticeStrong}</strong>{t.reserveDoneNoticeSuffix}</StyledNotice>
+                    {doneDisplay && <StyledNotice>{doneDisplay}</StyledNotice>}
                     <StyledManageLink href={bookHref(lang, slug, {token: result.publicToken})}>{t.manageLink}</StyledManageLink>
                 </StyledCard>
                 <LangSwitcher lang={lang} onChange={setLang} />
