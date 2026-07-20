@@ -758,7 +758,7 @@ const StyledTextArea = styled.textarea`
     padding: 10px 12px;
     font-size: var(--small-font);
     line-height: 1.5;
-    resize: vertical;
+    resize: none;
     font-family: inherit;
     vertical-align: top;
 `;
