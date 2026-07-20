@@ -328,3 +328,26 @@ export const StyledDeleteTarget = styled.strong`
     font-weight: 700;
 `;
 
+
+/* 시술 수정/추가 모달의 다국어 이름 입력 블록(선택). 회색 카드로 묶어 원본 이름과 구분. */
+export const StyledI18nBlock = styled.div`
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 10px 12px;
+    background: var(--gray-color2);
+    border-radius: var(--radius-md);
+`;
+
+export const StyledI18nTitle = styled.strong`
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--dark-gray-color);
+`;
+
+export const StyledI18nHint = styled.p`
+    margin: 0;
+    font-size: 11px;
+    line-height: 1.4;
+    color: var(--dark-gray-color2);
+`;

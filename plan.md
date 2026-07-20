@@ -4,6 +4,33 @@
 
 ---
 
+## 진행 중 — 예약 페이지 오너 콘텐츠 다국어 (Phase A: 오너 입력 + 한국어 폴백)
+
+> 배경(사용자): 예약 페이지 UI 문구 다국어(완료)에 이어, **오너가 입력한 콘텐츠**(시술명·안내문·매장명·담당자명)도 다국어. 방식은 **1+2 하이브리드 중 A단계** — 오너가 언어별로 직접 입력, 없으면 한국어 폴백. (자동번역 B단계는 나중에)
+
+### 핵심 설계 원칙 (예약 무결성)
+- **표시(번역)와 식별(원본) 분리.** 화면엔 번역명 표시, **선택·전송·저장은 항상 원본 한국어 이름.**
+  - `reserve.ts`는 카탈로그 이름 매칭(못 찾으면 400 `unknown_service`, 신규생성 안 함) + `serviceSummary`는 한국어 스냅샷 저장 → **오너 관리화면 한국어 유지, 예약은 기존 시술에 정확히 연결.**
+  - 공개 API는 `name`(원본) + `nameI18n`을 함께 내려주고, 클라가 `nameI18n[lang] ?? name`로 **표시만** 치환. (하단 전환기가 새로고침 없이 즉시 바뀌므로 번역 객체를 통째로 내려줌.)
+- ID화는 불필요(이름=정체성, 번역=위성 데이터). 시술명 리네임 견고성(ID화)은 별도 하드닝 트랙(범위 밖).
+
+### 스키마 (마이그레이션 0012 — 4개 컬럼 한 번에, 추가형·멱등)
+- `Service.nameI18nJson Json?` · `Assignee.nameI18nJson Json?` · `Store.nameI18nJson Json?` · `StoreBookingSettings.noticeI18nJson Json?` (각 `{en?,ja?,zh?}`). 전부 `ADD COLUMN IF NOT EXISTS`.
+- **배포 순서(중요)**: 사용자가 Supabase(direct 5432)에 **수동 선적용** → 그다음 코드 자동배포. 조회는 명시적 select라 안전망 있으나 순서 준수.
+
+### 구현 슬라이스 (한 브랜치, 커밋 단위 분할)
+1. **시술명(핵심)**: 마이그레이션 0012(4컬럼 전부) + `Service` 매퍼/모델 `nameI18n` + `/api/services` GET·PUT 왕복 + `/api/book/[slug]` 응답 + 예약 페이지 표시(`nameI18n[lang] ?? name`) + `ServiceManageSection` 번역 입력칸.
+2. **안내문**: `StoreBookingSettings.noticeI18n` + `/api/store`·`/api/book/[slug]` + 예약 페이지 상단 안내 표시 + `BookingManageSection` 입력.
+3. **매장명**: `Store.nameI18n` + `/api/store`·공개 API + 페이지 헤더 + `StoreManageSection` 입력.
+4. **담당자명**: `Assignee.nameI18n` + `/api/assignees`·공개 API + 담당자 픽커 표시 + `AssigneeManageSection` 입력.
+- **표시 헬퍼**: `features/booking/i18n.ts`에 `pickI18n(i18n, lang, fallback)` 추가(공통).
+- 토큰 페이지(`r/[token]`): storeName·assigneeName은 라이브 조인으로 번역, `serviceSummary`는 한국어 스냅샷 유지(예약 기록 특성 — 문서화).
+
+### 검증
+- 타입체크·빌드 + 실브라우저: 오너가 번역 입력→공개 페이지 언어별 표시, 미입력=한국어 폴백, 예약 생성 시 한국어로 매칭·저장 확인.
+
+---
+
 ## 완료 — 고객 예약 페이지(book.takeaseat.co.kr) 다국어 (영어·중국어·일본어)
 
 > 요청(사용자): 고객 공개 예약 페이지에 영어·중국어·일본어 추가. (기존 한국어 + 3개 언어 = 4개) + 언어 전환기를 **하단 고정** 노출, 기존 경로에서 즉시 전환.

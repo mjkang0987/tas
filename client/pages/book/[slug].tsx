@@ -8,6 +8,7 @@ import {normalizeTel} from '../../features/customers/model';
 import {
     BOOK_STRINGS, formatBookDateLabel, formatDurationL, formatPriceL,
     localizedStoreLabels, lookupStatusL, dowLabelL, todayLabelL,
+    pickI18n, type I18nText,
 } from '../../features/booking/i18n';
 import {SeoHead} from '../../components/ui/SeoHead';
 import {formControlStyle} from '../../components/ui/FormControls';
@@ -20,6 +21,7 @@ import {
 
 interface BookServiceInfo {
     name: string;
+    nameI18n?: I18nText; // 표시용 번역(오너 입력). 선택·전송 키는 항상 name(한국어).
     category: string;
     duration: number;
     price: number;
@@ -27,6 +29,7 @@ interface BookServiceInfo {
 interface BookAssigneeInfo {
     id: string;
     name: string;
+    nameI18n?: I18nText; // 표시용 번역. 식별은 id.
     color: string | null;
     offDays: number[]; // 주간 휴무 요일(0=월…6=일). 이 담당자 선택 시 해당 요일 날짜 비활성.
 }
@@ -38,12 +41,13 @@ interface BookBusinessHour {
 }
 interface BookStoreInfo {
     storeName: string;
+    storeNameI18n?: I18nText;
     shopType: string | null;
     services: BookServiceInfo[];
     assignees: BookAssigneeInfo[];
     businessHours: BookBusinessHour[];
     closedDates: string[];
-    settings: {allowAssigneeChoice: boolean; noticeText: string | null; maxAdvanceDays: number};
+    settings: {allowAssigneeChoice: boolean; noticeText: string | null; noticeI18n?: I18nText; maxAdvanceDays: number};
 }
 interface ReserveResult {
     publicToken: string;
@@ -352,12 +356,16 @@ export default function BookingPage() {
         );
     }
 
+    // 표시용 매장명(오너 번역 있으면 그것, 없으면 한국어 원문).
+    const storeDisplay = pickI18n(info.storeNameI18n, lang, info.storeName);
+    const noticeDisplay = pickI18n(info.settings.noticeI18n, lang, info.settings.noticeText ?? '');
+
     if (result) {
         return (
             <StyledWrap>
-                <SeoHead title={`${info.storeName} · ${t.reserveDoneTitle}`} />
+                <SeoHead title={`${storeDisplay} · ${t.reserveDoneTitle}`} />
                 <StyledCard>
-                    <StyledStore>{info.storeName}</StyledStore>
+                    <StyledStore>{storeDisplay}</StyledStore>
                     <StyledTitle>{t.reserveDoneTitle}</StyledTitle>
                     <StyledSummary>
                         <StyledSummaryRow><span>{t.date}</span><StyledSummaryValue>{result.date}</StyledSummaryValue></StyledSummaryRow>
@@ -376,11 +384,11 @@ export default function BookingPage() {
     if (view === 'home') {
         return (
             <StyledWrap>
-                <SeoHead title={`${info.storeName} · ${t.homeTitle}`} />
+                <SeoHead title={`${storeDisplay} · ${t.homeTitle}`} />
                 <StyledCard>
-                    <StyledStore>{info.storeName}</StyledStore>
+                    <StyledStore>{storeDisplay}</StyledStore>
                     <StyledTitle>{t.homeTitle}</StyledTitle>
-                    {info.settings.noticeText && <StyledNotice>{info.settings.noticeText}</StyledNotice>}
+                    {noticeDisplay && <StyledNotice>{noticeDisplay}</StyledNotice>}
                     <StyledHomeActions>
                         <StyledHomeBtn type="button" $primary onClick={() => goView('new')}>
                             <span className="t">{t.newReservation}</span>
@@ -401,10 +409,10 @@ export default function BookingPage() {
     if (view === 'lookup') {
         return (
             <StyledWrap>
-                <SeoHead title={`${info.storeName} · ${t.lookupTitle}`} />
+                <SeoHead title={`${storeDisplay} · ${t.lookupTitle}`} />
                 <StyledCard>
                     <StyledBackBtn type="button" onClick={goHome}>{t.backToStart}</StyledBackBtn>
-                    <StyledStore>{info.storeName}</StyledStore>
+                    <StyledStore>{storeDisplay}</StyledStore>
                     <StyledTitle>{t.lookupTitle}</StyledTitle>
                     <StyledMuted>{t.lookupGuide}</StyledMuted>
                     <StyledField>
@@ -452,9 +460,10 @@ export default function BookingPage() {
         : [];
 
     // 하단 '예약 내용' 요약용 파생값.
-    const selectedAssigneeName = assigneeId === ASSIGNEE_ANY
-        ? t.anyAssignee
-        : (info.assignees.find((a) => a.id === assigneeId)?.name ?? t.anyAssignee);
+    const selectedAssignee = assigneeId === ASSIGNEE_ANY ? null : info.assignees.find((a) => a.id === assigneeId);
+    const selectedAssigneeName = selectedAssignee
+        ? pickI18n(selectedAssignee.nameI18n, lang, selectedAssignee.name)
+        : t.anyAssignee;
     const selectedDateLabel = date
         ? formatBookDateLabel(date, clientDayIndex(date), lang)
         : '—';
@@ -465,12 +474,12 @@ export default function BookingPage() {
 
     return (
         <StyledWrap>
-            <SeoHead title={`${info.storeName} · ${t.onlineReservation}`} />
+            <SeoHead title={`${storeDisplay} · ${t.onlineReservation}`} />
             <StyledCard>
                 <StyledBackBtn type="button" onClick={goHome}>{t.backToStart}</StyledBackBtn>
-                <StyledStore>{info.storeName}</StyledStore>
+                <StyledStore>{storeDisplay}</StyledStore>
                 <StyledTitle>{t.onlineReservation}</StyledTitle>
-                {info.settings.noticeText && <StyledNotice>{info.settings.noticeText}</StyledNotice>}
+                {noticeDisplay && <StyledNotice>{noticeDisplay}</StyledNotice>}
 
                 {showAssignees && (
                     <>
@@ -491,7 +500,7 @@ export default function BookingPage() {
                                         title={!working ? t.dayOffTitle : undefined}
                                         onClick={() => pickAssignee(a.id)}
                                     >
-                                        {a.name}{!working && <LabelBadge $tone="neutral">{t.dayOff}</LabelBadge>}
+                                        {pickI18n(a.nameI18n, lang, a.name)}{!working && <LabelBadge $tone="neutral">{t.dayOff}</LabelBadge>}
                                     </PillChip>
                                 );
                             })}
@@ -536,7 +545,7 @@ export default function BookingPage() {
                                 disabled={!isServiceEnabled(s.name)}
                                 onClick={() => toggleService(s.name)}
                             >
-                                <span className="nm">{s.name}</span>
+                                <span className="nm">{pickI18n(s.nameI18n, lang, s.name)}</span>
                                 <span className="mt">{formatDurationL(s.duration, lang)} · {formatPriceL(s.price, lang)}</span>
                             </ServiceChoiceChip>
                         );
@@ -617,7 +626,7 @@ export default function BookingPage() {
                                 <StyledSumServiceList>
                                     {selectedServiceItems.map((s) => (
                                         <StyledSumServiceRow key={s.name}>
-                                            <span className="nm">{s.name}</span>
+                                            <span className="nm">{pickI18n(s.nameI18n, lang, s.name)}</span>
                                             <span className="mt">{formatDurationL(s.duration, lang)} · {formatPriceL(s.price, lang)}</span>
                                         </StyledSumServiceRow>
                                     ))}

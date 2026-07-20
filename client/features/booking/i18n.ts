@@ -19,6 +19,17 @@ export function isBookLang(v: unknown): v is BookLang {
     return typeof v === 'string' && BOOK_LANG_SET.has(v);
 }
 
+// 오너 입력 콘텐츠(시술명·안내문·매장명·담당자명)의 언어별 번역. 없으면 한국어 원문 폴백.
+// - 저장은 DB JSON 컬럼(nameI18nJson 등), 키는 en/ja/zh(ko는 원문이라 미저장).
+export type I18nText = {en?: string | null; ja?: string | null; zh?: string | null} | null | undefined;
+
+// 현재 언어의 번역을 고르고, 비었으면 한국어 원문으로 폴백.
+export function pickI18n(i18n: I18nText, lang: BookLang, fallback: string): string {
+    if (lang === 'ko' || !i18n) return fallback;
+    const v = i18n[lang];
+    return typeof v === 'string' && v.trim() ? v : fallback;
+}
+
 // navigator.language('en-US'·'zh-CN'·'ja'…) → 지원 언어. 미지원은 null(기본 ko 유지).
 export function detectBookLang(nav: string | null | undefined): BookLang | null {
     if (!nav) return null;
