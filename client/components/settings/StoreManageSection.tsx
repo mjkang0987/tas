@@ -2,7 +2,7 @@ import {useEffect, useState} from 'react';
 
 import styled from 'styled-components';
 
-import {EMPTY_TEXT, StyledEditBtn, StyledDeleteBtn, StyledSaveBtn, StyledCancelBtn, StyledEmpty} from './settings-styles';
+import {EMPTY_TEXT, StyledEditBtn, StyledDeleteBtn, StyledSaveBtn, StyledCancelBtn, StyledEmpty, StyledHeaderActions} from './settings-styles';
 
 import {useCalendarStore} from '../../store/calendarStore';
 import {PageHero} from '../ui/PageHero';
@@ -130,8 +130,23 @@ export const StoreManageSection = ({formatDateLabel}: StoreManageSectionProps) =
             <StyledStoreCard>
                 <StyledStoreCardHeader>
                     <StyledStoreCardTitle>매장 정보</StyledStoreCardTitle>
-                    {!isEditingStoreInfo && (
+                    {!isEditingStoreInfo ? (
                         <StyledEditBtn type="button" onClick={() => setIsEditingStoreInfo(true)}>수정</StyledEditBtn>
+                    ) : (
+                        <StyledHeaderActions>
+                            <StyledCancelBtn
+                                type="button"
+                                onClick={() => {
+                                    setEditStoreName(storeName);
+                                    setEditShopType(getPrimaryIndustry(shopType)?.value ?? '');
+                                    setStoreInfoError('');
+                                    setIsEditingStoreInfo(false);
+                                }}
+                            >
+                                취소
+                            </StyledCancelBtn>
+                            <StyledSaveBtn type="button" onClick={handleSaveStoreInfo}>저장</StyledSaveBtn>
+                        </StyledHeaderActions>
                     )}
                 </StyledStoreCardHeader>
                 {isEditingStoreInfo ? (
@@ -169,20 +184,6 @@ export const StoreManageSection = ({formatDateLabel}: StoreManageSectionProps) =
                                 </StyledIndustrySelect>
                             </StyledRangeInputWrap>
                         </StyledStoreFieldGrid>
-                        <StyledStoreActionRow>
-                            <StyledCancelBtn
-                                type="button"
-                                onClick={() => {
-                                    setEditStoreName(storeName);
-                                    setEditShopType(getPrimaryIndustry(shopType)?.value ?? '');
-                                    setStoreInfoError('');
-                                    setIsEditingStoreInfo(false);
-                                }}
-                            >
-                                취소
-                            </StyledCancelBtn>
-                            <StyledSaveBtn type="button" onClick={handleSaveStoreInfo}>저장</StyledSaveBtn>
-                        </StyledStoreActionRow>
                     </>
                 ) : (
                     <StyledStoreInfoRow>
@@ -198,8 +199,21 @@ export const StoreManageSection = ({formatDateLabel}: StoreManageSectionProps) =
             <StyledStoreCard>
                 <StyledStoreCardHeader>
                     <StyledStoreCardTitle>영업시간</StyledStoreCardTitle>
-                    {!isEditingBusinessHours && (
+                    {!isEditingBusinessHours ? (
                         <StyledEditBtn type="button" onClick={() => setIsEditingBusinessHours(true)}>수정</StyledEditBtn>
+                    ) : (
+                        <StyledHeaderActions>
+                            <StyledCancelBtn
+                                type="button"
+                                onClick={() => {
+                                    setBusinessHours(storeSettings.businessHours);
+                                    setIsEditingBusinessHours(false);
+                                }}
+                            >
+                                취소
+                            </StyledCancelBtn>
+                            <StyledSaveBtn type="button" onClick={handleSaveBusinessHours} disabled={!isBusinessHoursDirty}>저장</StyledSaveBtn>
+                        </StyledHeaderActions>
                     )}
                 </StyledStoreCardHeader>
                 <StyledStoreFieldGrid>
@@ -224,27 +238,26 @@ export const StoreManageSection = ({formatDateLabel}: StoreManageSectionProps) =
                         />
                     </StyledRangeInputWrap>
                 </StyledStoreFieldGrid>
-                {isEditingBusinessHours && (
-                    <StyledStoreActionRow>
-                        <StyledCancelBtn
-                            type="button"
-                            onClick={() => {
-                                setBusinessHours(storeSettings.businessHours);
-                                setIsEditingBusinessHours(false);
-                            }}
-                        >
-                            취소
-                        </StyledCancelBtn>
-                        <StyledSaveBtn type="button" onClick={handleSaveBusinessHours} disabled={!isBusinessHoursDirty}>저장</StyledSaveBtn>
-                    </StyledStoreActionRow>
-                )}
             </StyledStoreCard>
 
             <StyledStoreCard>
                 <StyledStoreCardHeader>
                     <StyledStoreCardTitle>정기 휴무</StyledStoreCardTitle>
-                    {!isEditingClosedWeekdays && (
+                    {!isEditingClosedWeekdays ? (
                         <StyledEditBtn type="button" onClick={() => setIsEditingClosedWeekdays(true)}>수정</StyledEditBtn>
+                    ) : (
+                        <StyledHeaderActions>
+                            <StyledCancelBtn
+                                type="button"
+                                onClick={() => {
+                                    setClosedWeekdays(storeSettings.closedWeekdays ?? []);
+                                    setIsEditingClosedWeekdays(false);
+                                }}
+                            >
+                                취소
+                            </StyledCancelBtn>
+                            <StyledSaveBtn type="button" onClick={handleSaveClosedWeekdays} disabled={!isClosedWeekdaysDirty}>저장</StyledSaveBtn>
+                        </StyledHeaderActions>
                     )}
                 </StyledStoreCardHeader>
                 <StyledWeekdayHint>매주 쉬는 요일을 선택하면 고객 예약 페이지에서 해당 요일은 예약할 수 없습니다.</StyledWeekdayHint>
@@ -272,27 +285,28 @@ export const StoreManageSection = ({formatDateLabel}: StoreManageSectionProps) =
                 {sortedClosedWeekdays.length === 0 && !isEditingClosedWeekdays && (
                     <StyledEmpty>정기 휴무 없음</StyledEmpty>
                 )}
-                {isEditingClosedWeekdays && (
-                    <StyledStoreActionRow>
-                        <StyledCancelBtn
-                            type="button"
-                            onClick={() => {
-                                setClosedWeekdays(storeSettings.closedWeekdays ?? []);
-                                setIsEditingClosedWeekdays(false);
-                            }}
-                        >
-                            취소
-                        </StyledCancelBtn>
-                        <StyledSaveBtn type="button" onClick={handleSaveClosedWeekdays} disabled={!isClosedWeekdaysDirty}>저장</StyledSaveBtn>
-                    </StyledStoreActionRow>
-                )}
             </StyledStoreCard>
 
             <StyledStoreCard>
                 <StyledStoreCardHeader>
                     <StyledStoreCardTitle>휴업일</StyledStoreCardTitle>
-                    {!isEditingClosedDates && (
+                    {!isEditingClosedDates ? (
                         <StyledEditBtn type="button" onClick={() => setIsEditingClosedDates(true)}>수정</StyledEditBtn>
+                    ) : (
+                        <StyledHeaderActions>
+                            <StyledCancelBtn
+                                type="button"
+                                onClick={() => {
+                                    setClosedDates(storeSettings.closedDates);
+                                    setClosedDateInput('');
+                                    setClosedDateError('');
+                                    setIsEditingClosedDates(false);
+                                }}
+                            >
+                                취소
+                            </StyledCancelBtn>
+                            <StyledSaveBtn type="button" onClick={handleSaveClosedDates} disabled={!isClosedDatesDirty}>저장</StyledSaveBtn>
+                        </StyledHeaderActions>
                     )}
                 </StyledStoreCardHeader>
                 {isEditingClosedDates && (
@@ -330,22 +344,6 @@ export const StoreManageSection = ({formatDateLabel}: StoreManageSectionProps) =
                             </StyledClosedDateItem>
                         ))}
                     </StyledClosedDateList>
-                )}
-                {isEditingClosedDates && (
-                    <StyledStoreActionRow>
-                        <StyledCancelBtn
-                            type="button"
-                            onClick={() => {
-                                setClosedDates(storeSettings.closedDates);
-                                setClosedDateInput('');
-                                setClosedDateError('');
-                                setIsEditingClosedDates(false);
-                            }}
-                        >
-                            취소
-                        </StyledCancelBtn>
-                        <StyledSaveBtn type="button" onClick={handleSaveClosedDates} disabled={!isClosedDatesDirty}>저장</StyledSaveBtn>
-                    </StyledStoreActionRow>
                 )}
             </StyledStoreCard>
 
@@ -438,8 +436,8 @@ const StyledStoreSection = styled.div`
     grid-template-columns: 1fr 1fr;
     gap: 12px;
 
-    > :first-child,
-    > :nth-child(2) { grid-column: 1 / -1; }
+    /* PC: PageHero만 전체 폭. 매장정보+영업시간 / 정기휴무+휴업일이 각각 한 줄 2열로 나란히. */
+    > :first-child { grid-column: 1 / -1; }
 
     @media (max-width: 640px) {
         grid-template-columns: 1fr;
@@ -556,12 +554,6 @@ const StyledStoreFieldGrid = styled.div`
     @media (max-width: 640px) {
         grid-template-columns: 1fr;
     }
-`;
-
-const StyledStoreActionRow = styled.div`
-    display: flex;
-    justify-content: flex-end;
-    gap: 8px;
 `;
 
 const StyledClosedDateAddRow = styled.div`

@@ -79,6 +79,17 @@ export const StyledSelect = styled.select`
     }
 `;
 
+// 카드 헤더(제목 옆) 우측에 취소/저장 버튼을 나란히 놓는 래퍼.
+// 헤더 안에서는 모바일 stretch(flex:1)를 끄고 내용 크기 유지.
+export const StyledHeaderActions = styled.div`
+    display: flex;
+    gap: 6px;
+
+    & > button {
+        flex: 0 0 auto;
+    }
+`;
+
 export const StyledSettingsCard = styled.div`
     border: 1px solid var(--light-gray-color);
     border-radius: var(--radius-lg);
