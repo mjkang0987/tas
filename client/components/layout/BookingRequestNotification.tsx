@@ -5,6 +5,7 @@ import styled from 'styled-components';
 import {useBookingRequests, type BookingRequestDto} from '../../hooks/useBookingRequests';
 import {LabelBadge} from '../ui/LabelBadge';
 import {useCalendarStore} from '../../store/calendarStore';
+import {groupByDate, type ReservationMap} from '../../utils/reservations';
 
 function formatMd(dateStr: string): string {
     if (!dateStr || !dateStr.includes('-')) return dateStr || '-';
@@ -17,19 +18,36 @@ export const BookingRequestNotification = () => {
     const {requests, loading, refetch, decide} = useBookingRequests();
     const openReservationDetail = useCalendarStore((s) => s.openReservationDetail);
     const reservationMap = useCalendarStore((s) => s.reservationMap);
+    const setReservationMap = useCalendarStore((s) => s.setReservationMap);
+    const setReservationHistory = useCalendarStore((s) => s.setReservationHistory);
     const useOnlineBooking = useCalendarStore((s) => s.useOnlineBooking);
     const [open, setOpen] = useState(false);
     const [busyId, setBusyId] = useState<string>('');
     const containerRef = useRef<HTMLDivElement>(null);
 
     // 벨 항목 클릭 → legacyId로 예약을 찾아 상세 레이어를 연다(미래 날짜 예약도 상세 접근 가능).
-    const openDetail = useCallback((req: BookingRequestDto) => {
+    // reservationMap이 오래돼(페이지 로드 후 들어온 신규 예약이 맵에 없을 수 있음) 못 찾으면
+    // 예약을 다시 불러와 재시도한다. (예전엔 못 찾으면 조용히 실패 → 상세가 안 떴다)
+    const openDetail = useCallback(async (req: BookingRequestDto) => {
         if (req.legacyId == null) return;
-        for (const list of Object.values(reservationMap)) {
-            const found = list.find((r) => r.id === req.legacyId);
-            if (found) { openReservationDetail(found); setOpen(false); return; }
-        }
-    }, [reservationMap, openReservationDetail]);
+        const findAndOpen = (map: ReservationMap): boolean => {
+            for (const list of Object.values(map)) {
+                const found = list.find((r) => r.id === req.legacyId);
+                if (found) { openReservationDetail(found); setOpen(false); return true; }
+            }
+            return false;
+        };
+        if (findAndOpen(reservationMap)) return;
+        try {
+            const res = await fetch('/api/reservations');
+            if (!res.ok) return;
+            const data = await res.json();
+            const nextMap = groupByDate(Array.isArray(data.reservations) ? data.reservations : []);
+            setReservationMap(nextMap); // 전역 상세 오버레이도 이 맵에서 조회하므로 먼저 갱신
+            if (Array.isArray(data.history)) setReservationHistory(data.history);
+            findAndOpen(nextMap);
+        } catch { /* 네트워크 실패 무시 */ }
+    }, [reservationMap, openReservationDetail, setReservationMap, setReservationHistory]);
 
     useEffect(() => {
         if (!open) return;
