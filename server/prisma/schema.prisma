@@ -304,6 +304,14 @@ model StoreBookingSettings {
   noticeText          String?
   // 공개 예약 페이지 안내문 다국어(오너 입력, {en?,ja?,zh?}). 없으면 noticeText 폴백.
   noticeI18nJson      Json?
+  // 예약 상태별 오너 안내문구(#139). 각 텍스트 + 다국어({en?,ja?,zh?}). 없으면 미표시.
+  //  done = 예약완료(신청 접수) 직후 화면, confirm = 조회 페이지 상태=확정, cancel = 조회 페이지 상태=취소.
+  doneText            String?
+  doneI18nJson        Json?
+  confirmText         String?
+  confirmI18nJson     Json?
+  cancelText          String?
+  cancelI18nJson      Json?
   // (1c) 공개 노출 서비스 화이트리스트(서비스명 배열). null/미지정 = 전체 노출. 배선은 1c.
   bookableServiceIdsJson Json?
   createdAt           DateTime @default(now())

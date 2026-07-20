@@ -38,6 +38,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             allowAssigneeChoice: bookingSettings.allowAssigneeChoice,
             noticeText: bookingSettings.noticeText,
             noticeI18n: parseI18nText(bookingSettings.noticeI18nJson),
+            doneText: bookingSettings.doneText,
+            doneI18n: parseI18nText(bookingSettings.doneI18nJson),
         }
         : {
             slotIntervalMin: DEFAULT_BOOKING_SETTINGS.slotIntervalMin,
@@ -46,6 +48,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             allowAssigneeChoice: DEFAULT_BOOKING_SETTINGS.allowAssigneeChoice,
             noticeText: DEFAULT_BOOKING_SETTINGS.noticeText,
             noticeI18n: null,
+            doneText: null,
+            doneI18n: null,
         };
 
     // 노출 서비스 화이트리스트(1c): 지정 시 그 서비스만 공개.

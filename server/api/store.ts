@@ -63,6 +63,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                     allowAssigneeChoice: bs.allowAssigneeChoice,
                     noticeText: bs.noticeText,
                     noticeI18n: parseI18nText(bs.noticeI18nJson),
+                    doneText: bs.doneText,
+                    doneI18n: parseI18nText(bs.doneI18nJson),
+                    confirmText: bs.confirmText,
+                    confirmI18n: parseI18nText(bs.confirmI18nJson),
+                    cancelText: bs.cancelText,
+                    cancelI18n: parseI18nText(bs.cancelI18nJson),
                     bookableServiceNames: parseBookableServiceNames(bs.bookableServiceIdsJson),
                 };
             }
@@ -213,12 +219,15 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             const okServiceNames = b.bookableServiceNames === undefined
                 || b.bookableServiceNames === null
                 || (Array.isArray(b.bookableServiceNames) && b.bookableServiceNames.every((n) => typeof n === 'string'));
+            // 텍스트 필드는 문자열이거나 null/미지정만 허용.
+            const okText = (v: unknown) => v === null || v === undefined || typeof v === 'string';
             if (
                 !okInt(b.slotIntervalMin, 5, 240)
                 || !okInt(b.minLeadMinutes, 0, 43200)
                 || !okInt(b.maxAdvanceDays, 1, 365)
                 || typeof b.allowAssigneeChoice !== 'boolean'
-                || (b.noticeText !== null && b.noticeText !== undefined && typeof b.noticeText !== 'string')
+                || !okText(b.noticeText)
+                || !okText(b.doneText) || !okText(b.confirmText) || !okText(b.cancelText)
                 || !okServiceNames
             ) {
                 return res.status(400).json({error: 'Invalid bookingSettings'});
@@ -230,6 +239,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                 allowAssigneeChoice: b.allowAssigneeChoice,
                 noticeText: (b.noticeText ?? null) as string | null,
                 noticeI18n: parseI18nText(b.noticeI18n),
+                doneText: (b.doneText ?? null) as string | null,
+                doneI18n: parseI18nText(b.doneI18n),
+                confirmText: (b.confirmText ?? null) as string | null,
+                confirmI18n: parseI18nText(b.confirmI18n),
+                cancelText: (b.cancelText ?? null) as string | null,
+                cancelI18n: parseI18nText(b.cancelI18n),
                 bookableServiceNames: (b.bookableServiceNames ?? null) as string[] | null,
             };
         }
@@ -257,12 +272,15 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         }
 
         if (nextBooking !== undefined) {
-            // BookingSettings.bookableServiceNames ↔ bookableServiceIdsJson, noticeI18n ↔ noticeI18nJson 로 매핑.
-            const {bookableServiceNames, noticeI18n, ...rules} = nextBooking;
+            // BookingSettings.bookableServiceNames ↔ bookableServiceIdsJson, *I18n ↔ *I18nJson 으로 매핑.
+            const {bookableServiceNames, noticeI18n, doneI18n, confirmI18n, cancelI18n, ...rules} = nextBooking;
             const bookingData = {
                 ...rules,
                 bookableServiceIdsJson: bookableServiceNames ?? [],
                 noticeI18nJson: noticeI18n ?? Prisma.JsonNull,
+                doneI18nJson: doneI18n ?? Prisma.JsonNull,
+                confirmI18nJson: confirmI18n ?? Prisma.JsonNull,
+                cancelI18nJson: cancelI18n ?? Prisma.JsonNull,
             };
             await prisma.storeBookingSettings.upsert({
                 where: {storeId: session.storeId},

@@ -32,6 +32,13 @@ export interface BookingSettings {
     noticeText: string | null;
     // 안내문 다국어(오너 입력, {en?,ja?,zh?}). 없으면 noticeText 폴백. 공개 페이지 표시용.
     noticeI18n?: {en?: string | null; ja?: string | null; zh?: string | null} | null;
+    // 예약 상태별 안내문구(#139) — 완료(신청 접수)·확정·취소. 각 텍스트 + 다국어. 비면 미표시.
+    doneText?: string | null;
+    doneI18n?: {en?: string | null; ja?: string | null; zh?: string | null} | null;
+    confirmText?: string | null;
+    confirmI18n?: {en?: string | null; ja?: string | null; zh?: string | null} | null;
+    cancelText?: string | null;
+    cancelI18n?: {en?: string | null; ja?: string | null; zh?: string | null} | null;
     // 공개 노출할 서비스명 화이트리스트. null 또는 []=전체 노출, 비어있지 않으면 그 서비스만 노출.
     // (이 앱은 서비스를 name으로 식별 — DB 컬럼명은 bookableServiceIdsJson) 오너 설정에만 쓰이고 고객 응답엔 미노출.
     bookableServiceNames: string[] | null;
@@ -44,6 +51,12 @@ export const DEFAULT_BOOKING_SETTINGS: BookingSettings = {
     allowAssigneeChoice: true,
     noticeText: null,
     noticeI18n: null,
+    doneText: null,
+    doneI18n: null,
+    confirmText: null,
+    confirmI18n: null,
+    cancelText: null,
+    cancelI18n: null,
     bookableServiceNames: null,
 };
 
