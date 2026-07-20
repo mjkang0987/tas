@@ -4,7 +4,7 @@ import styled from 'styled-components';
 
 import {useCalendarStore} from '../../store/calendarStore';
 import {formControlStyle} from '../ui/FormControls';
-import {StyledEditBtn, StyledSaveBtn, StyledCancelBtn} from './settings-styles';
+import {StyledEditBtn, StyledSaveBtn, StyledCancelBtn, StyledHeaderActions} from './settings-styles';
 
 type CalendarState = ReturnType<typeof useCalendarStore.getState>;
 type StoreSettings = CalendarState['storeSettings'];
@@ -28,7 +28,7 @@ export const PointSettingsTab = ({pointSettingsDraft, setPointSettingsDraft, isE
                     <StyledPolicyTitle>적립 방식</StyledPolicyTitle>
                     <StyledPolicyDesc>적립금이 쌓이는 기본 방식을 설정합니다.</StyledPolicyDesc>
                 </div>
-                {!isEditingPolicy && (
+                {!isEditingPolicy ? (
                     <StyledEditBtn
                         type="button"
                         onClick={() => {
@@ -38,6 +38,28 @@ export const PointSettingsTab = ({pointSettingsDraft, setPointSettingsDraft, isE
                     >
                         수정
                     </StyledEditBtn>
+                ) : (
+                    <StyledHeaderActions>
+                        <StyledCancelBtn
+                            type="button"
+                            onClick={() => {
+                                setPointSettingsDraft(storeSettings.pointSettings);
+                                setIsEditingPolicy(false);
+                            }}
+                        >
+                            취소
+                        </StyledCancelBtn>
+                        <StyledSaveBtn
+                            type="button"
+                            onClick={() => {
+                                updateStorePointSettings(pointSettingsDraft);
+                                setIsEditingPolicy(false);
+                            }}
+                            disabled={!isPolicyDirty}
+                        >
+                            저장
+                        </StyledSaveBtn>
+                    </StyledHeaderActions>
                 )}
             </StyledPolicyHeader>
             <StyledPolicyOptions>
@@ -94,29 +116,6 @@ export const PointSettingsTab = ({pointSettingsDraft, setPointSettingsDraft, isE
                     </StyledPolicyOption>
                 </StyledPolicyBlock>
             </StyledPolicyOptions>
-            {isEditingPolicy && (
-                <StyledPolicyActionRow>
-                    <StyledCancelBtn
-                        type="button"
-                        onClick={() => {
-                            setPointSettingsDraft(storeSettings.pointSettings);
-                            setIsEditingPolicy(false);
-                        }}
-                    >
-                        취소
-                    </StyledCancelBtn>
-                    <StyledSaveBtn
-                        type="button"
-                        onClick={() => {
-                            updateStorePointSettings(pointSettingsDraft);
-                            setIsEditingPolicy(false);
-                        }}
-                        disabled={!isPolicyDirty}
-                    >
-                        저장
-                    </StyledSaveBtn>
-                </StyledPolicyActionRow>
-            )}
         </StyledPolicyCard>
         {pointSettingsDraft.enableRecharge && (
             <StyledPolicyCard>
@@ -379,8 +378,3 @@ const StyledRechargePercent = styled.span`
     line-height: 1.4;
 `;
 
-const StyledPolicyActionRow = styled.div`
-    display: flex;
-    justify-content: flex-end;
-    gap: 8px;
-`;
