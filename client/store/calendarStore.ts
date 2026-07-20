@@ -137,6 +137,7 @@ export interface CalendarState {
     categoryBaseColorMap: Record<string, string>;
     assignees: Assignee[];
     storeName: string;
+    storeNameI18n: {en?: string | null; ja?: string | null; zh?: string | null} | null;
     shopType: string | null;
     usePointSystem: boolean;
     useMembershipSystem: boolean;
@@ -174,8 +175,8 @@ export interface CalendarState {
     setServiceCatalog: (catalog: ServiceItem[]) => void;
     setCategoryBaseColorMap: (colorMap: Record<string, string>) => void;
     setAssignees: (assignees: Assignee[]) => void;
-    setStoreInfo: (name: string, type: string | null) => void;
-    updateStoreInfo: (name: string, type: string | null) => void;
+    setStoreInfo: (name: string, type: string | null, nameI18n?: {en?: string | null; ja?: string | null; zh?: string | null} | null) => void;
+    updateStoreInfo: (name: string, type: string | null, nameI18n?: {en?: string | null; ja?: string | null; zh?: string | null} | null) => void;
     setStoreFeatures: (usePointSystem: boolean, useMembershipSystem: boolean, useCouponSystem: boolean, useOnlineBooking: boolean) => void;
     updateStoreFeatures: (patch: {usePointSystem?: boolean; useMembershipSystem?: boolean; useCouponSystem?: boolean; useOnlineBooking?: boolean}) => void;
     setStoreSettings: (storeSettings: StoreSettings) => void;
@@ -186,7 +187,7 @@ export interface CalendarState {
     addStoreClosedDate: (date: string) => void;
     removeStoreClosedDate: (date: string) => void;
     addAssignee: (name: string, status?: AssigneeStatus, phone?: string, note?: string, color?: string) => void;
-    updateAssignee: (assigneeId: number, patch: Partial<Pick<Assignee, 'name' | 'status' | 'phone' | 'note' | 'color'>>) => void;
+    updateAssignee: (assigneeId: number, patch: Partial<Pick<Assignee, 'name' | 'nameI18n' | 'status' | 'phone' | 'note' | 'color'>>) => void;
     updateAssigneeDay: (assigneeId: number, dayIndex: number, patch: Partial<DaySchedule>) => void;
     deleteAssignee: (assigneeId: number) => void;
     updateCategoryBaseColor: (category: string, color: string) => void;
@@ -272,6 +273,7 @@ export const useCalendarStore = create<CalendarState>((set) => ({
     categoryBaseColorMap: CATEGORY_BASE_COLOR_MAP,
     assignees: [],
     storeName: '',
+    storeNameI18n: null,
     shopType: null,
     usePointSystem: false,
     useMembershipSystem: false,
@@ -439,10 +441,10 @@ export const useCalendarStore = create<CalendarState>((set) => ({
     setServiceCatalog: (serviceCatalog) => set({serviceCatalog}),
     setCategoryBaseColorMap: (categoryBaseColorMap) => set({categoryBaseColorMap}),
     setAssignees: (assignees) => set({assignees}),
-    setStoreInfo: (storeName, shopType) => set({storeName, shopType}),
-    updateStoreInfo: (storeName, shopType) => {
-        set({storeName, shopType});
-        syncStoreInfo(storeName, shopType);
+    setStoreInfo: (storeName, shopType, storeNameI18n) => set(storeNameI18n !== undefined ? {storeName, shopType, storeNameI18n} : {storeName, shopType}),
+    updateStoreInfo: (storeName, shopType, storeNameI18n) => {
+        set(storeNameI18n !== undefined ? {storeName, shopType, storeNameI18n} : {storeName, shopType});
+        syncStoreInfo(storeName, shopType, storeNameI18n);
     },
     setStoreFeatures: (usePointSystem, useMembershipSystem, useCouponSystem, useOnlineBooking) => set({usePointSystem, useMembershipSystem, useCouponSystem, useOnlineBooking}),
     updateStoreFeatures: (patch) => {

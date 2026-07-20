@@ -172,7 +172,11 @@ export function syncStoreSettings(storeSettings: StoreSettings): void {
     syncToServer('/api/store', storeSettings, (c) => ({...c, storeSettings}));
 }
 
-export function syncStoreInfo(storeName: string, shopType: string | null): void {
+export function syncStoreInfo(
+    storeName: string,
+    shopType: string | null,
+    storeNameI18n?: {en?: string | null; ja?: string | null; zh?: string | null} | null,
+): void {
     if (shouldUseLocalDb()) {
         updateLocalDbSnapshot((c) => ({...c, storeName, shopType: shopType ?? undefined}));
         return;
@@ -181,7 +185,7 @@ export function syncStoreInfo(storeName: string, shopType: string | null): void 
     fetch('/api/store', {
         method: 'PATCH',
         headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({storeName, shopType}),
+        body: JSON.stringify(storeNameI18n !== undefined ? {storeName, shopType, storeNameI18n} : {storeName, shopType}),
     }).catch(() => {});
 }
 

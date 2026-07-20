@@ -33,13 +33,14 @@ export function buildAddedAssigneeState(
 export function buildUpdatedAssigneeState(
     assignees: Assignee[],
     assigneeId: number,
-    patch: Partial<Pick<Assignee, 'name' | 'status' | 'phone' | 'note' | 'color'>>
+    patch: Partial<Pick<Assignee, 'name' | 'nameI18n' | 'status' | 'phone' | 'note' | 'color'>>
 ) {
     return assignees.map((assignee) =>
         assignee.id === assigneeId
             ? {
                 ...assignee,
                 ...(patch.name !== undefined ? {name: patch.name} : {}),
+                ...(patch.nameI18n !== undefined ? {nameI18n: patch.nameI18n} : {}),
                 ...(patch.status ? {status: patch.status} : {}),
                 ...(patch.phone !== undefined ? {phone: patch.phone} : {}),
                 ...(patch.note !== undefined ? {note: patch.note} : {}),

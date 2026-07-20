@@ -118,6 +118,7 @@ function toDateKey(d: Date): string {
 type DbAssigneeRow = {
     legacyId: number | null;
     name: string;
+    nameI18nJson?: unknown;
     status: DbAssigneeStatus;
     phone: string | null;
     note: string | null;
@@ -140,6 +141,7 @@ export function dbAssigneeToFrontend(row: DbAssigneeRow) {
         };
     });
 
+    const nameI18n = parseI18nText(row.nameI18nJson);
     return {
         id: row.legacyId!,
         name: row.name,
@@ -148,6 +150,7 @@ export function dbAssigneeToFrontend(row: DbAssigneeRow) {
         ...(row.phone !== null && {phone: row.phone}),
         ...(row.note !== null && {note: row.note}),
         ...(row.color !== null && {color: row.color}),
+        ...(nameI18n && {nameI18n}),
     };
 }
 
