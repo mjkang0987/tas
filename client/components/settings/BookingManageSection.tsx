@@ -367,10 +367,11 @@ const StyledTextarea = styled.textarea`
     border: 1px solid var(--light-gray-color);
     border-radius: 8px;
     font-size: 14px;
+    font-family: inherit;
     color: var(--black-color);
     background: var(--white-color);
     box-sizing: border-box;
-    resize: vertical;
+    resize: none;
 
     &:focus { outline: none; border-color: var(--blue-color); }
 `;

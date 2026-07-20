@@ -1,10 +1,12 @@
+import {useRef, type ComponentPropsWithoutRef, type PointerEvent as ReactPointerEvent, type MouseEvent as ReactMouseEvent} from 'react';
+
 import styled, {css} from 'styled-components';
 
 // 공개 예약(영화관식) 선택 UI 컴포넌트. 디자인 토큰 준수(색·radius·font 전부 전역 토큰).
 // 선택 가능 항목은 채워진 브랜드색, 비활성은 흐리게(마감/휴무/불가) — 좌석 선택 UX.
 
 // 가로 스크롤 줄(디자이너·날짜). 스크롤 스냅으로 셀 단위로 부드럽게 멈춘다.
-export const PickerScrollRow = styled.div`
+const StyledScrollRow = styled.div`
     display: flex;
     gap: 8px;
     overflow-x: auto;
@@ -14,7 +16,63 @@ export const PickerScrollRow = styled.div`
     scrollbar-width: thin;
     scroll-snap-type: x proximity;
     scroll-padding-left: 2px;
+    /* 마우스 드래그 스크롤 시 텍스트/셀 선택 방지 + 잡기 커서 */
+    user-select: none;
+    cursor: grab;
+    &:active { cursor: grabbing; }
 `;
+
+// 가로 스크롤 줄 + 마우스 드래그(스와이프) 스크롤. 데스크탑에선 휠·스크롤바가 아니라
+// 마우스로 끌어 가로 이동할 수 있게 한다. 터치/펜은 네이티브 스크롤을 그대로 쓴다.
+// 드래그로 판정되면(임계 넘김) 밑의 날짜·칩 클릭을 억제해 오선택을 막는다.
+export function PickerScrollRow({onClick, ...rest}: ComponentPropsWithoutRef<'div'>) {
+    const ref = useRef<HTMLDivElement>(null);
+    const drag = useRef({active: false, startX: 0, startLeft: 0, moved: false});
+
+    const onPointerDown = (e: ReactPointerEvent<HTMLDivElement>) => {
+        if (e.pointerType !== 'mouse') return; // 터치/펜은 네이티브 스크롤
+        const el = ref.current;
+        if (!el) return;
+        drag.current = {active: true, startX: e.clientX, startLeft: el.scrollLeft, moved: false};
+    };
+    const onPointerMove = (e: ReactPointerEvent<HTMLDivElement>) => {
+        const d = drag.current;
+        const el = ref.current;
+        if (!d.active || !el) return;
+        const dx = e.clientX - d.startX;
+        if (Math.abs(dx) > 4) {
+            d.moved = true;
+            el.setPointerCapture?.(e.pointerId); // 드래그 확정 후에만 캡처(탭은 그대로 클릭되게)
+        }
+        el.scrollLeft = d.startLeft - dx;
+    };
+    const endDrag = (e: ReactPointerEvent<HTMLDivElement>) => {
+        if (!drag.current.active) return;
+        drag.current.active = false;
+        ref.current?.releasePointerCapture?.(e.pointerId);
+    };
+    // 드래그였다면 자식(날짜·칩) 클릭 억제.
+    const onClickCapture = (e: ReactMouseEvent<HTMLDivElement>) => {
+        if (drag.current.moved) {
+            e.preventDefault();
+            e.stopPropagation();
+            drag.current.moved = false;
+        }
+    };
+
+    return (
+        <StyledScrollRow
+            ref={ref}
+            onPointerDown={onPointerDown}
+            onPointerMove={onPointerMove}
+            onPointerUp={endDrag}
+            onPointerLeave={endDrag}
+            onClickCapture={onClickCapture}
+            onClick={onClick}
+            {...rest}
+        />
+    );
+}
 
 const selectableBase = css<{$on: boolean}>`
     flex: 0 0 auto;
