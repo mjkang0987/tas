@@ -58,6 +58,11 @@
 - 언어 선택 = **네이티브 `<select>`**(커스텀 드롭다운 금지 규칙). 태그 셀렉터 미사용, ID/클래스만.
 - 접근성: 스위처 `<label htmlFor>`, `document.documentElement.lang` 동기화.
 
+### 언어 상태 = URL 접두(단일 소스, localStorage 제거)
+- 공개 경로: `/슬러그`(한국어) · `/en|ja|zh/슬러그`(해당 언어). 내부는 `next.config` rewrite로 `/book/:lang/:slug*`→`/book/:slug*?lang=:lang` 주입, 페이지는 `router.query.lang`로 언어 결정.
+- 전환기(`useBookLang`)는 URL만 읽고, 전환 시 해당 언어 경로로 이동(`bookHref`). `?m=` 뷰 상태 보존. localStorage·navigator 감지 제거(URL이 유일 소스 → 링크 공유/북마크가 언어를 실어감).
+- 검증(실 DB): bare=한국어, 영어선택→`/book/en/…`, 직접 `/book/zh/…` 진입 시 중국어+스위처 동기화 확인.
+
 ### 비고/리스크
 - `formatDuration`(features/services/model.ts)은 앱 전역 사용 → **전역 수정 금지**, 예약페이지 전용 `formatDurationL` 신설.
 - SSR: 두 페이지는 `getServerSideProps` 빈 props + 클라 데이터 로드. lang 초기값 'ko' → mount 후 감지 반영(하이드레이션 안전).

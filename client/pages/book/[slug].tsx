@@ -8,7 +8,7 @@ import {normalizeTel} from '../../features/customers/model';
 import {
     BOOK_STRINGS, formatBookDateLabel, formatDurationL, formatPriceL,
     localizedStoreLabels, lookupStatusL, dowLabelL, todayLabelL,
-    pickI18n, type I18nText,
+    pickI18n, bookHref, type I18nText,
 } from '../../features/booking/i18n';
 import {SeoHead} from '../../components/ui/SeoHead';
 import {formControlStyle} from '../../components/ui/FormControls';
@@ -323,10 +323,9 @@ export default function BookingPage() {
             .finally(() => setLookupLoading(false));
     };
 
-    // 뷰 전환은 URL 쿼리로 (shallow) — 위 동기화 effect가 view 상태를 갱신. 새로고침해도 유지.
+    // 뷰 전환 — 언어 접두를 보존한 채 ?m= 갱신. 같은 라우트라 리마운트/재요청 없음.
     const goView = (v: BookView) => {
-        const query = v === 'home' ? {slug} : {slug, m: v};
-        router.push({pathname: '/book/[slug]', query}, undefined, {shallow: true});
+        router.push(bookHref(lang, slug, v === 'home' ? undefined : {m: v}), undefined, {scroll: false});
     };
 
     const goHome = () => {
@@ -373,7 +372,7 @@ export default function BookingPage() {
                         <StyledSummaryRow><span>{labels.service}</span><StyledSummaryValue>{result.serviceSummary}</StyledSummaryValue></StyledSummaryRow>
                     </StyledSummary>
                     <StyledNotice>{t.reserveDoneNoticePrefix}<strong>{t.reserveDoneNoticeStrong}</strong>{t.reserveDoneNoticeSuffix}</StyledNotice>
-                    <StyledManageLink href={`/book/${encodeURIComponent(slug)}/r/${result.publicToken}`}>{t.manageLink}</StyledManageLink>
+                    <StyledManageLink href={bookHref(lang, slug, {token: result.publicToken})}>{t.manageLink}</StyledManageLink>
                 </StyledCard>
                 <LangSwitcher lang={lang} onChange={setLang} />
             </StyledWrap>
@@ -435,7 +434,7 @@ export default function BookingPage() {
                         ) : (
                             <StyledLookupList>
                                 {lookupResults.map((r) => (
-                                    <StyledLookupItem key={r.token} href={`/book/${encodeURIComponent(slug)}/r/${r.token}`}>
+                                    <StyledLookupItem key={r.token} href={bookHref(lang, slug, {token: r.token})}>
                                         <StyledLookupStatus $status={r.status}>
                                             {lookupStatusL(r.status, lang)}
                                         </StyledLookupStatus>
