@@ -474,7 +474,7 @@ export default function BookingPage() {
     return (
         <StyledWrap>
             <SeoHead title={`${storeDisplay} · ${t.onlineReservation}`} />
-            <StyledCard>
+            <StyledCard $flush>
                 <StyledBackBtn type="button" onClick={goHome}>{t.backToStart}</StyledBackBtn>
                 <StyledStore>{storeDisplay}</StyledStore>
                 <StyledTitle>{t.onlineReservation}</StyledTitle>
@@ -670,7 +670,7 @@ const StyledWrap = styled.div`
 // 온보딩 카드와 톤 정렬: 화이트 배경 + 카드 그림자(데스크탑), 모바일은 풀블리드.
 // box-sizing:border-box 필수 — 없으면 width:100% + 좌우 padding이 더해져
 // 모바일(max-width:none)에서 카드가 뷰포트보다 넓어져 가로 스크롤·배경 잘림이 생긴다.
-const StyledCard = styled.div`
+const StyledCard = styled.div<{$flush?: boolean}>`
     box-sizing: border-box;
     width: 100%;
     max-width: 480px;
@@ -679,6 +679,10 @@ const StyledCard = styled.div`
     flex-direction: column;
     gap: 16px;
     padding: 32px 28px;
+    /* sticky 요약 바(bottom:LANG_BAR_OFFSET)의 containing block은 카드다. 카드 하단에
+       그만큼 여백을 둬야 최하단 스크롤에서 요약 바가 natural 위치로 '풀려' 마지막 필드를
+       가리지 않는다. (wrap 패딩은 카드 밖이라 sticky 해제에 기여 못 함) */
+    ${(p) => (p.$flush ? `padding-bottom: ${LANG_BAR_OFFSET};` : '')}
     background: var(--white-color);
     border-radius: var(--radius-lg);
     box-shadow: var(--shadow-md);
@@ -688,6 +692,7 @@ const StyledCard = styled.div`
         box-shadow: none;
         min-height: 100dvh;
         padding: 24px 18px;
+        ${(p) => (p.$flush ? `padding-bottom: ${LANG_BAR_OFFSET};` : '')}
     }
 `;
 
@@ -763,13 +768,14 @@ const StyledFieldHint = styled.span`
     color: var(--dark-gray-color2);
 `;
 
-// 하단 sticky 요약 바. 카드 폭 풀블리드(negative margin)로 뷰포트 하단에 고정.
+// 하단 sticky 요약 바. 좌우만 풀블리드(negative margin), 하단 마진 0 — 카드 $flush(하단패딩0)와
+// 맞물려 요약 바가 flow 공간을 온전히 차지하게 해 마지막 필드가 가리지 않게 한다.
 const StyledStickyFooter = styled.div`
     position: sticky;
     /* 고정 언어 바 위에 붙도록 바 높이만큼 올린다(z-index는 바가 더 위). */
     bottom: ${LANG_BAR_OFFSET};
     z-index: 5;
-    margin: 8px -28px -32px;
+    margin: 8px -28px 0;
     padding: 14px 28px 18px;
     display: flex;
     flex-direction: column;
@@ -778,7 +784,7 @@ const StyledStickyFooter = styled.div`
     border-top: 1px solid var(--light-gray-color);
     box-shadow: 0 -6px 20px rgba(0, 0, 0, 0.06);
     @media (max-width: 640px) {
-        margin: 8px -18px -24px;
+        margin: 8px -18px 0;
         padding: 12px 18px 16px;
     }
 `;
