@@ -239,7 +239,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     if (req.method === 'PATCH') {
         if (!requireRole(session, 'staff', res)) return;
 
-        const {id, status} = req.body as { id: number; status: ReservationStatus };
+        const {id, status, reason} = req.body as { id: number; status: ReservationStatus; reason?: string };
+        // 취소 사유(선택). 고객 조회 페이지에 노출. 빈 값은 저장하지 않음(고객 페이지가 기본문구로 대체).
+        const decisionReason = typeof reason === 'string' ? reason.trim().slice(0, 300) : '';
 
         const dbReservation = await prisma.reservation.findUnique({
             where: {storeId_legacyId: {storeId: session.storeId, legacyId: id}},
@@ -256,7 +258,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         const after = await prisma.$transaction(async (tx) => {
             const updatedReservation = await tx.reservation.update({
                 where: {id: dbReservation.id},
-                data: {status: frontendReservationStatusToDb(status)},
+                data: {
+                    status: frontendReservationStatusToDb(status),
+                    ...(decisionReason ? {decisionReason} : {}),
+                },
                 select: reservationSelect,
             });
 

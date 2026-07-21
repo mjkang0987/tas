@@ -40,6 +40,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         pendingAction: reservation.pendingAction,
         pendingChange,
         pendingRequestedAt: reservation.pendingRequestedAt?.toISOString() ?? null,
+        // 오너가 남긴 승인/거절/취소 사유(선택). 없으면 null → 고객 페이지가 상태별 기본문구로 대체.
+        decisionReason: reservation.decisionReason ?? null,
         // 변경 요청은 active 예약만. 취소 요청은 확정 대기(requested)도 가능(신청 철회).
         canRequest: reservation.status === 'active',
         canCancel: reservation.status === 'active' || reservation.status === 'requested',
