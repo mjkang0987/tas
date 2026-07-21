@@ -236,12 +236,13 @@ export default function ReservationManagePage() {
     const statusMsg = reservation.statusMessage
         ? pickI18n(reservation.statusMessage.i18n, lang, reservation.statusMessage.text ?? '')
         : '';
-    // 오너가 남긴 개별 사유(원문 표시). 없으면 확정/취소 상태에 한해 기본문구로 대체.
-    const decisionMsg = reservation.decisionReason
-        ? reservation.decisionReason
-        : reservation.status === 'active' ? t.decisionApprovedDefault
-        : reservation.status === 'cancelled' ? t.decisionCancelledDefault
-        : '';
+    // 고객 안내(하나만 노출) — 우선순위: 예약별 사유 > 매장 상태 안내문구(#139) > 상태별 기본문구.
+    const hasReason = !!reservation.decisionReason;
+    const customerNotice = reservation.decisionReason
+        || statusMsg
+        || (reservation.status === 'active' ? t.decisionApprovedDefault
+            : reservation.status === 'cancelled' ? t.decisionCancelledDefault
+            : '');
 
     return (
         <StyledWrap>
@@ -259,14 +260,12 @@ export default function ReservationManagePage() {
                     {reservation.assigneeName && <StyledSummaryRow><span>{labels.assignee}</span><StyledSummaryValue>{reservation.assigneeName}</StyledSummaryValue></StyledSummaryRow>}
                 </StyledSummary>
 
-                {decisionMsg && (
+                {customerNotice && (
                     <StyledNotice>
-                        {reservation.decisionReason && <StyledNoticeLabel>{t.decisionReasonLabel}</StyledNoticeLabel>}
-                        {decisionMsg}
+                        {hasReason && <StyledNoticeLabel>{t.decisionReasonLabel}</StyledNoticeLabel>}
+                        {customerNotice}
                     </StyledNotice>
                 )}
-
-                {statusMsg && <StyledNotice>{statusMsg}</StyledNotice>}
 
                 {pending && (
                     <StyledNotice>

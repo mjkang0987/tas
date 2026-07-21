@@ -6,6 +6,7 @@ import {getAssigneeStatus, isAssigneeBookable, sortAssignees} from '../../../uti
 import type {ReservationChannel} from '../../../utils/reservations';
 import type {CustomerMemoTag} from '../../../utils/customers';
 import {ColorTag} from '../../ui/ColorTag';
+import {formControlStyle} from '../../ui/FormControls';
 import {useStoreLabels} from '../../../hooks/useStoreLabels';
 
 import {
@@ -383,16 +384,12 @@ const StyledReasonLabel = styled.label`
 `;
 
 const StyledReasonTextarea = styled.textarea`
+    ${formControlStyle};
     width: 100%;
-    box-sizing: border-box;
+    height: auto;
     padding: 8px 10px;
-    border: 1px solid var(--light-gray-color);
-    border-radius: var(--radius-md);
-    font-size: 13px;
     line-height: 1.5;
     resize: vertical;
-    color: var(--black-color);
-    &:focus { outline: none; border-color: var(--brand-color); }
 `;
 
 const StyledMemoSection = styled.div`

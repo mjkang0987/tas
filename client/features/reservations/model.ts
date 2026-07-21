@@ -42,6 +42,11 @@ export function hasCompletedPayment(reservation: Reservation): boolean {
         || reservation.paymentCompleted === true;
 }
 
+// 고객 예약 페이지 경유(온라인) 예약인지. 승인/거절/취소 사유 노출·타임라인 취소 유지의 판별자.
+export function isOnlineReservation(reservation: Pick<Reservation, 'channel'>): boolean {
+    return reservation.channel === '온라인예약';
+}
+
 export function groupByDate(list: Reservation[]): ReservationMap {
     const map: ReservationMap = {};
 

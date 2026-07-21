@@ -7,7 +7,7 @@ import {useCalendarStore} from '../../../store/calendarStore';
 import {useStoreLabels} from '../../../hooks/useStoreLabels';
 
 import type {PaymentEntry, PaymentMethod, Reservation, ReservationHistoryEntry, ReservationMap, ReservationStatus} from '../../../utils/reservations';
-import {findOverlap, hasCompletedPayment} from '../../../utils/reservations';
+import {findOverlap, hasCompletedPayment, isOnlineReservation} from '../../../utils/reservations';
 import {isNewCustomerVisit} from '../../../utils/customers';
 import type {CustomerMap} from '../../../utils/customers';
 import {buildAssigneeNameMap, getAssigneeAvailabilityState, getAssigneeColor, splitAssigneesByStatus} from '../../../utils/assignees';
@@ -493,7 +493,7 @@ export const ReservationDetail = ({
     };
     const isNaverBooking = Boolean(sourceReservation.naverBookingId);
     // 온라인 예약(고객 예약 페이지 경유)만 사유가 고객 조회 페이지에 노출된다.
-    const isOnlineBooking = sourceReservation.channel === '온라인예약';
+    const isOnlineBooking = isOnlineReservation(sourceReservation);
     // 승인/거절/취소 확인 레이어의 사유 입력(선택). 미입력 시 고객 페이지가 기본문구로 대체.
     const decisionReasonInput = {
         label: '사유 (선택)',
