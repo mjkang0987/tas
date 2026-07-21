@@ -221,6 +221,8 @@ model Reservation {
   pendingAction    ReservationPendingAction  @default(none)
   pendingPayloadJson Json?
   pendingRequestedAt DateTime?
+  // 온라인 예약 승인/거절/취소 시 오너가 남기는 사유(선택). 고객 조회 페이지에 노출. 마지막 결정 사유로 덮어씀.
+  decisionReason   String?
   createdAt        DateTime                  @default(now())
   updatedAt        DateTime                  @updatedAt
   pointHistories   CustomerPointHistory[]
