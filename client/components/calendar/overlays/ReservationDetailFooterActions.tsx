@@ -13,6 +13,7 @@ type ReservationDetailFooterActionsProps = {
     canDelete: boolean;
     onConfirmBooking: () => void;
     onRejectBooking: () => void;
+    onRejectReservation: () => void;
     onOpenCompleting: () => void;
     onOpenCancelling: () => void;
     onOpenNoshow: () => void;
@@ -42,6 +43,7 @@ export function ReservationDetailFooterActions({
                                                    canDelete,
                                                    onConfirmBooking,
                                                    onRejectBooking,
+                                                   onRejectReservation,
                                                    onOpenCompleting,
                                                    onOpenCancelling,
                                                    onOpenNoshow,
@@ -191,6 +193,18 @@ export function ReservationDetailFooterActions({
                 <StyledActionButton type="button"
                                     $primary
                                     onClick={onNoshowReservation}>확인</StyledActionButton>
+            </>
+        );
+    }
+
+    if (mode === 'rejecting') {
+        return (
+            <>
+                <StyledActionButton type="button"
+                                    onClick={onBackToView}>취소</StyledActionButton>
+                <StyledActionButton type="button"
+                                    $danger
+                                    onClick={onRejectReservation}>거절</StyledActionButton>
             </>
         );
     }

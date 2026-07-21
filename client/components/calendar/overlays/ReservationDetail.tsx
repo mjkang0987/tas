@@ -463,7 +463,7 @@ export const ReservationDetail = ({
 
         if (mode === 'confirming' || mode === 'pastConfirm') {
             setMode('editing');
-        } else if (mode === 'editing' || mode === 'cancelling' || mode === 'noshow' || mode === 'payment') {
+        } else if (mode === 'editing' || mode === 'cancelling' || mode === 'noshow' || mode === 'payment' || mode === 'rejecting') {
             handleCancel();
         } else {
             onClose();
@@ -480,7 +480,6 @@ export const ReservationDetail = ({
     // 예약확정/거절 → 오너 승인 API(book-requests) 재사용. legacyId로 대상 지정.
     // 성공 시 새로고침으로 캘린더·요청벨을 갱신(오너 벨과 동일 패턴).
     const decideBooking = (decision: 'approve' | 'reject') => {
-        if (decision === 'reject' && !window.confirm('이 예약 신청을 거절할까요? 거절하면 취소됩니다.')) return;
         fetch('/api/book-requests', {
             method: 'POST',
             headers: {'Content-Type': 'application/json'},
@@ -678,6 +677,19 @@ export const ReservationDetail = ({
                 />
             )}
 
+            {mode === 'rejecting' && (
+                <ReservationStaticDiffSection
+                    message="이 예약 신청을 거절하시겠습니까? 거절하면 취소됩니다."
+                    color="var(--danger-color)"
+                    items={[
+                        {label: labels.service, value: reservation.service},
+                        {label: '날짜', value: reservation.date},
+                        {label: '시간', value: `${reservation.startTime} ~ ${reservation.endTime}`},
+                        {label: '고객명', value: customer?.name ?? '-'},
+                    ]}
+                />
+            )}
+
             <ReservationFooter
                 actions={(
                     <ReservationDetailFooterActions
@@ -688,7 +700,8 @@ export const ReservationDetail = ({
                         paymentCompleted={paymentCompleted}
                         isNaverBooking={isNaverBooking}
                         onConfirmBooking={() => decideBooking('approve')}
-                        onRejectBooking={() => decideBooking('reject')}
+                        onRejectBooking={() => setMode('rejecting')}
+                        onRejectReservation={() => decideBooking('reject')}
                         onOpenCompleting={() => {
                             if (!hasCompletedPayment(sourceReservation)) {
                                 setError({field: 'general', message: '결제 완료된 예약만 완료 처리할 수 있습니다.'});

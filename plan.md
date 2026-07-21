@@ -4,6 +4,26 @@
 
 ---
 
+## 완료 — 온라인 예약 신청 거절 확인을 브라우저 confirm → 앱 레이어로 변경
+
+> 배경(사용자): 고객 예약 페이지를 통해 들어온 예약 신청을 오너가 상세 레이어에서 **거절**할 때, 브라우저 `window.confirm` 창 대신 앱 UI 레이어(모달)로 확인받도록 변경.
+
+### 범위/설계
+- 대상: `client/components/calendar/overlays/ReservationDetail.tsx`의 `decideBooking('reject')` 경로만. 다른 confirm(취소 등)은 이미 레이어이므로 무관.
+- 기존 취소/노쇼/완료와 동일 패턴 채택: `mode`에 `'rejecting'` 추가 → 거절 버튼은 레이어를 열고(`setMode('rejecting')`), 레이어 안 `ReservationStaticDiffSection`으로 대상 정보 표시 → footer의 "거절" 확인 버튼이 실제 API 호출.
+- `window.confirm` 제거. `decideBooking`은 API 호출만 담당.
+
+### 영향 파일
+- `reservationDetailTypes.ts`: `ReservationDetailMode`에 `'rejecting'` 추가
+- `reservationDetailUtils.ts`: `MODE_LABELS.rejecting = '예약 거절'`
+- `ReservationDetail.tsx`: rejecting 섹션 렌더 + footer 배선(open/confirm)
+- `ReservationDetailFooterActions.tsx`: `rejecting` mode footer + `onRejectReservation` prop
+
+### 검증
+- ✅ 타입체크 0·빌드 성공. 온라인 신청(requested) 예약 상세에서 거절 → 레이어 노출 → 확인 시 API 호출·새로고침 흐름(기존 취소/노쇼 레이어와 동일 패턴).
+
+---
+
 ## 진행 중 — 예약 상태별 오너 안내문구 (#139: 완료·확정·취소, 4개 언어)
 
 > 배경(사용자): 사전 안내문(`noticeText`) 외에 **예약완료·확정·취소** 단계별 안내문구도 필요. 각각 오너 입력 + 4개 언어(한/영/일/중).
