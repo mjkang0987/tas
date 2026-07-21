@@ -201,6 +201,8 @@ export const MODE_LABELS: Partial<Record<ReservationDetailMode, string>> = {
     cancelling: '예약 취소',
     noshow: '노쇼 처리',
     payment: '결제 처리',
+    approving: '예약 확정',
+    rejecting: '예약 거절',
 };
 
 export function resolveReservationPrice(reservation: Reservation): number {

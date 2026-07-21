@@ -39,6 +39,8 @@ interface ReservationView {
     canCancel: boolean;
     // 상태별 오너 안내문구(#139): 확정·취소일 때만 서버가 채운다. 없으면 null.
     statusMessage: {text: string | null; i18n: I18nText} | null;
+    // 오너가 남긴 승인/거절/취소 사유(선택). 없으면 상태별 기본문구로 대체.
+    decisionReason: string | null;
 }
 
 interface BookServiceInfo {name: string; category: string; duration: number; price: number}
@@ -234,6 +236,13 @@ export default function ReservationManagePage() {
     const statusMsg = reservation.statusMessage
         ? pickI18n(reservation.statusMessage.i18n, lang, reservation.statusMessage.text ?? '')
         : '';
+    // 고객 안내(하나만 노출) — 우선순위: 예약별 사유 > 매장 상태 안내문구(#139) > 상태별 기본문구.
+    const hasReason = !!reservation.decisionReason;
+    const customerNotice = reservation.decisionReason
+        || statusMsg
+        || (reservation.status === 'active' ? t.decisionApprovedDefault
+            : reservation.status === 'cancelled' ? t.decisionCancelledDefault
+            : '');
 
     return (
         <StyledWrap>
@@ -251,7 +260,12 @@ export default function ReservationManagePage() {
                     {reservation.assigneeName && <StyledSummaryRow><span>{labels.assignee}</span><StyledSummaryValue>{reservation.assigneeName}</StyledSummaryValue></StyledSummaryRow>}
                 </StyledSummary>
 
-                {statusMsg && <StyledNotice>{statusMsg}</StyledNotice>}
+                {customerNotice && (
+                    <StyledNotice>
+                        {hasReason && <StyledNoticeLabel>{t.decisionReasonLabel}</StyledNoticeLabel>}
+                        {customerNotice}
+                    </StyledNotice>
+                )}
 
                 {pending && (
                     <StyledNotice>
@@ -439,6 +453,14 @@ const StyledSectionLabel = styled.strong`
     font-size: var(--font);
     font-weight: 700;
     color: var(--black-color);
+`;
+
+const StyledNoticeLabel = styled.strong`
+    display: block;
+    margin-bottom: 4px;
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--brand-color, #6526d9);
 `;
 
 const StyledSummary = styled.div`

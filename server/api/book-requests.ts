@@ -13,6 +13,7 @@ interface DecideBody {
     id?: unknown;
     legacyId?: unknown;
     decision?: unknown;
+    reason?: unknown;
 }
 
 interface ChangePayload {
@@ -109,6 +110,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         const id = typeof body.id === 'string' ? body.id : '';
         const legacyId = typeof body.legacyId === 'number' ? body.legacyId : null;
         const decision = body.decision === 'approve' || body.decision === 'reject' ? body.decision : null;
+        // 승인/거절 사유(선택). 고객 조회 페이지에 노출. 빈 값은 저장하지 않음(고객 페이지가 기본문구로 대체).
+        const reason = typeof body.reason === 'string' ? body.reason.trim().slice(0, 300) : '';
         if ((!id && legacyId === null) || !decision) return res.status(400).json({error: 'invalid_input'});
 
         const reservation = await prisma.reservation.findFirst({
@@ -124,7 +127,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         // 신규 예약 신청 확정/거절
         if (kind === 'new') {
             const status = decision === 'approve' ? 'active' : 'cancelled';
-            await prisma.reservation.update({where: {id: reservation.id}, data: {status}});
+            await prisma.reservation.update({
+                where: {id: reservation.id},
+                data: {status, ...(reason ? {decisionReason: reason} : {})},
+            });
             return res.status(200).json({ok: true, applied: decision === 'approve' ? 'confirmed' : 'rejected'});
         }
 

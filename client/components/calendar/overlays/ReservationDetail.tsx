@@ -7,7 +7,7 @@ import {useCalendarStore} from '../../../store/calendarStore';
 import {useStoreLabels} from '../../../hooks/useStoreLabels';
 
 import type {PaymentEntry, PaymentMethod, Reservation, ReservationHistoryEntry, ReservationMap, ReservationStatus} from '../../../utils/reservations';
-import {findOverlap, hasCompletedPayment} from '../../../utils/reservations';
+import {findOverlap, hasCompletedPayment, isOnlineReservation} from '../../../utils/reservations';
 import {isNewCustomerVisit} from '../../../utils/customers';
 import type {CustomerMap} from '../../../utils/customers';
 import {buildAssigneeNameMap, getAssigneeAvailabilityState, getAssigneeColor, splitAssigneesByStatus} from '../../../utils/assignees';
@@ -82,7 +82,7 @@ interface ReservationDetailProps {
     onClose: () => void;
     onCustomerClick: (customerId: number) => void;
     onUpdate: (prev: Reservation, updated: Reservation) => void;
-    onCancel: (reservation: Reservation, status?: ReservationStatus) => void;
+    onCancel: (reservation: Reservation, status?: ReservationStatus, reason?: string) => void;
     onRestore: (reservation: Reservation) => void;
     onDelete?: (reservation: Reservation) => void;
 }
@@ -151,6 +151,8 @@ export const ReservationDetail = ({
     }, undefined);
 
     const [mode, setMode] = useState<ReservationDetailMode>('view');
+    // 온라인 예약 승인/거절/취소 사유(선택). 확인 레이어를 열 때 초기화한다.
+    const [decisionReason, setDecisionReason] = useState('');
     const [isHistoryOpen, setIsHistoryOpen] = useState(false);
     const [isRestoringOpen, setIsRestoringOpen] = useState(false);
     const initialForm = buildReservationFormState(sourceReservation);
@@ -463,7 +465,7 @@ export const ReservationDetail = ({
 
         if (mode === 'confirming' || mode === 'pastConfirm') {
             setMode('editing');
-        } else if (mode === 'editing' || mode === 'cancelling' || mode === 'noshow' || mode === 'payment') {
+        } else if (mode === 'editing' || mode === 'cancelling' || mode === 'noshow' || mode === 'payment' || mode === 'approving' || mode === 'rejecting') {
             handleCancel();
         } else {
             onClose();
@@ -480,16 +482,27 @@ export const ReservationDetail = ({
     // 예약확정/거절 → 오너 승인 API(book-requests) 재사용. legacyId로 대상 지정.
     // 성공 시 새로고침으로 캘린더·요청벨을 갱신(오너 벨과 동일 패턴).
     const decideBooking = (decision: 'approve' | 'reject') => {
-        if (decision === 'reject' && !window.confirm('이 예약 신청을 거절할까요? 거절하면 취소됩니다.')) return;
+        const reason = decisionReason.trim();
         fetch('/api/book-requests', {
             method: 'POST',
             headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify({legacyId: sourceReservation.id, decision}),
+            body: JSON.stringify({legacyId: sourceReservation.id, decision, ...(reason ? {reason} : {})}),
         })
             .then((res) => { if (res.ok) window.location.reload(); else setError({field: 'general', message: '처리에 실패했습니다. 잠시 후 다시 시도해 주세요.'}); })
             .catch(() => setError({field: 'general', message: '처리에 실패했습니다. 잠시 후 다시 시도해 주세요.'}));
     };
     const isNaverBooking = Boolean(sourceReservation.naverBookingId);
+    // 온라인 예약(고객 예약 페이지 경유)만 사유가 고객 조회 페이지에 노출된다.
+    const isOnlineBooking = isOnlineReservation(sourceReservation);
+    // 승인/거절/취소 확인 레이어의 사유 입력(선택). 미입력 시 고객 페이지가 기본문구로 대체.
+    const decisionReasonInput = {
+        label: '사유 (선택)',
+        placeholder: '고객 조회 페이지에 표시됩니다. 미입력 시 기본 안내로 대체됩니다.',
+        value: decisionReason,
+        onChange: setDecisionReason,
+    };
+    // 확인 레이어를 열 때 사유를 초기화한다.
+    const openWithReason = (next: ReservationDetailMode) => { setDecisionReason(''); setMode(next); };
     const dialogLabel = MODE_LABELS[mode] ?? '예약 상세';
     const headerService = mode === 'view' ? draftReservation.service : form.service;
     const dialogTitle = mode === 'editing'
@@ -588,6 +601,7 @@ export const ReservationDetail = ({
                         {label: '시간', value: `${reservation.startTime} ~ ${reservation.endTime}`},
                         {label: '고객명', value: customer?.name ?? '-'},
                     ]}
+                    reason={isOnlineBooking ? decisionReasonInput : undefined}
                 />
             )}
 
@@ -678,6 +692,34 @@ export const ReservationDetail = ({
                 />
             )}
 
+            {mode === 'approving' && (
+                <ReservationStaticDiffSection
+                    message="이 예약 신청을 확정할까요?"
+                    color="var(--blue-color)"
+                    items={[
+                        {label: labels.service, value: reservation.service},
+                        {label: '날짜', value: reservation.date},
+                        {label: '시간', value: `${reservation.startTime} ~ ${reservation.endTime}`},
+                        {label: '고객명', value: customer?.name ?? '-'},
+                    ]}
+                    reason={decisionReasonInput}
+                />
+            )}
+
+            {mode === 'rejecting' && (
+                <ReservationStaticDiffSection
+                    message="이 예약 신청을 거절하시겠습니까? 거절하면 취소됩니다."
+                    color="var(--danger-color)"
+                    items={[
+                        {label: labels.service, value: reservation.service},
+                        {label: '날짜', value: reservation.date},
+                        {label: '시간', value: `${reservation.startTime} ~ ${reservation.endTime}`},
+                        {label: '고객명', value: customer?.name ?? '-'},
+                    ]}
+                    reason={decisionReasonInput}
+                />
+            )}
+
             <ReservationFooter
                 actions={(
                     <ReservationDetailFooterActions
@@ -687,8 +729,10 @@ export const ReservationDetail = ({
                         isCompleted={isCompleted}
                         paymentCompleted={paymentCompleted}
                         isNaverBooking={isNaverBooking}
-                        onConfirmBooking={() => decideBooking('approve')}
-                        onRejectBooking={() => decideBooking('reject')}
+                        onConfirmBooking={() => openWithReason('approving')}
+                        onApproveReservation={() => decideBooking('approve')}
+                        onRejectBooking={() => openWithReason('rejecting')}
+                        onRejectReservation={() => decideBooking('reject')}
                         onOpenCompleting={() => {
                             if (!hasCompletedPayment(sourceReservation)) {
                                 setError({field: 'general', message: '결제 완료된 예약만 완료 처리할 수 있습니다.'});
@@ -697,7 +741,7 @@ export const ReservationDetail = ({
                             setError(null);
                             setMode('completing');
                         }}
-                        onOpenCancelling={() => setMode('cancelling')}
+                        onOpenCancelling={() => openWithReason('cancelling')}
                         onOpenNoshow={() => setMode('noshow')}
                         onOpenPayment={() => {
                             setPaymentEntries(getPaymentEntryDrafts(sourceReservation, displayPrice, sourceReservation.naverDeposit ?? 0));
@@ -713,7 +757,7 @@ export const ReservationDetail = ({
                         onCancelEdit={handleCancel}
                         onConfirmRequest={handleConfirmRequest}
                         onConfirmSave={handleConfirmSave}
-                        onCancelReservation={() => onCancel(sourceReservation)}
+                        onCancelReservation={() => onCancel(sourceReservation, 'cancelled', isOnlineBooking ? (decisionReason.trim() || undefined) : undefined)}
                         onNoshowReservation={() => onCancel(sourceReservation, 'noshow')}
                         onOpenRestoring={() => setIsRestoringOpen(true)}
                         onRestoreReservation={() => onRestore(sourceReservation)}

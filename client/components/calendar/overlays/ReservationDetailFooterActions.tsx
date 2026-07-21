@@ -12,7 +12,9 @@ type ReservationDetailFooterActionsProps = {
     isNaverBooking: boolean;
     canDelete: boolean;
     onConfirmBooking: () => void;
+    onApproveReservation: () => void;
     onRejectBooking: () => void;
+    onRejectReservation: () => void;
     onOpenCompleting: () => void;
     onOpenCancelling: () => void;
     onOpenNoshow: () => void;
@@ -41,7 +43,9 @@ export function ReservationDetailFooterActions({
                                                    isNaverBooking,
                                                    canDelete,
                                                    onConfirmBooking,
+                                                   onApproveReservation,
                                                    onRejectBooking,
+                                                   onRejectReservation,
                                                    onOpenCompleting,
                                                    onOpenCancelling,
                                                    onOpenNoshow,
@@ -191,6 +195,30 @@ export function ReservationDetailFooterActions({
                 <StyledActionButton type="button"
                                     $primary
                                     onClick={onNoshowReservation}>확인</StyledActionButton>
+            </>
+        );
+    }
+
+    if (mode === 'approving') {
+        return (
+            <>
+                <StyledActionButton type="button"
+                                    onClick={onBackToView}>취소</StyledActionButton>
+                <StyledActionButton type="button"
+                                    $primary
+                                    onClick={onApproveReservation}>예약확정</StyledActionButton>
+            </>
+        );
+    }
+
+    if (mode === 'rejecting') {
+        return (
+            <>
+                <StyledActionButton type="button"
+                                    onClick={onBackToView}>취소</StyledActionButton>
+                <StyledActionButton type="button"
+                                    $danger
+                                    onClick={onRejectReservation}>거절</StyledActionButton>
             </>
         );
     }

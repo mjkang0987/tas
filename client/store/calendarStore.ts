@@ -199,7 +199,7 @@ export interface CalendarState {
     moveServiceInCategory: (dragName: string, targetName: string) => void;
     addReservation: (reservation: Reservation) => void;
     updateReservation: (prev: Reservation, updated: Reservation) => void;
-    cancelReservation: (reservation: Reservation, status?: ReservationStatus) => void;
+    cancelReservation: (reservation: Reservation, status?: ReservationStatus, reason?: string) => void;
     restoreReservation: (reservation: Reservation) => void;
     deleteReservation: (reservation: Reservation) => void;
     addSyncNotifications: (items: SyncNotification[]) => void;
@@ -717,7 +717,7 @@ export const useCalendarStore = create<CalendarState>((set) => ({
             });
     },
 
-    cancelReservation: (reservation, status = 'cancelled') => {
+    cancelReservation: (reservation, status = 'cancelled', reason) => {
         const updated: Reservation = {...reservation, status};
 
         let nextReservationMap: ReservationMap | null = null;
@@ -743,7 +743,7 @@ export const useCalendarStore = create<CalendarState>((set) => ({
         fetch('/api/reservations', {
             method: 'PATCH',
             headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify({id: reservation.id, status})
+            body: JSON.stringify({id: reservation.id, status, ...(reason ? {reason} : {})})
         });
     },
 

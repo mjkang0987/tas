@@ -280,6 +280,10 @@ export interface BookI18n {
     alreadyPending: string;
     requestFailed: string;
     storeLoadFailed: string;
+    // 오너가 남긴 승인/취소 사유(있으면 원문 표시). 없으면 상태별 기본문구로 대체.
+    decisionReasonLabel: string;
+    decisionApprovedDefault: string;
+    decisionCancelledDefault: string;
     // 완료화면/조회 상태 라벨은 statusLabelL/lookupStatusL 사용
 }
 
@@ -358,6 +362,9 @@ export const BOOK_STRINGS: Record<BookLang, BookI18n> = {
         alreadyPending: '이미 처리 대기 중인 요청이 있습니다.',
         requestFailed: '요청에 실패했습니다. 잠시 후 다시 시도해 주세요.',
         storeLoadFailed: '예약 정보를 불러오지 못했습니다. 잠시 후 다시 시도해 주세요.',
+        decisionReasonLabel: '매장 안내',
+        decisionApprovedDefault: '예약이 승인되었습니다.',
+        decisionCancelledDefault: '예약이 취소되었습니다.',
     },
     en: {
         loading: 'Loading…',
@@ -433,6 +440,9 @@ export const BOOK_STRINGS: Record<BookLang, BookI18n> = {
         alreadyPending: 'There is already a request being processed.',
         requestFailed: 'Request failed. Please try again shortly.',
         storeLoadFailed: 'Could not load reservation info. Please try again shortly.',
+        decisionReasonLabel: 'Message from the store',
+        decisionApprovedDefault: 'Your reservation has been confirmed.',
+        decisionCancelledDefault: 'Your reservation has been cancelled.',
     },
     zh: {
         loading: '加载中…',
@@ -508,6 +518,9 @@ export const BOOK_STRINGS: Record<BookLang, BookI18n> = {
         alreadyPending: '已有正在处理中的申请。',
         requestFailed: '申请失败，请稍后再试。',
         storeLoadFailed: '无法加载预约信息，请稍后再试。',
+        decisionReasonLabel: '门店说明',
+        decisionApprovedDefault: '您的预约已确认。',
+        decisionCancelledDefault: '您的预约已取消。',
     },
     ja: {
         loading: '読み込み中…',
@@ -583,5 +596,8 @@ export const BOOK_STRINGS: Record<BookLang, BookI18n> = {
         alreadyPending: '既に処理待ちの申請があります。',
         requestFailed: '申請に失敗しました。しばらくしてから再度お試しください。',
         storeLoadFailed: '予約情報を読み込めませんでした。しばらくしてから再度お試しください。',
+        decisionReasonLabel: '店舗からのご案内',
+        decisionApprovedDefault: 'ご予約が確定しました。',
+        decisionCancelledDefault: 'ご予約がキャンセルされました。',
     },
 };
