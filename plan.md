@@ -4,6 +4,31 @@
 
 ---
 
+## 진행 중 — 온라인 예약 승인/거절/취소 UX 개선 (승인 확인 레이어·취소 예약 유지·사유)
+
+> 배경(사용자): 고객 예약 페이지로 들어온 예약 처리 흐름 3가지.
+> 1) 승인 시에도 확인 레이어(거절과 동일 패턴) 추가.
+> 2) 승인된 예약을 취소하면 타임라인(일별/주별/3일)에서 사라짐 → 취소 예약으로 남아야 함.
+> 3) 승인·거절·취소 시 사유 입력(선택). 미작성 시 "예약이 {승인/거절/취소}되었습니다." 기본문구. 고객 조회 페이지(/r/{token})에 노출.
+
+### 설계 결정
+- **사유는 필수 아님.** 빈 값이면 상태별 기본문구로 대체(고객 페이지에서 표시). 자유 텍스트(오너 입력 한국어), 번역 없음 — `memo`와 동일 취급.
+- **저장**: `Reservation.decisionReason TEXT?` 1컬럼(마지막 결정 사유 덮어쓰기). 승인 시=승인 사유(active에서 표시), 거절/취소 시=취소 사유(cancelled에서 표시). 마이그레이션 0014, 추가형·멱등(`ADD COLUMN IF NOT EXISTS`). **운영 Supabase direct(5432) 수동 선적용 → 코드 자동배포** 순서 준수.
+- **#2 타임라인**: 온라인 예약(channel=online)의 취소 건만 타임라인에 계속 표시(기존 "취소 숨김"은 수기/네이버엔 유지 — 블록·건수 부풀림 최소화). 고객 신청 예약 추적 목적.
+
+### 영향 파일
+- 스키마/마이그레이션: `schema.prisma`(Reservation.decisionReason), `migrations/0014_reservation_decision_reason/migration.sql`
+- 서버: `book/booking-helpers.ts`(토큰 select에 decisionReason), `book/reservation/[token].ts`(응답에 decisionReason), `book-requests.ts`(approve/reject 시 reason 저장), `reservations.ts`(PATCH에 reason → cancel 시 저장)
+- 클라 스토어: `calendarStore.ts` `cancelReservation(reservation, status, reason?)`
+- 상세 레이어: `reservationDetailTypes.ts`(mode 'approving'), `reservationDetailUtils.ts`(MODE_LABELS), `ReservationDetail.tsx`(approving 레이어 + 사유 입력 + 배선), `ReservationDetailFooterActions.tsx`(approving footer), `ReservationDetailSections.tsx`(사유 입력 UI)
+- 고객 페이지: `book/[slug]/r/[token].tsx`(사유/기본문구 표시), `features/booking/i18n.ts`(기본문구 4개 언어)
+- #2: `calendar/views/Timeline.tsx`(온라인 취소 유지)
+
+### 검증
+- 타입체크·빌드. 온라인 신청 승인/거절/취소 왕복(로컬), 고객 페이지 사유 표시, 타임라인 온라인 취소 유지 확인.
+
+---
+
 ## 완료 — 온라인 예약 신청 거절 확인을 브라우저 confirm → 앱 레이어로 변경
 
 > 배경(사용자): 고객 예약 페이지를 통해 들어온 예약 신청을 오너가 상세 레이어에서 **거절**할 때, 브라우저 `window.confirm` 창 대신 앱 UI 레이어(모달)로 확인받도록 변경.

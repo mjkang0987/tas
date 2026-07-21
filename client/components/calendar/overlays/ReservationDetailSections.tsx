@@ -313,13 +313,22 @@ export const ReservationDiffSection = ({message, color, diffs}: ReservationDiffS
     </StyledBodyInner></StyledBody>
 );
 
+interface ReservationReasonInput {
+    label: string;
+    placeholder: string;
+    value: string;
+    onChange: (value: string) => void;
+}
+
 interface ReservationStaticDiffSectionProps {
     message: string;
     color: string;
     items: Array<{label: string; value: string}>;
+    // 온라인 예약 승인/거절/취소 사유(선택). 있으면 항목 아래 입력칸을 노출한다.
+    reason?: ReservationReasonInput;
 }
 
-export const ReservationStaticDiffSection = ({message, color, items}: ReservationStaticDiffSectionProps) => (
+export const ReservationStaticDiffSection = ({message, color, items, reason}: ReservationStaticDiffSectionProps) => (
     <StyledBody><StyledBodyInner>
         <StyledModalMessage $color={color}>{message}</StyledModalMessage>
         <StyledDiffList>
@@ -330,6 +339,18 @@ export const ReservationStaticDiffSection = ({message, color, items}: Reservatio
                 </StyledDiffGrid>
             ))}
         </StyledDiffList>
+        {reason && (
+            <StyledReasonLabel>
+                <span>{reason.label}</span>
+                <StyledReasonTextarea
+                    rows={2}
+                    maxLength={300}
+                    value={reason.value}
+                    placeholder={reason.placeholder}
+                    onChange={(e) => reason.onChange(e.target.value)}
+                />
+            </StyledReasonLabel>
+        )}
     </StyledBodyInner></StyledBody>
 );
 
@@ -349,6 +370,29 @@ const StyledDiffList = styled.div`
     padding: 12px;
     background-color: var(--black-color-10);
     border-radius: var(--radius-md);
+`;
+
+const StyledReasonLabel = styled.label`
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin-top: 12px;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--dark-gray-color);
+`;
+
+const StyledReasonTextarea = styled.textarea`
+    width: 100%;
+    box-sizing: border-box;
+    padding: 8px 10px;
+    border: 1px solid var(--light-gray-color);
+    border-radius: var(--radius-md);
+    font-size: 13px;
+    line-height: 1.5;
+    resize: vertical;
+    color: var(--black-color);
+    &:focus { outline: none; border-color: var(--brand-color); }
 `;
 
 const StyledMemoSection = styled.div`

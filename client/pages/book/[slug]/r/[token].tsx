@@ -39,6 +39,8 @@ interface ReservationView {
     canCancel: boolean;
     // 상태별 오너 안내문구(#139): 확정·취소일 때만 서버가 채운다. 없으면 null.
     statusMessage: {text: string | null; i18n: I18nText} | null;
+    // 오너가 남긴 승인/거절/취소 사유(선택). 없으면 상태별 기본문구로 대체.
+    decisionReason: string | null;
 }
 
 interface BookServiceInfo {name: string; category: string; duration: number; price: number}
@@ -234,6 +236,12 @@ export default function ReservationManagePage() {
     const statusMsg = reservation.statusMessage
         ? pickI18n(reservation.statusMessage.i18n, lang, reservation.statusMessage.text ?? '')
         : '';
+    // 오너가 남긴 개별 사유(원문 표시). 없으면 확정/취소 상태에 한해 기본문구로 대체.
+    const decisionMsg = reservation.decisionReason
+        ? reservation.decisionReason
+        : reservation.status === 'active' ? t.decisionApprovedDefault
+        : reservation.status === 'cancelled' ? t.decisionCancelledDefault
+        : '';
 
     return (
         <StyledWrap>
@@ -250,6 +258,13 @@ export default function ReservationManagePage() {
                     <StyledSummaryRow><span>{labels.service}</span><StyledSummaryValue>{reservation.serviceSummary}</StyledSummaryValue></StyledSummaryRow>
                     {reservation.assigneeName && <StyledSummaryRow><span>{labels.assignee}</span><StyledSummaryValue>{reservation.assigneeName}</StyledSummaryValue></StyledSummaryRow>}
                 </StyledSummary>
+
+                {decisionMsg && (
+                    <StyledNotice>
+                        {reservation.decisionReason && <StyledNoticeLabel>{t.decisionReasonLabel}</StyledNoticeLabel>}
+                        {decisionMsg}
+                    </StyledNotice>
+                )}
 
                 {statusMsg && <StyledNotice>{statusMsg}</StyledNotice>}
 
@@ -439,6 +454,14 @@ const StyledSectionLabel = styled.strong`
     font-size: var(--font);
     font-weight: 700;
     color: var(--black-color);
+`;
+
+const StyledNoticeLabel = styled.strong`
+    display: block;
+    margin-bottom: 4px;
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--brand-color, #6526d9);
 `;
 
 const StyledSummary = styled.div`
