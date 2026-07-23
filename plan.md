@@ -4,6 +4,36 @@
 
 ---
 
+## 완료 — 휴업일 설정해도 고객 예약 페이지에서 예약되는 버그 (TZ 오프바이원)
+
+> 배경(사용자): "휴업일 설정했는데, 고객 예약 페이지 통해서 예약되네." 오너가 특정 날짜 휴업일(`StoreClosedDate`)을 설정했는데도 공개 예약 페이지에서 그 날짜 예약이 통과됨.
+
+### 원인 (근본)
+- **날짜 전용 컬럼의 저장/읽기 TZ 규칙 불일치.** 앱 전역 규칙은 "저장=`new Date(\`${date}T00:00:00\`)`(서버 로컬 파싱), 읽기=`mappers.toDateKey`(로컬 컴포넌트 추출)" → 서버 TZ와 무관하게 오너가 입력한 달력일을 되돌려줌(오너 흐름은 정상).
+- **공개 예약 API들만 이 규칙을 깨고 UTC `.toISOString().slice(0,10)`로 읽음.** 서버가 KST(운영)면 로컬 파싱으로 저장된 `2026-07-25`가 `2026-07-24T15:00:00Z`로 저장돼, `.toISOString()`은 `2026-07-24`를 돌려줌 → 하루 밀림.
+- 결과: 오너는 25일이 휴업일로 보이지만(정상), 공개 API의 `closedDates`엔 24일이 들어가 고객이 고른 25일이 차단되지 않음 → `evaluateDateWindow`가 ok:true → `reserve`가 201. 클라이언트 제출 경로·서버 재검증 로직 자체는 정상.
+- TZ=UTC에선 두 방식이 우연히 일치해 재현 안 됨(운영은 KST로 동작 → 재현). `node -e` 시뮬레이션으로 UTC 정상 / Asia/Seoul 하루 밀림 확증.
+
+### 수정 방침 (관례 복원 — `toDateKey`로 통일, 전 TZ에서 정확·UTC서 무회귀)
+- `mappers.ts`의 `toDateKey`를 `export` 하고, 공개 예약 흐름의 모든 날짜 읽기를 `.toISOString().slice(0,10)` → `toDateKey(...)`로 교체.
+- **A. 휴업일 비교(신고 버그)**: `book/[slug].ts`, `book/[slug]/availability.ts`, `book/[slug]/reserve.ts`, `book/[slug]/day.ts`, `book/reservation/[token]/request-change.ts`의 `closedDates` 생성.
+- **B. 예약 날짜 표시(동일 뿌리, KST서 하루 밀려 표시)**: `book/[slug]/lookup.ts`, `book/reservation/[token].ts`, `request-change.ts`(Slack), `request-cancel.ts`(Slack), `book-requests.ts`(오너 요청목록).
+- **손대지 않음**: `booking-helpers.ts` `nowKst()`의 `shifted.toISOString().slice(0,10)` — 의도적으로 KST-shift된 instant에 UTC 추출(정상, TZ 독립).
+- 스키마·마이그레이션 무변경(코드-온리 배포). 저장 형식 불변이라 기존 데이터 그대로 정상 해석.
+
+### 검증 (완료)
+- ✅ 타입체크 exit 0(`tsc --noEmit`, select 완전성 포함)·`next build` exit 0(부킹 라우트 포함 전 API 컴파일).
+- ✅ `node` 시뮬레이션(실제 `toDateKey`)으로 라운드트립 확인: **수정 전** KST에서 `closedDates=["2026-07-24"]` → 고객 25일 예약 통과(버그). **수정 후** UTC·Asia/Seoul·America/New_York 전부 `["2026-07-25"]` → 25일 예약 차단.
+- (테스트 러너 없음) 회귀 방지는 단일 헬퍼(`toDateKey`) 통일 + 타입체크로 담보. 후속 하드닝 후보: 날짜 전용 컬럼을 `@db.Date`/문자열로 두어 instant 왕복 자체를 제거(마이그레이션 필요 → 범위 밖).
+
+### 결과물 (수정 파일)
+- `server/db/mappers.ts`: `toDateKey` `export`(공개 API가 오너 흐름과 동일 헬퍼 재사용).
+- A(휴업일 비교): `book/[slug].ts`·`book/[slug]/availability.ts`·`book/[slug]/reserve.ts`·`book/[slug]/day.ts`·`book/reservation/[token]/request-change.ts`.
+- B(예약 날짜 표시): `book/[slug]/lookup.ts`·`book/reservation/[token].ts`·`request-change.ts`(Slack)·`request-cancel.ts`(Slack)·`book-requests.ts`.
+- `client/package.json` 0.37.0→0.37.1(patch).
+
+---
+
 ## 진행 중 — 온라인 예약 승인/거절/취소 UX 개선 (승인 확인 레이어·취소 예약 유지·사유)
 
 > 배경(사용자): 고객 예약 페이지로 들어온 예약 처리 흐름 3가지.

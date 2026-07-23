@@ -1,6 +1,7 @@
 import type {NextApiRequest, NextApiResponse} from 'next';
 
 import {prisma} from '../../../db/prisma';
+import {toDateKey} from '../../../db/mappers';
 import {normalizeTel} from '../../../../client/features/customers/model';
 import {findBookableStore, nowKst} from '../booking-helpers';
 
@@ -62,7 +63,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         reservations: rows.map((r) => ({
             token: r.publicToken,
             status: r.status,
-            date: r.date.toISOString().slice(0, 10),
+            date: toDateKey(r.date),
             startTime: r.startTime,
             endTime: r.endTime,
             serviceSummary: r.serviceSummary,

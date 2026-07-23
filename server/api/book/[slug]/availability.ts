@@ -1,6 +1,7 @@
 import type {NextApiRequest, NextApiResponse} from 'next';
 
 import {prisma} from '../../../db/prisma';
+import {toDateKey} from '../../../db/mappers';
 import {
     computeAvailableSlots,
     type SlotAssignee,
@@ -52,7 +53,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     if (!areServicesBookable(serviceNames, settings.bookableServiceNames)) return res.status(400).json({error: 'not_bookable'});
     const durationMin = services.reduce((sum, s) => sum + s.duration, 0);
 
-    const closedDates = closedRows.map((c) => c.date.toISOString().slice(0, 10));
+    const closedDates = closedRows.map((c) => toDateKey(c.date));
     const window = evaluateDateWindow(dateStr, settings, closedDates);
     if (!window.ok) return res.status(200).json({date: dateStr, durationMin, slots: []});
 

@@ -269,7 +269,7 @@ NextAuth 5.0 설정. Google·Kakao·Naver OAuth 지원.
 | `prisma.ts` | Prisma 클라이언트 싱글턴 (PrismaPg driver adapter 사용) |
 | `mappers.ts` | DB ↔ 프론트엔드 변환 함수[^13] |
 
-[^13]: `dbReservationToFrontend()`, `dbCustomerToFrontend()`, `dbAssigneeToFrontend()`, `dbServiceToFrontend()`, `dbStoreToFrontend()` 등. legacyId(number) ↔ CUID(string) 변환 포함. `legacyId`가 null이면 프론트 id가 깨지므로 생성 시 반드시 부여할 것. **예약 조회는 `prisma-includes.ts`의 명시적 `select`(`reservationSelect`/`reservationSelectWithNames`)만 사용** — `include`(전체 컬럼 SELECT)는 금지. 새 컬럼을 추가한 뒤 마이그레이션이 미적용된 채 배포되면 `include`가 없는 컬럼까지 SELECT하다 전체 예약 조회가 500나기 때문(2026-07 `publicToken` 배포순서 사고 재발방지)
+[^13]: `dbReservationToFrontend()`, `dbCustomerToFrontend()`, `dbAssigneeToFrontend()`, `dbServiceToFrontend()`, `dbStoreToFrontend()` 등. legacyId(number) ↔ CUID(string) 변환 포함. `legacyId`가 null이면 프론트 id가 깨지므로 생성 시 반드시 부여할 것. **예약 조회는 `prisma-includes.ts`의 명시적 `select`(`reservationSelect`/`reservationSelectWithNames`)만 사용** — `include`(전체 컬럼 SELECT)는 금지. 새 컬럼을 추가한 뒤 마이그레이션이 미적용된 채 배포되면 `include`가 없는 컬럼까지 SELECT하다 전체 예약 조회가 500나기 때문(2026-07 `publicToken` 배포순서 사고 재발방지). **날짜 전용 컬럼(`Reservation.date`·`StoreClosedDate.date` 등) 규칙**: 저장은 `new Date(\`${dateStr}T00:00:00\`)`(서버 로컬 파싱), 읽기는 **항상 `toDateKey`**(로컬 컴포넌트 추출) — 두 방향이 서버 TZ와 무관하게 오너 입력 달력일을 왕복시킨다. `.toISOString().slice(0,10)`(UTC)로 읽으면 서버가 KST일 때 하루 밀려 휴업일이 공개 예약에서 누락되므로 금지(오너·공개 부킹 API 모두 `toDateKey` 사용). 예외: `booking-helpers.nowKst()`는 의도적으로 KST-shift된 instant에 UTC 추출(TZ 독립)
 
 ---
 

@@ -1,6 +1,7 @@
 import type {NextApiRequest, NextApiResponse} from 'next';
 
 import {findReservationByPublicToken, loadBookingSettings} from '../booking-helpers';
+import {toDateKey} from '../../../db/mappers';
 
 // 공개(비로그인) 예약 조회. 관리 링크 토큰으로만 접근하며, 고객 본인 예약의 최소 정보만 반환한다.
 // 다른 고객·매장 데이터는 절대 노출하지 않는다(토큰이 곧 접근 권한).
@@ -28,7 +29,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     return res.status(200).json({
         status: reservation.status,
-        date: reservation.date.toISOString().slice(0, 10),
+        date: toDateKey(reservation.date),
         startTime: reservation.startTime,
         endTime: reservation.endTime,
         serviceSummary: reservation.serviceSummary,

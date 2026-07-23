@@ -3,6 +3,7 @@ import crypto from 'crypto';
 import type {NextApiRequest, NextApiResponse} from 'next';
 
 import {prisma} from '../../../db/prisma';
+import {toDateKey} from '../../../db/mappers';
 import {normalizeTel} from '../../../../client/features/customers/model';
 import {calcEndTime, joinServiceNames} from '../../../../client/features/services/model';
 import {areServicesBookable} from '../../../../client/features/store-settings/model';
@@ -86,7 +87,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const endTime = calcEndTime(startTime, durationMin);
     const serviceSummary = joinServiceNames(serviceNames);
 
-    const closedDates = closedRows.map((c) => c.date.toISOString().slice(0, 10));
+    const closedDates = closedRows.map((c) => toDateKey(c.date));
     const window = evaluateDateWindow(dateStr, settings, closedDates);
     if (!window.ok) return res.status(409).json({error: 'unavailable_date'});
 
