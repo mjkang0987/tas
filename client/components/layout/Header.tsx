@@ -10,10 +10,13 @@ import {useCustomerMergeSuggestion} from '../../hooks/useCustomerMergeSuggestion
 import {splitAssigneesByStatus, getAssigneeColor} from '../../utils/assignees';
 import {isCalendar} from '../../utils/router';
 import type {Reservation} from '../../utils/reservations';
+import {toDateKey} from '../../utils/reservations';
+import {roundToHalfHour, pad} from '../../utils/timeRound';
 
 import {CalendarDirection} from '../calendar/CalendarDirection';
 import {CalendarHeading} from '../calendar/CalendarHeading';
 import {ReservationDetail} from '../calendar/overlays/ReservationDetail';
+import {MobileViewTabs} from './MobileViewTabs';
 import {NaverSyncNotification} from './NaverSyncNotification';
 import {BookingRequestNotification} from './BookingRequestNotification';
 import {NaverSyncConflictModal} from '../modals/NaverSyncConflictModal';
@@ -37,12 +40,14 @@ import {
     StyledTokenExpiredToast,
     StyledTokenReconnect,
     StyledTokenClose,
+    StyledMobileAddPill,
 } from './Header.styles';
 
 const PAGE_TITLES: Record<string, string> = {
     '/address': '고객 명단',
     '/mypage': '계정 정보',
     '/logout': '로그아웃',
+    '/menu': '설정',
 };
 
 function getSettingsTabTitles(labels: StoreLabels): Record<string, string> {
@@ -67,6 +72,15 @@ export const Header = () => {
     const assignees = useCalendarStore((s) => s.assignees);
     const calendarAssigneeId = useCalendarStore((s) => s.calendarAssigneeId);
     const setCalendarAssigneeId = useCalendarStore((s) => s.setCalendarAssigneeId);
+    const setCreateReservationInitial = useCalendarStore((s) => s.setCreateReservationInitial);
+
+    // 모바일 상단 '＋예약' 버튼 — aside의 예약추가와 동일(현재 시각 30분 반올림)
+    const handleCreateReservation = () => {
+        const now = new Date();
+        const {hour, rounded} = roundToHalfHour(now.getHours(), now.getMinutes());
+        const date = toDateKey(now.getFullYear(), now.getMonth(), now.getDate());
+        setCreateReservationInitial({date, startTime: `${pad(hour)}:${pad(rounded)}`});
+    };
     const pathSegments = router.asPath.split('?')[0].split('/');
     const isRootPath = pathSegments.join('').length === 0;
     const isCalendarPage = isRootPath || isCalendar(pathSegments);
@@ -177,6 +191,19 @@ export const Header = () => {
                 <StyledCalendarRow>
                     <CalendarDirection />
                     <CalendarHeading />
+                    <StyledMobileAddPill type="button"
+                                         onClick={handleCreateReservation}
+                                         aria-label="예약 추가">
+                        <svg viewBox="0 0 24 24"
+                             fill="none"
+                             stroke="currentColor"
+                             strokeWidth="2.3"
+                             strokeLinecap="round"
+                             aria-hidden="true">
+                            <path d="M12 5v14M5 12h14" />
+                        </svg>
+                        예약
+                    </StyledMobileAddPill>
                 </StyledCalendarRow>
                 <StyledToolRow>
                     <StyledAssigneeFilter value={calendarAssigneeId ?? ''}
@@ -253,6 +280,7 @@ export const Header = () => {
                         </StyledSearchIcon>
                     </StyledCustomerSearchButton>
                 </StyledToolRow>
+                <MobileViewTabs />
             </>}
             {!isCalendarPage && <>
                 <StyledPageTitle>{pageTitle}</StyledPageTitle>
