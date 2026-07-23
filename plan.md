@@ -4,6 +4,38 @@
 
 ---
 
+## 진행 중 — 모바일 내비게이션 개편 (aside → 상단 고정 헤더 + 하단 탭바)
+
+> 배경(사용자): tas-ios 조작감을 웹앱 모바일에 이식. 좌측 드로어(aside) 대신 iOS식 **상단 고정 헤더 + 하단 고정 탭바**로 재구성. 시안 3안 비교 후 **"C 헤더 + B 나머지"** 조합으로 확정(아티팩트 시안).
+
+### 확정 디자인 (사용자 결정)
+- **상단 고정(캘린더)**: 좌측 라지타이틀(=날짜, 탭→날짜점프) + 이전/다음, 우측 **＋예약 텍스트 알약**(상단 고정), 아래 **일·주·월·년 풀폭 세그먼트 탭**(캘린더에서만). 3일(three) 뷰는 모바일 탭에서 제외(데스크톱 aside엔 유지).
+- **하단 고정 탭바**: **캘린더 · 고객 · 매출 · 설정** 4탭. 아이콘은 기존 `AsideMenuIcon` 재사용.
+- **서비스는 설정 안으로** — 하단 탭엔 없음. 설정(더보기) 화면에 '서비스 관리' 행으로.
+- **모바일 매출**: 차트는 숨김(작은 화면 가독성). KPI·목록만.
+- 비캘린더(고객·매출·설정) 상단은 **타이틀만**(뷰 탭·＋예약 없음).
+
+### 구현 방침 (모바일 ≤640px 전용, 데스크톱 무변경)
+- **하단 탭바** `MobileTabBar` — `LayoutComponent`의 `StyledContent` 플렉스 자식으로 렌더(고정 position 아님, Main이 내부 스크롤 → 자연히 하단 고정). `display:none` 기본, `@media(max-width:640px)`에서만 노출. safe-area 하단 패딩. 활성상태=경로 기반.
+  - 캘린더→`/`, 고객→`/address`, 매출→`/settings/revenue`, 설정→`/menu`(신규).
+- **설정(더보기) 페이지** `/menu`(신규 `pages/menu.tsx`) — aside의 설정 메뉴를 iOS 리스트로 이관. `SETTINGS_SUBMENU`+게이팅을 `layout/settingsMenu.ts`로 추출해 aside와 공유(드리프트 방지). 매출·고객명단은 하단 탭과 중복이라 리스트에서 제외. 고객센터·사용안내·로그아웃·약관도 포함(모바일에서 aside를 완전히 대체).
+- **상단 헤더** `Header` — 모바일 전용 요소 추가(전부 `display:none`+`@media`로 데스크톱 격리): ①＋예약 알약(캘린더 행 우측), ②세그먼트 뷰 탭 `MobileViewTabs`(툴 행 아래). 기존 담당자 필터·검색·동기화·알림 툴 행은 유지. 플로팅 aside 토글은 모바일에서 숨김(＝/menu가 대체).
+- **뷰 전환 로직 재사용**: `MobileViewTabs`는 aside의 `setChangeView`/`setAsPath` 패턴(스토어 `setView`+URL push) 그대로. 라벨 일/주/월/년.
+- **매출 차트 숨김**: RevenueSection 차트 그리드에 `@media(max-width:640px){display:none}`.
+
+### 영향 파일
+- 신규: `components/layout/MobileTabBar.tsx`, `components/layout/MobileViewTabs.tsx`, `components/layout/settingsMenu.ts`, `pages/menu.tsx`.
+- 수정: `components/layout/LayoutComponent.tsx`(탭바 렌더+Main 하단 패딩), `components/layout/Header.tsx`·`Header.styles.ts`(＋예약·뷰탭·토글 숨김), `components/layout/Aside.tsx`(SETTINGS_SUBMENU를 공유 모듈에서 import), `components/settings/revenue/*`(모바일 차트 숨김).
+
+### 검증
+- 타입체크(`tsc --noEmit`)·`next build`. 모바일 폭(≤640px)에서 상단 헤더(타이틀·＋예약·뷰탭)·하단 탭바·설정(/menu) 동작, 데스크톱 레이아웃 무변경 확인.
+
+### 리스크/주의
+- 공유 컴포넌트(CalendarHeading 등) 미변경 — 모바일 요소는 신규+CSS 격리로만. 라지타이틀 폰트 확대는 공유 컴포넌트 건드리므로 v1 보류(레이아웃으로 강조).
+- 스키마·API 무변경(코드-온리 배포).
+
+---
+
 ## 진행 중 — 매장 공지사항 (StoreNotice, 예약 페이지 목록형 공지)
 
 > 배경(사용자): 고객 예약 페이지에 매장 공지사항을 넣고 싶음. 목업 비교 후 **③ 여러 공지 목록**(제목·날짜로 여러 개, 펼치는 아코디언) 선택. 오너가 관리(CRUD), 공개된 공지만 고객에게 노출, 4개국어(한·영·일·중).
