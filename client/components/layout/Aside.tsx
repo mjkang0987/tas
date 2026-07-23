@@ -18,7 +18,7 @@ import {CustomerAddModal} from '../address/CustomerAddModal';
 import {StoreSwitcher} from './StoreSwitcher';
 import {AsideGuestLogout} from './AsideGuestLogout';
 import {clearGuestConsentAck, clearGuestEntryResolved, clearGuestTermsAgreed} from '../../lib/local-db';
-import {AsideMenuIcon, StyledMenuIcon} from './AsideMenuIcon';
+import {AsideMenuIcon} from './AsideMenuIcon';
 import {useStoreLabels} from '../../hooks/useStoreLabels';
 import {
     StyledAside,
@@ -150,11 +150,6 @@ export const Aside = () => {
     return (<StyledAside $isVisible={aside.isVisible}>
             <StyledBrandLink href="/"
                              onClick={closeMobile}>
-                <StyledMenuIcon viewBox="0 0 24 24"
-                                aria-hidden="true">
-                    <path d="M3 9.5L12 4L21 9.5" />
-                    <path d="M5 9.5V18.5C5 19.05 5.45 19.5 6 19.5H18C18.55 19.5 19 19.05 19 18.5V9.5" />
-                </StyledMenuIcon>
                 <StyledBrandLogo src="/logo/logo.svg" alt="TAS" />
             </StyledBrandLink>
             {isGuest ? (
