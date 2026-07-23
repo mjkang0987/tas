@@ -307,6 +307,7 @@ model StoreNotice {
   body          String
   bodyI18nJson  Json?
   visible       Boolean  @default(true)
+  pinned        Boolean  @default(false)
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
   store         Store    @relation(fields: [storeId], references: [id], onDelete: Cascade)

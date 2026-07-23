@@ -18,9 +18,10 @@ interface DraftForm {
     body: string;
     bodyI18n: NoticeI18n | null;
     visible: boolean;
+    pinned: boolean;
 }
 
-const EMPTY_DRAFT: DraftForm = {category: 'notice', title: '', titleI18n: null, body: '', bodyI18n: null, visible: true};
+const EMPTY_DRAFT: DraftForm = {category: 'notice', title: '', titleI18n: null, body: '', bodyI18n: null, visible: true, pinned: false};
 
 function formatDate(iso: string): string {
     const d = new Date(iso);
@@ -84,6 +85,7 @@ export const NoticeManageSection = () => {
             body: n.body,
             bodyI18n: n.bodyI18n ?? null,
             visible: n.visible,
+            pinned: n.pinned,
         });
     };
 
@@ -105,6 +107,7 @@ export const NoticeManageSection = () => {
             body,
             bodyI18n: draft.bodyI18n,
             visible: draft.visible,
+            pinned: draft.pinned,
         };
         try {
             const res = await fetch('/api/notices', {
@@ -173,6 +176,11 @@ export const NoticeManageSection = () => {
                                         onChange={(e) => setDraft((d) => ({...d, visible: e.target.checked}))} />
                                     <span>공개 (고객 페이지에 노출)</span>
                                 </StyledCheckboxRow>
+                                <StyledCheckboxRow htmlFor="nt-pinned">
+                                    <input id="nt-pinned" type="checkbox" checked={draft.pinned}
+                                        onChange={(e) => setDraft((d) => ({...d, pinned: e.target.checked}))} />
+                                    <span>상단 고정 (맨 위에 노출)</span>
+                                </StyledCheckboxRow>
                             </StyledTopRow>
 
                             <LocalizedMessageField
@@ -216,6 +224,7 @@ export const NoticeManageSection = () => {
                                     <StyledItemMain>
                                         <StyledItemTop>
                                             <StyledChip data-category={n.category}>{noticeCategoryLabel(n.category)}</StyledChip>
+                                            {n.pinned && <StyledPinBadge>고정</StyledPinBadge>}
                                             <StyledItemName>{n.title}</StyledItemName>
                                             {!n.visible && <StyledHiddenBadge>비공개</StyledHiddenBadge>}
                                         </StyledItemTop>
@@ -360,6 +369,16 @@ const StyledHiddenBadge = styled.span`
     border-radius: 6px;
     color: var(--dark-gray-color2);
     background: var(--black-color-10);
+`;
+
+const StyledPinBadge = styled.span`
+    flex-shrink: 0;
+    font-size: 11px;
+    font-weight: 700;
+    padding: 2px 7px;
+    border-radius: 6px;
+    color: #a8620a;
+    background: rgba(168, 98, 10, 0.12);
 `;
 
 const StyledItemBody = styled.span`

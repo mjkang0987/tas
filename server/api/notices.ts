@@ -20,7 +20,7 @@ function i18nInput(value: unknown): Prisma.InputJsonValue | typeof Prisma.JsonNu
 
 type NoticeRow = {
     id: string; category: string; title: string; titleI18nJson: unknown;
-    body: string; bodyI18nJson: unknown; visible: boolean; createdAt: Date;
+    body: string; bodyI18nJson: unknown; visible: boolean; pinned: boolean; createdAt: Date;
 };
 
 // 공지 1건을 프론트 응답 형태로. i18n은 parseI18nText로 정규화(비면 null).
@@ -33,6 +33,7 @@ function shapeNotice(n: NoticeRow) {
         body: n.body,
         bodyI18n: parseI18nText(n.bodyI18nJson),
         visible: n.visible,
+        pinned: n.pinned,
         createdAt: n.createdAt.toISOString(),
     };
 }
@@ -46,7 +47,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
         const notices = await prisma.storeNotice.findMany({
             where: {storeId: session.storeId},
-            orderBy: {createdAt: 'desc'},
+            orderBy: [{pinned: 'desc'}, {createdAt: 'desc'}],
         });
         return res.status(200).json({notices: notices.map(shapeNotice)});
     }
@@ -56,7 +57,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
         const body = req.body as {
             category?: unknown; title?: unknown; titleI18n?: unknown;
-            body?: unknown; bodyI18n?: unknown; visible?: unknown;
+            body?: unknown; bodyI18n?: unknown; visible?: unknown; pinned?: unknown;
         };
 
         if (typeof body.title !== 'string' || !body.title.trim()) {
@@ -78,6 +79,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                 body: body.body.trim(),
                 bodyI18nJson: i18nInput(body.bodyI18n),
                 visible: body.visible === undefined ? true : Boolean(body.visible),
+                pinned: body.pinned === undefined ? false : Boolean(body.pinned),
             },
         });
         return res.status(200).json(shapeNotice(created));
@@ -88,7 +90,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
         const body = req.body as {
             id?: unknown; category?: unknown; title?: unknown; titleI18n?: unknown;
-            body?: unknown; bodyI18n?: unknown; visible?: unknown;
+            body?: unknown; bodyI18n?: unknown; visible?: unknown; pinned?: unknown;
         };
 
         if (typeof body.id !== 'string') return res.status(400).json({error: 'Invalid id'});
@@ -111,6 +113,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                 ...(body.body !== undefined && {body: (body.body as string).trim()}),
                 ...(body.bodyI18n !== undefined && {bodyI18nJson: i18nInput(body.bodyI18n)}),
                 ...(body.visible !== undefined && {visible: Boolean(body.visible)}),
+                ...(body.pinned !== undefined && {pinned: Boolean(body.pinned)}),
             },
         });
         if (result.count === 0) return res.status(404).json({error: 'Not found'});

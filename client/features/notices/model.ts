@@ -15,6 +15,7 @@ export interface StoreNotice {
     body: string;
     bodyI18n?: NoticeI18n | null;
     visible: boolean;
+    pinned: boolean;
     createdAt: string; // ISO
 }
 
