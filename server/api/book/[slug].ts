@@ -61,7 +61,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     try {
         const noticeRows = await prisma.storeNotice.findMany({
             where: {storeId: store.id, visible: true},
-            orderBy: {createdAt: 'desc'},
+            orderBy: [{pinned: 'desc'}, {createdAt: 'desc'}],
             select: {category: true, title: true, titleI18nJson: true, body: true, bodyI18nJson: true},
         });
         notices = noticeRows.map((n) => ({

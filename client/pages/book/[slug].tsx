@@ -368,6 +368,21 @@ export default function BookingPage() {
     const noticeDisplay = pickI18n(info.settings.noticeI18n, lang, info.settings.noticeText ?? '');
     const doneDisplay = pickI18n(info.settings.doneI18n, lang, info.settings.doneText ?? '');
     const noticeCat = (c: string): string => t.noticeCategories[c as 'notice' | 'event' | 'info'] ?? t.noticeCategories.notice;
+    // 공지 보드(항상 펼침, 접기 없음). 랜딩·신규예약 뷰가 공유하도록 변수로 추출.
+    const noticeBoard = info.notices.length > 0 ? (
+        <StyledNoticeBoard>
+            <StyledNoticeHead>{t.noticeSectionTitle}</StyledNoticeHead>
+            {info.notices.map((n, i) => (
+                <StyledNoticeItem key={i}>
+                    <StyledNoticeItemHead>
+                        <StyledNoticeChip data-category={n.category}>{noticeCat(n.category)}</StyledNoticeChip>
+                        <StyledNoticeItemTitle>{pickI18n(n.titleI18n, lang, n.title)}</StyledNoticeItemTitle>
+                    </StyledNoticeItemHead>
+                    <StyledNoticeBody>{pickI18n(n.bodyI18n, lang, n.body)}</StyledNoticeBody>
+                </StyledNoticeItem>
+            ))}
+        </StyledNoticeBoard>
+    ) : null;
 
     if (result) {
         return (
@@ -399,21 +414,7 @@ export default function BookingPage() {
                     <StyledStore>{storeDisplay}</StyledStore>
                     <StyledTitle>{t.homeTitle}</StyledTitle>
                     {noticeDisplay && <StyledNotice>{noticeDisplay}</StyledNotice>}
-                    {info.notices.length > 0 && (
-                        <StyledNoticeBoard>
-                            <StyledNoticeHead>{t.noticeSectionTitle}</StyledNoticeHead>
-                            {info.notices.map((n, i) => (
-                                <StyledNoticeItem key={i} open={i === 0}>
-                                    <StyledNoticeSummary>
-                                        <StyledNoticeChip data-category={n.category}>{noticeCat(n.category)}</StyledNoticeChip>
-                                        <StyledNoticeItemTitle>{pickI18n(n.titleI18n, lang, n.title)}</StyledNoticeItemTitle>
-                                        <StyledNoticeChevron aria-hidden="true" />
-                                    </StyledNoticeSummary>
-                                    <StyledNoticeBody>{pickI18n(n.bodyI18n, lang, n.body)}</StyledNoticeBody>
-                                </StyledNoticeItem>
-                            ))}
-                        </StyledNoticeBoard>
-                    )}
+                    {noticeBoard}
                     <StyledHomeActions>
                         <StyledHomeBtn type="button" $primary onClick={() => goView('new')}>
                             <span className="t">{t.newReservation}</span>
@@ -505,6 +506,7 @@ export default function BookingPage() {
                 <StyledStore>{storeDisplay}</StyledStore>
                 <StyledTitle>{t.onlineReservation}</StyledTitle>
                 {noticeDisplay && <StyledNotice>{noticeDisplay}</StyledNotice>}
+                {noticeBoard}
 
                 {showAssignees && (
                     <>
@@ -770,41 +772,24 @@ const StyledNoticeChip = styled.span`
     &[data-category='info'] { color: #16a34a; background: rgba(22, 163, 74, 0.1); }
 `;
 const StyledNoticeItemTitle = styled.span`
-    flex: 1;
     min-width: 0;
     font-size: var(--small-font);
     font-weight: 600;
     color: var(--black-color);
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
+    overflow-wrap: anywhere;
 `;
-const StyledNoticeChevron = styled.span`
-    flex-shrink: 0;
-    width: 0;
-    height: 0;
-    border-top: 5px solid transparent;
-    border-bottom: 5px solid transparent;
-    border-left: 5px solid var(--dark-gray-color);
-    transition: transform 0.15s ease;
+const StyledNoticeItem = styled.div`
+    padding: 10px 12px;
+
+    & + & { border-top: 1px solid var(--light-gray-color); }
 `;
-const StyledNoticeSummary = styled.summary`
-    list-style: none;
-    cursor: pointer;
+const StyledNoticeItemHead = styled.div`
     display: flex;
     align-items: center;
     gap: 8px;
-    padding: 10px 12px;
-
-    &::-webkit-details-marker { display: none; }
-`;
-const StyledNoticeItem = styled.details`
-    & + & { border-top: 1px solid var(--light-gray-color); }
-    &[open] ${StyledNoticeChevron} { transform: rotate(90deg); }
 `;
 const StyledNoticeBody = styled.p`
-    margin: 0;
-    padding: 0 12px 12px;
+    margin: 6px 0 0;
     font-size: var(--small-font);
     line-height: 1.5;
     color: var(--dark-gray-color);

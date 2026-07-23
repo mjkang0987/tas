@@ -8,7 +8,7 @@ import {LocalizedMessageField} from '../ui/LocalizedMessageField';
 import {StyledEditBtn, StyledDeleteBtn, StyledSaveBtn, StyledCancelBtn, StyledEmpty, EMPTY_TEXT} from './settings-styles';
 import {useToastStore} from '../../store/toastStore';
 import {shouldUseLocalDb} from '../../lib/local-db';
-import {NOTICE_CATEGORIES, noticeCategoryLabel} from '../../features/notices/model';
+import {NOTICE_CATEGORIES, noticeCategoryLabel, MAX_PINNED_NOTICES} from '../../features/notices/model';
 import type {StoreNotice, NoticeCategory, NoticeI18n} from '../../features/notices/model';
 
 interface DraftForm {
@@ -18,9 +18,10 @@ interface DraftForm {
     body: string;
     bodyI18n: NoticeI18n | null;
     visible: boolean;
+    pinned: boolean;
 }
 
-const EMPTY_DRAFT: DraftForm = {category: 'notice', title: '', titleI18n: null, body: '', bodyI18n: null, visible: true};
+const EMPTY_DRAFT: DraftForm = {category: 'notice', title: '', titleI18n: null, body: '', bodyI18n: null, visible: true, pinned: false};
 
 function formatDate(iso: string): string {
     const d = new Date(iso);
@@ -84,6 +85,7 @@ export const NoticeManageSection = () => {
             body: n.body,
             bodyI18n: n.bodyI18n ?? null,
             visible: n.visible,
+            pinned: n.pinned,
         });
     };
 
@@ -105,6 +107,7 @@ export const NoticeManageSection = () => {
             body,
             bodyI18n: draft.bodyI18n,
             visible: draft.visible,
+            pinned: draft.pinned,
         };
         try {
             const res = await fetch('/api/notices', {
@@ -112,6 +115,10 @@ export const NoticeManageSection = () => {
                 headers: {'Content-Type': 'application/json'},
                 body: JSON.stringify(editingId ? {id: editingId, ...payload} : payload),
             });
+            if (res.status === 409) {
+                const data = await res.json().catch(() => ({}));
+                if (data.error === 'pin_limit') { setError(`상단 고정은 최대 ${MAX_PINNED_NOTICES}개까지 가능합니다.`); return; }
+            }
             if (!res.ok) throw new Error();
             toast(editingId ? '공지사항이 수정되었습니다.' : '공지사항이 추가되었습니다.');
             resetForm();
@@ -137,6 +144,8 @@ export const NoticeManageSection = () => {
     };
 
     const editing = isAdding || editingId !== null;
+    // 이미 고정된 다른 공지 수(편집 중 항목 제외)가 상한이면 새로 고정 불가.
+    const pinLimitReached = notices.filter((n) => n.pinned && n.id !== editingId).length >= MAX_PINNED_NOTICES;
 
     return (
         <StyledWrap>
@@ -172,6 +181,12 @@ export const NoticeManageSection = () => {
                                     <input id="nt-visible" type="checkbox" checked={draft.visible}
                                         onChange={(e) => setDraft((d) => ({...d, visible: e.target.checked}))} />
                                     <span>공개 (고객 페이지에 노출)</span>
+                                </StyledCheckboxRow>
+                                <StyledCheckboxRow htmlFor="nt-pinned">
+                                    <input id="nt-pinned" type="checkbox" checked={draft.pinned}
+                                        disabled={!draft.pinned && pinLimitReached}
+                                        onChange={(e) => setDraft((d) => ({...d, pinned: e.target.checked}))} />
+                                    <span>상단 고정 (맨 위에 노출){!draft.pinned && pinLimitReached ? ` · 최대 ${MAX_PINNED_NOTICES}개` : ''}</span>
                                 </StyledCheckboxRow>
                             </StyledTopRow>
 
@@ -216,6 +231,7 @@ export const NoticeManageSection = () => {
                                     <StyledItemMain>
                                         <StyledItemTop>
                                             <StyledChip data-category={n.category}>{noticeCategoryLabel(n.category)}</StyledChip>
+                                            {n.pinned && <StyledPinBadge>고정</StyledPinBadge>}
                                             <StyledItemName>{n.title}</StyledItemName>
                                             {!n.visible && <StyledHiddenBadge>비공개</StyledHiddenBadge>}
                                         </StyledItemTop>
@@ -360,6 +376,16 @@ const StyledHiddenBadge = styled.span`
     border-radius: 6px;
     color: var(--dark-gray-color2);
     background: var(--black-color-10);
+`;
+
+const StyledPinBadge = styled.span`
+    flex-shrink: 0;
+    font-size: 11px;
+    font-weight: 700;
+    padding: 2px 7px;
+    border-radius: 6px;
+    color: #a8620a;
+    background: rgba(168, 98, 10, 0.12);
 `;
 
 const StyledItemBody = styled.span`

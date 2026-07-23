@@ -15,6 +15,7 @@ export interface StoreNotice {
     body: string;
     bodyI18n?: NoticeI18n | null;
     visible: boolean;
+    pinned: boolean;
     createdAt: string; // ISO
 }
 
@@ -24,6 +25,9 @@ export const NOTICE_CATEGORIES: {value: NoticeCategory; label: string}[] = [
     {value: 'event', label: '이벤트'},
     {value: 'info', label: '안내'},
 ];
+
+// 상단 고정 가능한 공지 최대 개수(서버 강제 + 오너 화면 안내 공유).
+export const MAX_PINNED_NOTICES = 3;
 
 export function noticeCategoryLabel(category: string): string {
     return NOTICE_CATEGORIES.find((c) => c.value === category)?.label ?? '공지';
