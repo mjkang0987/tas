@@ -13,6 +13,9 @@ const authMiddleware = auth((req) => {
     const isExempt =
         pathname.startsWith('/api/') ||
         pathname.startsWith('/_next') ||
+        // public/ 정적 자산(로고·og 이미지 등): 확장자 있는 경로는 게이트 제외.
+        // 미포함 시 로그인+미동의 상태에서 /logo/*.svg 요청까지 /consent로 리다이렉트돼 로고가 깨진다.
+        /\.[^/]+$/.test(pathname) ||
         pathname.startsWith('/book/') ||
         pathname.startsWith('/login') ||
         pathname.startsWith('/about') ||

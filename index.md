@@ -50,6 +50,7 @@ hair_reservations/
 - `storeId` 있고 `onboarded=false`인 사용자는 허용 경로 외 접근 시 `/onboarding`으로 리다이렉트
 - 온보딩 완료자의 `/onboarding` 진입 차단은 페이지 가드가 담당 (이전 페이지로 `router.back()`)
 - **주의**: `/api/*`는 동의 게이트에서 제외(exempt)됨 — 데이터 기록 API는 `requireRole`만 검증(동의는 클라이언트 흐름으로 보장)
+- **정적 자산 exempt**: 확장자 있는 경로(`/logo/*.svg`·`/img-share.png` 등, `/\.[^/]+$/`)도 게이트 제외. 미포함 시 로그인+미동의 상태에서 로고 등 이미지 요청까지 `/consent`로 리다이렉트돼 이미지가 깨진다(HTML이 옴)
 - **점검 모드 게이트**: `MAINTENANCE_MODE==='true'`면 `auth()` 밖 최상단에서 모든 요청을 `/maintenance`로 `rewrite`(인증 독립). `/maintenance`·`/_next`만 바이패스. `/login` 포함 전 페이지 차단 — matcher는 `api/auth`·`_next/*`·`favicon.ico`만 제외(인프라/인증 엔드포인트는 점검 중에도 유지). rename 등 마이그레이션 시 500 노출 방지용
 
 ### 캘린더 URL ↔ 날짜 (`client/components/layout/LayoutComponent.tsx`)
