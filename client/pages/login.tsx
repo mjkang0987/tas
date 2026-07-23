@@ -245,6 +245,7 @@ export default function LoginPage({providerIds, isDatabaseConfigured, loginError
                         로그인 제공자가 설정되지 않았습니다. `AUTH_*` 환경변수를 확인해 주세요.
                     </StyledEmptyState>
                 )}
+                <StyledDivider>또는</StyledDivider>
                 <StyledSecondaryButton type="button" onClick={startGuest}>
                     <span>게스트로 사용하기</span>
                 </StyledSecondaryButton>
@@ -567,5 +568,24 @@ const StyledSecondaryButton = styled.button`
     color: var(--black-color);
     font-size: 14px;
     font-weight: 600;
+`;
+
+// 소셜 로그인과 게스트 사이 "또는" 구분선
+const StyledDivider = styled.div`
+    width: 100%;
+    margin-top: 16px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    color: var(--dark-gray-color2);
+    font-size: 13px;
+
+    &::before,
+    &::after {
+        content: '';
+        flex: 1;
+        height: 1px;
+        background-color: var(--light-gray-color);
+    }
 `;
 
