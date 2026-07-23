@@ -284,6 +284,9 @@ export interface BookI18n {
     decisionReasonLabel: string;
     decisionApprovedDefault: string;
     decisionCancelledDefault: string;
+    // 공지사항(공개 예약 페이지 노출)
+    noticeSectionTitle: string;
+    noticeCategories: {notice: string; event: string; info: string};
     // 완료화면/조회 상태 라벨은 statusLabelL/lookupStatusL 사용
 }
 
@@ -365,6 +368,8 @@ export const BOOK_STRINGS: Record<BookLang, BookI18n> = {
         decisionReasonLabel: '매장 안내',
         decisionApprovedDefault: '예약이 승인되었습니다.',
         decisionCancelledDefault: '예약이 취소되었습니다.',
+        noticeSectionTitle: '공지사항',
+        noticeCategories: {notice: '공지', event: '이벤트', info: '안내'},
     },
     en: {
         loading: 'Loading…',
@@ -443,6 +448,8 @@ export const BOOK_STRINGS: Record<BookLang, BookI18n> = {
         decisionReasonLabel: 'Message from the store',
         decisionApprovedDefault: 'Your reservation has been confirmed.',
         decisionCancelledDefault: 'Your reservation has been cancelled.',
+        noticeSectionTitle: 'Notices',
+        noticeCategories: {notice: 'Notice', event: 'Event', info: 'Info'},
     },
     zh: {
         loading: '加载中…',
@@ -521,6 +528,8 @@ export const BOOK_STRINGS: Record<BookLang, BookI18n> = {
         decisionReasonLabel: '门店说明',
         decisionApprovedDefault: '您的预约已确认。',
         decisionCancelledDefault: '您的预约已取消。',
+        noticeSectionTitle: '公告',
+        noticeCategories: {notice: '公告', event: '活动', info: '须知'},
     },
     ja: {
         loading: '読み込み中…',
@@ -599,5 +608,7 @@ export const BOOK_STRINGS: Record<BookLang, BookI18n> = {
         decisionReasonLabel: '店舗からのご案内',
         decisionApprovedDefault: 'ご予約が確定しました。',
         decisionCancelledDefault: 'ご予約がキャンセルされました。',
+        noticeSectionTitle: 'お知らせ',
+        noticeCategories: {notice: 'お知らせ', event: 'イベント', info: 'ご案内'},
     },
 };

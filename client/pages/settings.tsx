@@ -27,6 +27,7 @@ import {NaverBookingSection} from '../components/settings/NaverBookingSection';
 import {SNSLinkingSection} from '../components/settings/SNSLinkingSection';
 import {StoreManageSection} from '../components/settings/StoreManageSection';
 import {BookingManageSection} from '../components/settings/BookingManageSection';
+import {NoticeManageSection} from '../components/settings/NoticeManageSection';
 
 import {loadLocalDbSnapshot, subscribeLocalDb, type LocalDbSnapshot} from '../lib/local-db';
 import {getPageSession, loadPageData} from '../lib/page-data';
@@ -40,7 +41,7 @@ type SettingsProps = {
     storageMode: 'remote' | 'local';
 };
 
-type SettingsTab = 'revenue' | 'point' | 'membership' | 'coupon' | 'booking' | 'service' | 'assignee' | 'store' | 'member' | 'sns' | 'naver';
+type SettingsTab = 'revenue' | 'point' | 'membership' | 'coupon' | 'booking' | 'notice' | 'service' | 'assignee' | 'store' | 'member' | 'sns' | 'naver';
 
 const WEEKDAYS = ['일', '월', '화', '수', '목', '금', '토'];
 
@@ -62,7 +63,7 @@ function shiftDateKey(baseDate: Date, days: number): string {
 }
 
 function isSettingsTab(value: string): value is SettingsTab {
-    return value === 'revenue' || value === 'point' || value === 'membership' || value === 'coupon' || value === 'booking' || value === 'service' || value === 'assignee' || value === 'store' || value === 'member' || value === 'sns' || value === 'naver';
+    return value === 'revenue' || value === 'point' || value === 'membership' || value === 'coupon' || value === 'booking' || value === 'notice' || value === 'service' || value === 'assignee' || value === 'store' || value === 'member' || value === 'sns' || value === 'naver';
 }
 
 /* ── Service Manage Section ── */
@@ -261,6 +262,7 @@ const Settings: NextPage<SettingsProps> = ({reservations, customers, history, st
                 {tab === 'membership' && <MembershipManageSection />}
                 {tab === 'coupon' && <CouponManageSection />}
                 {tab === 'booking' && <BookingManageSection />}
+                {tab === 'notice' && <NoticeManageSection />}
                 {tab === 'store' && <StoreManageSection formatDateLabel={formatDateLabel}/>}
                 {tab === 'service' && <ServiceManageSection/>}
                 {tab === 'assignee' && <AssigneeManageSection/>}

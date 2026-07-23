@@ -4,6 +4,69 @@
 
 ---
 
+## 진행 중 — 매장 공지사항 (StoreNotice, 예약 페이지 목록형 공지)
+
+> 배경(사용자): 고객 예약 페이지에 매장 공지사항을 넣고 싶음. 목업 비교 후 **③ 여러 공지 목록**(제목·날짜로 여러 개, 펼치는 아코디언) 선택. 오너가 관리(CRUD), 공개된 공지만 고객에게 노출, 4개국어(한·영·일·중).
+
+### 설계 결정
+- **새 Store 토글 없음.** 공지사항은 공개 예약 페이지 콘텐츠 → 기존 `useOnlineBooking`으로 설정탭·aside 게이트(대량 토글 배선 회피, 리스크↓). 온라인예약 ON 매장만 관리·노출.
+- **`legacyId` 생략.** 공지는 로컬DB/네이버 등 import 경로가 없어 정수 ID 불필요 → cuid `id`만 사용(프론트 식별자=cuid). (쿠폰의 `@@unique([storeId, legacyId])` 대신 `@@index([storeId])`.)
+- **자식 행 없음 → 하드 삭제**(쿠폰의 archive 분기 불필요).
+- **title·body 모두 i18n**(`titleI18nJson`/`bodyI18nJson`, `{en,ja,zh}`). 오너는 한국어만 채우고 번역은 비워도 됨(비면 null=한국어 폴백). 기존 `noticeI18n` 패턴·`parseI18nText` 재사용.
+- **카테고리** `category`(notice/이벤트/안내) — 프리스트링(Prisma enum 미사용, 쿠폰 관례). 목업의 칩.
+- **게시일** = `createdAt`(별도 컬럼·날짜피커 없이 표시). 정렬 최신순(desc).
+
+### 데이터 모델 (마이그레이션 0015 — 추가형·멱등)
+```prisma
+model StoreNotice {
+  id            String   @id @default(cuid())
+  storeId       String
+  category      String   @default("notice") // notice | event | info
+  title         String
+  titleI18nJson Json?
+  body          String
+  bodyI18nJson  Json?
+  visible       Boolean  @default(true)     // 공개/숨김
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  store         Store    @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  @@index([storeId])
+}
+```
+- `Store`에 back-ref `storeNotices StoreNotice[]`.
+- `0015_store_notices/migration.sql`: `CREATE TABLE IF NOT EXISTS` + `CREATE INDEX IF NOT EXISTS` + FK(멱등 DO 블록), 0012/0013 스타일 한국어 헤더. **운영 Supabase direct(5432) 수동 선적용 → 머지(자동배포) 나중** 순서 준수.
+
+### API
+- **`server/api/notices.ts`**(+`client/pages/api/notices.ts` 재export): GET(staff+) 목록, POST·PUT·DELETE(owner). 전부 `storeId: session.storeId` 스코프. 응답 인라인 셰이핑(쿠폰과 동일, 매퍼 미사용). i18n 입력은 `parseI18nText`로 정규화, `Json?` null은 `Prisma.JsonNull`.
+- **공개 노출** `server/api/book/[slug].ts`: 응답에 `notices`(visible=true, 최신순, {category,title,titleI18n,body,bodyI18n,createdAt}) 추가. **try/catch로 감싸 테이블 미존재 시 `[]`**(마이그레이션 지연 방어 — 사용자 약속).
+
+### 클라이언트
+- **`client/features/notices/model.ts`**: `StoreNotice` 타입(id=cuid, category, title, titleI18n?, body, bodyI18n?, visible, createdAt).
+- **`client/components/settings/NoticeManageSection.tsx`**: `CouponManageSection` 패턴 클론(로컬 state + `/api/notices` fetch, 편집/저장/삭제). 본문·제목은 공용 `LocalizedMessageField` 사용.
+- **`LocalizedMessageField` 공용화**: `BookingManageSection.tsx`의 로컬 함수를 `client/components/ui/LocalizedMessageField.tsx`(+ 필요한 styled)로 승격, BookingManageSection·NoticeManageSection 공유(중복 제거).
+- **`client/pages/settings.tsx`**: `SettingsTab`에 `'notice'` + `isSettingsTab` + 렌더 분기. (오너 게이트는 기존 getServerSideProps).
+- **`client/components/layout/Aside.tsx`**: `SETTINGS_SUBMENU`에 `{tab:'notice', href:'/settings/notice', label:'공지사항 관리', icon:'booking' 재사용}` + 필터에서 `useOnlineBooking` 게이트(booking 탭과 동일).
+- **`client/pages/book/[slug].tsx`**: 매장명 아래 '공지사항' 아코디언(`<details>`), `pickI18n(title/body, lang, ko)` 표시, 카테고리 칩. `BookStoreInfo`에 `notices` 타입 추가.
+- **`client/features/booking/i18n.ts`**: `noticeSectionTitle` + 카테고리 라벨(notice/event/info) 4개 언어 추가(앱 UI 문구라 번역 대상).
+
+### 검증 (완료)
+- ✅ 타입체크 `tsc --noEmit` 0 에러, `next build` 성공(`/api/notices`·`/book/[slug]`·`/settings/[tab]` 컴파일).
+- ✅ 로컬 Postgres 16으로 **전체 마이그레이션 재생**(0015 포함) 성공 + **스키마 드리프트 없음**(0015 SQL = schema 모델 정확히 일치, `migrate diff --exit-code` 0).
+- ✅ psql 왕복: 공개 쿼리(visible=true·createdAt DESC) 정확, i18n JSONB 저장/조회, 숨김 필터(all=3/visible=2), FK Cascade(Store 삭제 시 공지 삭제) 확인.
+- 실계정(OAuth 오너) 저장 왕복은 배포 후. 마이그레이션은 **머지 전 수동 선적용**(사용자, Supabase direct 5432). 공개 조회 try/catch로 순서 어긋나도 무중단.
+
+### 결과물 (파일)
+- 스키마/마이그레이션: `schema.prisma`(StoreNotice + Store back-ref), `migrations/0015_store_notices/migration.sql`.
+- 서버: `api/notices.ts`(CRUD), `pages/api/notices.ts`(재export), `api/book/[slug].ts`(공개 노출 방어).
+- 클라: `features/notices/model.ts`, `components/settings/NoticeManageSection.tsx`, `components/ui/LocalizedMessageField.tsx`(공용), `pages/settings.tsx`(탭), `components/layout/Aside.tsx`·`AsideMenuIcon.tsx`(메뉴·벨 아이콘), `pages/book/[slug].tsx`(아코디언), `features/booking/i18n.ts`(4개국어).
+- 후속(범위 밖): `BookingManageSection`의 로컬 `LocalizedMessageField`를 공용 컴포넌트로 마이그레이션(중복 제거) — /simplify에서 빌드 검증과 함께.
+
+### 리스크/주의
+- 새 테이블 조회가 배포>마이그레이션 순서로 뒤집히면 500 위험 → try/catch 방어 + 순서 준수로 이중 안전.
+- `reservationSelect` 하드닝 규칙은 이 작업과 무관(Reservation 컬럼 미변경).
+
+---
+
 ## 완료 — 휴업일 설정해도 고객 예약 페이지에서 예약되는 버그 (TZ 오프바이원)
 
 > 배경(사용자): "휴업일 설정했는데, 고객 예약 페이지 통해서 예약되네." 오너가 특정 날짜 휴업일(`StoreClosedDate`)을 설정했는데도 공개 예약 페이지에서 그 날짜 예약이 통과됨.

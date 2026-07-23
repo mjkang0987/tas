@@ -39,6 +39,7 @@ model Store {
   customerMemberships    CustomerMembership[]
   couponProducts         CouponProduct[]
   customerCoupons        CustomerCoupon[]
+  storeNotices           StoreNotice[]
 }
 
 model User {
@@ -293,6 +294,24 @@ model StoreClosedDate {
   store     Store    @relation(fields: [storeId], references: [id], onDelete: Cascade)
 
   @@unique([storeId, date])
+}
+
+// 매장 공지사항(공개 예약 페이지 노출). 오너가 관리, visible=true만 고객에게 표시.
+// title/body 다국어({en?,ja?,zh?}, 없으면 한국어 폴백). category: notice | event | info.
+model StoreNotice {
+  id            String   @id @default(cuid())
+  storeId       String
+  category      String   @default("notice")
+  title         String
+  titleI18nJson Json?
+  body          String
+  bodyI18nJson  Json?
+  visible       Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  store         Store    @relation(fields: [storeId], references: [id], onDelete: Cascade)
+
+  @@index([storeId])
 }
 
 // 공개(고객) 온라인 예약 규칙. Store.useOnlineBooking ON일 때만 의미.

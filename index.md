@@ -94,6 +94,7 @@ hair_reservations/
 [^22]: 쿠폰 관리는 `Store.useCouponSystem` 토글 ON일 때만 aside 메뉴·`/settings/coupon` 탭 노출. **Phase 1만 구현** — 상품(정액 amount/정률 rate, maxDiscount·minOrderAmount·validDays·code) CRUD(`/api/coupons` owner, `server/api/coupons.ts`). **발급(직접·코드형, Phase 2)·결제 자동 차감(`PaymentMethod.coupon`, Phase 3)은 미구현.** 회원권 시스템 패턴 미러링
 [^24]: **고객 예약 페이지 다국어**: 공개 페이지(`book/[slug].tsx`·`book/[slug]/r/[token].tsx`)만 대상. 언어 전환기는 **하단 고정 바**(`components/booking/LangSwitcher.tsx`, 네이티브 `<select>`) — 같은 경로에서 즉시 전환, `useBookLang` 훅이 localStorage(`tas-book-lang`) 영속 + `navigator.language` 자동감지 + `<html lang>` 동기화(`useSyncExternalStore`로 SSR 안전). 예약 sticky 요약 바는 `LANG_BAR_OFFSET`만큼 위로 띄워 겹침 방지. 서버 API·스키마 무변경(코드-온리). 전역 `formatDuration`(features/services)은 앱 전반 사용이라 미수정 — 예약 전용 `formatDurationL` 신설.
 [^23]: **고객 공개 온라인 예약**(`Store.useOnlineBooking` ON + `bookingSlug` 매장만). 공개 구역은 비로그인 — `proxy.ts`/`_app.tsx`/`LayoutComponent`가 `/book/*`를 인증·게이트에서 제외. 공개 API(`server/api/book/*`)는 **매장 스코프 + 데이터 최소 노출**(고객/예약 정보 절대 미반환). 페이지 `pages/book/[slug].tsx`: 서비스·담당자·날짜·시간 선택 + 이름/연락처 → 예약 생성 → `publicToken` 발급(고객 관리 링크 `/book/[slug]/r/[token]`는 Phase 1d). 슬롯 계산은 `features/booking/availability.ts` 순수함수, 예약 생성은 트랜잭션(Serializable) 슬롯 재검증으로 동시성 방어. **노출 서비스 선택(1c)**: 오너가 `/settings/booking`에서 공개할 서비스만 선택(`BookingSettings.bookableServiceNames`→DB `bookableServiceIdsJson`), 공개 API가 필터·거부(`not_bookable`). **Phase 1c까지 구현**(공개정보·슬롯·예약생성·노출서비스). 확인/변경/취소(1d, Phase 2)·알림(1f, Phase 3)·서브도메인 rewrite(1e)는 미구현. 마이그레이션 `0008`(채널·토글·슬러그·규칙)·`0009`(`Reservation.publicToken`·`StoreBookingSettings.bookableServiceIdsJson`)
+[^25]: **매장 공지사항**(`StoreNotice`, 마이그레이션 `0015`). 오너가 `/settings/notice`(aside '공지사항 관리', `useOnlineBooking` ON일 때만 노출)에서 CRUD — 제목·내용·카테고리(공지/이벤트/안내)·공개여부, 제목/내용 4개국어(`titleI18nJson`/`bodyI18nJson`, `LocalizedMessageField` 공용). 고객 예약 페이지(`book/[slug].tsx`) 랜딩에 visible 공지만 최신순 아코디언(`<details>`)으로 노출. 공개 API(`book/[slug].ts`)는 테이블 미존재 시 `[]` 방어(마이그레이션 지연 무중단). 새 Store 토글 없이 `useOnlineBooking` 재사용
 
 ### 도메인 모델 (`client/features/`)
 
@@ -205,6 +206,7 @@ NextAuth 5.0 설정. Google·Kakao·Naver OAuth 지원.
 | `membership-issue.ts` | `/api/membership-issue` | POST(staff) | - | 고객에게 회원권 발급/취소 (상품 스냅샷 → CustomerMembership) |
 | `membership-use.ts` | `/api/membership-use` | POST(staff) | - | 회원권 횟수 수동 차감/복원 (결제 흐름과 독립, MembershipUsage 기록) |
 | `coupons.ts` | `/api/coupons` | GET(staff) / POST·PUT·DELETE(owner) | - | 쿠폰 상품(정액/정률) CRUD. 코드형 중복 시 409. 발급분 있으면 DELETE=보관(archive). 발급·결제차감 미구현(Phase 1) |
+| `notices.ts` | `/api/notices` | GET(staff) / POST·PUT·DELETE(owner) | - | 매장 공지사항 CRUD(제목·내용·카테고리[notice/event/info]·공개여부 visible, 제목/내용 4개국어). 공개 노출은 `book/[slug]`가 visible=true만 반환(방어적 조회) |
 | `book/[slug].ts` | `/api/book/[slug]` | GET | **공개(비로그인)** | 온라인예약 매장 공개정보(매장명·서비스·담당자·영업시간·휴무일·규칙). 고객/예약 정보 절대 미노출[^23] |
 | `book/[slug]/availability.ts` | `/api/book/[slug]/availability` | GET | **공개(비로그인)** | 선택 서비스·담당자·날짜의 예약 가능 슬롯 배열. 순수 슬롯 계산(`features/booking/availability.ts`) 재사용, KST 기준 날짜 검증[^23] |
 | `book/[slug]/reserve.ts` | `/api/book/[slug]/reserve` | POST | **공개(비로그인)** | 셀프 예약 생성. 서버 슬롯 재검증(트랜잭션 Serializable) + 고객 upsert(정규화 tel) + 예약 생성(channel=online·`publicToken` 발급) + Slack 알림[^23] |
@@ -301,6 +303,7 @@ Store ─┬── Customer ──── Reservation ──── ReservationPay
        │                          └─ GmailConnection (1유저 1연동, 로그인 계정과 분리)
        ├── StoreBusinessHour (7일)
        ├── StoreClosedDate
+       ├── StoreNotice
        ├── StorePointSettings
        └── Invite
 ```

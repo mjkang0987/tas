@@ -54,6 +54,7 @@ const SETTINGS_SUBMENU = [
     {tab: 'membership', href: '/settings/membership', label: '회원권 관리', icon: 'membership'},
     {tab: 'coupon', href: '/settings/coupon', label: '쿠폰 관리', icon: 'coupon'},
     {tab: 'booking', href: '/settings/booking', label: '고객 예약 설정', icon: 'booking'},
+    {tab: 'notice', href: '/settings/notice', label: '공지사항 관리', icon: 'notice'},
     {tab: 'service', href: '/settings/service', label: '서비스 관리', icon: 'service'},
     {tab: 'assignee', href: '/settings/assignee', label: '담당자 관리', icon: 'assignee'},
     {tab: 'customers', href: '/address', label: '고객 명단', icon: 'customers'},
@@ -252,6 +253,7 @@ export const Aside = () => {
                                 if (item.tab === 'membership') return useMembershipSystem;
                                 if (item.tab === 'coupon') return useCouponSystem;
                                 if (item.tab === 'booking') return useOnlineBooking;
+                                if (item.tab === 'notice') return useOnlineBooking;
                                 return true;
                             }).map((item) =>
                                 <StyledSubNavLink href={item.href}
