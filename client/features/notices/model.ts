@@ -14,8 +14,7 @@ export interface StoreNotice {
     titleI18n?: NoticeI18n | null;
     body: string;
     bodyI18n?: NoticeI18n | null;
-    visible: boolean;
-    pinned: boolean;
+    pinned: boolean; // '노출' = 고객 페이지에 표시(최대 3개). DB 컬럼명은 pinned.
     createdAt: string; // ISO
 }
 
