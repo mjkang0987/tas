@@ -22,6 +22,7 @@ import {ViewType} from '../../utils/constants';
 
 import {Header} from './Header';
 import {Aside} from './Aside';
+import {MobileTabBar} from './MobileTabBar';
 import {Icon} from '../ui/Icons';
 import {ReservationCreate} from '../calendar/overlays/ReservationCreate';
 import {AdBanner} from '../ad/AdBanner';
@@ -212,6 +213,7 @@ export default function LayoutComponent({children}: NodeType) {
                                            onSave={addReservation}/>
                     )}
                 </>}
+                <MobileTabBar/>
             </StyledContent>
         </StyledWrapper>
     );
