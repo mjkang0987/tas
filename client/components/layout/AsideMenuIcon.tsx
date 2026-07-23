@@ -183,6 +183,13 @@ export const AsideMenuIcon = ({icon}: {icon: string}) => {
                     <path d="M12 7V12L15 15" />
                 </StyledMenuIcon>
             );
+        case 'notice':
+            return (
+                <StyledMenuIcon viewBox="0 0 24 24" aria-hidden="true">
+                    <path d="M12 4C9.2 4 7 6.2 7 9V13L5.5 16H18.5L17 13V9C17 6.2 14.8 4 12 4Z" />
+                    <path d="M10 18C10 19.1 10.9 20 12 20C13.1 20 14 19.1 14 18" />
+                </StyledMenuIcon>
+            );
         default:
             return (
                 <StyledMenuIcon viewBox="0 0 24 24" aria-hidden="true">

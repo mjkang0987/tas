@@ -39,6 +39,14 @@ interface BookBusinessHour {
     closeTime: string;
     enabled: boolean;
 }
+interface BookNotice {
+    category: string;
+    title: string;
+    titleI18n?: I18nText;
+    body: string;
+    bodyI18n?: I18nText;
+    createdAt: string;
+}
 interface BookStoreInfo {
     storeName: string;
     storeNameI18n?: I18nText;
@@ -48,6 +56,7 @@ interface BookStoreInfo {
     businessHours: BookBusinessHour[];
     closedDates: string[];
     settings: {allowAssigneeChoice: boolean; noticeText: string | null; noticeI18n?: I18nText; doneText?: string | null; doneI18n?: I18nText; maxAdvanceDays: number};
+    notices: BookNotice[];
 }
 interface ReserveResult {
     publicToken: string;
@@ -359,6 +368,7 @@ export default function BookingPage() {
     const storeDisplay = pickI18n(info.storeNameI18n, lang, info.storeName);
     const noticeDisplay = pickI18n(info.settings.noticeI18n, lang, info.settings.noticeText ?? '');
     const doneDisplay = pickI18n(info.settings.doneI18n, lang, info.settings.doneText ?? '');
+    const noticeCat = (c: string): string => t.noticeCategories[c as 'notice' | 'event' | 'info'] ?? t.noticeCategories.notice;
 
     if (result) {
         return (
@@ -390,6 +400,21 @@ export default function BookingPage() {
                     <StyledStore>{storeDisplay}</StyledStore>
                     <StyledTitle>{t.homeTitle}</StyledTitle>
                     {noticeDisplay && <StyledNotice>{noticeDisplay}</StyledNotice>}
+                    {info.notices.length > 0 && (
+                        <StyledNoticeBoard>
+                            <StyledNoticeHead>{t.noticeSectionTitle}</StyledNoticeHead>
+                            {info.notices.map((n, i) => (
+                                <StyledNoticeItem key={i} open={i === 0}>
+                                    <StyledNoticeSummary>
+                                        <StyledNoticeChip data-category={n.category}>{noticeCat(n.category)}</StyledNoticeChip>
+                                        <StyledNoticeItemTitle>{pickI18n(n.titleI18n, lang, n.title)}</StyledNoticeItemTitle>
+                                        <StyledNoticeChevron aria-hidden="true">⌄</StyledNoticeChevron>
+                                    </StyledNoticeSummary>
+                                    <StyledNoticeBody>{pickI18n(n.bodyI18n, lang, n.body)}</StyledNoticeBody>
+                                </StyledNoticeItem>
+                            ))}
+                        </StyledNoticeBoard>
+                    )}
                     <StyledHomeActions>
                         <StyledHomeBtn type="button" $primary onClick={() => goView('new')}>
                             <span className="t">{t.newReservation}</span>
@@ -719,6 +744,69 @@ const StyledNotice = styled.p`
     font-size: var(--small-font);
     line-height: 1.5;
     color: var(--dark-gray-color);
+`;
+const StyledNoticeBoard = styled.div`
+    margin-top: 4px;
+    border: 1px solid var(--light-gray-color);
+    border-radius: var(--radius-md);
+    overflow: hidden;
+`;
+const StyledNoticeHead = styled.div`
+    padding: 10px 12px;
+    background: var(--brand-color-bg);
+    font-size: var(--small-font);
+    font-weight: 700;
+    color: var(--brand-color);
+`;
+const StyledNoticeChip = styled.span`
+    flex-shrink: 0;
+    font-size: 11px;
+    font-weight: 700;
+    padding: 2px 8px;
+    border-radius: 6px;
+    color: var(--brand-color);
+    background: var(--brand-color-bg);
+
+    &[data-category='event'] { color: #8a4bb0; background: rgba(138, 75, 176, 0.12); }
+    &[data-category='info'] { color: #16a34a; background: rgba(22, 163, 74, 0.1); }
+`;
+const StyledNoticeItemTitle = styled.span`
+    flex: 1;
+    min-width: 0;
+    font-size: var(--small-font);
+    font-weight: 600;
+    color: var(--black-color);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+`;
+const StyledNoticeChevron = styled.span`
+    flex-shrink: 0;
+    color: var(--dark-gray-color2);
+    transition: transform 0.2s ease;
+`;
+const StyledNoticeSummary = styled.summary`
+    list-style: none;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 12px;
+
+    &::-webkit-details-marker { display: none; }
+`;
+const StyledNoticeItem = styled.details`
+    & + & { border-top: 1px solid var(--light-gray-color); }
+    &[open] ${StyledNoticeChevron} { transform: rotate(180deg); }
+`;
+const StyledNoticeBody = styled.p`
+    margin: 0;
+    padding: 0 12px 12px;
+    font-size: var(--small-font);
+    line-height: 1.5;
+    color: var(--dark-gray-color);
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
 `;
 
 const StyledSectionLabel = styled.strong`
