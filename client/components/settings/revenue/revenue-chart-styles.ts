@@ -17,6 +17,11 @@ export const StyledChartGrid = styled.div`
     @media (max-width: 900px) {
         grid-template-columns: 1fr;
     }
+
+    /* 모바일은 좁아 차트 가독성이 떨어져 분석 그리드를 숨긴다(KPI·일별 목록만 노출). */
+    @media (max-width: 640px) {
+        display: none;
+    }
 `;
 
 export const StyledChartCard = styled.div<{ $hero?: boolean; $autoHeight?: boolean }>`
