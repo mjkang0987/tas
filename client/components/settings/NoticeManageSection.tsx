@@ -17,11 +17,10 @@ interface DraftForm {
     titleI18n: NoticeI18n | null;
     body: string;
     bodyI18n: NoticeI18n | null;
-    visible: boolean;
     pinned: boolean;
 }
 
-const EMPTY_DRAFT: DraftForm = {category: 'notice', title: '', titleI18n: null, body: '', bodyI18n: null, visible: true, pinned: false};
+const EMPTY_DRAFT: DraftForm = {category: 'notice', title: '', titleI18n: null, body: '', bodyI18n: null, pinned: false};
 
 function formatDate(iso: string): string {
     const d = new Date(iso);
@@ -84,7 +83,6 @@ export const NoticeManageSection = () => {
             titleI18n: n.titleI18n ?? null,
             body: n.body,
             bodyI18n: n.bodyI18n ?? null,
-            visible: n.visible,
             pinned: n.pinned,
         });
     };
@@ -106,7 +104,6 @@ export const NoticeManageSection = () => {
             titleI18n: draft.titleI18n,
             body,
             bodyI18n: draft.bodyI18n,
-            visible: draft.visible,
             pinned: draft.pinned,
         };
         try {
@@ -117,7 +114,7 @@ export const NoticeManageSection = () => {
             });
             if (res.status === 409) {
                 const data = await res.json().catch(() => ({}));
-                if (data.error === 'pin_limit') { setError(`상단 고정은 최대 ${MAX_PINNED_NOTICES}개까지 가능합니다.`); return; }
+                if (data.error === 'pin_limit') { setError(`노출은 최대 ${MAX_PINNED_NOTICES}개까지 가능합니다.`); return; }
             }
             if (!res.ok) throw new Error();
             toast(editingId ? '공지사항이 수정되었습니다.' : '공지사항이 추가되었습니다.');
@@ -144,7 +141,7 @@ export const NoticeManageSection = () => {
     };
 
     const editing = isAdding || editingId !== null;
-    // 이미 고정된 다른 공지 수(편집 중 항목 제외)가 상한이면 새로 고정 불가.
+    // 이미 노출한 다른 공지 수(편집 중 항목 제외)가 상한이면 새로 노출 불가.
     const pinLimitReached = notices.filter((n) => n.pinned && n.id !== editingId).length >= MAX_PINNED_NOTICES;
 
     return (
@@ -152,7 +149,7 @@ export const NoticeManageSection = () => {
             <PageHero
                 eyebrow="NOTICE"
                 title="공지사항 관리"
-                subtitle="고객 예약 페이지에 노출되는 공지사항입니다. 공개로 둔 항목만 고객에게 보입니다."
+                subtitle="'노출'을 켠 공지만 고객 예약 페이지에 표시됩니다 (최대 3개). 나머지는 여기서만 보관됩니다."
             />
 
             {isLocal ? (
@@ -177,16 +174,11 @@ export const NoticeManageSection = () => {
                                         ))}
                                     </StyledSelect>
                                 </StyledField>
-                                <StyledCheckboxRow htmlFor="nt-visible">
-                                    <input id="nt-visible" type="checkbox" checked={draft.visible}
-                                        onChange={(e) => setDraft((d) => ({...d, visible: e.target.checked}))} />
-                                    <span>공개 (고객 페이지에 노출)</span>
-                                </StyledCheckboxRow>
                                 <StyledCheckboxRow htmlFor="nt-pinned">
                                     <input id="nt-pinned" type="checkbox" checked={draft.pinned}
                                         disabled={!draft.pinned && pinLimitReached}
                                         onChange={(e) => setDraft((d) => ({...d, pinned: e.target.checked}))} />
-                                    <span>상단 고정 (맨 위에 노출){!draft.pinned && pinLimitReached ? ` · 최대 ${MAX_PINNED_NOTICES}개` : ''}</span>
+                                    <span>노출 (고객 예약 페이지에 표시 · 최대 {MAX_PINNED_NOTICES}개){!draft.pinned && pinLimitReached ? ' · 초과 불가' : ''}</span>
                                 </StyledCheckboxRow>
                             </StyledTopRow>
 
@@ -231,9 +223,8 @@ export const NoticeManageSection = () => {
                                     <StyledItemMain>
                                         <StyledItemTop>
                                             <StyledChip data-category={n.category}>{noticeCategoryLabel(n.category)}</StyledChip>
-                                            {n.pinned && <StyledPinBadge>고정</StyledPinBadge>}
+                                            {n.pinned && <StyledPinBadge>노출</StyledPinBadge>}
                                             <StyledItemName>{n.title}</StyledItemName>
-                                            {!n.visible && <StyledHiddenBadge>비공개</StyledHiddenBadge>}
                                         </StyledItemTop>
                                         <StyledItemBody>{n.body}</StyledItemBody>
                                         <StyledItemDate>{formatDate(n.createdAt)}</StyledItemDate>
@@ -368,15 +359,6 @@ const StyledItemName = styled.strong`
     color: var(--black-color);
 `;
 
-const StyledHiddenBadge = styled.span`
-    flex-shrink: 0;
-    font-size: 11px;
-    font-weight: 600;
-    padding: 2px 7px;
-    border-radius: 6px;
-    color: var(--dark-gray-color2);
-    background: var(--black-color-10);
-`;
 
 const StyledPinBadge = styled.span`
     flex-shrink: 0;
