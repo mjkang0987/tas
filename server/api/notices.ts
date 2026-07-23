@@ -4,6 +4,7 @@ import {Prisma} from '../../client/prisma/generated/prisma/client';
 
 import {prisma} from '../db/prisma';
 import {parseI18nText} from '../db/mappers';
+import {MAX_PINNED_NOTICES} from '../../client/features/notices/model';
 import {getApiSession, requireRole} from '../auth/api-session';
 
 const CATEGORIES = ['notice', 'event', 'info'] as const;
@@ -70,6 +71,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             return res.status(400).json({error: 'Invalid category'});
         }
 
+        const pinned = body.pinned === undefined ? false : Boolean(body.pinned);
+        if (pinned && (await prisma.storeNotice.count({where: {storeId: session.storeId, pinned: true}})) >= MAX_PINNED_NOTICES) {
+            return res.status(409).json({error: 'pin_limit'});
+        }
+
         const created = await prisma.storeNotice.create({
             data: {
                 storeId: session.storeId,
@@ -79,7 +85,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                 body: body.body.trim(),
                 bodyI18nJson: i18nInput(body.bodyI18n),
                 visible: body.visible === undefined ? true : Boolean(body.visible),
-                pinned: body.pinned === undefined ? false : Boolean(body.pinned),
+                pinned,
             },
         });
         return res.status(200).json(shapeNotice(created));
@@ -102,6 +108,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         }
         if (body.category !== undefined && !isCategory(body.category)) {
             return res.status(400).json({error: 'Invalid category'});
+        }
+
+        if (body.pinned !== undefined && Boolean(body.pinned)
+            && (await prisma.storeNotice.count({where: {storeId: session.storeId, pinned: true, id: {not: body.id}}})) >= MAX_PINNED_NOTICES) {
+            return res.status(409).json({error: 'pin_limit'});
         }
 
         const result = await prisma.storeNotice.updateMany({

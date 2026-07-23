@@ -8,7 +8,7 @@ import {LocalizedMessageField} from '../ui/LocalizedMessageField';
 import {StyledEditBtn, StyledDeleteBtn, StyledSaveBtn, StyledCancelBtn, StyledEmpty, EMPTY_TEXT} from './settings-styles';
 import {useToastStore} from '../../store/toastStore';
 import {shouldUseLocalDb} from '../../lib/local-db';
-import {NOTICE_CATEGORIES, noticeCategoryLabel} from '../../features/notices/model';
+import {NOTICE_CATEGORIES, noticeCategoryLabel, MAX_PINNED_NOTICES} from '../../features/notices/model';
 import type {StoreNotice, NoticeCategory, NoticeI18n} from '../../features/notices/model';
 
 interface DraftForm {
@@ -115,6 +115,10 @@ export const NoticeManageSection = () => {
                 headers: {'Content-Type': 'application/json'},
                 body: JSON.stringify(editingId ? {id: editingId, ...payload} : payload),
             });
+            if (res.status === 409) {
+                const data = await res.json().catch(() => ({}));
+                if (data.error === 'pin_limit') { setError(`상단 고정은 최대 ${MAX_PINNED_NOTICES}개까지 가능합니다.`); return; }
+            }
             if (!res.ok) throw new Error();
             toast(editingId ? '공지사항이 수정되었습니다.' : '공지사항이 추가되었습니다.');
             resetForm();
@@ -140,6 +144,8 @@ export const NoticeManageSection = () => {
     };
 
     const editing = isAdding || editingId !== null;
+    // 이미 고정된 다른 공지 수(편집 중 항목 제외)가 상한이면 새로 고정 불가.
+    const pinLimitReached = notices.filter((n) => n.pinned && n.id !== editingId).length >= MAX_PINNED_NOTICES;
 
     return (
         <StyledWrap>
@@ -178,8 +184,9 @@ export const NoticeManageSection = () => {
                                 </StyledCheckboxRow>
                                 <StyledCheckboxRow htmlFor="nt-pinned">
                                     <input id="nt-pinned" type="checkbox" checked={draft.pinned}
+                                        disabled={!draft.pinned && pinLimitReached}
                                         onChange={(e) => setDraft((d) => ({...d, pinned: e.target.checked}))} />
-                                    <span>상단 고정 (맨 위에 노출)</span>
+                                    <span>상단 고정 (맨 위에 노출){!draft.pinned && pinLimitReached ? ` · 최대 ${MAX_PINNED_NOTICES}개` : ''}</span>
                                 </StyledCheckboxRow>
                             </StyledTopRow>
 
