@@ -60,7 +60,14 @@ export default function ConsentPage() {
             const res = await fetch('/api/consent', {method: 'POST'});
             if (!res.ok) throw new Error('consent failed');
             // 세션(JWT) 갱신 → termsVersion 반영 후 진입
-            await update();
+            const updated = await update();
+            // 순수 SNS 신규 가입(게스트 데이터 이관이 아닌)인데 아직 온보딩 전이면,
+            // 캘린더로 갔다가 미들웨어가 다시 /onboarding으로 되돌리는 왕복(=화면이 한 번 더 튐)을
+            // 없애고 곧장 온보딩으로 보낸다. 하드 이동으로 갱신된 쿠키를 미들웨어가 보게 한다.
+            if (!needsDpaOnly && updated?.user?.storeId && !updated.user.onboarded) {
+                window.location.href = '/onboarding';
+                return;
+            }
             router.replace(resolveNextPath());
         } catch {
             setError('동의 처리 중 오류가 발생했습니다. 다시 시도해 주세요.');
