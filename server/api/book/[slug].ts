@@ -57,12 +57,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const visibleServices = whitelist ? services.filter((s) => whitelist.includes(s.name)) : services;
 
     // 공지사항(공개 = visible만, 최신순). 테이블 미존재(마이그레이션 지연) 시 빈 목록으로 방어 → 페이지 무중단.
-    let notices: Array<{category: string; title: string; titleI18n: ReturnType<typeof parseI18nText>; body: string; bodyI18n: ReturnType<typeof parseI18nText>; createdAt: string}> = [];
+    let notices: Array<{category: string; title: string; titleI18n: ReturnType<typeof parseI18nText>; body: string; bodyI18n: ReturnType<typeof parseI18nText>}> = [];
     try {
         const noticeRows = await prisma.storeNotice.findMany({
             where: {storeId: store.id, visible: true},
             orderBy: {createdAt: 'desc'},
-            select: {category: true, title: true, titleI18nJson: true, body: true, bodyI18nJson: true, createdAt: true},
+            select: {category: true, title: true, titleI18nJson: true, body: true, bodyI18nJson: true},
         });
         notices = noticeRows.map((n) => ({
             category: n.category,
@@ -70,7 +70,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             titleI18n: parseI18nText(n.titleI18nJson),
             body: n.body,
             bodyI18n: parseI18nText(n.bodyI18nJson),
-            createdAt: n.createdAt.toISOString(),
         }));
     } catch {
         notices = [];

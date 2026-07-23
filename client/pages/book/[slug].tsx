@@ -45,7 +45,6 @@ interface BookNotice {
     titleI18n?: I18nText;
     body: string;
     bodyI18n?: I18nText;
-    createdAt: string;
 }
 interface BookStoreInfo {
     storeName: string;
@@ -408,7 +407,7 @@ export default function BookingPage() {
                                     <StyledNoticeSummary>
                                         <StyledNoticeChip data-category={n.category}>{noticeCat(n.category)}</StyledNoticeChip>
                                         <StyledNoticeItemTitle>{pickI18n(n.titleI18n, lang, n.title)}</StyledNoticeItemTitle>
-                                        <StyledNoticeChevron aria-hidden="true">⌄</StyledNoticeChevron>
+                                        <StyledNoticeChevron aria-hidden="true" />
                                     </StyledNoticeSummary>
                                     <StyledNoticeBody>{pickI18n(n.bodyI18n, lang, n.body)}</StyledNoticeBody>
                                 </StyledNoticeItem>
@@ -782,8 +781,12 @@ const StyledNoticeItemTitle = styled.span`
 `;
 const StyledNoticeChevron = styled.span`
     flex-shrink: 0;
-    color: var(--dark-gray-color2);
-    transition: transform 0.2s ease;
+    width: 0;
+    height: 0;
+    border-top: 5px solid transparent;
+    border-bottom: 5px solid transparent;
+    border-left: 5px solid var(--dark-gray-color);
+    transition: transform 0.15s ease;
 `;
 const StyledNoticeSummary = styled.summary`
     list-style: none;
@@ -797,7 +800,7 @@ const StyledNoticeSummary = styled.summary`
 `;
 const StyledNoticeItem = styled.details`
     & + & { border-top: 1px solid var(--light-gray-color); }
-    &[open] ${StyledNoticeChevron} { transform: rotate(180deg); }
+    &[open] ${StyledNoticeChevron} { transform: rotate(90deg); }
 `;
 const StyledNoticeBody = styled.p`
     margin: 0;
