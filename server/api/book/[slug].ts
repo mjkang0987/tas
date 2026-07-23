@@ -1,7 +1,7 @@
 import type {NextApiRequest, NextApiResponse} from 'next';
 
 import {prisma} from '../../db/prisma';
-import {parseI18nText} from '../../db/mappers';
+import {parseI18nText, toDateKey} from '../../db/mappers';
 import {DEFAULT_BOOKING_SETTINGS, parseBookableServiceNames} from '../../../client/features/store-settings/model';
 
 // 공개(비로그인) 예약 매장 정보. 데이터 최소 노출 — 고객/예약 정보는 절대 반환하지 않는다.
@@ -67,7 +67,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             ? assignees.map((a) => ({id: a.id, name: a.name, nameI18n: parseI18nText(a.nameI18nJson), color: a.color, offDays: a.schedules.filter((s) => !s.enabled).map((s) => s.dayIndex)}))
             : [],
         businessHours: businessHours.map((b) => ({dayIndex: b.dayIndex, openTime: b.openTime, closeTime: b.closeTime, enabled: b.enabled})),
-        closedDates: closedDates.map((c) => c.date.toISOString().slice(0, 10)),
+        closedDates: closedDates.map((c) => toDateKey(c.date)),
         settings,
     });
 }

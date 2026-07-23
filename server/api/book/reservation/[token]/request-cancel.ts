@@ -1,6 +1,7 @@
 import type {NextApiRequest, NextApiResponse} from 'next';
 
 import {prisma} from '../../../../db/prisma';
+import {toDateKey} from '../../../../db/mappers';
 import {notifySlackForStore} from '../../../../notify/slack';
 import {findReservationByPublicToken} from '../../booking-helpers';
 
@@ -26,7 +27,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     // 오너 알림(커밋 후 격리 — 실패해도 요청 접수 성공에 영향 없음)
     try {
         await notifySlackForStore(reservation.storeId,
-            `🔔 *예약 취소 요청*\n• 날짜: ${reservation.date.toISOString().slice(0, 10)}`
+            `🔔 *예약 취소 요청*\n• 날짜: ${toDateKey(reservation.date)}`
             + `\n• 시간: ${reservation.startTime}~${reservation.endTime}`
             + `\n• 시술: ${reservation.serviceSummary}`
             + `\n• 고객: ${reservation.customer?.name ?? ''}${reservation.customer?.tel ? ` (${reservation.customer.tel})` : ''}`

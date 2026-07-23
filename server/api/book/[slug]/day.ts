@@ -1,6 +1,7 @@
 import type {NextApiRequest, NextApiResponse} from 'next';
 
 import {prisma} from '../../../db/prisma';
+import {toDateKey} from '../../../db/mappers';
 import {
     assigneeWorksOnDay,
     computeSlotCapacities,
@@ -46,7 +47,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     // 담당자 근무여부(휴무 판정)는 날짜에만 의존 — 선택 담당자와 무관하게 항상 반환.
     const assigneeStatus = assignees.map((a) => ({id: a.id, working: assigneeWorksOnDay(a, dayIndex)}));
 
-    const closedDates = closedRows.map((c) => c.date.toISOString().slice(0, 10));
+    const closedDates = closedRows.map((c) => toDateKey(c.date));
     const window = evaluateDateWindow(dateStr, settings, closedDates);
 
     const bh = businessHour

@@ -2,6 +2,7 @@ import type {NextApiRequest, NextApiResponse} from 'next';
 
 import {Prisma} from '../../client/prisma/generated/prisma/client';
 import {prisma} from '../db/prisma';
+import {toDateKey} from '../db/mappers';
 import {getApiSession, requireRole} from '../auth/api-session';
 
 // 오너 확정 대기 항목을 오너가 수락/거절하는 인증 API. 로그인 + staff 이상 + storeId 스코프.
@@ -73,7 +74,7 @@ function toRequestDto(r: PendingRow) {
         assigneeName: r.assignee?.name ?? null,
         requestedAt: (r.pendingRequestedAt ?? r.createdAt)?.toISOString() ?? null,
         current: {
-            date: r.date.toISOString().slice(0, 10),
+            date: toDateKey(r.date),
             startTime: r.startTime,
             endTime: r.endTime,
             serviceSummary: r.serviceSummary,
