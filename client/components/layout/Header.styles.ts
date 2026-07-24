@@ -107,31 +107,36 @@ export const StyledAsideToggle = styled.button<{ $open: boolean }>`
         }
     }
 
+    /* 모바일은 하단 탭바의 '설정'(→/menu)이 사이드바를 대체하므로 플로팅 토글을 숨긴다. */
     @media (max-width: 640px) {
-        position: fixed;
-        bottom: 20px;
-        left: ${(props) => props.$open ? 'calc(8px + var(--aside-width) + 8px)' : '16px'};
-        z-index: 210;
-        flex-direction: column;
+        display: none;
+    }
+`;
+
+// 모바일 캘린더 헤더 우측 고정 '＋예약' 버튼. 데스크톱은 aside의 예약추가를 쓰므로 숨김.
+export const StyledMobileAddPill = styled.button`
+    display: none;
+
+    @media (max-width: 640px) {
+        display: inline-flex;
+        align-items: center;
         gap: 3px;
-        width: auto;
-        min-width: 44px;
-        height: auto;
-        padding: 8px 10px;
-        border-radius: 20px;
-        background-color: var(--aside-bg);
-        color: var(--aside-text);
-        box-shadow: 0 4px 16px rgba(0,0,0,0.22);
-        opacity: 1;
-        transition: left 0.25s ease, background-color 0.1s;
+        flex-shrink: 0;
+        margin-left: auto;
+        padding: 7px 13px 7px 9px;
+        border: none;
+        border-radius: 999px;
+        background-color: var(--brand-color);
+        color: var(--white-color);
+        font-size: var(--small-font);
+        font-weight: 700;
+        white-space: nowrap;
+        box-shadow: 0 4px 12px rgba(101, 38, 217, 0.28);
+    }
 
-        .menu-label { display: block; }
-
-        @media (hover: hover) and (pointer: fine) {
-            &:hover {
-                background-color: var(--aside-hover);
-            }
-        }
+    svg {
+        width: 15px;
+        height: 15px;
     }
 `;
 

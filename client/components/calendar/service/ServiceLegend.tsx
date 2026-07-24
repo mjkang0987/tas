@@ -71,6 +71,11 @@ const StyledWrap = styled.div`
     flex-direction: column;
     align-items: flex-end;
     gap: 8px;
+
+    /* 모바일은 하단 탭바와 겹쳐 숨긴다(범례는 데스크톱에서만). */
+    @media (max-width: 640px) {
+        display: none;
+    }
 `;
 
 const StyledPanel = styled.div`

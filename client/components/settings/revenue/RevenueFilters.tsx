@@ -94,7 +94,7 @@ export const RevenueFilters = ({
             <StyledRow3>
                 <StyledTabGroup>
                     <StyledViewTab type="button" $active={revenueViewTab === 'all'} onClick={() => setRevenueViewTab('all')}>전체</StyledViewTab>
-                    <StyledViewTab type="button" $active={revenueViewTab === 'chart'} onClick={() => setRevenueViewTab('chart')}>매출 그래프</StyledViewTab>
+                    <StyledViewTab type="button" $active={revenueViewTab === 'chart'} $mobileHide onClick={() => setRevenueViewTab('chart')}>매출 그래프</StyledViewTab>
                     <StyledViewTab type="button" $active={revenueViewTab === 'list'} onClick={() => setRevenueViewTab('list')}>매출 일별목록</StyledViewTab>
                     <StyledExportButton type="button" onClick={onExport} aria-label="엑셀 다운로드">
                         <svg width="14" height="14" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -249,7 +249,7 @@ const StyledTabGroup = styled.div`
     align-items: center;
 `;
 
-const StyledViewTab = styled.button<{ $active: boolean }>`
+const StyledViewTab = styled.button<{ $active: boolean; $mobileHide?: boolean }>`
     ${actionButtonStyle};
     white-space: nowrap;
     border: 1px solid ${(p) => p.$active ? 'var(--black-color)' : 'var(--light-gray-color)'};
@@ -259,6 +259,7 @@ const StyledViewTab = styled.button<{ $active: boolean }>`
     @media (max-width: 640px) {
         min-width: 0;
         padding: 0 8px;
+        ${(p) => p.$mobileHide ? 'display: none;' : ''}
     }
 `;
 
