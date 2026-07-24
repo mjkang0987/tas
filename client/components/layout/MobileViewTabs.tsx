@@ -78,8 +78,10 @@ const StyledSegment = styled.div`
     @media (max-width: 640px) {
         display: flex;
         gap: 2px;
-        width: calc(100% - 16px);
-        margin: 2px 8px 6px;
+        /* 헤더가 좌측에만 8px 패딩이라, 좌우 여백을 10px로 대칭 맞춤
+           (다른 행 오늘·전체보기의 좌측 인셋과 정렬). */
+        width: calc(100% - 12px);
+        margin: 2px 10px 6px 2px;
         padding: 3px;
         box-sizing: border-box;
         background-color: var(--gray-color2);
