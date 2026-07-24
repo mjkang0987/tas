@@ -125,6 +125,7 @@ export default Menu;
 
 const StyledPage = styled.div`
     flex: 1;
+    align-self: flex-start;
     width: 100%;
     max-width: 640px;
     margin: 0 auto;
@@ -136,6 +137,7 @@ const StyledPage = styled.div`
 `;
 
 const StyledHeaderCard = styled.div`
+    flex-shrink: 0;
     display: flex;
     flex-direction: column;
     gap: 3px;
@@ -167,6 +169,7 @@ const StyledUserEmail = styled.span`
 `;
 
 const StyledGroup = styled.div`
+    flex-shrink: 0;
     display: flex;
     flex-direction: column;
     background-color: var(--white-color);
