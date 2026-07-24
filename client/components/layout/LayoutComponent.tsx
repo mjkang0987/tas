@@ -227,6 +227,11 @@ const StyledWrapper = styled.div`
     padding: 8px;
     box-sizing: border-box;
     background-color: var(--aside-bg);
+
+    /* 모바일은 다크 프레임(패딩) 없이 풀블리드 */
+    @media (max-width: 640px) {
+        padding: 0;
+    }
 `;
 
 const StyledContent = styled.div<{ $asideOpen: boolean }>`
@@ -238,6 +243,10 @@ const StyledContent = styled.div<{ $asideOpen: boolean }>`
     background-color: var(--white-color);
     border-radius: 8px;
     transition: border-radius 0.25s ease;
+
+    @media (max-width: 640px) {
+        border-radius: 0;
+    }
 `;
 
 const StyledMain = styled.main`
