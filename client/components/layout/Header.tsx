@@ -158,7 +158,7 @@ export const Header = () => {
 
     return (
         <>
-        <StyledHeader>
+        <StyledHeader $stack={isCalendarPage}>
             <StyledAsideToggle type="button"
                                $open={aside.isVisible}
                                onClick={() => setAside({isVisible: !aside.isVisible})}

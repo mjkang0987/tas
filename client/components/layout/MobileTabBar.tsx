@@ -90,8 +90,8 @@ const StyledTab = styled(Link)<{ $active: boolean }>`
     color: ${(props) => props.$active ? 'var(--brand-color)' : 'var(--dark-gray-color2)'};
 
     svg {
-        width: 24px;
-        height: 24px;
+        width: 22px;
+        height: 22px;
         stroke-width: ${(props) => props.$active ? 2.1 : 1.8};
     }
 

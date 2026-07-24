@@ -43,7 +43,7 @@ export const StyledConflictBanner = styled.button`
     }
 `;
 
-export const StyledHeader = styled.header`
+export const StyledHeader = styled.header<{ $stack?: boolean }>`
     position: relative;
     z-index: 20;
     display: flex;
@@ -58,9 +58,13 @@ export const StyledHeader = styled.header`
     border-bottom: solid 1px var(--light-gray-color);
     flex-shrink: 0;
     @media (max-width: 640px) {
-        gap: 0;
-        /* 상단 여백 + 실기기 노치(safe-area) 대응 — 풀블리드라 헤더가 최상단 */
-        padding: max(env(safe-area-inset-top, 0px), 8px) 0 2px 8px;
+        /* 캘린더는 세로 스택(행 겹침 방지 — flex-wrap+flex:1 충돌 회피),
+           비캘린더(타이틀+검색 한 줄)는 가로 유지. */
+        flex-direction: ${(props) => props.$stack ? 'column' : 'row'};
+        align-items: ${(props) => props.$stack ? 'stretch' : 'center'};
+        gap: ${(props) => props.$stack ? '0' : '4px'};
+        /* 상단 여백 + 실기기 노치(safe-area) 대응, 좌우 대칭 10px(＋예약이 우측 끝에 붙지 않게) */
+        padding: max(env(safe-area-inset-top, 0px), 8px) 10px 2px;
     }
 `;
 
@@ -73,7 +77,8 @@ export const StyledCalendarRow = styled.div`
 
     @media (max-width: 640px) {
         width: 100%;
-        padding: 3px 2px 5px;
+        flex: none;
+        padding: 3px 0 5px;
     }
 `;
 
@@ -84,7 +89,7 @@ export const StyledToolRow = styled.div`
 
     @media (max-width: 640px) {
         width: 100%;
-        padding: 4px 2px;
+        padding: 4px 0;
     }
 `;
 
