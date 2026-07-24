@@ -4,12 +4,12 @@
 
 ---
 
-## 진행 중 — 모바일 내비게이션 개편 (aside → 상단 고정 헤더 + 하단 탭바)
+## 완료 — 모바일 내비게이션 개편 (aside → 상단 고정 헤더 + 하단 탭바) (PR #154)
 
 > 배경(사용자): tas-ios 조작감을 웹앱 모바일에 이식. 좌측 드로어(aside) 대신 iOS식 **상단 고정 헤더 + 하단 고정 탭바**로 재구성. 시안 3안 비교 후 **"C 헤더 + B 나머지"** 조합으로 확정(아티팩트 시안).
 
 ### 확정 디자인 (사용자 결정)
-- **상단 고정(캘린더)**: 좌측 라지타이틀(=날짜, 탭→날짜점프) + 이전/다음, 우측 **＋예약 텍스트 알약**(상단 고정), 아래 **일·주·월·년 풀폭 세그먼트 탭**(캘린더에서만). 3일(three) 뷰는 모바일 탭에서 제외(데스크톱 aside엔 유지).
+- **상단 고정(캘린더)**: 좌측 `오늘 ‹ ›` + 중앙 타이틀, 우측 **＋예약 텍스트 알약**(상단 고정), 아래 **일·주·월·년 풀폭 세그먼트 탭**(좌우 대칭, 캘린더에서만). 3일(three) 뷰는 모바일 탭에서 제외(데스크톱 aside엔 유지). (라지타이틀 탭→달력 날짜선택은 공유 `CalendarHeading` 변경 필요라 v1 보류 → 후속.)
 - **하단 고정 탭바**: **캘린더 · 고객 · 매출 · 설정** 4탭. 아이콘은 기존 `AsideMenuIcon` 재사용.
 - **서비스는 설정 안으로** — 하단 탭엔 없음. 설정(더보기) 화면에 '서비스 관리' 행으로.
 - **모바일 매출**: 차트는 숨김(작은 화면 가독성). KPI·목록만.
@@ -27,12 +27,17 @@
 - 신규: `components/layout/MobileTabBar.tsx`, `components/layout/MobileViewTabs.tsx`, `components/layout/settingsMenu.ts`, `pages/menu.tsx`.
 - 수정: `components/layout/LayoutComponent.tsx`(탭바 렌더+Main 하단 패딩), `components/layout/Header.tsx`·`Header.styles.ts`(＋예약·뷰탭·토글 숨김), `components/layout/Aside.tsx`(SETTINGS_SUBMENU를 공유 모듈에서 import), `components/settings/revenue/*`(모바일 차트 숨김).
 
-### 검증
-- 타입체크(`tsc --noEmit`)·`next build`. 모바일 폭(≤640px)에서 상단 헤더(타이틀·＋예약·뷰탭)·하단 탭바·설정(/menu) 동작, 데스크톱 레이아웃 무변경 확인.
+### 검증 (완료)
+- ✅ `tsc --noEmit` 0 · `next build` 성공(클린 빌드, `/menu` 포함 전 페이지 컴파일).
+- ✅ 게스트 모드·iPhone 뷰포트(Playwright) 실앱 구동: 월/일 캘린더·설정(/menu)·매출(차트 숨김)·고객 렌더 확인. 인터랙션 스모크(＋예약→모달, 뷰 탭→`/day` 전환, 하단 탭→`/address`·`/menu`·`/settings/revenue`) 정상, 페이지 에러 0.
+- 후속 수정(스크린샷 리뷰): 뷰 탭 풀폭+좌우 대칭, `/menu` 카드 하단 잘림(`align-self:flex-start`+카드 `flex-shrink:0`), 시술 범례 플로팅 버튼 모바일 숨김, 매출 '매출 그래프' 탭 모바일 숨김.
+
+### 결과물
+- 신규: `MobileTabBar.tsx`·`MobileViewTabs.tsx`·`settingsMenu.ts`·`pages/menu.tsx`. 수정: `LayoutComponent`·`Header(.styles)`·`Aside`·`ServiceLegend`·`revenue-chart-styles`·`RevenueFilters`. `client` 0.40.0.
 
 ### 리스크/주의
-- 공유 컴포넌트(CalendarHeading 등) 미변경 — 모바일 요소는 신규+CSS 격리로만. 라지타이틀 폰트 확대는 공유 컴포넌트 건드리므로 v1 보류(레이아웃으로 강조).
-- 스키마·API 무변경(코드-온리 배포).
+- 스키마·API 무변경(코드-온리 배포). 데스크톱 무변경(전 모바일 요소 CSS 격리).
+- 잔여: 오너/멤버 권한별 `/menu`·실 iOS Safari(safe-area/sticky)는 배포 후 실기기·실계정 확인 권장. 라지타이틀 탭→날짜선택은 후속.
 
 ---
 
