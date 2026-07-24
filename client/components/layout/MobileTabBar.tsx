@@ -72,8 +72,8 @@ const StyledTabBar = styled.nav`
         align-items: stretch;
         background-color: var(--white-color);
         border-top: 1px solid var(--light-gray-color);
-        /* 홈 인디케이터(safe-area)까지 탭바 배경색으로 채움 */
-        padding-bottom: env(safe-area-inset-bottom, 0px);
+        /* 홈 인디케이터(safe-area)까지 탭바 배경색으로 채움 + 최소 하단 여백 */
+        padding-bottom: max(env(safe-area-inset-bottom, 0px), 10px);
         z-index: 40;
     }
 `;
