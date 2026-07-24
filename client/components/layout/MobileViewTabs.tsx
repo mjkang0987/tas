@@ -78,8 +78,10 @@ const StyledSegment = styled.div`
     @media (max-width: 640px) {
         display: flex;
         gap: 2px;
+        width: calc(100% - 16px);
         margin: 2px 8px 6px;
         padding: 3px;
+        box-sizing: border-box;
         background-color: var(--gray-color2);
         border-radius: var(--radius-lg);
     }
