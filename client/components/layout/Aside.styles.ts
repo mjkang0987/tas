@@ -13,18 +13,9 @@ export const StyledAside = styled.aside<{ $isVisible: boolean }>`
     transition: width 0.25s ease;
     box-sizing: border-box;
 
+    /* 모바일은 하단 탭바 + /menu(설정 허브)가 aside를 완전히 대체하므로 비노출. */
     @media (max-width: 640px) {
-        position: absolute;
-        top: 0;
-        left: 0;
-        height: 100%;
-        /* 모달 대역(OVERLAY_Z_INDEX 100~190)보다 아래에 둔다.
-           드로어 안에서 여는 모달(예: 게스트 로그아웃 확인)이 가려지지 않도록.
-           페이지 콘텐츠(최대 z-index ~50)는 계속 덮는다. */
-        z-index: 99;
-        width: ${props => props.$isVisible ? 'auto' : '0'};
-        box-shadow: ${props => props.$isVisible ? 'var(--shadow-md)' : 'none'};
-        padding-left: 8px;
+        display: none;
     }
 `;
 

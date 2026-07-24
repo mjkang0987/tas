@@ -31,6 +31,7 @@
 - ✅ `tsc --noEmit` 0 · `next build` 성공(클린 빌드, `/menu` 포함 전 페이지 컴파일).
 - ✅ 게스트 모드·iPhone 뷰포트(Playwright) 실앱 구동: 월/일 캘린더·설정(/menu)·매출(차트 숨김)·고객 렌더 확인. 인터랙션 스모크(＋예약→모달, 뷰 탭→`/day` 전환, 하단 탭→`/address`·`/menu`·`/settings/revenue`, 헤더 달력 날짜 점프 월→`/month/2026/9`·일→`/day/2026/8/3`) 정상, 페이지 에러 0.
 - 후속 수정(스크린샷 리뷰): 뷰 탭 풀폭+좌우 대칭, `/menu` 카드 하단 잘림(`align-self:flex-start`+카드 `flex-shrink:0`), 시술 범례 플로팅 버튼 모바일 숨김, 매출 '매출 그래프' 탭 모바일 숨김.
+- 모바일 심미 다듬기: 다크 프레임(`LayoutComponent` 8px 패딩+라운드) 모바일 제거(풀블리드), aside 모바일 완전 비노출(`display:none`), 헤더 상단 여백 + 실기기 노치(`env(safe-area-inset-top)`) 대응.
 
 ### 결과물
 - 신규: `MobileTabBar.tsx`·`MobileViewTabs.tsx`·`MobileDateJump.tsx`·`settingsMenu.ts`·`pages/menu.tsx`. 수정: `LayoutComponent`·`Header(.styles)`·`Aside`·`ServiceLegend`·`revenue-chart-styles`·`RevenueFilters`. `client` 0.41.0.

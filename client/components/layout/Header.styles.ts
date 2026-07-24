@@ -59,7 +59,8 @@ export const StyledHeader = styled.header`
     flex-shrink: 0;
     @media (max-width: 640px) {
         gap: 0;
-        padding: 0 0 0 8px;
+        /* 상단 여백 + 실기기 노치(safe-area) 대응 — 풀블리드라 헤더가 최상단 */
+        padding: max(env(safe-area-inset-top, 0px), 8px) 0 2px 8px;
     }
 `;
 
@@ -72,7 +73,7 @@ export const StyledCalendarRow = styled.div`
 
     @media (max-width: 640px) {
         width: 100%;
-        padding: 2px;
+        padding: 3px 2px 5px;
     }
 `;
 
