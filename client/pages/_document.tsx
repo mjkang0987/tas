@@ -4,6 +4,7 @@ import {ServerStyleSheet} from 'styled-components';
 
 import {SITE_KEYWORDS, SITE_OG_DESCRIPTION, SITE_OG_IMAGE, SITE_OG_IMAGE_HEIGHT, SITE_OG_IMAGE_WIDTH, SITE_TITLE, SITE_TWITTER_DESCRIPTION, SITE_URL} from '../lib/seo';
 import {ADSENSE_CLIENT} from '../lib/ads';
+import {isBookingRoute} from '../features/booking/routing';
 
 class ReservationDocument extends Document {
     static async getInitialProps(ctx: DocumentContext) {
@@ -33,6 +34,9 @@ class ReservationDocument extends Document {
     }
 
     render() {
+        // 공개 예약 페이지에는 광고 유닛(AdBanner)이 하나도 렌더되지 않는다(isBarePage라 Footer 광고 영역을 안 탐).
+        // 스크립트만 로드되면 고객 브라우저에 광고 식별 쿠키(__eoi·_gcl_au)만 남으므로 제외한다.
+        const isBookingPage = isBookingRoute(this.props.__NEXT_DATA__?.page);
         return (
             <Html lang="ko">
                 <Head>
@@ -65,7 +69,7 @@ class ReservationDocument extends Document {
                           href="/favicon/apple-icon-180x180.png" />
                     <link rel="manifest"
                           href="/favicon/manifest.json" />
-                    {ADSENSE_CLIENT && (
+                    {ADSENSE_CLIENT && !isBookingPage && (
                         <script async
                                 src={`https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${ADSENSE_CLIENT}`}
                                 crossOrigin="anonymous" />
