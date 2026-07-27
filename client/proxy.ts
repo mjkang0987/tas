@@ -97,13 +97,21 @@ function handleBookingHost(req: NextRequest) {
     return NextResponse.rewrite(url);
 }
 
-// 메인 도메인의 구 예약 경로(/book/*)를 예약 서브도메인의 같은 경로로 영구 이전.
+// 메인 도메인의 구 예약 경로(/book/*)를 예약 서브도메인의 같은 경로로 이전.
 // 이미 배포된 예약 확인 링크와 오너가 복사해 둔 URL을 살려두기 위한 것.
+//
+// 상태코드가 307(임시)인 이유 — 최종 목표는 308(영구)이지만, 서브도메인이 실운영에서
+// 검증되기 전까지는 임시로 둔다. 308/301은 브라우저가 사실상 무기한 캐시해서, 되돌려야
+// 할 때 이미 리다이렉트를 받은 브라우저가 서버에 다시 묻지 않는다(서버 롤백으로 못 지움).
+// 307은 캐시되지 않아 서버만 고치면 즉시 원복된다.
+// 서브도메인이 안정적으로 도는 것을 확인한 뒤 308로 올릴 것(검색엔진 신호 이전).
+const LEGACY_REDIRECT_STATUS = 307;
+
 function redirectLegacyBookPath(req: NextRequest) {
     const path = req.nextUrl.pathname.slice(BOOK_ROUTE_PREFIX.length) || '/';
     const url = new URL(path, BOOKING_ORIGIN);
     url.search = req.nextUrl.search;
-    return NextResponse.redirect(url, 308);
+    return NextResponse.redirect(url, LEGACY_REDIRECT_STATUS);
 }
 
 // 점검 모드 게이트 — auth() '밖', 가장 먼저 실행.

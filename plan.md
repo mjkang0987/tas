@@ -17,7 +17,8 @@
 | 예약 관리(토큰) | `takeaseat.co.kr/book/[slug]/r/[token]` | `book.takeaseat.co.kr/[slug]/r/[token]` |
 | 내부 Next 라우트 | `pages/book/[slug].tsx` (변경 없음) | 동일 |
 
-- **구 경로 보존**: 메인 도메인 `/book/*` 진입은 **308 영구 리다이렉트**로 새 도메인의 같은 경로에 대응시킨다(이미 배포된 예약 확인 링크·오너가 복사해 둔 URL 보호).
+- **구 경로 보존**: 메인 도메인 `/book/*` 진입은 **307 리다이렉트**로 새 도메인의 같은 경로에 대응시킨다(이미 배포된 예약 확인 링크·오너가 복사해 둔 URL 보호).
+  - **왜 308이 아니라 307인가**: 최종 목표는 308(영구)이지만 서브도메인이 실운영에서 검증되기 전까지는 임시로 둔다. 308/301은 브라우저가 무기한 캐시해 되돌릴 때 서버 롤백이 클라이언트에 닿지 않는다(고객 브라우저에 남는 상태). 307은 캐시되지 않아 즉시 원복 가능. 안정 확인 후 `LEGACY_REDIRECT_STATUS`를 308로 올린다(검색엔진 신호 이전).
 - **로컬/기타 호스트 무변경**: `localhost`·`dev.takeaseat.co.kr`·`*.run.app`에서는 리다이렉트하지 않아 `/book/[slug]`가 그대로 동작(로컬 개발·직결 접근 유지).
 - 예약 서브도메인 루트(`book.takeaseat.co.kr/`)는 슬러그가 없으므로 메인 사이트로 리다이렉트.
 
@@ -28,9 +29,9 @@
    - `bookHref(lang, slug, sub, base)` — `base`는 호스트별 접두(`''` | `/book`). `bookRoute(...)`는 클라 라우팅용 내부 라우트(`{pathname:'/book/[slug]', query}`) 반환.
 2. **`client/proxy.ts` 미들웨어** — 점검모드 게이트 다음, `auth()` **밖**에서 호스트 분기.
    - 예약 호스트: 인증·약관·온보딩 게이트 전부 우회. `/_next`·확장자 있는 정적 자산·`/api/book/*`은 통과, 그 외 `/api/*`는 404(운영자 API 차단). 이미 `/book/*`인 요청(클라 라우팅 `_next/data` 조회)은 통과. `/{lang}/{slug}…`는 `lang` 쿼리로 변환해 `/book/{slug}…`로 **rewrite**.
-   - 메인 호스트: `/book`·`/book/*` → `https://book.takeaseat.co.kr/…` **308**.
+   - 메인 호스트: `/book`·`/book/*` → `https://book.takeaseat.co.kr/…` **307**(`LEGACY_REDIRECT_STATUS`).
 3. **클라이언트 링크** — 두 공개 페이지의 `getServerSideProps`가 요청 호스트로 `bookBase`를 계산해 props로 내려주고, `bookHref`·`useBookLang(bookBase)`가 이를 사용. `router.push`는 **내부 라우트(href) + 공개 URL(as)** 형태로 호출해 클라 라우터가 rewrite 경로를 직접 풀지 않게 한다.
-4. **오너 설정 화면** — `BookingManageSection`의 `BOOKING_HOST` 상수를 공용 모듈로 교체. '열어보기' 링크는 `/book/[slug]` 유지(운영에선 위 308로 새 도메인에 도달, 로컬에선 그대로 동작).
+4. **오너 설정 화면** — `BookingManageSection`의 `BOOKING_HOST` 상수를 공용 모듈로 교체. '열어보기' 링크는 `/book/[slug]` 유지(운영에선 위 리다이렉트로 새 도메인에 도달, 로컬에선 그대로 동작).
 
 ### 영향 파일
 - 신규: `client/features/booking/routing.ts`
@@ -39,7 +40,7 @@
 
 ### 검증 (완료)
 - ✅ `tsc --noEmit` 0 · `next build` 성공.
-- ✅ **HTTP 실측**(`next start` + Host 헤더). 예약 호스트: `/myshop` 200(`page=/book/[slug]`, `bookBase=""`), `/en/myshop` 200(`query.lang=en`), `/myshop/r/tok` · `/zh/myshop/r/tok` 200, `/` → 메인 사이트 리다이렉트, `/api/book/*` 통과·`/api/store` 404·`/settings/booking` 404. 메인 호스트: `/book/myshop`·`/book/en/myshop`·`/book/myshop/r/abc?x=1` 전부 308 → `https://book.takeaseat.co.kr/…`(쿼리 보존). `localhost`: `/book/myshop` 200(`bookBase="/book"`) — 로컬 무회귀.
+- ✅ **HTTP 실측**(`next start` + Host 헤더). 예약 호스트: `/myshop` 200(`page=/book/[slug]`, `bookBase=""`), `/en/myshop` 200(`query.lang=en`), `/myshop/r/tok` · `/zh/myshop/r/tok` 200, `/` → 메인 사이트 리다이렉트, `/api/book/*` 통과·`/api/store` 404·`/settings/booking` 404. 메인 호스트: `/book/myshop`·`/book/en/myshop`·`/book/myshop/r/abc?x=1` 전부 307 → `https://book.takeaseat.co.kr/…`(쿼리 보존). `localhost`: `/book/myshop` 200(`bookBase="/book"`) — 로컬 무회귀.
 - ✅ **실브라우저(Playwright, 로컬 Postgres 16 + 시드 매장 `myshop`)** — `NEXT_PUBLIC_BOOKING_HOST=book.localhost:3123`로 서브도메인 재현.
   - 랜딩 → 언어 전환(클라 라우팅) `/myshop` → `/en/myshop`(리마운트 없이 문구·`<html lang>` 전환), 뷰 전환 `?m=new` 유지, **새로고침 후에도 동일 화면**(rewrite 재진입), 한국어 복귀 시 접두 제거.
   - 공개 API로 실제 예약 생성 → 관리 페이지 `/myshop/r/{token}` 렌더·언어 전환·새로고침 정상. 예약 조회 결과 링크 href = `/myshop/r/{token}`(서브도메인에 `/book` 미노출).

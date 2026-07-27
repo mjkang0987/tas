@@ -145,7 +145,7 @@ The app serves both hosts. `client/proxy.ts` branches on the request host **befo
 
 - `book.takeaseat.co.kr/{slug}` → rewritten to the internal route `/book/[slug]` (auth/terms/onboarding gates bypassed). Language prefixes `/{en|ja|zh}/{slug}` become `?lang=`.
 - On that host only `/api/book/*` is reachable; other `/api/*` returns 404, and `/` redirects to the main site.
-- `takeaseat.co.kr/book/*` → **308** to `https://book.takeaseat.co.kr/*` so previously shared links keep working.
+- `takeaseat.co.kr/book/*` → **307** to `https://book.takeaseat.co.kr/*` so previously shared links keep working. It is intentionally *temporary*: 308/301 is cached by browsers indefinitely, so a rollback would not reach clients that already followed it. Promote to 308 (`LEGACY_REDIRECT_STATUS` in `client/proxy.ts`) once the subdomain is proven in production — that is what transfers search-engine signals.
 - Other hosts (`localhost`, `dev.takeaseat.co.kr`, `*.run.app`) are untouched — `/book/{slug}` still works there.
 
 The host comes from `x-forwarded-host`, falling back to `host`. **If the Cloudflare Worker in front rewrites `Host` to the run.app name and sets no `x-forwarded-host`, booking URLs 404** — verify with `curl -sI https://book.takeaseat.co.kr/<slug>` after deploy. Override the expected host with `NEXT_PUBLIC_BOOKING_HOST` (build-time; also used for local subdomain testing, e.g. `book.localhost:3000`).
