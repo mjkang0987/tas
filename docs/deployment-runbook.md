@@ -148,7 +148,39 @@ The app serves both hosts. `client/proxy.ts` branches on the request host **befo
 - `takeaseat.co.kr/book/*` → **307** to `https://book.takeaseat.co.kr/*` so previously shared links keep working. It is intentionally *temporary*: 308/301 is cached by browsers indefinitely, so a rollback would not reach clients that already followed it. Promote to 308 (`LEGACY_REDIRECT_STATUS` in `client/proxy.ts`) once the subdomain is proven in production — that is what transfers search-engine signals.
 - Other hosts (`localhost`, `dev.takeaseat.co.kr`, `*.run.app`) are untouched — `/book/{slug}` still works there.
 
-The host comes from `x-forwarded-host`, falling back to `host`. **If the Cloudflare Worker in front rewrites `Host` to the run.app name and sets no `x-forwarded-host`, booking URLs 404** — verify with `curl -sI https://book.takeaseat.co.kr/<slug>` after deploy. Override the expected host with `NEXT_PUBLIC_BOOKING_HOST` (build-time; also used for local subdomain testing, e.g. `book.localhost:3000`).
+Override the expected booking host with `NEXT_PUBLIC_BOOKING_HOST` (build-time; also used for local subdomain testing, e.g. `book.localhost:3000`).
+
+#### ⚠️ The `tas-proxy` Worker must forward the original host
+
+The app reads the request host from **`x-forwarded-host`, falling back to `host`** — and on this setup `host` is *always* the run.app name, so `x-forwarded-host` is the only usable signal.
+
+Why: the `book`/apex records are proxied CNAMEs to `tas-…run.app`, and Cloud Run rejects a `Host` it has no domain mapping for. The `tas-proxy` Worker therefore rewrites `Host` to the run.app name — that rewrite is **required**, not a bug. Removing it takes the whole site down. But it also means the origin never sees `book.takeaseat.co.kr` unless the Worker passes it separately:
+
+```js
+export default {
+    async fetch(request) {
+      const url = new URL(request.url);
+      const originalHost = url.hostname;            // ← required by host routing
+      url.hostname = "tas-ses3gted5a-du.a.run.app";
+      const req = new Request(url, request);
+      req.headers.set("x-forwarded-host", originalHost);  // ← required by host routing
+      return fetch(req);
+    }
+  };
+```
+
+`set` (not `append`) is deliberate: it overwrites any client-supplied `x-forwarded-host`, so the header cannot be spoofed past the edge.
+
+**If someone later simplifies this Worker back to `return fetch(new Request(url, request))`, customer booking breaks** — `book.takeaseat.co.kr/<slug>` 404s and the legacy `/book/*` redirect silently stops firing. Verified in production 2026-07-27.
+
+Also make sure `book.takeaseat.co.kr` is covered by one of the Worker's routes (a `*.takeaseat.co.kr/*` wildcard does it); without a route the request never reaches the Worker and Cloud Run answers its own 404.
+
+Post-deploy smoke test for this path:
+
+```bash
+curl -sI https://takeaseat.co.kr/book/<slug> | head -1   # → 307
+curl -sI https://book.takeaseat.co.kr/<slug> | head -1   # → 200
+```
 
 ## AdSense
 

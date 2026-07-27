@@ -56,6 +56,7 @@ hair_reservations/
   - `book.takeaseat.co.kr` = **공개 구역** — 인증·약관·온보딩 게이트 전부 우회. `/{slug}`·`/{lang}/{slug}`·`/{slug}/r/{token}` → 내부 `/book/[slug]*`로 rewrite(언어는 `?lang=`로 주입). `/api/book/*`만 통과하고 그 외 `/api/*`는 404, 루트(`/`)는 메인 사이트로 리다이렉트
   - 메인 도메인(`takeaseat.co.kr`)의 구 경로 `/book/*` → `https://book.takeaseat.co.kr/*` **307**(기배포 링크 보존). 최종 목표는 308(영구)이나, 되돌릴 여지를 남기려 서브도메인 실운영 검증 전까지 캐시되지 않는 307 유지. `localhost`·`dev.*`·`*.run.app`은 무변경이라 로컬에선 `/book/[slug]`가 그대로 동작
   - 호스트·경로 규칙 단일 소스는 `features/booking/routing.ts`(Edge 안전 순수 모듈, `NEXT_PUBLIC_BOOKING_HOST`로 호스트 오버라이드)
+  - **⚠️ Cloudflare `tas-proxy` Worker 의존**: 프록시 CNAME이 `*.run.app`을 가리켜 Worker가 `Host`를 run.app으로 재작성해야 Cloud Run이 요청을 받는다(제거 시 사이트 전체 다운). 그래서 오리진의 `host`는 항상 run.app이고, **원본 호스트는 Worker가 넣어주는 `x-forwarded-host`로만 알 수 있다.** 이 한 줄이 빠지면 고객 예약 페이지가 404 난다 → [배포 런북](docs/deployment-runbook.md#️-the-tas-proxy-worker-must-forward-the-original-host)
 - **점검 모드 게이트**: `MAINTENANCE_MODE==='true'`면 `auth()` 밖 최상단에서 모든 요청을 `/maintenance`로 `rewrite`(인증 독립). `/maintenance`·`/_next`만 바이패스. `/login` 포함 전 페이지 차단 — matcher는 `api/auth`·`_next/*`·`favicon.ico`만 제외(인프라/인증 엔드포인트는 점검 중에도 유지). rename 등 마이그레이션 시 500 노출 방지용
 
 ### 캘린더 URL ↔ 날짜 (`client/components/layout/LayoutComponent.tsx`)
