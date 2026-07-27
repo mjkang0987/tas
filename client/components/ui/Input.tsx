@@ -34,7 +34,7 @@ const StyledInput = styled.label<StyledProps>`
         flex: 1;
         border: none;
         background-color: transparent;
-        padding: 0 0 0 8px;
+        padding: 0;
         border-radius: var(--radius-md);
         box-sizing: border-box;
         font-size: 12px;
