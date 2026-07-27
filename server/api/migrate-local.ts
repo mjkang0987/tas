@@ -103,9 +103,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                             tel: normalizeTel(c.tel ?? ''),
                             points: c.points ?? 0,
                             firstVisitDate: c.firstVisitDate ? new Date(`${c.firstVisitDate}T00:00:00`) : null,
-                            allergyNote: c.allergyNote ?? null,
-                            claimNote: c.claimNote ?? null,
-                            preferenceNote: c.preferenceNote ?? null,
                         },
                     });
                     customerCuidMap.set(c.id, created.id);
@@ -183,9 +180,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                             tel: normalizeTel(c.tel ?? ''),
                             points: c.points ?? 0,
                             firstVisitDate: c.firstVisitDate ? new Date(`${c.firstVisitDate}T00:00:00`) : null,
-                            allergyNote: c.allergyNote ?? null,
-                            claimNote: c.claimNote ?? null,
-                            preferenceNote: c.preferenceNote ?? null,
                         },
                     });
                     customerCuidMap.set(c.id, created.id);

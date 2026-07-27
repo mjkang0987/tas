@@ -34,9 +34,6 @@ export interface Customer {
     firstVisitDate?: string | null;
     pointHistories?: PointHistoryEntry[];
     memoTags?: CustomerMemoTag[];
-    allergyNote?: string;
-    claimNote?: string;
-    preferenceNote?: string;
 }
 
 export type CustomerMap = Record<number, Customer>;
