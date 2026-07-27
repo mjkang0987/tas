@@ -108,7 +108,7 @@ hair_reservations/
 | 파일 | 모델 | 핵심 필드 |
 |------|------|----------|
 | `reservations/model.ts` | `Reservation` | id, date, startTime/endTime, customerId, assigneeId?, service, status[^4], price, naverBookingId?, channel[^5], publicToken?(온라인예약 고객 관리 링크) |
-| `customers/model.ts` | `Customer` | id, name, tel, points, memoTags, pointHistories, allergyNote, claimNote, preferenceNote. 헬퍼: `formatTel`(표시 000-0000-0000)·`normalizeTel`(저장용 숫자만, 단일 출처) |
+| `customers/model.ts` | `Customer` | id, name, tel, points, memoTags, pointHistories. 헬퍼: `formatTel`(표시 000-0000-0000)·`normalizeTel`(저장용 숫자만, 단일 출처) |
 | `memberships/model.ts` | `MembershipProduct`/`CustomerMembership` | 회원권(횟수·기간권, 적립금과 별개). product: totalCount?/validDays?/price/status, 발급분: remainingCount/expiresAt?/status |
 | `assignees/model.ts` | `Assignee` | id, name, schedule(7일), status[^6], color, phone |
 | `services/model.ts` | `ServiceItem` | name, durationMinutes, category, price |
@@ -423,7 +423,7 @@ StorePointSettings (적립률, 충전규칙)
 |----------|---------|------------|------------|
 | beauty | 헤어/네일/왁싱/속눈썹/피부/메이크업/반영구 | 담당자 | 서비스 |
 | food | 음식점/카페/주점·바 | 테이블 | 메뉴 |
-| medical | 병원·의원/치과/한의원/동물병원 | 담당의 | 진료 |
+| medical | 동물병원 | 담당의 | 진료 |[^26]
 | fitness | 헬스·PT/요가·필라테스/골프/댄스 | 강사 | 수업 |
 | class | 학원/공방·클래스/과외 | 선생님 | 수업 |
 | pet | 애견미용 | 담당자 | 서비스 |
@@ -431,6 +431,8 @@ StorePointSettings (적립률, 충전규칙)
 | space | 공간대여/연습실 | 룸 | 이용 |
 | counsel | 상담 | 상담사 | 상담 |
 | etc | 기타 | 담당자 | 서비스 |
+
+[^26]: **사람 진료 업종(병원·의원·치과·한의원)은 업종 목록에서 제외**(마이그레이션 `0018` 작업 시 함께 정리). 진료 내용은 건강정보(민감정보)라 개인정보보호법 제23조의 별도 동의·안전조치가 필요한데, 예약 요청사항(`Reservation.memo`) 등 자유 입력 경로가 열려 있어 현재 구조로는 감당하지 않는다. 동물병원은 반려동물 정보라 사람 민감정보가 아니어서 유지. 되살리려면 이슈 #167의 체크리스트를 함께 이행할 것.
 
 > 적용 범위: aside 메뉴·담당자 관리·서비스 관리 등 운영 화면(예약 폼·캘린더·매출 포함, 단계적 확대). 기존 뷰티 매장은 표시어 변화 없음(담당자/서비스 유지).
 
