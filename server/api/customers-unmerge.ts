@@ -11,9 +11,6 @@ type SourceSnapshot = {
     tel: string;
     points: number;
     firstVisitDate: string | null;
-    allergyNote: string | null;
-    claimNote: string | null;
-    preferenceNote: string | null;
     memoTags: { text: string; color: string }[];
 };
 
@@ -69,9 +66,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                     tel: normalizeTel(source.tel),
                     points: source.points,
                     firstVisitDate: source.firstVisitDate ? new Date(source.firstVisitDate) : null,
-                    allergyNote: source.allergyNote,
-                    claimNote: source.claimNote,
-                    preferenceNote: source.preferenceNote,
                 },
             });
 

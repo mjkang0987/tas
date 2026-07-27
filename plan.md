@@ -4,6 +4,35 @@
 
 ---
 
+## 진행 중 — 고객 개인정보 정리 (예약 페이지 이전 후속)
+
+> 배경: `book.takeaseat.co.kr` 이전(#158) 직후 쿠키를 점검하다 공개 예약 페이지가 동의 게이트 밖이라는 점에서 파생된 건들. 이슈 #162·#163·#164·#166·#167.
+
+### 완료
+- **#162 공개 예약 페이지 세션 조회 제거** (PR #165 머지) — `_app`이 예약 라우트를 `SessionProvider` 밖에서 렌더. 예약 페이지 `/api/auth/*` 0건·쿠키 0개. 라우트 판정은 `features/booking/routing.ts`의 `isBookingRoute`로 통일.
+- **#163 일부** (PR #165) — 예약 페이지에 광고 유닛이 없으므로 AdSense 스크립트 미로드. 나머지(`_ga`·`_fbp`·`dable_uid`)는 앱 코드 밖(Cloudflare 엣지 주입 추정) → 사용자 확인 대기.
+
+### 이번 작업 — #167 고객 메모 3종 제거 + 사람 진료 업종 제외
+- **`allergyNote`·`claimNote`·`preferenceNote` 완전 제거.** 초기 임포트 시절 레거시로, **입력 UI가 없어 값을 넣을 방법이 없었고** 병합 제안 모달에서 표시만 했다. 운영 데이터 **3종 모두 0건 확인**(사용자).
+  - 코드 배선 제거: 클라 모델·병합 모달(+미사용 styled)·`mappers.ts`·`customers.ts`·`customers-merge/unmerge.ts`·`migrate-local.ts`·`seed.mjs`·`seed-data/customers.json`.
+  - **마이그레이션 `0018_drop_unused_customer_notes`** — `DROP COLUMN IF EXISTS` ×3(멱등).
+  - **⚠️ 배포 순서가 평소와 반대: 코드 배포 먼저 → 마이그레이션 나중.** `customers.ts`의 고객 조회가 `include`(전체 컬럼 SELECT)라, 컬럼을 먼저 지우면 구버전 Prisma 클라이언트가 없는 컬럼을 SELECT 해 **전체 고객 조회가 500**난다(2026-07 `publicToken` 사고와 같은 구조, 방향만 반대). 코드를 먼저 배포하면 컬럼이 남아도 아무도 읽지 않아 무해하다.
+- **업종 목록에서 사람 진료 3종 제외** (병원·의원/치과/한의원). 진료 내용은 건강정보(민감정보)라 §23 별도 동의·안전조치가 필요한데 예약 요청사항 등 자유 입력 경로가 열려 있어 현 구조로 감당하지 않는다. **동물병원은 유지**(반려동물 정보는 사람 민감정보 아님).
+  - 주의: `sanitizeShopType`이 목록 밖 값을 걸러 `null`로 만들므로, 해당 업종 매장이 있으면 다음 저장 때 업종이 지워진다 → 사용자 확인 필요.
+
+### 검증 (완료)
+- ✅ `tsc --noEmit` 0 · `next build` 성공.
+- ✅ 로컬 Postgres에 `0018` 적용(대상 datasource가 로컬 `takeaseat`임을 출력으로 확인 후 실행). 컬럼 3개 제거 확인, **스키마 드리프트 0**(`migrate diff --exit-code` 0).
+- ✅ **컬럼 없는 DB에서 `customers.ts`와 동일한 `include` 쿼리 직접 실행** → 정상 조회, 응답에 노트 필드 없음. 공개 예약 생성(Customer upsert 경유) 201. Prisma 에러 0건.
+
+### 남은 것
+- **#164** 고객 예약 시 개인정보 수집·이용 안내 — 방향 확정됨(안내 방식·문서 2건·4개국어·서버 검증), 체크박스 여부만 미정.
+- **#166** 삭제 요청 시 매출 이력 소실(익명화) — 실제 요청 발생 시 판단.
+- **#163** 광고·분석 쿠키 출처 — Cloudflare Zaraz 확인(사용자).
+- **#167** 되살릴 경우 체크리스트는 이슈에 보존.
+
+---
+
 ## 완료(운영 반영 확인됨 2026-07-27) — 고객 예약 페이지 경로 이전 (`takeaseat.co.kr/book/[slug]` → `book.takeaseat.co.kr/[slug]`)
 
 > 요청(사용자): 고객예약페이지 path 변경 — `takeaseat.co.kr/book` → `book.takeaseat.co.kr`.

@@ -360,9 +360,6 @@ async function seedCustomers() {
                 tel: customer.tel,
                 points: Number(customer.points ?? 0),
                 firstVisitDate: customer.firstVisitDate ? new Date(`${customer.firstVisitDate}T00:00:00`) : null,
-                allergyNote: customer.allergyNote ?? null,
-                claimNote: customer.claimNote ?? null,
-                preferenceNote: customer.preferenceNote ?? null,
             },
             create: {
                 storeId,
@@ -371,9 +368,6 @@ async function seedCustomers() {
                 tel: customer.tel,
                 points: Number(customer.points ?? 0),
                 firstVisitDate: customer.firstVisitDate ? new Date(`${customer.firstVisitDate}T00:00:00`) : null,
-                allergyNote: customer.allergyNote ?? null,
-                claimNote: customer.claimNote ?? null,
-                preferenceNote: customer.preferenceNote ?? null,
             },
         });
 

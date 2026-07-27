@@ -160,7 +160,6 @@ export const CustomerMergeSuggestionModal = ({
                             const resCount = countReservations(customer.id, reservationMap);
                             const lastRes = getLastReservation(customer.id, reservationMap);
                             const hasTags = customer.memoTags && customer.memoTags.length > 0;
-                            const hasNotes = customer.allergyNote || customer.claimNote || customer.preferenceNote;
                             const assigneeName = lastRes?.assigneeId
                                 ? (assigneeNameMap[lastRes.assigneeId] ?? '미지정')
                                 : '미지정';
@@ -223,13 +222,6 @@ export const CustomerMergeSuggestionModal = ({
                                                     <StyledTag key={i} $color={tag.color}>{tag.text}</StyledTag>
                                                 ))}
                                             </StyledTagList>
-                                        )}
-                                        {hasNotes && (
-                                            <StyledNotes>
-                                                {customer.allergyNote && <StyledNoteItem>알레르기: {customer.allergyNote}</StyledNoteItem>}
-                                                {customer.preferenceNote && <StyledNoteItem>선호: {customer.preferenceNote}</StyledNoteItem>}
-                                                {customer.claimNote && <StyledNoteItem>클레임: {customer.claimNote}</StyledNoteItem>}
-                                            </StyledNotes>
                                         )}
                                         {lastRes && (
                                             <StyledCardSection onClick={(e) => e.stopPropagation()}>
@@ -401,21 +393,6 @@ const StyledTag = styled.span<{$color: string}>`
     font-weight: 600;
     background: ${(p) => p.$color}1a;
     color: ${(p) => p.$color};
-`;
-
-const StyledNotes = styled.div`
-    display: flex;
-    flex-direction: column;
-    gap: 2px;
-    font-size: 11px;
-    color: var(--dark-gray-color);
-    line-height: 1.4;
-`;
-
-const StyledNoteItem = styled.span`
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
 `;
 
 const StyledCardSection = styled.div`

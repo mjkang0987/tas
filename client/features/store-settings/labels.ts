@@ -62,10 +62,10 @@ export const SHOP_INDUSTRIES: ShopIndustry[] = [
     {value: 'restaurant', label: '음식점', emoji: '🍽️', desc: '식당·레스토랑', category: 'food'},
     {value: 'cafe', label: '카페', emoji: '☕', desc: '카페·디저트', category: 'food'},
     {value: 'bar', label: '주점·바', emoji: '🍺', desc: '바·펍·주점', category: 'food'},
-    // 의료
-    {value: 'clinic', label: '병원·의원', emoji: '🏥', desc: '진료·검진', category: 'medical'},
-    {value: 'dental', label: '치과', emoji: '🦷', desc: '치과 진료', category: 'medical'},
-    {value: 'oriental', label: '한의원', emoji: '🌿', desc: '한방 진료', category: 'medical'},
+    // 의료 — 사람 진료(병원·의원/치과/한의원)는 목록에서 제외한다.
+    // 진료 내용은 건강정보(민감정보)라 개인정보보호법 제23조의 별도 동의·안전조치가 필요한데
+    // 예약 요청사항 등 자유 입력 경로가 열려 있어 현재 구조로는 감당하지 않는다(#167).
+    // 동물병원은 반려동물 정보라 사람 민감정보에 해당하지 않아 유지.
     {value: 'vet', label: '동물병원', emoji: '🐾', desc: '반려동물 진료', category: 'medical'},
     // 피트니스
     {value: 'gym', label: '헬스·PT', emoji: '💪', desc: '헬스·퍼스널 트레이닝', category: 'fitness'},
