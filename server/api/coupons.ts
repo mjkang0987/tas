@@ -54,6 +54,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                 minOrderAmount: p.minOrderAmount,
                 validDays: p.validDays,
                 code: p.code,
+                oncePerCustomer: p.oncePerCustomer,
                 status: p.status,
             })),
             coupons: coupons.map((c) => ({
@@ -79,6 +80,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         const body = req.body as {
             name?: unknown; discountType?: unknown; discountValue?: unknown;
             maxDiscount?: unknown; minOrderAmount?: unknown; validDays?: unknown; code?: unknown;
+            oncePerCustomer?: unknown;
         };
 
         if (typeof body.name !== 'string' || !body.name.trim()) {
@@ -104,6 +106,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                     minOrderAmount: parseOptInt(body.minOrderAmount),
                     validDays: parseOptInt(body.validDays),
                     code,
+                    oncePerCustomer: body.oncePerCustomer === true,
                 },
             });
             return res.status(200).json({
@@ -115,6 +118,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                 minOrderAmount: created.minOrderAmount,
                 validDays: created.validDays,
                 code: created.code,
+                oncePerCustomer: created.oncePerCustomer,
                 status: created.status,
             });
         } catch (err) {
@@ -131,6 +135,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         const body = req.body as {
             id?: unknown; name?: unknown; discountType?: unknown; discountValue?: unknown;
             maxDiscount?: unknown; minOrderAmount?: unknown; validDays?: unknown; code?: unknown; status?: unknown;
+            oncePerCustomer?: unknown;
         };
 
         if (typeof body.id !== 'string') return res.status(400).json({error: 'Invalid id'});
@@ -167,6 +172,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                     ...(body.minOrderAmount !== undefined && {minOrderAmount: parseOptInt(body.minOrderAmount)}),
                     ...(body.validDays !== undefined && {validDays: parseOptInt(body.validDays)}),
                     ...(body.code !== undefined && {code: parseCode(body.code)}),
+                    ...(body.oncePerCustomer !== undefined && {oncePerCustomer: body.oncePerCustomer === true}),
                     ...(body.status !== undefined && {status: body.status as string}),
                 },
             });

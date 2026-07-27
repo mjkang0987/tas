@@ -12,6 +12,7 @@ export interface CouponProduct {
     minOrderAmount: number | null; // 최소 결제금액 (null = 제한없음)
     validDays: number | null; // 발급일+유효일수 (null = 무기한)
     code: string | null; // 코드형이면 코드 (null = 직접발급 전용)
+    oncePerCustomer: boolean; // true = 고객당 1장(미사용 보유 시 재발급 불가)
     status: 'active' | 'archived';
 }
 
