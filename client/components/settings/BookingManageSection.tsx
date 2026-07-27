@@ -6,11 +6,11 @@ import {useToastStore} from '../../store/toastStore';
 import {useCalendarStore} from '../../store/calendarStore';
 import {DEFAULT_BOOKING_SETTINGS, isValidBookingSlug} from '../../features/store-settings/model';
 import type {BookingSettings} from '../../features/store-settings/model';
+import {BOOKING_HOST} from '../../features/booking/routing';
 import {buildServiceColorMap} from '../../utils/services';
 import {ServiceChipList} from '../ui/ServiceChip';
 import {StyledSettingsCard, StyledSettingsCardTitle, StyledSettingsHint, StyledSaveBtn} from './settings-styles';
 
-const BOOKING_HOST = process.env.NEXT_PUBLIC_BOOKING_HOST ?? 'book.takeaseat.co.kr';
 const SLOT_OPTIONS = [10, 15, 20, 30, 60];
 
 type MessageI18n = {en?: string | null; ja?: string | null; zh?: string | null} | null | undefined;
@@ -506,8 +506,9 @@ const StyledUrlPreview = styled.p`
     word-break: break-all;
 `;
 
-// 저장된 슬러그로 실제 작동하는 예약 페이지(/book/[slug])를 새 탭에서 바로 확인.
-// 서브도메인(book.*)은 #77 전까지 미작동이라, 링크는 현재 오리진의 /book 경로로 연다.
+// 저장된 슬러그로 실제 작동하는 예약 페이지를 새 탭에서 바로 확인.
+// 링크는 현재 오리진의 /book 경로 — 운영 메인 도메인에선 미들웨어가 예약 서브도메인으로
+// 308 리다이렉트하고, 로컬에선 그대로 열린다(양쪽 다 동작).
 const StyledPreviewLink = styled.a`
     display: inline-flex;
     align-items: center;

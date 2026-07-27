@@ -1,5 +1,6 @@
 import {useCallback, useEffect, useMemo, useState} from 'react';
 
+import type {GetServerSideProps} from 'next';
 import {useRouter} from 'next/router';
 
 import styled from 'styled-components';
@@ -8,8 +9,9 @@ import {normalizeTel} from '../../features/customers/model';
 import {
     BOOK_STRINGS, formatBookDateLabel, formatDurationL, formatPriceL,
     localizedStoreLabels, lookupStatusL, dowLabelL, todayLabelL,
-    pickI18n, bookHref, type I18nText,
+    pickI18n, bookHref, bookRoute, type I18nText,
 } from '../../features/booking/i18n';
+import {bookBaseForHost, resolveRequestHost} from '../../features/booking/routing';
 import {SeoHead} from '../../components/ui/SeoHead';
 import {formControlStyle} from '../../components/ui/FormControls';
 import {LabelBadge} from '../../components/ui/LabelBadge';
@@ -121,11 +123,11 @@ function isDateClosed(info: BookStoreInfo, dateStr: string): boolean {
     return !bh || !bh.enabled;
 }
 
-export default function BookingPage() {
+export default function BookingPage({bookBase}: BookingPageProps) {
     const router = useRouter();
     const slug = typeof router.query.slug === 'string' ? router.query.slug : '';
 
-    const [lang, setLang] = useBookLang();
+    const [lang, setLang] = useBookLang(bookBase);
     const t = BOOK_STRINGS[lang];
 
     const [loading, setLoading] = useState(true);
@@ -332,8 +334,10 @@ export default function BookingPage() {
     };
 
     // 뷰 전환 — 언어 접두를 보존한 채 ?m= 갱신. 같은 라우트라 리마운트/재요청 없음.
+    // href=내부 라우트 / as=공개 URL (예약 서브도메인의 공개 경로는 미들웨어 rewrite 결과라 클라 라우터가 직접 못 푼다).
     const goView = (v: BookView) => {
-        router.push(bookHref(lang, slug, v === 'home' ? undefined : {m: v}), undefined, {scroll: false});
+        const sub = v === 'home' ? undefined : {m: v};
+        router.push(bookRoute(lang, slug, sub), bookHref(lang, slug, sub, bookBase), {scroll: false});
     };
 
     const goHome = () => {
@@ -398,7 +402,7 @@ export default function BookingPage() {
                     </StyledSummary>
                     <StyledNotice>{t.reserveDoneNoticePrefix}<strong>{t.reserveDoneNoticeStrong}</strong>{t.reserveDoneNoticeSuffix}</StyledNotice>
                     {doneDisplay && <StyledNotice>{doneDisplay}</StyledNotice>}
-                    <StyledManageLink href={bookHref(lang, slug, {token: result.publicToken})}>{t.manageLink}</StyledManageLink>
+                    <StyledManageLink href={bookHref(lang, slug, {token: result.publicToken}, bookBase)}>{t.manageLink}</StyledManageLink>
                 </StyledCard>
                 <LangSwitcher lang={lang} onChange={setLang} />
             </StyledWrap>
@@ -461,7 +465,7 @@ export default function BookingPage() {
                         ) : (
                             <StyledLookupList>
                                 {lookupResults.map((r) => (
-                                    <StyledLookupItem key={r.token} href={bookHref(lang, slug, {token: r.token})}>
+                                    <StyledLookupItem key={r.token} href={bookHref(lang, slug, {token: r.token}, bookBase)}>
                                         <StyledLookupStatus $status={r.status}>
                                             {lookupStatusL(r.status, lang)}
                                         </StyledLookupStatus>
@@ -682,7 +686,15 @@ export default function BookingPage() {
     );
 }
 
-export const getServerSideProps = async () => ({props: {}});
+// 링크·라우팅에 쓸 공개 경로 접두를 요청 호스트로 SSR에서 결정한다(하이드레이션 안전).
+// 예약 서브도메인이면 '' (=/{slug}), 메인 도메인·로컬이면 '/book'.
+interface BookingPageProps {
+    bookBase: string;
+}
+
+export const getServerSideProps: GetServerSideProps<BookingPageProps> = async ({req}) => ({
+    props: {bookBase: bookBaseForHost(resolveRequestHost(req.headers['x-forwarded-host'] as string | undefined, req.headers.host))},
+});
 
 const StyledWrap = styled.div`
     min-height: 100%;

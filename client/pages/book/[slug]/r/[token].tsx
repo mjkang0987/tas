@@ -1,5 +1,6 @@
 import {useCallback, useEffect, useMemo, useState} from 'react';
 
+import type {GetServerSideProps} from 'next';
 import {useRouter} from 'next/router';
 
 import styled from 'styled-components';
@@ -8,6 +9,7 @@ import {
     BOOK_STRINGS, formatDurationL, formatPriceL, localizedStoreLabels,
     statusLabelL, dowLabelL, todayLabelL, pickI18n, type I18nText,
 } from '../../../../features/booking/i18n';
+import {bookBaseForHost, resolveRequestHost} from '../../../../features/booking/routing';
 import {SeoHead} from '../../../../components/ui/SeoHead';
 import {LabelBadge} from '../../../../components/ui/LabelBadge';
 import {LangSwitcher, useBookLang, LANG_BAR_OFFSET} from '../../../../components/booking/LangSwitcher';
@@ -79,12 +81,12 @@ function isDateClosed(store: BookStoreInfo, dateStr: string): boolean {
     return !bh || !bh.enabled;
 }
 
-export default function ReservationManagePage() {
+export default function ReservationManagePage({bookBase}: ReservationManagePageProps) {
     const router = useRouter();
     const slug = typeof router.query.slug === 'string' ? router.query.slug : '';
     const token = typeof router.query.token === 'string' ? router.query.token : '';
 
-    const [lang, setLang] = useBookLang();
+    const [lang, setLang] = useBookLang(bookBase);
     const t = BOOK_STRINGS[lang];
 
     const [loading, setLoading] = useState(true);
@@ -376,7 +378,15 @@ export default function ReservationManagePage() {
     );
 }
 
-export const getServerSideProps = async () => ({props: {}});
+// 링크·라우팅에 쓸 공개 경로 접두를 요청 호스트로 SSR에서 결정한다(하이드레이션 안전).
+// 예약 서브도메인이면 '' (=/{slug}/r/{token}), 메인 도메인·로컬이면 '/book'.
+interface ReservationManagePageProps {
+    bookBase: string;
+}
+
+export const getServerSideProps: GetServerSideProps<ReservationManagePageProps> = async ({req}) => ({
+    props: {bookBase: bookBaseForHost(resolveRequestHost(req.headers['x-forwarded-host'] as string | undefined, req.headers.host))},
+});
 
 const StyledWrap = styled.div`
     min-height: 100%;
