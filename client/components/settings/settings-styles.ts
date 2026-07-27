@@ -5,7 +5,7 @@ export const actionButtonStyle = css`
     height: 30px;
     padding: 0 12px;
     border-radius: var(--radius-md);
-    font-size: 12px;
+    font-size: var(--small-font);
     font-weight: 500;
     transition: opacity 0.15s ease, transform 0.12s ease, box-shadow 0.15s ease,
                 border-color 0.15s ease, background-color 0.15s ease;
@@ -27,7 +27,7 @@ export const StyledEditBtn = styled.button`
     ${actionButtonStyle};
     border: 1px solid var(--light-gray-color);
     background: none;
-    font-size: 11px;
+    font-size: var(--xsmall-font);
     color: var(--dark-gray-color);
 `;
 
@@ -51,7 +51,7 @@ export const StyledDeleteBtn = styled.button`
     ${actionButtonStyle};
     border: 1px solid var(--danger-border);
     background: var(--danger-bg);
-    font-size: 11px;
+    font-size: var(--xsmall-font);
     color: var(--danger-color);
 `;
 
@@ -61,7 +61,7 @@ export const StyledSelect = styled.select`
     border: 1px solid var(--light-gray-color);
     border-radius: var(--radius-md);
     background: var(--white-color);
-    font-size: 12px;
+    font-size: var(--small-font);
     color: var(--dark-gray-color);
     cursor: pointer;
     outline: none;
@@ -102,14 +102,14 @@ export const StyledSettingsCard = styled.div`
 export const StyledSettingsCardTitle = styled.strong`
     display: block;
     margin: 0 0 12px;
-    font-size: 13px;
+    font-size: var(--medium-font);
     font-weight: 600;
     color: var(--dark-gray-color);
 `;
 
 export const StyledSettingsHint = styled.p`
     margin: 12px 0 0;
-    font-size: 12px;
+    font-size: var(--small-font);
     color: var(--dark-gray-color2);
 `;
 
@@ -120,7 +120,7 @@ export const StyledEmpty = styled.div`
     align-items: center;
     justify-content: center;
     padding: 40px;
-    font-size: 13px;
+    font-size: var(--medium-font);
     color: var(--dark-gray-color2);
 `;
 

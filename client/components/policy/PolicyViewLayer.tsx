@@ -2,7 +2,7 @@ import {createPortal} from 'react-dom';
 
 import styled from 'styled-components';
 
-import {POLICIES, type PolicySlug} from '../../content/policies';
+import {POLICIES, applyPolicyVars, type PolicySlug, type PolicyVars} from '../../content/policies';
 import {CloseIconButton} from '../ui/CloseIconButton';
 import {
     OVERLAY_Z_INDEX,
@@ -20,7 +20,8 @@ import {POLICY_ELEMENT_CSS, POLICY_VARS_DARK, POLICY_VARS_LIGHT} from './policyC
 // 정책 문서(이용약관·개인정보·처리위탁)를 페이지 이동 없이 레이어로 보여준다.
 // 앱 공통 레이어(ModalStyles) 디자인을 그대로 사용한다.
 // 본문은 content/policies 단일 소스라 풀페이지(/terms·/privacy·/dpa)와 항상 동일하다.
-export function PolicyViewLayer({slug, onClose}: {slug: PolicySlug; onClose: () => void}) {
+// vars: 본문의 {{storeName}} 등 치환값. 매장 대상 문서(booking-consent·store-privacy)에서 쓴다.
+export function PolicyViewLayer({slug, onClose, vars}: {slug: PolicySlug; onClose: () => void; vars?: PolicyVars}) {
     const modalRoot = typeof document !== 'undefined' ? document.getElementById('modal-root') : null;
     const {layerId, layerDataId} = useLayerInstanceId(`policy-${slug}`);
     const dialogRef = useDialogAccessibility<HTMLDivElement>(onClose);
@@ -28,6 +29,7 @@ export function PolicyViewLayer({slug, onClose}: {slug: PolicySlug; onClose: () 
     if (!modalRoot) return null;
 
     const {navTitle, body} = POLICIES[slug];
+    const html = applyPolicyVars(body, vars);
 
     return createPortal(
         <StyledPolicyOverlay
@@ -45,7 +47,7 @@ export function PolicyViewLayer({slug, onClose}: {slug: PolicySlug; onClose: () 
                 </StyledHeader>
                 <StyledBody>
                     <StyledBodyInner>
-                        <StyledPolicyContent dangerouslySetInnerHTML={{__html: body}} />
+                        <StyledPolicyContent dangerouslySetInnerHTML={{__html: html}} />
                     </StyledBodyInner>
                 </StyledBody>
             </StyledPolicyModal>
@@ -69,7 +71,7 @@ const StyledPolicyContent = styled.div`
     ${POLICY_VARS_LIGHT}
     color: var(--tas-fg);
     line-height: 1.7;
-    font-size: 14px;
+    font-size: var(--font);
     word-break: keep-all;
 
     ${POLICY_ELEMENT_CSS}

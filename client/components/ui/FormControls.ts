@@ -7,7 +7,7 @@ export const formControlStyle = css`
     border-radius: var(--radius-md);
     background: var(--white-color);
     box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
-    font-size: 12px;
+    font-size: var(--small-font);
     color: var(--dark-gray-color);
     box-sizing: border-box;
     outline: none;

@@ -164,7 +164,7 @@ const StyledTagRemoveButton = styled.button`
     border: none;
     background: none;
     color: rgba(255, 255, 255, 0.7);
-    font-size: 9px;
+    font-size: var(--tiny-font);
     cursor: pointer;
     padding: 0;
     line-height: 1;

@@ -107,7 +107,7 @@ export const AccountDeleteModal = ({role, onClose}: AccountDeleteModalProps) => 
 
 const StyledInputLabel = styled.p`
     margin: 12px 0 6px;
-    font-size: 13px;
+    font-size: var(--medium-font);
     color: #374151;
 `;
 

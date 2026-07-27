@@ -312,14 +312,14 @@ const StyledBrandLogo = styled.img`
 `;
 
 const StyledTitle = styled.h1`
-    font-size: 20px;
+    font-size: var(--display-sm);
     font-weight: 700;
     margin: 0 0 6px;
     color: var(--black-color);
 `;
 
 const StyledSubtitle = styled.p`
-    font-size: 13px;
+    font-size: var(--medium-font);
     color: var(--dark-gray-color2);
     margin: 0 0 24px;
     line-height: 1.5;
@@ -333,7 +333,7 @@ const StyledAllRow = styled.label`
 `;
 
 const StyledAllLabel = styled.span`
-    font-size: 15px;
+    font-size: var(--large-font);
     font-weight: 700;
     color: var(--black-color);
 `;
@@ -355,7 +355,7 @@ const StyledItem = styled.label`
 const StyledItemText = styled.span`
     flex: 1;
     min-width: 0;
-    font-size: 14px;
+    font-size: var(--font);
     color: var(--dark-gray-color);
     line-height: 1.4;
 `;
@@ -378,7 +378,7 @@ const StyledViewButton = styled.button`
     padding: 0;
     border: none;
     background: none;
-    font-size: 12px;
+    font-size: var(--small-font);
     color: var(--dark-gray-color2);
     text-decoration: underline;
     cursor: pointer;
@@ -396,7 +396,7 @@ const StyledError = styled.p`
     border-radius: 8px;
     background: #fff1f2;
     color: #9f1239;
-    font-size: 13px;
+    font-size: var(--medium-font);
     line-height: 1.5;
     text-align: center;
 `;
@@ -409,7 +409,7 @@ const StyledPrimaryButton = styled.button`
     border-radius: 8px;
     background-color: var(--brand-color);
     color: var(--white-color);
-    font-size: 15px;
+    font-size: var(--large-font);
     font-weight: 700;
     cursor: pointer;
     transition: opacity 0.15s;
@@ -432,7 +432,7 @@ const StyledSecondaryButton = styled.button`
     border-radius: 8px;
     background-color: var(--white-color);
     color: var(--dark-gray-color);
-    font-size: 14px;
+    font-size: var(--font);
     font-weight: 600;
     cursor: pointer;
 

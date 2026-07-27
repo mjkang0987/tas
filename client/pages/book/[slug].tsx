@@ -1,5 +1,6 @@
 import {useCallback, useEffect, useMemo, useState} from 'react';
 
+import type {GetServerSideProps} from 'next';
 import {useRouter} from 'next/router';
 
 import styled from 'styled-components';
@@ -8,9 +9,12 @@ import {normalizeTel} from '../../features/customers/model';
 import {
     BOOK_STRINGS, formatBookDateLabel, formatDurationL, formatPriceL,
     localizedStoreLabels, lookupStatusL, dowLabelL, todayLabelL,
-    pickI18n, bookHref, type I18nText,
+    pickI18n, bookHref, bookRoute, type I18nText,
 } from '../../features/booking/i18n';
+import {bookBaseForHost, resolveRequestHost} from '../../features/booking/routing';
 import {SeoHead} from '../../components/ui/SeoHead';
+import {PolicyViewLayer} from '../../components/policy/PolicyViewLayer';
+import type {PolicySlug} from '../../content/policies';
 import {formControlStyle} from '../../components/ui/FormControls';
 import {LabelBadge} from '../../components/ui/LabelBadge';
 import {LangSwitcher, useBookLang, LANG_BAR_OFFSET} from '../../components/booking/LangSwitcher';
@@ -54,7 +58,7 @@ interface BookStoreInfo {
     assignees: BookAssigneeInfo[];
     businessHours: BookBusinessHour[];
     closedDates: string[];
-    settings: {allowAssigneeChoice: boolean; noticeText: string | null; noticeI18n?: I18nText; doneText?: string | null; doneI18n?: I18nText; maxAdvanceDays: number};
+    settings: {allowAssigneeChoice: boolean; contactTel?: string | null; noticeText: string | null; noticeI18n?: I18nText; doneText?: string | null; doneI18n?: I18nText; maxAdvanceDays: number};
     notices: BookNotice[];
 }
 interface ReserveResult {
@@ -121,11 +125,11 @@ function isDateClosed(info: BookStoreInfo, dateStr: string): boolean {
     return !bh || !bh.enabled;
 }
 
-export default function BookingPage() {
+export default function BookingPage({bookBase}: BookingPageProps) {
     const router = useRouter();
     const slug = typeof router.query.slug === 'string' ? router.query.slug : '';
 
-    const [lang, setLang] = useBookLang();
+    const [lang, setLang] = useBookLang(bookBase);
     const t = BOOK_STRINGS[lang];
 
     const [loading, setLoading] = useState(true);
@@ -142,6 +146,8 @@ export default function BookingPage() {
     const [name, setName] = useState('');
     const [tel, setTel] = useState('');
     const [memo, setMemo] = useState('');
+    // 개인정보 안내 '전문 보기' 레이어. 예약 폼에서만 연다.
+    const [policyOpen, setPolicyOpen] = useState<PolicySlug | null>(null);
     const [submitting, setSubmitting] = useState(false);
     const [submitError, setSubmitError] = useState<string>('');
     const [result, setResult] = useState<ReserveResult | null>(null);
@@ -332,8 +338,10 @@ export default function BookingPage() {
     };
 
     // 뷰 전환 — 언어 접두를 보존한 채 ?m= 갱신. 같은 라우트라 리마운트/재요청 없음.
+    // href=내부 라우트 / as=공개 URL (예약 서브도메인의 공개 경로는 미들웨어 rewrite 결과라 클라 라우터가 직접 못 푼다).
     const goView = (v: BookView) => {
-        router.push(bookHref(lang, slug, v === 'home' ? undefined : {m: v}), undefined, {scroll: false});
+        const sub = v === 'home' ? undefined : {m: v};
+        router.push(bookRoute(lang, slug, sub), bookHref(lang, slug, sub, bookBase), {scroll: false});
     };
 
     const goHome = () => {
@@ -398,7 +406,7 @@ export default function BookingPage() {
                     </StyledSummary>
                     <StyledNotice>{t.reserveDoneNoticePrefix}<strong>{t.reserveDoneNoticeStrong}</strong>{t.reserveDoneNoticeSuffix}</StyledNotice>
                     {doneDisplay && <StyledNotice>{doneDisplay}</StyledNotice>}
-                    <StyledManageLink href={bookHref(lang, slug, {token: result.publicToken})}>{t.manageLink}</StyledManageLink>
+                    <StyledManageLink href={bookHref(lang, slug, {token: result.publicToken}, bookBase)}>{t.manageLink}</StyledManageLink>
                 </StyledCard>
                 <LangSwitcher lang={lang} onChange={setLang} />
             </StyledWrap>
@@ -461,7 +469,7 @@ export default function BookingPage() {
                         ) : (
                             <StyledLookupList>
                                 {lookupResults.map((r) => (
-                                    <StyledLookupItem key={r.token} href={bookHref(lang, slug, {token: r.token})}>
+                                    <StyledLookupItem key={r.token} href={bookHref(lang, slug, {token: r.token}, bookBase)}>
                                         <StyledLookupStatus $status={r.status}>
                                             {lookupStatusL(r.status, lang)}
                                         </StyledLookupStatus>
@@ -623,7 +631,32 @@ export default function BookingPage() {
                         <StyledField>
                             <StyledFieldLabel htmlFor="book-memo">{t.memoLabel}</StyledFieldLabel>
                             <StyledTextArea id="book-memo" value={memo} maxLength={200} rows={3} placeholder={t.memoPlaceholder} onChange={(e) => setMemo(e.target.value)} />
+                            <StyledFieldHint>{t.memoSensitiveHint}</StyledFieldHint>
                         </StyledField>
+
+                        {/* 개인정보 수집·이용 안내. 이름·연락처는 예약(계약) 이행에 필요한 최소 정보라
+                            개인정보보호법 제15조제1항제4호 근거로 수집하며, 별도 동의 체크박스를 두지 않는다.
+                            전문은 매장명을 주입해 레이어로 보여준다(문서는 content/policies 단일 소스). */}
+                        <StyledPrivacyBox>
+                            <StyledPrivacyHead>{t.privacyHead}</StyledPrivacyHead>
+                            <StyledPrivacyList>
+                                <li>{t.privacyItems}</li>
+                                <li>{t.privacyPurpose}</li>
+                                <li>{t.privacyPeriod}</li>
+                                <li>{t.privacyEntrust}</li>
+                                {info?.settings.contactTel && (
+                                    <li>{t.privacyContact}: {info.settings.contactTel}</li>
+                                )}
+                            </StyledPrivacyList>
+                            <StyledPrivacyLinks>
+                                <StyledPrivacyLink type="button" onClick={() => setPolicyOpen('booking-consent')}>
+                                    {t.privacyViewConsent}
+                                </StyledPrivacyLink>
+                                <StyledPrivacyLink type="button" onClick={() => setPolicyOpen('store-privacy')}>
+                                    {t.privacyViewPolicy}
+                                </StyledPrivacyLink>
+                            </StyledPrivacyLinks>
+                        </StyledPrivacyBox>
                     </>
                 )}
 
@@ -678,11 +711,26 @@ export default function BookingPage() {
                 </StyledStickyFooter>
             </StyledCard>
             <LangSwitcher lang={lang} onChange={setLang} />
+            {policyOpen && (
+                <PolicyViewLayer
+                    slug={policyOpen}
+                    vars={{storeName: storeDisplay, storeContact: info?.settings.contactTel ?? undefined}}
+                    onClose={() => setPolicyOpen(null)}
+                />
+            )}
         </StyledWrap>
     );
 }
 
-export const getServerSideProps = async () => ({props: {}});
+// 링크·라우팅에 쓸 공개 경로 접두를 요청 호스트로 SSR에서 결정한다(하이드레이션 안전).
+// 예약 서브도메인이면 '' (=/{slug}), 메인 도메인·로컬이면 '/book'.
+interface BookingPageProps {
+    bookBase: string;
+}
+
+export const getServerSideProps: GetServerSideProps<BookingPageProps> = async ({req}) => ({
+    props: {bookBase: bookBaseForHost(resolveRequestHost(req.headers['x-forwarded-host'] as string | undefined, req.headers.host))},
+});
 
 const StyledWrap = styled.div`
     min-height: 100%;
@@ -761,7 +809,7 @@ const StyledNoticeHead = styled.div`
 `;
 const StyledNoticeChip = styled.span`
     flex-shrink: 0;
-    font-size: 11px;
+    font-size: var(--xsmall-font);
     font-weight: 700;
     padding: 2px 8px;
     border-radius: 6px;
@@ -844,6 +892,53 @@ const StyledTextArea = styled.textarea`
 const StyledFieldHint = styled.span`
     font-size: var(--xsmall-font);
     color: var(--dark-gray-color2);
+`;
+
+// 개인정보 수집·이용 안내 박스. 동의 체크박스가 아니라 고지이므로 조용한 톤으로 둔다.
+const StyledPrivacyBox = styled.div`
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    padding: 12px 14px;
+    border: 1px solid var(--light-gray-color);
+    border-radius: var(--radius-md);
+    background: var(--gray-color2);
+`;
+
+const StyledPrivacyHead = styled.strong`
+    font-size: var(--small-font);
+    font-weight: 600;
+    color: var(--black-color);
+`;
+
+const StyledPrivacyList = styled.ul`
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    margin: 0;
+    padding-left: 16px;
+    font-size: var(--xsmall-font);
+    line-height: 1.5;
+    color: var(--dark-gray-color2);
+`;
+
+const StyledPrivacyLinks = styled.div`
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-top: 2px;
+`;
+
+// 전문 보기 — 페이지 이동 없이 레이어를 열므로 링크가 아니라 버튼이다(접근성).
+const StyledPrivacyLink = styled.button`
+    padding: 0;
+    border: none;
+    background: none;
+    font-size: var(--xsmall-font);
+    font-weight: 600;
+    color: var(--dark-gray-color2);
+    text-decoration: underline;
+    cursor: pointer;
 `;
 
 // 하단 sticky 요약 바. 좌우만 풀블리드(negative margin), 하단 마진 0 — 카드 $flush(하단패딩0)와

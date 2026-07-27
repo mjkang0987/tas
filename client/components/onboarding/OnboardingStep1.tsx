@@ -71,7 +71,7 @@ const StyledSection = styled.div`
 `;
 
 const StyledLabel = styled.label`
-    font-size: 13px;
+    font-size: var(--medium-font);
     font-weight: 600;
     color: var(--dark-gray-color);
 `;
@@ -82,7 +82,7 @@ const StyledInput = styled.input`
     padding: 0 14px;
     border: 1px solid var(--light-gray-color);
     border-radius: var(--radius-md);
-    font-size: 15px;
+    font-size: var(--large-font);
     color: var(--black-color);
     background: var(--white-color);
     box-sizing: border-box;
@@ -124,18 +124,18 @@ const StyledTypeCard = styled.button<{$selected: boolean}>`
 `;
 
 const StyledTypeEmoji = styled.span`
-    font-size: 24px;
+    font-size: var(--display-sm);
     line-height: 1;
 `;
 
 const StyledTypeLabel = styled.strong`
-    font-size: 12px;
+    font-size: var(--small-font);
     font-weight: 600;
     color: var(--black-color);
 `;
 
 const StyledTypeDesc = styled.span`
-    font-size: 10px;
+    font-size: var(--tiny-font);
     color: var(--dark-gray-color2);
     text-align: center;
     line-height: 1.4;

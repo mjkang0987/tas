@@ -22,7 +22,7 @@ export const StyledConflictBanner = styled.button`
     background: var(--danger-bg);
     color: var(--danger-color);
     box-shadow: var(--shadow-md);
-    font-size: 12px;
+    font-size: var(--small-font);
     cursor: pointer;
     text-align: left;
     animation: ${conflictSlideIn} 0.18s ease;
@@ -43,7 +43,7 @@ export const StyledConflictBanner = styled.button`
     }
 `;
 
-export const StyledHeader = styled.header`
+export const StyledHeader = styled.header<{ $stack?: boolean }>`
     position: relative;
     z-index: 20;
     display: flex;
@@ -58,8 +58,13 @@ export const StyledHeader = styled.header`
     border-bottom: solid 1px var(--light-gray-color);
     flex-shrink: 0;
     @media (max-width: 640px) {
-        gap: 0;
-        padding: 0 0 0 8px;
+        /* 캘린더는 세로 스택(행 겹침 방지 — flex-wrap+flex:1 충돌 회피),
+           비캘린더(타이틀+검색 한 줄)는 가로 유지. */
+        flex-direction: ${(props) => props.$stack ? 'column' : 'row'};
+        align-items: ${(props) => props.$stack ? 'stretch' : 'center'};
+        gap: ${(props) => props.$stack ? '0' : '4px'};
+        /* 상단 여백 + 실기기 노치(safe-area) 대응, 좌우 대칭 10px(＋예약이 우측 끝에 붙지 않게) */
+        padding: max(env(safe-area-inset-top, 0px), 8px) 10px 2px;
     }
 `;
 
@@ -72,7 +77,8 @@ export const StyledCalendarRow = styled.div`
 
     @media (max-width: 640px) {
         width: 100%;
-        padding: 2px;
+        flex: none;
+        padding: 3px 0 5px;
     }
 `;
 
@@ -83,7 +89,7 @@ export const StyledToolRow = styled.div`
 
     @media (max-width: 640px) {
         width: 100%;
-        padding: 4px 2px;
+        padding: 4px 0;
     }
 `;
 
@@ -107,36 +113,41 @@ export const StyledAsideToggle = styled.button<{ $open: boolean }>`
         }
     }
 
+    /* 모바일은 하단 탭바의 '설정'(→/menu)이 사이드바를 대체하므로 플로팅 토글을 숨긴다. */
     @media (max-width: 640px) {
-        position: fixed;
-        bottom: 20px;
-        left: ${(props) => props.$open ? 'calc(8px + var(--aside-width) + 8px)' : '16px'};
-        z-index: 210;
-        flex-direction: column;
+        display: none;
+    }
+`;
+
+// 모바일 캘린더 헤더 우측 고정 '＋예약' 버튼. 데스크톱은 aside의 예약추가를 쓰므로 숨김.
+export const StyledMobileAddPill = styled.button`
+    display: none;
+
+    @media (max-width: 640px) {
+        display: inline-flex;
+        align-items: center;
         gap: 3px;
-        width: auto;
-        min-width: 44px;
-        height: auto;
-        padding: 8px 10px;
-        border-radius: 20px;
-        background-color: var(--aside-bg);
-        color: var(--aside-text);
-        box-shadow: 0 4px 16px rgba(0,0,0,0.22);
-        opacity: 1;
-        transition: left 0.25s ease, background-color 0.1s;
+        flex-shrink: 0;
+        margin-left: auto;
+        padding: 7px 13px 7px 9px;
+        border: none;
+        border-radius: 999px;
+        background-color: var(--brand-color);
+        color: var(--white-color);
+        font-size: var(--small-font);
+        font-weight: 700;
+        white-space: nowrap;
+        box-shadow: 0 4px 12px rgba(101, 38, 217, 0.28);
+    }
 
-        .menu-label { display: block; }
-
-        @media (hover: hover) and (pointer: fine) {
-            &:hover {
-                background-color: var(--aside-hover);
-            }
-        }
+    svg {
+        width: 15px;
+        height: 15px;
     }
 `;
 
 export const StyledAsideToggleLabel = styled.span`
-    font-size: 10px;
+    font-size: var(--tiny-font);
     font-weight: 600;
     letter-spacing: 0.02em;
     line-height: 1;
@@ -235,7 +246,7 @@ export const StyledAssigneeFilter = styled.select`
 
     optgroup {
         padding-top: 6px;
-        font-size: 10px;
+        font-size: var(--tiny-font);
         font-weight: 700;
         color: var(--dark-gray-color2);
     }
@@ -341,7 +352,7 @@ export const StyledTokenExpiredToast = styled.div`
     border-radius: 10px;
     background: var(--toast-bg);
     color: var(--white-color);
-    font-size: 13px;
+    font-size: var(--medium-font);
     box-shadow: var(--modal-shadow);
     z-index: 10000;
     white-space: nowrap;
@@ -352,7 +363,7 @@ export const StyledTokenReconnect = styled.button`
     border: none;
     background: none;
     color: var(--link-color-light);
-    font-size: 13px;
+    font-size: var(--medium-font);
     font-weight: 600;
 
     @media (hover: hover) and (pointer: fine) {
@@ -365,6 +376,6 @@ export const StyledTokenClose = styled.button`
     border: none;
     background: none;
     color: var(--muted-text);
-    font-size: 14px;
+    font-size: var(--font);
     line-height: 1;
 `;

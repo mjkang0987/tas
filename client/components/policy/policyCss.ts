@@ -1,3 +1,5 @@
+import {FONT_STACK} from '../../styles/fontStack';
+
 // 정책 문서 공통 스타일 (styled-components 비의존, 순수 문자열).
 // - 인라인 페이지: policyStyles.ts의 PolicyBody가 이 문자열을 styled.div에 주입 → 컴포넌트 스코프
 // - 풀페이지(API): renderPolicyHtml이 <style>에 그대로 사용 → 문서 전역
@@ -96,7 +98,7 @@ export function renderPolicyHtml(headTitle: string, h1Title: string, body: strin
 <html lang="ko"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>${headTitle}</title><style>
 :root{${POLICY_VARS_LIGHT}}
 html,body{margin:0;background:var(--tas-bg);}
-.tas-doc{max-width:820px;margin:0 auto;padding:40px 20px 80px;color:var(--tas-fg);font-family:-apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo","Malgun Gothic","Segoe UI",sans-serif;line-height:1.75;font-size:16px;word-break:keep-all;}
+.tas-doc{max-width:820px;margin:0 auto;padding:40px 20px 80px;color:var(--tas-fg);font-family:${FONT_STACK};line-height:1.75;font-size:16px;word-break:keep-all;}
 ${POLICY_ELEMENT_CSS}
 @media (prefers-color-scheme:dark){:root{${POLICY_VARS_DARK}}}
 </style></head>

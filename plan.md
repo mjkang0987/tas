@@ -4,6 +4,217 @@
 
 ---
 
+## 진행 중 — 고객 개인정보 정리 (예약 페이지 이전 후속)
+
+> 배경: `book.takeaseat.co.kr` 이전(#158) 직후 쿠키를 점검하다 공개 예약 페이지가 동의 게이트 밖이라는 점에서 파생된 건들. 이슈 #162·#163·#164·#166·#167.
+
+### 완료
+- **#162 공개 예약 페이지 세션 조회 제거** (PR #165 머지) — `_app`이 예약 라우트를 `SessionProvider` 밖에서 렌더. 예약 페이지 `/api/auth/*` 0건·쿠키 0개. 라우트 판정은 `features/booking/routing.ts`의 `isBookingRoute`로 통일.
+- **#163 일부** (PR #165) — 예약 페이지에 광고 유닛이 없으므로 AdSense 스크립트 미로드. 나머지(`_ga`·`_fbp`·`dable_uid`)는 앱 코드 밖(Cloudflare 엣지 주입 추정) → 사용자 확인 대기.
+
+### 이번 작업 — #167 고객 메모 3종 제거 + 사람 진료 업종 제외
+- **`allergyNote`·`claimNote`·`preferenceNote` 완전 제거.** 초기 임포트 시절 레거시로, **입력 UI가 없어 값을 넣을 방법이 없었고** 병합 제안 모달에서 표시만 했다. 운영 데이터 **3종 모두 0건 확인**(사용자).
+  - 코드 배선 제거: 클라 모델·병합 모달(+미사용 styled)·`mappers.ts`·`customers.ts`·`customers-merge/unmerge.ts`·`migrate-local.ts`·`seed.mjs`·`seed-data/customers.json`.
+  - **마이그레이션 `0018_drop_unused_customer_notes`** — `DROP COLUMN IF EXISTS` ×3(멱등).
+  - **⚠️ 배포 순서가 평소와 반대: 코드 배포 먼저 → 마이그레이션 나중.** `customers.ts`의 고객 조회가 `include`(전체 컬럼 SELECT)라, 컬럼을 먼저 지우면 구버전 Prisma 클라이언트가 없는 컬럼을 SELECT 해 **전체 고객 조회가 500**난다(2026-07 `publicToken` 사고와 같은 구조, 방향만 반대). 코드를 먼저 배포하면 컬럼이 남아도 아무도 읽지 않아 무해하다.
+- **업종 목록에서 사람 진료 3종 제외** (병원·의원/치과/한의원). 진료 내용은 건강정보(민감정보)라 §23 별도 동의·안전조치가 필요한데 예약 요청사항 등 자유 입력 경로가 열려 있어 현 구조로 감당하지 않는다. **동물병원은 유지**(반려동물 정보는 사람 민감정보 아님).
+  - 주의: `sanitizeShopType`이 목록 밖 값을 걸러 `null`로 만들므로, 해당 업종 매장이 있으면 다음 저장 때 업종이 지워진다 → 사용자 확인 필요.
+
+### 검증 (완료)
+- ✅ `tsc --noEmit` 0 · `next build` 성공.
+- ✅ 로컬 Postgres에 `0018` 적용(대상 datasource가 로컬 `takeaseat`임을 출력으로 확인 후 실행). 컬럼 3개 제거 확인, **스키마 드리프트 0**(`migrate diff --exit-code` 0).
+- ✅ **컬럼 없는 DB에서 `customers.ts`와 동일한 `include` 쿼리 직접 실행** → 정상 조회, 응답에 노트 필드 없음. 공개 예약 생성(Customer upsert 경유) 201. Prisma 에러 0건.
+
+### #164 고객 예약 시 개인정보 수집·이용 안내 (구현 완료)
+- **동의 체크박스 없이 "안내" 방식 확정.** 근거는 개인정보보호법 §15①4(계약의 체결·이행) — 예약은 계약이고 이름·연락처 없이는 성립하지 않으므로 별도 동의가 불필요하다. 네이버 예약도 같은 구조에서 첫 블록을 "안내"로 두고 체크박스를 두지 않는다(사용자가 공유한 실제 문구로 확인). 네이버가 동의를 받는 두 번째 블록은 **제3자 제공**(네이버→매장)인데, TAS는 매장이 직접 수집하므로 그 단계가 없다. TAS는 **위탁**(§26)이라 처리방침 공개 대상이지 동의 대상이 아니다.
+- **부수 효과**: 동의 플래그가 없으므로 서버 400 검증도 불필요 → 범위 축소, 스키마 무변경.
+- **문서 2건 신설** — 기존 3개(TAS↔오너)와 당사자가 달라 재사용 불가.
+  - `content/policies/booking-consent.ts` — 수집항목·목적·보유기간·거부권 + 위탁 사실(TAS) + 삭제 요구 창구(매장 1차, TAS 고객센터 접수 보조).
+  - `content/policies/store-privacy.ts` — 매장 공통 처리방침 템플릿(§30 공개 의무는 매장에 있으므로 TAS가 템플릿 제공).
+  - **매장명 주입**: 본문 `{{storeName}}` → `applyPolicyVars`가 렌더 시 치환, 값 없으면 "예약하신 매장" 폴백(풀페이지에서도 안 깨짐, 캐싱 유지). 레이어·풀페이지·인라인 **모든 경로가 이 함수를 통과**.
+- **예약 폼**: 예약자 정보 입력 지점(서비스+시간 선택 이후)에 요약 안내 박스 + 전문 보기 2종(`PolicyViewLayer`). 요청사항 칸에 민감정보 입력 자제 안내.
+- **4개국어**: 요약 안내·민감정보 힌트·링크 라벨은 `BOOK_STRINGS`(ko/en/ja/zh). **전문은 한국어** — 법적 기준 문서.
+
+### #164 검증 (완료)
+- ✅ `tsc --noEmit` 0 · `next build` 성공.
+- ✅ 실브라우저 4개 언어 — 서비스·날짜·시간 선택 후 폼 진입해 안내 4줄·민감정보 힌트·전문 링크 2종이 각 언어로 정상 노출, 페이지 에러 0.
+- ✅ 전문 레이어 2종 — 매장명 `테스트살롱` 치환 확인, 토큰 잔존 0.
+- ✅ 풀페이지 폴백 — `/policies/booking-consent`·`store-privacy`에서 "예약하신 매장" 치환, 토큰 잔존 0.
+- ✅ 기존 문서 무회귀 — `/policies/{terms,privacy,dpa}` 200·제목 정상, 인라인 `/terms`·`/privacy` 200.
+
+### 후속 보완 (같은 PR)
+- **매장 연락처 필수화** — `StoreBookingSettings.contactTel`(마이그레이션 `0019`, 추가형·멱등 → **평소 순서: 마이그레이션 먼저, 코드 배포 나중**). 정책 문서가 "매장으로 연락"이라고 하는데 앱이 번호를 몰라 창구가 공허했던 문제 해결.
+  - 온라인예약 사용 시 **필수** — `/settings/booking` 저장 시 클라·서버 양쪽에서 검증(서버 400 `contactTel required`).
+  - **정규화하지 않고 입력 원문 그대로 저장·표시.** 고객 tel과 달리 매칭·중복검사에 쓰지 않는 표시 전용 값이고, 매장 번호는 지역번호(`02-1234-5678`)·대표번호(`1588-0000`)처럼 자릿수 규칙이 제각각이라 휴대폰용 `formatTel`(3-4-4)로 재조립하면 `0212345678` → `021-234-5678`로 깨진다(실제로 한 번 깨뜨렸다가 되돌림).
+  - 정책 문서 2건에 `{{storeContact}}` 토큰 추가. 조사 문제(`…5678)로` → `으로`)를 피하려 창구 문장을 **목록 형태**로 바꿨다. 폴백은 "매장에 직접 문의".
+  - 공개 API(`/api/book/[slug]`)·예약 폼 안내 박스에 노출(4개국어 라벨 `privacyContact`).
+- **안내문구 기본값** — 4종(사전 안내·완료·확정·취소)을 `DEFAULT_BOOKING_TEXTS` 상수로 두고 설정 화면 로드 시 비어 있으면 채워 보여준다. placeholder 예시가 아니라 **실제 값**이라 그대로 저장하면 고객에게 그대로 나간다.
+- **폰트 스택 정리** — 실측으로 3가지 문제 확인 후 수정.
+  1. `select`가 **Arial**로 렌더됐다 — `body, input, button`만 지정돼 `textarea`·`select`가 빠져 있었다.
+  2. 전역 스택에 **한글 폰트가 하나도 없었다**(전부 라틴 전용) → 한글이 브라우저 기본 `sans-serif`로 떨어졌다.
+  3. 정책 문서(`policyCss`)만 다른 스택을 써서 앱과 서체가 갈렸다.
+  → `styles/fontStack.ts`의 `FONT_STACK` 단일 소스로 통일하고 `textarea`·`select` 포함. 웹폰트는 싣지 않는다(시스템 폰트). 실측 결과 body·div·input·button·select·textarea·정책문서 전부 동일.
+  - **기존 라틴 스택은 그대로 두고 한글 폰트를 뒤에 덧붙이기만 했다.** 폰트 폴백은 글자 단위라 라틴 폰트에 한글 글리프가 없으면 자동으로 다음 폰트로 넘어가므로, 기존 값을 건드릴 이유가 없다. (처음엔 `SF Pro *`를 `-apple-system`으로 교체했다가 되돌렸다 — 그러면 macOS에서 라틴 문자가 Helvetica Neue → SF Pro로 실제로 바뀐다. 목표와 무관한 변경이었다.)
+  - 잔여 관찰: 스택 선두의 `"SF Pro AR"`·`"SF Pro Gulf"`는 SF Pro의 **아랍어 변형** 패밀리명이라 의도한 값이 아닐 가능성이 있다. 대부분 환경에 미설치라 실질 영향은 없어 이번엔 손대지 않았다.
+
+### 설정 화면 공통 컴포넌트 정리
+> 요청(사용자): 설정 쪽에 공통 컴포넌트를 쓸 수 있는데 안 쓰고 하드코딩된 부분을 찾아 개선.
+
+- **`--red-color`·`--green-color`는 정의되지 않은 토큰이었다.** `var(--red-color, #d94a4a)` 형태라 항상 폴백 hex가 적용 — 토큰인 척하는 하드코딩. 실제 토큰 `--danger-color`·`--success-color`로 교체(5곳, `BookingManageSection` 4 + `NoticeManageSection` 1).
+- **`LocalizedMessageField` 중복 제거** — `components/ui/LocalizedMessageField.tsx` 공용본이 있는데 `BookingManageSection`이 구버전을 로컬 정의해 쓰고 있었다(`NoticeManageSection`은 이미 공용본 사용). 로컬 54줄 제거. 공용 타입 `LocalizedI18n`은 DB JSON이 null 키를 가질 수 있어 값에 `null`을 허용하도록 넓히고, 반환값은 null을 걷어낸 깨끗한 객체(`LocalizedI18nOut`)로 명시.
+- **`formControlStyle` 미사용 2개 섹션** — 설정 섹션 대부분이 공통 `formControlStyle`을 쓰는데 `BookingManageSection`·`NoticeManageSection`만 입력·셀렉트·텍스트영역을 자체 정의(하드코딩 `border-radius:8px`, `font-size:14px`, `--blue-color` 포커스)하고 있었다. **크기는 유지한 채 `formControlStyle`을 베이스로 깔아** 포커스 링·비활성 상태·트랜지션·라운드 토큰만 공통화 → 시각적 크기 변화 없이 일관성 확보.
+
+### 폰트 크기 규격화 (저장소 전체)
+> 요청(사용자): 100여 곳을 공통으로 묶을 수 있으면 묶자 / 파편화되어 있을 이유가 있나 / 다양한 폰트가 쓰이면 규격화해라.
+
+- **1차 — 값이 토큰과 같은 것 440건 치환(시각 변화 0).** 설정 158 + 그 외 282. 토큰 6개(18·14·13·12·11·10)의 정의값이 원래 px와 정확히 일치함을 확인 후 기계적 치환이라 계산값이 그대로다.
+  - **`--medium-font: 13px` 신설** — 13px가 저장소 전역 136곳(설정 34 + 그 외 102)에서 쓰이는 사실상의 스케일 단계였다.
+- **2차 — 토큰이 없던 43건 규격화(실제로 크기가 바뀜).** 15·16·17px이 같은 역할(본문보다 큰 강조: 버튼·섹션 제목)을 셋으로 쪼개 쓰고 있어 `--large-font: 16px`로 통합. 8·9px 배지는 `--tiny-font`(10px)로. 20~64px 디스플레이는 `--display-sm/md/lg`(24/32/64) 3단계로.
+  - **실제 변경 25곳**: ±1px 19곳(대부분 15→16), +2px 3곳(8→10 배지, 22→24 ×2), +4px 2곳(20→24 consent 타이틀, 28→32 온보딩 완료 아이콘), +8px 1곳(56→64 점검 아이콘).
+- **`policyCss.ts` 제외** — 정책 문서 풀페이지는 앱 `GlobalStyle`이 닿지 않는 독립 HTML이라 앱 토큰을 쓰면 미해결된다.
+- 결과: 저장소 전체 `font-size: NNpx` **0건**(policyCss 1건 제외).
+
+### 폰트 규격화 검증
+- ✅ `tsc --noEmit` 0 · `next build` 성공. 치환 전 토큰 정의값 == 원래 px 6/6 일치 확인.
+- ✅ 실브라우저 계산값 확인 — login·about·maintenance·404·공개 예약 페이지 모두 규격 스케일(10/11/12/13/14/16/18 + 24/32/64)만 사용, 규격 밖 값 0, `var()` 미해결 0, 페이지 에러 0.
+- ✅ 스크린샷 확인 — 점검 페이지(56→64 아이콘)·로그인 정상.
+- ⚠️ 오너 인증이 필요한 화면(설정·캘린더·매출)은 로컬에 OAuth 세션을 만들 수 없어 미확인. 배포 후 눈으로 볼 것.
+
+### 표준 기재사항 대조 (개인정보보호법 §30 기준)
+> 사용자 질의("법률 문구 검토는 누구한테?")에 대해, 외부 검토 전 자가 점검부터 수행. 기존 TAS 방침(`privacy.ts`)이 표준 항목을 갖추고 있어 그것을 대조 기준으로 삼았다.
+
+**빠져 있던 필수 기재사항 3개 → 보완**
+- **개인정보 보호책임자**(성명/부서 + 연락처) — 매장 방침 제12조 신설. 처리자가 매장이므로 `{{storeName}} 운영자` + `{{storeContact}}`, 수탁자 문의처 병기.
+- **권익침해 구제 방법** — 제13조 신설(침해신고센터 118 · 분쟁조정위 1833-6972 · 대검 1301 · 경찰청 182). 수집·이용 안내에도 축약 조항 추가.
+- **쿠키 등 자동 수집 장치** — 제11조 신설. #163 규명 후 문구 확정(아래).
+- **열람청구 접수·처리 부서** — 제7조에 명시 추가.
+
+**사실과 어긋날 소지가 있어 정정한 문구 2개**
+- 제8조: "민감정보를 **수집하지 않습니다**" → 요청사항이 자유 입력이라 섞일 수 있다고 우리 스스로 인정한 상태였다. "수집 **항목으로 두지 않는다** + 입력 자제 안내 + 포함 시 목적 외 미이용·요청 시 삭제"로 정정.
+- 제10조: "접근 권한 관리, 접속 기록 보관, 전송 구간 암호화"를 뭉뚱그린 한 줄 → 실제로 하고 있는 것만 항목화(역할 기반 접근 구분·매장 간 분리 / HTTPS / 수탁자 서버 접속 기록).
+
+**해당 없음으로 판단** — 국외 이전(Supabase 서울 리전), 자동화된 결정, 국내대리인.
+
+### #163 규명 — 예약 페이지는 쿠키를 심지 않는다 (Zaraz 추정은 오답)
+- 시크릿 창에서 예약 주소만 직접 열어 확인한 결과 **쿠키 0개.** 평소 창에서 보이던 `_ga`·`_fbp`·`dable_uid`는 블로그·메인 사이트가 `.takeaseat.co.kr` **도메인 전체로 심은 쿠키가 서브도메인 목록에 함께 보인 것**이었다.
+- 애초에 `tas-proxy` Worker는 순수 프록시라 아무것도 주입하지 않고(코드 확인), AdSense 스크립트는 #165에서 이미 예약 페이지에서 제외했다. **Cloudflare 쪽에 조치할 것 없음.**
+- 이에 맞춰 제11조를 정정: "자동 수집 장치가 동작할 수 있다"(사실보다 넓음) → "**광고·분석 쿠키를 설정하지 않는다** + 상위 도메인의 다른 서비스 쿠키가 요청에 함께 전달될 수는 있으나 예약 처리에 이용하지 않는다".
+
+### 표준 대조 검증
+- ✅ 매장 방침 14개 조로 재구성, 레이어에서 제11~14조·118·1833-6972·`테스트살롱 운영자`·`02-1234-5678`·열람청구 문구 모두 확인, 토큰 잔존 0.
+- ✅ 수집·이용 안내에 권익침해 구제 조항 추가 확인.
+- ⚠️ 여전히 **외부 검토 전**이다. 자가 점검은 명백한 누락을 메운 것이지 법률 자문을 대체하지 않는다.
+
+### 확인은 했으나 이번에 손대지 않은 것
+- `SNSLinkingSection`의 hex 9건은 프로바이더 브랜드 컬러(구글·카카오·네이버)로 보여 토큰화 대상이 아님.
+
+### 설정 정리 검증
+- ✅ `tsc --noEmit` 0 · `next build` 성공. 존재하지 않는 토큰 사용 0건, 두 섹션의 `border-radius:8px` 0건, `LocalizedMessageField` 정의처 1곳으로 축소.
+- ✅ 설정 7개 탭·공개 예약 페이지 200, 서버 로그 에러 0. **오너 인증이 필요한 화면의 실제 렌더는 미확인**(로컬에 OAuth 세션을 만들 수 없음) — 배포 후 눈으로 확인 필요.
+
+### 남은 것
+- **#166** 삭제 요청 시 매출 이력 소실(익명화) — 실제 요청 발생 시 판단.
+- **#163** 광고·분석 쿠키 출처 — Cloudflare Zaraz 확인(사용자).
+- **#167** 되살릴 경우 체크리스트는 이슈에 보존.
+
+---
+
+## 완료(운영 반영 확인됨 2026-07-27) — 고객 예약 페이지 경로 이전 (`takeaseat.co.kr/book/[slug]` → `book.takeaseat.co.kr/[slug]`)
+
+> 요청(사용자): 고객예약페이지 path 변경 — `takeaseat.co.kr/book` → `book.takeaseat.co.kr`.
+> 이는 온라인 예약 로드맵의 **Phase 1e(host 분기)** 잔여 항목. 인프라(서브도메인 CNAME→Cloud Run, 200 확인)는 이미 완료돼 있고, **앱 쪽 호스트 분기 배선만 남은 상태**.
+
+### 확정 URL 구조
+| 구분 | 이전 | 이후 |
+|------|------|------|
+| 예약 랜딩/신규/조회 | `takeaseat.co.kr/book/[slug]` | `book.takeaseat.co.kr/[slug]` |
+| 언어 접두 | `takeaseat.co.kr/book/en/[slug]` | `book.takeaseat.co.kr/en/[slug]` |
+| 예약 관리(토큰) | `takeaseat.co.kr/book/[slug]/r/[token]` | `book.takeaseat.co.kr/[slug]/r/[token]` |
+| 내부 Next 라우트 | `pages/book/[slug].tsx` (변경 없음) | 동일 |
+
+- **구 경로 보존**: 메인 도메인 `/book/*` 진입은 **307 리다이렉트**로 새 도메인의 같은 경로에 대응시킨다(이미 배포된 예약 확인 링크·오너가 복사해 둔 URL 보호).
+  - **왜 308이 아니라 307인가**: 최종 목표는 308(영구)이지만 서브도메인이 실운영에서 검증되기 전까지는 임시로 둔다. 308/301은 브라우저가 무기한 캐시해 되돌릴 때 서버 롤백이 클라이언트에 닿지 않는다(고객 브라우저에 남는 상태). 307은 캐시되지 않아 즉시 원복 가능. 안정 확인 후 `LEGACY_REDIRECT_STATUS`를 308로 올린다(검색엔진 신호 이전).
+- **로컬/기타 호스트 무변경**: `localhost`·`dev.takeaseat.co.kr`·`*.run.app`에서는 리다이렉트하지 않아 `/book/[slug]`가 그대로 동작(로컬 개발·직결 접근 유지).
+- 예약 서브도메인 루트(`book.takeaseat.co.kr/`)는 슬러그가 없으므로 메인 사이트로 리다이렉트.
+
+### 구현 방침
+1. **`client/features/booking/routing.ts` (신규, 순수·Edge 안전)** — 호스트/경로 단일 소스.
+   - `BOOKING_HOST`(`NEXT_PUBLIC_BOOKING_HOST` ?? `book.takeaseat.co.kr`), `isBookingHost`/`isMainHost`/`resolveRequestHost`(`x-forwarded-host` 우선 — Cloudflare Worker가 Host를 바꿔 보낼 경우 대비), `bookBaseForHost`.
+   - 기존 `i18n.ts`의 언어 코드(`BookLang`·`BOOK_LANGS`·`isBookLang`)와 경로 생성(`bookHref`)을 이리로 이관하고 `i18n.ts`는 재export(미들웨어가 무거운 문구 사전을 Edge 번들로 끌고 오지 않게).
+   - `bookHref(lang, slug, sub, base)` — `base`는 호스트별 접두(`''` | `/book`). `bookRoute(...)`는 클라 라우팅용 내부 라우트(`{pathname:'/book/[slug]', query}`) 반환.
+2. **`client/proxy.ts` 미들웨어** — 점검모드 게이트 다음, `auth()` **밖**에서 호스트 분기.
+   - 예약 호스트: 인증·약관·온보딩 게이트 전부 우회. `/_next`·확장자 있는 정적 자산·`/api/book/*`은 통과, 그 외 `/api/*`는 404(운영자 API 차단). 이미 `/book/*`인 요청(클라 라우팅 `_next/data` 조회)은 통과. `/{lang}/{slug}…`는 `lang` 쿼리로 변환해 `/book/{slug}…`로 **rewrite**.
+   - 메인 호스트: `/book`·`/book/*` → `https://book.takeaseat.co.kr/…` **307**(`LEGACY_REDIRECT_STATUS`).
+3. **클라이언트 링크** — 두 공개 페이지의 `getServerSideProps`가 요청 호스트로 `bookBase`를 계산해 props로 내려주고, `bookHref`·`useBookLang(bookBase)`가 이를 사용. `router.push`는 **내부 라우트(href) + 공개 URL(as)** 형태로 호출해 클라 라우터가 rewrite 경로를 직접 풀지 않게 한다.
+4. **오너 설정 화면** — `BookingManageSection`의 `BOOKING_HOST` 상수를 공용 모듈로 교체. '열어보기' 링크는 `/book/[slug]` 유지(운영에선 위 리다이렉트로 새 도메인에 도달, 로컬에선 그대로 동작).
+
+### 영향 파일
+- 신규: `client/features/booking/routing.ts`
+- 수정: `client/proxy.ts`, `client/features/booking/i18n.ts`, `client/components/booking/LangSwitcher.tsx`, `client/pages/book/[slug].tsx`, `client/pages/book/[slug]/r/[token].tsx`, `client/components/settings/BookingManageSection.tsx`, `client/.env.example`, `docs/deployment-runbook.md`, `index.md`
+- **스키마·API·마이그레이션 무변경(코드-온리 배포).**
+
+### 검증 (완료)
+- ✅ `tsc --noEmit` 0 · `next build` 성공.
+- ✅ **HTTP 실측**(`next start` + Host 헤더). 예약 호스트: `/myshop` 200(`page=/book/[slug]`, `bookBase=""`), `/en/myshop` 200(`query.lang=en`), `/myshop/r/tok` · `/zh/myshop/r/tok` 200, `/` → 메인 사이트 리다이렉트, `/api/book/*` 통과·`/api/store` 404·`/settings/booking` 404. 메인 호스트: `/book/myshop`·`/book/en/myshop`·`/book/myshop/r/abc?x=1` 전부 307 → `https://book.takeaseat.co.kr/…`(쿼리 보존). `localhost`: `/book/myshop` 200(`bookBase="/book"`) — 로컬 무회귀.
+- ✅ **실브라우저(Playwright, 로컬 Postgres 16 + 시드 매장 `myshop`)** — `NEXT_PUBLIC_BOOKING_HOST=book.localhost:3123`로 서브도메인 재현.
+  - 랜딩 → 언어 전환(클라 라우팅) `/myshop` → `/en/myshop`(리마운트 없이 문구·`<html lang>` 전환), 뷰 전환 `?m=new` 유지, **새로고침 후에도 동일 화면**(rewrite 재진입), 한국어 복귀 시 접두 제거.
+  - 공개 API로 실제 예약 생성 → 관리 페이지 `/myshop/r/{token}` 렌더·언어 전환·새로고침 정상. 예약 조회 결과 링크 href = `/myshop/r/{token}`(서브도메인에 `/book` 미노출).
+  - 메인(로컬) 호스트에서는 `/book/myshop` → `/book/ja/myshop`으로 접두 유지. 페이지 에러 0.
+
+### 배포 결과 (2026-07-27, PR #160 머지)
+- 배포 직후 `book.takeaseat.co.kr/<슬러그>` 404 · 구 경로 200 → **예상했던 "Worker가 Host를 전달하지 않는" 케이스**로 확인(307이 안 걸린 것이 증거). 구 경로가 계속 서비스돼 고객 예약 무중단.
+- 원인: 프록시 CNAME이 `*.run.app`을 가리켜 **`tas-proxy` Worker의 Host 재작성이 필수**(제거 시 Cloud Run이 모르는 Host라며 404 → 사이트 전체 다운). 그 결과 오리진의 `host`는 항상 run.app.
+- 조치(사용자, Cloudflare): Worker에 `req.headers.set("x-forwarded-host", originalHost)` 3줄 추가 → 앱 재배포 없이 즉시 반영. **앱 코드 수정 없음**(미들웨어가 이미 `x-forwarded-host` 우선).
+- 검증: `takeaseat.co.kr/book/<슬러그>` 307 · `book.takeaseat.co.kr/<슬러그>` 200 · 실브라우저에서 예약 페이지·언어 전환(`/en/<슬러그>`)·새로고침 유지 확인.
+- **이 Worker 한 줄은 이제 앱 라우팅의 의존성**이다 → `docs/deployment-runbook.md`에 경고와 함께 코드 전문 기록(누가 Worker를 "정리"하면 예약이 조용히 깨진다).
+
+### 남은 후속
+- **쿠키 격리 확인**: NextAuth 세션 쿠키가 host-only인지(서브도메인에 세션이 안 새는지).
+
+### 후속 아님 (판단 완료)
+- **307 → 308 승격 불필요.** 구 주소(`takeaseat.co.kr/book/*`)는 외부에 공개된 적이 없어(사용자 확인) 검색엔진에 넘길 신호도, 보존할 기배포 링크도 없다. 308의 유일한 이득이 사라지므로 **캐시되지 않는 307을 그대로 유지**한다(되돌릴 여지 확보). 리다이렉트 자체는 같은 페이지가 두 주소로 노출되는 것을 막으므로 남겨둔다.
+- **오너 대상 주소 갱신 안내 불필요** — 같은 이유(구 주소 미공개).
+
+---
+
+## 완료 — 모바일 내비게이션 개편 (aside → 상단 고정 헤더 + 하단 탭바) (PR #154)
+
+> 배경(사용자): tas-ios 조작감을 웹앱 모바일에 이식. 좌측 드로어(aside) 대신 iOS식 **상단 고정 헤더 + 하단 고정 탭바**로 재구성. 시안 3안 비교 후 **"C 헤더 + B 나머지"** 조합으로 확정(아티팩트 시안).
+
+### 확정 디자인 (사용자 결정)
+- **상단 고정(캘린더)**: 좌측 `오늘 ‹ ›` + 중앙 타이틀, 우측 **＋예약 텍스트 알약**(상단 고정), 아래 **일·주·월·년 풀폭 세그먼트 탭**(좌우 대칭, 캘린더에서만). 3일(three) 뷰는 모바일 탭에서 제외(데스크톱 aside엔 유지). 날짜 점프는 공유 `CalendarHeading` 대신 모바일 전용 `MobileDateJump`(네이티브 `<input type="date">` 달력)를 헤더 `오늘 ‹ ›` 옆에 얹어 구현.
+- **하단 고정 탭바**: **캘린더 · 고객 · 매출 · 설정** 4탭. 아이콘은 기존 `AsideMenuIcon` 재사용.
+- **서비스는 설정 안으로** — 하단 탭엔 없음. 설정(더보기) 화면에 '서비스 관리' 행으로.
+- **모바일 매출**: 차트는 숨김(작은 화면 가독성). KPI·목록만.
+- 비캘린더(고객·매출·설정) 상단은 **타이틀만**(뷰 탭·＋예약 없음).
+
+### 구현 방침 (모바일 ≤640px 전용, 데스크톱 무변경)
+- **하단 탭바** `MobileTabBar` — `LayoutComponent`의 `StyledContent` 플렉스 자식으로 렌더(고정 position 아님, Main이 내부 스크롤 → 자연히 하단 고정). `display:none` 기본, `@media(max-width:640px)`에서만 노출. safe-area 하단 패딩. 활성상태=경로 기반.
+  - 캘린더→`/`, 고객→`/address`, 매출→`/settings/revenue`, 설정→`/menu`(신규).
+- **설정(더보기) 페이지** `/menu`(신규 `pages/menu.tsx`) — aside의 설정 메뉴를 iOS 리스트로 이관. `SETTINGS_SUBMENU`+게이팅을 `layout/settingsMenu.ts`로 추출해 aside와 공유(드리프트 방지). 매출·고객명단은 하단 탭과 중복이라 리스트에서 제외. 고객센터·사용안내·로그아웃·약관도 포함(모바일에서 aside를 완전히 대체).
+- **상단 헤더** `Header` — 모바일 전용 요소 추가(전부 `display:none`+`@media`로 데스크톱 격리): ①＋예약 알약(캘린더 행 우측), ②세그먼트 뷰 탭 `MobileViewTabs`(툴 행 아래). 기존 담당자 필터·검색·동기화·알림 툴 행은 유지. 플로팅 aside 토글은 모바일에서 숨김(＝/menu가 대체).
+- **뷰 전환 로직 재사용**: `MobileViewTabs`는 aside의 `setChangeView`/`setAsPath` 패턴(스토어 `setView`+URL push) 그대로. 라벨 일/주/월/년.
+- **매출 차트 숨김**: RevenueSection 차트 그리드에 `@media(max-width:640px){display:none}`.
+
+### 영향 파일
+- 신규: `components/layout/MobileTabBar.tsx`, `components/layout/MobileViewTabs.tsx`, `components/layout/settingsMenu.ts`, `pages/menu.tsx`.
+- 수정: `components/layout/LayoutComponent.tsx`(탭바 렌더+Main 하단 패딩), `components/layout/Header.tsx`·`Header.styles.ts`(＋예약·뷰탭·토글 숨김), `components/layout/Aside.tsx`(SETTINGS_SUBMENU를 공유 모듈에서 import), `components/settings/revenue/*`(모바일 차트 숨김).
+
+### 검증 (완료)
+- ✅ `tsc --noEmit` 0 · `next build` 성공(클린 빌드, `/menu` 포함 전 페이지 컴파일).
+- ✅ 게스트 모드·iPhone 뷰포트(Playwright) 실앱 구동: 월/일 캘린더·설정(/menu)·매출(차트 숨김)·고객 렌더 확인. 인터랙션 스모크(＋예약→모달, 뷰 탭→`/day` 전환, 하단 탭→`/address`·`/menu`·`/settings/revenue`, 헤더 달력 날짜 점프 월→`/month/2026/9`·일→`/day/2026/8/3`) 정상, 페이지 에러 0.
+- 후속 수정(스크린샷 리뷰): 뷰 탭 풀폭+좌우 대칭, `/menu` 카드 하단 잘림(`align-self:flex-start`+카드 `flex-shrink:0`), 시술 범례 플로팅 버튼 모바일 숨김, 매출 '매출 그래프' 탭 모바일 숨김.
+- 모바일 심미 다듬기: 다크 프레임(`LayoutComponent` 8px 패딩+라운드) 모바일 제거(풀블리드), aside 모바일 완전 비노출(`display:none`), 헤더 상단 여백 + 실기기 노치(`env(safe-area-inset-top)`) 대응.
+
+### 결과물
+- 신규: `MobileTabBar.tsx`·`MobileViewTabs.tsx`·`MobileDateJump.tsx`·`settingsMenu.ts`·`pages/menu.tsx`. 수정: `LayoutComponent`·`Header(.styles)`·`Aside`·`ServiceLegend`·`revenue-chart-styles`·`RevenueFilters`. `client` 0.41.0.
+
+### 리스크/주의
+- 스키마·API 무변경(코드-온리 배포). 데스크톱 무변경(전 모바일 요소 CSS 격리).
+- 잔여: 오너/멤버 권한별 `/menu`·실 iOS Safari(safe-area/sticky·date input 피커)는 배포 후 실기기·실계정 확인 권장.
+
+---
+
 ## 진행 중 — 매장 공지사항 (StoreNotice, 예약 페이지 목록형 공지)
 
 > 배경(사용자): 고객 예약 페이지에 매장 공지사항을 넣고 싶음. 목업 비교 후 **③ 여러 공지 목록**(제목·날짜로 여러 개, 펼치는 아코디언) 선택. 오너가 관리(CRUD), 공개된 공지만 고객에게 노출, 4개국어(한·영·일·중).

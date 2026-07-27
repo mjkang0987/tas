@@ -2,7 +2,7 @@ import {useRouter} from 'next/router';
 
 import styled from 'styled-components';
 
-import {POLICIES, type PolicySlug} from '../../content/policies';
+import {POLICIES, applyPolicyVars, type PolicySlug} from '../../content/policies';
 import {SITE_NAME} from '../../lib/seo';
 import {PageHero} from '../ui/PageHero';
 import {SeoHead} from '../ui/SeoHead';
@@ -15,6 +15,8 @@ import {POLICY_ELEMENT_CSS, POLICY_VARS_DARK, POLICY_VARS_LIGHT} from './policyC
 export function PolicyPage({slug}: {slug: PolicySlug}) {
     const router = useRouter();
     const {navTitle, body} = POLICIES[slug];
+    // 토큰이 화면에 새지 않도록 모든 렌더 경로가 치환을 통과한다(운영자 문서엔 토큰이 없어 무영향).
+    const html = applyPolicyVars(body);
 
     return (
         <StyledSection>
@@ -24,7 +26,7 @@ export function PolicyPage({slug}: {slug: PolicySlug}) {
                     <PageHero eyebrow="정책" title={navTitle} />
                     <StyledCloseButton type="button" onClick={() => router.back()}>닫기</StyledCloseButton>
                 </StyledHeader>
-                <StyledBody dangerouslySetInnerHTML={{__html: body}} />
+                <StyledBody dangerouslySetInnerHTML={{__html: html}} />
             </StyledContainer>
         </StyledSection>
     );
@@ -43,7 +45,7 @@ const StyledCloseButton = styled.button`
     border: 1px solid var(--light-gray-color);
     border-radius: 8px;
     background: var(--white-color);
-    font-size: 13px;
+    font-size: var(--medium-font);
     font-weight: 600;
     color: var(--dark-gray-color2);
     cursor: pointer;
@@ -53,7 +55,7 @@ const StyledBody = styled.div`
     ${POLICY_VARS_LIGHT}
     color: var(--tas-fg);
     line-height: 1.75;
-    font-size: 16px;
+    font-size: var(--large-font);
     word-break: keep-all;
 
     ${POLICY_ELEMENT_CSS}

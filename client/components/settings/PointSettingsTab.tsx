@@ -222,13 +222,13 @@ const StyledPolicyHeader = styled.div`
 const StyledPolicyTitle = styled.strong`
     display: block;
     margin-bottom: 4px;
-    font-size: 14px;
+    font-size: var(--font);
 `;
 
 const StyledPolicyDesc = styled.p`
     margin: 0;
     color: var(--dark-gray-color2);
-    font-size: 12px;
+    font-size: var(--small-font);
 `;
 
 const StyledPolicyOptions = styled.div`
@@ -259,12 +259,12 @@ const StyledPolicyOption = styled.label`
 const StyledPolicyOptionTitle = styled.strong`
     display: block;
     margin-bottom: 2px;
-    font-size: 13px;
+    font-size: var(--medium-font);
 `;
 
 const StyledPolicyOptionDesc = styled.span`
     color: var(--dark-gray-color2);
-    font-size: 12px;
+    font-size: var(--small-font);
     line-height: 1.45;
 `;
 
@@ -284,13 +284,13 @@ const StyledRateRow = styled.div`
 `;
 
 const StyledRateLabel = styled.label`
-    font-size: 12px;
+    font-size: var(--small-font);
     color: var(--dark-gray-color);
     font-style: normal;
 `;
 
 const StyledRateUnit = styled.em`
-    font-size: 12px;
+    font-size: var(--small-font);
     color: var(--dark-gray-color);
     font-style: normal;
 `;
@@ -309,7 +309,7 @@ const StyledRechargeHeader = styled.div`
 `;
 
 const StyledRechargeTitle = styled.strong`
-    font-size: 13px;
+    font-size: var(--medium-font);
 `;
 
 const StyledRechargeList = styled.div`
@@ -336,14 +336,14 @@ const StyledRechargeField = styled.label`
 `;
 
 const StyledRechargeFieldLabel = styled.span`
-    font-size: 12px;
+    font-size: var(--small-font);
     color: var(--dark-gray-color2);
 `;
 
 const StyledRechargePlus = styled.span`
     align-self: center;
     justify-self: center;
-    font-size: 16px;
+    font-size: var(--large-font);
     color: var(--dark-gray-color2);
 `;
 
@@ -353,7 +353,7 @@ const StyledAddRuleButton = styled.button`
     border: 1px solid var(--light-gray-color);
     border-radius: 8px;
     background: var(--white-color);
-    font-size: 12px;
+    font-size: var(--small-font);
     font-weight: 600;
 `;
 
@@ -364,7 +364,7 @@ const StyledDeleteRuleButton = styled.button`
     border-radius: 8px;
     background: var(--danger-bg);
     color: var(--danger-color);
-    font-size: 12px;
+    font-size: var(--small-font);
 
     @media (max-width: 720px) {
         grid-column: 1 / -1;
@@ -373,7 +373,7 @@ const StyledDeleteRuleButton = styled.button`
 
 const StyledRechargePercent = styled.span`
     grid-column: 1 / -1;
-    font-size: 12px;
+    font-size: var(--small-font);
     color: var(--dark-gray-color2);
     line-height: 1.4;
 `;

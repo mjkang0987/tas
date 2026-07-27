@@ -11,7 +11,7 @@ export const NewCustomerBadge = styled.span`
     border-radius: 999px;
     color: var(--black-color);
     background: var(--new-customer-bg);
-    font-size: 8px;
+    font-size: var(--tiny-font);
     font-weight: 700;
     line-height: 1;
     flex-shrink: 0;

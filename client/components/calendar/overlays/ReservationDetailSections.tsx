@@ -378,7 +378,7 @@ const StyledReasonLabel = styled.label`
     flex-direction: column;
     gap: 6px;
     margin-top: 12px;
-    font-size: 12px;
+    font-size: var(--small-font);
     font-weight: 600;
     color: var(--dark-gray-color);
 `;
@@ -404,7 +404,7 @@ const StyledMemoSection = styled.div`
 `;
 
 const StyledMemoLabel = styled.strong`
-    font-size: 12px;
+    font-size: var(--small-font);
     color: var(--dark-gray-color);
 `;
 
@@ -416,7 +416,7 @@ const StyledMemoTagList = styled.div`
 
 const StyledAssigneePolicyNotice = styled.p`
     margin: 6px 0 0;
-    font-size: 11px;
+    font-size: var(--xsmall-font);
     line-height: 1.5;
     color: var(--caution-color);
 `;

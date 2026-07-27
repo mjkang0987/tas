@@ -448,7 +448,7 @@ const StyledField = styled.label`
     display: flex;
     flex-direction: column;
     gap: 4px;
-    font-size: 12px;
+    font-size: var(--small-font);
     color: var(--dark-gray-color2);
 `;
 
@@ -489,13 +489,13 @@ const StyledItemMain = styled.div`
 `;
 
 const StyledItemName = styled.strong`
-    font-size: 14px;
+    font-size: var(--font);
     font-weight: 600;
     color: var(--black-color);
 `;
 
 const StyledItemMeta = styled.span`
-    font-size: 12px;
+    font-size: var(--small-font);
     color: var(--dark-gray-color2);
 `;
 

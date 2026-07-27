@@ -253,7 +253,7 @@ const StyledFieldGroup = styled.div`
 `;
 
 const StyledFieldLabel = styled.label`
-    font-size: 13px;
+    font-size: var(--medium-font);
     color: #374151;
 `;
 
@@ -271,7 +271,7 @@ const StyledInput = styled.input`
     box-sizing: border-box;
     border: 1px solid #d1d5db;
     border-radius: var(--radius-md);
-    font-size: 14px;
+    font-size: var(--font);
     outline: none;
 
     &:focus {
@@ -286,7 +286,7 @@ const StyledTextarea = styled.textarea`
     box-sizing: border-box;
     border: 1px solid #d1d5db;
     border-radius: var(--radius-md);
-    font-size: 14px;
+    font-size: var(--font);
     line-height: 1.6;
     resize: vertical;
     outline: none;
@@ -309,7 +309,7 @@ const StyledSubmitButton = styled.button`
     border-radius: var(--radius-lg);
     background: #111827;
     color: #fff;
-    font-size: 15px;
+    font-size: var(--large-font);
     font-weight: 600;
     transition: opacity 0.15s;
 
@@ -334,12 +334,12 @@ const StyledSuccess = styled.div`
 `;
 
 const StyledSuccessTitle = styled.strong`
-    font-size: 16px;
+    font-size: var(--large-font);
     color: #111827;
 `;
 
 const StyledSuccessText = styled.span`
-    font-size: 13px;
+    font-size: var(--medium-font);
     color: #6b7280;
 `;
 
@@ -350,7 +350,7 @@ const StyledResetButton = styled.button`
     border-radius: var(--radius-lg);
     background: var(--white-color);
     color: #111827;
-    font-size: 14px;
+    font-size: var(--font);
     font-weight: 600;
 `;
 
@@ -392,23 +392,23 @@ const StyledHistoryMeta = styled.div`
 `;
 
 const StyledHistoryName = styled.strong`
-    font-size: 13px;
+    font-size: var(--medium-font);
 `;
 
 const StyledHistoryEmail = styled.span`
-    font-size: 12px;
+    font-size: var(--small-font);
     color: var(--dark-gray-color2);
 `;
 
 const StyledHistoryDate = styled.span`
     flex-shrink: 0;
-    font-size: 11px;
+    font-size: var(--xsmall-font);
     color: var(--dark-gray-color2);
 `;
 
 const StyledHistoryContent = styled.p`
     margin: 0;
-    font-size: 13px;
+    font-size: var(--medium-font);
     line-height: 1.6;
     color: var(--dark-gray-color);
     white-space: pre-wrap;

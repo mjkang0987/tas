@@ -1,5 +1,6 @@
 import {useCallback, useEffect, useMemo, useState} from 'react';
 
+import type {GetServerSideProps} from 'next';
 import {useRouter} from 'next/router';
 
 import styled from 'styled-components';
@@ -8,6 +9,7 @@ import {
     BOOK_STRINGS, formatDurationL, formatPriceL, localizedStoreLabels,
     statusLabelL, dowLabelL, todayLabelL, pickI18n, type I18nText,
 } from '../../../../features/booking/i18n';
+import {bookBaseForHost, resolveRequestHost} from '../../../../features/booking/routing';
 import {SeoHead} from '../../../../components/ui/SeoHead';
 import {LabelBadge} from '../../../../components/ui/LabelBadge';
 import {LangSwitcher, useBookLang, LANG_BAR_OFFSET} from '../../../../components/booking/LangSwitcher';
@@ -79,12 +81,12 @@ function isDateClosed(store: BookStoreInfo, dateStr: string): boolean {
     return !bh || !bh.enabled;
 }
 
-export default function ReservationManagePage() {
+export default function ReservationManagePage({bookBase}: ReservationManagePageProps) {
     const router = useRouter();
     const slug = typeof router.query.slug === 'string' ? router.query.slug : '';
     const token = typeof router.query.token === 'string' ? router.query.token : '';
 
-    const [lang, setLang] = useBookLang();
+    const [lang, setLang] = useBookLang(bookBase);
     const t = BOOK_STRINGS[lang];
 
     const [loading, setLoading] = useState(true);
@@ -376,7 +378,15 @@ export default function ReservationManagePage() {
     );
 }
 
-export const getServerSideProps = async () => ({props: {}});
+// 링크·라우팅에 쓸 공개 경로 접두를 요청 호스트로 SSR에서 결정한다(하이드레이션 안전).
+// 예약 서브도메인이면 '' (=/{slug}/r/{token}), 메인 도메인·로컬이면 '/book'.
+interface ReservationManagePageProps {
+    bookBase: string;
+}
+
+export const getServerSideProps: GetServerSideProps<ReservationManagePageProps> = async ({req}) => ({
+    props: {bookBase: bookBaseForHost(resolveRequestHost(req.headers['x-forwarded-host'] as string | undefined, req.headers.host))},
+});
 
 const StyledWrap = styled.div`
     min-height: 100%;
@@ -412,14 +422,14 @@ const StyledCard = styled.div`
 `;
 
 const StyledStore = styled.strong`
-    font-size: 14px;
+    font-size: var(--font);
     color: var(--brand-color, #6526d9);
     font-weight: 700;
 `;
 
 const StyledTitle = styled.h1`
     margin: 0;
-    font-size: 22px;
+    font-size: var(--display-sm);
     font-weight: 800;
     color: var(--black-color, #111);
 `;
@@ -428,7 +438,7 @@ const StyledStatusBadge = styled.span<{$status: ReservationView['status']}>`
     align-self: flex-start;
     padding: 4px 12px;
     border-radius: 999px;
-    font-size: 13px;
+    font-size: var(--medium-font);
     font-weight: 700;
     color: #fff;
     background: ${(p) => (p.$status === 'active' ? 'var(--brand-color, #6526d9)'
@@ -458,7 +468,7 @@ const StyledSectionLabel = styled.strong`
 const StyledNoticeLabel = styled.strong`
     display: block;
     margin-bottom: 4px;
-    font-size: 12px;
+    font-size: var(--small-font);
     font-weight: 700;
     color: var(--brand-color, #6526d9);
 `;
@@ -477,7 +487,7 @@ const StyledSummaryRow = styled.div`
     display: flex;
     justify-content: space-between;
     gap: 12px;
-    font-size: 14px;
+    font-size: var(--font);
     color: var(--dark-gray-color2, #667);
 `;
 
@@ -502,7 +512,7 @@ const StyledPrimaryBtn = styled.button`
     border-radius: var(--radius-lg);
     background: var(--brand-color);
     color: var(--white-color);
-    font-size: 15px;
+    font-size: var(--large-font);
     font-weight: 600;
     box-shadow: var(--shadow-sm);
     cursor: pointer;
@@ -516,7 +526,7 @@ const StyledSecondaryBtn = styled.button`
     border-radius: var(--radius-lg);
     background: var(--white-color);
     color: var(--dark-gray-color);
-    font-size: 15px;
+    font-size: var(--large-font);
     font-weight: 500;
     box-shadow: var(--shadow-sm);
     cursor: pointer;
@@ -530,7 +540,7 @@ const StyledDangerBtn = styled.button`
     border-radius: var(--radius-lg);
     background: var(--white-color);
     color: var(--danger-color);
-    font-size: 15px;
+    font-size: var(--large-font);
     font-weight: 600;
     box-shadow: var(--shadow-sm);
     cursor: pointer;
@@ -539,6 +549,6 @@ const StyledDangerBtn = styled.button`
 
 const StyledMuted = styled.p`
     margin: 0;
-    font-size: 14px;
+    font-size: var(--font);
     color: var(--dark-gray-color2, #667);
 `;

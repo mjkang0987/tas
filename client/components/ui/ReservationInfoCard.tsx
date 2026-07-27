@@ -221,7 +221,7 @@ const StyledLeft = styled.strong`
 const StyledTime = styled.span`
     flex-shrink: 0;
     width: 76px;
-    font-size: 12px;
+    font-size: var(--small-font);
     font-weight: 700;
     color: #0f172a;
 
@@ -239,11 +239,11 @@ const StyledBody = styled.div`
 `;
 
 const StyledCompactDate = styled.div`
-    font-size: 11px;
+    font-size: var(--xsmall-font);
     color: var(--dark-gray-color2);
 `;
 const StyledDate = styled.div`
-    font-size: 11px;
+    font-size: var(--xsmall-font);
     color: var(--dark-gray-color2);
 `;
 
@@ -331,7 +331,7 @@ const StyledTrailing = styled.div`
 
 
 const StyledPrice = styled.span`
-    font-size: 13px;
+    font-size: var(--medium-font);
     font-weight: 700;
     color: #0f172a;
 `;

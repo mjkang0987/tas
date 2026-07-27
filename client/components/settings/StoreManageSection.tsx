@@ -462,13 +462,13 @@ const StyledStoreInfoRow = styled.div`
 `;
 
 const StyledStoreInfoName = styled.strong`
-    font-size: 15px;
+    font-size: var(--large-font);
     font-weight: 600;
     color: var(--black-color);
 `;
 
 const StyledInfoPlaceholder = styled.span`
-    font-size: 13px;
+    font-size: var(--medium-font);
     font-weight: 400;
     color: var(--dark-gray-color2);
 `;
@@ -478,7 +478,7 @@ const StyledIndustrySelect = styled.select`
 `;
 
 const StyledIndustryBadge = styled.span`
-    font-size: 13px;
+    font-size: var(--medium-font);
     color: var(--dark-gray-color);
     background: var(--gray-color2);
     padding: 3px 10px;
@@ -532,14 +532,14 @@ const StyledFeatureText = styled.span`
 `;
 
 const StyledFeatureName = styled.strong`
-    font-size: 14px;
+    font-size: var(--font);
     font-weight: 600;
     color: var(--black-color);
 `;
 
 const StyledFeatureDesc = styled.em`
     font-style: normal;
-    font-size: 12px;
+    font-size: var(--small-font);
     color: var(--dark-gray-color2);
     line-height: 1.5;
 `;
@@ -552,7 +552,7 @@ const StyledStoreCardHeader = styled.div`
 `;
 
 const StyledStoreCardTitle = styled.strong`
-    font-size: 14px;
+    font-size: var(--font);
     color: var(--dark-gray-color);
 `;
 
@@ -588,13 +588,13 @@ const StyledClosedDateItem = styled.div`
     gap: 8px;
     padding: 10px 0;
     border-bottom: 1px solid var(--black-color-10);
-    font-size: 13px;
+    font-size: var(--medium-font);
     color: var(--dark-gray-color);
 `;
 
 const StyledWeekdayHint = styled.em`
     font-style: normal;
-    font-size: 12px;
+    font-size: var(--small-font);
     color: var(--dark-gray-color2);
     line-height: 1.5;
 `;
@@ -615,7 +615,7 @@ const StyledWeekdayChip = styled.label`
     border-radius: var(--chip-radius);
     background: var(--white-color);
     color: var(--black-color);
-    font-size: 13px;
+    font-size: var(--medium-font);
     font-weight: 600;
     cursor: pointer;
 
@@ -645,7 +645,7 @@ const StyledRangeInputWrap = styled.label`
     display: flex;
     flex-direction: column;
     gap: 4px;
-    font-size: 11px;
+    font-size: var(--xsmall-font);
     color: var(--dark-gray-color2);
 `;
 

@@ -218,7 +218,7 @@ export const StyledHeaderTitleGroup = styled.div`
 
 export const StyledHeaderTitleGroupText = styled.p`
     margin: 0;
-    font-size: 12px;
+    font-size: var(--small-font);
     line-height: 1.45;
     color: var(--dark-gray-color2);
     font-weight: 500;
@@ -273,7 +273,7 @@ export const StyledForm = styled.div`
         min-width: 0; /* 그리드/플렉스 컬럼 안에서 줄어들 수 있게(라벨 기본 min-width:auto 방지) */
 
         > strong {
-            font-size: 12px;
+            font-size: var(--small-font);
             font-weight: 600;
             color: var(--dark-gray-color);
         }
@@ -282,7 +282,7 @@ export const StyledForm = styled.div`
             ${formControlStyle};
             height: 36px;
             padding: 0 10px;
-            font-size: 13px;
+            font-size: var(--medium-font);
             color: var(--black-color);
             width: 100%;
             min-width: 0; /* iOS date/time 등 네이티브 컨트롤이 컨테이너를 밀어내지 않도록 */
@@ -305,7 +305,7 @@ export const StyledFieldRow = styled.div`
     gap: 10px;
 
     > span, > strong {
-        font-size: 13px;
+        font-size: var(--medium-font);
         color: var(--dark-gray-color);
         font-weight: 500;
         padding-top: 4px;
@@ -327,7 +327,7 @@ export const StyledPriceRowInput = styled.input`
 
 export const StyledPriceUnit = styled.span`
     flex-shrink: 0;
-    font-size: 13px;
+    font-size: var(--medium-font);
     color: var(--dark-gray-color);
 `;
 
@@ -368,7 +368,7 @@ export const StyledInfoGridRow = styled.div`
     border-radius: var(--info-grid-cell-radius);
     background: rgba(248, 250, 252, 0.9); /* --bg-subtle 계열 (0.9 변형은 변수 없음) */
     border: 1px solid rgba(226, 232, 240, 0.9);
-    font-size: 13px;
+    font-size: var(--medium-font);
 `;
 
 export const StyledInfoGridTerm = styled.dt`
@@ -391,7 +391,7 @@ export const StyledDiffGrid = styled.dl`
 `;
 
 export const StyledDiffGridTerm = styled.dt`
-    font-size: 13px;
+    font-size: var(--medium-font);
     color: var(--dark-gray-color);
     font-weight: 500;
 `;
@@ -401,7 +401,7 @@ export const StyledDiffGridDesc = styled.dd`
     align-items: center;
     gap: var(--gap-md);
     margin: 0;
-    font-size: 13px;
+    font-size: var(--medium-font);
 `;
 
 export const StyledDiffGridDel = styled.del`
@@ -460,7 +460,7 @@ export const StyledChangeRow = styled.span`
 `;
 
 export const StyledArrow = styled.span`
-    font-size: 12px;
+    font-size: var(--small-font);
     color: var(--dark-gray-color2);
 `;
 
@@ -470,7 +470,7 @@ export const StyledNewTime = styled.span`
     border-radius: var(--radius-md);
     background: rgba(0, 169, 230, 0.08);
     border: 1px solid rgba(0, 169, 230, 0.2);
-    font-size: 13px;
+    font-size: var(--medium-font);
     font-weight: 700;
     color: var(--blue-color);
 `;
@@ -496,7 +496,7 @@ export const StyledActionButton = styled.button<{ $primary?: boolean; $danger?: 
     @media (max-width: 640px) {
         min-height: var(--modal-button-height);
         padding: 0 var(--modal-button-padding-x);
-        font-size: 12px;
+        font-size: var(--small-font);
         border-radius: var(--modal-button-radius);
     }
 `;

@@ -3,8 +3,8 @@ export type ShopType =
     | 'hair' | 'nail' | 'waxing' | 'lash' | 'skin' | 'makeup' | 'tattoo'
     // food
     | 'restaurant' | 'cafe' | 'bar'
-    // medical
-    | 'clinic' | 'dental' | 'oriental' | 'vet'
+    // medical (사람 진료는 업종 목록에서 제외 — labels.ts 주석 참고. 동물병원만 유지)
+    | 'vet'
     // fitness
     | 'gym' | 'yoga' | 'golf' | 'dance'
     // class / education

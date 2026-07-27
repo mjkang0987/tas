@@ -19,10 +19,12 @@ interface DraftForm {
     minOrderAmount: string;
     validDays: string;
     code: string;
+    oncePerCustomer: boolean;
 }
 
 const EMPTY_DRAFT: DraftForm = {
     name: '', discountType: 'amount', discountValue: '', maxDiscount: '', minOrderAmount: '', validDays: '', code: '',
+    oncePerCustomer: false,
 };
 
 function productSpecs(p: CouponProduct): {label: string; value: string}[] {
@@ -37,6 +39,7 @@ function productSpecs(p: CouponProduct): {label: string; value: string}[] {
         {label: '최소 결제금액', value: p.minOrderAmount != null ? formatPrice(p.minOrderAmount) : '제한없음'},
         {label: '유효기간', value: p.validDays != null ? `${p.validDays}일` : '무기한'},
         {label: '코드', value: p.code ? p.code : '직접발급'},
+        {label: '발급 제한', value: p.oncePerCustomer ? '고객당 1장' : '제한없음'},
     ];
 }
 
@@ -92,6 +95,7 @@ export const CouponManageSection = () => {
             minOrderAmount: p.minOrderAmount != null ? String(p.minOrderAmount) : '',
             validDays: p.validDays != null ? String(p.validDays) : '',
             code: p.code ?? '',
+            oncePerCustomer: p.oncePerCustomer ?? false,
         });
     };
 
@@ -122,6 +126,7 @@ export const CouponManageSection = () => {
             minOrderAmount: draft.minOrderAmount.trim() === '' ? null : Number(draft.minOrderAmount),
             validDays: draft.validDays.trim() === '' ? null : Number(draft.validDays),
             code: draft.code.trim() === '' ? null : draft.code.trim(),
+            oncePerCustomer: draft.oncePerCustomer,
         };
         try {
             const res = await fetch('/api/coupons', {
@@ -228,6 +233,11 @@ export const CouponManageSection = () => {
                                     <StyledInput id="cp-code" type="text" value={draft.code} placeholder="예: WELCOME5000"
                                                  onChange={(e) => {setDraft((d) => ({...d, code: e.target.value})); setError('');}} />
                                 </StyledField>
+                                <StyledField htmlFor="cp-once">
+                                    <span>고객당 1장 (미사용 보유 시 재발급 불가)</span>
+                                    <input id="cp-once" type="checkbox" checked={draft.oncePerCustomer}
+                                           onChange={(e) => setDraft((d) => ({...d, oncePerCustomer: e.target.checked}))} />
+                                </StyledField>
                             </StyledFieldGrid>
                             <FieldError variant="inline">{error}</FieldError>
                             <StyledActionRow>
@@ -307,7 +317,7 @@ const StyledField = styled.label`
     display: flex;
     flex-direction: column;
     gap: 4px;
-    font-size: 12px;
+    font-size: var(--small-font);
     color: var(--dark-gray-color2);
 `;
 
@@ -322,7 +332,7 @@ const StyledRadioLabel = styled.label`
     display: inline-flex;
     align-items: center;
     gap: 5px;
-    font-size: 13px;
+    font-size: var(--medium-font);
     color: var(--dark-gray-color);
     cursor: pointer;
 `;
@@ -361,7 +371,7 @@ const StyledItemHead = styled.div`
 `;
 
 const StyledItemName = styled.strong`
-    font-size: 14px;
+    font-size: var(--font);
     font-weight: 600;
     color: var(--black-color);
     min-width: 0;

@@ -80,11 +80,11 @@ const StyledKpiCard = styled.div`
 `;
 
 const StyledKpiLabel = styled.span`
-    font-size: 11px;
+    font-size: var(--xsmall-font);
     color: var(--dark-gray-color2);
 `;
 
 const StyledKpiValue = styled.strong`
-    font-size: 18px;
+    font-size: var(--big-font);
     color: var(--black-color);
 `;

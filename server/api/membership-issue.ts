@@ -29,6 +29,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         });
         if (!product) return res.status(404).json({error: 'Product not found'});
 
+        // 가드: 보관(archived) 상품은 발급 불가. (쿠폰 coupon-issue와 동일 규칙)
+        if (product.status !== 'active') {
+            return res.status(400).json({error: '보관된 회원권은 발급할 수 없습니다.'});
+        }
+
         const expiresAt = product.validDays != null
             ? new Date(Date.now() + product.validDays * 24 * 60 * 60 * 1000)
             : null;

@@ -17,7 +17,7 @@ export const StyledBackBtn = styled.button`
     border: 1px solid var(--border-color);
     border-radius: 8px;
     background: var(--white-color);
-    font-size: 13px;
+    font-size: var(--medium-font);
     font-weight: 500;
     color: var(--dark-gray-color);
     cursor: pointer;
@@ -31,7 +31,7 @@ export const StyledSkipBtn = styled.button<{$leftAlign?: boolean}>`
     border: none;
     border-radius: 8px;
     background: none;
-    font-size: 13px;
+    font-size: var(--medium-font);
     color: var(--dark-gray-color2);
     cursor: pointer;
     ${({$leftAlign}) => $leftAlign && 'margin-right: auto;'}
@@ -47,7 +47,7 @@ export const StyledNextBtn = styled.button`
     border: none;
     border-radius: 8px;
     background: var(--brand-color);
-    font-size: 13px;
+    font-size: var(--medium-font);
     font-weight: 600;
     color: var(--white-color);
     cursor: pointer;
@@ -63,7 +63,7 @@ export const StyledNextBtn = styled.button`
 
 export const StyledSectionNote = styled.p`
     margin: 0;
-    font-size: 13px;
+    font-size: var(--medium-font);
     color: var(--dark-gray-color2);
     line-height: 1.5;
 `;
@@ -98,7 +98,7 @@ export const StyledAddFormRowSelect = styled.select`
     padding: 0 8px;
     border: 1px solid var(--light-gray-color);
     border-radius: var(--radius-sm);
-    font-size: 13px;
+    font-size: var(--medium-font);
     background: var(--white-color);
     outline: none;
 
@@ -112,7 +112,7 @@ export const StyledAddInput = styled.input`
     padding: 0 10px;
     border: 1px solid var(--light-gray-color);
     border-radius: var(--radius-sm);
-    font-size: 13px;
+    font-size: var(--medium-font);
     background: var(--white-color);
     outline: none;
     box-sizing: border-box;
@@ -132,7 +132,7 @@ export const StyledCancelBtnSm = styled.button`
     border: 1px solid var(--light-gray-color);
     border-radius: var(--radius-sm);
     background: var(--white-color);
-    font-size: 12px;
+    font-size: var(--small-font);
     color: var(--dark-gray-color);
     cursor: pointer;
 `;
@@ -143,7 +143,7 @@ export const StyledConfirmBtnSm = styled.button`
     border: none;
     border-radius: var(--radius-sm);
     background: var(--brand-color);
-    font-size: 12px;
+    font-size: var(--small-font);
     font-weight: 600;
     color: var(--white-color);
     cursor: pointer;
@@ -155,7 +155,7 @@ export const StyledAddServiceBtn = styled.button`
     border: 1px dashed var(--light-gray-color);
     border-radius: var(--radius-md);
     background: none;
-    font-size: 13px;
+    font-size: var(--medium-font);
     color: var(--dark-gray-color);
     cursor: pointer;
     transition: border-color 0.15s, color 0.15s;

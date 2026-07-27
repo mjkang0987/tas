@@ -75,7 +75,7 @@ const StyledItem = styled.li<{$type: Toast['type']}>`
     padding: 10px 14px;
     border-radius: var(--radius-lg);
     box-shadow: var(--shadow-md);
-    font-size: 13px;
+    font-size: var(--medium-font);
     font-weight: 500;
     pointer-events: all;
     animation: ${slideIn} 0.18s ease;
@@ -88,7 +88,7 @@ const StyledClose = styled.button`
     background: none;
     border: none;
     color: inherit;
-    font-size: 16px;
+    font-size: var(--large-font);
     line-height: 1;
     padding: 0 2px;
     opacity: 0.7;

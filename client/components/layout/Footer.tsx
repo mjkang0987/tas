@@ -200,7 +200,7 @@ const StyledSearchHeader = styled.div`
     border: 1px solid var(--light-gray-color);
     border-radius: 8px;
     background: var(--white-color);
-    font-size: 12px;
+    font-size: var(--small-font);
     font-weight: 600;
     cursor: pointer;
     color: var(--dark-gray-color);
@@ -244,7 +244,7 @@ const StyledResultItem = styled.li`
   justify-content: space-between;
   align-items: center;
   padding: 10px 16px;
-  font-size: 14px;
+  font-size: var(--font);
   cursor: pointer;
 
   @media (hover: hover) and (pointer: fine) {
@@ -255,13 +255,13 @@ const StyledResultItem = styled.li`
 `;
 
 const StyledResultTel = styled.span`
-  font-size: 12px;
+  font-size: var(--small-font);
   color: var(--gray-color);
 `;
 
 const StyledNoResult = styled.li`
   padding: 24px;
-  font-size: 13px;
+  font-size: var(--medium-font);
   color: var(--gray-color);
   text-align: center;
 `;

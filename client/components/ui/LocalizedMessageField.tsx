@@ -1,6 +1,9 @@
 import styled from 'styled-components';
 
-export type LocalizedI18n = {en?: string; ja?: string; zh?: string} | null | undefined;
+// 입력값 타입. DB의 JSON 컬럼(noticeI18nJson 등)은 키가 null 일 수 있어 값에 null 을 허용한다.
+// 반환(onI18nChange)은 null 을 걷어낸 깨끗한 객체라 소비자 쪽 타입이 좁아도 그대로 받는다.
+export type LocalizedI18n = {en?: string | null; ja?: string | null; zh?: string | null} | null | undefined;
+export type LocalizedI18nOut = {en?: string; ja?: string; zh?: string};
 
 const MESSAGE_LANGS = [['en', 'English'], ['ja', '日本語'], ['zh', '中文']] as const;
 
@@ -20,11 +23,15 @@ export function LocalizedMessageField({
     disabled?: boolean;
     multiline?: boolean;
     onMainChange: (value: string) => void;
-    onI18nChange: (next: {en?: string; ja?: string; zh?: string} | null) => void;
+    onI18nChange: (next: LocalizedI18nOut | null) => void;
 }) {
     const setLangValue = (code: 'en' | 'ja' | 'zh', value: string) => {
-        const next = {...(i18nValue ?? {})};
-        if (value.trim()) next[code] = value; else delete next[code];
+        // 입력값에 섞여 있을 수 있는 null 키는 여기서 걷어내고 문자열만 남긴다.
+        const next: LocalizedI18nOut = {};
+        for (const key of ['en', 'ja', 'zh'] as const) {
+            const cur = key === code ? value : i18nValue?.[key];
+            if (typeof cur === 'string' && cur.trim()) next[key] = cur;
+        }
         onI18nChange(Object.keys(next).length > 0 ? next : null);
     };
     return (
@@ -82,13 +89,13 @@ const StyledField = styled.div`
 `;
 
 const StyledLabel = styled.label`
-    font-size: 13px;
+    font-size: var(--medium-font);
     font-weight: 600;
     color: var(--dark-gray-color);
 `;
 
 const StyledFieldCaption = styled.span`
-    font-size: 12px;
+    font-size: var(--small-font);
     line-height: 1.5;
     color: var(--dark-gray-color2);
 `;
@@ -98,7 +105,7 @@ const StyledTextarea = styled.textarea`
     padding: 10px 12px;
     border: 1px solid var(--light-gray-color);
     border-radius: 8px;
-    font-size: 14px;
+    font-size: var(--font);
     font-family: inherit;
     color: var(--black-color);
     background: var(--white-color);
@@ -114,7 +121,7 @@ const StyledInput = styled.input`
     padding: 0 12px;
     border: 1px solid var(--light-gray-color);
     border-radius: 8px;
-    font-size: 14px;
+    font-size: var(--font);
     color: var(--black-color);
     background: var(--white-color);
     box-sizing: border-box;

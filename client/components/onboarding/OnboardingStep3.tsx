@@ -210,7 +210,7 @@ const StyledAssigneeColorDot = styled.span`
 
 const StyledAssigneeName = styled.span`
     flex: 1;
-    font-size: 14px;
+    font-size: var(--font);
     font-weight: 700;
     color: var(--dark-gray-color);
     white-space: nowrap;
@@ -225,7 +225,7 @@ const StyledAssigneeNameInput = styled.input`
     padding: 0 8px;
     border: 1px solid var(--light-gray-color);
     border-radius: var(--radius-sm);
-    font-size: 14px;
+    font-size: var(--font);
     font-weight: 700;
     background: var(--white-color);
     outline: none;
@@ -252,7 +252,7 @@ const StyledSmEditBtn = styled.button`
     border: 1px solid var(--border-color);
     border-radius: var(--radius-md);
     background: var(--white-color);
-    font-size: 11px;
+    font-size: var(--xsmall-font);
     font-weight: 600;
     color: var(--dark-gray-color);
     cursor: pointer;
@@ -269,7 +269,7 @@ const StyledInlineDeleteBtn = styled.button`
     border: 1px solid var(--danger-border);
     border-radius: var(--radius-sm);
     background: var(--danger-bg);
-    font-size: 11px;
+    font-size: var(--xsmall-font);
     font-weight: 600;
     color: var(--danger-color);
     cursor: pointer;

@@ -27,7 +27,7 @@ const StyledBookingInfo = styled.span`
     align-items: center;
     flex-wrap: wrap;
     gap: 6px;
-    font-size: 11px;
+    font-size: var(--xsmall-font);
     color: var(--dark-gray-color);
 `;
 
@@ -36,11 +36,11 @@ const StyledPlatformTag = styled(LabelBadge).attrs({
     $shape: 'soft',
     $size: 'sm',
 })`
-    font-size: 10px;
+    font-size: var(--tiny-font);
 `;
 
 const StyledBookingLink = styled.a`
-    font-size: 11px;
+    font-size: var(--xsmall-font);
     color: #03C75A;
     font-weight: 600;
     text-decoration: none;

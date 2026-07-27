@@ -245,6 +245,7 @@ export default function LoginPage({providerIds, isDatabaseConfigured, loginError
                         로그인 제공자가 설정되지 않았습니다. `AUTH_*` 환경변수를 확인해 주세요.
                     </StyledEmptyState>
                 )}
+                <StyledDivider>또는</StyledDivider>
                 <StyledSecondaryButton type="button" onClick={startGuest}>
                     <span>게스트로 사용하기</span>
                 </StyledSecondaryButton>
@@ -399,7 +400,7 @@ const StyledInviteSection = styled.div`
 
 const StyledInviteLabel = styled.label`
     display: block;
-    font-size: 13px;
+    font-size: var(--medium-font);
     font-weight: 600;
     color: var(--dark-gray-color2);
     margin-bottom: 6px;
@@ -411,7 +412,7 @@ const StyledInviteInput = styled.input`
     box-sizing: border-box;
     border: 1px solid #ddd;
     border-radius: 8px;
-    font-size: 16px;
+    font-size: var(--large-font);
     font-weight: 600;
     letter-spacing: 4px;
     text-align: center;
@@ -426,7 +427,7 @@ const StyledInviteInput = styled.input`
     &::placeholder {
         letter-spacing: normal;
         font-weight: 400;
-        font-size: 14px;
+        font-size: var(--font);
     }
 `;
 
@@ -444,14 +445,14 @@ const StyledInAppNotice = styled.div`
 `;
 
 const StyledInAppTitle = styled.strong`
-    font-size: 13px;
+    font-size: var(--medium-font);
     font-weight: 700;
     color: #92400e;
 `;
 
 const StyledInAppText = styled.p`
     margin: 0;
-    font-size: 12px;
+    font-size: var(--small-font);
     line-height: 1.6;
     color: #92400e;
 
@@ -468,7 +469,7 @@ const StyledInAppButton = styled.button`
     border-radius: 8px;
     background: #f59e0b;
     color: #fff;
-    font-size: 13px;
+    font-size: var(--medium-font);
     font-weight: 700;
     cursor: pointer;
 
@@ -493,7 +494,7 @@ const StyledEmptyState = styled.p`
     border-radius: 10px;
     background: #f8fafc;
     color: var(--dark-gray-color2);
-    font-size: 13px;
+    font-size: var(--medium-font);
     line-height: 1.6;
     text-align: center;
 `;
@@ -507,7 +508,7 @@ const StyledNotice = styled.p`
     border-radius: 10px;
     background: #fff1f2;
     color: #9f1239;
-    font-size: 13px;
+    font-size: var(--medium-font);
     line-height: 1.6;
     text-align: center;
 `;
@@ -523,7 +524,7 @@ const StyledButton = styled.button<{ $bg: string; $color: string; $border: strin
     border: 1px solid ${(props) => props.$border};
     background-color: ${(props) => props.$bg};
     color: ${(props) => props.$color};
-    font-size: 15px;
+    font-size: var(--large-font);
     font-weight: 600;
     transition: opacity 0.15s;
 
@@ -547,7 +548,7 @@ const StyledLoginError = styled.div`
 
 const StyledLoginErrorText = styled.strong`
     display: block;
-    font-size: 13px;
+    font-size: var(--medium-font);
     font-weight: 600;
     line-height: 1.5;
     color: #9f1239;
@@ -565,7 +566,26 @@ const StyledSecondaryButton = styled.button`
     border: 1px solid var(--light-gray-color);
     background-color: var(--white-color);
     color: var(--black-color);
-    font-size: 14px;
+    font-size: var(--font);
     font-weight: 600;
+`;
+
+// 소셜 로그인과 게스트 사이 "또는" 구분선
+const StyledDivider = styled.div`
+    width: 100%;
+    margin-top: 16px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    color: var(--dark-gray-color2);
+    font-size: var(--medium-font);
+
+    &::before,
+    &::after {
+        content: '';
+        flex: 1;
+        height: 1px;
+        background-color: var(--light-gray-color);
+    }
 `;
 

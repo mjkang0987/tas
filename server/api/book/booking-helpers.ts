@@ -118,6 +118,7 @@ export async function loadBookingSettings(storeId: string): Promise<BookingSetti
         minLeadMinutes: row.minLeadMinutes,
         maxAdvanceDays: row.maxAdvanceDays,
         allowAssigneeChoice: row.allowAssigneeChoice,
+        contactTel: row.contactTel,
         noticeText: row.noticeText,
         noticeI18n: parseI18nText(row.noticeI18nJson),
         doneText: row.doneText,

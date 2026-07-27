@@ -114,7 +114,7 @@ const StyledItem = styled.button<{ $color: string; $inactive?: boolean }>`
     border-radius: var(--radius-sm);
     background-color: ${(p) => `${p.$color}12`};
     color: var(--dark-gray-color);
-    font-size: 11px;
+    font-size: var(--xsmall-font);
     text-align: left;
     ${(p) => p.$inactive && `
         border-color: var(--gray-color);

@@ -97,9 +97,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                         tel: source.tel,
                         points: source.points,
                         firstVisitDate: source.firstVisitDate,
-                        allergyNote: source.allergyNote,
-                        claimNote: source.claimNote,
-                        preferenceNote: source.preferenceNote,
                         memoTags: source.memoTags.map((t) => ({text: t.text, color: t.color})),
                     },
                     targetCustomerJson: {

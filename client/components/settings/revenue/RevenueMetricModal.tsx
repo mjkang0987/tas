@@ -192,7 +192,7 @@ const StyledMetricBodyInner = styled(StyledBodyInner)`
 
 const StyledMetricSubtitle = styled.p`
     margin: 4px 0 0;
-    font-size: 12px;
+    font-size: var(--small-font);
     color: var(--dark-gray-color2);
     font-weight: 500;
 `;
@@ -236,7 +236,7 @@ const StyledCustomerRowHeader = styled.div`
 
 const StyledCustomerTitle = styled.span`
     min-width: 0;
-    font-size: 13px;
+    font-size: var(--medium-font);
     font-weight: 700;
     color: #0f172a;
     white-space: normal;
@@ -246,7 +246,7 @@ const StyledCustomerTitle = styled.span`
 
 const StyledCustomerVisitDate = styled.span`
     flex-shrink: 0;
-    font-size: 12px;
+    font-size: var(--small-font);
     font-weight: 600;
     color: var(--dark-gray-color2);
 `;
@@ -265,7 +265,7 @@ const StyledVisitGapBadge = styled.span`
     padding: 2px 8px;
     border-radius: 999px;
     background: rgba(45, 127, 249, 0.1);
-    font-size: 11px;
+    font-size: var(--xsmall-font);
     font-weight: 700;
     color: var(--blue-color);
 `;

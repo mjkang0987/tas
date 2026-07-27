@@ -137,6 +137,50 @@ pnpm prisma:bootstrap
 2. In Cloud Run, map the custom domain (`gcloud run domain-mappings create --service tas --domain takeaseat.co.kr --region asia-northeast3`) and add the CNAME/records Cloud Run returns to Cloudflare.
 3. Proxy status: start **DNS-only (grey cloud)** until the cert is issued, then optionally enable proxy.
 4. `blog.takeaseat.co.kr` → Cloudflare Pages (separate); `clipnote.co.kr` is an independent app.
+5. `book.takeaseat.co.kr` (customer booking pages) → same Cloud Run service: CNAME `book` → the run.app hostname, proxied (orange). No separate Cloud Run domain mapping needed — the existing `*.takeaseat.co.kr` Worker route carries it.
+
+### `book.` host routing (customer booking)
+
+The app serves both hosts. `client/proxy.ts` branches on the request host **before** auth runs:
+
+- `book.takeaseat.co.kr/{slug}` → rewritten to the internal route `/book/[slug]` (auth/terms/onboarding gates bypassed). Language prefixes `/{en|ja|zh}/{slug}` become `?lang=`.
+- On that host only `/api/book/*` is reachable; other `/api/*` returns 404, and `/` redirects to the main site.
+- `takeaseat.co.kr/book/*` → **307** to `https://book.takeaseat.co.kr/*`, so the legacy path never serves a second copy of the booking page. **307, not 308, on purpose** — the legacy URLs were never published, so there are no search-engine signals or shared links for a permanent redirect to transfer, while 308/301 would be cached by browsers indefinitely and put a rollback out of reach. Status lives in `LEGACY_REDIRECT_STATUS` (`client/proxy.ts`).
+- Other hosts (`localhost`, `dev.takeaseat.co.kr`, `*.run.app`) are untouched — `/book/{slug}` still works there.
+
+Override the expected booking host with `NEXT_PUBLIC_BOOKING_HOST` (build-time; also used for local subdomain testing, e.g. `book.localhost:3000`).
+
+#### ⚠️ The `tas-proxy` Worker must forward the original host
+
+The app reads the request host from **`x-forwarded-host`, falling back to `host`** — and on this setup `host` is *always* the run.app name, so `x-forwarded-host` is the only usable signal.
+
+Why: the `book`/apex records are proxied CNAMEs to `tas-…run.app`, and Cloud Run rejects a `Host` it has no domain mapping for. The `tas-proxy` Worker therefore rewrites `Host` to the run.app name — that rewrite is **required**, not a bug. Removing it takes the whole site down. But it also means the origin never sees `book.takeaseat.co.kr` unless the Worker passes it separately:
+
+```js
+export default {
+    async fetch(request) {
+      const url = new URL(request.url);
+      const originalHost = url.hostname;            // ← required by host routing
+      url.hostname = "tas-ses3gted5a-du.a.run.app";
+      const req = new Request(url, request);
+      req.headers.set("x-forwarded-host", originalHost);  // ← required by host routing
+      return fetch(req);
+    }
+  };
+```
+
+`set` (not `append`) is deliberate: it overwrites any client-supplied `x-forwarded-host`, so the header cannot be spoofed past the edge.
+
+**If someone later simplifies this Worker back to `return fetch(new Request(url, request))`, customer booking breaks** — `book.takeaseat.co.kr/<slug>` 404s and the legacy `/book/*` redirect silently stops firing. Verified in production 2026-07-27.
+
+Also make sure `book.takeaseat.co.kr` is covered by one of the Worker's routes (a `*.takeaseat.co.kr/*` wildcard does it); without a route the request never reaches the Worker and Cloud Run answers its own 404.
+
+Post-deploy smoke test for this path:
+
+```bash
+curl -sI https://takeaseat.co.kr/book/<slug> | head -1   # → 307
+curl -sI https://book.takeaseat.co.kr/<slug> | head -1   # → 200
+```
 
 ## AdSense
 

@@ -30,7 +30,7 @@ export const StyledClickableRow = styled.div<{ $accentColor?: string; $showAccen
     align-items: flex-start;
     gap: var(--card-gap);
     padding: var(--card-padding);
-    font-size: 13px;
+    font-size: var(--medium-font);
     border: 1px solid ${(props) => props.$accentColor ? `${props.$accentColor}44` : 'rgba(148, 163, 184, 0.18)'};
     border-radius: var(--card-radius);
     border-left-width: ${(props) => props.$showAccentBar ? '4px' : '1px'};
@@ -60,7 +60,7 @@ export const StyledPrice = styled.span`
     flex-shrink: 0;
     margin-left: auto;
     align-self: center;
-    font-size: 13px;
+    font-size: var(--medium-font);
     font-weight: 700;
     color: #0f172a;
 
@@ -99,7 +99,7 @@ export const StyledRevenueMetaItem = styled.div`
     flex-wrap: wrap;
     gap: 8px;
     min-width: 0;
-    font-size: 11px;
+    font-size: var(--xsmall-font);
     color: var(--dark-gray-color2);
 `;
 
@@ -177,7 +177,7 @@ export const StyledRevenueEmpty = styled.div`
     border: 1px dashed rgba(148, 163, 184, 0.32);
     border-radius: 10px;
     background: var(--bg-subtle-78);
-    font-size: 13px;
+    font-size: var(--medium-font);
     color: var(--dark-gray-color2);
 `;
 
@@ -190,12 +190,12 @@ export const StyledSummary = styled.div`
     border: 1px solid rgba(148, 163, 184, 0.18);
     border-radius: var(--info-grid-cell-radius);
     background: var(--bg-subtle-88);
-    font-size: 13px;
+    font-size: var(--medium-font);
     color: var(--dark-gray-color2);
 `;
 
 export const StyledSummaryStrong = styled.strong`
-    font-size: 16px;
+    font-size: var(--large-font);
     color: var(--blue-color);
 `;
 
@@ -217,7 +217,7 @@ export const StyledCustomerInfoGridItem = styled.span`
     gap: 6px;
     border-radius: 10px;
     background: var(--bg-subtle-92);
-    font-size: 12px;
+    font-size: var(--small-font);
     color: var(--dark-gray-color);
 `;
 

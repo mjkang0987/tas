@@ -125,7 +125,7 @@ const StyledRow = styled.div`
 
 const StyledName = styled.span`
     min-width: 0;
-    font-size: 11px;
+    font-size: var(--xsmall-font);
     font-weight: 500;
     color: var(--aside-text);
     opacity: 0.6;
@@ -174,7 +174,7 @@ const StyledStoreInfo = styled.div`
 `;
 
 const StyledStoreName = styled.span`
-    font-size: 14px;
+    font-size: var(--font);
     font-weight: 600;
     color: var(--dark-gray-color);
     white-space: nowrap;
@@ -200,7 +200,7 @@ const StyledFallbackLink = styled(Link)`
     padding: 0 10px 6px;
     min-width: var(--aside-width);
     box-sizing: border-box;
-    font-size: 11px;
+    font-size: var(--xsmall-font);
     font-weight: 500;
     color: var(--aside-text);
     opacity: 0.6;

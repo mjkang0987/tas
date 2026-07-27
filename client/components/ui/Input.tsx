@@ -37,7 +37,7 @@ const StyledInput = styled.label<StyledProps>`
         padding: 0;
         border-radius: var(--radius-md);
         box-sizing: border-box;
-        font-size: 12px;
+        font-size: var(--small-font);
         outline: none;
         box-shadow: none;
 

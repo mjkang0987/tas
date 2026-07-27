@@ -26,7 +26,7 @@ export const StyledCard = styled.div`
 
 export const StyledCardTitle = styled.h2`
     margin: 0 0 14px;
-    font-size: 14px;
+    font-size: var(--font);
     font-weight: 600;
     color: var(--dark-gray-color);
 `;
@@ -45,12 +45,12 @@ export const StyledRow = styled.div`
 `;
 
 export const StyledLabel = styled.span`
-    font-size: 13px;
+    font-size: var(--medium-font);
     color: var(--dark-gray-color2);
 `;
 
 export const StyledValue = styled.span`
-    font-size: 13px;
+    font-size: var(--medium-font);
     font-weight: 600;
     color: var(--black-color);
     text-align: right;
@@ -91,14 +91,14 @@ export const StyledMetricLink = styled(Link)`
 
     .value {
         display: block;
-        font-size: 22px;
+        font-size: var(--display-sm);
         color: var(--black-color);
     }
 
     .label {
         display: block;
         margin-top: 4px;
-        font-size: 12px;
+        font-size: var(--small-font);
         color: var(--dark-gray-color2);
     }
 
@@ -109,7 +109,7 @@ export const StyledMetricLink = styled(Link)`
 
 export const StyledHint = styled.p`
     margin: 10px 0 0;
-    font-size: 13px;
+    font-size: var(--medium-font);
     color: var(--dark-gray-color2);
     line-height: 1.6;
 `;
@@ -124,7 +124,7 @@ export const StyledSyncStatus = styled.div<{$connected: boolean}>`
     gap: 8px;
     padding: 10px 12px;
     border-radius: var(--radius-md);
-    font-size: 13px;
+    font-size: var(--medium-font);
     font-weight: 500;
     background: ${(p) => p.$connected ? 'rgba(36,117,58,0.07)' : 'rgba(168,132,23,0.07)'};
     color: ${(p) => p.$connected ? 'var(--success-color)' : 'var(--caution-color)'};
@@ -147,7 +147,7 @@ export const StyledStepList = styled.ol`
     gap: 6px;
 
     .step {
-        font-size: 13px;
+        font-size: var(--medium-font);
         color: var(--dark-gray-color);
         line-height: 1.55;
     }
@@ -196,7 +196,7 @@ export const StyledNicknameInput = styled.input`
     padding: 0 8px;
     border: 1px solid var(--brand-color);
     border-radius: var(--radius-sm);
-    font-size: 13px;
+    font-size: var(--medium-font);
     color: var(--black-color);
     outline: none;
     box-sizing: border-box;
@@ -213,7 +213,7 @@ export const StyledSuggestions = styled.div`
 `;
 
 export const StyledSuggestionsLabel = styled.span`
-    font-size: 11px;
+    font-size: var(--xsmall-font);
     color: var(--dark-gray-color2);
 `;
 
@@ -229,7 +229,7 @@ export const StyledSuggestionChip = styled.button`
     border: 1px solid var(--light-gray-color);
     border-radius: 999px;
     background: var(--gray-color2);
-    font-size: 12px;
+    font-size: var(--small-font);
     color: var(--dark-gray-color);
     cursor: pointer;
     transition: border-color 0.12s, background 0.12s;

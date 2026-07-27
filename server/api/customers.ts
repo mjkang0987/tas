@@ -45,9 +45,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             tel: normalizeTel(customer.tel),
             points: customer.points ?? 0,
             firstVisitDate: customer.firstVisitDate ? new Date(`${customer.firstVisitDate}T00:00:00`) : null,
-            allergyNote: customer.allergyNote ?? null,
-            claimNote: customer.claimNote ?? null,
-            preferenceNote: customer.preferenceNote ?? null,
         };
 
         await prisma.customer.upsert({
@@ -120,9 +117,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                             tel: normalizeTel(customer.tel),
                             points: customer.points ?? 0,
                             firstVisitDate: customer.firstVisitDate ? new Date(`${customer.firstVisitDate}T00:00:00`) : null,
-                            allergyNote: customer.allergyNote ?? null,
-                            claimNote: customer.claimNote ?? null,
-                            preferenceNote: customer.preferenceNote ?? null,
                         },
                         create: {
                             storeId: session.storeId,
@@ -131,9 +125,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                             tel: normalizeTel(customer.tel),
                             points: customer.points ?? 0,
                             firstVisitDate: customer.firstVisitDate ? new Date(`${customer.firstVisitDate}T00:00:00`) : null,
-                            allergyNote: customer.allergyNote ?? null,
-                            claimNote: customer.claimNote ?? null,
-                            preferenceNote: customer.preferenceNote ?? null,
                         },
                     });
 

@@ -17,6 +17,11 @@ export const StyledChartGrid = styled.div`
     @media (max-width: 900px) {
         grid-template-columns: 1fr;
     }
+
+    /* 모바일은 좁아 차트 가독성이 떨어져 분석 그리드를 숨긴다(KPI·일별 목록만 노출). */
+    @media (max-width: 640px) {
+        display: none;
+    }
 `;
 
 export const StyledChartCard = styled.div<{ $hero?: boolean; $autoHeight?: boolean }>`
@@ -47,12 +52,12 @@ export const StyledChartHeader = styled.div`
 `;
 
 export const StyledChartHeaderTitle = styled.strong`
-    font-size: 14px;
+    font-size: var(--font);
     color: var(--black-color);
 `;
 
 export const StyledChartHeaderMeta = styled.span`
-    font-size: 11px;
+    font-size: var(--xsmall-font);
     color: var(--dark-gray-color2);
     text-align: right;
 `;
@@ -64,7 +69,7 @@ export const StyledChartEmpty = styled.div`
     justify-content: center;
     border-radius: 8px;
     background: var(--gray-color2);
-    font-size: 12px;
+    font-size: var(--small-font);
     color: var(--dark-gray-color2);
 `;
 
@@ -120,13 +125,13 @@ export const StyledChartTooltip = styled.div<{ $leftRatio: number; $topRatio: nu
 `;
 
 export const StyledChartTooltipLabel = styled.strong`
-    font-size: 11px;
+    font-size: var(--xsmall-font);
     color: var(--dark-gray-color2);
     font-weight: 600;
 `;
 
 export const StyledChartTooltipValue = styled.span`
-    font-size: 13px;
+    font-size: var(--medium-font);
     font-weight: 800;
     color: var(--blue-color);
 `;
@@ -152,7 +157,7 @@ export const StyledYAxis = styled.div`
 export const StyledYAxisLabel = styled.span`
     position: absolute;
     left: 0;
-    font-size: 11px;
+    font-size: var(--xsmall-font);
     color: var(--dark-gray-color2);
     line-height: 1;
 `;
@@ -220,7 +225,7 @@ export const StyledChartPointButton = styled.button<{ $active: boolean; $leftRat
 export const StyledChartAxis = styled.div`
     display: flex;
     justify-content: space-between;
-    font-size: 11px;
+    font-size: var(--xsmall-font);
     color: var(--dark-gray-color2);
     margin-top: -2px;
     padding-left: 74px;
@@ -252,7 +257,7 @@ export const StyledBarLabel = styled.div`
     align-items: center;
     gap: 6px;
     min-width: 0;
-    font-size: 12px;
+    font-size: var(--small-font);
     color: var(--dark-gray-color);
 `;
 
@@ -263,7 +268,7 @@ export const StyledBarLabelText = styled.span`
 `;
 
 export const StyledBarValue = styled.span`
-    font-size: 12px;
+    font-size: var(--small-font);
     font-weight: 600;
     color: var(--black-color);
     white-space: nowrap;
@@ -291,7 +296,7 @@ export const StyledShareSection = styled.div`
 `;
 
 export const StyledShareSectionTitle = styled.span`
-    font-size: 11px;
+    font-size: var(--xsmall-font);
     font-weight: 600;
     color: var(--dark-gray-color2);
 `;
@@ -321,7 +326,7 @@ export const StyledShareLegendItem = styled.span`
     display: inline-flex;
     align-items: center;
     gap: 4px;
-    font-size: 11px;
+    font-size: var(--xsmall-font);
     color: var(--dark-gray-color);
 `;
 
@@ -386,12 +391,12 @@ export const StyledDonutChartCenter = styled.div`
 `;
 
 export const StyledDonutChartValue = styled.strong`
-    font-size: 14px;
+    font-size: var(--font);
     color: var(--black-color);
 `;
 
 export const StyledDonutChartLabel = styled.span`
-    font-size: 11px;
+    font-size: var(--xsmall-font);
     color: var(--dark-gray-color2);
 `;
 
@@ -425,12 +430,12 @@ export const StyledLegendInlineLabel = styled.div`
 `;
 
 export const StyledLegendInlineLabelStrong = styled.strong`
-    font-size: 12px;
+    font-size: var(--small-font);
     color: var(--black-color);
 `;
 
 export const StyledLegendInlineLabelText = styled.span`
-    font-size: 11px;
+    font-size: var(--xsmall-font);
     color: var(--dark-gray-color2);
 `;
 
@@ -447,12 +452,12 @@ export const StyledOperationSummary = styled.div`
 `;
 
 export const StyledOperationSummaryLabel = styled.span`
-    font-size: 12px;
+    font-size: var(--small-font);
     color: var(--dark-gray-color2);
 `;
 
 export const StyledOperationSummaryValue = styled.strong`
-    font-size: 18px;
+    font-size: var(--big-font);
     color: var(--black-color);
 `;
 
@@ -491,13 +496,13 @@ export const StyledOperationLabel = styled.div`
 `;
 
 export const StyledOperationLabelName = styled.span`
-    font-size: 13px;
+    font-size: var(--medium-font);
     color: var(--dark-gray-color);
     font-weight: 600;
 `;
 
 export const StyledOperationLabelSub = styled.small`
-    font-size: 11px;
+    font-size: var(--xsmall-font);
     color: var(--dark-gray-color2);
 `;
 
@@ -513,7 +518,7 @@ export const StyledOperationCustomerButton = styled.button`
     border: 0;
     padding: 0;
     background: transparent;
-    font-size: 13px;
+    font-size: var(--medium-font);
     font-weight: 600;
     color: var(--dark-gray-color);
     text-align: left;
@@ -521,7 +526,7 @@ export const StyledOperationCustomerButton = styled.button`
 
 export const StyledOperationRate = styled.strong`
     flex-shrink: 0;
-    font-size: 16px;
+    font-size: var(--large-font);
     color: var(--blue-color);
 `;
 

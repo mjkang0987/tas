@@ -198,12 +198,12 @@ const StyledRechargeHeader = styled.div`
 `;
 
 const StyledRechargeTitle = styled.strong`
-    font-size: 13px;
+    font-size: var(--medium-font);
     color: var(--dark-gray-color);
 `;
 
 const StyledRechargeBalance = styled.span`
-    font-size: 12px;
+    font-size: var(--small-font);
     color: var(--dark-gray-color2);
 `;
 
@@ -237,7 +237,7 @@ const StyledChargeButton = styled.button`
     border-radius: var(--radius-md);
     background: var(--blue-color);
     color: #fff;
-    font-size: 12px;
+    font-size: var(--small-font);
     font-weight: 600;
 `;
 
@@ -254,14 +254,14 @@ const StyledPointSectionHeader = styled.div`
 `;
 
 const StyledPointSectionTitle = styled.strong`
-    font-size: 13px;
+    font-size: var(--medium-font);
     color: var(--dark-gray-color);
 `;
 
 const StyledMoreButton = styled.button`
     border: none;
     background: none;
-    font-size: 12px;
+    font-size: var(--small-font);
     color: var(--blue-color);
     font-weight: 600;
     padding: 0;
@@ -300,12 +300,12 @@ const StyledPointTop = styled.div`
 `;
 
 const StyledPointType = styled.strong`
-    font-size: 12px;
+    font-size: var(--small-font);
     font-weight: 600;
 `;
 
 const StyledPointDelta = styled.span`
-    font-size: 12px;
+    font-size: var(--small-font);
     font-weight: 700;
     color: var(--blue-color);
 `;
@@ -314,7 +314,7 @@ const StyledPointMeta = styled.div`
     display: flex;
     flex-wrap: wrap;
     gap: 6px 12px;
-    font-size: 11px;
+    font-size: var(--xsmall-font);
     color: var(--dark-gray-color2);
 `;
 

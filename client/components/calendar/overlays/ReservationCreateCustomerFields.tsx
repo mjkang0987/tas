@@ -81,7 +81,7 @@ const StyledTelField = styled.label`
   gap: 4px;
 
   > strong {
-    font-size: 12px;
+    font-size: var(--small-font);
     font-weight: 600;
     color: var(--dark-gray-color);
   }
@@ -91,7 +91,7 @@ const StyledTelInput = styled.input`
   ${formControlStyle};
   height: 36px;
   padding: 0 10px;
-  font-size: 13px;
+  font-size: var(--medium-font);
   color: var(--black-color);
   width: 100%;
   min-width: 0;

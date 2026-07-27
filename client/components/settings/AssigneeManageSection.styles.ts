@@ -46,7 +46,7 @@ export const StyledAssigneeSection = styled.div`
 `;
 
 export const StyledAssigneeSectionTitle = styled.strong`
-    font-size: 14px;
+    font-size: var(--font);
     font-weight: 600;
     color: var(--dark-gray-color);
 `;
@@ -59,7 +59,7 @@ export const StyledSectionEmpty = styled.div`
     border: 1px dashed rgba(148, 163, 184, 0.32);
     border-radius: 10px;
     background: var(--bg-subtle);
-    font-size: 13px;
+    font-size: var(--medium-font);
     color: var(--dark-gray-color2);
 `;
 
@@ -118,7 +118,7 @@ export const StyledAssigneeHeaderLeft = styled.div`
 `;
 
 export const StyledAssigneeName = styled.span`
-    font-size: 14px;
+    font-size: var(--font);
     font-weight: 700;
     color: var(--dark-gray-color);
     white-space: nowrap;
@@ -157,7 +157,7 @@ export const StyledAssigneeMetaField = styled.div`
 `;
 
 export const StyledAssigneeMetaLabel = styled.label`
-    font-size: 11px;
+    font-size: var(--xsmall-font);
     color: var(--dark-gray-color2);
 `;
 
@@ -177,14 +177,14 @@ export const StyledAssigneeNameInput = styled.input`
     ${compactInputStyle};
     min-height: 30px;
     padding: 0 8px;
-    font-size: 14px;
+    font-size: var(--font);
     font-weight: 700;
 
     @media (max-width: 640px) {
         min-width: 0;
         max-width: none;
         width: 100%;
-        font-size: 13px;
+        font-size: var(--medium-font);
     }
 `;
 
@@ -204,7 +204,7 @@ export const StyledAssigneeStatusSelect = styled.select`
     ${compactInputStyle};
     min-height: 28px;
     padding: 0 8px;
-    font-size: 11px;
+    font-size: var(--xsmall-font);
     color: var(--dark-gray-color2);
 `;
 
@@ -215,12 +215,12 @@ export const StyledAssigneeStatusBadge = styled(LabelBadge).attrs<{ $status: Ass
 }))<{ $status: AssigneeStatus }>`
     height: 24px;
     padding: 0 8px;
-    font-size: 10px;
+    font-size: var(--tiny-font);
 
     @media (max-width: 480px) {
         height: 20px;
         padding: 0 6px;
-        font-size: 9px;
+        font-size: var(--tiny-font);
     }
 `;
 
@@ -238,12 +238,12 @@ export const StyledScheduleCollapsedNotice = styled.div<{ $status: AssigneeStatu
     border: 1px dashed ${({$status}) => getAssigneeStatusMeta($status).border};
     color: ${({$status}) => getAssigneeStatusMeta($status).accent};
     background: var(--white-color-60);
-    font-size: 12px;
+    font-size: var(--small-font);
     line-height: 1.5;
 
     @media (max-width: 640px) {
         padding: 8px 10px;
-        font-size: 11px;
+        font-size: var(--xsmall-font);
     }
 `;
 
@@ -251,7 +251,7 @@ export const StyledScheduleRow = styled.div`
     display: flex;
     align-items: center;
     gap: 6px;
-    font-size: 12px;
+    font-size: var(--small-font);
     overflow: hidden;
     @media (max-width: 640px) {
         flex-wrap: wrap;
@@ -276,7 +276,7 @@ export const StyledDaySwitch = styled.label`
     flex-shrink: 0;
     gap: 4px;
     white-space: nowrap;
-    font-size: 11px;
+    font-size: var(--xsmall-font);
     color: var(--dark-gray-color2);
 `;
 
@@ -302,7 +302,7 @@ export const StyledTimeInput = styled.input`
     height: 28px;
     padding: 0 4px;
     border-radius: 6px;
-    font-size: 11px;
+    font-size: var(--xsmall-font);
 `;
 
 export const StyledAddForm = styled.div`

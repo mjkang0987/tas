@@ -11,6 +11,7 @@ import {useSession} from 'next-auth/react';
 
 import styled from 'styled-components';
 
+import {isBookingRoute} from '../../features/booking/routing';
 import {useCalendarStore} from '../../store/calendarStore';
 import {useIsomorphicEffect} from '../../hooks/useIsomorphicEffect';
 
@@ -22,6 +23,7 @@ import {ViewType} from '../../utils/constants';
 
 import {Header} from './Header';
 import {Aside} from './Aside';
+import {MobileTabBar} from './MobileTabBar';
 import {Icon} from '../ui/Icons';
 import {ReservationCreate} from '../calendar/overlays/ReservationCreate';
 import {AdBanner} from '../ad/AdBanner';
@@ -35,7 +37,8 @@ export default function LayoutComponent({children}: NodeType) {
     const isOnboardingPage = router.pathname.startsWith('/onboarding');
     const isPublicPolicyPage = router.pathname === '/terms' || router.pathname === '/privacy';
     const isMaintenancePage = router.pathname === '/maintenance';
-    const isBookingPage = router.pathname.startsWith('/book/');
+    // _app이 공개 예약 페이지를 세션 트리 밖에서 렌더하므로 평소엔 여기 도달하지 않는다(안전망).
+    const isBookingPage = isBookingRoute(router.pathname);
     // 로그인/소개/온보딩/동의/점검은 항상 풀페이지. 약관·개인정보는 미인증(로그인 전)일 때만
     // 앱 셸(Aside·Header) 없이 풀페이지로, 로그인 사용자에겐 셸 안에서 보여준다.
     // (DPA 는 운영자 전용 — 미인증 접근은 proxy.ts 에서 /login 으로 리다이렉트)
@@ -212,6 +215,7 @@ export default function LayoutComponent({children}: NodeType) {
                                            onSave={addReservation}/>
                     )}
                 </>}
+                <MobileTabBar/>
             </StyledContent>
         </StyledWrapper>
     );
@@ -225,6 +229,11 @@ const StyledWrapper = styled.div`
     padding: 8px;
     box-sizing: border-box;
     background-color: var(--aside-bg);
+
+    /* 모바일은 다크 프레임(패딩) 없이 풀블리드 */
+    @media (max-width: 640px) {
+        padding: 0;
+    }
 `;
 
 const StyledContent = styled.div<{ $asideOpen: boolean }>`
@@ -236,6 +245,10 @@ const StyledContent = styled.div<{ $asideOpen: boolean }>`
     background-color: var(--white-color);
     border-radius: 8px;
     transition: border-radius 0.25s ease;
+
+    @media (max-width: 640px) {
+        border-radius: 0;
+    }
 `;
 
 const StyledMain = styled.main`

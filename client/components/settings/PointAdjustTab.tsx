@@ -104,7 +104,7 @@ const StyledCustomerMeta = styled.div`
 
     span {
         color: var(--dark-gray-color2);
-        font-size: 12px;
+        font-size: var(--small-font);
     }
 
     @media (max-width: 640px) {
@@ -128,7 +128,7 @@ const StyledCustomerNameButton = styled.button`
     padding: 0;
     border: none;
     background: none;
-    font-size: 14px;
+    font-size: var(--font);
     font-weight: 700;
     color: var(--black-color);
     text-align: left;
@@ -141,7 +141,7 @@ const StyledCustomerNameButton = styled.button`
 `;
 
 const StyledPointValue = styled.strong`
-    font-size: 16px;
+    font-size: var(--large-font);
     white-space: nowrap;
 `;
 
@@ -162,6 +162,6 @@ const StyledActionButton = styled.button<{ $danger?: boolean }>`
     border-radius: 8px;
     background: ${(props) => props.$danger ? 'var(--danger-bg)' : 'var(--white-color)'};
     color: ${(props) => props.$danger ? 'var(--danger-color)' : 'var(--dark-gray-color)'};
-    font-size: 12px;
+    font-size: var(--small-font);
     font-weight: 600;
 `;

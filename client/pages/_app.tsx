@@ -22,6 +22,7 @@ import {toCustomerMap} from '../utils/customers';
 import {clearGuestEntryResolved, clearGuestTermsAgreed, createDefaultLocalDbSnapshot, getGuestTermsVersion, hasGuestData, isGuestConsentAck, isGuestEntryResolved, loadLocalDbSnapshot, markGuestEntryResolved, saveLocalDbSnapshot, setAuthenticated, shouldUseLocalDb} from '../lib/local-db';
 import {CURRENT_TERMS_VERSION} from '../utils/terms';
 import {SITE_TITLE} from '../lib/seo';
+import {isBookingRoute} from '../features/booking/routing';
 
 import LayoutComponent from '../components/layout/LayoutComponent';
 import {ToastContainer} from '../components/ui/ToastContainer';
@@ -167,7 +168,7 @@ function AppContent({Component, pageProps}: AppContentProps) {
         const path = router.pathname;
 
         // 로그인 / 약관 문서 / 공개 예약 페이지는 자유 접근
-        if (path === '/login' || path === '/about' || path === '/terms' || path === '/privacy' || path === '/logout' || path === '/maintenance' || path.startsWith('/book/')) return;
+        if (path === '/login' || path === '/about' || path === '/terms' || path === '/privacy' || path === '/logout' || path === '/maintenance' || isBookingRoute(path)) return;
 
         const consented = getGuestTermsVersion() === CURRENT_TERMS_VERSION;
         // 영구 동의는 온보딩 완료 시점에 기록되므로, 온보딩 진입 가드는 세션 ack도 허용
@@ -385,7 +386,7 @@ function AppContent({Component, pageProps}: AppContentProps) {
     // 데이터(서비스·담당자·예약)가 모두 준비될 때까지 오버레이로 가려 새로고침 플래시를 막음.
     // SSR/첫 렌더 모두 status==='loading'이라 하이드레이션 불일치가 없음.
     const isAuthFlowPage = router.pathname.startsWith('/login') || router.pathname.startsWith('/onboarding')
-        || router.pathname.startsWith('/book/')
+        || isBookingRoute(router.pathname)
         || router.pathname === '/consent' || router.pathname === '/about' || router.pathname === '/logout'
         || router.pathname === '/terms' || router.pathname === '/privacy' || router.pathname === '/maintenance';
     // 미인증 + 로컬데이터 없음 = /login 리다이렉트 대기 → 달력이 깜빡이지 않게 오버레이 유지
@@ -544,7 +545,7 @@ const StyledSessionExpiredToast = styled.div`
     border-radius: 10px;
     background: var(--toast-bg);
     color: var(--white-color);
-    font-size: 13px;
+    font-size: var(--medium-font);
     box-shadow: var(--modal-shadow);
     z-index: 10000;
     white-space: nowrap;
@@ -565,11 +566,31 @@ const StyledSessionExpiredClose = styled.button`
     border: none;
     background: none;
     color: var(--muted-text);
-    font-size: 14px;
+    font-size: var(--font);
     line-height: 1;
 `;
 
 function App({Component, pageProps: {session, ...pageProps}}: AppProps) {
+    const router = useRouter();
+
+    // 공개 예약 페이지는 비로그인 고객 전용이라 세션이 필요 없다.
+    // SessionProvider로 감싸면 고객이 방문할 때마다 /api/auth/session 을 치고
+    // authjs 쿠키(csrf-token·callback-url)가 고객 브라우저에 남는다.
+    // 앱 셸(LayoutComponent)도 useSession을 쓰는데, 예약 페이지에선 어차피 통과(isBarePage)일 뿐이라
+    // 세션 트리 전체를 건너뛰고 페이지만 렌더한다.
+    if (isBookingRoute(router.pathname)) {
+        return (
+            <>
+                <Head>
+                    <title>{SITE_TITLE}</title>
+                </Head>
+                <GlobalStyle/>
+                <RouteLoadingSpinner />
+                <Component {...pageProps} />
+            </>
+        );
+    }
+
     return (
         <SessionProvider session={session}>
             <RouteLoadingSpinner />
