@@ -28,7 +28,7 @@ const StyledIcon = styled.span <{ $iconType: string }>`
    align-items: center;
   &::before {
  content: "🔍";
- font-size: 10px;
+ font-size: var(--tiny-font);
   }
 `}
 

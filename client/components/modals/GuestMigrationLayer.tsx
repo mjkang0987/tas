@@ -277,7 +277,7 @@ const StyledSpinnerWrap = styled.div`
 
 const StyledSpinnerText = styled.p`
     margin: 0;
-    font-size: 13px;
+    font-size: var(--medium-font);
     color: var(--dark-gray-color2);
 `;
 
@@ -291,14 +291,14 @@ const StyledBody = styled.div`
 
 const StyledDesc = styled.p`
     margin: 0;
-    font-size: 13px;
+    font-size: var(--medium-font);
     line-height: 1.55;
     color: var(--dark-gray-color);
 `;
 
 const StyledErrorText = styled.p`
     margin: 0;
-    font-size: 13px;
+    font-size: var(--medium-font);
     color: var(--danger-color);
     line-height: 1.5;
 `;
@@ -313,7 +313,7 @@ const StyledStats = styled.ul`
 `;
 
 const StyledStatItem = styled.li`
-    font-size: 13px;
+    font-size: var(--medium-font);
     color: var(--dark-gray-color);
     line-height: 1.8;
 `;
@@ -347,7 +347,7 @@ const StyledPairNames = styled.div`
     display: flex;
     align-items: center;
     gap: 6px;
-    font-size: 13px;
+    font-size: var(--medium-font);
     color: var(--dark-gray-color);
     min-width: 0;
     flex: 1;
@@ -360,7 +360,7 @@ const StyledPairName = styled.strong`
 
 const StyledPairArrow = styled.span`
     flex-shrink: 0;
-    font-size: 14px;
+    font-size: var(--font);
     color: var(--brand-color);
     font-weight: 600;
 `;
@@ -375,7 +375,7 @@ const StyledToggleBtn = styled.button<{$active: boolean}>`
     height: 28px;
     padding: 0 10px;
     border-radius: var(--radius-md);
-    font-size: 12px;
+    font-size: var(--small-font);
     font-weight: ${(p) => (p.$active ? 600 : 400)};
     border: 1px solid ${(p) => (p.$active ? 'var(--brand-color)' : 'var(--light-gray-color)')};
     background: ${(p) => (p.$active ? 'var(--brand-color)' : 'var(--white-color)')};

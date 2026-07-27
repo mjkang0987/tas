@@ -120,7 +120,7 @@ const StyledBody = styled.div`
 
 const StyledMessage = styled.p`
     margin: 0;
-    font-size: 14px;
+    font-size: var(--font);
     line-height: 1.6;
     color: var(--dark-gray-color);
     white-space: pre-line;

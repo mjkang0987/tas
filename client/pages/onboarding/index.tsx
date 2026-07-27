@@ -465,7 +465,7 @@ const StyledStepDot = styled.span<{$active: boolean; $done: boolean}>`
 
 const StyledStepLabel = styled.p`
     margin: 0;
-    font-size: 18px;
+    font-size: var(--big-font);
     font-weight: 700;
     color: var(--black-color);
 `;
@@ -486,7 +486,7 @@ const StyledStep0Desc = styled.div`
     align-items: center;
     justify-content: center;
     gap: 8px;
-    font-size: 14px;
+    font-size: var(--font);
     line-height: 1.7;
     color: var(--dark-gray-color);
     text-align: center;

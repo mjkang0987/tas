@@ -28,7 +28,7 @@ export const StyledBrandLink = styled(Link)`
     padding: 0 10px;
     min-width: var(--aside-width);
     box-sizing: border-box;
-    font-size: 16px;
+    font-size: var(--large-font);
     font-weight: 700;
     color: var(--aside-text);
     letter-spacing: 1px;
@@ -63,7 +63,7 @@ export const StyledStoreNameLink = styled(Link)`
     padding: 0 10px 6px;
     width: var(--aside-width);
     box-sizing: border-box;
-    font-size: 11px;
+    font-size: var(--xsmall-font);
     font-weight: 500;
     color: var(--aside-text);
     opacity: 0.6;
@@ -107,7 +107,7 @@ export const StyledUserName = styled.span`
 `;
 
 export const StyledUserEmail = styled.span`
-    font-size: 11px;
+    font-size: var(--xsmall-font);
     color: var(--aside-text);
     opacity: 0.7;
     white-space: nowrap;

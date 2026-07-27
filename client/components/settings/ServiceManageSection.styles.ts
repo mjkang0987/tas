@@ -40,7 +40,7 @@ export const StyledGroup = styled.div<{ $isCategoryDragging: boolean; $isCategor
         border-radius: 999px;
         background: var(--success-color);
         color: var(--white-color);
-        font-size: 11px;
+        font-size: var(--xsmall-font);
         font-weight: 700;
         letter-spacing: -0.01em;
         box-shadow: 0 8px 18px rgba(36, 117, 58, 0.24);
@@ -138,7 +138,7 @@ export const StyledColorField = styled.span`
     display: inline-flex;
     align-items: center;
     gap: 6px;
-    font-size: 11px;
+    font-size: var(--xsmall-font);
     color: var(--dark-gray-color2);
 `;
 
@@ -157,7 +157,7 @@ export const StyledCategoryEditInput = styled.input`
     border: 1px solid var(--light-gray-color);
     border-radius: var(--radius-md);
     background: var(--white-color);
-    font-size: 12px;
+    font-size: var(--small-font);
     color: var(--dark-gray-color);
     outline: none;
 
@@ -175,7 +175,7 @@ export const StyledCategoryDragHandle = styled.span`
     height: 16px;
     flex-shrink: 0;
     color: var(--dark-gray-color2);
-    font-size: 12px;
+    font-size: var(--small-font);
     cursor: grab;
     user-select: none;
 
@@ -225,7 +225,7 @@ export const StyledItem = styled.div<{ $isDragging: boolean; $isDragOver: boolea
         border-radius: 999px;
         background: var(--dark-gray-color);
         color: var(--white-color);
-        font-size: 10px;
+        font-size: var(--tiny-font);
         font-weight: 700;
     }
 `;
@@ -235,7 +235,7 @@ export const StyledViewRow = styled.div`
     align-items: center;
     gap: 6px;
     padding: 8px 0;
-    font-size: 13px;
+    font-size: var(--medium-font);
 `;
 
 export const StyledServiceContent = styled.div`
@@ -253,7 +253,7 @@ export const StyledServiceContent = styled.div`
 export const StyledDragHandle = styled.span`
     flex-shrink: 0;
     color: var(--dark-gray-color2);
-    font-size: 12px;
+    font-size: var(--small-font);
     cursor: grab;
     user-select: none;
 `;
@@ -265,7 +265,7 @@ export const StyledNameChip = styled.span<{ $color: string }>`
     max-width: 100%;
     padding: 4px 10px;
     border-radius: 999px;
-    font-size: 12px;
+    font-size: var(--small-font);
     font-weight: 600;
     color: ${(p) => p.$color};
     background-color: ${(p) => `${p.$color}18`};
@@ -280,14 +280,14 @@ export const StyledServiceLeft = styled.span`
 
 export const StyledDuration = styled.span`
     flex-shrink: 0;
-    font-size: 11px;
+    font-size: var(--xsmall-font);
     color: var(--dark-gray-color2);
 `;
 
 export const StyledPrice = styled.span`
     flex-shrink: 0;
     margin-left: auto;
-    font-size: 12px;
+    font-size: var(--small-font);
     font-weight: 600;
     color: var(--dark-gray-color);
 
@@ -305,7 +305,7 @@ export const StyledAddButton = styled.button`
     ${actionButtonStyle};
     border: 1px dashed var(--light-gray-color);
     background: none;
-    font-size: 13px;
+    font-size: var(--medium-font);
     color: var(--dark-gray-color);
 
     @media (hover: hover) and (pointer: fine) {
@@ -319,7 +319,7 @@ export const StyledAddButton = styled.button`
 
 export const StyledDeleteMsg = styled.p`
     margin: 0 0 20px;
-    font-size: 14px;
+    font-size: var(--font);
     color: var(--dark-gray-color);
     line-height: 1.6;
 `;
@@ -340,14 +340,14 @@ export const StyledI18nBlock = styled.div`
 `;
 
 export const StyledI18nTitle = styled.strong`
-    font-size: 12px;
+    font-size: var(--small-font);
     font-weight: 700;
     color: var(--dark-gray-color);
 `;
 
 export const StyledI18nHint = styled.p`
     margin: 0;
-    font-size: 11px;
+    font-size: var(--xsmall-font);
     line-height: 1.4;
     color: var(--dark-gray-color2);
 `;

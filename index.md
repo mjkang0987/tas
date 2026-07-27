@@ -41,9 +41,26 @@ hair_reservations/
 | `/terms` | `terms.tsx` | 이용약관 (앱 인라인, Aside 포함)[^20] |
 | `/privacy` | `privacy.tsx` | 개인정보처리방침 (앱 인라인)[^20] |
 | `/dpa` | `dpa.tsx` | 개인정보 처리 위탁계약(DPA) (앱 인라인)[^20] |
-| `/policies/:slug` | `pages/api/policies/[slug].ts` | 정책 **풀페이지**(앱 셸 없는 독립 HTML, OAuth 검수·외부 링크용). `next.config` rewrite로 연결[^20] |
+| `/policies/:slug` | `pages/api/policies/[slug].ts` | 정책 **풀페이지**(앱 셸 없는 독립 HTML, OAuth 검수·외부 링크용). `next.config` rewrite로 연결[^20]. slug: `terms`·`privacy`·`dpa`(TAS↔오너) + `booking-consent`·`store-privacy`(매장↔고객)[^27] |
 | (404) | `pages/404.tsx` + `app/not-found.tsx` | 안내 페이지 + 5초 카운트다운 후 홈 자동 리다이렉트[^18] |
 | (500) | `pages/500.tsx` | 서버 오류 안내 페이지 |
+
+### 디자인 토큰 — 폰트
+
+`styles/globalStyle.ts`의 `:root`가 단일 소스. **`font-size`에 px 리터럴을 쓰지 않는다**(저장소 전체 0건, 유일한 예외는 `components/policy/policyCss.ts` — 앱 GlobalStyle이 닿지 않는 독립 HTML 스코프).
+
+| 스케일 | 토큰 | 값 | 용도 |
+|--------|------|----|------|
+| 본문 | `--big-font` | 18px | 페이지 내 큰 제목 |
+| | `--large-font` | 16px | 본문보다 큰 강조 — 버튼·섹션 제목 |
+| | `--font` | 14px | 본문 기준 |
+| | `--medium-font` | 13px | 14와 12 사이 |
+| | `--small-font` | 12px | 보조 텍스트 |
+| | `--xsmall-font` | 11px | 캡션·라벨 |
+| | `--tiny-font` | 10px | 배지 |
+| 디스플레이 | `--display-sm` / `--display-md` / `--display-lg` | 24 / 32 / 64px | 페이지 타이틀·상태 아이콘 등 본문 밖 |
+
+폰트 **패밀리**는 `styles/fontStack.ts`의 `FONT_STACK` 단일 소스 — `globalStyle`(앱)과 `policyCss`(정책 문서 독립 HTML)가 공유한다. 적용 대상에 `textarea`·`select`를 반드시 포함할 것(빠져 있어 `select`가 Arial로 렌더된 이력).
 
 ### 미들웨어 (`client/proxy.ts`)
 
@@ -96,6 +113,8 @@ hair_reservations/
 [^17]: 멀티매장 전환 드롭다운. `/api/user/stores`로 멤버십 매장 목록 조회 → 선택 시 세션 `preferredStoreId` 갱신
 [^18]: app 라우터에 `app/` 디렉터리(NextAuth route handler)가 있으면 잘못된 경로의 404를 app 라우터가 처리하므로, `app/not-found.tsx`(+최소 `app/layout.tsx`)에 디자인 가이드 동일 스타일 + 자동 리다이렉트를 구현. `pages/404.tsx`는 pages 라우터 폴백용으로 동일 UI 유지
 [^19]: 약관 버전은 `utils/terms.ts`의 `CURRENT_TERMS_VERSION`(날짜 기반 `YYYY-MM-DD`)으로 관리. 동의 여부 판정 — 게스트: `getGuestTermsVersion()===CURRENT_TERMS_VERSION`(localStorage), 로그인: 세션 `termsVersion===CURRENT_TERMS_VERSION`. 미동의 시 게이트 노출, 동의 시 게스트는 localStorage(`setGuestTermsAgreed`)·로그인은 `POST /api/consent`(→ `User.agreedTermsVersion`/`agreedTermsAt` 갱신) 후 세션 갱신. `/consent/<경로>` 형태로 복귀 경로를 슬래시로 전달(`next.config.mjs` rewrite). Aside 하단에 이용약관/개인정보처리방침 링크 제공, 게스트 로그아웃 시 동의 플래그도 초기화. **동의 항목 구성** — 게스트: 이용약관 + 개인정보 수집·이용(서버 위탁 없음). 로그인(SNS 연동, 서버 보관): 위 2개 + **개인정보 처리위탁(DPA)** 별도 항목. 게스트가 SNS 연동한 경우는 이미 받은 동의는 건너뛰고 DPA만 `_app.tsx`의 앱 레벨 `ConsentDpaLayer`로 추가 수령. 각 항목 "보기"는 `PolicyViewLayer`로 표시
+[^27]: **고객 대상 정책 문서**(`booking-consent`·`store-privacy`) — 기존 3개와 **당사자가 다르다**. terms/privacy/dpa가 "TAS ↔ 매장 오너"라면 이 둘은 "**매장(개인정보처리자) ↔ 고객(정보주체)**"이고 주어가 매장이다(TAS는 수탁자로 등장). 수집 근거는 「개인정보 보호법」 제15조제1항제4호(**계약의 체결·이행**) — 예약은 계약이고 이름·연락처 없이는 성립하지 않으므로 **별도 동의가 필요 없어 예약 폼에 동의 체크박스를 두지 않는다**(네이버 예약도 같은 구조에서 첫 블록을 "안내"로 둔다). 본문의 `{{storeName}}`은 `applyPolicyVars`가 렌더 시점에 치환하며, 매장 컨텍스트가 없는 경로(풀페이지)에서는 "예약하신 매장"으로 폴백해 토큰이 노출되지 않는다. **모든 렌더 경로(레이어·풀페이지·인라인)가 `applyPolicyVars`를 통과해야 한다.** 예약 폼에는 요약 안내 박스(수집항목·목적·보유기간·위탁)를 4개국어로 노출하고 전문은 `PolicyViewLayer`로 연다(전문 자체는 한국어 — 법적 기준 문서). 요청사항 칸에는 민감정보 입력 자제 안내를 둔다.
+
 [^20]: **정책 문서 단일 소스 구조** — 법률 본문은 문서당 파일 하나(`content/policies/{terms,privacy,dpa}.ts`)에만 두고, 제목 메타는 `content/policies/index.ts` 레지스트리(`navTitle`/`docTitle`/`body`)로 관리. 이 본문을 **인라인 페이지**(`/terms`·`/privacy`·`/dpa` → `PolicyPage`)·**보기 레이어**(`PolicyViewLayer`)·**풀페이지**(`/policies/:slug` → `api/policies/[slug].ts`가 `renderPolicyHtml`로 독립 HTML 응답)가 모두 공유 → 한 곳만 고치면 전체 반영. 공통 CSS도 `components/policy/policyCss.ts`(`POLICY_VARS_*`·`POLICY_ELEMENT_CSS`)에서 styled-components(인라인)·`<style>`(풀페이지) 양쪽이 같은 문자열 사용. DPA는 서버 보관(수탁) 개시 시점에 필요하므로 SNS 연동(인증) 이후에만 노출
 [^21]: 회원권 관리는 `Store.useMembershipSystem` 토글 ON일 때만 aside 메뉴·`/settings/membership` 탭 노출. 상품(횟수/기간권) CRUD + 고객 발급·수동 차감까지 구현(Phase 1·2). **결제 연동(예약 결제수단으로 자동 차감, `PaymentMethod.membership`)은 미구현(Phase 3 예정)**
 [^22]: 쿠폰 관리는 `Store.useCouponSystem` 토글 ON일 때만 aside 메뉴·`/settings/coupon` 탭 노출. **Phase 1만 구현** — 상품(정액 amount/정률 rate, maxDiscount·minOrderAmount·validDays·code) CRUD(`/api/coupons` owner, `server/api/coupons.ts`). **발급(직접·코드형, Phase 2)·결제 자동 차감(`PaymentMethod.coupon`, Phase 3)은 미구현.** 회원권 시스템 패턴 미러링
@@ -113,7 +132,7 @@ hair_reservations/
 | `assignees/model.ts` | `Assignee` | id, name, schedule(7일), status[^6], color, phone |
 | `services/model.ts` | `ServiceItem` | name, durationMinutes, category, price |
 | `services/default-services.ts` | - | 업종(ShopType) union + 업종별 기본 서비스·카테고리 색상(Partial, 온보딩용) |
-| `store-settings/model.ts` | `StoreSettings`/`BookingSettings` | businessHours, closedDates(특정 날짜 휴업일), `closedWeekdays`(정기 휴무 요일, 0=월…6=일 — DB는 `StoreBusinessHour.enabled=false`로 저장, `sanitizeClosedWeekdays`로 정규화), pointSettings(적립률, 충전규칙). `BookingSettings`(공개 예약 규칙: slotIntervalMin·minLeadMinutes·maxAdvanceDays·allowAssigneeChoice·noticeText·`bookableServiceNames`[노출 서비스 화이트리스트, null=전체]) + slug 검증(`isValidBookingSlug`)·노출 헬퍼(`parseBookableServiceNames`/`areServicesBookable`) |
+| `store-settings/model.ts` | `StoreSettings`/`BookingSettings` | businessHours, closedDates(특정 날짜 휴업일), `closedWeekdays`(정기 휴무 요일, 0=월…6=일 — DB는 `StoreBusinessHour.enabled=false`로 저장, `sanitizeClosedWeekdays`로 정규화), pointSettings(적립률, 충전규칙). `BookingSettings`(공개 예약 규칙: slotIntervalMin·minLeadMinutes·maxAdvanceDays·allowAssigneeChoice·**contactTel**[매장 연락처 — 고객 문의·개인정보 열람/삭제 요구 창구. 온라인예약 사용 시 **필수**, 서버가 검증. 지역번호·대표번호는 자릿수 규칙이 달라 `formatTel` 재포맷 없이 **입력 원문 그대로** 저장·표시]·noticeText·`bookableServiceNames`[노출 서비스 화이트리스트, null=전체]) + slug 검증(`isValidBookingSlug`)·노출 헬퍼(`parseBookableServiceNames`/`areServicesBookable`) |
 | `booking/availability.ts` | - | 공개 온라인 예약 슬롯 계산 순수 함수(`computeAvailableSlots`/`pickAssigneeForSlot`). 서버 API가 재사용. 영업시간−기존예약−담당자스케줄−소요−최소사전시간, 담당자 용량 모델[^23] |
 | `booking/routing.ts` | - | **고객 예약 공개 호스트·경로 단일 소스**(미들웨어와 공유하는 Edge 안전 순수 모듈). `BOOKING_HOST`(`NEXT_PUBLIC_BOOKING_HOST` 오버라이드)·`isBookingHost`/`isMainHost`/`resolveRequestHost`·`bookBaseForHost`(호스트별 접두 `''`\|`/book`), 언어 코드(`BookLang`·`BOOK_LANGS`·`isBookLang`), 공개 URL `bookHref`·내부 라우트 `bookRoute`. `i18n.ts`가 언어·경로 API를 재export |
 | `booking/i18n.ts` | - | **고객 예약 페이지 다국어**(ko/en/ja/zh). UI 문구 사전(`BOOK_STRINGS`)·언어 목록(`BOOK_LANGS`)·로케일 포매터(`formatDurationL`·`formatBookDateLabel`·`formatPriceL`·`statusLabelL`·`dowLabelL`)·업종 라벨 번역(`localizedStoreLabels`, category 기준). 매장 오너 콘텐츠(매장명·서비스명·안내문·담당자명)는 번역 제외[^24] |

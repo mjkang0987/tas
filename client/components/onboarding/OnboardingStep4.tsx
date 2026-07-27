@@ -50,14 +50,14 @@ const StyledNaverGuideList = styled.ol`
 `;
 
 const StyledNaverGuideItem = styled.li`
-    font-size: 13px;
+    font-size: var(--medium-font);
     color: var(--dark-gray-color);
     line-height: 1.5;
 `;
 
 const StyledGuestNote = styled.p`
     margin: 8px 0 0;
-    font-size: 13px;
+    font-size: var(--medium-font);
     color: var(--dark-gray-color);
     line-height: 1.6;
 `;
@@ -69,7 +69,7 @@ const StyledGuestEm = styled.strong`
 
 const StyledNaverGuideTitle = styled.p`
     margin: 0;
-    font-size: 13px;
+    font-size: var(--medium-font);
     font-weight: 700;
     color: var(--blue-color);
 `;

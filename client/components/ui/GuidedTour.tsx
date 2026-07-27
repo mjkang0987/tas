@@ -197,20 +197,20 @@ const StyledTooltip = styled.div`
 `;
 
 const StyledStepCount = styled.span`
-    font-size: 12px;
+    font-size: var(--small-font);
     font-weight: 700;
     color: var(--brand-color, #6c5ce7);
 `;
 
 const StyledTitle = styled.strong`
-    font-size: 15px;
+    font-size: var(--large-font);
     font-weight: 700;
     color: var(--black-color, #222);
 `;
 
 const StyledDesc = styled.p`
     margin: 0;
-    font-size: 13px;
+    font-size: var(--medium-font);
     line-height: 1.6;
     color: var(--dark-gray-color, #555);
 `;
@@ -245,7 +245,7 @@ const StyledSkipButton = styled.button`
     padding: 8px 10px;
     border: none;
     background: none;
-    font-size: 13px;
+    font-size: var(--medium-font);
     color: var(--dark-gray-color2, #888);
     cursor: pointer;
 `;
@@ -255,7 +255,7 @@ const StyledPrevButton = styled.button`
     border: 1px solid var(--light-gray-color, #ddd);
     border-radius: 8px;
     background: var(--white-color, #fff);
-    font-size: 13px;
+    font-size: var(--medium-font);
     font-weight: 600;
     color: var(--dark-gray-color, #555);
     cursor: pointer;
@@ -267,7 +267,7 @@ const StyledNextButton = styled.button`
     border-radius: 8px;
     background: var(--brand-color, #6c5ce7);
     color: var(--white-color, #fff);
-    font-size: 13px;
+    font-size: var(--medium-font);
     font-weight: 700;
     cursor: pointer;
 `;

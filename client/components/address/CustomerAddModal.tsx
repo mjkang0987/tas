@@ -111,7 +111,7 @@ const StyledFormWrap = styled.div`
 
 const StyledError = styled.p`
     margin: 0;
-    font-size: 12px;
+    font-size: var(--small-font);
     font-weight: 600;
     color: var(--danger-color);
 `;

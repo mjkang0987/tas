@@ -216,6 +216,15 @@ export interface BookI18n {
     reserverInfo: string;
     memoLabel: string;
     memoPlaceholder: string;
+    memoSensitiveHint: string;
+    privacyHead: string;
+    privacyItems: string;
+    privacyPurpose: string;
+    privacyPeriod: string;
+    privacyEntrust: string;
+    privacyViewConsent: string;
+    privacyViewPolicy: string;
+    privacyContact: string;
     summaryHead: string;
     date: string;
     time: string;
@@ -305,6 +314,15 @@ export const BOOK_STRINGS: Record<BookLang, BookI18n> = {
         reserverInfo: '예약자 정보',
         memoLabel: '요청사항 (선택)',
         memoPlaceholder: '매장에 남길 요청사항이 있으면 적어주세요.',
+        memoSensitiveHint: '건강상태 등 민감한 정보는 입력하지 말아 주세요.',
+        privacyHead: '개인정보 수집·이용 안내',
+        privacyItems: '수집 항목: 이름, 연락처 (선택: 요청사항)',
+        privacyPurpose: '이용 목적: 예약 접수·확인 및 변경·취소 안내',
+        privacyPeriod: '보유 기간: 매장이 예약 서비스를 이용하는 동안 (이용 종료·삭제 요청 시 지체 없이 파기)',
+        privacyEntrust: '예약 시스템 운영을 위해 TAS에 처리를 위탁합니다.',
+        privacyViewConsent: '수집·이용 안내 전문',
+        privacyViewPolicy: '개인정보처리방침',
+        privacyContact: '매장 연락처',
         summaryHead: '예약 내용',
         date: '날짜',
         time: '시간',
@@ -385,6 +403,15 @@ export const BOOK_STRINGS: Record<BookLang, BookI18n> = {
         reserverInfo: 'Your Details',
         memoLabel: 'Request (optional)',
         memoPlaceholder: 'Leave any request for the store here.',
+        memoSensitiveHint: 'Please do not enter sensitive information such as health conditions.',
+        privacyHead: 'Collection and Use of Personal Data',
+        privacyItems: 'Data collected: name, phone number (optional: request note)',
+        privacyPurpose: 'Purpose: booking confirmation and change/cancellation notices',
+        privacyPeriod: 'Retention: while the store uses this booking service (deleted without delay when the store stops using it or you request deletion)',
+        privacyEntrust: 'Processing is entrusted to TAS for operation of the booking system.',
+        privacyViewConsent: 'Full notice',
+        privacyViewPolicy: 'Privacy policy',
+        privacyContact: 'Store contact',
         summaryHead: 'Reservation Summary',
         date: 'Date',
         time: 'Time',
@@ -465,6 +492,15 @@ export const BOOK_STRINGS: Record<BookLang, BookI18n> = {
         reserverInfo: '预约人信息',
         memoLabel: '备注（选填）',
         memoPlaceholder: '如有需要向店家说明的事项，请填写。',
+        memoSensitiveHint: '请勿填写健康状况等敏感信息。',
+        privacyHead: '个人信息收集与使用告知',
+        privacyItems: '收集项目：姓名、联系电话（选填：备注）',
+        privacyPurpose: '使用目的：预约受理与确认、变更及取消通知',
+        privacyPeriod: '保存期限：店家使用预约服务期间（服务终止或您要求删除时立即销毁）',
+        privacyEntrust: '为运营预约系统，已委托 TAS 处理。',
+        privacyViewConsent: '查看告知全文',
+        privacyViewPolicy: '隐私政策',
+        privacyContact: '店家联系方式',
         summaryHead: '预约内容',
         date: '日期',
         time: '时间',
@@ -545,6 +581,15 @@ export const BOOK_STRINGS: Record<BookLang, BookI18n> = {
         reserverInfo: 'ご予約者情報',
         memoLabel: 'ご要望（任意）',
         memoPlaceholder: '店舗へのご要望があればご記入ください。',
+        memoSensitiveHint: '健康状態など機微な情報は入力しないでください。',
+        privacyHead: '個人情報の収集・利用に関するご案内',
+        privacyItems: '収集項目：お名前、連絡先（任意：ご要望）',
+        privacyPurpose: '利用目的：予約の受付・確認および変更・キャンセルのご案内',
+        privacyPeriod: '保有期間：店舗が予約サービスを利用している間（利用終了・削除のご要望時は遅滞なく破棄）',
+        privacyEntrust: '予約システムの運営のため、TAS に処理を委託しています。',
+        privacyViewConsent: 'ご案内の全文',
+        privacyViewPolicy: 'プライバシーポリシー',
+        privacyContact: '店舗連絡先',
         summaryHead: '予約内容',
         date: '日付',
         time: '時間',

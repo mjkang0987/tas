@@ -87,14 +87,14 @@ const StyledConfirmList = styled.dl`
 `;
 
 const StyledTerm = styled.dt`
-    font-size: 13px;
+    font-size: var(--medium-font);
     color: var(--dark-gray-color);
     font-weight: 500;
 `;
 
 const StyledDesc = styled.dd`
     margin: 0;
-    font-size: 13px;
+    font-size: var(--medium-font);
 `;
 
 const StyledOldTime = styled.span`
@@ -102,7 +102,7 @@ const StyledOldTime = styled.span`
     padding: 2px 8px;
     border-radius: var(--radius-md);
     background: var(--gray-color2);
-    font-size: 13px;
+    font-size: var(--medium-font);
     color: var(--dark-gray-color2);
     text-decoration: line-through;
 `;

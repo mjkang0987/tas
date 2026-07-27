@@ -232,7 +232,7 @@ const StyledSyncBtn = styled(StyledSaveBtn)`
 
 const StyledGuestNotice = styled.p`
     margin: 8px 0 12px;
-    font-size: 14px;
+    font-size: var(--font);
     line-height: 1.6;
     color: var(--dark-gray-color);
 `;
@@ -244,7 +244,7 @@ const StyledGuestEm = styled.strong`
 
 const StyledGuestLink = styled(Link)`
     display: inline-block;
-    font-size: 13px;
+    font-size: var(--medium-font);
     font-weight: 600;
     color: var(--blue-color);
     text-decoration: underline;
@@ -262,13 +262,13 @@ const StyledCheckRow = styled.div`
 `;
 
 const StyledIcon = styled.span<{$ok: boolean}>`
-    font-size: 16px;
+    font-size: var(--large-font);
     flex-shrink: 0;
     line-height: 1.4;
 `;
 
 const StyledCheckText = styled.span`
-    font-size: 14px;
+    font-size: var(--font);
     color: var(--dark-gray-color);
     line-height: 1.5;
     flex: 1;
@@ -291,7 +291,7 @@ const StyledGhostBtn = styled.button<{$danger?: boolean}>`
     height: 30px;
     padding: 0 10px;
     border-radius: var(--radius-md);
-    font-size: 12px;
+    font-size: var(--small-font);
     border: 1px solid ${(p) => (p.$danger ? 'var(--danger-color)' : 'var(--light-gray-color)')};
     background: var(--white-color);
     color: ${(p) => (p.$danger ? 'var(--danger-color)' : 'var(--dark-gray-color)')};
@@ -307,7 +307,7 @@ const StyledSuccessRow = styled.p`
     border-radius: var(--radius-md);
     background: var(--success-bg);
     color: var(--success-color);
-    font-size: 13px;
+    font-size: var(--medium-font);
 `;
 
 const StyledModalBody = styled.div`
@@ -316,7 +316,7 @@ const StyledModalBody = styled.div`
 
 const StyledErrorText = styled.p`
     margin: 0;
-    font-size: 13px;
+    font-size: var(--medium-font);
     color: var(--danger-color);
     line-height: 1.5;
 `;
@@ -332,7 +332,7 @@ const StyledActiveRow = styled.div`
 `;
 
 const StyledActiveBadge = styled.span`
-    font-size: 12px;
+    font-size: var(--small-font);
     font-weight: 600;
     color: var(--success-color);
     background: var(--success-bg);
@@ -341,7 +341,7 @@ const StyledActiveBadge = styled.span`
 `;
 
 const StyledLastSync = styled.span`
-    font-size: 12px;
+    font-size: var(--small-font);
     color: var(--dark-gray-color2);
     flex: 1;
 `;
@@ -356,7 +356,7 @@ const StyledGuideList = styled.ol`
 `;
 
 const StyledGuideItem = styled.li`
-    font-size: 14px;
+    font-size: var(--font);
     color: var(--dark-gray-color);
     line-height: 1.6;
 `;

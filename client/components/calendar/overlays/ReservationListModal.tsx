@@ -228,7 +228,7 @@ const StyledEmpty = styled.div`
     align-items: center;
     justify-content: center;
     padding: 24px;
-    font-size: 13px;
+    font-size: var(--medium-font);
     color: var(--dark-gray-color2);
 `;
 
@@ -262,7 +262,7 @@ const StyledDateTitle = styled.div`
     padding: 0 12px;
     border: 1px solid rgba(148, 163, 184, 0.18);
     border-radius: 999px;
-    font-size: 12px;
+    font-size: var(--small-font);
     font-weight: 700;
     color: #111;
     letter-spacing: -0.01em;
@@ -274,7 +274,7 @@ const StyledItem = styled.li``;
 
 const StyledFooterSummary = styled.div`
     margin-right: auto;
-    font-size: 12px;
+    font-size: var(--small-font);
     font-weight: 600;
     color: var(--dark-gray-color2);
 `;

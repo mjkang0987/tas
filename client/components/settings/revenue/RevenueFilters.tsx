@@ -200,14 +200,14 @@ const StyledRangeInputWrap = styled.label`
     display: flex;
     flex-direction: column;
     gap: 4px;
-    font-size: 11px;
+    font-size: var(--xsmall-font);
     color: var(--dark-gray-color2);
 `;
 
 const StyledRangeDivider = styled.span`
     flex-shrink: 0;
     padding-bottom: 6px;
-    font-size: 12px;
+    font-size: var(--small-font);
     color: var(--dark-gray-color2);
 
     @media (max-width: 640px) {
@@ -284,7 +284,7 @@ const StyledInfoButton = styled.button`
     border: 1px solid var(--light-gray-color);
     border-radius: 50%;
     background: var(--white-color);
-    font-size: 11px;
+    font-size: var(--xsmall-font);
     font-weight: 700;
     color: var(--dark-gray-color2);
 `;
@@ -294,7 +294,7 @@ const StyledCriteriaHint = styled.p`
     padding: 6px 8px;
     border-radius: 8px;
     background: #f6f8fc;
-    font-size: 11px;
+    font-size: var(--xsmall-font);
     color: var(--dark-gray-color2);
     line-height: 1.45;
 `;

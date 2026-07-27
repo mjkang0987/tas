@@ -545,7 +545,7 @@ const StyledSessionExpiredToast = styled.div`
     border-radius: 10px;
     background: var(--toast-bg);
     color: var(--white-color);
-    font-size: 13px;
+    font-size: var(--medium-font);
     box-shadow: var(--modal-shadow);
     z-index: 10000;
     white-space: nowrap;
@@ -566,7 +566,7 @@ const StyledSessionExpiredClose = styled.button`
     border: none;
     background: none;
     color: var(--muted-text);
-    font-size: 14px;
+    font-size: var(--font);
     line-height: 1;
 `;
 

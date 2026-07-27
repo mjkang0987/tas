@@ -29,6 +29,8 @@ export interface BookingSettings {
     minLeadMinutes: number;
     maxAdvanceDays: number;
     allowAssigneeChoice: boolean;
+    // 고객 문의·개인정보 열람/삭제 요구 접수용 매장 연락처(숫자만 저장). 온라인예약 사용 시 필수.
+    contactTel: string | null;
     noticeText: string | null;
     // 안내문 다국어(오너 입력, {en?,ja?,zh?}). 없으면 noticeText 폴백. 공개 페이지 표시용.
     noticeI18n?: {en?: string | null; ja?: string | null; zh?: string | null} | null;
@@ -44,11 +46,21 @@ export interface BookingSettings {
     bookableServiceNames: string[] | null;
 }
 
+// 예약 흐름 4단계 기본 안내문구. 오너가 비워둔 채 시작하지 않도록 설정 화면에 미리 채워 넣는다
+// (placeholder 예시가 아니라 실제 값 — 그대로 저장하면 고객에게 그대로 나간다).
+export const DEFAULT_BOOKING_TEXTS = {
+    noticeText: '예약 신청 후 매장 확인을 거쳐 확정됩니다. 확정 결과는 예약 조회 페이지에서 확인하실 수 있습니다.',
+    doneText: '예약 신청이 접수되었습니다. 매장 확인 후 확정되며, 결과는 예약 조회 페이지에서 확인하실 수 있습니다.',
+    confirmText: '예약이 확정되었습니다. 예약 시간에 맞춰 방문해 주세요. 변경이나 취소가 필요하시면 이 페이지에서 요청해 주세요.',
+    cancelText: '예약이 취소되었습니다. 다시 예약을 원하시면 예약 페이지에서 새로 신청해 주세요.',
+} as const;
+
 export const DEFAULT_BOOKING_SETTINGS: BookingSettings = {
     slotIntervalMin: 30,
     minLeadMinutes: 60,
     maxAdvanceDays: 30,
     allowAssigneeChoice: true,
+    contactTel: null,
     noticeText: null,
     noticeI18n: null,
     doneText: null,

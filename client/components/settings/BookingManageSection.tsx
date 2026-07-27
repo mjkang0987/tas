@@ -1,71 +1,20 @@
 import {useEffect, useMemo, useState} from 'react';
 
-import styled from 'styled-components';
+import styled, {css} from 'styled-components';
+
+import {formControlStyle} from '../ui/FormControls';
 
 import {useToastStore} from '../../store/toastStore';
 import {useCalendarStore} from '../../store/calendarStore';
-import {DEFAULT_BOOKING_SETTINGS, isValidBookingSlug} from '../../features/store-settings/model';
+import {DEFAULT_BOOKING_SETTINGS, DEFAULT_BOOKING_TEXTS, isValidBookingSlug} from '../../features/store-settings/model';
 import type {BookingSettings} from '../../features/store-settings/model';
 import {BOOKING_HOST} from '../../features/booking/routing';
 import {buildServiceColorMap} from '../../utils/services';
 import {ServiceChipList} from '../ui/ServiceChip';
 import {StyledSettingsCard, StyledSettingsCardTitle, StyledSettingsHint, StyledSaveBtn} from './settings-styles';
+import {LocalizedMessageField} from '../ui/LocalizedMessageField';
 
 const SLOT_OPTIONS = [10, 15, 20, 30, 60];
-
-type MessageI18n = {en?: string | null; ja?: string | null; zh?: string | null} | null | undefined;
-const MESSAGE_LANGS = [['en', 'English'], ['ja', '日本語'], ['zh', '中文']] as const;
-
-// 오너 입력 문구 1개 = 한국어 본문 + 언어별(영/일/중) 번역 입력. 예약 안내문구 4종이 공통으로 쓴다.
-// 언어칸을 비우면 해당 키를 지워, 완전히 비면 i18n을 null로(한국어 폴백) 유지한다.
-function LocalizedMessageField({
-    idBase, label, caption, placeholder, mainValue, i18nValue, disabled, onMainChange, onI18nChange,
-}: {
-    idBase: string;
-    label: string;
-    caption: string;
-    placeholder: string;
-    mainValue: string;
-    i18nValue: MessageI18n;
-    disabled: boolean;
-    onMainChange: (value: string) => void;
-    onI18nChange: (next: {en?: string | null; ja?: string | null; zh?: string | null} | null) => void;
-}) {
-    const setLangValue = (code: 'en' | 'ja' | 'zh', value: string) => {
-        const next = {...(i18nValue ?? {})};
-        if (value.trim()) next[code] = value; else delete next[code];
-        onI18nChange(Object.keys(next).length > 0 ? next : null);
-    };
-    return (
-        <StyledMessageBlock>
-            <StyledField>
-                <StyledLabel htmlFor={`${idBase}-ko`}>{label}</StyledLabel>
-                <StyledFieldCaption>{caption}</StyledFieldCaption>
-                <StyledTextarea
-                    id={`${idBase}-ko`}
-                    value={mainValue}
-                    placeholder={placeholder}
-                    onChange={(e) => onMainChange(e.target.value)}
-                    disabled={disabled}
-                    rows={3}
-                />
-            </StyledField>
-            {MESSAGE_LANGS.map(([code, langLabel]) => (
-                <StyledField key={code}>
-                    <StyledLabel htmlFor={`${idBase}-${code}`}>{langLabel}</StyledLabel>
-                    <StyledTextarea
-                        id={`${idBase}-${code}`}
-                        value={i18nValue?.[code] ?? ''}
-                        placeholder={langLabel}
-                        onChange={(e) => setLangValue(code, e.target.value)}
-                        disabled={disabled}
-                        rows={2}
-                    />
-                </StyledField>
-            ))}
-        </StyledMessageBlock>
-    );
-}
 
 export function BookingManageSection() {
     const toast = useToastStore((s) => s.show);
@@ -91,7 +40,18 @@ export function BookingManageSection() {
             .then((data) => {
                 if (!alive) return;
                 setSlug(typeof data.bookingSlug === 'string' ? data.bookingSlug : '');
-                if (data.bookingSettings) setSettings(data.bookingSettings);
+                if (data.bookingSettings) {
+                    // 안내문구는 비어 있으면 기본 문구로 채워 보여준다 — 오너가 빈 칸을 마주하지 않게.
+                    // 그대로 저장하면 그 문구가 고객에게 나가고, 고치면 고친 값이 나간다.
+                    const bs = data.bookingSettings as BookingSettings;
+                    setSettings({
+                        ...bs,
+                        noticeText: bs.noticeText ?? DEFAULT_BOOKING_TEXTS.noticeText,
+                        doneText: bs.doneText ?? DEFAULT_BOOKING_TEXTS.doneText,
+                        confirmText: bs.confirmText ?? DEFAULT_BOOKING_TEXTS.confirmText,
+                        cancelText: bs.cancelText ?? DEFAULT_BOOKING_TEXTS.cancelText,
+                    });
+                }
             })
             .catch(() => {})
             .finally(() => alive && setLoading(false));
@@ -104,6 +64,13 @@ export function BookingManageSection() {
     // 이 화면은 온라인 예약 ON일 때만 노출되므로 영문 매장명은 필수.
     const slugValid = !slugEmpty && !slugFormatInvalid;
     const publicUrl = `https://${BOOKING_HOST}/${trimmedSlug || '(영문 매장명 미설정)'}`;
+
+    // 매장 연락처 — 고객이 문의·개인정보 열람/삭제를 요구할 창구라 필수(서버도 동일하게 검증).
+    // 입력한 그대로 저장·표시한다(지역번호·대표번호는 자릿수 규칙이 달라 재포맷하면 깨진다).
+    const contactRaw = (settings.contactTel ?? '').trim();
+    const contactEmpty = contactRaw === '';
+    const contactFormatInvalid = !contactEmpty && !/^[0-9+\-()\s]{8,20}$/.test(contactRaw);
+    const contactValid = !contactEmpty && !contactFormatInvalid;
 
     const onSlugChange = (value: string) => {
         setSlug(value);
@@ -134,6 +101,14 @@ export function BookingManageSection() {
         }
         if (!slugValid) {
             toast('영문 매장명 형식이 올바르지 않습니다.');
+            return;
+        }
+        if (contactEmpty) {
+            toast('매장 연락처는 필수입니다.');
+            return;
+        }
+        if (contactFormatInvalid) {
+            toast('매장 연락처 형식이 올바르지 않습니다.');
             return;
         }
         setSaving(true);
@@ -207,6 +182,24 @@ export function BookingManageSection() {
                     {!slugFormatInvalid && checkState === 'taken' && <StyledError>이미 사용 중인 주소입니다. 다른 값을 입력해 주세요. ✗</StyledError>}
                     {!slugFormatInvalid && checkState === 'invalid' && <StyledError>형식을 확인해 주세요.</StyledError>}
                 </StyledField>
+                <StyledField>
+                    <StyledLabel htmlFor="booking-contact">매장 연락처 <StyledRequired>필수</StyledRequired></StyledLabel>
+                    <StyledFieldCaption>
+                        고객이 예약 문의와 개인정보 열람·삭제를 요구할 창구입니다. 예약 페이지와 개인정보 안내에 표시됩니다.
+                    </StyledFieldCaption>
+                    <StyledInput
+                        id="booking-contact"
+                        type="tel"
+                        inputMode="numeric"
+                        value={settings.contactTel ?? ''}
+                        placeholder="02-1234-5678"
+                        onChange={(e) => setSettings((prev) => ({...prev, contactTel: e.target.value}))}
+                        disabled={loading}
+                        $invalid={contactFormatInvalid}
+                    />
+                    {contactFormatInvalid && <StyledError>숫자와 하이픈만 8~20자로 입력해 주세요.</StyledError>}
+                    {contactValid && <StyledOk>고객에게 {contactRaw} 로 표시됩니다.</StyledOk>}
+                </StyledField>
                 <StyledUrlPreview>공개 주소: <strong>{publicUrl}</strong></StyledUrlPreview>
                 {slugValid && (
                     <StyledPreviewLink href={`/book/${trimmedSlug}`} target="_blank" rel="noopener noreferrer">
@@ -266,12 +259,12 @@ export function BookingManageSection() {
 
             <StyledSettingsCard>
                 <StyledSettingsCardTitle>안내문구</StyledSettingsCardTitle>
-                <StyledSettingsHint>예약 흐름의 각 단계에서 고객에게 보여줄 문구입니다. 모두 선택 사항이며, 비우면 표시되지 않습니다. 언어별 칸을 비우면 한국어 문구가 그대로 표시됩니다.</StyledSettingsHint>
+                <StyledSettingsHint>예약 흐름의 각 단계에서 고객에게 보여줄 문구입니다. 기본 문구가 채워져 있으니 그대로 쓰시거나 매장에 맞게 고쳐 주세요. 비우면 표시되지 않습니다. 언어별 칸을 비우면 한국어 문구가 그대로 표시됩니다.</StyledSettingsHint>
                 <LocalizedMessageField
                     idBase="booking-notice"
                     label="사전 안내문"
                     caption="예약 페이지 상단(예약 시작 전)에 표시됩니다."
-                    placeholder="예) 예약 확정은 매장 확인 후 안내됩니다."
+                    placeholder={DEFAULT_BOOKING_TEXTS.noticeText}
                     mainValue={settings.noticeText ?? ''}
                     i18nValue={settings.noticeI18n}
                     disabled={loading}
@@ -282,7 +275,7 @@ export function BookingManageSection() {
                     idBase="booking-done"
                     label="예약완료 안내문"
                     caption="고객이 예약을 신청하고 완료 화면에서 표시됩니다."
-                    placeholder="예) 예약 신청이 접수되었습니다. 확정 시 다시 안내드립니다."
+                    placeholder={DEFAULT_BOOKING_TEXTS.doneText}
                     mainValue={settings.doneText ?? ''}
                     i18nValue={settings.doneI18n}
                     disabled={loading}
@@ -293,7 +286,7 @@ export function BookingManageSection() {
                     idBase="booking-confirm"
                     label="예약 확정 안내문"
                     caption="예약이 확정된 뒤 고객이 예약 조회 페이지를 열면 표시됩니다."
-                    placeholder="예) 예약이 확정되었습니다. 예약 시간에 맞춰 방문해 주세요."
+                    placeholder={DEFAULT_BOOKING_TEXTS.confirmText}
                     mainValue={settings.confirmText ?? ''}
                     i18nValue={settings.confirmI18n}
                     disabled={loading}
@@ -304,7 +297,7 @@ export function BookingManageSection() {
                     idBase="booking-cancel"
                     label="예약 취소 안내문"
                     caption="예약이 취소된 뒤 고객이 예약 조회 페이지를 열면 표시됩니다."
-                    placeholder="예) 예약이 취소되었습니다. 다시 예약해 주세요."
+                    placeholder={DEFAULT_BOOKING_TEXTS.cancelText}
                     mainValue={settings.cancelText ?? ''}
                     i18nValue={settings.cancelI18n}
                     disabled={loading}
@@ -335,7 +328,7 @@ export function BookingManageSection() {
             )}
 
             <StyledFooter>
-                <StyledSaveBtn type="button" onClick={handleSave} disabled={saving || loading || !slugValid}>
+                <StyledSaveBtn type="button" onClick={handleSave} disabled={saving || loading || !slugValid || !contactValid}>
                     {saving ? '저장 중...' : '저장'}
                 </StyledSaveBtn>
             </StyledFooter>
@@ -346,14 +339,14 @@ export function BookingManageSection() {
 const StyledSectionHeading = styled.strong`
     display: block;
     margin: 0;
-    font-size: 15px;
+    font-size: var(--large-font);
     font-weight: 700;
     color: var(--black-color);
 `;
 
 const StyledSectionSub = styled.p`
     margin: 4px 0 16px;
-    font-size: 13px;
+    font-size: var(--medium-font);
     line-height: 1.5;
     color: var(--dark-gray-color2);
 `;
@@ -366,7 +359,7 @@ const StyledField = styled.div`
 `;
 
 const StyledLabel = styled.label`
-    font-size: 13px;
+    font-size: var(--medium-font);
     font-weight: 600;
     color: var(--dark-gray-color);
 `;
@@ -383,28 +376,37 @@ const StyledMessageBlock = styled.div`
     }
 `;
 
+// 필수 항목 배지. 매장 연락처는 고객의 개인정보 열람·삭제 요구 창구라 비워둘 수 없다.
+const StyledRequired = styled.span`
+    margin-left: 6px;
+    padding: 1px 6px;
+    border-radius: var(--radius-sm);
+    background: var(--danger-color);
+    color: var(--white-color);
+    font-size: var(--xsmall-font);
+    font-weight: 600;
+    vertical-align: middle;
+`;
+
 const StyledFieldCaption = styled.span`
-    font-size: 12px;
+    font-size: var(--small-font);
     line-height: 1.5;
     color: var(--dark-gray-color2);
 `;
 
+// 공통 폼 스타일(포커스 링·비활성·트랜지션·라운드 토큰)을 깔고, 이 화면의 큰 입력 크기만 덮어쓴다.
 const StyledInput = styled.input<{$invalid?: boolean}>`
+    ${formControlStyle};
     width: 100%;
     height: 42px;
     padding: 0 12px;
-    border: 1px solid ${(p) => (p.$invalid ? 'var(--red-color, #e5484d)' : 'var(--light-gray-color)')};
-    border-radius: 8px;
-    font-size: 14px;
+    font-size: var(--font);
     color: var(--black-color);
-    background: var(--white-color);
-    box-sizing: border-box;
-
-    &:focus { outline: none; border-color: var(--blue-color); }
+    ${(p) => p.$invalid && css`border-color: var(--danger-color);`}
 `;
 
 const StyledReq = styled.span`
-    font-size: 11px;
+    font-size: var(--xsmall-font);
     font-weight: 600;
     color: var(--brand-color);
 `;
@@ -422,10 +424,10 @@ const StyledCheckBtn = styled.button`
     height: 42px;
     padding: 0 14px;
     border: 1px solid var(--blue-color);
-    border-radius: 8px;
+    border-radius: var(--radius-md);
     background: var(--white-color);
     color: var(--blue-color);
-    font-size: 13px;
+    font-size: var(--medium-font);
     font-weight: 600;
     cursor: pointer;
     white-space: nowrap;
@@ -434,38 +436,28 @@ const StyledCheckBtn = styled.button`
 `;
 
 const StyledOk = styled.span`
-    font-size: 12px;
-    color: var(--green-color, #16a34a);
+    font-size: var(--small-font);
+    color: var(--success-color);
 `;
 
 const StyledFullSelect = styled.select`
+    ${formControlStyle};
     width: 100%;
     height: 42px;
     padding: 0 12px;
-    border: 1px solid var(--light-gray-color);
-    border-radius: 8px;
-    font-size: 14px;
+    font-size: var(--font);
     color: var(--black-color);
-    background: var(--white-color);
-    box-sizing: border-box;
     cursor: pointer;
-
-    &:focus { outline: none; border-color: var(--blue-color); }
 `;
 
 const StyledTextarea = styled.textarea`
+    ${formControlStyle};
     width: 100%;
+    height: auto;
     padding: 10px 12px;
-    border: 1px solid var(--light-gray-color);
-    border-radius: 8px;
-    font-size: 14px;
-    font-family: inherit;
+    font-size: var(--font);
     color: var(--black-color);
-    background: var(--white-color);
-    box-sizing: border-box;
     resize: none;
-
-    &:focus { outline: none; border-color: var(--blue-color); }
 `;
 
 const StyledCheckboxRow = styled.label`
@@ -473,7 +465,7 @@ const StyledCheckboxRow = styled.label`
     align-items: center;
     gap: 8px;
     margin-top: 16px;
-    font-size: 14px;
+    font-size: var(--font);
     color: var(--dark-gray-color);
     cursor: pointer;
 `;
@@ -489,19 +481,19 @@ const StyledServiceCheckRow = styled.label`
     display: flex;
     align-items: center;
     gap: 8px;
-    font-size: 14px;
+    font-size: var(--font);
     color: var(--dark-gray-color);
     cursor: pointer;
 `;
 
 const StyledError = styled.span`
-    font-size: 12px;
-    color: var(--red-color, #e5484d);
+    font-size: var(--small-font);
+    color: var(--danger-color);
 `;
 
 const StyledUrlPreview = styled.p`
     margin: 14px 0 0;
-    font-size: 13px;
+    font-size: var(--medium-font);
     color: var(--dark-gray-color2);
     word-break: break-all;
 `;
@@ -518,7 +510,7 @@ const StyledPreviewLink = styled.a`
     border-radius: var(--radius-md);
     background: var(--brand-color-bg);
     color: var(--brand-color);
-    font-size: 12px;
+    font-size: var(--small-font);
     font-weight: 700;
     text-decoration: none;
 `;

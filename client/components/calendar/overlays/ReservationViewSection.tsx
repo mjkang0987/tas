@@ -186,14 +186,14 @@ const StyledDetailList = styled.dl`
 `;
 
 const StyledTerm = styled.dt`
-    font-size: 13px;
+    font-size: var(--medium-font);
     color: var(--dark-gray-color);
     font-weight: 500;
 `;
 
 const StyledDesc = styled.dd`
     margin: 0;
-    font-size: 13px;
+    font-size: var(--medium-font);
 `;
 
 const StyledTelLink = styled.a`
@@ -212,7 +212,7 @@ const StyledCustomerButton = styled.button`
     border: none;
     background: none;
     padding: 0;
-    font-size: 13px;
+    font-size: var(--medium-font);
     color: #4285F4;
 
     @media (hover: hover) and (pointer: fine) {
@@ -251,7 +251,7 @@ const StyledBookingNotice = styled.p`
     border-radius: 8px;
     background: rgba(3, 199, 90, 0.08);
     color: #0f5132;
-    font-size: 12px;
+    font-size: var(--small-font);
     line-height: 1.45;
     word-break: keep-all;
 `;
@@ -264,7 +264,7 @@ const StyledMemoTag = styled.span<{ $color: string }>`
     border-radius: 999px;
     background-color: ${(props) => props.$color};
     color: #fff;
-    font-size: 11px;
+    font-size: var(--xsmall-font);
     font-weight: 600;
 `;
 
@@ -276,7 +276,7 @@ const StyledNaverDepositLine = styled.div`
     border-radius: 6px;
     background: #f0faf4;
     border: 1px solid #d4edda;
-    font-size: 12px;
+    font-size: var(--small-font);
     font-weight: 600;
     color: #333;
 `;
@@ -290,7 +290,7 @@ const StyledChannelTag = styled(LabelBadge).attrs({
     $shape: 'soft',
     $size: 'sm',
 })`
-    font-size: 10px;
+    font-size: var(--tiny-font);
 `;
 
 
@@ -306,7 +306,7 @@ const StyledHistoryButton = styled.button`
     border: 1px solid var(--light-gray-color);
     border-radius: 6px;
     background: var(--white-color);
-    font-size: 12px;
+    font-size: var(--small-font);
     font-weight: 600;
     color: var(--dark-gray-color);
     text-align: left;
@@ -314,7 +314,7 @@ const StyledHistoryButton = styled.button`
     &::after {
         content: "\\203A";
         float: right;
-        font-size: 16px;
+        font-size: var(--large-font);
         line-height: 1;
         color: var(--gray-color);
     }

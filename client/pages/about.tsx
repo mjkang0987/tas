@@ -88,14 +88,14 @@ const StyledBrandLogo = styled.img`
 
 const StyledTagline = styled.p`
     margin: 0;
-    font-size: 18px;
+    font-size: var(--big-font);
     font-weight: 700;
     color: var(--black-color);
 `;
 
 const StyledLead = styled.p`
     margin: 0;
-    font-size: 14px;
+    font-size: var(--font);
     line-height: 1.7;
     color: var(--dark-gray-color2);
     max-width: 460px;
@@ -120,14 +120,14 @@ const StyledFeatureCard = styled.div`
 
 const StyledFeatureTitle = styled.h2`
     margin: 0 0 6px;
-    font-size: 15px;
+    font-size: var(--large-font);
     font-weight: 700;
     color: var(--black-color);
 `;
 
 const StyledFeatureDesc = styled.p`
     margin: 0;
-    font-size: 13px;
+    font-size: var(--medium-font);
     line-height: 1.6;
     color: var(--dark-gray-color2);
 `;
@@ -145,7 +145,7 @@ const StyledCtaLink = styled(Link)`
     border-radius: 8px;
     background: var(--brand-color);
     color: var(--white-color);
-    font-size: 15px;
+    font-size: var(--large-font);
     font-weight: 600;
     text-decoration: none;
 `;
@@ -159,7 +159,7 @@ const StyledFooter = styled.footer`
 `;
 
 const StyledFooterLink = styled(Link)`
-    font-size: 13px;
+    font-size: var(--medium-font);
     color: var(--dark-gray-color2);
     text-decoration: none;
 `;

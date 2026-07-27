@@ -25,19 +25,19 @@ export const StyledRestoreList = styled.dl`
 `;
 
 export const StyledRestoreTerm = styled.dt`
-    font-size: 13px;
+    font-size: var(--medium-font);
     color: var(--dark-gray-color);
     font-weight: 500;
 `;
 
 export const StyledRestoreDesc = styled.dd`
     margin: 0;
-    font-size: 13px;
+    font-size: var(--medium-font);
 `;
 
 export const StyledRestoreMessage = styled.p`
     margin: 0 0 16px;
-    font-size: 14px;
+    font-size: var(--font);
     font-weight: 600;
     color: var(--blue-color);
 `;

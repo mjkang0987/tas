@@ -61,6 +61,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                     minLeadMinutes: bs.minLeadMinutes,
                     maxAdvanceDays: bs.maxAdvanceDays,
                     allowAssigneeChoice: bs.allowAssigneeChoice,
+                    contactTel: bs.contactTel,
                     noticeText: bs.noticeText,
                     noticeI18n: parseI18nText(bs.noticeI18nJson),
                     doneText: bs.doneText,
@@ -228,15 +229,35 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                 || typeof b.allowAssigneeChoice !== 'boolean'
                 || !okText(b.noticeText)
                 || !okText(b.doneText) || !okText(b.confirmText) || !okText(b.cancelText)
+                || !okText(b.contactTel)
                 || !okServiceNames
             ) {
                 return res.status(400).json({error: 'Invalid bookingSettings'});
+            }
+
+            // 매장 연락처 — 고객이 개인정보 열람·삭제를 요구할 창구라 온라인 예약 사용 시 필수.
+            // 정책 문서와 예약 페이지가 이 번호를 노출하므로, 비어 있으면 "매장에 연락하세요"가 공허해진다.
+            //
+            // 고객 tel과 달리 정규화하지 않고 **오너가 입력한 그대로** 저장한다. 매칭·중복검사에 쓰지 않는
+            // 표시 전용 값이고, 매장 번호는 지역번호(02-1234-5678)·대표번호(1588-0000)처럼 자릿수 규칙이
+            // 제각각이라 휴대폰용 formatTel(3-4-4)로 재조립하면 02 번호가 021-234-5678 로 깨진다.
+            const contactTel = typeof b.contactTel === 'string' ? b.contactTel.trim() : '';
+            if (contactTel && !/^[0-9+\-()\s]{8,20}$/.test(contactTel)) {
+                return res.status(400).json({error: 'Invalid contactTel', reason: 'format'});
+            }
+            // 이번 요청 후의 온라인예약 상태로 판정(요청에 없으면 현재 값 유지).
+            const bookingWillBeOn = useOnlineBooking !== undefined
+                ? useOnlineBooking === true
+                : (await prisma.store.findUnique({where: {id: session.storeId}, select: {useOnlineBooking: true}}))?.useOnlineBooking === true;
+            if (bookingWillBeOn && !contactTel) {
+                return res.status(400).json({error: 'contactTel required', reason: 'required'});
             }
             nextBooking = {
                 slotIntervalMin: b.slotIntervalMin!,
                 minLeadMinutes: b.minLeadMinutes!,
                 maxAdvanceDays: b.maxAdvanceDays!,
                 allowAssigneeChoice: b.allowAssigneeChoice,
+                contactTel: contactTel || null,
                 noticeText: (b.noticeText ?? null) as string | null,
                 noticeI18n: parseI18nText(b.noticeI18n),
                 doneText: (b.doneText ?? null) as string | null,

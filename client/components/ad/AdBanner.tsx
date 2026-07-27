@@ -68,7 +68,7 @@ const StyledPlaceholder = styled.div`
     border-radius: var(--radius-md, 6px);
     background-color: rgba(0, 0, 0, 0.03);
     color: var(--gray-color, #999);
-    font-size: 11px;
+    font-size: var(--xsmall-font);
     font-weight: 600;
     letter-spacing: 1px;
 `;

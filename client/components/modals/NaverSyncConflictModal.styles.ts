@@ -8,7 +8,7 @@ export const StyledConfirmOverlay = styled(StyledOverlay)`
 `;
 
 export const StyledConflictTitle = styled.strong`
-    font-size: 18px;
+    font-size: var(--big-font);
 `;
 
 export const StyledCustomerValue = styled.span`
@@ -42,7 +42,7 @@ export const StyledResolvedNotice = styled.div`
     background: rgba(220, 38, 38, 0.06);
     border: 1px solid rgba(220, 38, 38, 0.2);
     color: #991b1b;
-    font-size: 12px;
+    font-size: var(--small-font);
     line-height: 1.5;
     word-break: keep-all;
 
@@ -77,7 +77,7 @@ export const StyledGuideNotice = styled.p`
     border-radius: 8px;
     background: rgba(3, 199, 90, 0.08);
     color: #0f5132;
-    font-size: 12px;
+    font-size: var(--small-font);
     line-height: 1.45;
     word-break: keep-all;
 `;
@@ -126,14 +126,14 @@ export const StyledReservationDl = styled.dl`
     margin: 0;
 
     dt {
-        font-size: 13px;
+        font-size: var(--medium-font);
         color: var(--dark-gray-color);
         font-weight: 500;
     }
 
     dd {
         margin: 0;
-        font-size: 13px;
+        font-size: var(--medium-font);
     }
 `;
 
@@ -141,7 +141,7 @@ export const StyledFieldLabel = styled.dt`
     display: inline-flex;
     align-items: center;
     gap: 6px;
-    font-size: 13px;
+    font-size: var(--medium-font);
     color: var(--dark-gray-color);
     font-weight: 500;
 `;
@@ -151,7 +151,7 @@ export const StyledInlineConflictBadge = styled(LabelBadge).attrs({
     $shape: 'soft',
     $size: 'sm',
 })`
-    font-size: 10px;
+    font-size: var(--tiny-font);
 `;
 
 export const StyledDangerTime = styled.span`
@@ -168,7 +168,7 @@ export const StyledDangerTimeRow = styled.span`
 export const StyledChangedTag = styled.span`
     color: var(--danger-color);
     font-weight: 700;
-    font-size: 11px;
+    font-size: var(--xsmall-font);
 `;
 
 export const StyledCancelledWrapper = styled.div<{ $cancelled: boolean }>`
@@ -217,7 +217,7 @@ export const StyledUnresolvedDialog = styled.div`
 
 export const StyledUnresolvedMessage = styled.p`
     margin: 0 0 16px;
-    font-size: 13px;
+    font-size: var(--medium-font);
     font-weight: 600;
     color: var(--black-color);
     text-align: center;
@@ -244,7 +244,7 @@ export const StyledConflictBadges = styled.div`
 `;
 
 export const StyledReasonTitle = styled.div`
-    font-size: 13px;
+    font-size: var(--medium-font);
     font-weight: 700;
     color: var(--dark-gray-color);
     margin-bottom: 8px;
@@ -266,7 +266,7 @@ export const StyledReasonOption = styled.label`
     display: flex;
     align-items: center;
     gap: 8px;
-    font-size: 13px;
+    font-size: var(--medium-font);
     color: var(--dark-gray-color);
     cursor: pointer;
 `;
@@ -281,7 +281,7 @@ export const StyledReasonMemo = styled.textarea`
     padding: 8px 10px;
     border: 1px solid var(--border-color);
     border-radius: var(--radius-md);
-    font-size: 13px;
+    font-size: var(--medium-font);
     font-family: inherit;
     resize: vertical;
     box-sizing: border-box;
@@ -302,7 +302,7 @@ export const StyledReasonSummary = styled.div`
     border-radius: var(--radius-md);
     background: var(--info-bg);
     color: var(--dark-gray-color);
-    font-size: 12px;
+    font-size: var(--small-font);
     font-weight: 600;
     line-height: 1.45;
 

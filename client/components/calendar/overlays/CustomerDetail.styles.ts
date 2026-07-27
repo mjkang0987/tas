@@ -30,7 +30,7 @@ export const StyledHeaderActionButton = styled.button<{ $primary?: boolean; $dan
     border-radius: 8px;
     background: ${props => props.$danger ? 'var(--danger-color)' : props.$primary ? 'var(--brand-color)' : 'var(--white-color)'};
     color: ${props => (props.$danger || props.$primary) ? 'var(--white-color)' : 'var(--dark-gray-color)'};
-    font-size: 12px;
+    font-size: var(--small-font);
     font-weight: 600;
 
     &:disabled {
@@ -56,14 +56,14 @@ export const StyledInfoList = styled.dl`
 `;
 
 export const StyledInfoTerm = styled.dt`
-    font-size: 13px;
+    font-size: var(--medium-font);
     color: var(--dark-gray-color);
     font-weight: 500;
 `;
 
 export const StyledInfoDesc = styled.dd`
     margin: 0;
-    font-size: 13px;
+    font-size: var(--medium-font);
 `;
 
 export const StyledTelLink = styled.a`
@@ -93,7 +93,7 @@ export const StyledEditFieldLabel = styled.label`
 `;
 
 export const StyledEditFieldLabelText = styled.span`
-    font-size: 12px;
+    font-size: var(--small-font);
     font-weight: 600;
     color: var(--dark-gray-color);
 `;
@@ -103,11 +103,11 @@ export const StyledEditFieldInput = styled.input`
     padding: 0 10px;
     border: 1px solid var(--light-gray-color);
     border-radius: 8px;
-    font-size: 13px;
+    font-size: var(--medium-font);
 `;
 
 export const StyledPointInfo = styled.div`
-    font-size: 12px;
+    font-size: var(--small-font);
     font-weight: 700;
     color: var(--brand-color);
 `;
@@ -178,7 +178,7 @@ export const StyledNotesSection = styled.div`
 
     h4 {
         margin: 0;
-        font-size: 14px;
+        font-size: var(--font);
         font-weight: 600;
     }
 `;
@@ -195,12 +195,12 @@ export const StyledNoteItem = styled.div`
     gap: 4px;
 
     strong {
-        font-size: 12px;
+        font-size: var(--small-font);
         color: var(--dark-gray-color);
     }
 
     span {
-        font-size: 12px;
+        font-size: var(--small-font);
         color: var(--dark-gray-color2);
         white-space: pre-wrap;
     }
@@ -218,7 +218,7 @@ export const StyledNoteEditor = styled.div`
     }
 
     span {
-        font-size: 12px;
+        font-size: var(--small-font);
         font-weight: 600;
         color: var(--dark-gray-color);
     }
@@ -228,7 +228,7 @@ export const StyledNoteEditor = styled.div`
         padding: 0 10px;
         border: 1px solid var(--light-gray-color);
         border-radius: 8px;
-        font-size: 12px;
+        font-size: var(--small-font);
         font-family: inherit;
     }
 `;
@@ -245,7 +245,7 @@ export const StyledPointHistorySection = styled.div`
 
 export const StyledPointHistoryTitle = styled.h4`
     margin: 0;
-    font-size: 14px;
+    font-size: var(--font);
     font-weight: 600;
 `;
 
@@ -259,7 +259,7 @@ export const StyledPointHistoryHeader = styled.div`
 export const StyledPointHistoryMoreButton = styled.button`
     border: none;
     background: none;
-    font-size: 12px;
+    font-size: var(--small-font);
     color: var(--brand-color);
     font-weight: 600;
     padding: 0;
@@ -289,7 +289,7 @@ export const StyledAddressMemoSection = styled.div`
 
 export const StyledAddressMemoTitle = styled.h4`
     margin: 0;
-    font-size: 14px;
+    font-size: var(--font);
     font-weight: 600;
 `;
 
@@ -316,7 +316,7 @@ export const StyledTagInput = styled.input`
     padding: 0 10px;
     border: 1px solid var(--light-gray-color);
     border-radius: 8px;
-    font-size: 12px;
+    font-size: var(--small-font);
 `;
 
 export const StyledTagAddButton = styled.button`
@@ -326,7 +326,7 @@ export const StyledTagAddButton = styled.button`
     border-radius: 8px;
     background: var(--brand-color);
     color: var(--white-color);
-    font-size: 12px;
+    font-size: var(--small-font);
     font-weight: 600;
     cursor: pointer;
 `;
@@ -340,7 +340,7 @@ export const StyledColorRow = styled.div`
 export const StyledAddressMemoItem = styled(ColorTag)`
     min-height: 24px;
     padding: 3px 7px;
-    font-size: 12px;
+    font-size: var(--small-font);
     gap: 6px;
 `;
 
@@ -348,13 +348,13 @@ export const StyledTagRemoveButton = styled.button`
     border: none;
     background: transparent;
     color: inherit;
-    font-size: 11px;
+    font-size: var(--xsmall-font);
     font-weight: 700;
 `;
 
 export const StyledEditError = styled.p`
     margin: 0;
-    font-size: 12px;
+    font-size: var(--small-font);
     color: var(--danger-color);
 `;
 
@@ -391,12 +391,12 @@ export const StyledPointHistoryTop = styled.div`
 `;
 
 export const StyledPointHistoryType = styled.strong`
-    font-size: 12px;
+    font-size: var(--small-font);
     font-weight: 600;
 `;
 
 export const StyledPointHistoryDelta = styled.span`
-    font-size: 12px;
+    font-size: var(--small-font);
     font-weight: 700;
     color: var(--brand-color);
 `;
@@ -405,13 +405,13 @@ export const StyledPointHistoryMeta = styled.div`
     display: flex;
     flex-wrap: wrap;
     gap: 6px 12px;
-    font-size: 11px;
+    font-size: var(--xsmall-font);
     color: var(--dark-gray-color2);
 `;
 
 export const StyledEmptyText = styled.p`
     margin: 0;
-    font-size: 12px;
+    font-size: var(--small-font);
     color: var(--dark-gray-color2);
 `;
 
@@ -422,7 +422,7 @@ export const StyledReservationScroll = styled.div`
 
 export const StyledReservationTitle = styled.h4`
     margin: 0 0 8px;
-    font-size: 14px;
+    font-size: var(--font);
     font-weight: 600;
 `;
 
@@ -434,7 +434,7 @@ export const StyledMoreButton = styled.button`
     border: 1px solid var(--dark-gray-color2);
     border-radius: 4px;
     background: none;
-    font-size: 13px;
+    font-size: var(--medium-font);
     color: var(--dark-gray-color);
 
     @media (hover: hover) and (pointer: fine) {
@@ -458,7 +458,7 @@ export const StyledUnmergeContent = styled.div`
 
 export const StyledUnmergeMessage = styled.p`
     margin: 0 0 10px;
-    font-size: 13px;
+    font-size: var(--medium-font);
     line-height: 1.5;
     color: var(--dark-gray-color);
     word-break: keep-all;
@@ -482,7 +482,7 @@ export const StyledUnmergeItem = styled.div`
     border: 1px solid var(--light-gray-color);
     border-radius: 8px;
     background: var(--gray-color2);
-    font-size: 12px;
+    font-size: var(--small-font);
 `;
 
 export const StyledUnmergeName = styled.strong`
@@ -496,7 +496,7 @@ export const StyledUnmergeTel = styled.span`
 
 export const StyledUnmergeDate = styled.span`
     margin-left: auto;
-    font-size: 11px;
+    font-size: var(--xsmall-font);
     color: var(--dark-gray-color2);
 `;
 

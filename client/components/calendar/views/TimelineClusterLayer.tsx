@@ -136,7 +136,7 @@ const StyledClusterModal = styled(StyledDetail)`
 
 const StyledClusterSubtitle = styled.p`
     margin: 4px 0 0;
-    font-size: 12px;
+    font-size: var(--small-font);
     color: var(--dark-gray-color2);
 `;
 

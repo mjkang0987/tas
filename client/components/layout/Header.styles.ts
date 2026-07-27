@@ -22,7 +22,7 @@ export const StyledConflictBanner = styled.button`
     background: var(--danger-bg);
     color: var(--danger-color);
     box-shadow: var(--shadow-md);
-    font-size: 12px;
+    font-size: var(--small-font);
     cursor: pointer;
     text-align: left;
     animation: ${conflictSlideIn} 0.18s ease;
@@ -147,7 +147,7 @@ export const StyledMobileAddPill = styled.button`
 `;
 
 export const StyledAsideToggleLabel = styled.span`
-    font-size: 10px;
+    font-size: var(--tiny-font);
     font-weight: 600;
     letter-spacing: 0.02em;
     line-height: 1;
@@ -246,7 +246,7 @@ export const StyledAssigneeFilter = styled.select`
 
     optgroup {
         padding-top: 6px;
-        font-size: 10px;
+        font-size: var(--tiny-font);
         font-weight: 700;
         color: var(--dark-gray-color2);
     }
@@ -352,7 +352,7 @@ export const StyledTokenExpiredToast = styled.div`
     border-radius: 10px;
     background: var(--toast-bg);
     color: var(--white-color);
-    font-size: 13px;
+    font-size: var(--medium-font);
     box-shadow: var(--modal-shadow);
     z-index: 10000;
     white-space: nowrap;
@@ -363,7 +363,7 @@ export const StyledTokenReconnect = styled.button`
     border: none;
     background: none;
     color: var(--link-color-light);
-    font-size: 13px;
+    font-size: var(--medium-font);
     font-weight: 600;
 
     @media (hover: hover) and (pointer: fine) {
@@ -376,6 +376,6 @@ export const StyledTokenClose = styled.button`
     border: none;
     background: none;
     color: var(--muted-text);
-    font-size: 14px;
+    font-size: var(--font);
     line-height: 1;
 `;

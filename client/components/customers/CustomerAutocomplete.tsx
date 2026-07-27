@@ -87,7 +87,7 @@ const StyledAutocomplete = styled.div`
     gap: 4px;
 
     > strong {
-      font-size: 12px;
+      font-size: var(--small-font);
       font-weight: 600;
       color: var(--dark-gray-color);
     }
@@ -98,7 +98,7 @@ const StyledInput = styled.input`
   ${formControlStyle};
   height: 36px;
   padding: 0 10px;
-  font-size: 13px;
+  font-size: var(--medium-font);
   color: var(--black-color);
   width: 100%;
   min-width: 0;
@@ -130,7 +130,7 @@ const StyledSuggestionItem = styled.li`
   justify-content: space-between;
   align-items: center;
   padding: 6px 10px;
-  font-size: 13px;
+  font-size: var(--medium-font);
   cursor: pointer;
 
   &[aria-selected="true"] {
@@ -149,14 +149,14 @@ const StyledSuggestionName = styled.span`
 `;
 
 const StyledSuggestionTel = styled.span`
-  font-size: 12px;
+  font-size: var(--small-font);
   color: var(--dark-gray-color2);
   font-variant-numeric: tabular-nums;
 `;
 
 const StyledNoResult = styled.li`
   padding: 8px 10px;
-  font-size: 12px;
+  font-size: var(--small-font);
   color: var(--gray-color);
   text-align: center;
 `;

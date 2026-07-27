@@ -100,7 +100,7 @@ const StyledGroup = styled.div`
 `;
 
 const StyledCategoryLabel = styled.span`
-    font-size: 11px;
+    font-size: var(--xsmall-font);
     font-weight: 700;
     color: var(--dark-gray-color);
     text-transform: uppercase;

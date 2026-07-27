@@ -188,7 +188,7 @@ const StyledServiceList = styled.div`
 const StyledEmpty = styled.div`
     padding: 20px;
     text-align: center;
-    font-size: 13px;
+    font-size: var(--medium-font);
     color: var(--dark-gray-color2);
     border: 1px dashed var(--light-gray-color);
     border-radius: var(--radius-md);
@@ -201,7 +201,7 @@ const StyledCategoryGroup = styled.div`
 `;
 
 const StyledCategoryName = styled.span`
-    font-size: 11px;
+    font-size: var(--xsmall-font);
     font-weight: 600;
     color: var(--dark-gray-color2);
     padding: 6px 0 2px;
@@ -231,14 +231,14 @@ const StyledNameChip = styled.span<{$color: string}>`
     align-items: center;
     padding: 3px 9px;
     border-radius: 999px;
-    font-size: 12px;
+    font-size: var(--small-font);
     font-weight: 600;
     color: ${(p) => p.$color};
     background-color: ${(p) => `${p.$color}18`};
 `;
 
 const StyledServiceMeta = styled.span`
-    font-size: 11px;
+    font-size: var(--xsmall-font);
     color: var(--dark-gray-color2);
     flex-shrink: 0;
     margin-left: auto;
@@ -254,7 +254,7 @@ const StyledRemoveBtn = styled.button`
     border: none;
     border-radius: 50%;
     background: var(--light-gray-color);
-    font-size: 14px;
+    font-size: var(--font);
     color: var(--dark-gray-color);
     line-height: 1;
     cursor: pointer;

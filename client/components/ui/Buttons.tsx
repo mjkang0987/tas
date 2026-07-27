@@ -51,7 +51,7 @@ const StyledCircleButton = styled.button <Props>`
     background-color: var(--white-color);
     border-radius: 50%;
     box-shadow: var(--shadow-sm);
-    font-size: 14px;
+    font-size: var(--font);
     color: var(--dark-gray-color);
 
     @media (max-width: 640px) {
@@ -83,7 +83,7 @@ const StyledReserveButton = styled.button <Props>`
     border-radius: var(--radius-sm);
     padding: 4px 6px;
     color: ${props => 'var(--dark-gray-color)'};
-    font-size: 11px;
+    font-size: var(--xsmall-font);
     overflow: hidden;
     cursor: pointer;
     box-sizing: border-box;
@@ -201,7 +201,7 @@ const StyledAddButton = styled.button`
     border-radius: 50%;
     background-color: transparent;
     color: var(--gray-color);
-    font-size: 16px;
+    font-size: var(--large-font);
     line-height: 1;
 
     @media (hover: hover) and (pointer: fine) {

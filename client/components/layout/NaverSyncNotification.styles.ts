@@ -44,7 +44,7 @@ export const StyledBadge = styled.span`
     border-radius: 999px;
     color: var(--white-color);
     background: var(--danger-color);
-    font-size: 10px;
+    font-size: var(--tiny-font);
     font-weight: 700;
     line-height: 1;
 `;
@@ -101,7 +101,7 @@ export const StyledSectionLabel = styled.div`
     top: 0;
     z-index: 1;
     padding: 6px 12px;
-    font-size: 11px;
+    font-size: var(--xsmall-font);
     font-weight: 700;
     color: var(--dark-gray-color2);
     letter-spacing: 0.02em;
@@ -216,7 +216,7 @@ export const StyledNaverTag = styled(LabelBadge).attrs({
     $shape: 'soft',
     $size: 'sm',
 })`
-    font-size: 10px;
+    font-size: var(--tiny-font);
 `;
 
 export const StyledCancelTag = styled(LabelBadge).attrs({
@@ -224,7 +224,7 @@ export const StyledCancelTag = styled(LabelBadge).attrs({
     $shape: 'soft',
     $size: 'sm',
 })`
-    font-size: 10px;
+    font-size: var(--tiny-font);
 `;
 
 export const StyledConflictTag = styled(LabelBadge).attrs({
@@ -232,7 +232,7 @@ export const StyledConflictTag = styled(LabelBadge).attrs({
     $shape: 'soft',
     $size: 'sm',
 })`
-    font-size: 10px;
+    font-size: var(--tiny-font);
 `;
 
 export const StyledStatusTag = styled(LabelBadge).attrs<{ $status?: SyncNotification['conflictStatus'] }>((props) => ({
@@ -240,14 +240,14 @@ export const StyledStatusTag = styled(LabelBadge).attrs<{ $status?: SyncNotifica
     $shape: 'soft',
     $size: 'sm',
 }))<{ $status?: SyncNotification['conflictStatus'] }>`
-    font-size: 10px;
+    font-size: var(--tiny-font);
 `;
 
 export const StyledAssigneeMeta = styled.span`
     display: inline-flex;
     align-items: center;
     gap: 6px;
-    font-size: 11px;
+    font-size: var(--xsmall-font);
     color: var(--dark-gray-color2);
 
 `;
