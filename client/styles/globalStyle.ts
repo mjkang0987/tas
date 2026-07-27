@@ -1,4 +1,5 @@
 import {createGlobalStyle} from 'styled-components';
+import {FONT_STACK} from './fontStack';
 
 export const GlobalStyle = createGlobalStyle`
     :root {
@@ -160,8 +161,10 @@ export const GlobalStyle = createGlobalStyle`
 
     body,
     input,
-    button {
-        font-family: "SF Pro AR", "SF Pro Gulf", "SF Pro Display", "SF Pro Icons", "Helvetica Neue", "Helvetica", "Arial", sans-serif
+    button,
+    textarea,
+    select {
+        font-family: ${FONT_STACK};
     }
 
     #__next {
