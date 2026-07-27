@@ -58,7 +58,7 @@ interface BookStoreInfo {
     assignees: BookAssigneeInfo[];
     businessHours: BookBusinessHour[];
     closedDates: string[];
-    settings: {allowAssigneeChoice: boolean; noticeText: string | null; noticeI18n?: I18nText; doneText?: string | null; doneI18n?: I18nText; maxAdvanceDays: number};
+    settings: {allowAssigneeChoice: boolean; contactTel?: string | null; noticeText: string | null; noticeI18n?: I18nText; doneText?: string | null; doneI18n?: I18nText; maxAdvanceDays: number};
     notices: BookNotice[];
 }
 interface ReserveResult {
@@ -644,6 +644,9 @@ export default function BookingPage({bookBase}: BookingPageProps) {
                                 <li>{t.privacyPurpose}</li>
                                 <li>{t.privacyPeriod}</li>
                                 <li>{t.privacyEntrust}</li>
+                                {info?.settings.contactTel && (
+                                    <li>{t.privacyContact}: {info.settings.contactTel}</li>
+                                )}
                             </StyledPrivacyList>
                             <StyledPrivacyLinks>
                                 <StyledPrivacyLink type="button" onClick={() => setPolicyOpen('booking-consent')}>
@@ -711,7 +714,7 @@ export default function BookingPage({bookBase}: BookingPageProps) {
             {policyOpen && (
                 <PolicyViewLayer
                     slug={policyOpen}
-                    vars={{storeName: storeDisplay}}
+                    vars={{storeName: storeDisplay, storeContact: info?.settings.contactTel ?? undefined}}
                     onClose={() => setPolicyOpen(null)}
                 />
             )}

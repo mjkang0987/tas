@@ -37,6 +37,9 @@ export const isPolicySlug = (value: unknown): value is PolicySlug =>
 // 일반 표현으로 폴백한다 — 토큰이 화면에 그대로 노출되는 일이 없어야 한다.
 const POLICY_VAR_FALLBACK = {
     storeName: '예약하신 매장',
+    // 연락처는 매장이 예약 설정에서 등록한다(온라인 예약 사용 시 필수). 미등록 매장(구 데이터)이나
+    // 매장 컨텍스트가 없는 풀페이지에서도 문장이 성립하도록 일반 표현으로 폴백한다.
+    storeContact: '매장에 직접 문의',
 } as const;
 
 export type PolicyVars = Partial<Record<keyof typeof POLICY_VAR_FALLBACK, string>>;

@@ -224,6 +224,7 @@ export interface BookI18n {
     privacyEntrust: string;
     privacyViewConsent: string;
     privacyViewPolicy: string;
+    privacyContact: string;
     summaryHead: string;
     date: string;
     time: string;
@@ -321,6 +322,7 @@ export const BOOK_STRINGS: Record<BookLang, BookI18n> = {
         privacyEntrust: '예약 시스템 운영을 위해 TAS에 처리를 위탁합니다.',
         privacyViewConsent: '수집·이용 안내 전문',
         privacyViewPolicy: '개인정보처리방침',
+        privacyContact: '매장 연락처',
         summaryHead: '예약 내용',
         date: '날짜',
         time: '시간',
@@ -409,6 +411,7 @@ export const BOOK_STRINGS: Record<BookLang, BookI18n> = {
         privacyEntrust: 'Processing is entrusted to TAS for operation of the booking system.',
         privacyViewConsent: 'Full notice',
         privacyViewPolicy: 'Privacy policy',
+        privacyContact: 'Store contact',
         summaryHead: 'Reservation Summary',
         date: 'Date',
         time: 'Time',
@@ -497,6 +500,7 @@ export const BOOK_STRINGS: Record<BookLang, BookI18n> = {
         privacyEntrust: '为运营预约系统，已委托 TAS 处理。',
         privacyViewConsent: '查看告知全文',
         privacyViewPolicy: '隐私政策',
+        privacyContact: '店家联系方式',
         summaryHead: '预约内容',
         date: '日期',
         time: '时间',
@@ -585,6 +589,7 @@ export const BOOK_STRINGS: Record<BookLang, BookI18n> = {
         privacyEntrust: '予約システムの運営のため、TAS に処理を委託しています。',
         privacyViewConsent: 'ご案内の全文',
         privacyViewPolicy: 'プライバシーポリシー',
+        privacyContact: '店舗連絡先',
         summaryHead: '予約内容',
         date: '日付',
         time: '時間',

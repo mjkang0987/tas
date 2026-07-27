@@ -320,6 +320,9 @@ model StoreBookingSettings {
   minLeadMinutes      Int      @default(60)
   maxAdvanceDays      Int      @default(30)
   allowAssigneeChoice Boolean  @default(true)
+  // 고객 문의·개인정보 열람/삭제 요구를 받을 매장 연락처. 온라인 예약 사용 시 필수
+  // (예약 설정 저장 시 서버가 검증). 정책 문서·공개 예약 페이지에 노출된다.
+  contactTel          String?
   noticeText          String?
   // 공개 예약 페이지 안내문 다국어(오너 입력, {en?,ja?,zh?}). 없으면 noticeText 폴백.
   noticeI18nJson      Json?

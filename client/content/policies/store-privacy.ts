@@ -49,7 +49,12 @@ export const STORE_PRIVACY_BODY = `
 <li>삭제 요구</li>
 <li>처리정지 요구</li>
 </ol>
-<p>권리 행사는 <strong>예약하신 매장으로 직접 연락</strong>하여 요청하실 수 있습니다. 매장 연락이 어려우신 경우 수탁자 고객센터(<a href="mailto:takeaseat.cs@gmail.com">takeaseat.cs@gmail.com</a>)로 접수하실 수 있으며, 접수 내용은 해당 매장에 전달됩니다.</p>
+<p>권리 행사는 아래 연락처로 요청하실 수 있습니다.</p>
+<ol>
+<li><strong>매장</strong>: {{storeName}}</li>
+<li><strong>연락처</strong>: {{storeContact}}</li>
+</ol>
+<p>매장 연락이 어려우신 경우 수탁자 고객센터(<a href="mailto:takeaseat.cs@gmail.com">takeaseat.cs@gmail.com</a>)로 접수하실 수 있으며, 접수 내용은 해당 매장에 전달됩니다.</p>
 <h2>제8조 (민감정보의 처리)</h2>
 <p>매장은 온라인 예약을 통해 건강정보 등 민감정보를 수집하지 않습니다. 요청사항 칸에 민감한 개인정보를 입력하지 않으시도록 안내하고 있으며, 그럼에도 포함된 내용은 예약 응대 목적 외로 이용하지 않습니다.</p>
 <h2>제9조 (개인정보의 파기)</h2>

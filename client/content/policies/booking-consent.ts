@@ -44,7 +44,9 @@ export const BOOKING_CONSENT_BODY = `
 <h2>6. 정보주체의 권리와 행사 방법</h2>
 <p>고객께서는 언제든지 본인의 개인정보에 대하여 열람·정정·삭제·처리정지를 요구하실 수 있습니다.</p>
 <ol>
-<li><strong>요청 창구</strong>: 예약하신 매장으로 직접 연락해 주시기 바랍니다. 개인정보의 처리자는 매장입니다.</li>
+<li><strong>요청 창구</strong> — 개인정보의 처리자는 매장이므로 아래로 요청해 주시기 바랍니다.
+<br>매장: {{storeName}}
+<br>연락처: {{storeContact}}</li>
 <li><strong>접수 보조</strong>: 매장 연락이 어려우신 경우 수탁자 고객센터(<a href="mailto:takeaseat.cs@gmail.com">takeaseat.cs@gmail.com</a>)로 접수하실 수 있으며, 접수 내용은 해당 매장에 전달됩니다.</li>
 </ol>
 <h2>7. 안내의 변경</h2>
