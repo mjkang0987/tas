@@ -4,7 +4,7 @@
 
 ---
 
-## 완료(배포 전 확인 대기) — 고객 예약 페이지 경로 이전 (`takeaseat.co.kr/book/[slug]` → `book.takeaseat.co.kr/[slug]`)
+## 완료(운영 반영 확인됨 2026-07-27) — 고객 예약 페이지 경로 이전 (`takeaseat.co.kr/book/[slug]` → `book.takeaseat.co.kr/[slug]`)
 
 > 요청(사용자): 고객예약페이지 path 변경 — `takeaseat.co.kr/book` → `book.takeaseat.co.kr`.
 > 이는 온라인 예약 로드맵의 **Phase 1e(host 분기)** 잔여 항목. 인프라(서브도메인 CNAME→Cloud Run, 200 확인)는 이미 완료돼 있고, **앱 쪽 호스트 분기 배선만 남은 상태**.
@@ -46,9 +46,19 @@
   - 공개 API로 실제 예약 생성 → 관리 페이지 `/myshop/r/{token}` 렌더·언어 전환·새로고침 정상. 예약 조회 결과 링크 href = `/myshop/r/{token}`(서브도메인에 `/book` 미노출).
   - 메인(로컬) 호스트에서는 `/book/myshop` → `/book/ja/myshop`으로 접두 유지. 페이지 에러 0.
 
-### 리스크/주의
-- **Cloudflare Worker의 Host 전달 여부가 유일한 미검증 변수**(plan 1e 메모). Worker가 Host를 run.app으로 바꿔 보내면 미들웨어가 예약 호스트를 인식하지 못한다 → `x-forwarded-host` 우선 조회로 1차 대비, 배포 후 실제 확인 필요.
-- 쿠키 격리: NextAuth 세션 쿠키가 host-only여야 서브도메인에 세션이 안 샌다(배포 후 확인).
+### 배포 결과 (2026-07-27, PR #160 머지)
+- 배포 직후 `book.takeaseat.co.kr/<슬러그>` 404 · 구 경로 200 → **예상했던 "Worker가 Host를 전달하지 않는" 케이스**로 확인(307이 안 걸린 것이 증거). 구 경로가 계속 서비스돼 고객 예약 무중단.
+- 원인: 프록시 CNAME이 `*.run.app`을 가리켜 **`tas-proxy` Worker의 Host 재작성이 필수**(제거 시 Cloud Run이 모르는 Host라며 404 → 사이트 전체 다운). 그 결과 오리진의 `host`는 항상 run.app.
+- 조치(사용자, Cloudflare): Worker에 `req.headers.set("x-forwarded-host", originalHost)` 3줄 추가 → 앱 재배포 없이 즉시 반영. **앱 코드 수정 없음**(미들웨어가 이미 `x-forwarded-host` 우선).
+- 검증: `takeaseat.co.kr/book/<슬러그>` 307 · `book.takeaseat.co.kr/<슬러그>` 200 · 실브라우저에서 예약 페이지·언어 전환(`/en/<슬러그>`)·새로고침 유지 확인.
+- **이 Worker 한 줄은 이제 앱 라우팅의 의존성**이다 → `docs/deployment-runbook.md`에 경고와 함께 코드 전문 기록(누가 Worker를 "정리"하면 예약이 조용히 깨진다).
+
+### 남은 후속
+- **쿠키 격리 확인**: NextAuth 세션 쿠키가 host-only인지(서브도메인에 세션이 안 새는지).
+
+### 후속 아님 (판단 완료)
+- **307 → 308 승격 불필요.** 구 주소(`takeaseat.co.kr/book/*`)는 외부에 공개된 적이 없어(사용자 확인) 검색엔진에 넘길 신호도, 보존할 기배포 링크도 없다. 308의 유일한 이득이 사라지므로 **캐시되지 않는 307을 그대로 유지**한다(되돌릴 여지 확보). 리다이렉트 자체는 같은 페이지가 두 주소로 노출되는 것을 막으므로 남겨둔다.
+- **오너 대상 주소 갱신 안내 불필요** — 같은 이유(구 주소 미공개).
 
 ---
 
