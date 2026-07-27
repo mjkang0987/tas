@@ -33,7 +33,7 @@ const StyledSnsLinkRow = styled.div`
 `;
 
 const StyledSnsLink = styled(Link)`
-    font-size: 12px;
+    font-size: var(--small-font);
     color: var(--blue-color);
     text-decoration: underline;
 `;

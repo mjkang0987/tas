@@ -7,7 +7,7 @@ export const ReservationStatusBadge = styled.span<{ $type: string }>`
     align-items: center;
     padding: 3px 8px;
     border-radius: 4px;
-    font-size: 11px;
+    font-size: var(--xsmall-font);
     font-weight: 600;
     white-space: nowrap;
     flex-shrink: 0;

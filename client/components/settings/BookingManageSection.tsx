@@ -339,14 +339,14 @@ export function BookingManageSection() {
 const StyledSectionHeading = styled.strong`
     display: block;
     margin: 0;
-    font-size: 15px;
+    font-size: var(--large-font);
     font-weight: 700;
     color: var(--black-color);
 `;
 
 const StyledSectionSub = styled.p`
     margin: 4px 0 16px;
-    font-size: 13px;
+    font-size: var(--medium-font);
     line-height: 1.5;
     color: var(--dark-gray-color2);
 `;
@@ -359,7 +359,7 @@ const StyledField = styled.div`
 `;
 
 const StyledLabel = styled.label`
-    font-size: 13px;
+    font-size: var(--medium-font);
     font-weight: 600;
     color: var(--dark-gray-color);
 `;
@@ -389,7 +389,7 @@ const StyledRequired = styled.span`
 `;
 
 const StyledFieldCaption = styled.span`
-    font-size: 12px;
+    font-size: var(--small-font);
     line-height: 1.5;
     color: var(--dark-gray-color2);
 `;
@@ -406,7 +406,7 @@ const StyledInput = styled.input<{$invalid?: boolean}>`
 `;
 
 const StyledReq = styled.span`
-    font-size: 11px;
+    font-size: var(--xsmall-font);
     font-weight: 600;
     color: var(--brand-color);
 `;
@@ -427,7 +427,7 @@ const StyledCheckBtn = styled.button`
     border-radius: var(--radius-md);
     background: var(--white-color);
     color: var(--blue-color);
-    font-size: 13px;
+    font-size: var(--medium-font);
     font-weight: 600;
     cursor: pointer;
     white-space: nowrap;
@@ -436,7 +436,7 @@ const StyledCheckBtn = styled.button`
 `;
 
 const StyledOk = styled.span`
-    font-size: 12px;
+    font-size: var(--small-font);
     color: var(--success-color);
 `;
 
@@ -465,7 +465,7 @@ const StyledCheckboxRow = styled.label`
     align-items: center;
     gap: 8px;
     margin-top: 16px;
-    font-size: 14px;
+    font-size: var(--font);
     color: var(--dark-gray-color);
     cursor: pointer;
 `;
@@ -481,19 +481,19 @@ const StyledServiceCheckRow = styled.label`
     display: flex;
     align-items: center;
     gap: 8px;
-    font-size: 14px;
+    font-size: var(--font);
     color: var(--dark-gray-color);
     cursor: pointer;
 `;
 
 const StyledError = styled.span`
-    font-size: 12px;
+    font-size: var(--small-font);
     color: var(--danger-color);
 `;
 
 const StyledUrlPreview = styled.p`
     margin: 14px 0 0;
-    font-size: 13px;
+    font-size: var(--medium-font);
     color: var(--dark-gray-color2);
     word-break: break-all;
 `;
@@ -510,7 +510,7 @@ const StyledPreviewLink = styled.a`
     border-radius: var(--radius-md);
     background: var(--brand-color-bg);
     color: var(--brand-color);
-    font-size: 12px;
+    font-size: var(--small-font);
     font-weight: 700;
     text-decoration: none;
 `;

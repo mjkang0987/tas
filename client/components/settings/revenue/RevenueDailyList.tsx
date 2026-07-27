@@ -153,13 +153,13 @@ const StyledDate = styled.span`
 `;
 
 const StyledDateMonthDay = styled.span`
-    font-size: 12px;
+    font-size: var(--small-font);
     color: var(--dark-gray-color);
     font-weight: 500;
 `;
 
 const StyledDateYear = styled.span`
-    font-size: 10px;
+    font-size: var(--tiny-font);
     color: var(--dark-gray-color2);
 `;
 
@@ -170,12 +170,12 @@ const StyledDayHeaderRight = styled.div`
 `;
 
 const StyledCount = styled.span`
-    font-size: 12px;
+    font-size: var(--small-font);
     color: var(--dark-gray-color2);
 `;
 
 const StyledDayTotal = styled.strong`
-    font-size: 13px;
+    font-size: var(--medium-font);
     font-weight: 500;
     color: var(--black-color);
 `;

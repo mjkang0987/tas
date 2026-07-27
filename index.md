@@ -45,6 +45,23 @@ hair_reservations/
 | (404) | `pages/404.tsx` + `app/not-found.tsx` | 안내 페이지 + 5초 카운트다운 후 홈 자동 리다이렉트[^18] |
 | (500) | `pages/500.tsx` | 서버 오류 안내 페이지 |
 
+### 디자인 토큰 — 폰트
+
+`styles/globalStyle.ts`의 `:root`가 단일 소스. **`font-size`에 px 리터럴을 쓰지 않는다**(저장소 전체 0건, 유일한 예외는 `components/policy/policyCss.ts` — 앱 GlobalStyle이 닿지 않는 독립 HTML 스코프).
+
+| 스케일 | 토큰 | 값 | 용도 |
+|--------|------|----|------|
+| 본문 | `--big-font` | 18px | 페이지 내 큰 제목 |
+| | `--large-font` | 16px | 본문보다 큰 강조 — 버튼·섹션 제목 |
+| | `--font` | 14px | 본문 기준 |
+| | `--medium-font` | 13px | 14와 12 사이 |
+| | `--small-font` | 12px | 보조 텍스트 |
+| | `--xsmall-font` | 11px | 캡션·라벨 |
+| | `--tiny-font` | 10px | 배지 |
+| 디스플레이 | `--display-sm` / `--display-md` / `--display-lg` | 24 / 32 / 64px | 페이지 타이틀·상태 아이콘 등 본문 밖 |
+
+폰트 **패밀리**는 `styles/fontStack.ts`의 `FONT_STACK` 단일 소스 — `globalStyle`(앱)과 `policyCss`(정책 문서 독립 HTML)가 공유한다. 적용 대상에 `textarea`·`select`를 반드시 포함할 것(빠져 있어 `select`가 Arial로 렌더된 이력).
+
 ### 미들웨어 (`client/proxy.ts`)
 
 - **약관 동의 게이트**: 로그인 계정이 `termsVersion !== CURRENT_TERMS_VERSION`이면 `/consent`로 리다이렉트. 단 게스트 동의 쿠키(`tas-guest-terms`) 보유 시 통과시키고 처리위탁(DPA) 동의만 앱 위 레이어로 받음[^19]

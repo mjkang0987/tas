@@ -193,7 +193,7 @@ const StyledBadge = styled.span`
     border-radius: 999px;
     background: var(--danger-color, #d64545);
     color: #fff;
-    font-size: 10px;
+    font-size: var(--tiny-font);
     font-weight: 700;
     line-height: 16px;
     text-align: center;
@@ -219,7 +219,7 @@ const StyledPanelHeader = styled.div`
 `;
 
 const StyledPanelTitle = styled.strong`
-    font-size: 14px;
+    font-size: var(--font);
     font-weight: 700;
     color: var(--black-color, #111);
 `;
@@ -232,7 +232,7 @@ const StyledPanelBody = styled.div`
 const StyledEmpty = styled.p`
     margin: 0;
     padding: 20px 14px;
-    font-size: 13px;
+    font-size: var(--medium-font);
     color: var(--dark-gray-color2, #667);
     text-align: center;
 `;
@@ -265,7 +265,7 @@ const StyledItemHead = styled.div`
 `;
 
 const StyledCustomer = styled.span`
-    font-size: 14px;
+    font-size: var(--font);
     font-weight: 700;
     color: var(--black-color, #111);
 `;
@@ -289,7 +289,7 @@ const StyledApproveBtn = styled.button`
     border-radius: 8px;
     background: var(--brand-color, #6526d9);
     color: #fff;
-    font-size: 13px;
+    font-size: var(--medium-font);
     font-weight: 700;
     cursor: pointer;
     &:disabled { opacity: 0.45; cursor: not-allowed; }
@@ -302,7 +302,7 @@ const StyledRejectBtn = styled.button`
     border-radius: 8px;
     background: var(--white-color, #fff);
     color: var(--dark-gray-color, #444);
-    font-size: 13px;
+    font-size: var(--medium-font);
     font-weight: 700;
     cursor: pointer;
     &:disabled { opacity: 0.45; cursor: not-allowed; }

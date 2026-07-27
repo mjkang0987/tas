@@ -321,7 +321,7 @@ const StyledLoadingRow = styled.div`
     align-items: center;
     justify-content: center;
     padding: 32px;
-    font-size: 13px;
+    font-size: var(--medium-font);
     color: var(--dark-gray-color2);
 `;
 
@@ -354,7 +354,7 @@ const StyledProviderDot = styled.span<{$bg: string; $border: string}>`
 `;
 
 const StyledProviderName = styled.span`
-    font-size: 14px;
+    font-size: var(--font);
     font-weight: 600;
     color: var(--dark-gray-color);
 `;
@@ -366,7 +366,7 @@ const StyledProviderAction = styled.div`
 
 const StyledError = styled.p`
     margin: 12px 0 0;
-    font-size: 13px;
+    font-size: var(--medium-font);
     color: var(--danger-color);
     font-weight: 500;
 `;
@@ -382,7 +382,7 @@ const StyledMergeItem = styled.div`
     display: flex;
     align-items: center;
     gap: 6px;
-    font-size: 14px;
+    font-size: var(--font);
     font-weight: 500;
     color: var(--dark-gray-color);
 `;

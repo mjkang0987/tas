@@ -61,14 +61,14 @@ const StyledCard = styled.div`
 
 const StyledTitle = styled.h1`
     margin: 0;
-    font-size: 24px;
+    font-size: var(--display-sm);
     color: #111827;
 `;
 
 const StyledDescription = styled.p`
     margin: 12px 0 0;
     color: #4b5563;
-    font-size: 14px;
+    font-size: var(--font);
     line-height: 1.6;
 `;
 
@@ -84,6 +84,6 @@ const StyledButton = styled.button`
     border-radius: 8px;
     background: #111827;
     color: #fff;
-    font-size: 14px;
+    font-size: var(--font);
     font-weight: 600;
 `;

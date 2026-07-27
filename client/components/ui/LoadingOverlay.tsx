@@ -75,12 +75,12 @@ const StyledCard = styled.div`
     border-radius: var(--modal-radius);
     box-shadow: var(--modal-shadow);
     color: var(--dark-gray-color);
-    font-size: 14px;
+    font-size: var(--font);
     font-weight: 600;
 `;
 
 const StyledText = styled.span`
-    font-size: 13px;
+    font-size: var(--medium-font);
     font-weight: 600;
     color: var(--dark-gray-color);
 `;

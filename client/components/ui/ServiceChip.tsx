@@ -12,7 +12,7 @@ export const StyledServiceText = styled.span<{ $color: string }>`
     border-radius: 999px;
     background-color: ${(props) => `${props.$color}18`};
     color: ${(props) => props.$color};
-    font-size: 11px;
+    font-size: var(--xsmall-font);
     font-weight: 600;
     line-height: 1.2;
 `;

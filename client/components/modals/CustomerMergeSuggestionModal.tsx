@@ -275,7 +275,7 @@ const StyledMergeModal = styled(StyledDetail)`
 `;
 
 const StyledMergeTitle = styled.strong`
-    font-size: 18px;
+    font-size: var(--big-font);
 `;
 
 const StyledScrollArea = styled.div`
@@ -331,20 +331,20 @@ const StyledRadio = styled.input`
 `;
 
 const StyledCustomerName = styled.span`
-    font-size: 14px;
+    font-size: var(--font);
     font-weight: 700;
     color: #0f172a;
 `;
 
 const StyledBadge = styled(LabelBadge)`
-    font-size: 10px;
+    font-size: var(--tiny-font);
     flex-shrink: 0;
 `;
 
 const StyledTel = styled.span`
     margin-left: auto;
     flex-shrink: 0;
-    font-size: 12px;
+    font-size: var(--small-font);
     color: var(--dark-gray-color2);
 `;
 
@@ -366,7 +366,7 @@ const StyledDetailRow = styled.dl`
 const StyledDetailItem = styled.div`
     display: flex;
     gap: 4px;
-    font-size: 11px;
+    font-size: var(--xsmall-font);
 `;
 
 const StyledDetailLabel = styled.dt`
@@ -389,7 +389,7 @@ const StyledTag = styled.span<{$color: string}>`
     display: inline-block;
     padding: 1px 6px;
     border-radius: 4px;
-    font-size: 10px;
+    font-size: var(--tiny-font);
     font-weight: 600;
     background: ${(p) => p.$color}1a;
     color: ${(p) => p.$color};
@@ -409,7 +409,7 @@ const StyledGuide = styled.p`
     border-radius: 8px;
     background: rgba(45, 127, 249, 0.06);
     color: #1e40af;
-    font-size: 12px;
+    font-size: var(--small-font);
     line-height: 1.45;
     word-break: keep-all;
 `;

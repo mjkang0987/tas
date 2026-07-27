@@ -3,11 +3,19 @@ import {FONT_STACK} from './fontStack';
 
 export const GlobalStyle = createGlobalStyle`
     :root {
+        /* 본문 스케일 — 10·11·12·13·14·16·18. 이 밖의 값은 쓰지 않는다. */
         --big-font: 18px;
+        --large-font: 16px;
         --font: 14px;
+        /* 14와 12 사이 단계. 이미 설정·매출 화면 34곳에서 쓰이던 값을 토큰화한 것. */
+        --medium-font: 13px;
         --small-font: 12px;
         --xsmall-font: 11px;
         --tiny-font: 10px;
+        /* 디스플레이 스케일 — 페이지 타이틀·상태 아이콘 등 본문 밖의 큰 글자. */
+        --display-sm: 24px;
+        --display-md: 32px;
+        --display-lg: 64px;
 
         --black-color: hsl(0, 0%, 13%);
         --black-color-10: hsla(0, 0%, 0%, .03);

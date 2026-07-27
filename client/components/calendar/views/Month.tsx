@@ -126,7 +126,7 @@ const StyledViewAllButton = styled.button`
     border: 1px solid var(--light-gray-color);
     border-radius: 3px;
     background-color: var(--white-color);
-    font-size: 9px;
+    font-size: var(--tiny-font);
     font-weight: 600;
     color: var(--dark-gray-color);
 

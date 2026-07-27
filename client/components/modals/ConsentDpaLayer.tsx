@@ -70,7 +70,7 @@ const StyledItem = styled.label`
 const StyledItemText = styled.span`
     flex: 1;
     min-width: 0;
-    font-size: 14px;
+    font-size: var(--font);
     color: var(--dark-gray-color);
     line-height: 1.4;
 `;
@@ -93,7 +93,7 @@ const StyledViewButton = styled.button`
     padding: 0;
     border: none;
     background: none;
-    font-size: 12px;
+    font-size: var(--small-font);
     color: var(--dark-gray-color2);
     text-decoration: underline;
     cursor: pointer;
@@ -111,7 +111,7 @@ const StyledError = styled.p`
     border-radius: 8px;
     background: #fff1f2;
     color: #9f1239;
-    font-size: 12px;
+    font-size: var(--small-font);
     line-height: 1.5;
     text-align: center;
 `;

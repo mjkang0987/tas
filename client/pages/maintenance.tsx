@@ -51,20 +51,20 @@ const StyledCard = styled.div`
 `;
 
 const StyledIcon = styled.p`
-    font-size: 56px;
+    font-size: var(--display-lg);
     line-height: 1;
     margin: 0;
 `;
 
 const StyledTitle = styled.h1`
-    font-size: 18px;
+    font-size: var(--big-font);
     font-weight: 600;
     color: var(--black-color);
     margin: 0;
 `;
 
 const StyledDesc = styled.p`
-    font-size: 13px;
+    font-size: var(--medium-font);
     color: var(--dark-gray-color2);
     line-height: 1.6;
     margin: 0;

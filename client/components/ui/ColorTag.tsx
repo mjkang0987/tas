@@ -8,7 +8,7 @@ export const ColorTag = styled.span<{ $color: string; $shape?: 'pill' | 'soft' }
     border-radius: ${(p) => p.$shape === 'soft' ? '4px' : '999px'};
     background-color: ${(p) => p.$color};
     color: var(--white-color);
-    font-size: 11px;
+    font-size: var(--xsmall-font);
     font-weight: 600;
     flex-shrink: 0;
 `;

@@ -71,7 +71,7 @@ const StyledPolicyContent = styled.div`
     ${POLICY_VARS_LIGHT}
     color: var(--tas-fg);
     line-height: 1.7;
-    font-size: 14px;
+    font-size: var(--font);
     word-break: keep-all;
 
     ${POLICY_ELEMENT_CSS}

@@ -131,7 +131,7 @@ const StyledPaymentLayer = styled.div`
 
 const StyledPaymentMessage = styled.p`
     margin: 0;
-    font-size: 13px;
+    font-size: var(--medium-font);
     color: var(--dark-gray-color);
 `;
 
@@ -152,7 +152,7 @@ const StyledPointBalance = styled.button`
     border-radius: 999px;
     background: #f5efe3;
     color: #8a5a00;
-    font-size: 12px;
+    font-size: var(--small-font);
     font-weight: 700;
 
     @media (hover: hover) and (pointer: fine) {
@@ -184,7 +184,7 @@ const paymentEntryFieldStyles = css`
     border: 1px solid var(--light-gray-color);
     border-radius: 4px;
     background: var(--white-color);
-    font-size: 12px;
+    font-size: var(--small-font);
     color: var(--dark-gray-color);
     box-sizing: border-box;
 `;
@@ -203,7 +203,7 @@ const StyledPaymentAddButton = styled.button`
     border-radius: 8px;
     background: none;
     color: var(--dark-gray-color);
-    font-size: 12px;
+    font-size: var(--small-font);
     font-weight: 600;
 `;
 
@@ -215,12 +215,12 @@ const StyledPaymentRemoveButton = styled.button`
     border-radius: 4px;
     background: var(--danger-bg);
     color: var(--danger-color);
-    font-size: 12px;
+    font-size: var(--small-font);
 `;
 
 const StyledPaymentError = styled.p`
     margin: 0;
-    font-size: 12px;
+    font-size: var(--small-font);
     color: var(--danger-color);
 `;
 
@@ -239,7 +239,7 @@ const StyledPointAwardToggle = styled.label`
     display: inline-flex;
     align-items: center;
     gap: 8px;
-    font-size: 12px;
+    font-size: var(--small-font);
     font-weight: 600;
     color: var(--dark-gray-color);
 `;
@@ -250,7 +250,7 @@ const StyledPointAwardInput = styled.input`
     border: 1px solid var(--light-gray-color);
     border-radius: 8px;
     background: var(--white-color);
-    font-size: 12px;
+    font-size: var(--small-font);
     color: var(--dark-gray-color);
     box-sizing: border-box;
 `;
@@ -260,7 +260,7 @@ const StyledExpectedAmount = styled.div`
     align-items: center;
     gap: 8px;
     flex-wrap: wrap;
-    font-size: 12px;
+    font-size: var(--small-font);
     color: var(--dark-gray-color);
     font-weight: 600;
 `;
@@ -273,7 +273,7 @@ const StyledNaverDeposit = styled.span`
     border-radius: 999px;
     background: #e8f5e9;
     color: #2e7d32;
-    font-size: 11px;
+    font-size: var(--xsmall-font);
     font-weight: 700;
 `;
 
@@ -285,6 +285,6 @@ const StyledExpectedTotal = styled.span`
     border-radius: 999px;
     background: #e3f2fd;
     color: #1565c0;
-    font-size: 11px;
+    font-size: var(--xsmall-font);
     font-weight: 700;
 `;

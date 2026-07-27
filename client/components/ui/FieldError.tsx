@@ -28,7 +28,7 @@ const StyledBox = styled.p`
 
 const StyledInline = styled.p`
     margin: 0;
-    font-size: 12px;
+    font-size: var(--small-font);
     line-height: 1.4;
     color: var(--danger-color);
 `;

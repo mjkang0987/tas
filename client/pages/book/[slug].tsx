@@ -809,7 +809,7 @@ const StyledNoticeHead = styled.div`
 `;
 const StyledNoticeChip = styled.span`
     flex-shrink: 0;
-    font-size: 11px;
+    font-size: var(--xsmall-font);
     font-weight: 700;
     padding: 2px 8px;
     border-radius: 6px;

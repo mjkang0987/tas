@@ -47,13 +47,13 @@ const StyledLabel = styled.label`
 `;
 
 const StyledLabelText = styled.span`
-    font-size: 14px;
+    font-size: var(--font);
     font-weight: 500;
     color: var(--dark-gray-color);
 `;
 
 const StyledDesc = styled.span`
-    font-size: 12px;
+    font-size: var(--small-font);
     color: var(--dark-gray-color2);
     line-height: 1.4;
 `;

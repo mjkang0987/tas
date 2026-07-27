@@ -54,7 +54,7 @@ export const StyledCodeBlock = styled.div`
 
 export const StyledCode = styled.span<{$dimmed?: boolean}>`
     font-family: 'SF Mono', 'Fira Code', monospace;
-    font-size: 17px;
+    font-size: var(--large-font);
     font-weight: 700;
     letter-spacing: 3px;
     color: ${(p) => p.$dimmed ? 'var(--dark-gray-color2)' : 'var(--brand-color)'};
@@ -79,7 +79,7 @@ export const StyledInviteActions = styled.div`
 `;
 
 export const StyledExpiry = styled.span`
-    font-size: 12px;
+    font-size: var(--small-font);
     color: var(--dark-gray-color2);
     white-space: nowrap;
 `;
@@ -91,7 +91,7 @@ export const StyledCopyButton = styled.button`
     border-radius: var(--radius-md);
     background: var(--white-color);
     color: var(--dark-gray-color);
-    font-size: 11px;
+    font-size: var(--xsmall-font);
     font-weight: 600;
     transition: background-color 0.15s, border-color 0.15s;
 
@@ -110,7 +110,7 @@ export const StyledDeleteButton = styled.button`
     border-radius: var(--radius-md);
     background: var(--danger-bg);
     color: var(--danger-color);
-    font-size: 11px;
+    font-size: var(--xsmall-font);
     font-weight: 600;
     transition: opacity 0.15s;
 
@@ -148,13 +148,13 @@ export const StyledMemberName = styled.span`
     display: flex;
     align-items: center;
     gap: 6px;
-    font-size: 14px;
+    font-size: var(--font);
     font-weight: 600;
     color: var(--black-color);
 `;
 
 export const StyledSelfTag = styled.span`
-    font-size: 11px;
+    font-size: var(--xsmall-font);
     font-weight: 500;
     padding: 1px 6px;
     border-radius: var(--chip-radius);
@@ -175,7 +175,7 @@ export const StyledMemberActions = styled.div`
 `;
 
 export const StyledMemberEmail = styled.span`
-    font-size: 12px;
+    font-size: var(--small-font);
     color: var(--dark-gray-color2);
 `;
 
@@ -186,7 +186,7 @@ export const StyledRoleSelect = styled.select`
     border-radius: var(--radius-md);
     background: var(--white-color);
     color: var(--dark-gray-color);
-    font-size: 12px;
+    font-size: var(--small-font);
     cursor: pointer;
 
     &:disabled {
@@ -202,7 +202,7 @@ export const StyledKickButton = styled.button`
     border-radius: var(--radius-md);
     background: var(--danger-bg);
     color: var(--danger-color);
-    font-size: 11px;
+    font-size: var(--xsmall-font);
     font-weight: 600;
     transition: opacity 0.15s;
 
@@ -229,21 +229,21 @@ export const StyledGuestCard = styled.div`
 export const StyledGuestTitle = styled.strong`
     display: block;
     margin: 0 0 8px;
-    font-size: 14px;
+    font-size: var(--font);
     font-weight: 600;
     color: var(--dark-gray-color);
 `;
 
 export const StyledGuestDesc = styled.p`
     margin: 0;
-    font-size: 13px;
+    font-size: var(--medium-font);
     line-height: 1.7;
     color: var(--dark-gray-color2);
 `;
 
 export const StyledConfirmText = styled.p`
     margin: 0 0 20px;
-    font-size: 14px;
+    font-size: var(--font);
     color: var(--dark-gray-color);
     line-height: 1.6;
 `;

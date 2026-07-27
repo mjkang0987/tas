@@ -92,12 +92,12 @@ const StyledHistoryHeaderInfo = styled.div`
 `;
 
 const StyledHistoryHeaderTitle = styled.strong`
-    font-size: 14px;
+    font-size: var(--font);
     color: var(--black-color);
 `;
 
 const StyledHistoryHeaderDesc = styled.span`
-    font-size: 12px;
+    font-size: var(--small-font);
     color: var(--dark-gray-color2);
     line-height: 1.45;
 `;
@@ -105,7 +105,7 @@ const StyledHistoryHeaderDesc = styled.span`
 const StyledHistoryCount = styled.em`
     flex-shrink: 0;
     font-style: normal;
-    font-size: 12px;
+    font-size: var(--small-font);
     font-weight: 600;
     color: var(--blue-color);
     white-space: nowrap;
@@ -134,7 +134,7 @@ const StyledHistoryCustomerHead = styled.div`
     gap: 12px;
 
     span {
-        font-size: 12px;
+        font-size: var(--small-font);
         color: var(--dark-gray-color2);
     }
 `;
@@ -154,7 +154,7 @@ const StyledHistoryCustomerName = styled.div`
 
 const StyledHistoryPoint = styled.strong`
     flex-shrink: 0;
-    font-size: 15px;
+    font-size: var(--large-font);
     color: var(--blue-color);
 `;
 
@@ -193,12 +193,12 @@ const StyledHistoryTop = styled.div`
 `;
 
 const StyledHistoryTopLabel = styled.strong`
-    font-size: 12px;
+    font-size: var(--small-font);
     color: var(--dark-gray-color);
 `;
 
 const StyledHistoryTopDelta = styled.span`
-    font-size: 12px;
+    font-size: var(--small-font);
     font-weight: 700;
     color: var(--blue-color);
 `;
@@ -210,13 +210,13 @@ const StyledHistoryMeta = styled.div`
 `;
 
 const StyledHistoryMetaItem = styled.span`
-    font-size: 11px;
+    font-size: var(--xsmall-font);
     color: var(--dark-gray-color2);
 `;
 
 const StyledHistoryEmpty = styled.div`
     padding: 12px 0;
-    font-size: 12px;
+    font-size: var(--small-font);
     color: var(--dark-gray-color2);
 `;
 
@@ -225,7 +225,7 @@ const StyledCustomerNameButton = styled.button`
     padding: 0;
     border: none;
     background: none;
-    font-size: 14px;
+    font-size: var(--font);
     font-weight: 700;
     color: var(--black-color);
     text-align: left;

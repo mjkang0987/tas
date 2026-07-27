@@ -39,7 +39,7 @@ export default function Error404() {
 }
 
 const StyledRedirectNotice = styled.p`
-    font-size: 12px;
+    font-size: var(--small-font);
     color: var(--dark-gray-color2);
     margin: 0;
 `;
@@ -68,7 +68,7 @@ const StyledCard = styled.div`
 `;
 
 const StyledCode = styled.p`
-    font-size: 64px;
+    font-size: var(--display-lg);
     font-weight: 700;
     line-height: 1;
     color: var(--brand-color);
@@ -76,14 +76,14 @@ const StyledCode = styled.p`
 `;
 
 const StyledTitle = styled.h1`
-    font-size: 18px;
+    font-size: var(--big-font);
     font-weight: 600;
     color: var(--black-color);
     margin: 0;
 `;
 
 const StyledDesc = styled.p`
-    font-size: 13px;
+    font-size: var(--medium-font);
     color: var(--dark-gray-color2);
     line-height: 1.6;
     margin: 0;
@@ -98,7 +98,7 @@ const StyledHomeLink = styled(Link)`
     background: var(--brand-color);
     color: var(--white-color);
     border-radius: var(--radius-md);
-    font-size: 13px;
+    font-size: var(--medium-font);
     font-weight: 500;
     text-decoration: none;
 

@@ -12,7 +12,7 @@ const StyledFooterCs = styled.p`
     margin: auto 0 0;
     padding: 24px 0 0;
     text-align: center;
-    font-size: 12px;
+    font-size: var(--small-font);
     color: var(--dark-gray-color2);
 `;
 

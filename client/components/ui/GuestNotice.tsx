@@ -32,7 +32,7 @@ const StyledWrapper = styled.div`
 `;
 
 const StyledTitle = styled.strong`
-    font-size: 14px;
+    font-size: var(--font);
     font-weight: 700;
     color: var(--brand-color);
     letter-spacing: 0.02em;
@@ -42,7 +42,7 @@ const StyledList = styled.ul`
     margin: 0;
     padding: 0;
     list-style: none;
-    font-size: 12px;
+    font-size: var(--small-font);
     line-height: 1.4;
     color: var(--dark-gray-color);
 
@@ -59,7 +59,7 @@ const StyledDivider = styled.hr`
 
 const StyledCta = styled.p`
     margin: 0;
-    font-size: 13px;
+    font-size: var(--medium-font);
     font-weight: 600;
     line-height: 1.4;
     color: var(--brand-color);

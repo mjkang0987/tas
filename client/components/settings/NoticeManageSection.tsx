@@ -288,7 +288,7 @@ const StyledField = styled.label`
     display: flex;
     flex-direction: column;
     gap: 4px;
-    font-size: 12px;
+    font-size: var(--small-font);
     color: var(--dark-gray-color2);
 `;
 
@@ -307,7 +307,7 @@ const StyledCheckboxRow = styled.label`
     align-items: center;
     gap: 8px;
     margin-top: 18px;
-    font-size: 13px;
+    font-size: var(--medium-font);
     color: var(--dark-gray-color);
     cursor: pointer;
 `;
@@ -349,7 +349,7 @@ const StyledItemTop = styled.div`
 
 const StyledChip = styled.span`
     flex-shrink: 0;
-    font-size: 11px;
+    font-size: var(--xsmall-font);
     font-weight: 700;
     padding: 2px 8px;
     border-radius: 6px;
@@ -361,14 +361,14 @@ const StyledChip = styled.span`
 `;
 
 const StyledItemName = styled.strong`
-    font-size: 14px;
+    font-size: var(--font);
     font-weight: 600;
     color: var(--black-color);
 `;
 
 const StyledHiddenBadge = styled.span`
     flex-shrink: 0;
-    font-size: 11px;
+    font-size: var(--xsmall-font);
     font-weight: 600;
     padding: 2px 7px;
     border-radius: 6px;
@@ -378,7 +378,7 @@ const StyledHiddenBadge = styled.span`
 
 const StyledPinBadge = styled.span`
     flex-shrink: 0;
-    font-size: 11px;
+    font-size: var(--xsmall-font);
     font-weight: 700;
     padding: 2px 7px;
     border-radius: 6px;
@@ -387,14 +387,14 @@ const StyledPinBadge = styled.span`
 `;
 
 const StyledItemBody = styled.span`
-    font-size: 13px;
+    font-size: var(--medium-font);
     color: var(--dark-gray-color);
     white-space: pre-wrap;
     overflow-wrap: anywhere;
 `;
 
 const StyledItemDate = styled.span`
-    font-size: 12px;
+    font-size: var(--small-font);
     color: var(--dark-gray-color2);
     font-variant-numeric: tabular-nums;
 `;

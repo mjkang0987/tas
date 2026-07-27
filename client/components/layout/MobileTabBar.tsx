@@ -102,7 +102,7 @@ const StyledTab = styled(Link)<{ $active: boolean }>`
 `;
 
 const StyledTabLabel = styled.span`
-    font-size: 10px;
+    font-size: var(--tiny-font);
     font-weight: 700;
     line-height: 1;
     color: inherit;

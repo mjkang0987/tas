@@ -77,13 +77,13 @@ const StyledCompleteIcon = styled.div`
     border-radius: 50%;
     background: var(--success-bg);
     color: var(--success-color);
-    font-size: 28px;
+    font-size: var(--display-md);
     font-weight: 700;
 `;
 
 const StyledCompleteTitle = styled.h2`
     margin: 0;
-    font-size: 18px;
+    font-size: var(--big-font);
     font-weight: 700;
     color: var(--black-color);
     text-align: center;
@@ -109,12 +109,12 @@ const StyledSummaryRow = styled.div`
 `;
 
 const StyledSummaryLabel = styled.span`
-    font-size: 13px;
+    font-size: var(--medium-font);
     color: var(--dark-gray-color2);
 `;
 
 const StyledSummaryValue = styled.strong`
-    font-size: 13px;
+    font-size: var(--medium-font);
     color: var(--dark-gray-color);
     font-weight: 600;
 `;
@@ -125,7 +125,7 @@ const StyledSubmitBtn = styled.button`
     border: none;
     border-radius: 8px;
     background: var(--brand-color);
-    font-size: 13px;
+    font-size: var(--medium-font);
     font-weight: 600;
     color: var(--white-color);
     cursor: pointer;

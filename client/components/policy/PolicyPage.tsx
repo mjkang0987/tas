@@ -45,7 +45,7 @@ const StyledCloseButton = styled.button`
     border: 1px solid var(--light-gray-color);
     border-radius: 8px;
     background: var(--white-color);
-    font-size: 13px;
+    font-size: var(--medium-font);
     font-weight: 600;
     color: var(--dark-gray-color2);
     cursor: pointer;
@@ -55,7 +55,7 @@ const StyledBody = styled.div`
     ${POLICY_VARS_LIGHT}
     color: var(--tas-fg);
     line-height: 1.75;
-    font-size: 16px;
+    font-size: var(--large-font);
     word-break: keep-all;
 
     ${POLICY_ELEMENT_CSS}

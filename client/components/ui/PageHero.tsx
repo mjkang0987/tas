@@ -22,7 +22,7 @@ const StyledHero = styled.div`
 
 const StyledEyebrow = styled.p`
     margin: 0 0 8px;
-    font-size: 11px;
+    font-size: var(--xsmall-font);
     font-weight: 700;
     letter-spacing: 0.18em;
     color: var(--blue-color);
@@ -30,7 +30,7 @@ const StyledEyebrow = styled.p`
 
 const StyledTitle = styled.h1`
     margin: 0;
-    font-size: 32px;
+    font-size: var(--display-md);
     line-height: 1.1;
     color: var(--dark-gray-color);
 `;
@@ -38,5 +38,5 @@ const StyledTitle = styled.h1`
 const StyledSubtitle = styled.p`
     margin: 10px 0 0;
     color: var(--dark-gray-color2);
-    font-size: 15px;
+    font-size: var(--large-font);
 `;

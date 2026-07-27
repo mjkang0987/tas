@@ -88,14 +88,14 @@ const StyledConfirmList = styled.dl`
 `;
 
 const StyledTerm = styled.dt`
-    font-size: 13px;
+    font-size: var(--medium-font);
     color: var(--dark-gray-color);
     font-weight: 500;
 `;
 
 const StyledDesc = styled.dd`
     margin: 0;
-    font-size: 13px;
+    font-size: var(--medium-font);
 `;
 
 const StyledWarningMessage = styled.p`

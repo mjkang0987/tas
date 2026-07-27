@@ -182,12 +182,12 @@ const StyledTotalBadge = styled.div`
 `;
 
 const StyledTotalLabel = styled.span`
-    font-size: 12px;
+    font-size: var(--small-font);
     color: var(--dark-gray-color2);
 `;
 
 const StyledTotalValue = styled.strong`
-    font-size: 14px;
+    font-size: var(--font);
 `;
 
 const StyledTabRow = styled.div`

@@ -89,13 +89,13 @@ const StyledField = styled.div`
 `;
 
 const StyledLabel = styled.label`
-    font-size: 13px;
+    font-size: var(--medium-font);
     font-weight: 600;
     color: var(--dark-gray-color);
 `;
 
 const StyledFieldCaption = styled.span`
-    font-size: 12px;
+    font-size: var(--small-font);
     line-height: 1.5;
     color: var(--dark-gray-color2);
 `;
@@ -105,7 +105,7 @@ const StyledTextarea = styled.textarea`
     padding: 10px 12px;
     border: 1px solid var(--light-gray-color);
     border-radius: 8px;
-    font-size: 14px;
+    font-size: var(--font);
     font-family: inherit;
     color: var(--black-color);
     background: var(--white-color);
@@ -121,7 +121,7 @@ const StyledInput = styled.input`
     padding: 0 12px;
     border: 1px solid var(--light-gray-color);
     border-radius: 8px;
-    font-size: 14px;
+    font-size: var(--font);
     color: var(--black-color);
     background: var(--white-color);
     box-sizing: border-box;
