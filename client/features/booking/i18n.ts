@@ -3,31 +3,12 @@
 // - formatDuration(features/services/model.ts)은 앱 전역에서 쓰이므로 건드리지 않고, 예약 페이지 전용 로케일 포매터를 여기 둔다.
 
 import {CATEGORY_LABELS, getPrimaryIndustry, type ShopCategory, type StoreLabels} from '../store-settings/labels';
+import type {BookLang} from './routing';
 
-export type BookLang = 'ko' | 'en' | 'zh' | 'ja';
-
-export const BOOK_LANGS: {value: BookLang; label: string}[] = [
-    {value: 'ko', label: '한국어'},
-    {value: 'en', label: 'English'},
-    {value: 'ja', label: '日本語'},
-    {value: 'zh', label: '中文'},
-];
-
-const BOOK_LANG_SET = new Set<string>(BOOK_LANGS.map((l) => l.value));
-
-export function isBookLang(v: unknown): v is BookLang {
-    return typeof v === 'string' && BOOK_LANG_SET.has(v);
-}
-
-// 언어 접두 예약 경로 생성(단일 소스). 한국어는 접두 없음(/book/slug), 그 외 /book/{lang}/slug.
-// sub.token=관리 페이지(/r/token), sub.m=랜딩 뷰 상태(?m=). rewrite가 내부 페이지로 매핑한다.
-export function bookHref(lang: BookLang, slug: string, sub?: {token?: string; m?: string}): string {
-    const prefix = lang === 'ko' ? '' : `/${lang}`;
-    const s = encodeURIComponent(slug);
-    if (sub?.token) return `/book${prefix}/${s}/r/${encodeURIComponent(sub.token)}`;
-    const base = `/book${prefix}/${s}`;
-    return sub?.m ? `${base}?m=${encodeURIComponent(sub.m)}` : base;
-}
+// 언어 코드·공개 경로 생성은 미들웨어(Edge)도 쓰므로 routing.ts에 있다.
+// 기존 소비자가 계속 i18n.ts 하나만 import 하도록 여기서 재export한다.
+export {BOOK_LANGS, isBookLang, bookHref, bookRoute} from './routing';
+export type {BookLang} from './routing';
 
 // 오너 입력 콘텐츠(시술명·안내문·매장명·담당자명)의 언어별 번역. 없으면 한국어 원문 폴백.
 // - 저장은 DB JSON 컬럼(nameI18nJson 등), 키는 en/ja/zh(ko는 원문이라 미저장).

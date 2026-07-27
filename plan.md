@@ -4,6 +4,54 @@
 
 ---
 
+## 완료(배포 전 확인 대기) — 고객 예약 페이지 경로 이전 (`takeaseat.co.kr/book/[slug]` → `book.takeaseat.co.kr/[slug]`)
+
+> 요청(사용자): 고객예약페이지 path 변경 — `takeaseat.co.kr/book` → `book.takeaseat.co.kr`.
+> 이는 온라인 예약 로드맵의 **Phase 1e(host 분기)** 잔여 항목. 인프라(서브도메인 CNAME→Cloud Run, 200 확인)는 이미 완료돼 있고, **앱 쪽 호스트 분기 배선만 남은 상태**.
+
+### 확정 URL 구조
+| 구분 | 이전 | 이후 |
+|------|------|------|
+| 예약 랜딩/신규/조회 | `takeaseat.co.kr/book/[slug]` | `book.takeaseat.co.kr/[slug]` |
+| 언어 접두 | `takeaseat.co.kr/book/en/[slug]` | `book.takeaseat.co.kr/en/[slug]` |
+| 예약 관리(토큰) | `takeaseat.co.kr/book/[slug]/r/[token]` | `book.takeaseat.co.kr/[slug]/r/[token]` |
+| 내부 Next 라우트 | `pages/book/[slug].tsx` (변경 없음) | 동일 |
+
+- **구 경로 보존**: 메인 도메인 `/book/*` 진입은 **307 리다이렉트**로 새 도메인의 같은 경로에 대응시킨다(이미 배포된 예약 확인 링크·오너가 복사해 둔 URL 보호).
+  - **왜 308이 아니라 307인가**: 최종 목표는 308(영구)이지만 서브도메인이 실운영에서 검증되기 전까지는 임시로 둔다. 308/301은 브라우저가 무기한 캐시해 되돌릴 때 서버 롤백이 클라이언트에 닿지 않는다(고객 브라우저에 남는 상태). 307은 캐시되지 않아 즉시 원복 가능. 안정 확인 후 `LEGACY_REDIRECT_STATUS`를 308로 올린다(검색엔진 신호 이전).
+- **로컬/기타 호스트 무변경**: `localhost`·`dev.takeaseat.co.kr`·`*.run.app`에서는 리다이렉트하지 않아 `/book/[slug]`가 그대로 동작(로컬 개발·직결 접근 유지).
+- 예약 서브도메인 루트(`book.takeaseat.co.kr/`)는 슬러그가 없으므로 메인 사이트로 리다이렉트.
+
+### 구현 방침
+1. **`client/features/booking/routing.ts` (신규, 순수·Edge 안전)** — 호스트/경로 단일 소스.
+   - `BOOKING_HOST`(`NEXT_PUBLIC_BOOKING_HOST` ?? `book.takeaseat.co.kr`), `isBookingHost`/`isMainHost`/`resolveRequestHost`(`x-forwarded-host` 우선 — Cloudflare Worker가 Host를 바꿔 보낼 경우 대비), `bookBaseForHost`.
+   - 기존 `i18n.ts`의 언어 코드(`BookLang`·`BOOK_LANGS`·`isBookLang`)와 경로 생성(`bookHref`)을 이리로 이관하고 `i18n.ts`는 재export(미들웨어가 무거운 문구 사전을 Edge 번들로 끌고 오지 않게).
+   - `bookHref(lang, slug, sub, base)` — `base`는 호스트별 접두(`''` | `/book`). `bookRoute(...)`는 클라 라우팅용 내부 라우트(`{pathname:'/book/[slug]', query}`) 반환.
+2. **`client/proxy.ts` 미들웨어** — 점검모드 게이트 다음, `auth()` **밖**에서 호스트 분기.
+   - 예약 호스트: 인증·약관·온보딩 게이트 전부 우회. `/_next`·확장자 있는 정적 자산·`/api/book/*`은 통과, 그 외 `/api/*`는 404(운영자 API 차단). 이미 `/book/*`인 요청(클라 라우팅 `_next/data` 조회)은 통과. `/{lang}/{slug}…`는 `lang` 쿼리로 변환해 `/book/{slug}…`로 **rewrite**.
+   - 메인 호스트: `/book`·`/book/*` → `https://book.takeaseat.co.kr/…` **307**(`LEGACY_REDIRECT_STATUS`).
+3. **클라이언트 링크** — 두 공개 페이지의 `getServerSideProps`가 요청 호스트로 `bookBase`를 계산해 props로 내려주고, `bookHref`·`useBookLang(bookBase)`가 이를 사용. `router.push`는 **내부 라우트(href) + 공개 URL(as)** 형태로 호출해 클라 라우터가 rewrite 경로를 직접 풀지 않게 한다.
+4. **오너 설정 화면** — `BookingManageSection`의 `BOOKING_HOST` 상수를 공용 모듈로 교체. '열어보기' 링크는 `/book/[slug]` 유지(운영에선 위 리다이렉트로 새 도메인에 도달, 로컬에선 그대로 동작).
+
+### 영향 파일
+- 신규: `client/features/booking/routing.ts`
+- 수정: `client/proxy.ts`, `client/features/booking/i18n.ts`, `client/components/booking/LangSwitcher.tsx`, `client/pages/book/[slug].tsx`, `client/pages/book/[slug]/r/[token].tsx`, `client/components/settings/BookingManageSection.tsx`, `client/.env.example`, `docs/deployment-runbook.md`, `index.md`
+- **스키마·API·마이그레이션 무변경(코드-온리 배포).**
+
+### 검증 (완료)
+- ✅ `tsc --noEmit` 0 · `next build` 성공.
+- ✅ **HTTP 실측**(`next start` + Host 헤더). 예약 호스트: `/myshop` 200(`page=/book/[slug]`, `bookBase=""`), `/en/myshop` 200(`query.lang=en`), `/myshop/r/tok` · `/zh/myshop/r/tok` 200, `/` → 메인 사이트 리다이렉트, `/api/book/*` 통과·`/api/store` 404·`/settings/booking` 404. 메인 호스트: `/book/myshop`·`/book/en/myshop`·`/book/myshop/r/abc?x=1` 전부 307 → `https://book.takeaseat.co.kr/…`(쿼리 보존). `localhost`: `/book/myshop` 200(`bookBase="/book"`) — 로컬 무회귀.
+- ✅ **실브라우저(Playwright, 로컬 Postgres 16 + 시드 매장 `myshop`)** — `NEXT_PUBLIC_BOOKING_HOST=book.localhost:3123`로 서브도메인 재현.
+  - 랜딩 → 언어 전환(클라 라우팅) `/myshop` → `/en/myshop`(리마운트 없이 문구·`<html lang>` 전환), 뷰 전환 `?m=new` 유지, **새로고침 후에도 동일 화면**(rewrite 재진입), 한국어 복귀 시 접두 제거.
+  - 공개 API로 실제 예약 생성 → 관리 페이지 `/myshop/r/{token}` 렌더·언어 전환·새로고침 정상. 예약 조회 결과 링크 href = `/myshop/r/{token}`(서브도메인에 `/book` 미노출).
+  - 메인(로컬) 호스트에서는 `/book/myshop` → `/book/ja/myshop`으로 접두 유지. 페이지 에러 0.
+
+### 리스크/주의
+- **Cloudflare Worker의 Host 전달 여부가 유일한 미검증 변수**(plan 1e 메모). Worker가 Host를 run.app으로 바꿔 보내면 미들웨어가 예약 호스트를 인식하지 못한다 → `x-forwarded-host` 우선 조회로 1차 대비, 배포 후 실제 확인 필요.
+- 쿠키 격리: NextAuth 세션 쿠키가 host-only여야 서브도메인에 세션이 안 샌다(배포 후 확인).
+
+---
+
 ## 완료 — 모바일 내비게이션 개편 (aside → 상단 고정 헤더 + 하단 탭바) (PR #154)
 
 > 배경(사용자): tas-ios 조작감을 웹앱 모바일에 이식. 좌측 드로어(aside) 대신 iOS식 **상단 고정 헤더 + 하단 고정 탭바**로 재구성. 시안 3안 비교 후 **"C 헤더 + B 나머지"** 조합으로 확정(아티팩트 시안).
