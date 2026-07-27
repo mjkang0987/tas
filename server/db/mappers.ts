@@ -76,12 +76,14 @@ const DB_TO_FRONTEND_CHANNEL: Record<DbReservationChannel, ReservationChannel> =
     naver: '네이버예약',
     walk_in: '현장방문',
     phone: '전화예약',
+    online: '온라인예약',
 };
 
 const FRONTEND_TO_DB_CHANNEL: Record<ReservationChannel, DbReservationChannel> = {
     '네이버예약': 'naver',
     '현장방문': 'walk_in',
     '전화예약': 'phone',
+    '온라인예약': 'online',
 };
 
 export function dbChannelToFrontend(channel: DbReservationChannel): ReservationChannel {
@@ -98,12 +100,13 @@ export function frontendReservationStatusToDb(status: string | undefined): DbRes
     if (status === 'completed') return 'completed';
     if (status === 'cancelled') return 'cancelled';
     if (status === 'noshow') return 'noshow';
+    if (status === 'requested') return 'requested';
     return 'active';
 }
 
 // ── Date Helpers ──
 
-function toDateKey(d: Date): string {
+export function toDateKey(d: Date): string {
     const y = d.getFullYear();
     const m = String(d.getMonth() + 1).padStart(2, '0');
     const day = String(d.getDate()).padStart(2, '0');
@@ -115,6 +118,7 @@ function toDateKey(d: Date): string {
 type DbAssigneeRow = {
     legacyId: number | null;
     name: string;
+    nameI18nJson?: unknown;
     status: DbAssigneeStatus;
     phone: string | null;
     note: string | null;
@@ -137,6 +141,7 @@ export function dbAssigneeToFrontend(row: DbAssigneeRow) {
         };
     });
 
+    const nameI18n = parseI18nText(row.nameI18nJson);
     return {
         id: row.legacyId!,
         name: row.name,
@@ -145,6 +150,7 @@ export function dbAssigneeToFrontend(row: DbAssigneeRow) {
         ...(row.phone !== null && {phone: row.phone}),
         ...(row.note !== null && {note: row.note}),
         ...(row.color !== null && {color: row.color}),
+        ...(nameI18n && {nameI18n}),
     };
 }
 
@@ -264,6 +270,7 @@ type DbServiceRow = {
     category: string;
     duration: number;
     price: number;
+    nameI18nJson?: unknown;
 };
 
 export function dbServiceToFrontend(row: DbServiceRow) {
@@ -272,7 +279,20 @@ export function dbServiceToFrontend(row: DbServiceRow) {
         durationMinutes: row.duration,
         category: row.category,
         price: row.price,
+        nameI18n: parseI18nText(row.nameI18nJson),
     };
+}
+
+// DB JSON 컬럼(nameI18nJson 등) → {en?,ja?,zh?} 정규화. 문자열 값만 취하고 나머지는 버린다.
+export function parseI18nText(raw: unknown): {en?: string; ja?: string; zh?: string} | null {
+    if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return null;
+    const src = raw as Record<string, unknown>;
+    const out: {en?: string; ja?: string; zh?: string} = {};
+    for (const k of ['en', 'ja', 'zh'] as const) {
+        const v = src[k];
+        if (typeof v === 'string' && v.trim()) out[k] = v.trim();
+    }
+    return Object.keys(out).length > 0 ? out : null;
 }
 
 type DbStoreData = {
@@ -294,6 +314,8 @@ export function dbStoreToFrontend(data: DbStoreData) {
             end: firstHour?.closeTime ?? '20:00',
         },
         closedDates: data.closedDates.map((cd) => toDateKey(cd.date)),
+        // 정기 휴무 요일 = 영업시간 행이 비활성(enabled=false)인 요일(0=월…6=일).
+        closedWeekdays: data.businessHours.filter((b) => !b.enabled).map((b) => b.dayIndex).sort((a, b) => a - b),
         pointSettings: {
             enableServiceRate: data.pointSettings?.enableServiceRate ?? false,
             enableRecharge: data.pointSettings?.enableRecharge ?? false,

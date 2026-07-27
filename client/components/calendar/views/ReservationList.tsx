@@ -45,12 +45,13 @@ export const ReservationList = ({
         <StyledList $variant={variant}>
             {reservations.map((r) => {
                 const customer = customerMap[r.customerId];
+                const isInactive = r.status === 'cancelled' || r.status === 'noshow';
 
                 return (
                     <li key={r.id}>
                         <StyledItem type="button"
                                     $color={r.assigneeId ? (assigneeColorMap[r.assigneeId] ?? '#8E8E93') : '#8E8E93'}
-                                    $inactive={r.status === 'cancelled' || r.status === 'noshow'}
+                                    $inactive={isInactive}
                                     onClick={(e) => {
                                         e.stopPropagation();
                                         setCreateReservationInitial(null);
@@ -66,7 +67,7 @@ export const ReservationList = ({
                             <StyledMeta>
                                 {isNewCustomerVisit(customer?.firstVisitDate, r.date) &&
                                     <NewCustomerBadge>N</NewCustomerBadge>}
-                                <span>{customer?.name ?? ''}</span>
+                                <StyledCustomerName className={isInactive ? 'strike' : undefined}>{customer?.name ?? ''}</StyledCustomerName>
                             </StyledMeta>
                         </StyledItem>
                     </li>
@@ -115,16 +116,29 @@ const StyledItem = styled.button<{ $color: string; $inactive?: boolean }>`
     color: var(--dark-gray-color);
     font-size: 11px;
     text-align: left;
-    ${(p) => p.$inactive && 'filter: grayscale(.5); opacity: 0.5;'};
+    ${(p) => p.$inactive && `
+        border-color: var(--gray-color);
+        border-left-color: var(--gray-color);
+        background: repeating-linear-gradient(-45deg, rgba(0, 0, 0, 0.05) 0 6px, transparent 6px 12px), var(--gray-color2);
+    `};
 
     @media (hover: hover) and (pointer: fine) {
         &:hover {
-            background-color: ${(p) => `${p.$color}1d`};
+            background-color: ${(p) => (p.$inactive ? 'var(--gray-color2)' : `${p.$color}1d`)};
         }
     }
 
     strong {
         font-weight: 600;
+    }
+`;
+
+const StyledCustomerName = styled.span`
+    &.strike {
+        text-decoration: line-through;
+        text-decoration-color: var(--gray-color);
+        text-decoration-thickness: 1.5px;
+        color: var(--dark-gray-color2);
     }
 `;
 

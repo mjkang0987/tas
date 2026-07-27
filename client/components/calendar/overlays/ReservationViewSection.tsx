@@ -49,6 +49,7 @@ export function ReservationViewSection({
     const isCancelled = reservation.status === 'cancelled';
     const isCompleted = reservation.status === 'completed';
     const isNoshow = reservation.status === 'noshow';
+    const isRequested = reservation.status === 'requested';
     const customerMemoTags = customer?.memoTags ?? [];
 
     return (
@@ -71,6 +72,12 @@ export function ReservationViewSection({
                         <>
                             <StyledTerm>상태</StyledTerm>
                             <StyledDesc><ReservationStatusBadge $type="completed">완료</ReservationStatusBadge></StyledDesc>
+                        </>
+                    )}
+                    {isRequested && (
+                        <>
+                            <StyledTerm>상태</StyledTerm>
+                            <StyledDesc><ReservationStatusBadge $type="requested">확정대기</ReservationStatusBadge></StyledDesc>
                         </>
                     )}
                     <StyledTerm>날짜</StyledTerm>
@@ -151,7 +158,7 @@ export function ReservationViewSection({
                                 </StyledBookingNotice>
                             </>
                         ) : (
-                            <StyledChannelTag>{reservation.channel === '현장방문' ? '현장방문' : '전화예약'}</StyledChannelTag>
+                            <StyledChannelTag>{reservation.channel ?? '전화예약'}</StyledChannelTag>
                         )}
                     </StyledDesc>
                 </StyledDetailList>

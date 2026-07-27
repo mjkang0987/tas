@@ -226,7 +226,8 @@ export const StyledGuestCard = styled.div`
     box-shadow: var(--shadow-sm);
 `;
 
-export const StyledGuestTitle = styled.h3`
+export const StyledGuestTitle = styled.strong`
+    display: block;
     margin: 0 0 8px;
     font-size: 14px;
     font-weight: 600;

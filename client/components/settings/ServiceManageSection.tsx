@@ -55,7 +55,19 @@ import {
     StyledAddButton,
     StyledDeleteMsg,
     StyledDeleteTarget,
+    StyledI18nBlock,
+    StyledI18nTitle,
+    StyledI18nHint,
 } from './ServiceManageSection.styles';
+
+// en/ja/zh 입력 문자열 → nameI18n 객체(빈 값은 제외, 전부 비면 null). 저장·전송용.
+const buildNameI18n = (en: string, ja: string, zh: string): ServiceItem['nameI18n'] => {
+    const out: {en?: string; ja?: string; zh?: string} = {};
+    if (en.trim()) out.en = en.trim();
+    if (ja.trim()) out.ja = ja.trim();
+    if (zh.trim()) out.zh = zh.trim();
+    return Object.keys(out).length > 0 ? out : null;
+};
 
 /* ------------------------------------------------------------------ */
 /*  ServiceEditModal                                                   */
@@ -76,6 +88,9 @@ const ServiceEditModal = ({item, serviceCatalog, onSave, onDelete, onClose}: Ser
     const dialogRef = useDialogAccessibility<HTMLDivElement>(onClose);
 
     const [name, setName] = useState(item.name);
+    const [nameEn, setNameEn] = useState(item.nameI18n?.en ?? '');
+    const [nameJa, setNameJa] = useState(item.nameI18n?.ja ?? '');
+    const [nameZh, setNameZh] = useState(item.nameI18n?.zh ?? '');
     const [durationMinutes, setDurationMinutes] = useState(String(item.durationMinutes));
     const [price, setPrice] = useState(String(item.price));
     const [confirmDelete, setConfirmDelete] = useState(false);
@@ -96,6 +111,7 @@ const ServiceEditModal = ({item, serviceCatalog, onSave, onDelete, onClose}: Ser
             category: item.category,
             durationMinutes: Number(durationMinutes) || 0,
             price: Number(price) || 0,
+            nameI18n: buildNameI18n(nameEn, nameJa, nameZh),
         });
     };
 
@@ -131,6 +147,22 @@ const ServiceEditModal = ({item, serviceCatalog, onSave, onDelete, onClose}: Ser
                                 />
                             </label>
                         </StyledFieldRow>
+                        <StyledI18nBlock>
+                            <StyledI18nTitle>다국어 이름 (선택)</StyledI18nTitle>
+                            <StyledI18nHint>고객 예약 페이지에서 해당 언어로 보일 이름입니다. 비우면 위 이름이 그대로 표시됩니다.</StyledI18nHint>
+                            <label htmlFor="service-edit-name-en">
+                                <span>English</span>
+                                <input id="service-edit-name-en" value={nameEn} onChange={(e) => setNameEn(e.target.value)} placeholder="English" />
+                            </label>
+                            <label htmlFor="service-edit-name-ja">
+                                <span>日本語</span>
+                                <input id="service-edit-name-ja" value={nameJa} onChange={(e) => setNameJa(e.target.value)} placeholder="日本語" />
+                            </label>
+                            <label htmlFor="service-edit-name-zh">
+                                <span>中文</span>
+                                <input id="service-edit-name-zh" value={nameZh} onChange={(e) => setNameZh(e.target.value)} placeholder="中文" />
+                            </label>
+                        </StyledI18nBlock>
                         <StyledFieldRow>
                             <strong>소요시간 (분)</strong>
                             <label htmlFor="service-edit-duration">
@@ -205,6 +237,9 @@ const ServiceAddModal = ({categories, serviceCatalog, onAdd, onClose}: ServiceAd
 
     const [form, setForm] = useState(EMPTY_ADD);
     const [newCategory, setNewCategory] = useState('');
+    const [nameEn, setNameEn] = useState('');
+    const [nameJa, setNameJa] = useState('');
+    const [nameZh, setNameZh] = useState('');
     const [error, setError] = useState('');
 
     const handleAdd = () => {
@@ -231,6 +266,7 @@ const ServiceAddModal = ({categories, serviceCatalog, onAdd, onClose}: ServiceAd
             category,
             durationMinutes: Number(form.durationMinutes) || 0,
             price: Number(form.price) || 0,
+            nameI18n: buildNameI18n(nameEn, nameJa, nameZh),
         });
     };
 
@@ -290,6 +326,22 @@ const ServiceAddModal = ({categories, serviceCatalog, onAdd, onClose}: ServiceAd
                                 />
                             </label>
                         </StyledFieldRow>
+                        <StyledI18nBlock>
+                            <StyledI18nTitle>다국어 이름 (선택)</StyledI18nTitle>
+                            <StyledI18nHint>고객 예약 페이지에서 해당 언어로 보일 이름입니다. 비우면 위 이름이 그대로 표시됩니다.</StyledI18nHint>
+                            <label htmlFor="service-add-name-en">
+                                <span>English</span>
+                                <input id="service-add-name-en" value={nameEn} onChange={(e) => setNameEn(e.target.value)} placeholder="English" />
+                            </label>
+                            <label htmlFor="service-add-name-ja">
+                                <span>日本語</span>
+                                <input id="service-add-name-ja" value={nameJa} onChange={(e) => setNameJa(e.target.value)} placeholder="日本語" />
+                            </label>
+                            <label htmlFor="service-add-name-zh">
+                                <span>中文</span>
+                                <input id="service-add-name-zh" value={nameZh} onChange={(e) => setNameZh(e.target.value)} placeholder="中文" />
+                            </label>
+                        </StyledI18nBlock>
                         <StyledFieldRow>
                             <strong>소요시간 (분)</strong>
                             <label htmlFor="service-add-duration">

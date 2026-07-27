@@ -17,24 +17,24 @@ export const PRIVACY_BODY = `
 </ol>
 <hr>
 <h2>제2조 (수집하는 개인정보의 항목 및 수집 방법)</h2>
-<h3>1. 회원 로그인 정보 (SNS 간편로그인)</h3>
+<strong class="policy-subhead">1. 회원 로그인 정보 (SNS 간편로그인)</strong>
 <p>회사는 카카오·네이버·구글 소셜 로그인을 통해 로그인 기능만을 이용하며, <strong>각 제공자가 부여하는 회원 식별용 고유 식별자(고유 ID/연동 토큰)만</strong>을 수집합니다.</p>
 <ul>
 <li><strong>수집 항목:</strong> SNS 제공자별 고유 식별자(고유 회원번호), 연동 토큰</li>
 <li><strong>미수집 항목:</strong> 이름, 닉네임, 이메일 주소, 프로필 사진, 성별, 연령대 등 프로필 정보는 수집하지 않습니다.</li>
 </ul>
-<h3>2. 메일 연동 정보 (Gmail 연동)</h3>
+<strong class="policy-subhead">2. 메일 연동 정보 (Gmail 연동)</strong>
 <p>회사는 이용자가 명시적으로 연동한 Google 계정의 메일(네이버예약 알림 메일)을 수신·열람하기 위해 Google OAuth를 통한 <strong>읽기 전용(read-only) 권한</strong>만을 요청합니다.</p>
 <ul>
 <li><strong>연동 방식:</strong> 로그인 계정과 <strong>분리하여</strong> 별도로 연동하며, 로그인에 사용한 계정 또는 별도의 다른 Gmail 계정을 선택하여 연결할 수 있습니다.</li>
 <li><strong>수집·처리 대상:</strong> 예약 관련 메일의 본문 및 메타데이터(발신자, 수신 시각, 제목 등)</li>
 <li>회사는 메일을 <strong>읽기 전용으로만</strong> 접근하며, 메일을 발송·수정·삭제하지 않습니다.</li>
 </ul>
-<h3>3. 자동으로 생성·수집되는 정보</h3>
+<strong class="policy-subhead">3. 자동으로 생성·수집되는 정보</strong>
 <ul>
 <li>서비스 이용 과정에서 접속 IP 주소, 쿠키, 접속 일시, 서비스 이용 기록, 기기·브라우저 정보가 자동으로 생성·수집될 수 있습니다.</li>
 </ul>
-<h3>4. 수집 방법</h3>
+<strong class="policy-subhead">4. 수집 방법</strong>
 <ul>
 <li>SNS 제공자 및 Google을 통한 인증·연동(API)</li>
 <li>서비스 이용 과정에서의 자동 생성·수집</li>

@@ -1,7 +1,9 @@
 import type {DateType} from '../store/calendarStore';
 
 export function computeTargetDerived(targetDate: DateType) {
-    if (!targetDate.full) {
+    // full 이 Invalid Date 면 truthy 라 통과되지만 파생 계산이 NaN 으로 번져
+    // new Array(NaN) 크래시를 낸다. fullYear 로 유효성을 한 번 더 방어한다.
+    if (!targetDate.full || Number.isNaN(Number(targetDate.fullYear))) {
         return;
     }
 

@@ -110,6 +110,7 @@ export function isBookedReservationTarget(reservation: Reservation, assigneeId: 
     return (
         reservation.status !== 'cancelled' &&
         reservation.status !== 'noshow' &&
+        reservation.status !== 'requested' &&
         matchAssignee(reservation.assigneeId, assigneeId)
     );
 }
@@ -126,7 +127,7 @@ export function isRevenueReservationTarget(
 
 export function isPaidReservationTarget(reservation: Reservation, assigneeId: number | null): boolean {
     if (!matchAssignee(reservation.assigneeId, assigneeId)) return false;
-    if (reservation.status === 'cancelled' || reservation.status === 'noshow') return false;
+    if (reservation.status === 'cancelled' || reservation.status === 'noshow' || reservation.status === 'requested') return false;
 
     if (Array.isArray(reservation.paymentEntries) && reservation.paymentEntries.length > 0) {
         return reservation.paymentEntries.some((entry) => entry.amount > 0);

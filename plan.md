@@ -4,10 +4,670 @@
 
 ---
 
-## 진행 예정 — 쿠폰(할인) 시스템
+## 진행 중 — 매장 공지사항 (StoreNotice, 예약 페이지 목록형 공지)
+
+> 배경(사용자): 고객 예약 페이지에 매장 공지사항을 넣고 싶음. 목업 비교 후 **③ 여러 공지 목록**(제목·날짜로 여러 개, 펼치는 아코디언) 선택. 오너가 관리(CRUD), 공개된 공지만 고객에게 노출, 4개국어(한·영·일·중).
+
+### 설계 결정
+- **새 Store 토글 없음.** 공지사항은 공개 예약 페이지 콘텐츠 → 기존 `useOnlineBooking`으로 설정탭·aside 게이트(대량 토글 배선 회피, 리스크↓). 온라인예약 ON 매장만 관리·노출.
+- **`legacyId` 생략.** 공지는 로컬DB/네이버 등 import 경로가 없어 정수 ID 불필요 → cuid `id`만 사용(프론트 식별자=cuid). (쿠폰의 `@@unique([storeId, legacyId])` 대신 `@@index([storeId])`.)
+- **자식 행 없음 → 하드 삭제**(쿠폰의 archive 분기 불필요).
+- **title·body 모두 i18n**(`titleI18nJson`/`bodyI18nJson`, `{en,ja,zh}`). 오너는 한국어만 채우고 번역은 비워도 됨(비면 null=한국어 폴백). 기존 `noticeI18n` 패턴·`parseI18nText` 재사용.
+- **카테고리** `category`(notice/이벤트/안내) — 프리스트링(Prisma enum 미사용, 쿠폰 관례). 목업의 칩.
+- **게시일** = `createdAt`(별도 컬럼·날짜피커 없이 표시). 정렬 최신순(desc).
+
+### 데이터 모델 (마이그레이션 0015 — 추가형·멱등)
+```prisma
+model StoreNotice {
+  id            String   @id @default(cuid())
+  storeId       String
+  category      String   @default("notice") // notice | event | info
+  title         String
+  titleI18nJson Json?
+  body          String
+  bodyI18nJson  Json?
+  visible       Boolean  @default(true)     // 공개/숨김
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  store         Store    @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  @@index([storeId])
+}
+```
+- `Store`에 back-ref `storeNotices StoreNotice[]`.
+- `0015_store_notices/migration.sql`: `CREATE TABLE IF NOT EXISTS` + `CREATE INDEX IF NOT EXISTS` + FK(멱등 DO 블록), 0012/0013 스타일 한국어 헤더. **운영 Supabase direct(5432) 수동 선적용 → 머지(자동배포) 나중** 순서 준수.
+
+### API
+- **`server/api/notices.ts`**(+`client/pages/api/notices.ts` 재export): GET(staff+) 목록, POST·PUT·DELETE(owner). 전부 `storeId: session.storeId` 스코프. 응답 인라인 셰이핑(쿠폰과 동일, 매퍼 미사용). i18n 입력은 `parseI18nText`로 정규화, `Json?` null은 `Prisma.JsonNull`.
+- **공개 노출** `server/api/book/[slug].ts`: 응답에 `notices`(visible=true, 최신순, {category,title,titleI18n,body,bodyI18n,createdAt}) 추가. **try/catch로 감싸 테이블 미존재 시 `[]`**(마이그레이션 지연 방어 — 사용자 약속).
+
+### 클라이언트
+- **`client/features/notices/model.ts`**: `StoreNotice` 타입(id=cuid, category, title, titleI18n?, body, bodyI18n?, visible, createdAt).
+- **`client/components/settings/NoticeManageSection.tsx`**: `CouponManageSection` 패턴 클론(로컬 state + `/api/notices` fetch, 편집/저장/삭제). 본문·제목은 공용 `LocalizedMessageField` 사용.
+- **`LocalizedMessageField` 공용화**: `BookingManageSection.tsx`의 로컬 함수를 `client/components/ui/LocalizedMessageField.tsx`(+ 필요한 styled)로 승격, BookingManageSection·NoticeManageSection 공유(중복 제거).
+- **`client/pages/settings.tsx`**: `SettingsTab`에 `'notice'` + `isSettingsTab` + 렌더 분기. (오너 게이트는 기존 getServerSideProps).
+- **`client/components/layout/Aside.tsx`**: `SETTINGS_SUBMENU`에 `{tab:'notice', href:'/settings/notice', label:'공지사항 관리', icon:'booking' 재사용}` + 필터에서 `useOnlineBooking` 게이트(booking 탭과 동일).
+- **`client/pages/book/[slug].tsx`**: 매장명 아래 '공지사항' 아코디언(`<details>`), `pickI18n(title/body, lang, ko)` 표시, 카테고리 칩. `BookStoreInfo`에 `notices` 타입 추가.
+- **`client/features/booking/i18n.ts`**: `noticeSectionTitle` + 카테고리 라벨(notice/event/info) 4개 언어 추가(앱 UI 문구라 번역 대상).
+
+### 검증 (완료)
+- ✅ 타입체크 `tsc --noEmit` 0 에러, `next build` 성공(`/api/notices`·`/book/[slug]`·`/settings/[tab]` 컴파일).
+- ✅ 로컬 Postgres 16으로 **전체 마이그레이션 재생**(0015 포함) 성공 + **스키마 드리프트 없음**(0015 SQL = schema 모델 정확히 일치, `migrate diff --exit-code` 0).
+- ✅ psql 왕복: 공개 쿼리(visible=true·createdAt DESC) 정확, i18n JSONB 저장/조회, 숨김 필터(all=3/visible=2), FK Cascade(Store 삭제 시 공지 삭제) 확인.
+- 실계정(OAuth 오너) 저장 왕복은 배포 후. 마이그레이션은 **머지 전 수동 선적용**(사용자, Supabase direct 5432). 공개 조회 try/catch로 순서 어긋나도 무중단.
+
+### 결과물 (파일)
+- 스키마/마이그레이션: `schema.prisma`(StoreNotice + Store back-ref), `migrations/0015_store_notices/migration.sql`.
+- 서버: `api/notices.ts`(CRUD), `pages/api/notices.ts`(재export), `api/book/[slug].ts`(공개 노출 방어).
+- 클라: `features/notices/model.ts`, `components/settings/NoticeManageSection.tsx`, `components/ui/LocalizedMessageField.tsx`(공용), `pages/settings.tsx`(탭), `components/layout/Aside.tsx`·`AsideMenuIcon.tsx`(메뉴·벨 아이콘), `pages/book/[slug].tsx`(아코디언), `features/booking/i18n.ts`(4개국어).
+- 후속(범위 밖): `BookingManageSection`의 로컬 `LocalizedMessageField`를 공용 컴포넌트로 마이그레이션(중복 제거) — /simplify에서 빌드 검증과 함께.
+
+### 리스크/주의
+- 새 테이블 조회가 배포>마이그레이션 순서로 뒤집히면 500 위험 → try/catch 방어 + 순서 준수로 이중 안전.
+- `reservationSelect` 하드닝 규칙은 이 작업과 무관(Reservation 컬럼 미변경).
+
+---
+
+## 완료 — 휴업일 설정해도 고객 예약 페이지에서 예약되는 버그 (TZ 오프바이원)
+
+> 배경(사용자): "휴업일 설정했는데, 고객 예약 페이지 통해서 예약되네." 오너가 특정 날짜 휴업일(`StoreClosedDate`)을 설정했는데도 공개 예약 페이지에서 그 날짜 예약이 통과됨.
+
+### 원인 (근본)
+- **날짜 전용 컬럼의 저장/읽기 TZ 규칙 불일치.** 앱 전역 규칙은 "저장=`new Date(\`${date}T00:00:00\`)`(서버 로컬 파싱), 읽기=`mappers.toDateKey`(로컬 컴포넌트 추출)" → 서버 TZ와 무관하게 오너가 입력한 달력일을 되돌려줌(오너 흐름은 정상).
+- **공개 예약 API들만 이 규칙을 깨고 UTC `.toISOString().slice(0,10)`로 읽음.** 서버가 KST(운영)면 로컬 파싱으로 저장된 `2026-07-25`가 `2026-07-24T15:00:00Z`로 저장돼, `.toISOString()`은 `2026-07-24`를 돌려줌 → 하루 밀림.
+- 결과: 오너는 25일이 휴업일로 보이지만(정상), 공개 API의 `closedDates`엔 24일이 들어가 고객이 고른 25일이 차단되지 않음 → `evaluateDateWindow`가 ok:true → `reserve`가 201. 클라이언트 제출 경로·서버 재검증 로직 자체는 정상.
+- TZ=UTC에선 두 방식이 우연히 일치해 재현 안 됨(운영은 KST로 동작 → 재현). `node -e` 시뮬레이션으로 UTC 정상 / Asia/Seoul 하루 밀림 확증.
+
+### 수정 방침 (관례 복원 — `toDateKey`로 통일, 전 TZ에서 정확·UTC서 무회귀)
+- `mappers.ts`의 `toDateKey`를 `export` 하고, 공개 예약 흐름의 모든 날짜 읽기를 `.toISOString().slice(0,10)` → `toDateKey(...)`로 교체.
+- **A. 휴업일 비교(신고 버그)**: `book/[slug].ts`, `book/[slug]/availability.ts`, `book/[slug]/reserve.ts`, `book/[slug]/day.ts`, `book/reservation/[token]/request-change.ts`의 `closedDates` 생성.
+- **B. 예약 날짜 표시(동일 뿌리, KST서 하루 밀려 표시)**: `book/[slug]/lookup.ts`, `book/reservation/[token].ts`, `request-change.ts`(Slack), `request-cancel.ts`(Slack), `book-requests.ts`(오너 요청목록).
+- **손대지 않음**: `booking-helpers.ts` `nowKst()`의 `shifted.toISOString().slice(0,10)` — 의도적으로 KST-shift된 instant에 UTC 추출(정상, TZ 독립).
+- 스키마·마이그레이션 무변경(코드-온리 배포). 저장 형식 불변이라 기존 데이터 그대로 정상 해석.
+
+### 검증 (완료)
+- ✅ 타입체크 exit 0(`tsc --noEmit`, select 완전성 포함)·`next build` exit 0(부킹 라우트 포함 전 API 컴파일).
+- ✅ `node` 시뮬레이션(실제 `toDateKey`)으로 라운드트립 확인: **수정 전** KST에서 `closedDates=["2026-07-24"]` → 고객 25일 예약 통과(버그). **수정 후** UTC·Asia/Seoul·America/New_York 전부 `["2026-07-25"]` → 25일 예약 차단.
+- (테스트 러너 없음) 회귀 방지는 단일 헬퍼(`toDateKey`) 통일 + 타입체크로 담보. 후속 하드닝 후보: 날짜 전용 컬럼을 `@db.Date`/문자열로 두어 instant 왕복 자체를 제거(마이그레이션 필요 → 범위 밖).
+
+### 결과물 (수정 파일)
+- `server/db/mappers.ts`: `toDateKey` `export`(공개 API가 오너 흐름과 동일 헬퍼 재사용).
+- A(휴업일 비교): `book/[slug].ts`·`book/[slug]/availability.ts`·`book/[slug]/reserve.ts`·`book/[slug]/day.ts`·`book/reservation/[token]/request-change.ts`.
+- B(예약 날짜 표시): `book/[slug]/lookup.ts`·`book/reservation/[token].ts`·`request-change.ts`(Slack)·`request-cancel.ts`(Slack)·`book-requests.ts`.
+- `client/package.json` 0.37.0→0.37.1(patch).
+
+---
+
+## 진행 중 — 온라인 예약 승인/거절/취소 UX 개선 (승인 확인 레이어·취소 예약 유지·사유)
+
+> 배경(사용자): 고객 예약 페이지로 들어온 예약 처리 흐름 3가지.
+> 1) 승인 시에도 확인 레이어(거절과 동일 패턴) 추가.
+> 2) 승인된 예약을 취소하면 타임라인(일별/주별/3일)에서 사라짐 → 취소 예약으로 남아야 함.
+> 3) 승인·거절·취소 시 사유 입력(선택). 미작성 시 "예약이 {승인/거절/취소}되었습니다." 기본문구. 고객 조회 페이지(/r/{token})에 노출.
+
+### 설계 결정
+- **사유는 필수 아님.** 빈 값이면 상태별 기본문구로 대체(고객 페이지에서 표시). 자유 텍스트(오너 입력 한국어), 번역 없음 — `memo`와 동일 취급.
+- **저장**: `Reservation.decisionReason TEXT?` 1컬럼(마지막 결정 사유 덮어쓰기). 승인 시=승인 사유(active에서 표시), 거절/취소 시=취소 사유(cancelled에서 표시). 마이그레이션 0014, 추가형·멱등(`ADD COLUMN IF NOT EXISTS`). **운영 Supabase direct(5432) 수동 선적용 → 코드 자동배포** 순서 준수.
+- **#2 타임라인**: 온라인 예약(channel=online)의 취소 건만 타임라인에 계속 표시(기존 "취소 숨김"은 수기/네이버엔 유지 — 블록·건수 부풀림 최소화). 고객 신청 예약 추적 목적.
+
+### 영향 파일
+- 스키마/마이그레이션: `schema.prisma`(Reservation.decisionReason), `migrations/0014_reservation_decision_reason/migration.sql`
+- 서버: `book/booking-helpers.ts`(토큰 select에 decisionReason), `book/reservation/[token].ts`(응답에 decisionReason), `book-requests.ts`(approve/reject 시 reason 저장), `reservations.ts`(PATCH에 reason → cancel 시 저장)
+- 클라 스토어: `calendarStore.ts` `cancelReservation(reservation, status, reason?)`
+- 상세 레이어: `reservationDetailTypes.ts`(mode 'approving'), `reservationDetailUtils.ts`(MODE_LABELS), `ReservationDetail.tsx`(approving 레이어 + 사유 입력 + 배선), `ReservationDetailFooterActions.tsx`(approving footer), `ReservationDetailSections.tsx`(사유 입력 UI)
+- 고객 페이지: `book/[slug]/r/[token].tsx`(사유/기본문구 표시), `features/booking/i18n.ts`(기본문구 4개 언어)
+- #2: `calendar/views/Timeline.tsx`(온라인 취소 유지)
+
+### 검증
+- 타입체크·빌드. 온라인 신청 승인/거절/취소 왕복(로컬), 고객 페이지 사유 표시, 타임라인 온라인 취소 유지 확인.
+
+---
+
+## 완료 — 온라인 예약 신청 거절 확인을 브라우저 confirm → 앱 레이어로 변경
+
+> 배경(사용자): 고객 예약 페이지를 통해 들어온 예약 신청을 오너가 상세 레이어에서 **거절**할 때, 브라우저 `window.confirm` 창 대신 앱 UI 레이어(모달)로 확인받도록 변경.
+
+### 범위/설계
+- 대상: `client/components/calendar/overlays/ReservationDetail.tsx`의 `decideBooking('reject')` 경로만. 다른 confirm(취소 등)은 이미 레이어이므로 무관.
+- 기존 취소/노쇼/완료와 동일 패턴 채택: `mode`에 `'rejecting'` 추가 → 거절 버튼은 레이어를 열고(`setMode('rejecting')`), 레이어 안 `ReservationStaticDiffSection`으로 대상 정보 표시 → footer의 "거절" 확인 버튼이 실제 API 호출.
+- `window.confirm` 제거. `decideBooking`은 API 호출만 담당.
+
+### 영향 파일
+- `reservationDetailTypes.ts`: `ReservationDetailMode`에 `'rejecting'` 추가
+- `reservationDetailUtils.ts`: `MODE_LABELS.rejecting = '예약 거절'`
+- `ReservationDetail.tsx`: rejecting 섹션 렌더 + footer 배선(open/confirm)
+- `ReservationDetailFooterActions.tsx`: `rejecting` mode footer + `onRejectReservation` prop
+
+### 검증
+- ✅ 타입체크 0·빌드 성공. 온라인 신청(requested) 예약 상세에서 거절 → 레이어 노출 → 확인 시 API 호출·새로고침 흐름(기존 취소/노쇼 레이어와 동일 패턴).
+
+---
+
+## 진행 중 — 예약 상태별 오너 안내문구 (#139: 완료·확정·취소, 4개 언어)
+
+> 배경(사용자): 사전 안내문(`noticeText`) 외에 **예약완료·확정·취소** 단계별 안내문구도 필요. 각각 오너 입력 + 4개 언어(한/영/일/중).
+
+### 전달 방식 (확정)
+- 고객 알림 발송 인프라 없음 → 확정/취소 문구는 **고객이 조회 페이지(`/r/{token}`) 재방문 시 상태별 표시**(발송 아님). 완료 문구는 완료 화면 즉시 표시.
+
+### 설계
+- `StoreBookingSettings`에 3쌍 추가: `doneText/doneI18nJson`(완료), `confirmText/confirmI18nJson`(확정), `cancelText/cancelI18nJson`(취소). 기존 `noticeI18nJson`과 동일 패턴.
+- 마이그레이션 0013 — 6컬럼 `ADD COLUMN IF NOT EXISTS`(추가형·멱등). **사용자가 Supabase direct(5432) 수동 선적용 → 코드 자동배포** 순서 준수.
+- 표시: 완료=`[slug].tsx` result 뷰(기존 시스템 안내 아래 오너 문구 추가), 확정/취소=`r/[token].tsx` 상태별. 모두 `pickI18n` + 한국어 폴백, 비면 미표시.
+- `BookingManageSection`: 문구+언어칸 반복을 재사용 컴포넌트(`LocalizedMessageField`)로 정리(안내문 포함 4블록 공통화).
+
+### 검증
+- 타입체크·빌드·로컬 구동. 저장 왕복(authed+DB)은 로컬 Postgres로 확인, 실계정은 배포 후.
+
+---
+
+## 진행 중 — 예약 페이지 오너 콘텐츠 다국어 (Phase A: 오너 입력 + 한국어 폴백)
+
+> 배경(사용자): 예약 페이지 UI 문구 다국어(완료)에 이어, **오너가 입력한 콘텐츠**(시술명·안내문·매장명·담당자명)도 다국어. 방식은 **1+2 하이브리드 중 A단계** — 오너가 언어별로 직접 입력, 없으면 한국어 폴백. (자동번역 B단계는 나중에)
+
+### 핵심 설계 원칙 (예약 무결성)
+- **표시(번역)와 식별(원본) 분리.** 화면엔 번역명 표시, **선택·전송·저장은 항상 원본 한국어 이름.**
+  - `reserve.ts`는 카탈로그 이름 매칭(못 찾으면 400 `unknown_service`, 신규생성 안 함) + `serviceSummary`는 한국어 스냅샷 저장 → **오너 관리화면 한국어 유지, 예약은 기존 시술에 정확히 연결.**
+  - 공개 API는 `name`(원본) + `nameI18n`을 함께 내려주고, 클라가 `nameI18n[lang] ?? name`로 **표시만** 치환. (하단 전환기가 새로고침 없이 즉시 바뀌므로 번역 객체를 통째로 내려줌.)
+- ID화는 불필요(이름=정체성, 번역=위성 데이터). 시술명 리네임 견고성(ID화)은 별도 하드닝 트랙(범위 밖).
+
+### 스키마 (마이그레이션 0012 — 4개 컬럼 한 번에, 추가형·멱등)
+- `Service.nameI18nJson Json?` · `Assignee.nameI18nJson Json?` · `Store.nameI18nJson Json?` · `StoreBookingSettings.noticeI18nJson Json?` (각 `{en?,ja?,zh?}`). 전부 `ADD COLUMN IF NOT EXISTS`.
+- **배포 순서(중요)**: 사용자가 Supabase(direct 5432)에 **수동 선적용** → 그다음 코드 자동배포. 조회는 명시적 select라 안전망 있으나 순서 준수.
+
+### 구현 슬라이스 (한 브랜치, 커밋 단위 분할)
+1. **시술명(핵심)**: 마이그레이션 0012(4컬럼 전부) + `Service` 매퍼/모델 `nameI18n` + `/api/services` GET·PUT 왕복 + `/api/book/[slug]` 응답 + 예약 페이지 표시(`nameI18n[lang] ?? name`) + `ServiceManageSection` 번역 입력칸.
+2. **안내문**: `StoreBookingSettings.noticeI18n` + `/api/store`·`/api/book/[slug]` + 예약 페이지 상단 안내 표시 + `BookingManageSection` 입력.
+3. **매장명**: `Store.nameI18n` + `/api/store`·공개 API + 페이지 헤더 + `StoreManageSection` 입력.
+4. **담당자명**: `Assignee.nameI18n` + `/api/assignees`·공개 API + 담당자 픽커 표시 + `AssigneeManageSection` 입력.
+- **표시 헬퍼**: `features/booking/i18n.ts`에 `pickI18n(i18n, lang, fallback)` 추가(공통).
+- 토큰 페이지(`r/[token]`): storeName·assigneeName은 라이브 조인으로 번역, `serviceSummary`는 한국어 스냅샷 유지(예약 기록 특성 — 문서화).
+
+### 진행 (2026-07-20)
+- ✅ 시술명·안내문·담당자명·매장명 **오너 입력 UI + 표시 경로** 완성(4종). 매장명 번역칸은 온라인예약 ON일 때만 노출(매장관리 정리).
+- ✅ 표시 경로 실브라우저 검증(번역 렌더 + 한국어 폴백). 예약 선택·전송은 원본 유지.
+- ✅ **매장관리 정리**: '고객 예약 서비스 사용' ON 시 인라인으로 박히던 BookingManageSection을 제거하고, 적립금·회원권·쿠폰처럼 **왼쪽 메뉴 '고객 예약 설정' → `/settings/booking`** 별도 페이지로 분리. 토글은 매장관리에 유지.
+
+### 검증
+- 타입체크 0·빌드 성공. 오너 입력 저장(authed+DB)은 배포 후 실계정 확인 필요.
+
+---
+
+## 완료 — 고객 예약 페이지(book.takeaseat.co.kr) 다국어 (영어·중국어·일본어)
+
+> 요청(사용자): 고객 공개 예약 페이지에 영어·중국어·일본어 추가. (기존 한국어 + 3개 언어 = 4개) + 언어 전환기를 **하단 고정** 노출, 기존 경로에서 즉시 전환.
+
+### 범위
+- 대상 페이지: `client/pages/book/[slug].tsx`(랜딩·신규예약·조회·완료), `client/pages/book/[slug]/r/[token].tsx`(내 예약 확인·변경·취소).
+- **번역 대상 = 앱이 제공하는 UI 문구만**: 섹션 라벨·버튼·안내문·상태 라벨·에러 메시지·소요시간(시간/분)·요일/날짜·업종 라벨(담당자/서비스).
+- **번역 제외 = 매장 오너 콘텐츠**: 매장명·서비스명·안내문(noticeText)·담당자명·고객 본인 이름. (서버에서 온 한국어 조합 문자열 `serviceSummary`도 매장 콘텐츠라 그대로.)
+
+### 구현 항목
+1. **신규** `client/features/booking/i18n.ts` — 순수 모듈:
+   - `BookLang`('ko'|'en'|'zh'|'ja') + `BOOK_LANGS`(스위처용 네이티브 라벨).
+   - `BOOK_STRINGS: Record<BookLang, BookI18n>` — 두 페이지 전체 문구 사전(정적 문자열 + 템플릿 함수).
+   - 로케일 포매터: `formatDurationL`(시간/분), `formatBookDateLabel`·`dowLabel`·`todayLabel`(요일/날짜), `formatPriceL`(₩/원), `statusLabelL`(예약 상태).
+   - `localizedStoreLabels(shopType, lang)` — 업종 category 기준 담당자/서비스 라벨 번역(`getPrimaryIndustry` 재사용).
+2. **신규** `client/components/booking/LangSwitcher.tsx` — 네이티브 `<select>` 언어 전환기 + `useBookLang` 훅(localStorage `tas-book-lang` 영속 + `navigator.language` 자동감지 + `<html lang>` 갱신).
+3. **수정** `book/[slug].tsx`·`r/[token].tsx` — 하드코딩 한국어 → `t.*`/포매터로 전면 치환, 카드 상단에 `LangSwitcher` 배치.
+
+### 프론트 표준 준수
+- 언어 선택 = **네이티브 `<select>`**(커스텀 드롭다운 금지 규칙). 태그 셀렉터 미사용, ID/클래스만.
+- 접근성: 스위처 `<label htmlFor>`, `document.documentElement.lang` 동기화.
+
+### 언어 상태 = URL 접두(단일 소스, localStorage 제거)
+- 공개 경로: `/슬러그`(한국어) · `/en|ja|zh/슬러그`(해당 언어). 내부는 `next.config` rewrite로 `/book/:lang/:slug*`→`/book/:slug*?lang=:lang` 주입, 페이지는 `router.query.lang`로 언어 결정.
+- 전환기(`useBookLang`)는 URL만 읽고, 전환 시 해당 언어 경로로 이동(`bookHref`). `?m=` 뷰 상태 보존. localStorage·navigator 감지 제거(URL이 유일 소스 → 링크 공유/북마크가 언어를 실어감).
+- 검증(실 DB): bare=한국어, 영어선택→`/book/en/…`, 직접 `/book/zh/…` 진입 시 중국어+스위처 동기화 확인.
+
+### 비고/리스크
+- `formatDuration`(features/services/model.ts)은 앱 전역 사용 → **전역 수정 금지**, 예약페이지 전용 `formatDurationL` 신설.
+- SSR: 두 페이지는 `getServerSideProps` 빈 props + 클라 데이터 로드. lang 초기값 'ko' → mount 후 감지 반영(하이드레이션 안전).
+- 서버 API·스키마 무변경(코드-온리 배포).
+
+### 검증 (완료)
+- 타입체크 0 에러(전체), `next build` 성공(두 부킹 라우트 컴파일). eslint: 신규 파일 클린, 기존 두 페이지 문제 수 baseline과 동일(신규 유입 0).
+- 포매터 4개 언어 실행 확인: 소요시간(1시간30분/1h 30m/1時間30分/1小时30分钟)·금액(원/₩)·날짜(요일 로케일)·상태·업종 라벨(category별) 정상.
+
+### 결과물
+- 신규: `client/features/booking/i18n.ts`, `client/components/booking/LangSwitcher.tsx`.
+- 수정: `client/pages/book/[slug].tsx`, `client/pages/book/[slug]/r/[token].tsx`.
+
+---
+
+## 완료 — 매장관리 정기 휴무 요일(매주) + 고객 예약 페이지 비활성 (PR #132)
+
+> 배경(사용자): 매장관리에 "휴무일"(정기 휴무 요일, 매주) 설정을 넣고, 고객 예약 페이지에서 해당 요일 날짜는 무조건 예약 비활성 처리.
+
+### 현황 파악 (기존 구현 재사용)
+- **특정 날짜 지정 "휴업일"(`StoreClosedDate`)은 이미 구현** — 매장관리 UI + 예약 페이지 날짜 비활성 + 서버 슬롯 거부까지 완비. 이번 작업 대상 아님.
+- **소비 측(정기 휴무)은 이미 요일별 `StoreBusinessHour.enabled`로 완전 지원** — `computeAvailableSlots`가 `!businessHour.enabled`면 빈 슬롯(`availability.ts`), reserve API도 동일 재검증, 고객 예약 페이지 `isDateClosed`가 `businessHours[dayIndex].enabled===false`를 휴무로 판정해 날짜 비활성(`book/[slug].tsx`).
+- **빠진 것은 오너가 정기 휴무 요일을 설정하는 저장 경로뿐** — 현재 `store.ts` PUT이 7일 모두 `enabled:true` 강제.
+
+### 구현 항목
+1. `features/store-settings/model.ts`: `StoreSettings.closedWeekdays: number[]`(0=월…6=일) 추가 + DEFAULT `[]`.
+2. `server/db/mappers.ts` `dbStoreToFrontend`: `businessHours` 중 `!enabled`인 `dayIndex`로 `closedWeekdays` 파생.
+3. `server/api/store.ts` PUT: `closedWeekdays` 수신·검증(0~6 정수 배열), 각 요일 upsert `enabled = !closedWeekdays.includes(dayIndex)`.
+4. `calendarStoreStoreSettingsHelpers.ts` + `calendarStore.ts`: `updateStoreClosedWeekdays` 액션(전체 `storeSettings` PUT로 반영).
+5. `settings/StoreManageSection.tsx`: "정기 휴무" 카드 — 월~일 네이티브 체크박스 토글(수정→저장 패턴, 프론트 표준 준수).
+
+### 비고
+- 고객 예약 API/페이지는 무수정(이미 `enabled` 소비). 마이그레이션 불필요(기존 컬럼 활용).
+- 하위호환: `closedWeekdays` 미전송(구클라)=빈 배열=전 요일 영업(현행 유지).
+
+### 검증
+- 타입체크·빌드. 오너가 특정 요일 휴무 저장 → 예약 페이지 해당 요일 날짜 비활성 확인.
+
+---
+
+## 진행 중 — 취소/노쇼 예약 시각 분기 통일 (빗금 + 고객명 취소선)
+
+> 배경(사용자): 연별/월별 뷰에서 취소된 예약 구분이 약함(흐림 처리만). 타임라인은 취소를 숨기지만 월/연·전체보기·고객명단·고객상세에는 노출됨. 취소·노쇼를 **일괄 동일**하게 **빗금(해치) 배경 + 고객명 취소선**으로 확실히 구별.
+
+### 적용 범위 (예약 카드 컴포넌트 2종만 수정 → 전 화면 반영)
+- `ReservationInfoCard`(`StyledCard`): 전체보기 모달·고객 상세 레이어·고객 명단(모두 `CustomerReservationCards` 경유). 기존 `.inactive` 클래스에 대응 CSS가 없던 미완성 → 빗금+취소선 실제 적용.
+- `ReservationList`(`StyledItem`): 월별·연별 셀. 기존 `grayscale+opacity` → 빗금+취소선으로 교체.
+
+### 구현 방침
+- 취소·노쇼 **동일 처리**(`status==='cancelled' || 'noshow'`). 회색 빗금 `repeating-linear-gradient(-45deg …)` + `--gray-color2` 배경, 보더 `--gray-color`.
+- 취소선(가로줄)은 **고객명에만**. 클래스 기반(`.strike`), 태그 셀렉터 미사용(프론트 표준 준수). 상태 배지(취소/노쇼)는 `ReservationInfoCard`에 이미 존재 → 유지.
+
+### 검증
+- 타입체크·빌드. 목업 스크린샷으로 시각 확인.
+
+
+## 진행 중 — 서비스 소요시간 분→시간+분 표기 (#126)
+
+> book/[slug], r/[token]의 시술 소요시간 `N분`을 기존 `formatDuration`으로 `1시간30분` 형식 노출(칩·요약·합계).
+
+---
+
+## 완료 — 예약 조회/변경/취소 버튼 디자인 가이드 정렬 (#124)
+
+> 관리 페이지 버튼을 가이드/StyledActionButton에 맞춤: radius 8(--radius-lg), weight 600/500, 1px 토큰 보더, shadow-sm, 취소는 danger-outline. 공용 페이지라 높이 48px 유지.
+
+---
+
+## 완료 — 확정 대기 예약도 취소 요청 가능 (#122)
+
+> 버그: requested(확정 전) 예약은 취소 요청을 못 보내 매장에 취소요청이 안 옴.
+
+### 수정
+- `request-cancel`: active뿐 아니라 requested도 허용.
+- `[token]` GET에 `canCancel = active||requested` 추가(변경 canRequest는 active 유지).
+- 관리 페이지: requested면 안내 + 취소 요청 버튼. active면 변경·취소 둘 다.
+
+---
+
+## 완료 — 온라인 예약 알림(헤더 벨) 상시 노출 (#120)
+
+> 요청: 헤더 온라인 예약 알림 아이콘(예약 신청 벨)이 대기 0건이면 숨겨져 사라진 것처럼 보임 → 온라인 예약 쓰는 매장은 상시 노출(원복).
+
+### 수정
+- `BookingRequestNotification` 노출 조건 `requests.length===0 → null`을 `!useOnlineBooking → null`로 변경. 온라인 쓰는 매장은 0건이어도 아이콘 유지(뱃지는 count>0). 클릭→상세는 #119.
+
+---
+
+## 완료 — 온라인 예약 상세 진입·확정대기 배지·채널 표시 (#118)
+
+> 3건: (1) 예약 요청 벨 항목 클릭→상세 레이어(미래 날짜는 캘린더 미노출→벨로 접근), (2) 확정대기 배지, (3) 온라인예약이 전화예약으로 뜨는 버그.
+
+### 수정
+- `ReservationViewSection`: 예약경로 하드코딩(현장방문?:전화예약) → 실제 `reservation.channel`. requested면 "확정대기" 배지(스타일 기존 존재).
+- `BookingRequestNotification`: 항목 본문 클릭 → legacyId로 reservationMap에서 찾아 `openReservationDetail` + 패널 닫기.
+- `TimelineReservationCard`: "(신청)"→"(확정대기)".
+
+---
+
+## 완료 — 요청사항 textarea 세로 정렬 (#116)
+
+> 버그: 메모 textarea 세로 정렬 틀어짐. 원인: formControlStyle의 height:32px(input용)가 textarea에 먹음.
+
+### 수정
+- `StyledTextArea`에 display:block, height:auto, min-height:76px, vertical-align:top로 고정 높이 덮음.
+
+---
+
+## 완료 — 관리자 예약 상세 '예약확정' (#114)
+
+> 배치 6: 온라인 예약(requested)을 예약 상세 레이어에서 확정/거절.
+
+### 구현
+- `POST /api/book-requests`가 `legacyId`로도 대상 지정(기존 cuid `id` 유지). update where를 `reservation.id`로 고정.
+- `ReservationDetailFooterActions` view 모드: `isRequested`면 예약확정/거절만 노출.
+- `ReservationDetail`: `status==='requested'` 판정 + decideBooking(approve/reject by legacyId) → 성공 시 reload(벨과 동일). 거절은 confirm.
+
+### 검증
+- 타입체크·빌드.
+
+### 배치 완료
+- 1·3·4·5(#110/#111 ✅), 2·3(#112/#113 ✅), 6(#114 진행).
+
+---
+
+## 완료 — 예약 변경 UI 픽커화 + 조회/변경/취소 디자인 정렬 (#112)
+
+> 배치 2·3: `/r/[token]` 변경 폼을 예약 화면과 동일한 픽커 UI로, 디자인 가이드(토큰) 정렬.
+
+### 구현
+- 변경 폼: 세로 서비스카드·담당자 셀렉트·네이티브 date·슬롯그리드 → `BookingPickers`(PillChip 담당자 가로줄·DateCell 날짜 스트립·ServiceChoiceChip·SlotGrid/SlotCell). 담당자 offDays로 날짜 비활성 + 휴무 badge, 담당자 선택 시 근무 첫 날짜 이동. openChange에서 현재 예약 날짜 기본 선택.
+- 디자인: 하드코딩(#f4f6f8·`--accent-soft`(미정의)·16px·100vh) → 토큰. 페이지 화이트, 카드 box-sizing:border-box·--radius-lg·100dvh. 구식 styled 8개 제거.
+- BookStoreInfo에 businessHours·closedDates·담당자 offDays 타입 추가(엔드포인트 기존 반환).
+
+### 검증
+- 타입체크·빌드.
+
+### 남은 배치
+- C: 관리자 예약 상세 '예약확정'(6).
+
+---
+
+## 완료 — 신규예약 개선: 전화번호 안내·메모·라우팅·스크롤 (#110)
+
+> 배치 요청 1·3·4·5 중 book 신규예약/랜딩 파트.
+
+### 구현
+- 1) 연락처 placeholder `01012345678` + "하이픈 없이" 안내(StyledFieldHint), 자동 하이픈 포맷 제거(신규·조회). formatTel import 제거.
+- 4) 신규 예약 메모(textarea, 200자). reserve API memo 저장 + Slack 알림 '요청사항' 포함.
+- 5) 뷰(home/new/lookup)를 URL 쿼리 `?m=`와 동기화(shallow) → 새로고침 유지. goView 헬퍼.
+- 3-a) 랜딩 세로 스크롤: 모바일 `100vh`→`100dvh`(주소창 높이).
+
+### 검증
+- 타입체크·빌드.
+
+### 남은 배치(별도)
+- B: `/r/[token]` 변경 UI 픽커화 + 디자인 가이드 정렬(2·3). C: 관리자 예약 상세 '예약확정'(6).
+
+---
+
+## 완료 — 디자이너 휴무 요일 날짜 비활성 (#108)
+
+> 버그: 특정 디자이너 선택해도 그 디자이너 휴무 요일 날짜가 활성. 원인: info가 담당자 주간 스케줄 미노출 + 반대로 '휴무면 상관없음으로 되돌리기' effect 존재.
+
+### 수정
+- info 응답 담당자에 `offDays:number[]`(disabled 요일) 추가(server `[slug].ts`).
+- 날짜 스트립: 선택 담당자 `offDays` 요일 비활성(매장 휴무와 함께).
+- 담당자 선택 시 현재 날짜가 휴무면 근무 첫 날짜로 이동. '상관없음 되돌리기' effect 제거.
+
+### 검증
+- 타입체크·빌드.
+
+---
+
+## 완료 — 예약 랜딩 + 이름·연락처 예약 조회 (#106)
+
+> 요청: 첫 진입을 예약 폼이 아니라 "예약 서비스" 랜딩으로 → [신규 예약] / [예약 조회·변경·취소]. (#104 답변서 확인된 셀프 조회 갭 해소)
+
+### 구현
+- `/book/[slug]` 뷰 상태(`home|new|lookup`, 기본 home). 랜딩 = 매장명+"예약 서비스"+두 갈래 버튼. new=기존 폼(뒤로 버튼 추가), lookup=이름·연락처 조회.
+- 조회 API `POST /api/book/[slug]/lookup {name,tel}` → 이름+연락처 일치 고객의 오늘 이후 requested/active 예약을 token 포함해 반환 → 기존 `/r/[token]` 관리 페이지로 연결.
+- 개인정보: 이름+연락처 둘 다 요구(번호 단독 열람 차단), 미존재/불일치는 빈 목록.
+- 스키마 변경 없음(기존 Customer/Reservation 사용) → 배포 코드-온리.
+
+### 검증
+- 타입체크·빌드 통과, `/api/book/[slug]/lookup` 라우트 등록 확인.
+
+---
+
+## 완료 — 공개 예약 하단 sticky 예약 내용 요약 (#104)
+
+> 요청: (1) 최하단 여백 부족, (2) 담당자·날짜 선택이 스크롤 시 안 보임→sticky, (3) '합계'→'예약 내용'으로 바꾸고 예약 내역 상세히.
+
+### 구현
+- 하단 **sticky '예약 내용' 요약 바**(`StyledStickyFooter`, `position:sticky;bottom:0`, 카드 폭 풀블리드 negative margin, 상단 경계+그림자)로 2·3 통합. 담당자·날짜·시간(시작~종료)·시술(항목별 분·가격)·합계 표시, 선택 진행에 따라 채움.
+- `env(safe-area-inset-bottom)` + 하단 여백으로 1 해결. '합계' 라벨은 요약 카드 내부 합계 행으로.
+- `addMinutes`로 종료시각 계산. 예약자 정보(이름·연락처)는 플로우 유지, 예약하기 버튼은 sticky 바에.
+
+### 검증
+- 타입체크·빌드. 모바일에서 sticky·여백·상세 확인.
+
+---
+
+## 완료 — 공개 예약 페이지 모바일/디자인 수정 (#102)
+
+> 요청(스크린샷): (1) 모바일 가로 스크롤, (2) 뒤 회색 배경 잘림, (3) 요일 스트립 scroll-snap, (4) 온보딩 스텝 디자인 톤 정렬(페이지 배경 화이트 포함).
+
+### 원인·구현
+- 1·2번 원인: `StyledCard`가 `width:100%`+좌우 `padding` + `box-sizing` 없음 → 모바일(`max-width:none`)서 카드 폭=뷰포트+48px. → `box-sizing:border-box` 추가로 해결(회색 잘림도 같이).
+- 3번: `PickerScrollRow` `scroll-snap-type:x proximity`, `DateCell`/`PillChip` `scroll-snap-align:start`.
+- 4번: 페이지 배경 `#f4f6f8`→화이트, 카드 라운드 16px→`--radius-lg`, 여백 32/28·모바일 24/18, gap 16, 섹션 타이틀 12px→14px/700 black. 내부 회색 fill은 `--gray-color2` 토큰화.
+
+### 검증
+- 타입체크·빌드. 모바일 폭 가로 스크롤 없음.
+
+---
+
+## 완료 — 예약 추가 고객 입력 UX (#100)
+
+> 요청: (1) 고객 추천 목록에 전화번호가 안 보임(색이 너무 옅음) → 동명이인 구분 불가. (2) 기존/신규 탭 없이 연락처 란 상시 노출 — 기존 선택 시 이름·연락처 자동 채움, 새 이름 입력 시 연락처 수동.
+
+### 구현
+- `CustomerAutocomplete.tsx`: 추천 번호 색 `--gray-color`→`--dark-gray-color2`, 12px·tabular-nums로 또렷하게. 이름 weight 500.
+- `useReservationCreateForm.ts`: `customerMode`/`newCustomerName`/`newCustomerTel` 제거, 단일 `customerTel`. 이름=`customerQuery`. 기존선택=`customerId≠0`(연락처 자동 채움), 새이름=`customerId=0`(이름 재입력 시 선택 해제+연락처 비움). validate/handleSave 단일 경로(신규만 번호 형식 검사).
+- `ReservationCreateCustomerFields.tsx`: 탭 제거, 고객명(자동완성)+연락처(상시) 2필드.
+- `ReservationCreate.tsx`: props 배선 갱신.
+
+### 검증
+- 타입체크·lint 통과. 프로덕션 빌드로 확인.
+
+---
+
+## 완료 — 고객 전화번호 중복 경고 + 병합 유도 (#98)
+
+> 배경: 고객 정보 레이어에서 이름·전화번호 수정 시, 같은 매장 내 다른 고객이 이미 그 번호를 써도 무검증 저장 → 동일 번호 고객이 조용히 중복. 서버 PUT은 legacyId 단건 저장뿐이고 `(storeId, tel)`은 인덱스(비-unique). 기존 병합 제안은 마스킹 이름만 감지.
+
+### 방침
+- **하드 차단(unique 제약) 안 함** — 가족 공유번호 정상 케이스 보호.
+- 저장 시점 **경고 + 병합 유도**. 이름 중복은 무검증(동명이인).
+
+### 구현
+- `CustomerDetail.tsx`: `handleSaveEdit`에서 `customerMap` 스캔(`normalizeTel` 비교, 자기 자신 제외). 겹치면 `dupWarning` 상태 세팅 → 인라인 경고(같은 분=병합 / 다른 분=그대로 저장 / 취소). `commitEdit`로 실제 저장 분리.
+- 병합: 기존 `POST /api/customers/merge` 재사용. target=기존 번호 보유 고객, source=편집 고객. 성공 시 `/api/customers`·`/api/reservations` 리로드 후 레이어 닫기. 실패는 toast로 표면화(조용히 삼키지 않음).
+- `CustomerDetail.styles.ts`: 경고 배너·버튼 styled 추가(디자인 토큰 사용, 태그 셀렉터 금지).
+
+### 검증
+- 타입체크·빌드. 동일 번호 수정 시 경고 노출 + 3동작 확인.
+
+---
+
+## 완료 — 예약 페이지 UI 영화관(CGV)식 개편 + 시술↔시간 양방향 필터
+
+> 배경: 기존 공개 예약 페이지가 "예약 가능한 시간만" 듬성듬성 버튼으로 떠 불편. CGV 예매 UI처럼 재구성 요청.
+
+### 레이아웃 (위→아래)
+- **디자이너(담당자) 선택**: 가로 스크롤 칩. `allowAssigneeChoice` 꺼지면 숨김. 그날 휴무 담당자는 **노출하되 비활성**.
+- **날짜 선택**: 가로 스크롤 스트립(오늘~maxAdvanceDays). 휴무일·영업요일 아님 → 비활성.
+- **시술 선택**: inline 칩(wrap).
+- **예약 가능한 시간**: 하단 그리드. 하루 전체 슬롯을 좌석처럼 깔고 마감/불가는 비활성(취소선).
+
+### 양방향 필터 (핵심)
+- 서버가 슬롯별 **최대 연속 가용분(maxDurationMin)** 만 내려줌(예약 상세·고객정보 비노출) → 클라가 즉시 계산.
+- 시술 선택 시 → 총소요 ≤ maxDuration 인 시간만 활성 / 시간 선택 시 → 그 시각에 담기는 시술만 활성. 나머지 비활성.
+
+### 구현 파일
+- `client/features/booking/availability.ts`: `isBlockAvailable` 추출, `computeSlotCapacities`(경계 스캔·단조성 이용), `assigneeWorksOnDay` 추가. (브루트포스 대조 검증 완료)
+- `server/api/book/[slug]/day.ts` (+ `client/pages/api/book/[slug]/day.ts` 래퍼): 날짜(+담당자) 용량표·담당자 근무여부 반환.
+- `server/api/book/[slug].ts`: 공개 info에 `businessHours`·`closedDates` 이미 포함(클라 날짜 비활성 판정에 사용).
+- `client/pages/book/[slug].tsx`: 전면 재구성.
+
+---
+
+## 완료 — 배포순서 장애 재발방지 (예약 조회 select 하드닝)
+
+> 배경: PR #80(온라인예약 1b·1c) 머지 후 마이그레이션 0009(`Reservation.publicToken`) 미적용 상태로 자동 배포 → 메인 캘린더/예약 API가 500(앱 전체 다운). 원인: 예약 조회가 Prisma `include`(모델 전체 컬럼 SELECT)라, DB에 없는 새 컬럼(`publicToken`)까지 SELECT하다 "column does not exist"로 실패.
+
+### 구현
+- `server/db/prisma-includes.ts`: `reservationInclude`/`reservationIncludeWithNames`(include) → **명시적 `select`** `reservationSelect`/`reservationSelectWithNames`로 교체. 프런트 매퍼가 실제 쓰는 컬럼만 나열(신규 컬럼은 이 목록에 넣기 전까지 미조회 → 배포가 마이그레이션 순서에 독립).
+- 호출부 전부 `include:` → `select:` 전환: `reservations.ts`(6곳), `naver-booking-sync.ts`(2곳), **`page-data/index.ts`(메인 캘린더 SSR — 실제 장애 쿼리)**.
+- 검증: 타입체크가 select 완전성 보증(매퍼/호출부가 쓰는 필드 누락 시 컴파일 에러), build 통과. 배포는 컬럼을 늘리지 않고 줄이기만 하므로 마이그레이션 상태와 무관하게 안전.
+
+### 남은 권장(후속)
+- 네이버 동기화·백필·마이그레이션 경로의 `create`/`update`(암묵적 전체 컬럼 RETURNING)는 앱 전체 다운은 아니나 동일 위험 존재 → 필요 시 select 명시. 신규 마이그레이션(예: 0010)은 여전히 "**적용 먼저, 배포 나중**" 원칙 유지.
+
+---
+
+## 계획 중 — 고객 공개 예약 시스템 (Online Booking)
+
+> 결정(사용자): **셀프 예약 생성 + 고객 변경/취소 요청**, **인증 없이 이름+연락처**, **담당자 선택(+무관)**, **알림·취소까지** 풀 범위.
+> 배경: 현재 예약은 네이버예약(Gmail 동기화)·수기 입력만. 고객 접근 화면 전무. 자체 공개 부킹 페이지를 신설(네이버와 별개 채널 `online`).
+
+### 핵심 설계 원칙
+- **공개(비로그인) 엔드포인트 신설**: 기존 API는 전부 로그인/역할 검증. 공개 API(`/api/book/*`)는 매장 스코프 + 최소 노출 + 레이트리밋 + 슬롯 재검증(트랜잭션 overlap 체크)로 방어.
+- **데이터 최소 노출**: 공개 API는 매장명·업종라벨·예약가능 서비스(이름/소요/가격)·담당자(이름/색상)·영업시간·휴무일만. 다른 고객 정보·예약 내역 절대 비노출.
+- **고객 예약 관리는 per-예약 토큰**: 인증이 없으므로 예약 생성 시 `publicToken`(추측 불가 랜덤) 발급 → 확인/변경/취소 링크 `/(book)/r/[token]`로만 접근.
+
+### URL / 진입 — 서브도메인 (확정)
+- **고객 공개 도메인: `book.takeaseat.co.kr/[slug]`** (매장별 `bookingSlug`가 서브도메인 루트 바로 아래). 예약 확인: `book.takeaseat.co.kr/[slug]/r/[token]`.
+- 운영자 도메인 `takeaseat.co.kr`는 그대로. 하나의 Next.js 앱이 두 호스트를 서빙(hostname 분기).
+- **내부 라우트는 `pages/book/[slug].tsx`·`pages/book/[slug]/r/[token].tsx`**로 두고, 미들웨어가 `book.` 호스트의 루트 경로(`/[slug]`)를 내부 `/book/[slug]`로 rewrite. (내부 구조 깔끔 유지 + 공개 URL엔 `/book` 안 보임.)
+- 오너 설정: `/settings/booking` 탭 (온라인예약 토글 + slug + 예약규칙 + 노출 서비스/담당자). 쿠폰/회원권 토글 패턴 미러링.
+
+### 서브도메인 라우팅·격리 (Phase 1에서 배선)
+- `proxy.ts` **최상단**(auth() 밖, 점검모드 게이트처럼)에서 hostname 판정:
+  - `host === book 서브도메인` → **공개 구역**: 인증/약관/온보딩 게이트 전부 우회. `/[slug]*` → `/book/[slug]*`로 rewrite. 운영자 전용 경로 접근은 404/차단.
+  - `host === 메인` → 기존대로. `/book/*` 직접 접근은 차단(또는 서브도메인으로 안내).
+- `_app.tsx` 게스트 라우팅·`LayoutComponent` 앱 셸: 부킹 페이지는 `isBarePage`처럼 셸 없이 렌더 + 게스트 리다이렉트 예외.
+- **쿠키 격리 확인**: NextAuth 세션 쿠키가 host-only(도메인 `.takeaseat.co.kr` 와일드카드 아님)여야 `book.` 서브도메인에 세션이 안 샌다. 배선 시 검증.
+- **인프라(사용자 직접, GCP/DNS)**: `book` CNAME → Cloud Run, Cloud Run 도메인 매핑(+관리형 SSL). 앱은 부킹 호스트를 `NEXT_PUBLIC_BOOKING_HOST` 등 env로 인지. (코드는 내가, 인프라 세팅은 사용자.)
+
+### DB 변경 (Prisma 마이그레이션)
+1. `ReservationChannel` enum에 `online` 추가.
+2. `Store`: `useOnlineBooking Boolean @default(false)`, `bookingSlug String? @unique`.
+3. 예약 규칙: `StoreBookingSettings`(신규) 또는 Store 컬럼 — `slotIntervalMin`(예: 30), `minLeadMinutes`(최소 사전예약 시간), `maxAdvanceDays`(최대 며칠 후까지), `bookableServiceIds?`/`bookableAssigneeIds?`(미지정=전체 노출). → 신규 모델로 분리 예정.
+4. `Reservation`: `publicToken String? @unique`(고객 관리 링크), 고객 변경/취소 요청 표현 필드(아래 "변경/취소" 결정에 따름).
+
+### 단계(Phase) — 각 단계별로 빌드·검증·PR·머지
+- **Phase 0 — 스키마·오너 설정 기반 ✅ 완료**:
+  - (0a) 마이그레이션 `0008_online_booking`(online 채널·`useOnlineBooking`·`bookingSlug`·`StoreBookingSettings`), 채널 매퍼(`online`↔`온라인예약`), `/api/store` GET/PATCH 확장(토글·슬러그 검증+중복409·규칙).
+  - (0b) 매장 관리 '고객 예약 서비스 사용' 토글 + 전역 스토어 `useOnlineBooking` 배선 + aside '고객 예약 설정'(토글 ON시) + `/settings/booking` 탭(`BookingManageSection`: 슬러그·URL 미리보기·예약 규칙 저장).
+  - 남은 것: 온라인예약 매출 채널 색/순서(Phase 1에서), 실제 공개 페이지(Phase 1).
+- **인프라 ✅ 완료**: `book.takeaseat.co.kr` 서브도메인 연결. Cloudflare에 `book` CNAME(→`tas-ses3gted5a-du.a.run.app`, 🟠주황/프록시, apex 복제) 추가 → 기존 `*.takeaseat.co.kr` Cloudflare Worker Route 경유 → Cloud Run 앱까지 200 확인. (도메인 매핑/회색 CNAME 불필요.)
+- **Phase 1 — 공개 부킹 페이지(셀프 예약 생성)** — 세부 단계로 분할:
+  - **1a ✅ 완료(마이그레이션 없음)**: 공개 구역 카빙 + 매장 공개정보 API + 페이지 스캐폴드.
+    - `proxy.ts`(`/book/` isExempt), `_app.tsx`(게스트 리다이렉트·부팅 오버레이 예외), `LayoutComponent`(`/book/`=isBarePage) — 비로그인 공개.
+    - `GET /api/book/[slug]`(server/api/book/[slug].ts + pages 재export): 온라인예약 ON 매장만, 매장명·서비스·담당자(허용 시)·영업시간·휴무일·규칙·안내문 **최소 노출**(고객/예약정보 절대 미노출).
+    - `pages/book/[slug].tsx`: 매장명·안내문·서비스 다중선택·담당자(+상관없음) 선택. 슬롯/예약은 1b에서.
+  - **1b ✅ 완료(마이그레이션 0009 필요)**: 슬롯 계산 + 예약 생성.
+    - **마이그레이션 0009**: `Reservation.publicToken String? @unique`(고객 관리 링크) + `StoreBookingSettings.bookableServiceIdsJson Json?`(1c에서 배선할 노출 서비스 화이트리스트 컬럼 — 0009에 미리 포함, 배선은 1c). 둘 다 `IF NOT EXISTS` 멱등.
+    - **슬롯 계산 유틸**(`client/features/booking/availability.ts`, 순수·서버 재사용): 영업시간 − 기존 active 예약(네이버 포함) − 담당자 스케줄 − 서비스 총소요 − 최소 사전시간(now+minLead), slotInterval 간격. 담당자 용량 모델(근무·미배정 담당자 수 > 미배정 예약 부하일 때 가용). 담당자 0명 매장은 단일 자원(1)으로 취급.
+    - **`GET /api/book/[slug]/availability`**(`?date&services&assignee`): 날짜 유효성(과거·maxAdvanceDays·휴무일·영업요일) 검증 후 가용 슬롯 배열 반환. KST 기준 today/now 계산.
+    - **`POST /api/book/[slug]/reserve`**(`{date,startTime,services[],assigneeId?,name,tel}`): 서버 권위 재검증(트랜잭션 Serializable + 슬롯 재계산 겹침 체크) → customer upsert(정규화 tel로 findFirst, 없으면 legacyId 부여 생성) → 예약 생성(channel=`online`, status=`active`, legacyId 부여, `publicToken` 랜덤). legacyId/token 충돌(P2002) 재시도. Slack 알림. 응답에 `publicToken`.
+    - **공개 페이지**(`pages/book/[slug].tsx`): 서비스·담당자 선택 아래에 날짜(native date, min=오늘/max=+maxAdvanceDays)·슬롯 버튼·고객 이름/연락처 폼·예약 확정 → 완료 시 확인 링크(`/book/[slug]/r/[token]`) 안내(페이지 본체는 1d).
+  - **1c ✅ 완료(마이그레이션 없음 — 컬럼은 0009에 포함)**: 노출 서비스 선택(오너).
+    - `BookingSettings.bookableServiceNames`(서비스명 화이트리스트, null/[]=전체 노출) + 순수 헬퍼 `parseBookableServiceNames`/`areServicesBookable`(model.ts).
+    - `/api/store` GET/PATCH: `bookableServiceNames` 왕복(DB 컬럼 `bookableServiceIdsJson` 매핑). `BookingManageSection`에 '노출 서비스' 체크박스(전체 선택=null 저장, 미선택 시 전체 노출 안내).
+    - 공개 API: `GET /api/book/[slug]`가 화이트리스트로 서비스 목록 필터(고객 응답엔 화이트리스트 미노출), `availability`·`reserve`가 화이트리스트 밖 서비스 요청은 400 `not_bookable`로 거부.
+  - **1d**: 고객 확인·변경·취소(오너 승인형) — Phase 2 내용.
+  - **1e**: host 분기 — `book.takeaseat.co.kr/[slug]`(루트) → 내부 `/book/[slug]` rewrite. **단 Cloudflare Worker가 Host를 유지하는지 확인 필요**(현재 앱이 `book.` 호스트를 보는지). Worker 코드 확인 후 설계.
+  - **1f**: 알림(Slack) — Phase 3 내용.
+  - 슬롯 계산 유틸: 영업시간 − 기존 예약(네이버 포함) − 담당자 스케줄 − 서비스 소요 − 최소 사전시간, slotInterval 간격, maxAdvanceDays 범위.
+- **Phase 2 — 고객 확인·변경·취소 (오너 승인형 요청)**:
+  - `/book/[slug]/r/[token]`: 예약 상태 표시 + **취소 요청** + **변경 요청**(다른 슬롯 재선택). 고객은 "요청"만 하고 즉시 반영되지 않음.
+  - 요청 저장: 예약에 대기 요청 표현(신설 `ReservationRequest` 모델 또는 Reservation 필드 `pendingAction`(none/cancel/change)+`pendingPayload`(JSON: 요청 날짜/시간/담당자)+`pendingRequestedAt`). 구현 시 확정.
+  - 오너 승인 UI: 오너 앱에서 대기 요청을 보고 수락/거절. 네이버 알림 벨 패턴 또는 예약 상세/캘린더 배지로 노출. 수락 시 예약 반영(취소=cancelled, 변경=슬롯 갱신), 거절 시 요청 폐기.
+  - 공개 API: `GET /api/book/reservation/[token]`, `POST .../request-cancel`, `POST .../request-change`. 오너 승인 API는 로그인/역할 검증(기존 패턴).
+- **Phase 3 — 알림**:
+  - 매장(오너) 측: 신규 온라인예약·변경/취소 **요청** 발생 시 Slack(`notifySlackForStore`) 재사용 + 오너 앱 내 알림/대기 목록(네이버 알림 벨 패턴 참고).
+  - 고객 측: **문자/이메일 발송 없음(확정)**. 앱에 SMS/이메일 인프라 부재. 고객은 예약 후 받은 **확인 링크**(`/book/[slug]/r/[token]`)를 다시 열어 상태·승인 결과를 확인. 실제 문자/알림톡은 향후 공급사 연동 시 별도 추가.
+
+### 확정된 결정
+1. 공개 URL: **`book.takeaseat.co.kr/[영문매장명]`** (서브도메인 + slug=영문 매장명). 내부 라우트는 `/book/[slug]`, 1e에서 서브도메인 루트를 rewrite.
+2. 영문 매장명(slug): **필수**(온라인예약 ON 시), 오너 설정에서 지정 + **중복 확인 버튼**(실시간 아님) + 저장 시 unique 409.
+3. 서비스: **노출할 서비스만 선택**해서 공개(1c).
+4. 담당자: 고객 선택(+상관없음), `allowAssigneeChoice` OFF면 매장 배정.
+5. 변경/취소: **오너 승인형 요청** (고객은 요청만, 오너가 앱에서 수락/거절).
+6. 고객 알림: **확인 링크만** (문자/이메일 없음).
+
+### 리스크/주의
+- **보안**: 공개 엔드포인트 abuse(스팸 예약). 레이트리밋(IP+매장), 슬롯 재검증, 하루 예약 상한 등 필요.
+- **동시성**: 같은 슬롯 동시 예약 → 트랜잭션 + `[storeId, assigneeId, date, startTime]` 겹침 검증으로 방지.
+- **고객 알림 한계**: SMS/이메일 없음(위). 사용자에게 명확히 고지하고 진행.
+- **네이버예약과 병존**: 같은 시간대 겹침은 매장이 최종 관리. 온라인 슬롯 계산 시 네이버 예약도 점유로 반영.
+
+---
+
+## 완료 — 온보딩 업종 선택 화면 레이아웃 틀어짐 수정
+
+> 증상(사용자): 온보딩 업종 선택 부분이 틀어짐. `body{height:100%}` 관련 의심.
+
+### 원인
+- 온보딩은 `isBarePage`라 `LayoutComponent`가 `<>{children}</>`로 렌더 → `StyledPage`가 `#__next`(`display:flex; flex-direction:column; height:100%`)의 직접 flex 자식.
+- 내용(업종 그리드)이 뷰포트보다 길면 기본 `flex-shrink:1`이 `StyledPage`를 뷰포트 높이로 압축 → `StyledCard`(`min-height:480px`)까지 눌려 내부 요소가 겹치고, `justify-content:center`가 위쪽을 잘라 "틀어짐".
+
+### 구현
+- `client/pages/onboarding/index.tsx`의 `StyledPage`에 `flex-shrink: 0` 추가. 전역 `body/#__next` 높이는 달력 앱(고정 높이+내부 스크롤)이 의존하므로 건드리지 않음.
+
+### 검증
+- Playwright 실측(뷰포트 460px): 수정 전 카드 633→480px 압축(FAIL) → 수정 후 633px 유지·스크롤 정상(PASS). `next build` 통과.
+
+---
+
+## 진행 중 — `h3` 태그를 `strong`으로 교체
+
+> 배경(사용자 요청): `h3`가 사용된 곳의 태그를 `strong`으로 바꾼다. 범위는 전부(일반 태그 + styled.h3 + CSS 선택자).
+
+### 구현 항목
+- 일반 `<h3>` → `<strong>`
+  - `client/components/modals/CustomerMergeSuggestionModal.tsx` (모달 제목)
+  - `client/components/modals/NaverSyncConflictModal.tsx` (모달 제목)
+- `styled.h3` → `styled.strong` (인라인→블록 방지 위해 `display: block;` 추가)
+  - `client/components/calendar/overlays/ModalStyles.ts` (`StyledHeaderTitle`)
+  - `client/components/calendar/overlays/ReservationDetailHeader.tsx` (`StyledReservationTitle`, ellipsis 유지 위해 block 필수)
+  - `client/components/settings/MemberSection.styles.ts` (`StyledGuestTitle`)
+  - `client/components/settings/settings-styles.ts` (`StyledSettingsCardTitle`)
+- 정책 문서(`client/content/policies/privacy.ts` 소제목 4곳): 본문이 `<strong>`을 인라인 강조로 광범위하게 사용 → 소제목엔 `.policy-subhead` 클래스를 붙이고 `policyCss.ts`의 `h3 {}` 선택자를 `.policy-subhead {}`로 교체(`display:block` 추가). 인라인 `<strong>` 오염 방지 + "태그 선택자 대신 클래스" 원칙 준수.
+
+### 리스크/주의
+- 접근성: 소제목/모달 제목이 heading 아웃라인에서 빠짐(사용자 명시 요청으로 수용). 모달은 `role="dialog"`+`aria-label`이 있어 이름 지정은 유지됨.
+
+---
+
+## 진행 중 — 북마크(직접 URL 진입) 크래시 수정
+
+> 배경: 사용자가 `/month` 같은 캘린더 URL을 즐겨찾기했다가 다시 진입하면 화면이 에러남.
+
+### 원인
+- 앱 내부 네비게이션은 항상 `/month/2026/7`처럼 날짜 세그먼트를 포함한 전체 경로를 만든다.
+- 하지만 **뷰 이름만 있는 경로**(`/month`·`/week`·`/year`·`/three`·`/day`)로 직접 진입하면 `LayoutComponent`가 `new Date(Number(array[2]), …)`에서 연도 세그먼트(`array[2]`)가 `undefined` → `new Date(NaN,…)` = **Invalid Date**를 만든다.
+- `setTargetFromDate(Invalid Date)` → `target.full`이 truthy(Invalid Date 객체)라 `computeTargetDerived`가 early-return하지 않고 `fullYear/month/date`가 전부 `NaN` → 주 계산 `new Array(NaN)` → `RangeError: Invalid array length` 크래시.
+
+### 구현 항목
+- `client/components/layout/LayoutComponent.tsx`: `currDate` 산출과 `popstate` 핸들러에서 연도 세그먼트가 유효한 양수가 아니면 오늘(`initDate`)로 폴백. → `/month`는 이번 달 월별 뷰로 열리고, 기존 URL 동기화 effect가 `/month/2026/7`로 자동 정정.
+- `client/utils/calendarDerived.ts`: `fullYear`가 `NaN`이면 방어적으로 early-return(재발 방지 안전망).
+
+### 기대 결과
+- `/month`·`/week`·`/year`·`/three`·`/day` 직접 진입 시 크래시 없이 오늘 기준 해당 뷰 표시 + URL 정규화.
+
+### 추가 — 날짜 박제 북마크 문제 (최초 진입 시 오늘로)
+- 배경: 사용자가 특정 시점에 북마크하면 브라우저가 `/month/2026/6`처럼 **날짜가 박힌** 전체 URL을 저장 → 시간이 지나면 그 북마크로 들어올 때 계속 "지난 달"이 보인다.
+- 결정(사용자): **최초 진입(북마크·새로고침·직접 URL)은 URL 날짜를 무시하고 항상 오늘로.** 뷰 종류(월/주/일)는 북마크 값 유지. 앱 안에서의 이전/다음·뒤로가기는 URL 날짜 존중.
+- 구현: `LayoutComponent`의 초기화 effect에서 `initializedPath === null`(최초 진입)이면 `setCurr(initDate)`(오늘), 이후엔 `setCurr(currDate)`(URL 날짜). URL 동기화 effect가 `/month/2026/7`로 정규화.
+- 트레이드오프(수용): 다른 달을 보던 중 새로고침하면 오늘로 돌아옴.
+
+### 추가 — 기본 보기 월별로 변경 (PC·모바일 공통)
+- 결정(사용자): 기본 보기를 **월별**로. 모바일 전용 뷰 분기는 없어 한 번에 적용.
+- 구현: `calendarStore` 초기 `view.type` `'week'→'month'`, `LayoutComponent` 루트/비캘린더 진입 기본값 `ViewType.Week→ViewType.Month`.
+
+---
+
+## 진행 중 — 쿠폰(할인) 시스템
 
 > 결정(사용자): 할인 방식 **정액+정률 둘 다**, 발급 **직접발급+코드형 둘 다**, 결제는 **결제수단에 `coupon` 추가해 차감**.
 > 위치: 적립금(금액)·회원권(횟수/기간)에 이어 **할인**을 담당. 회원권 시스템 패턴을 그대로 따른다.
+
+### 진행 현황 (2026-06-30 갱신)
+- ✅ **DB 모델 선반영**: `CouponProduct`/`CustomerCoupon` + `Store.useCouponSystem` 토글 컬럼 (마이그레이션 `0007_coupon_models`).
+- 🔶 **Phase 1 착수(이번 작업)**: 토글 배선 + 쿠폰 상품 CRUD API + aside '쿠폰 관리' 메뉴/아이콘 + `/settings/coupon` 상품 관리 탭. (회원권 패턴 미러링)
+- ❌ 미착수: Phase 2(발급/코드 클레임·보유목록), Phase 3(**`PaymentMethod.coupon` enum 추가** + 결제 자동 차감 — 머니플로우, 별도 진행).
+
+### Phase 1 구현 항목 (이번 작업)
+- **신규**: `client/features/coupons/model.ts`(프론트 타입), `server/api/coupons.ts`(상품 CRUD, owner), `client/pages/api/coupons.ts`(re-export), `client/components/settings/CouponManageSection.tsx`(상품 관리 UI).
+- **토글 배선**: `server/api/store.ts`(GET select·PATCH 수신에 `useCouponSystem` 추가), `calendarStore.ts`(상태+`setStoreFeatures`/`updateStoreFeatures` 시그니처), `calendarStoreHelpers.ts`(syncStoreFeatures patch), `_app.tsx`(로컬·원격 로딩), `features/local-db/storage.ts`(스냅샷 필드), `StoreManageSection.tsx`(체크박스).
+- **메뉴/탭**: `Aside.tsx`(SETTINGS_SUBMENU '쿠폰 관리' + `useCouponSystem` 게이팅), `AsideMenuIcon.tsx`('coupon' 아이콘), `settings.tsx`(탭 타입·디스패치).
+- 상품 필드: 이름, 할인방식(정액 amount/정률 rate), 할인값, 정률 상한(maxDiscount?), 최소 결제금액(minOrderAmount?), 유효기간(validDays?), 코드(code? — 있으면 코드형).
+
+### 리스크
+- `@@unique([storeId, code])` 충돌 시 409 처리 필요(코드형 중복). 정률 0~100 검증.
+- Phase 3(결제 차감)는 회원권 Phase 3과 함께 신중히 — 이번 범위 밖.
 
 ### 현황 조사 결과
 - 결제 = `ReservationPaymentEntry`(method `PaymentMethod` + amount Int, 예약당 다건=분할결제). 결제 UI는 `ReservationDetailPaymentLayer`(method 셀렉트 + 금액 + 추가/삭제).
@@ -15,171 +675,60 @@
 - 토글 패턴(`usePointSystem`/`useMembershipSystem`) + aside 게이팅 + `/settings/[tab]` 디스패치 + `CustomerAutocomplete`(발급 고객검색) 재사용 가능.
 
 ### 설계 (회원권 미러링)
-- **Store.useCouponSystem Boolean @default(false)** — 매장관리 토글.
-- **CouponProduct**(쿠폰 정의): id, legacyId, storeId, name, `discountType`(amount|rate), `discountValue Int`(원 또는 %), `maxDiscount Int?`(정률 상한), `minOrderAmount Int?`(최소 결제금액), `validDays Int?`(만료), `code String?`(있으면 코드형 — @@unique[storeId,code]), status(active|archived). @@unique[storeId,legacyId].
-- **CustomerCoupon**(고객 보유): id, legacyId, storeId, customerId, productId?, name 스냅샷, discountType/discountValue/maxDiscount/minOrderAmount 스냅샷, issuedAt, expiresAt?, usedAt?, reservationId?(사용처), status(active|used|expired|cancelled).
-- **PaymentMethod**에 `coupon` 추가(할인과 구분 — 추적되는 쿠폰 차감).
+- **Store.useCouponSystem Boolean @default(false)** — 매장관리 토글. (컬럼 생성 완료)
+- **CouponProduct**(쿠폰 정의): id, legacyId, storeId, name, `discountType`(amount|rate), `discountValue Int`(원 또는 %), `maxDiscount Int?`(정률 상한), `minOrderAmount Int?`(최소 결제금액), `validDays Int?`(만료), `code String?`(있으면 코드형 — @@unique[storeId,code]), status(active|archived). @@unique[storeId,legacyId]. (모델 생성 완료)
+- **CustomerCoupon**(고객 보유): id, legacyId, storeId, customerId, productId?, name 스냅샷, discountType/discountValue/maxDiscount/minOrderAmount 스냅샷, issuedAt, expiresAt?, usedAt?, reservationId?(사용처), status(active|used|expired|cancelled). (모델 생성 완료)
+- **PaymentMethod**에 `coupon` 추가(할인과 구분 — 추적되는 쿠폰 차감). (미반영)
 
 ### 구현 단계
-1. **Phase 1 — 토글 + 모델 + 상품 관리**: Store 토글 + CouponProduct/CustomerCoupon 마이그레이션, CRUD API, 매장관리 체크박스, aside '쿠폰 관리' 메뉴/아이콘, `/settings/coupon` 상품 탭(정액/정률·코드·만료·최소금액).
+1. **Phase 1 — 토글 + 모델 + 상품 관리**: ~~CouponProduct/CustomerCoupon 마이그레이션~~(완료) + Store 토글 배선, CRUD API, 매장관리 체크박스, aside '쿠폰 관리' 메뉴/아이콘, `/settings/coupon` 상품 탭(정액/정률·코드·만료·최소금액).
 2. **Phase 2 — 발급**: 직접 발급(`CustomerAutocomplete`로 고객 검색) + 코드형 클레임(코드 입력→해당 고객에 CustomerCoupon 발급), 보유 목록, 고객 상세에 보유 쿠폰 표시.
 3. **Phase 3 — 결제 연동(머니플로우, 신중)**: 결제 레이어 method에 '쿠폰' 추가 → 보유 쿠폰 선택 → 할인액 자동계산(정액=value, 정률=round(total×%) capped maxDiscount, minOrderAmount 검증) → `ReservationPaymentEntry(coupon)` 기록 + CustomerCoupon used 처리(트랜잭션). 매출 집계(RevenueFilters/charts)에 쿠폰 할인 반영.
-   - ⚠️ 회원권 Phase 3b(결제 자동차감)와 같은 핵심 머니플로우 영역 → 함께/테스트 동반 권장.
+   - ⚠️ 회원권 Phase 3(결제 자동차감)와 같은 핵심 머니플로우 영역 → 함께/테스트 동반 권장.
 
 ### 리스크/주의
 - 정률 반올림·상한·최소금액 경계, 분할결제와의 합계 정합성.
 - 결제 차감은 트랜잭션(예약 결제 ↔ 쿠폰 used). 만료/중복사용/타고객 쿠폰 방어.
-- 새 테이블 마이그레이션 → 운영 반영은 0006(회원권)처럼 `migrate deploy` 필요.
-
----
-
-## 진행 중 — 고객 연락처 저장 포맷 통일 (DB=숫자만, 표시=000-0000-0000)
-
-> 결정(사용자): **연락처는 DB에 숫자만 저장, 화면엔 패턴(000-0000-0000)으로 노출.**
-
-### 현황 조사 결과
-- `Customer.tel String` 단일 컬럼. 쓰기 경로마다 정규화가 달라 **DB에 포맷이 섞여 저장됨**(운영 DB에서 하이픈 포함 행 실재 확인).
-  - 주소록 추가(`CustomerAddModal`): `tel.trim().replace(/\D/g,'')` → 숫자만 ✅
-  - 예약 등록 신규 고객(`useReservationCreateForm` 208행): `newCustomerTel.trim()` → 입력 원형 ⚠️
-  - 고객 상세 수정(`CustomerDetail` 254행): `editForm.tel.trim()` → 입력 원형 ⚠️
-  - 서버 `customers.ts`(POST 44·PUT 119/130): `customer.tel` 그대로 저장(정규화 없음) ⚠️
-  - 시드 데이터: 전부 숫자만 ✅
-- 표시: `formatTel`(`features/customers/model.ts`)이 이미 숫자 추출 후 10/11자리 패턴 변환 → **표시 쪽은 이미 정상**(추가 작업 거의 없음).
-- 부작용: 검색(`tel.includes`)·중복 병합 추천이 포맷 불일치로 누락.
-
-### 구현 항목
-1. **공용 헬퍼** `normalizeTel(tel) = tel.replace(/\D/g,'')`를 `features/customers/model.ts`에 추가(`formatTel` 옆, 단일 출처).
-2. **클라 쓰기 통일**(로컬DB 모드 대응): `CustomerAddModal`·`useReservationCreateForm`·`CustomerDetail` 저장 직전 `normalizeTel` 사용.
-3. **서버 쓰기 통일**(원격 모드 길목 방어): `server/api/customers.ts` POST·PUT에서 `tel` 저장 시 `normalizeTel` 적용.
-4. **기존 데이터 1회성 정규화**(운영 DB): `UPDATE "Customer" SET tel = regexp_replace(tel, '\D', '', 'g') WHERE tel ~ '[^0-9]';` — 사용자가 Supabase에서 실행.
-
-### 리스크
-- 표시는 `formatTel`이 비표준 길이(10/11 아님)면 원본 반환 → 잘못된 번호는 그대로 보임(의도된 폴백).
-- 서버/클라 양쪽 정규화 → 동작 변화는 "저장 포맷 통일"뿐, 검증/필수 로직은 유지.
-
----
-
-## 진행 중 — 업종별 라벨 시스템 (매장관리 직종 표시·수정 + 담당자/서비스 문구 전환)
-
-> 매장 관리에 직종(shopType) 표시·수정 추가, 직종에 맞게 "담당자"·"서비스" 문구가 화면에 반영되게.
-> 배경: 업종 중립화(rename) 후속. 음식점 등 타 업종에서도 자연스럽게 쓰도록.
-
-### 현황 조사 결과
-- `shopType String?` (nullable, 필수 아님). 온보딩에서만 **다중 선택**(콤마 저장), 이후 수정 UI 없음. null-wipe 버그는 수정 완료(`4aa5df8`).
-- 현재 업종 목록 = 뷰티 5종뿐: `hair/nail/waxing/lash/skin`(+`etc`). 서버 `VALID_SHOP_TYPES`(onboarding.ts·migrate-local.ts)도 동일. 음식점·병원 없음.
-- 라벨 문구 분포: "담당자" ~33파일, "서비스" ~30+파일. **단 "서비스"의 상당수(terms.ts 26·privacy.ts 14·dpa.ts 5·about·maintenance)는 "(우리) 앱 서비스" 의미 → 라벨 아님, 치환 금지.** 진짜 라벨은 Assignee/ServiceManageSection·예약 폼·캘린더·매출 등.
-
-### 설계 결정
-1. **업종 확장**(사용자 확정): 음식점(food)·병원/의원(medical)·기타 등 타 업종 추가. 각 업종을 **category**로 묶고 category별 라벨셋 정의.
-
-   | category | 업종 | assignee 라벨 | service 라벨 |
-   |----------|------|--------------|-------------|
-   | beauty | 헤어/네일/왁싱/속눈썹/피부 | 담당자 | 시술 |
-   | food | 음식점 | 테이블 | 메뉴 |
-   | medical | 병원/의원 | 담당의 | 진료 |
-   | etc | 기타 | 담당자 | 서비스 |
-   (구체 라벨값은 구현 전 1차 확정)
-
-2. **다중/단일(사용자: "업종 성격 따라 다중 가능/불가")**: 라벨은 **category 기준**. 같은 category 내 세부업종 다중 허용(예: 헤어+네일), **cross-category 비허용**. → 매장관리에선 category 1개 선택(라벨 확정) + 같은 category 세부 다중. 온보딩 기존 다중 선택은 유지(같은 category 가정), 라벨은 primary(첫 업종)의 category로.
-
-3. **라벨 주입 메커니즘**: `features/store-settings/labels.ts`에 `getStoreLabels(shopType) → {assignee, service}` + category 매핑. `useStoreLabels()` 훅(calendarStore의 shopType 구독). 컴포넌트의 하드코딩 "담당자"/"서비스" → `labels.assignee`/`labels.service`. 합성문구는 템플릿(`${labels.assignee} 관리`).
-
-4. **적용 범위(단계)**:
-   - **Phase A(핵심)**: aside 메뉴, AssigneeManageSection·ServiceManageSection(제목·필드·placeholder), 예약 생성/상세 폼, 캘린더 헤더/범례.
-   - **Phase B(확장)**: 매출·모달·온보딩 등 나머지 라벨.
-   - **제외(영구)**: 약관/개인정보/DPA/about/maintenance의 "서비스"(앱 명칭). PageHero 영문 eyebrow(ASSIGNEE/SERVICE)는 유지.
-
-### 영향 파일 (예상)
-- 신규: `features/store-settings/labels.ts`, `useStoreLabels` 훅.
-- 수정: `onboarding-types.ts`(SHOP_TYPES 확장), 서버 `VALID_SHOP_TYPES`(onboarding.ts·migrate-local.ts), `StoreManageSection`(업종 표시·수정 UI), 라벨 치환 다수 컴포넌트.
-- DB: shopType 컬럼 그대로(문자열). 마이그레이션 불필요(값 종류만 확장).
-
-### 리스크
-- 약관 등 "서비스" 오치환 → 라벨 대상만 선별 치환(전수 find-replace 금지).
-- 다중 업종 시 라벨 결정 규칙 명확화(primary/category).
-- 음식점은 라벨만으론 부족(인원수·테이블 자원·회전시간은 별도 트랙) — 이번 범위는 **라벨/직종 표시까지만**.
 
 ---
 
 ## 진행 중 — 매장관리: 적립금/회원권 시스템 토글 + 회원권 풀 기능
 
 > 매장 관리에서 "적립금 시스템 사용"·"회원권 시스템 사용"을 켜면 aside 설정에 메뉴가 뜨고 페이지가 열린다.
-> 아이콘 교체(담당자=이름표/뱃지, 사용안내=전구)는 선행 완료(`be7fe49`).
+
+### 진행 현황 (2026-06-29 갱신)
+- ✅ **Phase 1(토글 + 메뉴/페이지)**: Store 토글 2개(`usePointSystem`/`useMembershipSystem`, 마이그레이션 `0005_store_feature_toggles`), `/api/store` GET/PUT·매퍼·calendarStore 연동, StoreManageSection 체크박스, Aside 메뉴 게이팅 + 회원권 메뉴/아이콘, `/settings/membership` 탭.
+- ✅ **Phase 2(모델 + 관리 UI)**: 4개 모델(`MembershipProduct`/`MembershipProductService`/`CustomerMembership`/`MembershipUsage`, 마이그레이션 `0006_membership_models`), API(`memberships.ts` 상품 CRUD·`membership-issue.ts` 발급/취소·`membership-use.ts` 수동 차감/복원), `MembershipManageSection` UI.
+- ❌ **Phase 3(결제 연동) 남음**: `PaymentMethod.membership` enum 추가, 예약 결제 시 회원권 선택→자동 차감(MembershipUsage 기록), 잔여/만료 검증, 고객 상세에 보유 회원권·이력 표시.
 
 ### 확정된 설계 결정 (사용자 확인)
-- **적립금 = 금액 / 회원권 = 비금액(횟수·기간)**. 금액권은 기존 적립금 충전(recharge)에 이미 있으므로 **별도로 안 만든다**(중복 방지). 적립금 화면 "충전/선불금" 라벨 정비는 회원권과 같이 진행.
+- **적립금 = 금액 / 회원권 = 비금액(횟수·기간)**. 금액권은 기존 적립금 충전(recharge)에 이미 있으므로 **별도로 안 만든다**(중복 방지).
 - **회원권**: 한 모델에 `횟수(옵션) + 만료(옵션)` 둘 다 담아 횟수권/기간권/복합 모두 표현. 서비스 **지정·전체 둘 다** 지원. 결제 시 **결제수단으로 차감 연동**. **선택적 만료**.
 - 적립금 토글 **기존 매장 기본값 = 꺼짐**(`default(false)`).
 - aside: 적립금 관리(기존 `point`)는 적립금 토글 ON일 때만, 회원권 관리(신규)는 회원권 토글 ON일 때만 노출.
 
-### 데이터 모델 (Prisma)
-- **Store**: `usePointSystem Boolean @default(false)`, `useMembershipSystem Boolean @default(false)`.
-- **MembershipProduct**(회원권 상품): id, storeId, legacyId(@@unique[storeId,legacyId]), name, `totalCount Int?`(횟수, null=무제한), `validDays Int?`(발급일+유효일수, null=무기한), `price Int`, `appliesToAllServices Boolean @default(true)`, status, services(MembershipProductService[]).
-- **MembershipProductService**: 회원권↔Service N:N(특정 서비스 지정 시).
-- **CustomerMembership**(고객 보유분): id, storeId, legacyId, customerId, productId?, name(스냅샷), `totalCount Int?`, `remainingCount Int?`, issuedAt, `expiresAt DateTime?`, status(active/expired/used_up/cancelled), usages.
-- **MembershipUsage**(차감/조정 이력): id, customerMembershipId, reservationId?, `delta Int`(음수=차감/양수=환불·발급), type(issue/use/adjust/refund), createdAt, memo.
-- **PaymentMethod** enum에 `membership` 추가.
-
-### 구현 단계
-1. **Phase 1 — 토글 + 메뉴/페이지 골격**(스키마: Store 토글 2개만): Store boolean 2개 + 마이그레이션, `/api/store` GET/PATCH·매퍼·클라 스토어 연동, StoreManageSection에 native 체크박스 2개, Aside 메뉴 게이팅 + 회원권 메뉴/아이콘 신설, `/settings/membership` 페이지 골격(탭 디스패치 등록), 적립금 라벨 정비. 로컬 PG 검증 → 커밋.
-2. **Phase 2 — 회원권 모델 + 관리 UI**: 위 4개 모델 + 마이그레이션, CRUD API(상품 발행/조회/수정/보관), `/settings/membership` 관리 화면(상품 목록·생성, 고객별 발급·잔여 조회).
-3. **Phase 3 — 결제 연동**: PaymentMethod.membership, 예약 결제 시 회원권 선택→차감(MembershipUsage 기록), 잔여/만료 검증, 고객 상세에 보유 회원권·이력 표시.
-
-### 리스크/주의
-- 새 테이블은 마이그레이션 → **운영 반영은 DB 접근 가능 시**(rename 배포 배치와 함께). 로컬 검증은 지금 가능.
+### 리스크/주의 (Phase 3)
 - 결제 차감은 트랜잭션으로(예약 결제 ↔ 회원권 차감 정합성). 만료/잔여 0 방어.
 
 ---
 
-## 완료 — seed ID 재매핑 버그 수정 + ESLint 툴체인 복구
+## 진행 중 — 업종별 라벨 시스템 (매장관리 직종 표시·수정 + 담당자/서비스 문구 전환)
 
-> 담당자 rename 소스 검증 중 발견. 커밋 `dee8700`(seed)·`4cc4ce8`(deps). 둘 다 rename 과 독립.
+> 매장 관리에 직종(shopType) 표시·수정 추가, 직종에 맞게 "담당자"·"서비스" 문구가 화면에 반영되게.
 
-### 1) seed 담당자 ID 재매핑 버그 (correctness) — 수정됨
-- **증상**: `prisma:seed` 시 `reservations.json`의 모든 예약이 `assigneeId=null`(미배정)로 들어가 담당자별 예약·매출이 통째로 빔.
-- **근본 원인(2중)**: ① `normalizeAssignees`·`normalizeReservationPayload`·`seedTestConflicts`가 같은 담당자 ID를 각자 독립 맵으로 재매핑 → 불일치(담당자 legacyId 1·2·3·4 vs 예약 130·140·145). ② `buildLegacyIdMap`이 `MAX_INT_32` 초과 ID 중복을 안 걸러 nextId 낭비·덮어씀.
-- **수정**: `buildLegacyIdMap` dedup + `loadAssigneeIdMap`(assignees.json 단일 출처·메모이즈)을 세 정규화 함수가 공유.
-- **검증**: 로컬 PG 시드 → 예약 54건 전부 유효 담당자 연결, dangling 0 (수정 전 0건 연결 → 후 54건).
+### 진행 현황 (2026-06-29 갱신)
+- ✅ **Phase A(핵심)**: `features/store-settings/labels.ts`(category 매핑·`getStoreLabels`·`sanitizeShopType`) + `hooks/useStoreLabels.ts` 구현. aside 메뉴·담당자/서비스 관리·예약 폼·캘린더 적용. 업종 확장(beauty/food/medical/fitness/class/pet/repair/space/counsel/etc) 반영 — 라벨 표는 index.md 참조.
+- 🔶 **Phase B(확장)**: 매출·모달·온보딩 등 나머지 라벨 — '단계적 확대' 진행 중.
+- 미결(이월): "시술"→"서비스" 명칭 통일 여부 — 현재 라벨 시스템이 beauty service 라벨을 '서비스'로 노출하므로 사실상 흡수. 별도 전수 치환은 불필요로 판단(필요 시 재검토).
 
-### 2) ESLint 툴체인 복구 (infra) — 수정됨
-- **증상**: `pnpm lint` 실행 자체 불가. eslint 10 에선 react 룰 `getFilename` 비호환, eslint 9 로 내리면 brace-expansion override(5.0.6 일괄)가 minimatch@3.x(1.x API) 를 깨뜨림(`expand is not a function`).
-- **수정**: eslint 10.4.1→9.39.4(next/plugin-react peer 정렬) + brace-expansion override 를 `brace-expansion@1: 1.1.12`(1.x 만 패치)로 정정. minimatch@10.x 는 5.0.6 자연 해석, ReDoS 패치 유지.
-- **검증**: `pnpm lint` 정상 실행. tsc·next build 통과.
-- **후속(미정)**: lint 가 드러낸 기존 코드 이슈 **22 errors·51 warnings**(주로 `react-hooks/set-state-in-effect`, `no-unused-vars`)는 별도 정리 필요.
-
----
-
-## 완료(최근) — 캘린더 타임라인: 영업시간 연동 + 표시 개선
-
-> 배포 완료. 상세는 git 히스토리(`d5a2333`·`4fdbba4`·`456750a` 외 `9ae39ab`·`ab7fe43`).
-
-- **A 영업시간 → 축 연동**: `getTimelineRange(viewType, businessHours)`(`utils/timelineRange.ts`) 신설. `Timeline`/`TimelineTitle`이 `storeSettings.businessHours` 구독. 모든 뷰 영업시간 그대로(패딩 0). 죽은 `store.time` 슬라이스 제거.
-- **B 표시/동작**: 1시간=100px(30분=50px) 단일화, 현재시간 바 드리프트 수정, 빈 곳 클릭 예약추가 좌표 수정(이전 구버전은 클릭 단위 불일치로 하단 클릭이 ~3h 어긋남 → 수정됨).
-- **실측(Playwright)**: 영업시간 변경 시 일/3일/주 축 반영, 빈 곳 클릭·드래그 이동 시작시각 모두 정확 확인.
-
----
-
-## 완료 — 디자이너 영구 삭제 (분리 삭제 방식)
-
-> 구현·빌드 검증 완료. 상세는 git 히스토리.
-> 결정: **디자이너만 분리 삭제** — 디자이너+스케줄은 제거하되 과거 예약은 `designerId` 미지정으로 보존. 절대 차단되지 않음(예약 cascade 삭제 X).
-> UI: "퇴직자" 섹션 카드에만 "영구 삭제" 버튼 노출(2단계 안전장치). 확인 모달에 영향받는 예약 건수 표기.
-
-### 배경/현황 (조사 결과)
-- 서버 `designers.ts`는 PUT-by-omission으로 하드 삭제하되 **예약 연결 시 400 차단**. 영속화 `syncToServer`는 **에러를 삼키고 로컬 낙관적 제거** → 기존 `deleteDesigner`를 그대로 버튼에 붙이면 "화면선 사라지나 서버 거부 → 새로고침 시 부활" 버그. 그래서 전용 DELETE 엔드포인트로 간다.
-- DB: `DesignerSchedule`은 onDelete Cascade(자동), `Reservation.designerId`는 optional FK → 트랜잭션에서 명시적 `updateMany(null)` 후 designer.delete.
-- 프런트 `Reservation.designerId: number | null`, UI는 이미 `null`을 "미지정" 표시 → 분리 삭제와 정합.
-
-### 구현 항목
-1. **`server/api/designers.ts`** — `DELETE` 추가. `requireRole('owner')`, body `{ id }`(legacyId) → `storeId_legacyId`로 해석. 트랜잭션: `reservation.updateMany({designerId:해당 → null})` → `designer.delete()`(스케줄 Cascade). `Allow`에 DELETE 추가. 미존재 시 404.
-2. **`store/calendarStoreHelpers.ts`** — `deleteDesignerOnServer(id)` 추가(`deleteCustomerOnServer` 패턴). 원격 DELETE, 로컬 모드는 스냅샷에서 디자이너 제거 + 해당 예약 designerId=null.
-3. **`store/calendarStore.ts`** — `deleteDesigner` 액션 수정: PUT-by-omission 제거 → 디자이너 상태 제거 + `reservationMap` 내 해당 예약 designerId=null + `deleteDesignerOnServer(id)`.
-4. **`components/settings/DesignerManageSection.tsx`** — "영구 삭제" UI 추가. **퇴직자 섹션에만** 노출(2단계 안전장치: 재직→삭제(퇴직)→영구 삭제). 확인 모달에 "예약 N건은 '미지정'으로 남고 디자이너는 영구 삭제됩니다" 안내 후 `deleteDesigner(id)`.
-5. **문서**: 완료 후 `index.md`·`plan.md` 갱신.
+### 설계 결정 (요약)
+- 라벨은 **category 기준**. 같은 category 내 세부업종 다중 허용, **cross-category 비허용**. 다중 업종(콤마) 시 첫 업종(primary)의 category로 라벨 결정.
+- 라벨 주입: `getStoreLabels(shopType) → {assignee, service}` + `useStoreLabels()` 훅(calendarStore의 shopType 구독). 합성문구는 템플릿(`${labels.assignee} 관리`).
+- **제외(영구)**: 약관/개인정보/DPA/about/maintenance의 "서비스"(앱 명칭). PageHero 영문 eyebrow(ASSIGNEE/SERVICE)는 유지.
 
 ### 리스크
-- 분리 삭제라 예약 데이터 손실 없음. 단 매출/통계에서 해당 예약은 "미지정"으로 집계됨(의도된 동작).
-- 로컬 모드 스냅샷과 원격 동작 일치 확인 필요.
+- 약관 등 "서비스" 오치환 → 라벨 대상만 선별 치환(전수 find-replace 금지).
+- 음식점은 라벨만으론 부족(인원수·테이블 자원·회전시간은 별도 트랙) — 이번 범위는 **라벨/직종 표시까지만**.
 
 ---
 
@@ -193,7 +742,7 @@
 - → 무기한 보류 아님. **몇 달 내** 현실화.
 
 ### 순서
-1. ~~**B-1 공통 로직 추출**~~ — **완료**. `calendarStoreServiceHelpers.ts`에 인라인이던 `minutesBetween`·수동판정(`isPriceManual`/`isDurationManual`)을 `features/services/model.ts`로 이동(무동작 변경, `export *`로 자동 재export, 서버 import 가능). `parseServiceString`/`sumPrice`/`sumDurationMinutes`/`calcEndTime`/`LEGACY_NAME_MAP`은 이미 model에 있었음.
+1. ~~**B-1 공통 로직 추출**~~ — **완료**. `calendarStoreServiceHelpers.ts`에 인라인이던 `minutesBetween`·수동판정(`isPriceManual`/`isDurationManual`)을 `features/services/model.ts`로 이동(무동작 변경, `export *`로 자동 재export, 서버 import 가능).
 2. **네이버 연동 마일스톤에 결합**:
    - `naver-booking-sync.ts:88` 매 폴링 전체예약 풀스캔 **bound**(연동 시 그 파일 만지므로 같이) — 인덱스+범위/증분.
    - **A(매출 집계 서버화)** 를 이 마일스톤으로 끌어와 착수(연동으로 데이터 곧 늘어 명분 생김). A 스텝은 docs "A" 섹션 참조.
@@ -204,114 +753,57 @@
 - 예외: `getRevenueInsights` 신규/재방문은 범위 밖 이력 필요 → stored `Customer.firstVisitDate` 사용.
 - 회귀=매출 오표시 → 클라==서버 합계 일치 검증.
 
----
+## 의존성 보안 패치 스윕 (#85)
 
-## 업종 중립화 — 미용실 한정 용어 제거 (계획, 미착수)
+### 요구사항
+- Dependabot 취약점 9건(high 8, moderate 1) 대응. 알림 목록 조회 불가 → **블라인드 패치 스윕**.
 
-> 목표: "미용실·뷰티샵" 한정 색을 빼고 범용 "예약·고객 관리 서비스"로.
-> 참고: 이전 세션에서 카피 변경·plan을 작성했으나 워킹트리 정리(2026-06-24)로 전부 되돌아감. 아래는 재정리한 계획.
+### 구현 방침
+- `pnpm update`로 semver 범위 내 최신 패치 반영(transitive 완화 포함), pin된 `next` 등은 패치 범프 검토.
+- **제외**: `xlsx@0.18.5`(npm 패치본 없음, export-only 수용 리스크 — `revenue-export.ts` 문서화), `next-auth`(beta)·`react`(pin) major/beta 범프.
 
-### 0. 선작업 — 점검중(maintenance) 페이지 + 게이트 (rename 배포 안전장치) — ✅ 구현·검증 완료, main 배포·드라이런 대기
+### 영향 파일
+- `client/package.json`, `pnpm-lock.yaml`
 
-> rename은 "깨지는 창"이 불가피(아래 §2 참고) → 그 동안 사용자에게 **500 대신 "점검 중"**을 보여줄 장치를 먼저 만든다. rename 외 향후 마이그레이션·장애 대응에도 재사용.
+### 검증
+- `pnpm build`(prisma generate + next build) + 타입체크 그린 = 회귀 없음.
 
-- **점검 페이지**: `client/pages/maintenance.tsx` — **DB/Prisma 비의존 페이지**(getServerSideProps·getInitialProps 없음). 빌드상 ƒ(서버 렌더)지만 — `_document.getInitialProps`(styled-components SSR)로 앱 전체가 ƒ — DB를 안 건드리므로 마이그레이션 중에도 안전. 로고 + "점검 중" 문구. **상태: 구현·검증 완료**(런타임 200 + noindex 확인). _app·LayoutComponent에서 bare 페이지 처리도 완료.
-- **게이트**: `client/proxy.ts`(Next 16은 `proxy.ts`가 미들웨어 파일 — 내부상수 `PROXY_FILENAME='proxy'`). `MAINTENANCE_MODE==='true'`면 모든 요청을 `/maintenance`로 `NextResponse.rewrite`. `/maintenance`·`/_next` 바이패스. **상태: 구현·검증 완료**(커밋 `c8a4706`).
-  - ⚠️ **설계 교훈 — 게이트는 `auth()` 밖 최상단에 둘 것**: 처음엔 `auth()` 콜백 안에 넣었더니 NextAuth가 요청 URL을 `AUTH_URL` origin으로 치환 → `rewrite`가 외부 프록시로 새서 **500**(`Failed to proxy ... ECONNREFUSED`). `auth()` 밖에서 *치환 전 진짜 요청 origin*을 쓰게 해 해결(origin 불일치에서도 정상). 부수효과로 auth가 깨져도 점검 페이지가 뜸(인증 독립).
-  - env(`process.env`)만 사용 — 미들웨어 Edge 런타임이라 무거운 import(Prisma 등) 금지.
-- **토글 — ✅ 런타임 반영 검증 완료**: 로컬 프로덕션 빌드(`MAINTENANCE_MODE` 없이 빌드) 후 `next start`에서 env만 바꿔 ON→점검·OFF→정상 확인 → **빌드타임 인라인 아님**(런타임 읽기). 단 Cloud Run `--update-env-vars`는 **새 리비전 롤아웃**(이미지 재빌드 X, 인스턴스 내 즉시 전환은 아님)이라 배포 후 실제 토글 1회 드라이런 권장.
-- **헬스체크**: Cloud Run에 **HTTP 헬스 프로브가 설정돼 있지 않으면 포트 응답만 보므로 `/api/health` 불필요**할 수 있음 → 현재 서비스 프로브 설정 먼저 확인 후 항목 유지/제거 결정.
-- **rename 배포 시퀀스**: ① 점검 ON → ② 마이그레이션(RENAME) → ③ 새 코드 배포 → ④ 검증 → ⑤ 점검 OFF. 사용자는 내내 "점검 중"만 봄(500 노출 0).
-- **열린 질문**: (a) 게이트는 proxy.ts에 통합(별도 미들웨어 X). (b) 로그인/인증 포함 전체 차단이 단순·안전. (c) Cloud Run 프로브 방식 확인 후 헬스체크 경로 필요 여부 결정.
+### 완료 조건
+- 빌드 그린, 안전 범위 취약 의존성 패치 갱신. 남은 알림(xlsx)은 수용 리스크로 명시.
 
-### 0-1. 점검 게이트 `/login` 누수 수정 (rename 선행) — ✅ 완료
+## 진행 중 — 1d 고객 확인·변경·취소 (오너 승인형) (#76)
 
-> **문제**: `proxy.ts`의 `config.matcher`가 `login`을 제외(`(?!...|login)`)해 미들웨어가 `/login`에서 아예 실행 안 됨 → `MAINTENANCE_MODE='true'`여도 `/login`은 점검 페이지로 안 가고 정상 렌더. rename 마이그레이션 중 `/login` 진입 시 데이터 로드로 500 노출 위험. 열린 질문 (b)("로그인 포함 전체 차단이 단순·안전")를 코드에 반영.
+### 결정 (사용자 확정)
+- **데이터 모델**: Reservation에 `pendingAction`(none/cancel/change) + `pendingPayloadJson`(Json) + `pendingRequestedAt` 컬럼 추가. (별도 모델 X — 대기 요청 1건/예약)
+- **범위**: 한 PR로 통째(스키마·마이그레이션·공개 API 3종·고객 페이지·오너 승인 UI).
 
-- **요구사항**: 점검 모드일 때 `/login`도 `/maintenance`로 덮는다. 정상 모드에서는 `/login` 동작 무변(현행 유지).
-- **접근**: `matcher`에서 `login` 토큰만 제거 → 미들웨어가 `/login`에서도 실행됨. 점검 게이트가 auth() 밖 최상단이라 ON이면 rewrite로 먼저 가로챔. OFF면 `authMiddleware`로 진입하지만 `/login`은 이미 `isExempt`(14~22줄)라 약관·온보딩 리다이렉트 없이 통과 → 정상 모드 동작 동일. `api/auth`·`_next/*`·`favicon.ico` 제외는 유지(인프라/인증 엔드포인트는 계속 살려둠).
-- **영향 파일**: `client/proxy.ts`(matcher 1줄).
-- **예상 결과**: ON → `/login`이 점검 페이지. OFF → `/login` 기존대로. 타입/빌드 무변.
-- **검증**: 타입체크/린트. 정상모드 `/login` 통과·점검모드 `/login` 차단 로직 추적.
+### 구현
+1. **스키마+마이그레이션 0010**(멱등 `IF NOT EXISTS`, 신규 enum은 `DO $$ EXCEPTION duplicate_object`). `reservationSelect`에는 넣지 않음(배포순서 독립 유지) — 오너 승인 조회는 전용 select로.
+2. **공개 API**(`server/api/book/reservation/`): `GET [token]`(예약 상태 최소 노출), `POST [token]/request-cancel`, `POST [token]/request-change`(새 슬롯 검증 후 payload 저장). Slack로 오너 알림.
+3. **고객 페이지** `pages/book/[slug]/r/[token].tsx`: 상태 표시 + 취소/변경 요청. 완료화면(`[slug].tsx`)에 확인 링크 노출.
+4. **오너 승인**: 인증 API(`book-requests` GET 목록 + POST 수락/거절, `requireRole staff`) + Header 알림 벨(NaverSyncNotification 패턴 참고).
 
-### 0-2. §0 main 배포 + 토글 드라이런 (rename 선행) — 진행 중
+### 배포순서 (⚠️ 중요)
+- 마이그레이션 0010을 **Supabase에 수동 선적용** 후 코드 배포. 예약 조회는 `include` 금지·명시적 select 유지 → 미적용 상태에서도 메인 흐름 500 없음.
 
-> **목표**: 점검 페이지·게이트(현재 develop만)를 운영(main→Cloud Run)에 **`MAINTENANCE_MODE=false`로** 먼저 심고, 토글이 운영에서 실제 동작하는지 1회 리허설. 사용자 영향 0. rename 때 비로소 ON.
+### 검증
+- `pnpm build` + 고객 요청→오너 수락/거절→반영 흐름 구동.
 
-- **버전**: `client/package.json` 0.8.0 → **0.9.0**(minor — develop에 `feat` 점검 페이지·게이트 포함, breaking 없음).
-- **머지**: develop→main **fast-forward 가능**(develop..main=0). main 푸시 자동배포 워크플로 없음(배포는 수동 gcloud) → main 푸시 자체는 사용자 영향 없음.
-- **배포(사용자 실행)**: `gcloud run deploy`로 새 코드 운영 반영. `MAINTENANCE_MODE` 미설정=OFF라 배포만으론 점검 안 켜짐.
-- **드라이런(사용자 실행)**: 운영에서 `MAINTENANCE_MODE` ON → `/maintenance` 확인 → OFF. Cloud Run env 변경은 새 리비전 롤아웃이므로 실제 1회 확인 필요.
-- **제약**: 샌드박스에 gcloud·GCP 인증 없음 → 배포·토글은 복붙 명령 제공, 실행은 사용자.
-- **드라이런 결과(2026-06-25)**: 0.9.0 운영 배포 후 토글 ON 확인. 홈(`/`)·`/maintenance`·`/login` 모두 게이트 정상 — 단 `/login`은 **Cloudflare가 캐시**해서 맨 URL은 옛 로그인 화면이 떴고, 캐시 무력화 쿼리(`?cb=`)로는 점검 페이지 확인됨. → **앱 게이트(`/login` 누수 수정)는 정상 작동**. CDN 캐시가 변수.
-- ⚠️ **rename 실배포 추가 스텝 — Cloudflare 캐시 퍼지**: 점검 ON 직후 **Cloudflare 캐시를 purge**(최소 `/login`, 안전하게 전체)해야 캐시된 페이지가 점검 화면을 새지 않음. 시퀀스: ① 점검 ON → **①' Cloudflare purge** → ② 마이그레이션 → … . 캐시 TTL 만료를 기다리지 말 것.
+## 진행 중 — 온라인 예약을 "신청→오너 확정형"으로 전환 (+슬롯 차단, 네이버 2중검증)
 
-### 1. 카피·문서 — ✅ 완료 (커밋 `ff8f8a8`)
-- 브랜딩 카피: `about.tsx`(태그라인/meta "미용실·뷰티샵을 위한"→ 제거), `README.md`("Salon"→"Reservation & customer management"), `design-guide.html`(placeholder "헤어샵"→"매장")
-- 내부 문서: `prisma-seed-runbook.md`·`service-launch-plan.md` 영문 "salon"→"reservation"
+### 결정 (사용자 확정)
+- 온라인 신규 예약 = **`requested`(신청)** 상태로 생성(즉시확정 X). 오너 수락 시 `active`(확정), 거절 시 `cancelled`.
+- 슬롯 점유 판정 = **`active` + `requested`** 둘 다. 차단은 오너 확정/거절 때까지(자동만료 없음).
+- 오너 확정 위치: **알림 벨 + 캘린더에 '신청' 상태 구별 표시**.
+- 겹침 검증: 신청 생성 시 Serializable 트랜잭션에서 active+requested 재검증.
+- 네이버 2중검증: **비동기(fire-and-forget)** — 신청 접수 후 백그라운드 네이버 동기화 트리거, 겹침은 기존 충돌감지/벨로 오너 확정 전 노출. Gmail 미연동/실패 시 신청 안 막음.
+- 내부(오너) 예약은 종전대로 DB 직접+즉시 확정+즉시 Slack(변경 없음).
 
-### 2. "디자이너" → "담당자" 전면 rename (이름 확정)
+### 영향 범위(파급) — 매핑 후 확정
+- 스키마: `ReservationStatus`에 `requested` 추가(마이그레이션 0011, ADD VALUE IF NOT EXISTS).
+- 공개 API: `reserve.ts`(requested 생성, 슬롯점유 active+requested, 비동기 네이버 동기화, Slack '신규 신청'), `availability.ts`·`request-change.ts` 슬롯점유 확장.
+- 오너 API/UI: `book-requests`(신규 신청도 목록/수락·거절), 알림 벨, 캘린더 렌더·상태배지·매퍼·매출집계(requested 미집계)·충돌감지·필터.
+- 고객: 완료화면 "신청됨(확정대기)", 관리 페이지 requested 상태 라벨.
 
-> **방식 결정(2026-06-24): 물리 rename(DB 테이블/컬럼까지).** `@@map` 절충안 대신 DB까지 일관. 데이터가 적은 지금 실행(단, `ALTER ... RENAME`은 즉시 메타데이터 연산이라 위험·소요는 데이터 양과 무관 — "지금"의 이점은 다운타임 중 영향 사용자가 거의 0이라는 점뿐).
-
-**확정안:**
-- 화면 한글: **디자이너 → 담당자**
-- DB/코드 식별자: `Designer → Assignee`, `designerId → assigneeId`, `DesignerSchedule → AssigneeSchedule`, `DesignerStatus → AssigneeStatus`, `Store.designers → Store.assignees`
-- URL: `/settings/designer → /settings/assignee`
-- 방식: **물리 테이블/컬럼까지 진짜 rename**(`ALTER TABLE ... RENAME`, 데이터 제자리 보존). `@@map` 절충안은 폐기(반쪽 상태가 찝찝 → DB 콘솔까지 일관).
-
-**이름 충돌 검증 완료**: `Member`/`Manager`/`Staff`는 `enum MembershipRole {owner, manager, staff}`(권한 시스템)에서 이미 점유 중 → 사용 불가. `Assignee`는 어디와도 안 겹침(안전).
-
-**⚠️ Prisma 함정**: 모델명만 바꾸고 `prisma migrate`하면 `DROP TABLE Designer` + `CREATE TABLE Assignee`로 생성돼 **데이터 전부 소실**. 반드시 생성된 SQL을 손으로 `ALTER TABLE ... RENAME`으로 교체. FK는 이름이 아닌 정체성 기반이라 RENAME 시 자동 유지됨.
-
-**마이그레이션 SQL (손으로 작성):**
-> ⚠️ 테이블/컬럼/enum뿐 아니라 **Postgres 자동생성 제약·인덱스·FK·PK 이름**까지 모두 RENAME해야 함. 안 하면 다음 `prisma migrate`가 drift로 감지 → drop/recreate 시도. 실제 이름은 운영 DB에서 `\d "Designer"`·`\d "DesignerSchedule"`로 **먼저 확인**(아래는 Prisma 기본 네이밍 가정).
-```sql
--- 테이블/컬럼/enum
-ALTER TABLE "Designer" RENAME TO "Assignee";
-ALTER TABLE "DesignerSchedule" RENAME TO "AssigneeSchedule";
-ALTER TABLE "AssigneeSchedule" RENAME COLUMN "designerId" TO "assigneeId";
-ALTER TABLE "Reservation" RENAME COLUMN "designerId" TO "assigneeId";
-ALTER TYPE "DesignerStatus" RENAME TO "AssigneeStatus";
--- PK / unique 인덱스
-ALTER INDEX "Designer_pkey" RENAME TO "Assignee_pkey";
-ALTER INDEX "Designer_storeId_legacyId_key" RENAME TO "Assignee_storeId_legacyId_key";
-ALTER INDEX "DesignerSchedule_pkey" RENAME TO "AssigneeSchedule_pkey";
-ALTER INDEX "DesignerSchedule_designerId_dayIndex_key" RENAME TO "AssigneeSchedule_assigneeId_dayIndex_key";
--- FK 제약 (운영 DB 실측으로 확정 — 2026-06-24)
-ALTER TABLE "Assignee" RENAME CONSTRAINT "Designer_storeId_fkey" TO "Assignee_storeId_fkey";
-ALTER TABLE "AssigneeSchedule" RENAME CONSTRAINT "DesignerSchedule_designerId_fkey" TO "AssigneeSchedule_assigneeId_fkey";
-ALTER TABLE "Reservation" RENAME CONSTRAINT "Reservation_designerId_fkey" TO "Reservation_assigneeId_fkey";
--- (확인) Reservation.designerId 단독 인덱스 없음 → RENAME 대상 아님. Reservation 인덱스는 storeId 조합뿐.
-```
-**위 이름은 운영 DB 실측 결과(`pg_constraint`·`pg_indexes`)와 대조해 확정됨.** 단, 마이그레이션 시점에 스키마가 또 바뀌었을 수 있으니 실행 직전 재확인 권장.
-**검증**: 마이그레이션 후 `prisma migrate diff`(또는 `migrate dev`)가 **빈 diff**여야 함(drift 0). diff가 남으면 빠진 제약/인덱스 이름이 있다는 신호.
-
-**진행 상태(2026-06-25)** — 브랜치 `refactor/designer-to-assignee`(커밋 `fdbee67`):
-- ✅ `schema.prisma` rename 완료(model/enum/필드/관계, 잔여 Designer 0).
-- ✅ 마이그레이션 `0004_rename_designer_to_assignee/migration.sql` 작성(ALTER RENAME, 데이터 보존). enum 값 불변.
-- ✅ **정적 검증**: 0001~0003의 Designer DDL 12객체(테이블2·enum1·컬럼2·PK2·unique2·FK3) 전부 0004 RENAME으로 커버. Reservation designerId 단독 인덱스 없음 확인.
-- ⏳ **라이브 검증 대기**: 샌드박스에 Postgres 설치 불가(no sudo) → 사용자 로컬에서 `cd client && pnpm prisma:migrate:local` 후 `pnpm prisma:validate` + migrate status로 빈 diff 확인 필요.
-- ✅ **코드 rename 완료**(커밋 `bd0f12a`): client 71 + server 11 파일 식별자 치환, 파일/디렉터리 15개 rename(features/assignees·pages/api/assignees·컴포넌트·스토어·유틸·서버API·seed), API URL `/api/designers`→`/api/assignees`, 라우트 `/settings/designer`→`/settings/assignee`, 한글 '디자이너'→'담당자' 전수. **tsc --noEmit 소스 에러 0**. 잔존 designer/디자이너 0.
-- ✅ `index.md` 갱신(동일 매핑).
-- ✅ **호스트 검증 완료**: `prisma generate` + `pnpm build` + `prisma:migrate:local`(0004 replay) 전부 통과.
-- ✅ **운영 전환 완료(2026-06-25)**: §0 시퀀스대로 점검 ON → Cloudflare purge → 운영 DB 0004 적용(세션 풀러 5432) → main 머지·배포(`tas-00071`) → 점검 OFF(`tas-00072`) → 스모크 검증. 버전 0.10.0.
-  - ⚠️ **운영 마이그레이션 연결 교훈**: Supabase `db.xxx.supabase.co:5432`(direct)는 **IPv6 전용**이라 Prisma가 P1001. 트랜잭션 풀러 6543은 advisory lock 불가. → **세션 풀러(`...pooler.supabase.com:5432`, 유저명 `postgres.<ref>`)** 로 마이그레이션해야 함.
-  - 🐛 **후속 핫픽스(0.10.1, `c7324aa`)**: 담당자 추가 시 `buildAddedAssigneeState`가 신규 legacyId를 `Date.now()`(13자리)로 만들어 Int 컬럼 초과(P2020). 기존 버그(rename 무관, 게스트는 localStorage라 안 터짐)였고 서버 첫 추가에서 발현 → `max(id)+1`로 수정.
-- **남은 정리**: 머지된 브랜치 `refactor/designer-to-assignee` 삭제 가능, .git 잠금 잔재(`*.stale`·`*.x*`) 호스트에서 정리 가능.
-
-**작업 범위 (영향 파일):**
-- `server/prisma/schema.prisma` — `model Designer`·`model DesignerSchedule`·`enum DesignerStatus`·`designerId` FK(Reservation/DesignerSchedule)·`Store.designers` 관계. ⚠️ **enum 값은 영문**(`active`/`on_leave`/`resigned`) — 타입 이름만 rename(`AssigneeStatus`), **값은 건드리지 말 것**(한글 아님). 한글 `재직/휴직/퇴직`은 프런트 표시값.
-- 서버: `/api/designers`→`/api/assignees`(라우트 파일·핸들러), `designers-merge`·`naver-booking-fix-designer`, `server/db/mappers.ts`(`dbReservationToFrontend`의 `designerId` 분기 + **영문↔한글 상태 매퍼 `active:'재직'` 양방향 맵의 `DesignerStatus` 타입 참조**), `resolveDesignerCuid`.
-- 클라: store(`calendarStore`·`calendarStoreHelpers`·`calendarStoreDesignerHelpers`), 타입(⚠️ `Designer`/`DesignerStatus`/`DesignerStatusMeta`는 **`features/designers/model.ts`** 정의 + **`utils/designers.ts`가 `export *` 재export**(임포트 다수가 이 배럴 경유) / `designerId?` 필드는 `features/reservations/model.ts`), 온보딩(`onboarding-types` STEP 라벨·`LocalDesigner`), 캘린더 필터(`Header.tsx`), 매출(`revenue*`), 설정(`DesignerManageSection`→`AssigneeManageSection`), URL 라우트(`Aside.tsx:54`, `pages/settings/[tab].tsx`), 모달(`GuestMigrationLayer`·`NaverSyncConflictModal` 등 "디자이너" 문구 다수), PageHero `eyebrow="DESIGNER"`→`"ASSIGNEE"`.
-- 표시 문구: 한글 "디자이너"→"담당자" 전수.
-
-**⚠️ 사이트 접속 우려 — rename은 "치환"이라 안전한 배포 순서가 없음**:
-- 마이그레이션 먼저 → 옛 코드가 `Designer`/`designerId` 조회 → 500. 배포 먼저 → 새 코드가 `assigneeId` 조회하는데 DB는 아직 `designerId` → 500.
-- Cloud Run은 새 리비전 health 통과까지 옛 리비전이 트래픽 받음 → 오버랩 깨짐 불가피.
-- 깨지는 화면: 캘린더 로드, 예약 생성/수정, 매출, 담당자 관리, 네이버 동기화 등.
-- **대응 = §0 점검중 페이지**로 창 전체를 "점검 중"으로 덮어 500 노출 0. 트래픽 최저 시간대 실행.
-
-**배포 순서 (dev-workflow 메모리)**: 마이그레이션 포함 → main 머지(=배포)와 묶어 §0 시퀀스대로 저트래픽 시간대 실행. 로컬은 `pnpm prisma:migrate:local`.
-
-**미결**: "시술"→"서비스" 동반 변경 여부(별도 판단). 이번 rename 범위엔 미포함.
+### 검증
+- `pnpm build` + 신청→차단→오너 확정/거절 흐름 구동(스크린샷). 매출·캘린더 회귀 없음 확인.

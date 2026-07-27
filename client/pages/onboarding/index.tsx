@@ -376,6 +376,10 @@ const StyledPage = styled.div`
     justify-content: center;
     gap: 20px;
     min-height: 100%;
+    /* #__next(height:100% flex column)의 자식이라 내용이 뷰포트보다 길면 flex가 이 컨테이너를
+       뷰포트 높이로 압축 → justify-content:center가 위쪽을 잘라 카드가 틀어진다.
+       flex-shrink:0으로 압축을 막아 내용 높이를 유지하고 페이지가 자연스럽게 스크롤되게 한다. */
+    flex-shrink: 0;
     padding: 24px 16px;
     box-sizing: border-box;
 

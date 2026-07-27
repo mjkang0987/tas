@@ -53,7 +53,7 @@ export const StyledBrandLink = styled(Link)`
 `;
 
 export const StyledBrandLogo = styled.img`
-    height: 24px;
+    height: 30px;
     width: auto;
     display: block;
 `;

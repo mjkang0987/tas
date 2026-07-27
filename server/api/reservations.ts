@@ -9,8 +9,8 @@ import {
     frontendPaymentMethodToDb,
     frontendChannelToDb,
 } from '../db/mappers';
-import {reservationInclude} from '../db/prisma-includes';
-import {notifySlackForStore} from '../notify/slack';
+import {reservationSelect} from '../db/prisma-includes';
+import {notifySlackForStore, customerNoteLine} from '../notify/slack';
 import type {Reservation, ReservationStatus} from '../../client/features/reservations/model';
 import {hasCompletedPayment} from '../../client/features/reservations/model';
 
@@ -40,7 +40,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         const [dbReservations, dbHistories] = await Promise.all([
             prisma.reservation.findMany({
                 where: {storeId: session.storeId},
-                include: reservationInclude,
+                select: reservationSelect,
             }),
             prisma.reservationHistory.findMany({
                 where: {storeId: session.storeId},
@@ -92,13 +92,14 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                     ? {createMany: {data: paymentEntries}}
                     : undefined,
             },
-            include: reservationInclude,
+            select: reservationSelect,
         });
 
         await notifySlackForStore(session.storeId,
             `🗓️ *새 예약*\n• 날짜: ${reservation.date}`
             + `\n• 시간: ${reservation.startTime}~${reservation.endTime}`
             + `\n• 시술: ${reservation.service ?? '-'}`
+            + await customerNoteLine(customerId)
         );
 
         return res.status(201).json({reservation: dbReservationToFrontend(created)});
@@ -191,7 +192,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                     paymentCompleted: updated.paymentCompleted ?? false,
                     pointEarned: updated.pointEarned ?? 0,
                 },
-                include: reservationInclude,
+                select: reservationSelect,
             }),
             prisma.reservationPaymentEntry.deleteMany({where: {reservationId: dbReservation.id}}),
             ...(paymentEntries.length > 0
@@ -227,6 +228,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                 `✏️ *예약 변경*\n• 날짜: ${updated.date}`
                 + `\n• 시간: ${updated.startTime}~${updated.endTime}`
                 + `\n• 시술: ${updated.service ?? '-'}`
+                + await customerNoteLine(customerId)
                 + `\n• (이전) ${prev.date} ${prev.startTime}~${prev.endTime} ${prev.service ?? '-'}`
             );
         }
@@ -237,11 +239,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     if (req.method === 'PATCH') {
         if (!requireRole(session, 'staff', res)) return;
 
-        const {id, status} = req.body as { id: number; status: ReservationStatus };
+        const {id, status, reason} = req.body as { id: number; status: ReservationStatus; reason?: string };
+        // 취소 사유(선택). 고객 조회 페이지에 노출. 빈 값은 저장하지 않음(고객 페이지가 기본문구로 대체).
+        const decisionReason = typeof reason === 'string' ? reason.trim().slice(0, 300) : '';
 
         const dbReservation = await prisma.reservation.findUnique({
             where: {storeId_legacyId: {storeId: session.storeId, legacyId: id}},
-            include: reservationInclude,
+            select: reservationSelect,
         });
 
         if (!dbReservation) {
@@ -254,8 +258,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         const after = await prisma.$transaction(async (tx) => {
             const updatedReservation = await tx.reservation.update({
                 where: {id: dbReservation.id},
-                data: {status: frontendReservationStatusToDb(status)},
-                include: reservationInclude,
+                data: {
+                    status: frontendReservationStatusToDb(status),
+                    ...(decisionReason ? {decisionReason} : {}),
+                },
+                select: reservationSelect,
             });
 
             const afterFront = dbReservationToFrontend(updatedReservation);
@@ -284,12 +291,14 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                 `❌ *예약 취소*\n• 날짜: ${after.date}`
                 + `\n• 시간: ${after.startTime}~${after.endTime}`
                 + `\n• 시술: ${after.service ?? '-'}`
+                + await customerNoteLine(dbReservation.customerId)
             );
         } else if (after.status === 'noshow') {
             await notifySlackForStore(session.storeId,
                 `🚫 *노쇼*\n• 날짜: ${after.date}`
                 + `\n• 시간: ${after.startTime}~${after.endTime}`
                 + `\n• 시술: ${after.service ?? '-'}`
+                + await customerNoteLine(dbReservation.customerId)
             );
         }
 
@@ -304,7 +313,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
         const dbReservation = await prisma.reservation.findUnique({
             where: {storeId_legacyId: {storeId: session.storeId, legacyId: id}},
-            include: reservationInclude,
+            select: reservationSelect,
         });
 
         if (!dbReservation) {
@@ -320,6 +329,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             `🗑️ *예약 삭제*\n• 날짜: ${deleted.date}`
             + `\n• 시간: ${deleted.startTime}~${deleted.endTime}`
             + `\n• 시술: ${deleted.service ?? '-'}`
+            + await customerNoteLine(dbReservation.customerId)
         );
 
         return res.status(200).json({ok: true});

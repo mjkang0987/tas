@@ -1,8 +1,10 @@
 import type {NextApiRequest, NextApiResponse} from 'next';
 
+import {Prisma} from '../../client/prisma/generated/prisma/client';
+
 import {prisma} from '../db/prisma';
 import {getApiSession, requireRole} from '../auth/api-session';
-import {dbAssigneeToFrontend, frontendAssigneeStatusToDb} from '../db/mappers';
+import {dbAssigneeToFrontend, frontendAssigneeStatusToDb, parseI18nText} from '../db/mappers';
 import type {Assignee} from '../../client/features/assignees/model';
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
@@ -88,6 +90,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                     where: {storeId_legacyId: {storeId: session.storeId, legacyId: assignee.id}},
                     update: {
                         name: assignee.name,
+                        nameI18nJson: parseI18nText(assignee.nameI18n) ?? Prisma.JsonNull,
                         status: frontendAssigneeStatusToDb(assignee.status),
                         phone: assignee.phone ?? null,
                         note: assignee.note ?? null,
@@ -97,6 +100,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                         storeId: session.storeId,
                         legacyId: assignee.id,
                         name: assignee.name,
+                        nameI18nJson: parseI18nText(assignee.nameI18n) ?? Prisma.JsonNull,
                         status: frontendAssigneeStatusToDb(assignee.status),
                         phone: assignee.phone ?? null,
                         note: assignee.note ?? null,

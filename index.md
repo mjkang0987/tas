@@ -31,7 +31,7 @@ hair_reservations/
 | `/login` | `login.tsx` | 로그인 (Google, Kakao, Naver OAuth) + 게스트 진입. 초대 링크(`?invite=CODE`) 코드 자동입력, 인앱 브라우저(WebView) 감지 시 안내 배너 + 카카오 우선 노출, 로고→루트 링크 |
 | `/logout` | `logout.tsx` | 로그아웃 후 `/login`으로 리다이렉트 |
 | `/mypage` | `mypage.tsx` | 계정 관리 (프로필, 연결된 SNS, 로그아웃, 회원탈퇴) |
-| `/settings/[tab]` | `settings/[tab].tsx` → `settings.tsx` | 설정 (탭: revenue/point/store/service/assignee/member/sns/naver) |
+| `/settings/[tab]` | `settings/[tab].tsx` → `settings.tsx` | 설정 (탭: revenue/point/membership/coupon/service/assignee/store/member/sns/naver) |
 | `/address` | `address.tsx` | 고객 명단 |
 | `/onboarding` | `onboarding/index.tsx` | 신규 매장 초기 설정 (로그인 사용자). 온보딩 완료자는 이전 페이지로 리다이렉트 |
 | `/onboarding/guest` | `onboarding/guest.tsx` | 게스트 온보딩 (index 컴포넌트 재사용, 경로로 분기) |
@@ -50,7 +50,17 @@ hair_reservations/
 - `storeId` 있고 `onboarded=false`인 사용자는 허용 경로 외 접근 시 `/onboarding`으로 리다이렉트
 - 온보딩 완료자의 `/onboarding` 진입 차단은 페이지 가드가 담당 (이전 페이지로 `router.back()`)
 - **주의**: `/api/*`는 동의 게이트에서 제외(exempt)됨 — 데이터 기록 API는 `requireRole`만 검증(동의는 클라이언트 흐름으로 보장)
+- **정적 자산 exempt**: 확장자 있는 경로(`/logo/*.svg`·`/img-share.png` 등, `/\.[^/]+$/`)도 게이트 제외. 미포함 시 로그인+미동의 상태에서 로고 등 이미지 요청까지 `/consent`로 리다이렉트돼 이미지가 깨진다(HTML이 옴)
 - **점검 모드 게이트**: `MAINTENANCE_MODE==='true'`면 `auth()` 밖 최상단에서 모든 요청을 `/maintenance`로 `rewrite`(인증 독립). `/maintenance`·`/_next`만 바이패스. `/login` 포함 전 페이지 차단 — matcher는 `api/auth`·`_next/*`·`favicon.ico`만 제외(인프라/인증 엔드포인트는 점검 중에도 유지). rename 등 마이그레이션 시 500 노출 방지용
+
+### 캘린더 URL ↔ 날짜 (`client/components/layout/LayoutComponent.tsx`)
+
+캘린더 뷰 경로는 `/{view}/{year}/{month}/{date}` 형태(예: `/month/2026/7`). `asides`(day/three/week/month/year)는 `next.config.mjs`에서 `/`로 rewrite되고, LayoutComponent가 `router.asPath`를 파싱해 뷰·날짜를 store에 반영한다.
+
+- **기본 보기 = 월별**: 루트(`/`)·비캘린더 경로로 진입하면 기본 뷰는 `ViewType.Month`(PC·모바일 공통, 모바일 전용 뷰 분기 없음). store 초기값(`calendarStore` `view.type`)도 `'month'`. 특정 뷰 URL(`/week/…` 등)로 진입하면 그 뷰를 따른다.
+
+- **뷰 전용 경로 방어**: `/month`처럼 날짜 세그먼트가 없거나 잘못된 경로는 `resolveCalendarDate()`가 오늘로 폴백(연도 세그먼트가 유효한 양수가 아니면 `initDate`). 과거엔 `new Date(NaN,…)` Invalid Date → 파생 계산 NaN → `new Array(NaN)` 크래시가 났다. `computeTargetDerived`도 `fullYear` NaN이면 방어적으로 early-return.
+- **북마크 최초 진입 = 오늘**: 브라우저 북마크는 `/month/2026/6`처럼 날짜가 박힌 URL을 저장하므로, 시간이 지나면 지난 달이 열린다. 이를 막기 위해 **최초 진입**(`initializedPath === null` — 북마크·새로고침·직접 URL)에서는 URL 날짜를 무시하고 **오늘**로 열고(뷰 종류는 URL 값 유지), URL은 동기화 effect가 오늘 기준으로 정규화한다. 부팅 이후 인앱 이동(이전/다음·`popstate`)은 URL 날짜를 존중. 트레이드오프: 다른 달을 보던 중 새로고침하면 오늘로 돌아옴.
 
 ### 컴포넌트 (`client/components/`)
 
@@ -64,13 +74,13 @@ hair_reservations/
 | `modals/` | 전역 오버레이 (layout과 분리) | `NaverSyncConflictModal.tsx`[^2](+`.styles.ts`), `CustomerMergeSuggestionModal.tsx`[^3], `GuestMigrationLayer.tsx`(게스트→계정 병합 레이어), `ConsentDpaLayer.tsx`(처리위탁 DPA 동의 레이어 — "보기"는 `PolicyViewLayer`) |
 | `policy/` | 정책 문서 표시 | `PolicyPage.tsx`(앱 인라인 페이지 레이아웃, mypage `StyledContainer` 사용), `PolicyViewLayer.tsx`(약관 "보기" — 공통 `ModalStyles` 레이어), `policyCss.ts`(인라인·풀페이지 공유 CSS + 독립 HTML 생성 `renderPolicyHtml`)[^20] |
 | `onboarding/` | 온보딩 스텝 분리 | `OnboardingStep1~5.tsx`, `onboarding-types.ts`, `onboarding-step-styles.tsx` |
-| `settings/` | 설정 화면 섹션 | `StoreManageSection.tsx`, `ServiceManageSection.tsx`, `AssigneeManageSection.tsx`, `PointManageSection.tsx`(+`PointSettingsTab`/`PointAdjustTab`/`PointHistoryTab`), `MemberSection.tsx`, `SNSLinkingSection.tsx`[^14], `NaverBookingSection.tsx`[^15], `settings-styles.ts`[^16]. 큰 섹션은 본체와 `*.styles.ts` 분리 |
+| `settings/` | 설정 화면 섹션 | `StoreManageSection.tsx`(매장정보+업종+적립금/회원권 시스템 토글), `ServiceManageSection.tsx`, `AssigneeManageSection.tsx`, `PointManageSection.tsx`(+`PointSettingsTab`/`PointAdjustTab`/`PointHistoryTab`), `MembershipManageSection.tsx`(회원권 상품 CRUD + 고객 발급·잔여 조회)[^21], `CouponManageSection.tsx`(쿠폰 상품 CRUD — 정액/정률·코드·만료·최소금액. 발급·결제차감 미구현)[^22], `MemberSection.tsx`, `SNSLinkingSection.tsx`[^14], `NaverBookingSection.tsx`[^15], `settings-styles.ts`[^16]. 큰 섹션은 본체와 `*.styles.ts` 분리 |
 | `settings/revenue/` | 매출 관리 | `RevenueSection.tsx`(+`.styles.ts`, 순수 차트 로직은 `revenueChartUtils.ts`), `RevenueChartGrid.tsx`, `RevenueKpiGrid.tsx`, `RevenueFilters.tsx`, `RevenueMetricModal.tsx`, `RevenueReservationList.tsx`, `RevenueDailyList.tsx`, `RevenueDailyDetailModal.tsx`, `revenue-styles.ts`/`revenue-chart-styles.ts` |
 | `address/` | 고객 명단 | `AddressContent.tsx`, `AddressCustomerRow.tsx`, `AddressCustomerSummary.tsx`, `AddressCustomerRecharge.tsx` |
 | `ui/` | 공통 UI | `Buttons.tsx`, `Icons.tsx`, `PageHero.tsx`, `SeoHead.tsx`, `ServiceChip.tsx`, `AssigneeLabel.tsx`/`ColorTag.tsx`(담당자 색상 배지), `LabelBadge.tsx`(tone×shape 배지), `ReservationStatusBadge.ts`(예약 상태 배지), `ReservationInfoCard.tsx`, `CsFooter.tsx`(고객센터 푸터 공통), `GuestNotice.tsx`, `FieldError.tsx`, `FormControls.ts` |
 | `account/` | 계정 관련 모달 | `AccountDeleteModal.tsx` |
 
-[^1]: 네이버 동기화 알림 벨 아이콘 + 알림 목록 패널. 미읽음 카운트는 `!read || (conflict && !confirmed)` 조건으로 계산
+[^1]: 네이버 동기화 알림 벨 아이콘 + 알림 목록 패널. 미읽음 카운트는 `!read || (conflict && !confirmed)` 조건으로 계산. 알림에 박제된 고객명·담당자명은 `patchNotificationNames`(calendarStore)가 데이터 로드/변경 시 현재 이름과 다르면 자동 동기화(이름 변경 반영, 미배정은 '미지정')
 [^2]: 네이버 예약 시간 중복(conflict) 해결 모달. pending → deferred/confirmed 상태 전이
 [^3]: 동명이인·유사 고객 병합 제안 모달 (게스트 모드에서는 비활성)
 [^3a]: 고객 상세의 하위 UI 분리 — 적립금 이력 아이템(`PointHistoryItem` 공용), 메모 태그 섹션, 이력 더보기 모달, 병합 분리 확인 모달
@@ -81,22 +91,30 @@ hair_reservations/
 [^18]: app 라우터에 `app/` 디렉터리(NextAuth route handler)가 있으면 잘못된 경로의 404를 app 라우터가 처리하므로, `app/not-found.tsx`(+최소 `app/layout.tsx`)에 디자인 가이드 동일 스타일 + 자동 리다이렉트를 구현. `pages/404.tsx`는 pages 라우터 폴백용으로 동일 UI 유지
 [^19]: 약관 버전은 `utils/terms.ts`의 `CURRENT_TERMS_VERSION`(날짜 기반 `YYYY-MM-DD`)으로 관리. 동의 여부 판정 — 게스트: `getGuestTermsVersion()===CURRENT_TERMS_VERSION`(localStorage), 로그인: 세션 `termsVersion===CURRENT_TERMS_VERSION`. 미동의 시 게이트 노출, 동의 시 게스트는 localStorage(`setGuestTermsAgreed`)·로그인은 `POST /api/consent`(→ `User.agreedTermsVersion`/`agreedTermsAt` 갱신) 후 세션 갱신. `/consent/<경로>` 형태로 복귀 경로를 슬래시로 전달(`next.config.mjs` rewrite). Aside 하단에 이용약관/개인정보처리방침 링크 제공, 게스트 로그아웃 시 동의 플래그도 초기화. **동의 항목 구성** — 게스트: 이용약관 + 개인정보 수집·이용(서버 위탁 없음). 로그인(SNS 연동, 서버 보관): 위 2개 + **개인정보 처리위탁(DPA)** 별도 항목. 게스트가 SNS 연동한 경우는 이미 받은 동의는 건너뛰고 DPA만 `_app.tsx`의 앱 레벨 `ConsentDpaLayer`로 추가 수령. 각 항목 "보기"는 `PolicyViewLayer`로 표시
 [^20]: **정책 문서 단일 소스 구조** — 법률 본문은 문서당 파일 하나(`content/policies/{terms,privacy,dpa}.ts`)에만 두고, 제목 메타는 `content/policies/index.ts` 레지스트리(`navTitle`/`docTitle`/`body`)로 관리. 이 본문을 **인라인 페이지**(`/terms`·`/privacy`·`/dpa` → `PolicyPage`)·**보기 레이어**(`PolicyViewLayer`)·**풀페이지**(`/policies/:slug` → `api/policies/[slug].ts`가 `renderPolicyHtml`로 독립 HTML 응답)가 모두 공유 → 한 곳만 고치면 전체 반영. 공통 CSS도 `components/policy/policyCss.ts`(`POLICY_VARS_*`·`POLICY_ELEMENT_CSS`)에서 styled-components(인라인)·`<style>`(풀페이지) 양쪽이 같은 문자열 사용. DPA는 서버 보관(수탁) 개시 시점에 필요하므로 SNS 연동(인증) 이후에만 노출
+[^21]: 회원권 관리는 `Store.useMembershipSystem` 토글 ON일 때만 aside 메뉴·`/settings/membership` 탭 노출. 상품(횟수/기간권) CRUD + 고객 발급·수동 차감까지 구현(Phase 1·2). **결제 연동(예약 결제수단으로 자동 차감, `PaymentMethod.membership`)은 미구현(Phase 3 예정)**
+[^22]: 쿠폰 관리는 `Store.useCouponSystem` 토글 ON일 때만 aside 메뉴·`/settings/coupon` 탭 노출. **Phase 1만 구현** — 상품(정액 amount/정률 rate, maxDiscount·minOrderAmount·validDays·code) CRUD(`/api/coupons` owner, `server/api/coupons.ts`). **발급(직접·코드형, Phase 2)·결제 자동 차감(`PaymentMethod.coupon`, Phase 3)은 미구현.** 회원권 시스템 패턴 미러링
+[^24]: **고객 예약 페이지 다국어**: 공개 페이지(`book/[slug].tsx`·`book/[slug]/r/[token].tsx`)만 대상. 언어 전환기는 **하단 고정 바**(`components/booking/LangSwitcher.tsx`, 네이티브 `<select>`) — 같은 경로에서 즉시 전환, `useBookLang` 훅이 localStorage(`tas-book-lang`) 영속 + `navigator.language` 자동감지 + `<html lang>` 동기화(`useSyncExternalStore`로 SSR 안전). 예약 sticky 요약 바는 `LANG_BAR_OFFSET`만큼 위로 띄워 겹침 방지. 서버 API·스키마 무변경(코드-온리). 전역 `formatDuration`(features/services)은 앱 전반 사용이라 미수정 — 예약 전용 `formatDurationL` 신설.
+[^23]: **고객 공개 온라인 예약**(`Store.useOnlineBooking` ON + `bookingSlug` 매장만). 공개 구역은 비로그인 — `proxy.ts`/`_app.tsx`/`LayoutComponent`가 `/book/*`를 인증·게이트에서 제외. 공개 API(`server/api/book/*`)는 **매장 스코프 + 데이터 최소 노출**(고객/예약 정보 절대 미반환). 페이지 `pages/book/[slug].tsx`: 서비스·담당자·날짜·시간 선택 + 이름/연락처 → 예약 생성 → `publicToken` 발급(고객 관리 링크 `/book/[slug]/r/[token]`는 Phase 1d). 슬롯 계산은 `features/booking/availability.ts` 순수함수, 예약 생성은 트랜잭션(Serializable) 슬롯 재검증으로 동시성 방어. **노출 서비스 선택(1c)**: 오너가 `/settings/booking`에서 공개할 서비스만 선택(`BookingSettings.bookableServiceNames`→DB `bookableServiceIdsJson`), 공개 API가 필터·거부(`not_bookable`). **Phase 1c까지 구현**(공개정보·슬롯·예약생성·노출서비스). 확인/변경/취소(1d, Phase 2)·알림(1f, Phase 3)·서브도메인 rewrite(1e)는 미구현. 마이그레이션 `0008`(채널·토글·슬러그·규칙)·`0009`(`Reservation.publicToken`·`StoreBookingSettings.bookableServiceIdsJson`)
+[^25]: **매장 공지사항**(`StoreNotice`, 마이그레이션 `0015`). 오너가 `/settings/notice`(aside '공지사항 관리', `useOnlineBooking` ON일 때만 노출)에서 CRUD — 제목·내용·카테고리(공지/이벤트/안내)·공개여부·상단고정(pinned), 제목/내용 4개국어(`titleI18nJson`/`bodyI18nJson`, `LocalizedMessageField` 공용). 고객 예약 페이지(`book/[slug].tsx`) 랜딩·신규예약 뷰에 visible 공지를 항상 펼쳐 노출(접기 없음, 고정 먼저→최신순 `orderBy [{pinned:desc},{createdAt:desc}]`). 마이그레이션 `0016`(pinned 컬럼). 공개 API(`book/[slug].ts`)는 테이블 미존재 시 `[]` 방어(마이그레이션 지연 무중단). 새 Store 토글 없이 `useOnlineBooking` 재사용
 
 ### 도메인 모델 (`client/features/`)
 
 | 파일 | 모델 | 핵심 필드 |
 |------|------|----------|
-| `reservations/model.ts` | `Reservation` | id, date, startTime/endTime, customerId, assigneeId?, service, status[^4], price, naverBookingId?, channel[^5] |
-| `customers/model.ts` | `Customer` | id, name, tel, points, memoTags, pointHistories, allergyNote, claimNote, preferenceNote |
+| `reservations/model.ts` | `Reservation` | id, date, startTime/endTime, customerId, assigneeId?, service, status[^4], price, naverBookingId?, channel[^5], publicToken?(온라인예약 고객 관리 링크) |
+| `customers/model.ts` | `Customer` | id, name, tel, points, memoTags, pointHistories, allergyNote, claimNote, preferenceNote. 헬퍼: `formatTel`(표시 000-0000-0000)·`normalizeTel`(저장용 숫자만, 단일 출처) |
+| `memberships/model.ts` | `MembershipProduct`/`CustomerMembership` | 회원권(횟수·기간권, 적립금과 별개). product: totalCount?/validDays?/price/status, 발급분: remainingCount/expiresAt?/status |
 | `assignees/model.ts` | `Assignee` | id, name, schedule(7일), status[^6], color, phone |
 | `services/model.ts` | `ServiceItem` | name, durationMinutes, category, price |
 | `services/default-services.ts` | - | 업종(ShopType) union + 업종별 기본 서비스·카테고리 색상(Partial, 온보딩용) |
-| `store-settings/model.ts` | `StoreSettings` | businessHours, closedDates, pointSettings(적립률, 충전규칙) |
+| `store-settings/model.ts` | `StoreSettings`/`BookingSettings` | businessHours, closedDates(특정 날짜 휴업일), `closedWeekdays`(정기 휴무 요일, 0=월…6=일 — DB는 `StoreBusinessHour.enabled=false`로 저장, `sanitizeClosedWeekdays`로 정규화), pointSettings(적립률, 충전규칙). `BookingSettings`(공개 예약 규칙: slotIntervalMin·minLeadMinutes·maxAdvanceDays·allowAssigneeChoice·noticeText·`bookableServiceNames`[노출 서비스 화이트리스트, null=전체]) + slug 검증(`isValidBookingSlug`)·노출 헬퍼(`parseBookableServiceNames`/`areServicesBookable`) |
+| `booking/availability.ts` | - | 공개 온라인 예약 슬롯 계산 순수 함수(`computeAvailableSlots`/`pickAssigneeForSlot`). 서버 API가 재사용. 영업시간−기존예약−담당자스케줄−소요−최소사전시간, 담당자 용량 모델[^23] |
+| `booking/i18n.ts` | - | **고객 예약 페이지 다국어**(ko/en/ja/zh). UI 문구 사전(`BOOK_STRINGS`)·언어 목록(`BOOK_LANGS`)·로케일 포매터(`formatDurationL`·`formatBookDateLabel`·`formatPriceL`·`statusLabelL`·`dowLabelL`)·업종 라벨 번역(`localizedStoreLabels`, category 기준). 매장 오너 콘텐츠(매장명·서비스명·안내문·담당자명)는 번역 제외[^24] |
 | `store-settings/labels.ts` | - | 업종 마스터 목록·category별 표시어(담당자/서비스)·`getStoreLabels`/`sanitizeShopType` ([업종별 라벨](#업종별-라벨-담당자서비스-표시어)) |
 | `local-db/storage.ts` | - | 게스트 모드 로컬 스냅샷 (`takeaseat.local-db.v1`). `shouldUseLocalDb()`로 모드 판정, 게스트 약관 동의 버전 헬퍼(`getGuestTermsVersion`/`setGuestTermsAgreed`) — `lib/local-db`로 re-export |
 
 [^4]: status: `active` · `completed` · `cancelled` · `noshow`
-[^5]: channel: `네이버예약` · `현장방문` · `전화예약`
+[^5]: channel: `네이버예약` · `현장방문` · `전화예약` · `온라인예약`(공개 부킹 페이지 경유)
 [^6]: Assignee status: `재직` · `휴직` · `퇴직`
 
 ### 상태관리 (`client/store/`)
@@ -184,7 +202,15 @@ NextAuth 5.0 설정. Google·Kakao·Naver OAuth 지원.
 | `assignees.ts` | `/api/assignees` | GET(staff) / PUT(owner) / DELETE(owner) | - | 담당자 CRUD + 일정(AssigneeSchedule) upsert. DELETE는 영구 삭제(분리): 예약은 assigneeId=null로 보존, 스케줄은 cascade 삭제 |
 | `assignees-merge.ts` | `/api/assignees/merge` | POST | owner | 담당자 병합 (source→target 예약 재배정 후 source 삭제) |
 | `services.ts` | `/api/services` | GET(staff) / PUT(owner) | - | 서비스 카탈로그 관리 |
-| `store.ts` | `/api/store` | GET(staff) / PUT(owner) | - | 매장 설정 (영업시간, 휴무일, 포인트 설정) |
+| `store.ts` | `/api/store` | GET(staff) / PUT(owner) | - | 매장 설정 (영업시간, 휴업일, **정기 휴무 요일**(`closedWeekdays`→`StoreBusinessHour.enabled`), 포인트 설정, 업종, **적립금/회원권 시스템 토글** `usePointSystem`/`useMembershipSystem`, **온라인예약** 토글·슬러그·규칙·노출서비스 `bookableServiceNames`) |
+| `memberships.ts` | `/api/memberships` | GET(staff) / POST·PUT·DELETE(owner) | - | 회원권 상품(횟수/기간권) CRUD + 보유 목록 조회 |
+| `membership-issue.ts` | `/api/membership-issue` | POST(staff) | - | 고객에게 회원권 발급/취소 (상품 스냅샷 → CustomerMembership) |
+| `membership-use.ts` | `/api/membership-use` | POST(staff) | - | 회원권 횟수 수동 차감/복원 (결제 흐름과 독립, MembershipUsage 기록) |
+| `coupons.ts` | `/api/coupons` | GET(staff) / POST·PUT·DELETE(owner) | - | 쿠폰 상품(정액/정률) CRUD. 코드형 중복 시 409. 발급분 있으면 DELETE=보관(archive). 발급·결제차감 미구현(Phase 1) |
+| `notices.ts` | `/api/notices` | GET(staff) / POST·PUT·DELETE(owner) | - | 매장 공지사항 CRUD(제목·내용·카테고리[notice/event/info]·공개여부 visible, 제목/내용 4개국어). 공개 노출은 `book/[slug]`가 visible=true만 반환(방어적 조회) |
+| `book/[slug].ts` | `/api/book/[slug]` | GET | **공개(비로그인)** | 온라인예약 매장 공개정보(매장명·서비스·담당자·영업시간·휴무일·규칙). 고객/예약 정보 절대 미노출[^23] |
+| `book/[slug]/availability.ts` | `/api/book/[slug]/availability` | GET | **공개(비로그인)** | 선택 서비스·담당자·날짜의 예약 가능 슬롯 배열. 순수 슬롯 계산(`features/booking/availability.ts`) 재사용, KST 기준 날짜 검증[^23] |
+| `book/[slug]/reserve.ts` | `/api/book/[slug]/reserve` | POST | **공개(비로그인)** | 셀프 예약 생성. 서버 슬롯 재검증(트랜잭션 Serializable) + 고객 upsert(정규화 tel) + 예약 생성(channel=online·`publicToken` 발급) + Slack 알림[^23] |
 | `onboarding.ts` | `/api/onboarding` | POST | owner | 매장 초기 설정 (legacyId 부여). **이미 담당자/서비스가 있으면 409 `ALREADY_SETUP` 거부** |
 | `migrate-local.ts` | `/api/migrate-local` | POST | owner | 게스트 로컬 데이터 전체 이전 (services/assignees/customers/reservations). 기존 데이터 있으면 409 + `confirm` 플래그로 병합 진행 |
 | `naver-booking-sync.ts` | `/api/naver-booking-sync` | POST | owner | 네이버 예약 동기화[^9] |
@@ -246,7 +272,7 @@ NextAuth 5.0 설정. Google·Kakao·Naver OAuth 지원.
 | `prisma.ts` | Prisma 클라이언트 싱글턴 (PrismaPg driver adapter 사용) |
 | `mappers.ts` | DB ↔ 프론트엔드 변환 함수[^13] |
 
-[^13]: `dbReservationToFrontend()`, `dbCustomerToFrontend()`, `dbAssigneeToFrontend()`, `dbServiceToFrontend()`, `dbStoreToFrontend()` 등. legacyId(number) ↔ CUID(string) 변환 포함. `legacyId`가 null이면 프론트 id가 깨지므로 생성 시 반드시 부여할 것
+[^13]: `dbReservationToFrontend()`, `dbCustomerToFrontend()`, `dbAssigneeToFrontend()`, `dbServiceToFrontend()`, `dbStoreToFrontend()` 등. legacyId(number) ↔ CUID(string) 변환 포함. `legacyId`가 null이면 프론트 id가 깨지므로 생성 시 반드시 부여할 것. **예약 조회는 `prisma-includes.ts`의 명시적 `select`(`reservationSelect`/`reservationSelectWithNames`)만 사용** — `include`(전체 컬럼 SELECT)는 금지. 새 컬럼을 추가한 뒤 마이그레이션이 미적용된 채 배포되면 `include`가 없는 컬럼까지 SELECT하다 전체 예약 조회가 500나기 때문(2026-07 `publicToken` 배포순서 사고 재발방지). **날짜 전용 컬럼(`Reservation.date`·`StoreClosedDate.date` 등) 규칙**: 저장은 `new Date(\`${dateStr}T00:00:00\`)`(서버 로컬 파싱), 읽기는 **항상 `toDateKey`**(로컬 컴포넌트 추출) — 두 방향이 서버 TZ와 무관하게 오너 입력 달력일을 왕복시킨다. `.toISOString().slice(0,10)`(UTC)로 읽으면 서버가 KST일 때 하루 밀려 휴업일이 공개 예약에서 누락되므로 금지(오너·공개 부킹 API 모두 `toDateKey` 사용). 예외: `booking-helpers.nowKst()`는 의도적으로 KST-shift된 instant에 UTC 추출(TZ 독립)
 
 ---
 
@@ -271,13 +297,20 @@ Store ─┬── Customer ──── Reservation ──── ReservationPay
        │       └──────── Reservation (optional)
        │
        ├── Service
+       ├── MembershipProduct ─┬─ MembershipProductService (N:N Service)
+       │       └── CustomerMembership ── MembershipUsage
+       ├── CouponProduct ──── CustomerCoupon
        ├── Membership ── User ──┬─ AuthAccount (1유저 N프로바이더)
        │                          └─ GmailConnection (1유저 1연동, 로그인 계정과 분리)
        ├── StoreBusinessHour (7일)
        ├── StoreClosedDate
+       ├── StoreNotice
        ├── StorePointSettings
        └── Invite
 ```
+
+> **Store 기능 토글**: `usePointSystem`/`useMembershipSystem`/`useCouponSystem`(모두 `@default(false)`). 적립금·회원권·**쿠폰** 모두 토글 → aside 메뉴/페이지 연동 완료. **쿠폰은 Phase 1(토글 배선·상품 CRUD·`/settings/coupon` 탭)까지 구현. 발급(Phase 2)·`PaymentMethod.coupon` 결제 차감(Phase 3)은 미구현(예정).**
+> **결제 연동 현황**: `PaymentMethod` enum엔 아직 `membership`·`coupon` 없음 → 회원권·쿠폰 모두 **예약 결제수단 차감(각 Phase 3) 미구현**. 회원권 차감은 현재 `membership-use`(수동)만.
 
 ### 주요 Enum
 
@@ -285,7 +318,7 @@ Store ─┬── Customer ──── Reservation ──── ReservationPay
 |------|---|
 | `MembershipRole` | owner, manager, staff (`0003_membership_role_manager`에서 manager 재추가 — 운영 등급) |
 | `ReservationStatus` | active, completed, cancelled, noshow |
-| `ReservationChannel` | naver, walk_in, phone |
+| `ReservationChannel` | naver, walk_in, phone, online(공개 온라인 예약) |
 | `AssigneeStatus` | active, on_leave, resigned |
 | `PaymentMethod` | cash, cash_receipt, card, naver_pay, local_currency, local_currency_receipt, voucher, points, discount, naver_deposit |
 | `PointHistoryType` | manual_add, manual_subtract, recharge, payment_use, payment_earn, payment_adjust |

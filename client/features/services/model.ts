@@ -3,6 +3,8 @@ export interface ServiceItem {
     durationMinutes: number;
     category: string;
     price: number;
+    // 공개 예약 페이지 다국어 표시용(오너 입력, {en?,ja?,zh?}). 식별·저장은 항상 name(한국어).
+    nameI18n?: {en?: string | null; ja?: string | null; zh?: string | null} | null;
 }
 
 export const SERVICE_CATALOG: ServiceItem[] = [

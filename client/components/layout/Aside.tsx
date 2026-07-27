@@ -18,7 +18,7 @@ import {CustomerAddModal} from '../address/CustomerAddModal';
 import {StoreSwitcher} from './StoreSwitcher';
 import {AsideGuestLogout} from './AsideGuestLogout';
 import {clearGuestConsentAck, clearGuestEntryResolved, clearGuestTermsAgreed} from '../../lib/local-db';
-import {AsideMenuIcon, StyledMenuIcon} from './AsideMenuIcon';
+import {AsideMenuIcon} from './AsideMenuIcon';
 import {useStoreLabels} from '../../hooks/useStoreLabels';
 import {
     StyledAside,
@@ -49,9 +49,12 @@ import {
 
 const SETTINGS_SUBMENU = [
     {tab: 'revenue', href: '/settings/revenue', label: '매출', icon: 'revenue'},
+    {tab: 'store', href: '/settings/store', label: '매장 관리', icon: 'store'},
     {tab: 'point', href: '/settings/point', label: '적립금 관리', icon: 'point'},
     {tab: 'membership', href: '/settings/membership', label: '회원권 관리', icon: 'membership'},
-    {tab: 'store', href: '/settings/store', label: '매장 관리', icon: 'store'},
+    {tab: 'coupon', href: '/settings/coupon', label: '쿠폰 관리', icon: 'coupon'},
+    {tab: 'booking', href: '/settings/booking', label: '고객 예약 설정', icon: 'booking'},
+    {tab: 'notice', href: '/settings/notice', label: '공지사항 관리', icon: 'notice'},
     {tab: 'service', href: '/settings/service', label: '서비스 관리', icon: 'service'},
     {tab: 'assignee', href: '/settings/assignee', label: '담당자 관리', icon: 'assignee'},
     {tab: 'customers', href: '/address', label: '고객 명단', icon: 'customers'},
@@ -136,6 +139,8 @@ export const Aside = () => {
     const isLoggedInStaff = !!session?.user && !isOwner;
     const usePointSystem = useCalendarStore((s) => s.usePointSystem);
     const useMembershipSystem = useCalendarStore((s) => s.useMembershipSystem);
+    const useCouponSystem = useCalendarStore((s) => s.useCouponSystem);
+    const useOnlineBooking = useCalendarStore((s) => s.useOnlineBooking);
     const labels = useStoreLabels();
     const submenuLabel = (item: typeof SETTINGS_SUBMENU[number]) =>
         item.tab === 'assignee' ? `${labels.assignee} 관리`
@@ -145,11 +150,6 @@ export const Aside = () => {
     return (<StyledAside $isVisible={aside.isVisible}>
             <StyledBrandLink href="/"
                              onClick={closeMobile}>
-                <StyledMenuIcon viewBox="0 0 24 24"
-                                aria-hidden="true">
-                    <path d="M3 9.5L12 4L21 9.5" />
-                    <path d="M5 9.5V18.5C5 19.05 5.45 19.5 6 19.5H18C18.55 19.5 19 19.05 19 18.5V9.5" />
-                </StyledMenuIcon>
                 <StyledBrandLogo src="/logo/logo.svg" alt="TAS" />
             </StyledBrandLink>
             {isGuest ? (
@@ -246,6 +246,9 @@ export const Aside = () => {
                                 // 매장 기능 토글로 켠 경우에만 노출
                                 if (item.tab === 'point') return usePointSystem;
                                 if (item.tab === 'membership') return useMembershipSystem;
+                                if (item.tab === 'coupon') return useCouponSystem;
+                                if (item.tab === 'booking') return useOnlineBooking;
+                                if (item.tab === 'notice') return useOnlineBooking;
                                 return true;
                             }).map((item) =>
                                 <StyledSubNavLink href={item.href}

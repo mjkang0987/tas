@@ -35,10 +35,12 @@ export default function LayoutComponent({children}: NodeType) {
     const isOnboardingPage = router.pathname.startsWith('/onboarding');
     const isPublicPolicyPage = router.pathname === '/terms' || router.pathname === '/privacy';
     const isMaintenancePage = router.pathname === '/maintenance';
+    const isBookingPage = router.pathname.startsWith('/book/');
     // 로그인/소개/온보딩/동의/점검은 항상 풀페이지. 약관·개인정보는 미인증(로그인 전)일 때만
     // 앱 셸(Aside·Header) 없이 풀페이지로, 로그인 사용자에겐 셸 안에서 보여준다.
     // (DPA 는 운영자 전용 — 미인증 접근은 proxy.ts 에서 /login 으로 리다이렉트)
     const isBarePage = isLoginPage || isAboutPage || isOnboardingPage || isMaintenancePage
+        || isBookingPage
         || router.pathname === '/consent'
         || (isPublicPolicyPage && status !== 'authenticated');
 
@@ -70,10 +72,19 @@ export default function LayoutComponent({children}: NodeType) {
         const parsedMonth = Number(rawMonth);
         return Number.isFinite(parsedMonth) && parsedMonth > 0 ? parsedMonth - 1 : 0;
     };
+    // 캘린더 경로에서 날짜(연/월/일) 세그먼트를 Date로 변환. 연도 세그먼트가 없거나(뷰만
+    // 있는 북마크 경로 `/month` 등) 유효한 양수가 아니면 오늘로 폴백해 Invalid Date를 막는다.
+    const resolveCalendarDate = (segments: string[], fallback: Date) => {
+        const parsedYear = Number(segments[2]);
+        if (!Number.isFinite(parsedYear) || parsedYear <= 0) {
+            return fallback;
+        }
+        return new Date(parsedYear, getMonthIndex(segments[3]), Number(segments[4]) || 1);
+    };
     const currDate = useMemo(
         () => !isCalendarPath || isRootPath
             ? initDate
-            : new Date(Number(array[2]), getMonthIndex(array[3]), Number(array[4]) || 1),
+            : resolveCalendarDate(array, initDate),
         [array, initDate, isCalendarPath, isRootPath]
     );
 
@@ -98,13 +109,19 @@ export default function LayoutComponent({children}: NodeType) {
             return;
         }
 
+        // 최초 진입(initializedPath === null): 북마크·새로고침·직접 URL로 들어온 경우.
+        // URL에 박제된 날짜를 무시하고 오늘로 연다(시간이 지나 북마크가 과거 달을 가리키는
+        // 문제 방지). 뷰 종류(월/주/일)는 URL 값을 유지하고, URL 은 동기화 effect 가
+        // 오늘 기준으로 정규화한다. 이후 인앱 이동(이전/다음·뒤로가기)은 URL 날짜를 존중.
+        const isFirstEntry = initializedPath === null;
+
         setInitializedPath(router.asPath);
         setLoading(true);
         setToday(initDate);
-        setCurr(currDate);
+        setCurr(isFirstEntry ? initDate : currDate);
 
         setView({
-            type: isRootPath || !isCalendarPath ? ViewType.Week : array[1]
+            type: isRootPath || !isCalendarPath ? ViewType.Month : array[1]
         });
     }, [array, currDate, initDate, initializedPath, isCalendarPath, isRootPath, router.asPath, setCurr, setToday, setView]);
 
@@ -117,12 +134,9 @@ export default function LayoutComponent({children}: NodeType) {
             if (!isCalPath || isRoot) return;
 
             const viewType = segments[1];
-            const year = Number(segments[2]);
-            const month = getMonthIndex(segments[3]);
-            const date = Number(segments[4]) || 1;
 
             setView({type: viewType});
-            setCurr(new Date(year, month, date));
+            setCurr(resolveCalendarDate(segments, initDate));
         };
 
         window.addEventListener('popstate', handlePopState);

@@ -668,6 +668,7 @@
   <a href="#forms">폼 컨트롤</a>
   <a href="#badges">배지 / 칩</a>
   <a href="#reservation">예약 카드</a>
+  <a href="#booking-pickers">예약 선택</a>
   <a href="#layout-comp">레이아웃</a>
   <a href="#notifications">알림</a>
   <a href="#validation">유효성 검증</a>
@@ -1294,6 +1295,42 @@
         <div style="font-size:10px;color:var(--dark-gray-color2);margin-top:4px">14:00 – 15:30</div>
       </div>
     </div>
+  </div>
+</section>
+
+
+<!-- ═══════════════════════════════ BOOKING PICKERS ══════════════════════════════ -->
+<section id="booking-pickers">
+  <h2 class="section-title">공개 예약 선택 (Booking Pickers)</h2>
+  <p style="font-size:11px;color:var(--dark-gray-color2);margin-bottom:16px">고객 온라인 예약(<code>/book/[slug]</code>)의 선택 UI. 영화관 예매식 — 항목을 좌석처럼 나열하고, 현재 선택으로 불가능하면 비활성(마감·휴무·불가). <code>components/booking/BookingPickers.tsx</code></p>
+
+  <div class="demo-label" style="margin:16px 0 6px">PillChip — 담당자/옵션 (선택 · 기본 · 휴무 비활성)</div>
+  <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+    <button style="padding:9px 16px;border-radius:999px;font-size:var(--small-font);font-weight:600;border:1px solid var(--brand-color);background:var(--brand-color);color:var(--white-color);cursor:pointer">상관없음</button>
+    <button style="padding:9px 16px;border-radius:999px;font-size:var(--small-font);font-weight:600;border:1px solid var(--light-gray-color);background:var(--white-color);color:var(--black-color);cursor:pointer">김디자이너</button>
+    <button disabled style="display:inline-flex;align-items:center;gap:6px;padding:9px 16px;border-radius:999px;font-size:var(--small-font);font-weight:600;border:1px solid var(--light-gray-color);background:var(--white-color);color:var(--black-color);opacity:.4;cursor:not-allowed">박디자이너 <span style="display:inline-flex;align-items:center;padding:2px 6px;border:1px solid var(--neutral-border);border-radius:6px;background:var(--neutral-bg);color:var(--neutral-text);font-size:var(--xsmall-font);font-weight:700">휴무</span></button>
+  </div>
+
+  <div class="demo-label" style="margin:20px 0 6px">DateCell — 날짜 스트립 (오늘 선택 · 기본 · 주말 · 휴무 비활성)</div>
+  <div style="display:flex;gap:8px;flex-wrap:wrap">
+    <button style="display:flex;flex-direction:column;align-items:center;gap:2px;min-width:52px;padding:8px 6px;border-radius:var(--radius-lg);border:1px solid var(--brand-color);background:var(--brand-color);color:var(--white-color);cursor:pointer"><span style="font-size:var(--xsmall-font);opacity:.85">오늘</span><span style="font-size:var(--big-font);font-weight:800">16</span></button>
+    <button style="display:flex;flex-direction:column;align-items:center;gap:2px;min-width:52px;padding:8px 6px;border-radius:var(--radius-lg);border:1px solid var(--light-gray-color);background:var(--white-color);color:var(--black-color);cursor:pointer"><span style="font-size:var(--xsmall-font);opacity:.85">금</span><span style="font-size:var(--big-font);font-weight:800">17</span></button>
+    <button style="display:flex;flex-direction:column;align-items:center;gap:2px;min-width:52px;padding:8px 6px;border-radius:var(--radius-lg);border:1px solid var(--light-gray-color);background:var(--white-color);color:var(--danger-color);cursor:pointer"><span style="font-size:var(--xsmall-font);opacity:.85">토</span><span style="font-size:var(--big-font);font-weight:800">18</span></button>
+    <button disabled style="display:flex;flex-direction:column;align-items:center;gap:2px;min-width:52px;padding:8px 6px;border-radius:var(--radius-lg);border:1px solid var(--light-gray-color);background:var(--white-color);color:var(--danger-color);opacity:.4;cursor:not-allowed"><span style="font-size:var(--xsmall-font);opacity:.85">일</span><span style="font-size:var(--big-font);font-weight:800">19</span></button>
+  </div>
+
+  <div class="demo-label" style="margin:20px 0 6px">ServiceChoiceChip — 시술 (선택 · 기본 · 불가 비활성)</div>
+  <div style="display:flex;gap:8px;flex-wrap:wrap">
+    <button style="display:flex;flex-direction:column;align-items:flex-start;gap:2px;padding:8px 14px;border-radius:var(--radius-lg);border:1px solid var(--brand-color);background:var(--brand-color-bg);text-align:left;cursor:pointer"><span style="font-size:var(--small-font);font-weight:600;color:var(--black-color)">남성커트</span><span style="font-size:var(--xsmall-font);color:var(--dark-gray-color2)">30분 · 15,000원</span></button>
+    <button style="display:flex;flex-direction:column;align-items:flex-start;gap:2px;padding:8px 14px;border-radius:var(--radius-lg);border:1px solid var(--light-gray-color);background:var(--white-color);text-align:left;cursor:pointer"><span style="font-size:var(--small-font);font-weight:600;color:var(--black-color)">뿌리염색</span><span style="font-size:var(--xsmall-font);color:var(--dark-gray-color2)">90분 · 60,000원</span></button>
+    <button disabled style="display:flex;flex-direction:column;align-items:flex-start;gap:2px;padding:8px 14px;border-radius:var(--radius-lg);border:1px solid var(--light-gray-color);background:var(--white-color);text-align:left;opacity:.4;cursor:not-allowed"><span style="font-size:var(--small-font);font-weight:600;color:var(--black-color)">여자디자인펌</span><span style="font-size:var(--xsmall-font);color:var(--dark-gray-color2)">150분 · 120,000원</span></button>
+  </div>
+
+  <div class="demo-label" style="margin:20px 0 6px">SlotCell — 시간 슬롯 (예약가능 · 선택 · 마감 비활성)</div>
+  <div style="display:flex;gap:8px;flex-wrap:wrap">
+    <button style="height:42px;min-width:72px;border-radius:var(--radius-md);border:1px solid var(--light-gray-color);background:var(--white-color);color:var(--black-color);font-size:var(--small-font);font-weight:600;cursor:pointer">11:00</button>
+    <button style="height:42px;min-width:72px;border-radius:var(--radius-md);border:1px solid var(--brand-color);background:var(--brand-color);color:var(--white-color);font-size:var(--small-font);font-weight:600;cursor:pointer">12:00</button>
+    <button disabled style="height:42px;min-width:72px;border-radius:var(--radius-md);border:1px solid var(--light-gray-color);background:var(--gray-color2);color:var(--black-color);font-size:var(--small-font);font-weight:600;text-decoration:line-through;opacity:.4;cursor:not-allowed">13:00</button>
   </div>
 </section>
 

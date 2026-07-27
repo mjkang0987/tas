@@ -5,128 +5,94 @@ import styled from 'styled-components';
 import type {Customer} from '../../../utils/customers';
 import {StyledInlineError} from './ModalStyles';
 import {CustomerAutocomplete} from '../../customers/CustomerAutocomplete';
-
-type CustomerMode = 'existing' | 'new';
+import {formControlStyle} from '../../ui/FormControls';
 
 interface ReservationCreateCustomerFieldsProps {
-    customerMode: CustomerMode;
     customerId: number;
     customerQuery: string;
     showSuggestions: boolean;
     filteredCustomers: Customer[];
-    newCustomerName: string;
-    newCustomerTel: string;
+    customerTel: string;
     customerErrorMessage?: string;
-    onChangeCustomerMode: (mode: CustomerMode) => void;
     onChangeCustomerQuery: (value: string) => void;
     onFocusCustomerQuery: () => void;
     onBlurCustomerQuery: () => void;
     onSelectCustomer: (id: number) => void;
-    onChangeNewCustomerName: (value: string) => void;
-    onChangeNewCustomerTel: (value: string) => void;
+    onChangeCustomerTel: (value: string) => void;
 }
 
+// 예약 추가 고객 입력. 기존/신규 탭 없이 단일 입력으로 통합.
+// - 고객명: 자동완성. 추천에서 고르면 기존 고객(연락처 자동 채움), 새 이름을 쓰면 신규.
+// - 연락처: 항상 노출. 기존 선택 시 자동 채움, 신규 시 수동 입력.
 export function ReservationCreateCustomerFields({
-    customerMode,
     customerId,
     customerQuery,
     showSuggestions,
     filteredCustomers,
-    newCustomerName,
-    newCustomerTel,
+    customerTel,
     customerErrorMessage,
-    onChangeCustomerMode,
     onChangeCustomerQuery,
     onFocusCustomerQuery,
     onBlurCustomerQuery,
     onSelectCustomer,
-    onChangeNewCustomerName,
-    onChangeNewCustomerTel,
+    onChangeCustomerTel,
 }: ReservationCreateCustomerFieldsProps) {
     return (
-        <>
-            <StyledCustomerModeTabs>
-                <StyledCustomerModeButton
-                    type="button"
-                    $active={customerMode === 'existing'}
-                    onClick={() => onChangeCustomerMode('existing')}
-                >
-                    기존 고객
-                </StyledCustomerModeButton>
-                <StyledCustomerModeButton
-                    type="button"
-                    $active={customerMode === 'new'}
-                    onClick={() => onChangeCustomerMode('new')}
-                >
-                    신규 고객
-                </StyledCustomerModeButton>
-            </StyledCustomerModeTabs>
-            {customerMode === 'existing' ? (
-                <div>
-                    <CustomerAutocomplete
-                        id="create-customer"
-                        query={customerQuery}
-                        showSuggestions={showSuggestions}
-                        filteredCustomers={filteredCustomers}
-                        selectedId={customerId}
-                        onChangeQuery={onChangeCustomerQuery}
-                        onFocus={onFocusCustomerQuery}
-                        onBlur={onBlurCustomerQuery}
-                        onSelect={onSelectCustomer}
-                    />
-                    {customerErrorMessage && <StyledInlineError>{customerErrorMessage}</StyledInlineError>}
-                </div>
-            ) : (
-                <StyledNewCustomerFields>
-                    <label htmlFor="create-new-customer-name">
-                        <strong>고객명</strong>
-                        <input
-                            id="create-new-customer-name"
-                            type="text"
-                            placeholder="신규 고객명"
-                            value={newCustomerName}
-                            onChange={(e) => onChangeNewCustomerName(e.target.value)}
-                        />
-                    </label>
-                    <label htmlFor="create-new-customer-tel">
-                        <strong>연락처</strong>
-                        <input
-                            id="create-new-customer-tel"
-                            type="tel"
-                            placeholder="01012345678"
-                            value={newCustomerTel}
-                            onChange={(e) => onChangeNewCustomerTel(e.target.value)}
-                        />
-                    </label>
-                    {customerErrorMessage && <StyledInlineError>{customerErrorMessage}</StyledInlineError>}
-                </StyledNewCustomerFields>
-            )}
-        </>
+        <StyledCustomerFields>
+            <CustomerAutocomplete
+                id="create-customer"
+                label="고객명"
+                placeholder="고객명 검색 또는 신규 입력"
+                query={customerQuery}
+                showSuggestions={showSuggestions}
+                filteredCustomers={filteredCustomers}
+                selectedId={customerId}
+                onChangeQuery={onChangeCustomerQuery}
+                onFocus={onFocusCustomerQuery}
+                onBlur={onBlurCustomerQuery}
+                onSelect={onSelectCustomer}
+            />
+            <StyledTelField htmlFor="create-customer-tel">
+                <strong>연락처</strong>
+                <StyledTelInput
+                    id="create-customer-tel"
+                    type="tel"
+                    inputMode="numeric"
+                    autoComplete="off"
+                    placeholder="01012345678"
+                    value={customerTel}
+                    onChange={(e) => onChangeCustomerTel(e.target.value)}
+                />
+            </StyledTelField>
+            {customerErrorMessage && <StyledInlineError>{customerErrorMessage}</StyledInlineError>}
+        </StyledCustomerFields>
     );
 }
 
-const StyledCustomerModeTabs = styled.div`
+const StyledCustomerFields = styled.div`
   display: flex;
+  flex-direction: column;
   gap: 8px;
 `;
 
-const StyledCustomerModeButton = styled.button<{ $active: boolean }>`
-  min-height: 30px;
-  padding: 0 12px;
-  border: 1px solid ${({$active}) => $active ? 'var(--blue-color)' : 'var(--light-gray-color)'};
-  border-radius: 999px;
-  background: ${({$active}) => $active ? 'var(--blue-color)' : 'var(--white-color)'};
-  color: ${({$active}) => $active ? 'var(--white-color)' : 'var(--dark-gray-color)'};
-  font-size: 12px;
-`;
+const StyledTelField = styled.label`
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
 
-const StyledNewCustomerFields = styled.div`
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 8px;
-
-  @media (max-width: 480px) {
-    grid-template-columns: 1fr;
+  > strong {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--dark-gray-color);
   }
 `;
 
+const StyledTelInput = styled.input`
+  ${formControlStyle};
+  height: 36px;
+  padding: 0 10px;
+  font-size: 13px;
+  color: var(--black-color);
+  width: 100%;
+  min-width: 0;
+`;

@@ -52,6 +52,7 @@ import {
     buildRemovedStoreClosedDateState,
     buildUpdatedStoreBusinessHoursState,
     buildUpdatedStoreClosedDatesState,
+    buildUpdatedStoreClosedWeekdaysState,
     buildUpdatedStorePointSettingsState,
 } from './calendarStoreStoreSettingsHelpers';
 import {shouldUseLocalDb} from '../lib/local-db';
@@ -136,9 +137,12 @@ export interface CalendarState {
     categoryBaseColorMap: Record<string, string>;
     assignees: Assignee[];
     storeName: string;
+    storeNameI18n: {en?: string | null; ja?: string | null; zh?: string | null} | null;
     shopType: string | null;
     usePointSystem: boolean;
     useMembershipSystem: boolean;
+    useCouponSystem: boolean;
+    useOnlineBooking: boolean;
     storeSettings: StoreSettings;
     syncNotifications: SyncNotification[];
 
@@ -171,18 +175,19 @@ export interface CalendarState {
     setServiceCatalog: (catalog: ServiceItem[]) => void;
     setCategoryBaseColorMap: (colorMap: Record<string, string>) => void;
     setAssignees: (assignees: Assignee[]) => void;
-    setStoreInfo: (name: string, type: string | null) => void;
-    updateStoreInfo: (name: string, type: string | null) => void;
-    setStoreFeatures: (usePointSystem: boolean, useMembershipSystem: boolean) => void;
-    updateStoreFeatures: (patch: {usePointSystem?: boolean; useMembershipSystem?: boolean}) => void;
+    setStoreInfo: (name: string, type: string | null, nameI18n?: {en?: string | null; ja?: string | null; zh?: string | null} | null) => void;
+    updateStoreInfo: (name: string, type: string | null, nameI18n?: {en?: string | null; ja?: string | null; zh?: string | null} | null) => void;
+    setStoreFeatures: (usePointSystem: boolean, useMembershipSystem: boolean, useCouponSystem: boolean, useOnlineBooking: boolean) => void;
+    updateStoreFeatures: (patch: {usePointSystem?: boolean; useMembershipSystem?: boolean; useCouponSystem?: boolean; useOnlineBooking?: boolean}) => void;
     setStoreSettings: (storeSettings: StoreSettings) => void;
     updateStoreBusinessHours: (hours: Partial<StoreSettings['businessHours']>) => void;
     updateStorePointSettings: (pointSettings: Partial<StoreSettings['pointSettings']>) => void;
     updateStoreClosedDates: (dates: string[]) => void;
+    updateStoreClosedWeekdays: (weekdays: number[]) => void;
     addStoreClosedDate: (date: string) => void;
     removeStoreClosedDate: (date: string) => void;
     addAssignee: (name: string, status?: AssigneeStatus, phone?: string, note?: string, color?: string) => void;
-    updateAssignee: (assigneeId: number, patch: Partial<Pick<Assignee, 'name' | 'status' | 'phone' | 'note' | 'color'>>) => void;
+    updateAssignee: (assigneeId: number, patch: Partial<Pick<Assignee, 'name' | 'nameI18n' | 'status' | 'phone' | 'note' | 'color'>>) => void;
     updateAssigneeDay: (assigneeId: number, dayIndex: number, patch: Partial<DaySchedule>) => void;
     deleteAssignee: (assigneeId: number) => void;
     updateCategoryBaseColor: (category: string, color: string) => void;
@@ -194,7 +199,7 @@ export interface CalendarState {
     moveServiceInCategory: (dragName: string, targetName: string) => void;
     addReservation: (reservation: Reservation) => void;
     updateReservation: (prev: Reservation, updated: Reservation) => void;
-    cancelReservation: (reservation: Reservation, status?: ReservationStatus) => void;
+    cancelReservation: (reservation: Reservation, status?: ReservationStatus, reason?: string) => void;
     restoreReservation: (reservation: Reservation) => void;
     deleteReservation: (reservation: Reservation) => void;
     addSyncNotifications: (items: SyncNotification[]) => void;
@@ -248,7 +253,7 @@ export const useCalendarStore = create<CalendarState>((set) => ({
         isVisible: false,
     },
     view: {
-        type: 'week'
+        type: 'month'
     },
     router: {
         arrayRouter   : [],
@@ -268,9 +273,12 @@ export const useCalendarStore = create<CalendarState>((set) => ({
     categoryBaseColorMap: CATEGORY_BASE_COLOR_MAP,
     assignees: [],
     storeName: '',
+    storeNameI18n: null,
     shopType: null,
     usePointSystem: false,
     useMembershipSystem: false,
+    useCouponSystem: false,
+    useOnlineBooking: false,
     storeSettings: DEFAULT_STORE_SETTINGS,
     syncNotifications: [],
 
@@ -433,12 +441,12 @@ export const useCalendarStore = create<CalendarState>((set) => ({
     setServiceCatalog: (serviceCatalog) => set({serviceCatalog}),
     setCategoryBaseColorMap: (categoryBaseColorMap) => set({categoryBaseColorMap}),
     setAssignees: (assignees) => set({assignees}),
-    setStoreInfo: (storeName, shopType) => set({storeName, shopType}),
-    updateStoreInfo: (storeName, shopType) => {
-        set({storeName, shopType});
-        syncStoreInfo(storeName, shopType);
+    setStoreInfo: (storeName, shopType, storeNameI18n) => set(storeNameI18n !== undefined ? {storeName, shopType, storeNameI18n} : {storeName, shopType}),
+    updateStoreInfo: (storeName, shopType, storeNameI18n) => {
+        set(storeNameI18n !== undefined ? {storeName, shopType, storeNameI18n} : {storeName, shopType});
+        syncStoreInfo(storeName, shopType, storeNameI18n);
     },
-    setStoreFeatures: (usePointSystem, useMembershipSystem) => set({usePointSystem, useMembershipSystem}),
+    setStoreFeatures: (usePointSystem, useMembershipSystem, useCouponSystem, useOnlineBooking) => set({usePointSystem, useMembershipSystem, useCouponSystem, useOnlineBooking}),
     updateStoreFeatures: (patch) => {
         set(patch);
         syncStoreFeatures(patch);
@@ -462,6 +470,13 @@ export const useCalendarStore = create<CalendarState>((set) => ({
     updateStoreClosedDates: (dates) =>
         set((state) => {
             const nextStoreSettings = buildUpdatedStoreClosedDatesState(state.storeSettings, dates);
+            syncStoreSettings(nextStoreSettings);
+            return {storeSettings: nextStoreSettings};
+        }),
+
+    updateStoreClosedWeekdays: (weekdays) =>
+        set((state) => {
+            const nextStoreSettings = buildUpdatedStoreClosedWeekdaysState(state.storeSettings, weekdays);
             syncStoreSettings(nextStoreSettings);
             return {storeSettings: nextStoreSettings};
         }),
@@ -702,7 +717,7 @@ export const useCalendarStore = create<CalendarState>((set) => ({
             });
     },
 
-    cancelReservation: (reservation, status = 'cancelled') => {
+    cancelReservation: (reservation, status = 'cancelled', reason) => {
         const updated: Reservation = {...reservation, status};
 
         let nextReservationMap: ReservationMap | null = null;
@@ -728,7 +743,7 @@ export const useCalendarStore = create<CalendarState>((set) => ({
         fetch('/api/reservations', {
             method: 'PATCH',
             headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify({id: reservation.id, status})
+            body: JSON.stringify({id: reservation.id, status, ...(reason ? {reason} : {})})
         });
     },
 
@@ -887,20 +902,12 @@ export const useCalendarStore = create<CalendarState>((set) => ({
         set({syncNotifications: loadSyncNotifications()});
     },
 
+    // 알림에 박제된 고객명·담당자명을 현재 데이터와 동기화한다.
+    // 빈 값 보정뿐 아니라 '이름 변경'도 반영(현재 이름과 다르면 갱신).
     patchNotificationNames: () =>
         set((state) => {
             const assigneeById = new Map(state.assignees.map((d) => [d.id, d.name]));
             const allReservations = Object.values(state.reservationMap).flat();
-
-            const needsPatch = state.syncNotifications.some((n) => {
-                if (!n.customerName || !n.appointmentDate || !n.appointmentTime) return true;
-                if (!n.assigneeName || n.assigneeName === '미지정') {
-                    const reservation = allReservations.find((r) => r.id === n.reservationId);
-                    if (reservation?.assigneeId && assigneeById.has(reservation.assigneeId)) return true;
-                }
-                return false;
-            });
-            if (!needsPatch) return {};
 
             let changed = false;
             const next = state.syncNotifications.map((n) => {
@@ -908,12 +915,18 @@ export const useCalendarStore = create<CalendarState>((set) => ({
                 if (!reservation) return n;
                 const customer = state.customerMap[reservation.customerId];
                 const patch: Partial<typeof n> = {};
-                if (!n.customerName && customer?.name) patch.customerName = customer.name;
+                // 고객명: 현재 고객명과 다르면 갱신(빈 값·플레이스홀더 보정 + 이름 변경 반영).
+                // 고객을 못 찾으면 기존 스냅샷 유지(빈 값으로 덮지 않음).
+                if (customer?.name && n.customerName !== customer.name) patch.customerName = customer.name;
                 if (!n.appointmentDate && reservation.date) patch.appointmentDate = reservation.date;
                 if (!n.appointmentTime && reservation.startTime) patch.appointmentTime = reservation.startTime;
-                if ((!n.assigneeName || n.assigneeName === '미지정') && reservation.assigneeId) {
+                // 담당자명: 배정 담당자의 현재 이름과 다르면 갱신, 미배정이면 '미지정'.
+                // 담당자 목록이 아직 안 들어왔으면(name 미해석) 기존 값 유지.
+                if (reservation.assigneeId) {
                     const name = assigneeById.get(reservation.assigneeId);
-                    if (name) patch.assigneeName = name;
+                    if (name && n.assigneeName !== name) patch.assigneeName = name;
+                } else if (n.assigneeName !== '미지정') {
+                    patch.assigneeName = '미지정';
                 }
                 if (Object.keys(patch).length === 0) return n;
                 changed = true;

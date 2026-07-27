@@ -3,7 +3,7 @@ import {Prisma} from '../../client/prisma/generated/prisma/client';
 
 import {prisma} from '../db/prisma';
 import {getApiSession, requireRole} from '../auth/api-session';
-import {dbServiceToFrontend} from '../db/mappers';
+import {dbServiceToFrontend, parseI18nText} from '../db/mappers';
 import {notifySlackOpsError} from '../notify/slack';
 import type {ServiceItem} from '../../client/features/services/model';
 
@@ -84,6 +84,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                             category: service.category,
                             duration: service.durationMinutes,
                             price: service.price,
+                            // 번역만 부가 저장(식별은 name). 서버에서 문자열 en/ja/zh만 정규화.
+                            nameI18nJson: parseI18nText(service.nameI18n) ?? Prisma.JsonNull,
                         })),
                     });
                 }

@@ -20,7 +20,7 @@ import {buildServiceColorMap} from '../../../utils/services';
 import {getTimelineRange} from '../../../utils/timelineRange';
 
 import type {Reservation} from '../../../utils/reservations';
-import {toDateKey} from '../../../utils/reservations';
+import {isOnlineReservation, toDateKey} from '../../../utils/reservations';
 import {TimelineCluster} from './TimelineCluster';
 import {TimelineClusterLayer, type TimelineClusterData} from './TimelineClusterLayer';
 import {
@@ -60,9 +60,10 @@ export const Timeline = ({
 
     const dateKey = toDateKey(fullYear, month, date);
     // 타임라인(일별/주별/3일)에서는 취소된 예약을 숨긴다(블록·건수 부풀림 방지).
+    // 단, 고객 예약 페이지 경유(온라인) 취소 건은 기록 추적을 위해 취소 상태로 남긴다.
     const reservations = (reservationMap[dateKey] || []).filter((reservation) => (
         (calendarAssigneeId == null || (calendarAssigneeId === 0 ? !reservation.assigneeId : reservation.assigneeId === calendarAssigneeId))
-        && reservation.status !== 'cancelled'
+        && (reservation.status !== 'cancelled' || isOnlineReservation(reservation))
     ));
     const serviceColorMap = useMemo(
         () => buildServiceColorMap(serviceCatalog, categoryBaseColorMap),

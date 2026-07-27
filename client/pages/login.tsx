@@ -112,6 +112,14 @@ export default function LoginPage({providerIds, isDatabaseConfigured, loginError
 
     const authError = typeof router.query.error === 'string' ? router.query.error : null;
 
+    // 모바일 앱(ASWebAuthenticationSession) 로그인: callbackUrl이 모바일 브리지 경로일 때만
+    // 허용(오픈 리다이렉트 방지). 성공 후 그쪽으로 보내 커스텀 스킴 콜백을 완료한다.
+    const mobileCallback =
+        typeof router.query.callbackUrl === 'string' &&
+        router.query.callbackUrl.startsWith('/api/mobile-auth/complete')
+            ? router.query.callbackUrl
+            : null;
+
     // 초대 링크(/login?invite=CODE)로 진입 시 코드 자동 입력 + 쿠키 세팅
     // → 로그인 직후 OAuth 콜백에서 초대가 적용되어 새 매장이 아닌 초대 매장으로 가입됨
     useEffect(() => {
@@ -125,13 +133,18 @@ export default function LoginPage({providerIds, isDatabaseConfigured, loginError
 
     useEffect(() => {
         if (!authError && hasAccess) {
-            router.replace(monthEntryPath);
+            // 이미 세션이 있는 모바일 로그인 진입 → 브리지로 전체 이동해 code 발급까지 완료.
+            if (mobileCallback) {
+                window.location.assign(mobileCallback);
+            } else {
+                router.replace(monthEntryPath);
+            }
             return;
         }
         if (authError && status === 'authenticated') {
             router.replace(`/settings/sns?error=${authError}`);
         }
-    }, [hasAccess, monthEntryPath, router, authError, status]);
+    }, [hasAccess, monthEntryPath, router, authError, status, mobileCallback]);
 
     if (hasAccess && !authError) {
         return null;
@@ -152,7 +165,7 @@ export default function LoginPage({providerIds, isDatabaseConfigured, loginError
         } else {
             clearInviteCookie();
         }
-        void signIn(providerId, {callbackUrl: monthEntryPath});
+        void signIn(providerId, {callbackUrl: mobileCallback ?? monthEntryPath});
     };
 
     const startGuest = () => {

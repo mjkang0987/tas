@@ -3,6 +3,7 @@ import {decode} from 'next-auth/jwt';
 
 import {prisma} from '../db/prisma';
 import {dbCustomerToFrontend, dbReservationToFrontend, dbHistoryToFrontend} from '../db/mappers';
+import {reservationSelect} from '../db/prisma-includes';
 
 export async function getPageSession(ctx: GetServerSidePropsContext) {
     const secureName = '__Secure-authjs.session-token';
@@ -30,11 +31,7 @@ export async function loadPageData(storeId: string) {
     const [dbReservations, dbCustomers, dbHistories] = await Promise.all([
         prisma.reservation.findMany({
             where: {storeId},
-            include: {
-                paymentEntries: true,
-                customer: {select: {legacyId: true}},
-                assignee: {select: {legacyId: true}},
-            },
+            select: reservationSelect,
         }),
         prisma.customer.findMany({
             where: {storeId},

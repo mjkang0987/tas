@@ -1,3 +1,6 @@
+# 갓 배포된 패키지 설치 차단(공급망 보안). Cloud Build(pnpm 11)가 강제하는 24h(1440분)
+# 정책을 로컬에도 명시 — pnpm update가 신규 패키지를 lockfile에 넣어 배포가 깨지는 재발 방지(#87).
+minimumReleaseAge: 1440
 allowBuilds:
   '@prisma/engines': true
   prisma: true

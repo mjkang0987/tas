@@ -144,11 +144,14 @@ const StyledSuggestionItem = styled.li`
   }
 `;
 
-const StyledSuggestionName = styled.span``;
+const StyledSuggestionName = styled.span`
+  font-weight: 500;
+`;
 
 const StyledSuggestionTel = styled.span`
-  font-size: 11px;
-  color: var(--gray-color);
+  font-size: 12px;
+  color: var(--dark-gray-color2);
+  font-variant-numeric: tabular-nums;
 `;
 
 const StyledNoResult = styled.li`

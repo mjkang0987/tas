@@ -11,11 +11,15 @@ datasource db {
 model Store {
   id                     String               @id @default(cuid())
   name                   String
+  // 공개 예약 페이지 다국어(오너 입력, {en?,ja?,zh?}). 없으면 name 폴백.
+  nameI18nJson           Json?
   shopType               String?
   onboarded              Boolean              @default(false)
   usePointSystem         Boolean              @default(false)
   useMembershipSystem    Boolean              @default(false)
   useCouponSystem        Boolean              @default(false)
+  useOnlineBooking       Boolean              @default(false)
+  bookingSlug            String?              @unique
   categoryBaseColorsJson Json                 @default("{}")
   createdAt              DateTime             @default(now())
   updatedAt              DateTime             @updatedAt
@@ -30,10 +34,12 @@ model Store {
   businessHours          StoreBusinessHour[]
   closedDates            StoreClosedDate[]
   pointSettings          StorePointSettings?
+  bookingSettings        StoreBookingSettings?
   membershipProducts     MembershipProduct[]
   customerMemberships    CustomerMembership[]
   couponProducts         CouponProduct[]
   customerCoupons        CustomerCoupon[]
+  storeNotices           StoreNotice[]
 }
 
 model User {
@@ -148,6 +154,8 @@ model Assignee {
   legacyId     Int?
   storeId      String
   name         String
+  // 공개 예약 페이지 다국어(오너 입력, {en?,ja?,zh?}). 없으면 name 폴백.
+  nameI18nJson Json?
   status       AssigneeStatus     @default(active)
   phone        String?
   note         String?
@@ -178,6 +186,8 @@ model Service {
   legacyName         String?
   storeId            String
   name               String
+  // 공개 예약 페이지 다국어(오너 입력, {en?,ja?,zh?}). 없으면 name(한국어) 폴백. 식별은 항상 name.
+  nameI18nJson       Json?
   category           String
   duration           Int
   price              Int
@@ -208,6 +218,12 @@ model Reservation {
   naverBookingUrl  String?
   naverDeposit     Int?
   channel          ReservationChannel        @default(phone)
+  publicToken      String?                   @unique
+  pendingAction    ReservationPendingAction  @default(none)
+  pendingPayloadJson Json?
+  pendingRequestedAt DateTime?
+  // 온라인 예약 승인/거절/취소 시 오너가 남기는 사유(선택). 고객 조회 페이지에 노출. 마지막 결정 사유로 덮어씀.
+  decisionReason   String?
   createdAt        DateTime                  @default(now())
   updatedAt        DateTime                  @updatedAt
   pointHistories   CustomerPointHistory[]
@@ -280,6 +296,51 @@ model StoreClosedDate {
   @@unique([storeId, date])
 }
 
+// 매장 공지사항(공개 예약 페이지 노출). 오너가 관리, visible=true만 고객에게 표시.
+// title/body 다국어({en?,ja?,zh?}, 없으면 한국어 폴백). category: notice | event | info.
+model StoreNotice {
+  id            String   @id @default(cuid())
+  storeId       String
+  category      String   @default("notice")
+  title         String
+  titleI18nJson Json?
+  body          String
+  bodyI18nJson  Json?
+  visible       Boolean  @default(true)
+  pinned        Boolean  @default(false)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  store         Store    @relation(fields: [storeId], references: [id], onDelete: Cascade)
+
+  @@index([storeId])
+}
+
+// 공개(고객) 온라인 예약 규칙. Store.useOnlineBooking ON일 때만 의미.
+model StoreBookingSettings {
+  id                  String   @id @default(cuid())
+  storeId             String   @unique
+  slotIntervalMin     Int      @default(30)
+  minLeadMinutes      Int      @default(60)
+  maxAdvanceDays      Int      @default(30)
+  allowAssigneeChoice Boolean  @default(true)
+  noticeText          String?
+  // 공개 예약 페이지 안내문 다국어(오너 입력, {en?,ja?,zh?}). 없으면 noticeText 폴백.
+  noticeI18nJson      Json?
+  // 예약 상태별 오너 안내문구(#139). 각 텍스트 + 다국어({en?,ja?,zh?}). 없으면 미표시.
+  //  done = 예약완료(신청 접수) 직후 화면, confirm = 조회 페이지 상태=확정, cancel = 조회 페이지 상태=취소.
+  doneText            String?
+  doneI18nJson        Json?
+  confirmText         String?
+  confirmI18nJson     Json?
+  cancelText          String?
+  cancelI18nJson      Json?
+  // (1c) 공개 노출 서비스 화이트리스트(서비스명 배열). null/미지정 = 전체 노출. 배선은 1c.
+  bookableServiceIdsJson Json?
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+  store               Store    @relation(fields: [storeId], references: [id], onDelete: Cascade)
+}
+
 model Invite {
   id         String         @id @default(cuid())
   storeId    String
@@ -306,6 +367,7 @@ enum ReservationStatus {
   completed
   cancelled
   noshow
+  requested
 }
 
 enum PaymentMethod {
@@ -325,6 +387,14 @@ enum ReservationChannel {
   naver
   walk_in
   phone
+  online
+}
+
+// 고객 변경/취소 요청(오너 승인형)의 대기 상태. 예약당 대기 요청 1건.
+enum ReservationPendingAction {
+  none
+  cancel
+  change
 }
 
 enum PointHistoryType {

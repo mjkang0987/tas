@@ -20,6 +20,7 @@ const STATUS_LABELS: Record<string, string> = {
     completed: '완료',
     cancelled: '취소',
     noshow: '노쇼',
+    requested: '신청',
 };
 
 function resolvePrice(service: string, price?: number): number {

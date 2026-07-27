@@ -50,7 +50,7 @@ const ASSIGNEE_STATUS_OPTIONS: AssigneeStatus[] = ['재직', '휴직', '퇴직']
 interface AssigneeCardProps {
     assignee: Assignee;
     isEditing: boolean;
-    onUpdateAssignee: (assigneeId: number, patch: Partial<Pick<Assignee, 'name' | 'status' | 'phone' | 'note' | 'color'>>) => void;
+    onUpdateAssignee: (assigneeId: number, patch: Partial<Pick<Assignee, 'name' | 'nameI18n' | 'status' | 'phone' | 'note' | 'color'>>) => void;
     onUpdateAssigneeDay: (assigneeId: number, dayIndex: number, patch: {enabled?: boolean; start?: string; end?: string}) => void;
     onStartEdit: (assigneeId: number) => void;
     onFinishEdit: () => void;
@@ -69,6 +69,12 @@ const AssigneeCard = ({
     onPermanentDelete,
 }: AssigneeCardProps) => {
     const did = assignee.id;
+    // 언어별 이름 변경 → nameI18n 객체 갱신(빈 값 제거, 전부 비면 null). 식별은 id, 표시만 번역.
+    const setNameI18n = (code: 'en' | 'ja' | 'zh', value: string) => {
+        const next = {...(assignee.nameI18n ?? {})};
+        if (value.trim()) next[code] = value; else delete next[code];
+        onUpdateAssignee(did, {nameI18n: Object.keys(next).length > 0 ? next : null});
+    };
     return (
     <StyledAssigneeCard $status={getAssigneeStatus(assignee)} $assigneeColor={getAssigneeColor(assignee)} $isEditing={isEditing}>
         <StyledAssigneeHeader>
@@ -159,6 +165,19 @@ const AssigneeCard = ({
                     onChange={(e) => onUpdateAssignee(did, {color: e.target.value})}
                 />
             </StyledAssigneeMetaField>
+            {/* 공개 예약 페이지 다국어 이름(선택). 비우면 위 담당자명이 그대로 표시. */}
+            {([['en', 'English'], ['ja', '日本語'], ['zh', '中文']] as const).map(([code, label]) => (
+                <StyledAssigneeMetaField key={code}>
+                    <StyledAssigneeMetaLabel htmlFor={`assignee-${did}-name-${code}`}>{label}</StyledAssigneeMetaLabel>
+                    <StyledAssigneeMetaInput
+                        id={`assignee-${did}-name-${code}`}
+                        value={assignee.nameI18n?.[code] ?? ''}
+                        disabled={!isEditing}
+                        onChange={(e) => setNameI18n(code, e.target.value)}
+                        placeholder={label}
+                    />
+                </StyledAssigneeMetaField>
+            ))}
         </StyledAssigneeMetaGrid>
         {getAssigneeStatus(assignee) === '재직' ? (
             <StyledScheduleList>
@@ -218,7 +237,7 @@ interface AssigneeSectionProps {
     title: string;
     assignees: Assignee[];
     editingAssigneeId: number | null;
-    onUpdateAssignee: (assigneeId: number, patch: Partial<Pick<Assignee, 'name' | 'status' | 'phone' | 'note' | 'color'>>) => void;
+    onUpdateAssignee: (assigneeId: number, patch: Partial<Pick<Assignee, 'name' | 'nameI18n' | 'status' | 'phone' | 'note' | 'color'>>) => void;
     onUpdateAssigneeDay: (assigneeId: number, dayIndex: number, patch: {enabled?: boolean; start?: string; end?: string}) => void;
     onStartEdit: (assigneeId: number) => void;
     onFinishEdit: () => void;

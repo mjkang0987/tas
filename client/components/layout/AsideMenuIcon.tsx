@@ -154,6 +154,21 @@ export const AsideMenuIcon = ({icon}: {icon: string}) => {
                     <path d="M13.5 6.5V17.5" strokeDasharray="2 2" />
                 </StyledMenuIcon>
             );
+        case 'coupon':
+            return (
+                <StyledMenuIcon viewBox="0 0 24 24" aria-hidden="true">
+                    <path d="M4 7.5C4 6.7 4.7 6 5.5 6H18.5C19.3 6 20 6.7 20 7.5V10C18.9 10 18 10.9 18 12C18 13.1 18.9 14 20 14V16.5C20 17.3 19.3 18 18.5 18H5.5C4.7 18 4 17.3 4 16.5V14C5.1 14 6 13.1 6 12C6 10.9 5.1 10 4 10Z" />
+                    <path d="M14 9L10 15" strokeDasharray="0.1 3" />
+                </StyledMenuIcon>
+            );
+        case 'booking':
+            return (
+                <StyledMenuIcon viewBox="0 0 24 24" aria-hidden="true">
+                    <rect x="4" y="5.5" width="16" height="14" rx="2" />
+                    <path d="M4 9.5H20M8 3.5V6.5M16 3.5V6.5" />
+                    <path d="M9.2 14L11 15.8L14.8 12" />
+                </StyledMenuIcon>
+            );
         case 'guide':
             return (
                 <StyledMenuIcon viewBox="0 0 24 24" aria-hidden="true">
@@ -166,6 +181,13 @@ export const AsideMenuIcon = ({icon}: {icon: string}) => {
                 <StyledMenuIcon viewBox="0 0 24 24" aria-hidden="true">
                     <circle cx="12" cy="12" r="9" />
                     <path d="M12 7V12L15 15" />
+                </StyledMenuIcon>
+            );
+        case 'notice':
+            return (
+                <StyledMenuIcon viewBox="0 0 24 24" aria-hidden="true">
+                    <path d="M12 4C9.2 4 7 6.2 7 9V13L5.5 16H18.5L17 13V9C17 6.2 14.8 4 12 4Z" />
+                    <path d="M10 18C10 19.1 10.9 20 12 20C13.1 20 14 19.1 14 18" />
                 </StyledMenuIcon>
             );
         default:

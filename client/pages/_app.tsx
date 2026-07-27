@@ -166,8 +166,8 @@ function AppContent({Component, pageProps}: AppContentProps) {
         if (status === 'loading' || status === 'authenticated') return;
         const path = router.pathname;
 
-        // 로그인 / 약관 문서는 자유 접근
-        if (path === '/login' || path === '/about' || path === '/terms' || path === '/privacy' || path === '/logout' || path === '/maintenance') return;
+        // 로그인 / 약관 문서 / 공개 예약 페이지는 자유 접근
+        if (path === '/login' || path === '/about' || path === '/terms' || path === '/privacy' || path === '/logout' || path === '/maintenance' || path.startsWith('/book/')) return;
 
         const consented = getGuestTermsVersion() === CURRENT_TERMS_VERSION;
         // 영구 동의는 온보딩 완료 시점에 기록되므로, 온보딩 진입 가드는 세션 ack도 허용
@@ -302,7 +302,7 @@ function AppContent({Component, pageProps}: AppContentProps) {
         if (status === 'unauthenticated' || (status === 'authenticated' && !hasApiAccess)) {
             const localDb = loadLocalDbSnapshot();
             setStoreInfo(localDb.storeName ?? '', localDb.shopType ?? null);
-            setStoreFeatures(localDb.usePointSystem ?? false, localDb.useMembershipSystem ?? false);
+            setStoreFeatures(localDb.usePointSystem ?? false, localDb.useMembershipSystem ?? false, localDb.useCouponSystem ?? false, localDb.useOnlineBooking ?? false);
             setStoreSettings(localDb.storeSettings);
             setReservationMap(groupByDate(localDb.reservations));
             setCustomerMap(toCustomerMap(localDb.customers));
@@ -326,7 +326,7 @@ function AppContent({Component, pageProps}: AppContentProps) {
                 if (!customersRes.ok) throw new Error('Failed to load customers');
 
                 return Promise.all([
-                    storeRes.json() as Promise<StoreSettings & {storeName?: string; shopType?: string | null; usePointSystem?: boolean; useMembershipSystem?: boolean}>,
+                    storeRes.json() as Promise<StoreSettings & {storeName?: string; storeNameI18n?: {en?: string | null; ja?: string | null; zh?: string | null} | null; shopType?: string | null; usePointSystem?: boolean; useMembershipSystem?: boolean; useCouponSystem?: boolean; useOnlineBooking?: boolean}>,
                     reservationsRes.json() as Promise<{
                         reservations: Array<Parameters<typeof groupByDate>[0][number]>;
                         history: Parameters<typeof setReservationHistory>[0];
@@ -335,8 +335,8 @@ function AppContent({Component, pageProps}: AppContentProps) {
                 ]);
             })
             .then(([storeData, reservationsData, customersData]) => {
-                setStoreInfo(storeData.storeName ?? '', storeData.shopType ?? null);
-                setStoreFeatures(storeData.usePointSystem ?? false, storeData.useMembershipSystem ?? false);
+                setStoreInfo(storeData.storeName ?? '', storeData.shopType ?? null, storeData.storeNameI18n ?? null);
+                setStoreFeatures(storeData.usePointSystem ?? false, storeData.useMembershipSystem ?? false, storeData.useCouponSystem ?? false, storeData.useOnlineBooking ?? false);
                 if (storeData && typeof storeData === 'object' && storeData.businessHours && Array.isArray(storeData.closedDates)) {
                     const rawPointSettings = storeData.pointSettings as StoreSettings['pointSettings'] & {mode?: string} | undefined;
                     setStoreSettings({
@@ -385,6 +385,7 @@ function AppContent({Component, pageProps}: AppContentProps) {
     // 데이터(서비스·담당자·예약)가 모두 준비될 때까지 오버레이로 가려 새로고침 플래시를 막음.
     // SSR/첫 렌더 모두 status==='loading'이라 하이드레이션 불일치가 없음.
     const isAuthFlowPage = router.pathname.startsWith('/login') || router.pathname.startsWith('/onboarding')
+        || router.pathname.startsWith('/book/')
         || router.pathname === '/consent' || router.pathname === '/about' || router.pathname === '/logout'
         || router.pathname === '/terms' || router.pathname === '/privacy' || router.pathname === '/maintenance';
     // 미인증 + 로컬데이터 없음 = /login 리다이렉트 대기 → 달력이 깜빡이지 않게 오버레이 유지

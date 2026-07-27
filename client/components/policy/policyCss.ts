@@ -36,8 +36,10 @@ export const POLICY_ELEMENT_CSS = `
         margin: 2em 0 0.6em;
         color: var(--tas-accent);
     }
-    h3 {
+    .policy-subhead {
+        display: block;
         font-size: 1.05rem;
+        font-weight: 700;
         margin: 1.4em 0 0.4em;
     }
     p {

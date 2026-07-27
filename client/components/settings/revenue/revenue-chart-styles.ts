@@ -178,7 +178,7 @@ export const StyledChartHorizontalGuide = styled.div<{ $topRatio: number }>`
 export const StyledLineChart = styled.svg`
     display: block;
     width: 100%;
-    height: ${REVENUE_CHART_HEIGHT}px;
+    height: 100%;
     overflow: visible;
 `;
 
