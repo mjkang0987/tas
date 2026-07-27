@@ -32,6 +32,12 @@ const MAIN_HOSTS = ['takeaseat.co.kr', 'www.takeaseat.co.kr'];
 // 내부 Next 라우트 접두. 예약 서브도메인에서는 공개 URL에 노출되지 않는다.
 export const BOOK_ROUTE_PREFIX = '/book';
 
+// 공개 예약 페이지의 내부 라우트인지(= 비로그인 고객 구역). `router.pathname` 기준이라
+// 호스트·rewrite와 무관하게 항상 `/book/...` 이다. 앱 셸·세션·게이트 예외 판정의 단일 소스.
+export function isBookingRoute(pathname: string | undefined | null): boolean {
+    return !!pathname && pathname.startsWith(`${BOOK_ROUTE_PREFIX}/`);
+}
+
 // 프록시가 Host를 갈아끼우는 경우가 있어 x-forwarded-host를 우선 본다(둘 다 없으면 빈 문자열).
 export function resolveRequestHost(forwardedHost?: string | null, host?: string | null): string {
     const raw = forwardedHost || host || '';
