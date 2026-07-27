@@ -2,6 +2,8 @@ import {useCallback, useEffect, useState} from 'react';
 
 import styled from 'styled-components';
 
+import {formControlStyle} from '../ui/FormControls';
+
 import {PageHero} from '../ui/PageHero';
 import {FieldError} from '../ui/FieldError';
 import {LocalizedMessageField} from '../ui/LocalizedMessageField';
@@ -290,18 +292,14 @@ const StyledField = styled.label`
     color: var(--dark-gray-color2);
 `;
 
+// 공통 폼 스타일(포커스 링·비활성·라운드 토큰)을 깔고 이 화면의 큰 크기만 덮어쓴다.
 const StyledSelect = styled.select`
+    ${formControlStyle};
     height: 42px;
     padding: 0 12px;
-    border: 1px solid var(--light-gray-color);
-    border-radius: 8px;
-    font-size: 14px;
+    font-size: var(--font);
     color: var(--black-color);
-    background: var(--white-color);
-    box-sizing: border-box;
     cursor: pointer;
-
-    &:focus { outline: none; border-color: var(--blue-color); }
 `;
 
 const StyledCheckboxRow = styled.label`
@@ -359,7 +357,7 @@ const StyledChip = styled.span`
     background: var(--blue-color-10, rgba(59, 91, 219, 0.1));
 
     &[data-category='event'] { color: var(--brand-color); background: var(--brand-color-10, rgba(138, 75, 176, 0.12)); }
-    &[data-category='info'] { color: var(--green-color, #16a34a); background: rgba(22, 163, 74, 0.1); }
+    &[data-category='info'] { color: var(--success-color); background: rgba(22, 163, 74, 0.1); }
 `;
 
 const StyledItemName = styled.strong`

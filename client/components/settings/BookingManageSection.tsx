@@ -1,6 +1,8 @@
 import {useEffect, useMemo, useState} from 'react';
 
-import styled from 'styled-components';
+import styled, {css} from 'styled-components';
+
+import {formControlStyle} from '../ui/FormControls';
 
 import {useToastStore} from '../../store/toastStore';
 import {useCalendarStore} from '../../store/calendarStore';
@@ -10,62 +12,9 @@ import {BOOKING_HOST} from '../../features/booking/routing';
 import {buildServiceColorMap} from '../../utils/services';
 import {ServiceChipList} from '../ui/ServiceChip';
 import {StyledSettingsCard, StyledSettingsCardTitle, StyledSettingsHint, StyledSaveBtn} from './settings-styles';
+import {LocalizedMessageField} from '../ui/LocalizedMessageField';
 
 const SLOT_OPTIONS = [10, 15, 20, 30, 60];
-
-type MessageI18n = {en?: string | null; ja?: string | null; zh?: string | null} | null | undefined;
-const MESSAGE_LANGS = [['en', 'English'], ['ja', '日本語'], ['zh', '中文']] as const;
-
-// 오너 입력 문구 1개 = 한국어 본문 + 언어별(영/일/중) 번역 입력. 예약 안내문구 4종이 공통으로 쓴다.
-// 언어칸을 비우면 해당 키를 지워, 완전히 비면 i18n을 null로(한국어 폴백) 유지한다.
-function LocalizedMessageField({
-    idBase, label, caption, placeholder, mainValue, i18nValue, disabled, onMainChange, onI18nChange,
-}: {
-    idBase: string;
-    label: string;
-    caption: string;
-    placeholder: string;
-    mainValue: string;
-    i18nValue: MessageI18n;
-    disabled: boolean;
-    onMainChange: (value: string) => void;
-    onI18nChange: (next: {en?: string | null; ja?: string | null; zh?: string | null} | null) => void;
-}) {
-    const setLangValue = (code: 'en' | 'ja' | 'zh', value: string) => {
-        const next = {...(i18nValue ?? {})};
-        if (value.trim()) next[code] = value; else delete next[code];
-        onI18nChange(Object.keys(next).length > 0 ? next : null);
-    };
-    return (
-        <StyledMessageBlock>
-            <StyledField>
-                <StyledLabel htmlFor={`${idBase}-ko`}>{label}</StyledLabel>
-                <StyledFieldCaption>{caption}</StyledFieldCaption>
-                <StyledTextarea
-                    id={`${idBase}-ko`}
-                    value={mainValue}
-                    placeholder={placeholder}
-                    onChange={(e) => onMainChange(e.target.value)}
-                    disabled={disabled}
-                    rows={3}
-                />
-            </StyledField>
-            {MESSAGE_LANGS.map(([code, langLabel]) => (
-                <StyledField key={code}>
-                    <StyledLabel htmlFor={`${idBase}-${code}`}>{langLabel}</StyledLabel>
-                    <StyledTextarea
-                        id={`${idBase}-${code}`}
-                        value={i18nValue?.[code] ?? ''}
-                        placeholder={langLabel}
-                        onChange={(e) => setLangValue(code, e.target.value)}
-                        disabled={disabled}
-                        rows={2}
-                    />
-                </StyledField>
-            ))}
-        </StyledMessageBlock>
-    );
-}
 
 export function BookingManageSection() {
     const toast = useToastStore((s) => s.show);
@@ -432,7 +381,7 @@ const StyledRequired = styled.span`
     margin-left: 6px;
     padding: 1px 6px;
     border-radius: var(--radius-sm);
-    background: var(--red-color, #d94a4a);
+    background: var(--danger-color);
     color: var(--white-color);
     font-size: var(--xsmall-font);
     font-weight: 600;
@@ -445,18 +394,15 @@ const StyledFieldCaption = styled.span`
     color: var(--dark-gray-color2);
 `;
 
+// 공통 폼 스타일(포커스 링·비활성·트랜지션·라운드 토큰)을 깔고, 이 화면의 큰 입력 크기만 덮어쓴다.
 const StyledInput = styled.input<{$invalid?: boolean}>`
+    ${formControlStyle};
     width: 100%;
     height: 42px;
     padding: 0 12px;
-    border: 1px solid ${(p) => (p.$invalid ? 'var(--red-color, #e5484d)' : 'var(--light-gray-color)')};
-    border-radius: 8px;
-    font-size: 14px;
+    font-size: var(--font);
     color: var(--black-color);
-    background: var(--white-color);
-    box-sizing: border-box;
-
-    &:focus { outline: none; border-color: var(--blue-color); }
+    ${(p) => p.$invalid && css`border-color: var(--danger-color);`}
 `;
 
 const StyledReq = styled.span`
@@ -478,7 +424,7 @@ const StyledCheckBtn = styled.button`
     height: 42px;
     padding: 0 14px;
     border: 1px solid var(--blue-color);
-    border-radius: 8px;
+    border-radius: var(--radius-md);
     background: var(--white-color);
     color: var(--blue-color);
     font-size: 13px;
@@ -491,37 +437,27 @@ const StyledCheckBtn = styled.button`
 
 const StyledOk = styled.span`
     font-size: 12px;
-    color: var(--green-color, #16a34a);
+    color: var(--success-color);
 `;
 
 const StyledFullSelect = styled.select`
+    ${formControlStyle};
     width: 100%;
     height: 42px;
     padding: 0 12px;
-    border: 1px solid var(--light-gray-color);
-    border-radius: 8px;
-    font-size: 14px;
+    font-size: var(--font);
     color: var(--black-color);
-    background: var(--white-color);
-    box-sizing: border-box;
     cursor: pointer;
-
-    &:focus { outline: none; border-color: var(--blue-color); }
 `;
 
 const StyledTextarea = styled.textarea`
+    ${formControlStyle};
     width: 100%;
+    height: auto;
     padding: 10px 12px;
-    border: 1px solid var(--light-gray-color);
-    border-radius: 8px;
-    font-size: 14px;
-    font-family: inherit;
+    font-size: var(--font);
     color: var(--black-color);
-    background: var(--white-color);
-    box-sizing: border-box;
     resize: none;
-
-    &:focus { outline: none; border-color: var(--blue-color); }
 `;
 
 const StyledCheckboxRow = styled.label`
@@ -552,7 +488,7 @@ const StyledServiceCheckRow = styled.label`
 
 const StyledError = styled.span`
     font-size: 12px;
-    color: var(--red-color, #e5484d);
+    color: var(--danger-color);
 `;
 
 const StyledUrlPreview = styled.p`

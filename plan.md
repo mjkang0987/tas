@@ -57,6 +57,21 @@
   - **기존 라틴 스택은 그대로 두고 한글 폰트를 뒤에 덧붙이기만 했다.** 폰트 폴백은 글자 단위라 라틴 폰트에 한글 글리프가 없으면 자동으로 다음 폰트로 넘어가므로, 기존 값을 건드릴 이유가 없다. (처음엔 `SF Pro *`를 `-apple-system`으로 교체했다가 되돌렸다 — 그러면 macOS에서 라틴 문자가 Helvetica Neue → SF Pro로 실제로 바뀐다. 목표와 무관한 변경이었다.)
   - 잔여 관찰: 스택 선두의 `"SF Pro AR"`·`"SF Pro Gulf"`는 SF Pro의 **아랍어 변형** 패밀리명이라 의도한 값이 아닐 가능성이 있다. 대부분 환경에 미설치라 실질 영향은 없어 이번엔 손대지 않았다.
 
+### 설정 화면 공통 컴포넌트 정리
+> 요청(사용자): 설정 쪽에 공통 컴포넌트를 쓸 수 있는데 안 쓰고 하드코딩된 부분을 찾아 개선.
+
+- **`--red-color`·`--green-color`는 정의되지 않은 토큰이었다.** `var(--red-color, #d94a4a)` 형태라 항상 폴백 hex가 적용 — 토큰인 척하는 하드코딩. 실제 토큰 `--danger-color`·`--success-color`로 교체(5곳, `BookingManageSection` 4 + `NoticeManageSection` 1).
+- **`LocalizedMessageField` 중복 제거** — `components/ui/LocalizedMessageField.tsx` 공용본이 있는데 `BookingManageSection`이 구버전을 로컬 정의해 쓰고 있었다(`NoticeManageSection`은 이미 공용본 사용). 로컬 54줄 제거. 공용 타입 `LocalizedI18n`은 DB JSON이 null 키를 가질 수 있어 값에 `null`을 허용하도록 넓히고, 반환값은 null을 걷어낸 깨끗한 객체(`LocalizedI18nOut`)로 명시.
+- **`formControlStyle` 미사용 2개 섹션** — 설정 섹션 대부분이 공통 `formControlStyle`을 쓰는데 `BookingManageSection`·`NoticeManageSection`만 입력·셀렉트·텍스트영역을 자체 정의(하드코딩 `border-radius:8px`, `font-size:14px`, `--blue-color` 포커스)하고 있었다. **크기는 유지한 채 `formControlStyle`을 베이스로 깔아** 포커스 링·비활성 상태·트랜지션·라운드 토큰만 공통화 → 시각적 크기 변화 없이 일관성 확보.
+
+### 확인은 했으나 이번에 손대지 않은 것
+- `font-size: NNpx` 하드코딩은 `settings-styles.ts`·`formControlStyle` 자체도 쓰는 하우스 스타일이라 전면 토큰화는 별건(설정 폴더 전반 100여 곳).
+- `SNSLinkingSection`의 hex 9건은 프로바이더 브랜드 컬러(구글·카카오·네이버)로 보여 토큰화 대상이 아님.
+
+### 설정 정리 검증
+- ✅ `tsc --noEmit` 0 · `next build` 성공. 존재하지 않는 토큰 사용 0건, 두 섹션의 `border-radius:8px` 0건, `LocalizedMessageField` 정의처 1곳으로 축소.
+- ✅ 설정 7개 탭·공개 예약 페이지 200, 서버 로그 에러 0. **오너 인증이 필요한 화면의 실제 렌더는 미확인**(로컬에 OAuth 세션을 만들 수 없음) — 배포 후 눈으로 확인 필요.
+
 ### 남은 것
 - **#166** 삭제 요청 시 매출 이력 소실(익명화) — 실제 요청 발생 시 판단.
 - **#163** 광고·분석 쿠키 출처 — Cloudflare Zaraz 확인(사용자).
