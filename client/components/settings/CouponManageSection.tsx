@@ -27,18 +27,20 @@ const EMPTY_DRAFT: DraftForm = {
     oncePerCustomer: false,
 };
 
-function describeProduct(p: CouponProduct): string {
-    const parts: string[] = [];
-    if (p.discountType === 'amount') {
-        parts.push(`${formatPrice(p.discountValue)} 할인`);
-    } else {
-        parts.push(`${p.discountValue}% 할인${p.maxDiscount != null ? ` (최대 ${formatPrice(p.maxDiscount)})` : ''}`);
-    }
-    if (p.minOrderAmount != null) parts.push(`${formatPrice(p.minOrderAmount)} 이상`);
-    parts.push(p.validDays != null ? `${p.validDays}일` : '무기한');
-    parts.push(p.code ? `코드 ${p.code}` : '직접발급');
-    if (p.oncePerCustomer) parts.push('고객당 1장');
-    return parts.join(' · ');
+function productSpecs(p: CouponProduct): {label: string; value: string}[] {
+    return [
+        {label: '할인 방식', value: p.discountType === 'amount' ? '정액(원)' : '정률(%)'},
+        {
+            label: p.discountType === 'amount' ? '할인액(원)' : '할인율(%)',
+            value: p.discountType === 'amount'
+                ? formatPrice(p.discountValue)
+                : `${p.discountValue}%${p.maxDiscount != null ? ` (최대 ${formatPrice(p.maxDiscount)})` : ''}`,
+        },
+        {label: '최소 결제금액', value: p.minOrderAmount != null ? formatPrice(p.minOrderAmount) : '제한없음'},
+        {label: '유효기간', value: p.validDays != null ? `${p.validDays}일` : '무기한'},
+        {label: '코드', value: p.code ? p.code : '직접발급'},
+        {label: '발급 제한', value: p.oncePerCustomer ? '고객당 1장' : '제한없음'},
+    ];
 }
 
 export const CouponManageSection = () => {
@@ -253,16 +255,23 @@ export const CouponManageSection = () => {
                         <StyledList>
                             {activeProducts.map((p) => (
                                 <StyledItem key={p.id}>
-                                    <StyledItemMain>
+                                    <StyledItemHead>
                                         <StyledItemName>{p.name}</StyledItemName>
-                                        <StyledItemMeta>{describeProduct(p)}</StyledItemMeta>
-                                    </StyledItemMain>
-                                    {editingId === null && !isAdding && (
-                                        <StyledItemActions>
-                                            <StyledEditBtn type="button" onClick={() => startEdit(p)}>수정</StyledEditBtn>
-                                            <StyledDeleteBtn type="button" onClick={() => handleArchiveProduct(p)}>삭제</StyledDeleteBtn>
-                                        </StyledItemActions>
-                                    )}
+                                        {editingId === null && !isAdding && (
+                                            <StyledItemActions>
+                                                <StyledEditBtn type="button" onClick={() => startEdit(p)}>수정</StyledEditBtn>
+                                                <StyledDeleteBtn type="button" onClick={() => handleArchiveProduct(p)}>삭제</StyledDeleteBtn>
+                                            </StyledItemActions>
+                                        )}
+                                    </StyledItemHead>
+                                    <StyledSpecGrid>
+                                        {productSpecs(p).map((spec) => (
+                                            <StyledSpec key={spec.label}>
+                                                <StyledSpecLabel>{spec.label}</StyledSpecLabel>
+                                                <StyledSpecValue>{spec.value}</StyledSpecValue>
+                                            </StyledSpec>
+                                        ))}
+                                    </StyledSpecGrid>
                                 </StyledItem>
                             ))}
                         </StyledList>
@@ -341,38 +350,64 @@ const StyledActionRow = styled.div`
 const StyledList = styled.div`
     display: flex;
     flex-direction: column;
-    border-top: 1px solid var(--black-color-10);
+    gap: 10px;
 `;
 
 const StyledItem = styled.div`
     display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding: 14px 12px;
+    border: 1px solid var(--light-gray-color);
+    border-radius: 10px;
+    background: var(--white-color);
+`;
+
+const StyledItemHead = styled.div`
+    display: flex;
     align-items: center;
     justify-content: space-between;
     gap: 10px;
-    padding: 12px 4px;
-    border-bottom: 1px solid var(--black-color-10);
-`;
-
-const StyledItemMain = styled.div`
-    display: flex;
-    flex-direction: column;
-    gap: 3px;
-    min-width: 0;
 `;
 
 const StyledItemName = styled.strong`
     font-size: var(--font);
     font-weight: 600;
     color: var(--black-color);
-`;
-
-const StyledItemMeta = styled.span`
-    font-size: var(--small-font);
-    color: var(--dark-gray-color2);
+    min-width: 0;
 `;
 
 const StyledItemActions = styled.div`
     display: flex;
     gap: 6px;
     flex-shrink: 0;
+`;
+
+const StyledSpecGrid = styled.dl`
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px 16px;
+    margin: 0;
+
+    @media (max-width: 640px) {
+        grid-template-columns: 1fr;
+    }
+`;
+
+const StyledSpec = styled.div`
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+`;
+
+const StyledSpecLabel = styled.dt`
+    font-size: 11px;
+    color: var(--dark-gray-color2);
+`;
+
+const StyledSpecValue = styled.dd`
+    margin: 0;
+    font-size: 13px;
+    color: var(--black-color);
 `;

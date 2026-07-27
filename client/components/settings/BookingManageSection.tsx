@@ -3,6 +3,7 @@ import {useEffect, useMemo, useState} from 'react';
 import styled, {css} from 'styled-components';
 
 import {formControlStyle} from '../ui/FormControls';
+import {PageHero} from '../ui/PageHero';
 
 import {useToastStore} from '../../store/toastStore';
 import {useCalendarStore} from '../../store/calendarStore';
@@ -155,8 +156,11 @@ export function BookingManageSection() {
 
     return (
         <div>
-            <StyledSectionHeading>고객 예약 설정</StyledSectionHeading>
-            <StyledSectionSub>고객이 직접 예약하는 공개 예약 페이지의 주소와 규칙을 설정합니다.</StyledSectionSub>
+            <PageHero
+                eyebrow="BOOKING"
+                title="고객 예약 설정"
+                subtitle="고객이 직접 예약하는 공개 예약 페이지의 주소와 규칙을 설정합니다."
+            />
 
             <StyledSettingsCard>
                 <StyledSettingsCardTitle>공개 예약 페이지 주소</StyledSettingsCardTitle>
@@ -336,21 +340,6 @@ export function BookingManageSection() {
     );
 }
 
-const StyledSectionHeading = styled.strong`
-    display: block;
-    margin: 0;
-    font-size: var(--large-font);
-    font-weight: 700;
-    color: var(--black-color);
-`;
-
-const StyledSectionSub = styled.p`
-    margin: 4px 0 16px;
-    font-size: var(--medium-font);
-    line-height: 1.5;
-    color: var(--dark-gray-color2);
-`;
-
 const StyledField = styled.div`
     display: flex;
     flex-direction: column;
@@ -394,13 +383,10 @@ const StyledFieldCaption = styled.span`
     color: var(--dark-gray-color2);
 `;
 
-// 공통 폼 스타일(포커스 링·비활성·트랜지션·라운드 토큰)을 깔고, 이 화면의 큰 입력 크기만 덮어쓴다.
+// 공통 폼 스타일(포커스 링·비활성·트랜지션·라운드 토큰)을 그대로 사용해 타 설정 페이지와 크기를 맞춘다.
 const StyledInput = styled.input<{$invalid?: boolean}>`
     ${formControlStyle};
     width: 100%;
-    height: 42px;
-    padding: 0 12px;
-    font-size: var(--font);
     color: var(--black-color);
     ${(p) => p.$invalid && css`border-color: var(--danger-color);`}
 `;
@@ -421,13 +407,13 @@ const StyledSlugRow = styled.div`
 
 const StyledCheckBtn = styled.button`
     flex-shrink: 0;
-    height: 42px;
-    padding: 0 14px;
+    height: 32px;
+    padding: 0 12px;
     border: 1px solid var(--blue-color);
     border-radius: var(--radius-md);
     background: var(--white-color);
     color: var(--blue-color);
-    font-size: var(--medium-font);
+    font-size: var(--small-font);
     font-weight: 600;
     cursor: pointer;
     white-space: nowrap;
@@ -443,9 +429,6 @@ const StyledOk = styled.span`
 const StyledFullSelect = styled.select`
     ${formControlStyle};
     width: 100%;
-    height: 42px;
-    padding: 0 12px;
-    font-size: var(--font);
     color: var(--black-color);
     cursor: pointer;
 `;
