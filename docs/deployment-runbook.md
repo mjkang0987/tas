@@ -145,7 +145,7 @@ The app serves both hosts. `client/proxy.ts` branches on the request host **befo
 
 - `book.takeaseat.co.kr/{slug}` → rewritten to the internal route `/book/[slug]` (auth/terms/onboarding gates bypassed). Language prefixes `/{en|ja|zh}/{slug}` become `?lang=`.
 - On that host only `/api/book/*` is reachable; other `/api/*` returns 404, and `/` redirects to the main site.
-- `takeaseat.co.kr/book/*` → **307** to `https://book.takeaseat.co.kr/*` so previously shared links keep working. It is intentionally *temporary*: 308/301 is cached by browsers indefinitely, so a rollback would not reach clients that already followed it. Promote to 308 (`LEGACY_REDIRECT_STATUS` in `client/proxy.ts`) once the subdomain is proven in production — that is what transfers search-engine signals.
+- `takeaseat.co.kr/book/*` → **307** to `https://book.takeaseat.co.kr/*`, so the legacy path never serves a second copy of the booking page. **307, not 308, on purpose** — the legacy URLs were never published, so there are no search-engine signals or shared links for a permanent redirect to transfer, while 308/301 would be cached by browsers indefinitely and put a rollback out of reach. Status lives in `LEGACY_REDIRECT_STATUS` (`client/proxy.ts`).
 - Other hosts (`localhost`, `dev.takeaseat.co.kr`, `*.run.app`) are untouched — `/book/{slug}` still works there.
 
 Override the expected booking host with `NEXT_PUBLIC_BOOKING_HOST` (build-time; also used for local subdomain testing, e.g. `book.localhost:3000`).
