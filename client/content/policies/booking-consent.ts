@@ -49,6 +49,8 @@ export const BOOKING_CONSENT_BODY = `
 <br>연락처: {{storeContact}}</li>
 <li><strong>접수 보조</strong>: 매장 연락이 어려우신 경우 수탁자 고객센터(<a href="mailto:takeaseat.cs@gmail.com">takeaseat.cs@gmail.com</a>)로 접수하실 수 있으며, 접수 내용은 해당 매장에 전달됩니다.</li>
 </ol>
-<h2>7. 안내의 변경</h2>
+<h2>7. 권익침해에 대한 구제 방법</h2>
+<p>개인정보 침해로 인한 신고·상담이 필요한 경우 개인정보침해신고센터(privacy.kisa.or.kr / 국번없이 118) 또는 개인정보분쟁조정위원회(kopico.go.kr / 1833-6972)에 문의하실 수 있습니다.</p>
+<h2>8. 안내의 변경</h2>
 <p>본 안내의 내용이 변경되는 경우 예약 페이지를 통해 공지합니다.</p>
 `;
