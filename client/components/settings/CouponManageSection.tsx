@@ -396,18 +396,20 @@ const StyledSpecGrid = styled.dl`
 
 const StyledSpec = styled.div`
     display: flex;
-    flex-direction: column;
-    gap: 2px;
+    align-items: baseline;
+    gap: 6px;
     min-width: 0;
 `;
 
 const StyledSpecLabel = styled.dt`
-    font-size: 11px;
+    flex-shrink: 0;
+    font-size: var(--xsmall-font);
     color: var(--dark-gray-color2);
 `;
 
 const StyledSpecValue = styled.dd`
     margin: 0;
-    font-size: 13px;
+    min-width: 0;
+    font-size: var(--medium-font);
     color: var(--black-color);
 `;
