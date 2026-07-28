@@ -2,7 +2,7 @@ import React from 'react';
 
 import styled from 'styled-components';
 
-import {ServiceChipList, StyledServiceText, StyledServiceToken} from '../ui/ServiceChip';
+import {ServiceChipList, StyledServiceText} from '../ui/ServiceChip';
 import {ReservationStatusBadge} from '../ui/ReservationStatusBadge';
 import type {Customer} from '../../utils/customers';
 import {formatTel} from '../../utils/customers';
@@ -53,14 +53,14 @@ export function AddressCustomerSummary({customer, stats, serviceColorMap, checke
                     <StyledName>{customer.name}</StyledName>
                 )}
                 <StyledTel><StyledTelLink href={`tel:${customer.tel}`} onClick={(e) => e.stopPropagation()}>{formatTel(customer.tel)}</StyledTelLink></StyledTel>
-                <StyledRecentService>
-                    <StyledRecentServiceLabel>최근 서비스</StyledRecentServiceLabel>
-                    {stats?.recentService && stats.recentService !== '-'
-                        ? <StyledServiceChips service={stats.recentService} serviceColorMap={serviceColorMap} keyPrefix={customer.id} />
-                        : '-'}
-                </StyledRecentService>
                 <StyledArrow $open={open} />
             </StyledInlineRow>
+            <StyledRecentService>
+                <StyledRecentServiceLabel>최근 서비스</StyledRecentServiceLabel>
+                {stats?.recentService && stats.recentService !== '-'
+                    ? <StyledServiceChips service={stats.recentService} serviceColorMap={serviceColorMap} keyPrefix={customer.id} />
+                    : '-'}
+            </StyledRecentService>
             <StyledBlockRow>
                 <StyledPrice><StyledPriceLabel>적립금</StyledPriceLabel>{formatPrice(customer.points ?? 0)}</StyledPrice>
                 <StyledStatusCounts>
@@ -157,25 +157,19 @@ const StyledTel = styled.span`
     color: var(--dark-gray-color);
 `;
 
+// 이름·연락처 줄에서 떼어내 한 줄을 통째로 쓴다 — 시술이 여러 개여도 이름 줄을 밀어내지 않는다.
 const StyledRecentService = styled.span`
-    flex: 1;
+    width: 100%;
     min-width: 0;
-    display: inline-flex;
+    display: flex;
     align-items: center;
-    gap: 4px;
+    gap: 4px 6px;
+    flex-wrap: wrap;
     font-size: var(--small-font);
-    overflow: hidden;
 `;
 
-// 시술명은 한 줄 고정 — 이름 안에서도(공백 포함), 시술이 여러 개여도 줄바꿈하지 않고 넘치면 잘린다.
+// 시술명 하나가 공백에서 쪼개지지 않게. 칩이 줄 너비를 넘으면 칩 단위로 다음 줄.
 const StyledServiceChips = styled(ServiceChipList)`
-    flex-wrap: nowrap;
-    overflow: hidden;
-
-    ${StyledServiceToken} {
-        flex-shrink: 0;
-    }
-
     ${StyledServiceText} {
         white-space: nowrap;
     }
