@@ -162,7 +162,7 @@ const StyledTel = styled.span`
     color: var(--dark-gray-color);
 `;
 
-// 모바일은 한 줄을 통째로 쓰고(3줄), 데스크톱은 폭이 남으니 이름·연락처 옆에 붙인다(2줄).
+// 모바일만 한 줄을 통째로 써서 이름 줄과 분리(3줄). 데스크톱은 작업 이전 그대로 이름·연락처 옆.
 const StyledRecentService = styled.span`
     width: 100%;
     min-width: 0;
@@ -175,13 +175,18 @@ const StyledRecentService = styled.span`
     @media (min-width: 841px) {
         width: auto;
         flex: 1;
+        flex-wrap: nowrap;
+        gap: 4px;
+        overflow: hidden;
     }
 `;
 
-// 시술명 하나가 공백에서 쪼개지지 않게. 칩이 줄 너비를 넘으면 칩 단위로 다음 줄.
+// 시술명이 공백에서 쪼개지지 않게 — 모바일 한정. 데스크톱은 작업 이전 동작 유지.
 const StyledServiceChips = styled(ServiceChipList)`
-    ${StyledServiceText} {
-        white-space: nowrap;
+    @media (max-width: 840px) {
+        ${StyledServiceText} {
+            white-space: nowrap;
+        }
     }
 `;
 
@@ -191,15 +196,14 @@ const StyledRecentServiceLabel = styled.span`
     color: var(--dark-gray-color);
 `;
 
-// 적립금·예약현황은 항상 자기 줄 — 데스크톱 2줄(이름+서비스 / 적립금), 모바일 3줄.
 const StyledBlockRow = styled.div`
     display: flex;
     align-items: center;
     gap: 8px;
     flex-shrink: 0;
-    width: 100%;
 
     @media (max-width: 840px) {
+        width: 100%;
         justify-content: space-between;
     }
 `;
