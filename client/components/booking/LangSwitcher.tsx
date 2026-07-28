@@ -8,6 +8,7 @@ import {useRouter} from 'next/router';
 import styled from 'styled-components';
 
 import {BOOK_LANGS, HTML_LANG, bookHref, bookRoute, isBookLang, type BookLang} from '../../features/booking/i18n';
+import {StyledFieldSelect} from '../ui/FormControls';
 
 // 하단 고정 바가 콘텐츠를 가리지 않도록 페이지 하단에 확보할 여백(예약 sticky 바도 이 높이 위에 둔다).
 export const LANG_BAR_OFFSET = 'calc(env(safe-area-inset-bottom, 0px) + 52px)';
@@ -89,20 +90,10 @@ const StyledLabel = styled.label`
     line-height: 1;
 `;
 
-// 네이티브 select. 디자인 토큰 준수(radius·보더·폰트).
-const StyledSelect = styled.select`
+// 테두리·포커스·화살표는 공유 정의(StyledFieldSelect)를 따르고,
+// 하단 고정 바 전용 치수(36px — LANG_BAR_OFFSET 52px = 8+36+8)와 굵기만 덮어쓴다.
+const StyledSelect = styled(StyledFieldSelect)`
     height: 36px;
     padding: 0 32px 0 12px;
-    border: 1px solid var(--light-gray-color);
-    border-radius: var(--radius-md);
-    background: var(--white-color);
-    color: var(--black-color);
-    font-size: var(--small-font);
     font-weight: 600;
-    cursor: pointer;
-    appearance: none;
-    -webkit-appearance: none;
-    background-image: url("data:image/svg+xml;charset=UTF-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23666' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
-    background-repeat: no-repeat;
-    background-position: right 12px center;
 `;
