@@ -3,10 +3,12 @@ import React, {useCallback, useState} from 'react';
 import styled from 'styled-components';
 
 import type {Customer} from '../../utils/customers';
+import {formatTel} from '../../utils/customers';
 import type {Reservation} from '../../utils/reservations';
 import {AddressCustomerRow} from './AddressCustomerRow';
 import {EMPTY_TEXT, StyledEmpty as StyledEmptyBase} from '../settings/settings-styles';
 import {InputWrap} from '../ui/Input';
+import {formatPrice} from '../../utils/services';
 
 type CustomerStats = {
     recentService: string;
@@ -158,7 +160,10 @@ export function AddressContent({
                                         onChange={() => setMergePreview((prev) => prev ? {...prev, targetId: c.id} : null)}
                                     />
                                     <StyledPreviewName>{c.name}</StyledPreviewName>
-                                    <StyledPreviewTel>{c.tel.replace(/(\d{3})(\d{4})(\d{4})/, '$1-$2-$3')}</StyledPreviewTel>
+                                    <StyledPreviewTel>{formatTel(c.tel)}</StyledPreviewTel>
+                                    <StyledPreviewMeta>
+                                        예약 {(reservationsByCustomer[c.id] ?? []).length}건 · 적립 {formatPrice(c.points ?? 0)}
+                                    </StyledPreviewMeta>
                                     {c.id === mergePreview.targetId
                                         ? <StyledPreviewBadge $type="target">기준</StyledPreviewBadge>
                                         : <StyledPreviewBadge $type="source">삭제</StyledPreviewBadge>
@@ -319,8 +324,9 @@ const StyledPreviewList = styled.ul`
 
 const StyledPreviewItem = styled.li<{ $isTarget: boolean }>`
     display: flex;
+    flex-wrap: wrap;
     align-items: center;
-    gap: 10px;
+    gap: 4px 10px;
     padding: 8px 12px;
     border-radius: var(--radius-md);
     border: 1.5px solid ${(p) => p.$isTarget ? 'var(--blue-color)' : 'var(--light-gray-color)'};
@@ -343,6 +349,12 @@ const StyledPreviewName = styled.strong`
 const StyledPreviewTel = styled.span`
     font-size: var(--small-font);
     color: var(--dark-gray-color);
+`;
+
+const StyledPreviewMeta = styled.span`
+    font-size: var(--tiny-font);
+    color: var(--dark-gray-color);
+    white-space: nowrap;
 `;
 
 const StyledPreviewBadge = styled.span<{ $type: 'target' | 'source' }>`
