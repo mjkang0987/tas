@@ -4,7 +4,7 @@ import styled from 'styled-components';
 
 import {useCalendarStore} from '../../store/calendarStore';
 import {formControlStyle} from '../ui/FormControls';
-import {StyledEditBtn, StyledSaveBtn, StyledCancelBtn, StyledHeaderActions} from './settings-styles';
+import {cardSurfaceStyle, StyledEditBtn, StyledSaveBtn, StyledCancelBtn, StyledHeaderActions} from './settings-styles';
 
 type CalendarState = ReturnType<typeof useCalendarStore.getState>;
 type StoreSettings = CalendarState['storeSettings'];
@@ -207,9 +207,7 @@ const StyledPolicyCard = styled.div`
     flex-direction: column;
     gap: 12px;
     padding: 14px;
-    border: 1px solid var(--light-gray-color);
-    border-radius: 8px;
-    background: var(--white-color);
+    ${cardSurfaceStyle};
 `;
 
 const StyledPolicyHeader = styled.div`
@@ -222,7 +220,9 @@ const StyledPolicyHeader = styled.div`
 const StyledPolicyTitle = styled.strong`
     display: block;
     margin-bottom: 4px;
-    font-size: var(--font);
+    font-size: var(--large-font);
+    font-weight: 700;
+    color: var(--dark-gray-color);
 `;
 
 const StyledPolicyDesc = styled.p`
@@ -309,7 +309,9 @@ const StyledRechargeHeader = styled.div`
 `;
 
 const StyledRechargeTitle = styled.strong`
-    font-size: var(--medium-font);
+    font-size: var(--large-font);
+    font-weight: 700;
+    color: var(--dark-gray-color);
 `;
 
 const StyledRechargeList = styled.div`

@@ -3,8 +3,8 @@ import styled, {css} from 'styled-components';
 import type {AssigneeStatus} from '../../utils/assignees';
 import {getAssigneeStatusMeta} from '../../utils/assignees';
 import {LabelBadge} from '../ui/LabelBadge';
-import {formControlStyle} from '../ui/FormControls';
-import {StyledCancelBtn, StyledSaveBtn} from './settings-styles';
+import {formControlStyle, StyledFieldSelect} from '../ui/FormControls';
+import {StyledCancelBtn, StyledEmpty, StyledSaveBtn} from './settings-styles';
 const ASSIGNEE_STATUS_TONE: Record<AssigneeStatus, 'success' | 'warning' | 'neutral'> = {
     '재직': 'success',
     '휴직': 'warning',
@@ -46,21 +46,14 @@ export const StyledAssigneeSection = styled.div`
 `;
 
 export const StyledAssigneeSectionTitle = styled.strong`
-    font-size: var(--font);
-    font-weight: 600;
+    font-size: var(--large-font);
+    font-weight: 700;
     color: var(--dark-gray-color);
 `;
 
-export const StyledSectionEmpty = styled.div`
-    display: flex;
-    align-items: center;
-    justify-content: center;
+// 공용 빈 상태(StyledEmpty)와 동일한 모양. 여백만 이 화면 기준으로 줄인다.
+export const StyledSectionEmpty = styled(StyledEmpty)`
     padding: 24px;
-    border: 1px dashed rgba(148, 163, 184, 0.32);
-    border-radius: 10px;
-    background: var(--bg-subtle);
-    font-size: var(--medium-font);
-    color: var(--dark-gray-color2);
 `;
 
 export const StyledAssigneeCard = styled.div<{ $status: AssigneeStatus; $assigneeColor: string; $isEditing: boolean }>`
@@ -118,7 +111,7 @@ export const StyledAssigneeHeaderLeft = styled.div`
 `;
 
 export const StyledAssigneeName = styled.span`
-    font-size: var(--font);
+    font-size: var(--large-font);
     font-weight: 700;
     color: var(--dark-gray-color);
     white-space: nowrap;
@@ -199,11 +192,10 @@ export const StyledAssigneeMetaInput = styled.input`
     }
 `;
 
-export const StyledAssigneeStatusSelect = styled.select`
+export const StyledAssigneeStatusSelect = styled(StyledFieldSelect)`
     flex-shrink: 0;
-    ${compactInputStyle};
     min-height: 28px;
-    padding: 0 8px;
+    padding: 0 28px 0 8px;
     font-size: var(--xsmall-font);
     color: var(--dark-gray-color2);
 `;

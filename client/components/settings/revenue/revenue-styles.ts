@@ -6,6 +6,8 @@ import {ServiceChipList, StyledServiceText, StyledServiceToken} from '../../ui/S
 
 /* ── Shared action / filter button styles ── */
 
+import {StyledEmpty} from '../settings-styles';
+
 export {actionButtonStyle} from '../settings-styles';
 
 /* ── Form / input helpers ── */
@@ -169,16 +171,9 @@ export const StyledRevenueServiceText = styled(StyledServiceText).attrs({as: 'st
     word-break: keep-all;
 `;
 
-export const StyledRevenueEmpty = styled.div`
-    display: flex;
-    align-items: center;
-    justify-content: center;
+// 공용 빈 상태(StyledEmpty)와 동일한 모양. 여백만 이 화면 기준으로 키운다.
+export const StyledRevenueEmpty = styled(StyledEmpty)`
     padding: 54px 24px;
-    border: 1px dashed rgba(148, 163, 184, 0.32);
-    border-radius: 10px;
-    background: var(--bg-subtle-78);
-    font-size: var(--medium-font);
-    color: var(--dark-gray-color2);
 `;
 
 export const StyledSummary = styled.div`

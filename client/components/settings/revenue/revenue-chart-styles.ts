@@ -1,5 +1,7 @@
 import styled from 'styled-components';
 
+import {StyledEmpty} from '../settings-styles';
+
 const REVENUE_CHART_WIDTH = 320;
 const REVENUE_CHART_HEIGHT = 160;
 
@@ -52,8 +54,9 @@ export const StyledChartHeader = styled.div`
 `;
 
 export const StyledChartHeaderTitle = styled.strong`
-    font-size: var(--font);
-    color: var(--black-color);
+    font-size: var(--large-font);
+    font-weight: 700;
+    color: var(--dark-gray-color);
 `;
 
 export const StyledChartHeaderMeta = styled.span`
@@ -62,15 +65,11 @@ export const StyledChartHeaderMeta = styled.span`
     text-align: right;
 `;
 
-export const StyledChartEmpty = styled.div`
-    display: flex;
+export const StyledChartEmpty = styled(StyledEmpty).attrs({$size: 'sm' as const})`
     flex: 1;
-    align-items: center;
-    justify-content: center;
+    padding: 0;
     border-radius: 8px;
     background: var(--gray-color2);
-    font-size: var(--small-font);
-    color: var(--dark-gray-color2);
 `;
 
 /* ── Line chart ── */

@@ -1,5 +1,7 @@
 import styled, {css} from 'styled-components';
 
+import {StyledFieldSelect} from '../ui/FormControls';
+
 export const actionButtonStyle = css`
     flex-shrink: 0;
     height: 30px;
@@ -55,28 +57,12 @@ export const StyledDeleteBtn = styled.button`
     color: var(--danger-color);
 `;
 
-export const StyledSelect = styled.select`
+// 툴바 스케일 select(30px). actionButtonStyle 버튼과 같은 줄에 놓이므로 높이를 맞춘다.
+// 폼 필드 스케일(32px)은 공용 StyledFieldSelect(ui/FormControls) 사용.
+export const StyledSelect = styled(StyledFieldSelect)`
     height: 30px;
-    padding: 0 10px;
-    border: 1px solid var(--light-gray-color);
-    border-radius: var(--radius-md);
-    background: var(--white-color);
-    font-size: var(--small-font);
+    padding: 0 30px 0 10px;
     color: var(--dark-gray-color);
-    cursor: pointer;
-    outline: none;
-    box-sizing: border-box;
-    transition: border-color 0.15s ease, box-shadow 0.15s ease;
-
-    &:focus {
-        border-color: var(--brand-color);
-        box-shadow: 0 0 0 3px rgba(101, 38, 217, 0.12);
-    }
-
-    &:disabled {
-        background: var(--gray-color2);
-        color: var(--dark-gray-color2);
-    }
 `;
 
 // 카드 헤더(제목 옆) 우측에 취소/저장 버튼을 나란히 놓는 래퍼.
@@ -90,11 +76,17 @@ export const StyledHeaderActions = styled.div`
     }
 `;
 
-export const StyledSettingsCard = styled.div`
+// 카드 표면 공통(테두리·모서리·배경·그림자). 설정 화면 박스는 전부 이걸 깔고 padding/레이아웃만 각자 정한다.
+// 값을 직접 재작성하면 화면마다 모서리 8/10px, 그림자 유무가 갈린다.
+export const cardSurfaceStyle = css`
     border: 1px solid var(--light-gray-color);
     border-radius: var(--radius-lg);
     background: var(--white-color);
     box-shadow: var(--shadow-sm);
+`;
+
+export const StyledSettingsCard = styled.div`
+    ${cardSurfaceStyle};
     padding: 16px;
     margin-bottom: 16px;
 `;
@@ -102,8 +94,8 @@ export const StyledSettingsCard = styled.div`
 export const StyledSettingsCardTitle = styled.strong`
     display: block;
     margin: 0 0 12px;
-    font-size: var(--medium-font);
-    font-weight: 600;
+    font-size: var(--large-font);
+    font-weight: 700;
     color: var(--dark-gray-color);
 `;
 
@@ -115,13 +107,17 @@ export const StyledSettingsHint = styled.p`
 
 export const EMPTY_TEXT = '등록된 데이터가 없습니다';
 
-export const StyledEmpty = styled.div`
+// 빈 상태 공통. 화면마다 다른 건 여백과 글자 크기뿐이라 $size로 흡수하고,
+// 정렬·색·테두리 없음은 여기 한 곳에서만 정한다(각 화면에서 재작성 금지).
+// - md(기본): 목록 본문용 · sm: 카드 안쪽·드롭다운처럼 좁은 영역용
+export const StyledEmpty = styled.div<{ $size?: 'sm' | 'md' }>`
     display: flex;
     align-items: center;
     justify-content: center;
-    padding: 40px;
-    font-size: var(--medium-font);
+    padding: ${(p) => (p.$size === 'sm' ? '20px 12px' : '40px')};
+    font-size: ${(p) => (p.$size === 'sm' ? 'var(--small-font)' : 'var(--medium-font)')};
     color: var(--dark-gray-color2);
+    text-align: center;
 `;
 
 export const StyledEmptyCard = styled.p`

@@ -4,6 +4,7 @@ import {formatPrice} from '../../../utils/services';
 import {CloseIconButton} from '../../ui/CloseIconButton';
 import {ColorPickerButton} from '../../ui/ColorPickerButton';
 import {StyledHeader, StyledHeaderTitle} from './ModalStyles';
+import {EMPTY_TEXT} from '../../settings/settings-styles';
 import {
     StyledAddressMemoSection,
     StyledAddressMemoTitle,
@@ -150,7 +151,7 @@ export function CustomerMemoTagSection({
                 </StyledTagEditor>
             )}
             {tags.length === 0 ? (
-                <StyledEmptyText>등록된 메모가 없습니다.</StyledEmptyText>
+                <StyledEmptyText>{EMPTY_TEXT}</StyledEmptyText>
             ) : (
                 <StyledAddressMemoList>
                     {tags.map((tag) => (

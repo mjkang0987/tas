@@ -31,6 +31,7 @@ import {
     PointHistoryItem,
     type MergeHistorySummary,
 } from './CustomerDetailSections';
+import {EMPTY_TEXT} from '../../settings/settings-styles';
 import {
     StyledCustomerOverlay,
     StyledCustomerDetail,
@@ -459,7 +460,7 @@ export const CustomerDetail = ({customer, reservationMap, onClose, onReservation
                         )}
                     </StyledPointHistoryHeader>
                     {pointHistories.length === 0 ? (
-                        <StyledEmptyText>적립금 이력이 없습니다.</StyledEmptyText>
+                        <StyledEmptyText>{EMPTY_TEXT}</StyledEmptyText>
                     ) : (
                         <StyledPointHistoryList>
                             <PointHistoryItem entry={pointHistories[0]} onClick={handlePointHistoryClick} />

@@ -6,7 +6,7 @@ import type {Customer} from '../../utils/customers';
 import {formatTel} from '../../utils/customers';
 import {formatPrice} from '../../utils/services';
 import {formControlStyle} from '../ui/FormControls';
-import {EMPTY_TEXT, StyledEmpty} from './settings-styles';
+import {cardSurfaceStyle, EMPTY_TEXT, StyledEmpty, StyledSettingsCardTitle} from './settings-styles';
 
 interface Props {
     filteredCustomers: Customer[];
@@ -20,6 +20,7 @@ interface Props {
 
 export const PointAdjustTab = ({filteredCustomers, search, setSearch, amountByCustomer, setAmountByCustomer, applyPoints, openCustomerDetail}: Props) => (
     <>
+        <StyledSettingsCardTitle>고객 적립금 조정</StyledSettingsCardTitle>
         <StyledSearchRow>
             <StyledSearchInput
                 id="point-search"
@@ -88,9 +89,7 @@ const StyledCustomerCard = styled.div`
     gap: 12px;
     align-items: center;
     padding: 12px 14px;
-    border: 1px solid var(--light-gray-color);
-    border-radius: 8px;
-    background: var(--white-color);
+    ${cardSurfaceStyle};
 
     @media (max-width: 860px) {
         grid-template-columns: 1fr;
