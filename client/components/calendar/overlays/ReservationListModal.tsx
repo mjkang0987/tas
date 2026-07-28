@@ -10,7 +10,7 @@ import {isNewCustomerVisit} from '../../../utils/customers';
 import {buildAssigneeColorMap, buildAssigneeNameMap} from '../../../utils/assignees';
 import {buildServiceColorMap} from '../../../utils/services';
 
-import {EMPTY_TEXT} from '../../settings/settings-styles';
+import {EMPTY_TEXT, StyledEmpty as StyledEmptyBase} from '../../settings/settings-styles';
 import {
     OVERLAY_Z_INDEX,
     StyledActionButton,
@@ -223,13 +223,8 @@ const StyledListBodyInner = styled(StyledBodyInner)`
     padding: 6px 8px 18px;
 `;
 
-const StyledEmpty = styled.div`
-    display: flex;
-    align-items: center;
-    justify-content: center;
+const StyledEmpty = styled(StyledEmptyBase)`
     padding: 24px;
-    font-size: var(--medium-font);
-    color: var(--dark-gray-color2);
 `;
 
 const StyledList = styled.ul`

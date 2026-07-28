@@ -26,8 +26,8 @@ export const StyledCard = styled.div`
 
 export const StyledCardTitle = styled.h2`
     margin: 0 0 14px;
-    font-size: var(--font);
-    font-weight: 600;
+    font-size: var(--large-font);
+    font-weight: 700;
     color: var(--dark-gray-color);
 `;
 

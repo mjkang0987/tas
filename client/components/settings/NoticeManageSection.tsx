@@ -2,12 +2,12 @@ import {useCallback, useEffect, useState} from 'react';
 
 import styled from 'styled-components';
 
-import {formControlStyle} from '../ui/FormControls';
 
 import {PageHero} from '../ui/PageHero';
 import {FieldError} from '../ui/FieldError';
 import {LocalizedMessageField} from '../ui/LocalizedMessageField';
-import {StyledEditBtn, StyledDeleteBtn, StyledSaveBtn, StyledCancelBtn, StyledEmpty, EMPTY_TEXT} from './settings-styles';
+import {cardSurfaceStyle, StyledEditBtn, StyledDeleteBtn, StyledSaveBtn, StyledCancelBtn, StyledEmpty, StyledSettingsCardTitle, EMPTY_TEXT} from './settings-styles';
+import {StyledFieldSelect} from '../ui/FormControls';
 import {useToastStore} from '../../store/toastStore';
 import {shouldUseLocalDb} from '../../lib/local-db';
 import {NOTICE_CATEGORIES, noticeCategoryLabel, MAX_PINNED_NOTICES} from '../../features/notices/model';
@@ -169,6 +169,7 @@ export const NoticeManageSection = () => {
 
                     {editing && (
                         <StyledFormCard>
+                            <StyledSettingsCardTitle>{editingId ? '공지 수정' : '공지 작성'}</StyledSettingsCardTitle>
                             <StyledTopRow>
                                 <StyledField htmlFor="nt-category">
                                     <span>분류</span>
@@ -222,10 +223,8 @@ export const NoticeManageSection = () => {
                         </StyledFormCard>
                     )}
 
-                    {loading ? (
+                    {loading || notices.length === 0 ? (
                         <StyledEmpty>{EMPTY_TEXT}</StyledEmpty>
-                    ) : notices.length === 0 ? (
-                        <StyledEmpty>등록된 공지사항이 없습니다.</StyledEmpty>
                     ) : (
                         <StyledList>
                             {notices.map((n) => (
@@ -272,9 +271,7 @@ const StyledFormCard = styled.div`
     flex-direction: column;
     gap: 10px;
     padding: 12px 10px;
-    border: 1px solid var(--light-gray-color);
-    border-radius: 10px;
-    background: var(--white-color);
+    ${cardSurfaceStyle};
 `;
 
 const StyledTopRow = styled.div`
@@ -293,13 +290,11 @@ const StyledField = styled.label`
 `;
 
 // 공통 폼 스타일(포커스 링·비활성·라운드 토큰)을 깔고 이 화면의 큰 크기만 덮어쓴다.
-const StyledSelect = styled.select`
-    ${formControlStyle};
+// 이 폼만 컨트롤이 한 단계 큼(42px) — 크기·폰트만 덮어쓰고 나머지는 공유 정의를 따른다.
+const StyledSelect = styled(StyledFieldSelect)`
     height: 42px;
-    padding: 0 12px;
+    padding: 0 30px 0 12px;
     font-size: var(--font);
-    color: var(--black-color);
-    cursor: pointer;
 `;
 
 const StyledCheckboxRow = styled.label`
@@ -321,7 +316,7 @@ const StyledActionRow = styled.div`
 const StyledList = styled.div`
     display: flex;
     flex-direction: column;
-    border-top: 1px solid var(--black-color-10);
+    gap: 10px;
 `;
 
 const StyledItem = styled.div`
@@ -329,8 +324,8 @@ const StyledItem = styled.div`
     align-items: flex-start;
     justify-content: space-between;
     gap: 10px;
-    padding: 12px 4px;
-    border-bottom: 1px solid var(--black-color-10);
+    padding: 14px 12px;
+    ${cardSurfaceStyle};
 `;
 
 const StyledItemMain = styled.div`
@@ -361,9 +356,9 @@ const StyledChip = styled.span`
 `;
 
 const StyledItemName = styled.strong`
-    font-size: var(--font);
-    font-weight: 600;
-    color: var(--black-color);
+    font-size: var(--large-font);
+    font-weight: 700;
+    color: var(--dark-gray-color);
 `;
 
 const StyledHiddenBadge = styled.span`

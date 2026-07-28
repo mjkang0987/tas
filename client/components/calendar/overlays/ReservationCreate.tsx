@@ -54,6 +54,7 @@ export const ReservationCreate = ({initial, customerMap, onClose, onSave}: Reser
         selectedServices,
         form,
         error,
+        isSaving,
         filteredCustomers,
         totalDuration,
         totalPrice,
@@ -139,7 +140,7 @@ export const ReservationCreate = ({initial, customerMap, onClose, onSave}: Reser
 
             <StyledFooter>
                 <StyledActionButton type="button" onClick={onClose}>취소</StyledActionButton>
-                <StyledActionButton type="button" $primary onClick={handleSave}>저장</StyledActionButton>
+                <StyledActionButton type="button" $primary onClick={handleSave} disabled={isSaving}>{isSaving ? '저장 중…' : '저장'}</StyledActionButton>
             </StyledFooter>
         </StyledDetail>
     </StyledCreateOverlay>, modalRoot);

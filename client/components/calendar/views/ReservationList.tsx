@@ -52,23 +52,24 @@ export const ReservationList = ({
                         <StyledItem type="button"
                                     $color={r.assigneeId ? (assigneeColorMap[r.assigneeId] ?? '#8E8E93') : '#8E8E93'}
                                     $inactive={isInactive}
+                                    $variant={variant}
                                     onClick={(e) => {
                                         e.stopPropagation();
                                         setCreateReservationInitial(null);
                                         openReservationDetail(r);
                                     }}>
-                            <StyledMeta>{variant === 'date' ? r.startTime : r.date.slice(5)}</StyledMeta>
-                            <StyledServiceName>
+                            <StyledTimeMeta $variant={variant}>{variant === 'date' ? r.startTime : r.date.slice(5)}</StyledTimeMeta>
+                            <StyledServiceName $variant={variant}>
                                 <ServiceChipList service={r.service}
                                                  serviceColorMap={serviceColorMap}
                                                  keyPrefix={r.id}
                                                  textAs="strong" />
                             </StyledServiceName>
-                            <StyledMeta>
+                            <StyledCustomerMeta $variant={variant}>
                                 {isNewCustomerVisit(customer?.firstVisitDate, r.date) &&
                                     <NewCustomerBadge>N</NewCustomerBadge>}
                                 <StyledCustomerName className={isInactive ? 'strike' : undefined}>{customer?.name ?? ''}</StyledCustomerName>
-                            </StyledMeta>
+                            </StyledCustomerMeta>
                         </StyledItem>
                     </li>
                 );
@@ -102,7 +103,13 @@ const StyledList = styled.ul<{ $variant: 'date' | 'month' }>`
     box-sizing: border-box;
 `;
 
-const StyledItem = styled.button<{ $color: string; $inactive?: boolean }>`
+/* 모바일 월별 셀(variant=date)은 폭이 약 55px뿐이라 시간·서비스까지 넣으면 칩 하나가 3줄로 접힌다.
+   담당자 색(왼쪽 굵은 테두리) + 고객명만 남겨 1줄로 눕히고, 나머지는 날짜 탭 → 예약 목록 레이어에서 본다. */
+const compactChipOnMobile = (variant: 'date' | 'month', css: string) => (
+    variant === 'date' ? `@media (max-width: 640px) { ${css} }` : ''
+);
+
+const StyledItem = styled.button<{ $color: string; $inactive?: boolean; $variant: 'date' | 'month' }>`
     display: flex;
     flex-wrap: wrap;
     align-items: center;
@@ -116,6 +123,14 @@ const StyledItem = styled.button<{ $color: string; $inactive?: boolean }>`
     color: var(--dark-gray-color);
     font-size: var(--xsmall-font);
     text-align: left;
+    /* 이름 한 자라도 더 넣으려고 좌우 패딩·색바·폰트를 깎는다. 확보 폭 약 37px → 41px, 10px 폰트로 4자까지. */
+    ${(p) => compactChipOnMobile(p.$variant, `
+        flex-wrap: nowrap;
+        gap: 3px;
+        padding: 2px 3px;
+        border-left-width: 3px;
+        font-size: var(--tiny-font);
+    `)}
     ${(p) => p.$inactive && `
         border-color: var(--gray-color);
         border-left-color: var(--gray-color);
@@ -134,6 +149,10 @@ const StyledItem = styled.button<{ $color: string; $inactive?: boolean }>`
 `;
 
 const StyledCustomerName = styled.span`
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+
     &.strike {
         text-decoration: line-through;
         text-decoration-color: var(--gray-color);
@@ -142,12 +161,13 @@ const StyledCustomerName = styled.span`
     }
 `;
 
-const StyledServiceName = styled.span`
+const StyledServiceName = styled.span<{ $variant: 'date' | 'month' }>`
     display: inline-flex;
     align-items: center;
     flex-wrap: wrap;
     gap: var(--gap-xs);
     min-width: 0;
+    ${(p) => compactChipOnMobile(p.$variant, 'display: none;')}
 `;
 
 
@@ -158,6 +178,20 @@ const StyledMeta = styled.span`
     @media (max-width: 640px) {
         flex-wrap: wrap;
     }
+`;
+
+const StyledTimeMeta = styled(StyledMeta)<{ $variant: 'date' | 'month' }>`
+    ${(p) => compactChipOnMobile(p.$variant, 'display: none;')}
+`;
+
+/* 신규고객 배지는 배지+간격만 18px — 남은 글자 폭의 절반을 먹는다. 모바일 셀에선 접고 레이어에서 확인. */
+const StyledCustomerMeta = styled(StyledMeta)<{ $variant: 'date' | 'month' }>`
+    ${(p) => compactChipOnMobile(p.$variant, `
+        flex-wrap: nowrap;
+        min-width: 0;
+
+        ${NewCustomerBadge} { display: none; }
+    `)}
 `;
 
 const StyledViewAllButton = styled.button<{ $variant: 'date' | 'month' }>`

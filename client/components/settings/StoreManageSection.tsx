@@ -2,11 +2,11 @@ import {useEffect, useState} from 'react';
 
 import styled from 'styled-components';
 
-import {EMPTY_TEXT, StyledEditBtn, StyledDeleteBtn, StyledSaveBtn, StyledCancelBtn, StyledEmpty, StyledHeaderActions} from './settings-styles';
+import {cardSurfaceStyle, EMPTY_TEXT, StyledEditBtn, StyledDeleteBtn, StyledSaveBtn, StyledCancelBtn, StyledEmpty, StyledHeaderActions} from './settings-styles';
 
 import {useCalendarStore} from '../../store/calendarStore';
 import {PageHero} from '../ui/PageHero';
-import {formControlStyle} from '../ui/FormControls';
+import {formControlStyle, StyledFieldSelect} from '../ui/FormControls';
 import {FieldError} from '../ui/FieldError';
 import {useToastStore} from '../../store/toastStore';
 import {SHOP_INDUSTRIES, CATEGORY_NAMES, getPrimaryIndustry, type ShopCategory} from '../../features/store-settings/labels';
@@ -473,9 +473,7 @@ const StyledInfoPlaceholder = styled.span`
     color: var(--dark-gray-color2);
 `;
 
-const StyledIndustrySelect = styled.select`
-    ${formControlStyle};
-`;
+const StyledIndustrySelect = styled(StyledFieldSelect)``;
 
 const StyledIndustryBadge = styled.span`
     font-size: var(--medium-font);
@@ -490,9 +488,7 @@ const StyledStoreCard = styled.div`
     flex-direction: column;
     gap: 10px;
     padding: 10px 8px;
-    border: 1px solid var(--light-gray-color);
-    border-radius: 10px;
-    background: var(--white-color);
+    ${cardSurfaceStyle};
 `;
 
 const StyledFeatureCard = styled(StyledStoreCard)`
@@ -552,7 +548,8 @@ const StyledStoreCardHeader = styled.div`
 `;
 
 const StyledStoreCardTitle = styled.strong`
-    font-size: var(--font);
+    font-size: var(--large-font);
+    font-weight: 700;
     color: var(--dark-gray-color);
 `;
 
@@ -599,23 +596,24 @@ const StyledWeekdayHint = styled.em`
     line-height: 1.5;
 `;
 
+/* 요일 7개를 항상 한 줄에 균등 노출(카드가 2열 그리드라 좁아도 줄바꿈 없음) */
 const StyledWeekdayRow = styled.div`
-    display: flex;
-    flex-wrap: wrap;
-    gap: 8px;
+    display: grid;
+    grid-template-columns: repeat(7, minmax(0, 1fr));
+    gap: 6px;
 `;
 
 const StyledWeekdayChip = styled.label`
-    display: inline-flex;
+    display: flex;
     align-items: center;
     justify-content: center;
-    min-width: 40px;
-    padding: 8px 12px;
+    min-width: 0;
+    padding: 5px 2px;
     border: 1px solid var(--light-gray-color);
     border-radius: var(--chip-radius);
     background: var(--white-color);
     color: var(--black-color);
-    font-size: var(--medium-font);
+    font-size: var(--small-font);
     font-weight: 600;
     cursor: pointer;
 

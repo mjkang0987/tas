@@ -3,6 +3,7 @@ import styled from 'styled-components';
 import type {Customer, PointHistoryEntry} from '../../utils/customers';
 import {formatTel, POINT_HISTORY_LABELS} from '../../utils/customers';
 import {formatPrice} from '../../utils/services';
+import {cardSurfaceStyle, EMPTY_TEXT, StyledEmpty} from './settings-styles';
 
 interface Props {
     customersWithPoints: Customer[];
@@ -20,7 +21,7 @@ export const PointHistoryTab = ({customersWithPoints, handlePointHistoryClick, o
             <StyledHistoryCount>{customersWithPoints.length}명</StyledHistoryCount>
         </StyledHistoryHeader>
         {customersWithPoints.length === 0 ? (
-            <StyledHistoryEmpty>현재 적립금이 남아있는 고객이 없습니다.</StyledHistoryEmpty>
+            <StyledHistoryEmpty>{EMPTY_TEXT}</StyledHistoryEmpty>
         ) : (
             <StyledHistoryCustomerList>
                 {customersWithPoints.map((customer) => {
@@ -38,7 +39,7 @@ export const PointHistoryTab = ({customersWithPoints, handlePointHistoryClick, o
                                 <StyledHistoryPoint>{formatPrice(customer.points ?? 0)}</StyledHistoryPoint>
                             </StyledHistoryCustomerHead>
                             {histories.length === 0 ? (
-                                <StyledHistoryEmpty>적립금 이력이 없습니다.</StyledHistoryEmpty>
+                                <StyledHistoryEmpty>{EMPTY_TEXT}</StyledHistoryEmpty>
                             ) : (
                                 <StyledHistoryList>
                                     {histories.map((history) => (
@@ -92,8 +93,9 @@ const StyledHistoryHeaderInfo = styled.div`
 `;
 
 const StyledHistoryHeaderTitle = styled.strong`
-    font-size: var(--font);
-    color: var(--black-color);
+    font-size: var(--large-font);
+    font-weight: 700;
+    color: var(--dark-gray-color);
 `;
 
 const StyledHistoryHeaderDesc = styled.span`
@@ -122,9 +124,7 @@ const StyledHistoryCustomerCard = styled.div`
     flex-direction: column;
     gap: 10px;
     padding: 12px;
-    border: 1px solid var(--light-gray-color);
-    border-radius: 8px;
-    background: var(--white-color);
+    ${cardSurfaceStyle};
 `;
 
 const StyledHistoryCustomerHead = styled.div`
@@ -214,10 +214,8 @@ const StyledHistoryMetaItem = styled.span`
     color: var(--dark-gray-color2);
 `;
 
-const StyledHistoryEmpty = styled.div`
+const StyledHistoryEmpty = styled(StyledEmpty).attrs({$size: 'sm' as const})`
     padding: 12px 0;
-    font-size: var(--small-font);
-    color: var(--dark-gray-color2);
 `;
 
 const StyledCustomerNameButton = styled.button`

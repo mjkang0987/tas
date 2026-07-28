@@ -1,5 +1,7 @@
 import styled from 'styled-components';
 
+import {StyledEmpty as StyledEmptyBase} from '../settings/settings-styles';
+
 import type {SyncNotification} from '../../hooks/useNaverBookingSync';
 import {LabelBadge} from '../ui/LabelBadge';
 import {OVERLAY_Z_INDEX, StyledBodyInner, StyledDetail, StyledOverlay} from '../calendar/overlays/ModalStyles';
@@ -128,11 +130,8 @@ export const StyledFlag = styled.span`
     white-space: nowrap;
 `;
 
-export const StyledEmpty = styled.div`
+export const StyledEmpty = styled(StyledEmptyBase)`
     padding: 32px 12px;
-    text-align: center;
-    font-size: var(--font);
-    color: var(--dark-gray-color2);
 `;
 
 export const StyledItem = styled.div`

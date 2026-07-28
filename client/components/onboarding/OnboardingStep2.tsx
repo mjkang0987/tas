@@ -2,6 +2,8 @@ import {useMemo, useState} from 'react';
 
 import styled from 'styled-components';
 
+import {StyledEmpty as StyledEmptyBase} from '../settings/settings-styles';
+
 import {FieldError} from '../ui/FieldError';
 import {buildServiceColorMap, formatDuration, formatPrice, getServiceColor} from '../../utils/services';
 import type {ServiceItem} from '../../utils/services';
@@ -185,13 +187,8 @@ const StyledServiceList = styled.div`
     padding-right: 4px;
 `;
 
-const StyledEmpty = styled.div`
+const StyledEmpty = styled(StyledEmptyBase)`
     padding: 20px;
-    text-align: center;
-    font-size: var(--medium-font);
-    color: var(--dark-gray-color2);
-    border: 1px dashed var(--light-gray-color);
-    border-radius: var(--radius-md);
 `;
 
 const StyledCategoryGroup = styled.div`

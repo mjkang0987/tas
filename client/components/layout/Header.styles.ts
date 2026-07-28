@@ -169,18 +169,25 @@ export const StyledPageTitle = styled.h1`
 export const StyledAssigneeFilter = styled.select`
     min-width: 128px;
     margin-right: auto;
-    padding: 0 6px 0 8px;
     ${formControlStyle};
+    /* appearance 2단 선언: base-select 미지원 브라우저(Safari·Firefox)는 이 줄을 버리고 none을 유지한다.
+       덕분에 어디서도 네이티브 화살표가 남지 않아 아래 SVG 화살표만 보인다. */
+    appearance: none;
     appearance: base-select;
     display: inline-flex;
     align-items: center;
     gap: 6px;
+    padding: 0 28px 0 8px;
     cursor: pointer;
+    background-image: url("data:image/svg+xml;charset=UTF-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23666' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 10px center;
 
     @media (max-width: 640px) {
         min-width: 96px;
         margin-left: 0;
-        padding: 0 4px 0 6px;
+        padding: 0 26px 0 6px;
+        background-position: right 8px center;
     }
 
     selectedcontent {
@@ -189,14 +196,9 @@ export const StyledAssigneeFilter = styled.select`
         min-width: 0;
     }
 
+    /* Chrome(base-select)이 그리는 기본 화살표는 감추고 위 SVG로 통일 */
     &::picker-icon {
-        margin-left: auto;
-        color: var(--dark-gray-color2);
-        transition: transform 0.15s ease;
-    }
-
-    &:open::picker-icon {
-        transform: rotate(180deg);
+        display: none;
     }
 
     &::picker(select) {

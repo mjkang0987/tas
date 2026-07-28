@@ -1018,3 +1018,31 @@ model StoreNotice {
 
 ### 검증
 - `pnpm build` + 신청→차단→오너 확정/거절 흐름 구동(스크린샷). 매출·캘린더 회귀 없음 확인.
+
+## 완료 — 월별 뷰: 날짜 탭 시 예약 목록 레이어 + 모바일 칩 1줄 압축
+
+### 문제
+모바일 월별 셀 폭 = 390px ÷ 7열 ≈ **55px**. 칩 하나가 `시간 / 서비스 / 고객명` 3줄로 접혀 높이 53px가 되고,
+행 높이(약 98px)에 날짜 헤더 30px를 빼면 **예약이 1건만 보였다**. 나머지는 셀 내부 스크롤이라 모바일에서 발견 불가.
+
+### 결정 (사용자 확정)
+- 날짜 숫자 탭 = **예약 목록 모달 레이어**(기존 「전체(n)」 버튼과 동일 동작). PC·모바일 공통.
+  - 기존의 '일간 뷰로 전환'은 제거. 일간 전환은 모바일 `MobileViewTabs` / PC `Aside`로 한다.
+- **모바일 셀 칩을 1줄로 압축**: 시간·서비스칩 숨김, 담당자 색(왼쪽 테두리) + 고객명만. 칩 높이 53px → 약 19px, 노출 1건 → 3건.
+  - 이름 폭 확보용으로 모바일만 패딩 4→3px, 색바 4→3px, 폰트 11→10px, 신규고객 `N` 배지 숨김. 글자 폭 37 → 41px(한글 4자).
+  - 시간·서비스·`N` 배지는 날짜 탭 → 레이어에서 확인.
+- PC·연간 뷰는 손대지 않음. 분기 조건은 `$variant === 'date'` + `max-width: 640px` 동시 충족.
+
+### 검토 후 폐기한 안
+1. 하단 인라인 리스트(달력 60% / 리스트 40%) — 레이어로 통일.
+2. 셀을 지표만(담당자 색 점 + 건수)으로 축약 — 정보 손실이 커서 반려.
+3. 정기휴무 요일 접어 5열화 — 휴무 미설정 매장엔 효과 0이라 기본안 부적합.
+4. 모바일 「전체(n)」 버튼 숨김 — 건수 신호가 사라져 유지하기로.
+
+### 변경 파일
+- `client/components/calendar/views/Month.tsx` — 숫자 탭 → `setReservationListFilter({type:'date', dateKey})`
+- `client/components/calendar/views/Num.tsx` — `aria-label` prop 허용
+- `client/components/calendar/views/ReservationList.tsx` — `compactChipOnMobile` 헬퍼 + `StyledTimeMeta`·`StyledCustomerMeta`·`StyledServiceName` 변형 분기
+
+### 완료 조건
+- 모바일 월별에서 셀당 예약 2~3건 노출, 날짜 탭 → 예약 목록 레이어. PC 회귀 없음. 빌드·타입체크 그린.

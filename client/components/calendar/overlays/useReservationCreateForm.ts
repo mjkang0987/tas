@@ -51,6 +51,11 @@ export function useReservationCreateForm({
     );
 
     const [customerId, setCustomerId] = useState<number>(0);
+    // 저장 진행 중 재진입 차단용. addCustomer 응답을 기다리는 동안 모달이 열려 있어
+    // 저장 버튼을 한 번 더 누르면 신규 고객이 두 번 만들어졌다(2026-07 중복 고객 2건).
+    // ref로 두는 이유: setState는 비동기라 40ms 간격의 연속 클릭을 막지 못한다.
+    const savingRef = useRef(false);
+    const [isSaving, setIsSaving] = useState(false);
     const [customerQuery, setCustomerQuery] = useState('');
     const [showSuggestions, setShowSuggestions] = useState(false);
     const blurTimerRef = useRef<ReturnType<typeof setTimeout>>(undefined);
@@ -199,48 +204,62 @@ export function useReservationCreateForm({
     };
 
     const handleSave = async () => {
+        // 이미 저장 중이면 무시 — 연속 클릭이 신규 고객을 중복 생성하는 것을 막는다.
+        if (savingRef.current) return;
+
         const validationError = validate();
         if (validationError) {
             setError(validationError);
             return;
         }
 
-        // 신규 고객은 훅 상단에서 계산한 nextCustomerId(max+1)를 사용한다.
-        // (과거엔 여기서 customerId(미선택=0)로 섀도잉해 모든 신규 고객이
-        //  legacyId 0 한 칸에 덮어써지는 치명적 버그가 있었음)
-        let resolvedCustomerId = customerId;
+        savingRef.current = true;
+        setIsSaving(true);
 
-        // customerId==0 → 추천에서 고른 기존 고객이 없으므로 신규로 생성.
-        if (customerId === 0) {
-            const nextCustomer: Customer = {
-                id: nextCustomerId,
-                name: customerQuery.trim(),
-                tel: normalizeTel(customerTel),
-                points: 0,
-                pointHistories: [],
+        try {
+            // 신규 고객은 훅 상단에서 계산한 nextCustomerId(max+1)를 사용한다.
+            // (과거엔 여기서 customerId(미선택=0)로 섀도잉해 모든 신규 고객이
+            //  legacyId 0 한 칸에 덮어써지는 치명적 버그가 있었음)
+            let resolvedCustomerId = customerId;
+
+            // customerId==0 → 추천에서 고른 기존 고객이 없으므로 신규로 생성.
+            if (customerId === 0) {
+                const nextCustomer: Customer = {
+                    id: nextCustomerId,
+                    name: customerQuery.trim(),
+                    tel: normalizeTel(customerTel),
+                    points: 0,
+                    pointHistories: [],
+                };
+
+                // 신규 고객을 서버에 먼저 저장(await)한 뒤 예약을 POST해야
+                // 'Customer not found'(400)가 나지 않는다. (단건 저장이라 빠름)
+                await addCustomer(nextCustomer);
+                resolvedCustomerId = nextCustomer.id;
+                // 만든 고객을 폼에 고정한다. 저장이 실패해 다시 누르더라도
+                // customerId가 0이 아니라 재생성 경로를 타지 않는다.
+                setCustomerId(nextCustomer.id);
+            }
+
+            const reservation: Reservation = {
+                id: nextReservationId,
+                date: form.date,
+                startTime: form.startTime,
+                endTime: form.endTime,
+                service: form.service,
+                customerId: resolvedCustomerId,
+                ...(form.assigneeId ? {assigneeId: form.assigneeId} : {}),
+                status: 'active',
+                price: form.price,
+                ...(form.memo.trim() && {memo: form.memo.trim()}),
+                channel: form.channel,
             };
 
-            // 신규 고객을 서버에 먼저 저장(await)한 뒤 예약을 POST해야
-            // 'Customer not found'(400)가 나지 않는다. (단건 저장이라 빠름)
-            await addCustomer(nextCustomer);
-            resolvedCustomerId = nextCustomer.id;
+            onSave(reservation);
+        } finally {
+            savingRef.current = false;
+            setIsSaving(false);
         }
-
-        const reservation: Reservation = {
-            id: nextReservationId,
-            date: form.date,
-            startTime: form.startTime,
-            endTime: form.endTime,
-            service: form.service,
-            customerId: resolvedCustomerId,
-            ...(form.assigneeId ? {assigneeId: form.assigneeId} : {}),
-            status: 'active',
-            price: form.price,
-            ...(form.memo.trim() && {memo: form.memo.trim()}),
-            channel: form.channel,
-        };
-
-        onSave(reservation);
     };
 
     return {
@@ -255,6 +274,7 @@ export function useReservationCreateForm({
         selectedServices,
         form,
         error,
+        isSaving,
         filteredCustomers,
         totalDuration,
         totalPrice,

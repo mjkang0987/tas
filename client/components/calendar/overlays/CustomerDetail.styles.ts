@@ -1,5 +1,7 @@
 import styled from 'styled-components';
 
+import {StyledEmpty} from '../../settings/settings-styles';
+
 import {OVERLAY_Z_INDEX, StyledDetail, StyledOverlay, scrollContentStyle, scrollHintStyle} from './ModalStyles';
 import {CloseIconButton} from '../../ui/CloseIconButton';
 import {ColorTag} from '../../ui/ColorTag';
@@ -409,10 +411,8 @@ export const StyledPointHistoryMeta = styled.div`
     color: var(--dark-gray-color2);
 `;
 
-export const StyledEmptyText = styled.p`
-    margin: 0;
-    font-size: var(--small-font);
-    color: var(--dark-gray-color2);
+export const StyledEmptyText = styled(StyledEmpty).attrs({$size: 'sm' as const})`
+    padding: 12px 0;
 `;
 
 export const StyledReservationScroll = styled.div`

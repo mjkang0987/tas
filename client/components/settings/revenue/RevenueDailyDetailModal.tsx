@@ -24,6 +24,7 @@ import type {CustomerMap} from '../../../utils/customers';
 import type {DailyRevenue} from '../../../utils/revenue';
 import {StyledSummary, StyledSummaryStrong} from './revenue-styles';
 import {RevenueReservationList} from './RevenueReservationList';
+import {EMPTY_TEXT} from '../settings-styles';
 
 const WEEKDAYS = ['일', '월', '화', '수', '목', '금', '토'];
 
@@ -86,7 +87,7 @@ export const RevenueDailyDetailModal = ({
                         serviceColorMap={serviceColorMap}
                         onSelectReservation={onSelectReservation}
                         onSelectCustomer={onSelectCustomer}
-                        emptyText="예약 없음"
+                        emptyText={EMPTY_TEXT}
                     />
                     </StyledDailyBodyInner>
                 </StyledDailyBody>

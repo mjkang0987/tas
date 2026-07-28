@@ -9,7 +9,7 @@ import {Dot} from '../ui/Dot';
 import {LabelBadge} from '../ui/LabelBadge';
 import {formControlStyle} from '../ui/FormControls';
 import {useStoreLabels} from '../../hooks/useStoreLabels';
-import {StyledEditBtn, StyledDeleteBtn, StyledSaveBtn, StyledCancelBtn, StyledEmpty, StyledServiceFooter} from './settings-styles';
+import {EMPTY_TEXT, StyledEditBtn, StyledDeleteBtn, StyledSaveBtn, StyledCancelBtn, StyledEmpty, StyledServiceFooter} from './settings-styles';
 import {
     compactInputStyle,
     StyledAddInput,
@@ -275,7 +275,7 @@ const AssigneeSection = ({
                 ))}
             </StyledAssigneeCardGrid>
         ) : (
-            <StyledSectionEmpty>{title} 없음</StyledSectionEmpty>
+            <StyledSectionEmpty>{EMPTY_TEXT}</StyledSectionEmpty>
         )}
     </StyledAssigneeSection>
 );

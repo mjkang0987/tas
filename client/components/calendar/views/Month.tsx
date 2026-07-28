@@ -8,7 +8,6 @@ import {computeTargetDerived} from '../../../utils/calendarDerived';
 
 import {
     isTodayValue,
-    ViewType,
 } from '../../../utils/constants';
 
 import {toDateKey} from '../../../utils/reservations';
@@ -31,8 +30,6 @@ export const Month = ({
     const today = useCalendarStore((s) => s.today);
     const target = useCalendarStore((s) => s.target);
     const curr = useMemo(() => computeTargetDerived(target), [target]);
-    const setCurr = useCalendarStore((s) => s.setTargetFromDate);
-    const setView = useCalendarStore((s) => s.setView);
     const reservationMap = useCalendarStore((s) => s.reservationMap);
     const calendarAssigneeId = useCalendarStore((s) => s.calendarAssigneeId);
     const setReservationListFilter = useCalendarStore((s) => s.setReservationListFilter);
@@ -60,10 +57,8 @@ export const Month = ({
             return (<StyledDate key={`month_${val + index}`}
                                 type={type}>
                 <StyledDateHeader>
-                    <Num onClick={() => {
-                        setCurr(new Date(fullYear, currMonth, val));
-                        setView({type: ViewType.Day});
-                    }}
+                    <Num onClick={() => setReservationListFilter({type: 'date', dateKey})}
+                         aria-label={`${normalizedDate.getMonth() + 1}월 ${normalizedDate.getDate()}일 예약 ${dateReservations.length}건 보기`}
                          isToday={isTodayDate}
                          compact={isAdjacentMonth}
                          className={isAdjacentMonth ? 'faded' : undefined}>{dateLabel}</Num>

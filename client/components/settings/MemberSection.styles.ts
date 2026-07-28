@@ -1,6 +1,7 @@
 import styled from 'styled-components';
 
 import {LabelBadge} from '../ui/LabelBadge';
+import {StyledFieldSelect} from '../ui/FormControls';
 export const StyledContainer = styled.div`
     display: flex;
     flex-direction: column;
@@ -148,9 +149,9 @@ export const StyledMemberName = styled.span`
     display: flex;
     align-items: center;
     gap: 6px;
-    font-size: var(--font);
-    font-weight: 600;
-    color: var(--black-color);
+    font-size: var(--large-font);
+    font-weight: 700;
+    color: var(--dark-gray-color);
 `;
 
 export const StyledSelfTag = styled.span`
@@ -179,15 +180,11 @@ export const StyledMemberEmail = styled.span`
     color: var(--dark-gray-color2);
 `;
 
-export const StyledRoleSelect = styled.select`
+export const StyledRoleSelect = styled(StyledFieldSelect)`
     height: 26px;
-    padding: 0 8px;
-    border: 1px solid var(--border-color);
-    border-radius: var(--radius-md);
-    background: var(--white-color);
+    padding: 0 28px 0 8px;
+    border-color: var(--border-color);
     color: var(--dark-gray-color);
-    font-size: var(--small-font);
-    cursor: pointer;
 
     &:disabled {
         opacity: 0.5;
@@ -229,8 +226,8 @@ export const StyledGuestCard = styled.div`
 export const StyledGuestTitle = styled.strong`
     display: block;
     margin: 0 0 8px;
-    font-size: var(--font);
-    font-weight: 600;
+    font-size: var(--large-font);
+    font-weight: 700;
     color: var(--dark-gray-color);
 `;
 

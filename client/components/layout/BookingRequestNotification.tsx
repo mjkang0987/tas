@@ -2,6 +2,8 @@ import {useCallback, useEffect, useRef, useState} from 'react';
 
 import styled from 'styled-components';
 
+import {StyledEmpty as StyledEmptyBase} from '../settings/settings-styles';
+
 import {useBookingRequests, type BookingRequestDto} from '../../hooks/useBookingRequests';
 import {LabelBadge} from '../ui/LabelBadge';
 import {useCalendarStore} from '../../store/calendarStore';
@@ -229,12 +231,8 @@ const StyledPanelBody = styled.div`
     overflow-y: auto;
 `;
 
-const StyledEmpty = styled.p`
-    margin: 0;
+const StyledEmpty = styled(StyledEmptyBase)`
     padding: 20px 14px;
-    font-size: var(--medium-font);
-    color: var(--dark-gray-color2, #667);
-    text-align: center;
 `;
 
 const StyledItem = styled.div`

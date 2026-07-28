@@ -5,7 +5,7 @@ import styled from 'styled-components';
 import {PageHero} from '../ui/PageHero';
 import {formControlStyle} from '../ui/FormControls';
 import {FieldError} from '../ui/FieldError';
-import {StyledEditBtn, StyledDeleteBtn, StyledSaveBtn, StyledCancelBtn, StyledEmpty, EMPTY_TEXT} from './settings-styles';
+import {cardSurfaceStyle, StyledEditBtn, StyledDeleteBtn, StyledSaveBtn, StyledCancelBtn, StyledEmpty, EMPTY_TEXT, StyledSettingsCardTitle, StyledHeaderActions} from './settings-styles';
 import {useToastStore} from '../../store/toastStore';
 import {shouldUseLocalDb} from '../../lib/local-db';
 import {formatPrice} from '../../utils/services';
@@ -27,8 +27,10 @@ const EMPTY_DRAFT: DraftForm = {
     oncePerCustomer: false,
 };
 
+// 노출 순서는 쿠폰 추가/수정 폼과 동일하게 맞춘다(이름은 카드 제목으로 이미 노출).
 function productSpecs(p: CouponProduct): {label: string; value: string}[] {
     return [
+        {label: '중복 발권', value: p.oncePerCustomer ? '고객당 1장' : '제한없음'},
         {label: '할인 방식', value: p.discountType === 'amount' ? '정액(원)' : '정률(%)'},
         {
             label: p.discountType === 'amount' ? '할인액(원)' : '할인율(%)',
@@ -39,7 +41,6 @@ function productSpecs(p: CouponProduct): {label: string; value: string}[] {
         {label: '최소 결제금액', value: p.minOrderAmount != null ? formatPrice(p.minOrderAmount) : '제한없음'},
         {label: '유효기간', value: p.validDays != null ? `${p.validDays}일` : '무기한'},
         {label: '코드', value: p.code ? p.code : '직접발급'},
-        {label: '발급 제한', value: p.oncePerCustomer ? '고객당 1장' : '제한없음'},
     ];
 }
 
@@ -163,31 +164,23 @@ export const CouponManageSection = () => {
         }
     };
 
-    return (
-        <StyledWrap>
-            <PageHero
-                eyebrow="COUPON"
-                title="쿠폰 관리"
-                subtitle="정액·정률 할인 쿠폰을 등록합니다. 발급·결제 차감은 추후 지원됩니다."
-            />
-
-            {isLocal ? (
-                <StyledEmpty>쿠폰은 로그인 후 이용할 수 있습니다.</StyledEmpty>
-            ) : (
-                <>
-                    <StyledToolbar>
-                        {!isAdding && editingId === null && (
-                            <StyledEditBtn type="button" onClick={() => {setIsAdding(true); setDraft(EMPTY_DRAFT); setError('');}}>쿠폰 추가</StyledEditBtn>
-                        )}
-                    </StyledToolbar>
-
-                    {(isAdding || editingId !== null) && (
-                        <StyledFormCard>
+    const couponForm = (
+        <StyledFormCard>
+            <StyledFormHeader>
+                <StyledSettingsCardTitle>{editingId ? '쿠폰 수정' : '쿠폰 추가'}</StyledSettingsCardTitle>
+                <StyledHeaderActions>
+                    <StyledCancelBtn type="button" onClick={resetForm}>취소</StyledCancelBtn>
+                    <StyledSaveBtn type="button" onClick={handleSaveProduct}>저장</StyledSaveBtn>
+                </StyledHeaderActions>
+            </StyledFormHeader>
                             <StyledFieldGrid>
-                                <StyledField htmlFor="cp-name">
-                                    <span>이름</span>
-                                    <StyledInput id="cp-name" type="text" value={draft.name} placeholder="예: 신규고객 5천원 할인"
-                                                 onChange={(e) => {setDraft((d) => ({...d, name: e.target.value})); setError('');}} />
+                                <StyledField as="div">
+                                    <span>중복 발권</span>
+                                    <StyledCheckField htmlFor="cp-once">
+                                        <input id="cp-once" type="checkbox" checked={draft.oncePerCustomer}
+                                               onChange={(e) => setDraft((d) => ({...d, oncePerCustomer: e.target.checked}))} />
+                                        <StyledCheckText>고객당 1장 (미사용 보유 시 재발급 불가)</StyledCheckText>
+                                    </StyledCheckField>
                                 </StyledField>
                                 <StyledField as="div">
                                     <span>할인 방식</span>
@@ -205,6 +198,11 @@ export const CouponManageSection = () => {
                                             <span>정률(%)</span>
                                         </StyledRadioLabel>
                                     </StyledRadioRow>
+                                </StyledField>
+                                <StyledField htmlFor="cp-name">
+                                    <span>이름</span>
+                                    <StyledInput id="cp-name" type="text" value={draft.name} placeholder="예: 신규고객 5천원 할인"
+                                                 onChange={(e) => {setDraft((d) => ({...d, name: e.target.value})); setError('');}} />
                                 </StyledField>
                                 <StyledField htmlFor="cp-value">
                                     <span>{draft.discountType === 'amount' ? '할인액(원)' : '할인율(%)'}</span>
@@ -233,27 +231,44 @@ export const CouponManageSection = () => {
                                     <StyledInput id="cp-code" type="text" value={draft.code} placeholder="예: WELCOME5000"
                                                  onChange={(e) => {setDraft((d) => ({...d, code: e.target.value})); setError('');}} />
                                 </StyledField>
-                                <StyledField htmlFor="cp-once">
-                                    <span>고객당 1장 (미사용 보유 시 재발급 불가)</span>
-                                    <input id="cp-once" type="checkbox" checked={draft.oncePerCustomer}
-                                           onChange={(e) => setDraft((d) => ({...d, oncePerCustomer: e.target.checked}))} />
-                                </StyledField>
                             </StyledFieldGrid>
                             <FieldError variant="inline">{error}</FieldError>
-                            <StyledActionRow>
-                                <StyledCancelBtn type="button" onClick={resetForm}>취소</StyledCancelBtn>
-                                <StyledSaveBtn type="button" onClick={handleSaveProduct}>저장</StyledSaveBtn>
-                            </StyledActionRow>
-                        </StyledFormCard>
-                    )}
+        </StyledFormCard>
+    );
 
-                    {loading ? (
+    return (
+        <StyledWrap>
+            <PageHero
+                eyebrow="COUPON"
+                title="쿠폰 관리"
+                subtitle="정액·정률 할인 쿠폰을 등록합니다. 발급·결제 차감은 추후 지원됩니다."
+            />
+
+            {isLocal ? (
+                <StyledEmpty>쿠폰은 로그인 후 이용할 수 있습니다.</StyledEmpty>
+            ) : (
+                <>
+                    <StyledToolbar>
+                        {/* 폼이 열려 있어도 항상 노출. 수정 중에 누르면 편집을 접고 빈 추가 폼으로 전환한다. */}
+                        <StyledEditBtn type="button"
+                                       onClick={() => {
+                                           setIsAdding(true);
+                                           setEditingId(null);
+                                           setDraft(EMPTY_DRAFT);
+                                           setError('');
+                                       }}>쿠폰 추가</StyledEditBtn>
+                    </StyledToolbar>
+
+                    {isAdding && couponForm}
+
+                    {loading || activeProducts.length === 0 ? (
                         <StyledEmpty>{EMPTY_TEXT}</StyledEmpty>
-                    ) : activeProducts.length === 0 ? (
-                        <StyledEmpty>등록된 쿠폰이 없습니다.</StyledEmpty>
                     ) : (
                         <StyledList>
                             {activeProducts.map((p) => (
+                                editingId === p.id ? (
+                                    <div key={p.id}>{couponForm}</div>
+                                ) : (
                                 <StyledItem key={p.id}>
                                     <StyledItemHead>
                                         <StyledItemName>{p.name}</StyledItemName>
@@ -273,6 +288,7 @@ export const CouponManageSection = () => {
                                         ))}
                                     </StyledSpecGrid>
                                 </StyledItem>
+                                )
                             ))}
                         </StyledList>
                     )}
@@ -298,9 +314,7 @@ const StyledFormCard = styled.div`
     flex-direction: column;
     gap: 10px;
     padding: 12px 10px;
-    border: 1px solid var(--light-gray-color);
-    border-radius: 10px;
-    background: var(--white-color);
+    ${cardSurfaceStyle};
 `;
 
 const StyledFieldGrid = styled.div`
@@ -319,6 +333,20 @@ const StyledField = styled.label`
     gap: 4px;
     font-size: var(--small-font);
     color: var(--dark-gray-color2);
+`;
+
+/* 같은 줄의 「할인 방식」 라디오(StyledRadioRow)와 높이를 맞춰 두 칸 바닥선이 어긋나지 않게 한다. */
+const StyledCheckField = styled.label`
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    min-height: 36px;
+    font-size: var(--small-font);
+    color: var(--dark-gray-color2);
+`;
+
+const StyledCheckText = styled.span`
+    min-width: 0;
 `;
 
 const StyledRadioRow = styled.div`
@@ -341,9 +369,11 @@ const StyledInput = styled.input`
     ${formControlStyle};
 `;
 
-const StyledActionRow = styled.div`
+/* 매장 관리 카드와 동일하게 제목 줄 우측에 취소·저장을 고정한다. */
+const StyledFormHeader = styled.div`
     display: flex;
-    justify-content: flex-end;
+    align-items: center;
+    justify-content: space-between;
     gap: 8px;
 `;
 
@@ -358,9 +388,7 @@ const StyledItem = styled.div`
     flex-direction: column;
     gap: 10px;
     padding: 14px 12px;
-    border: 1px solid var(--light-gray-color);
-    border-radius: 10px;
-    background: var(--white-color);
+    ${cardSurfaceStyle};
 `;
 
 const StyledItemHead = styled.div`
@@ -371,9 +399,9 @@ const StyledItemHead = styled.div`
 `;
 
 const StyledItemName = styled.strong`
-    font-size: var(--font);
-    font-weight: 600;
-    color: var(--black-color);
+    font-size: var(--large-font);
+    font-weight: 700;
+    color: var(--dark-gray-color);
     min-width: 0;
 `;
 

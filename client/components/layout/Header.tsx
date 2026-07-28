@@ -17,7 +17,6 @@ import {CalendarDirection} from '../calendar/CalendarDirection';
 import {CalendarHeading} from '../calendar/CalendarHeading';
 import {ReservationDetail} from '../calendar/overlays/ReservationDetail';
 import {MobileViewTabs} from './MobileViewTabs';
-import {MobileDateJump} from './MobileDateJump';
 import {NaverSyncNotification} from './NaverSyncNotification';
 import {BookingRequestNotification} from './BookingRequestNotification';
 import {NaverSyncConflictModal} from '../modals/NaverSyncConflictModal';
@@ -191,7 +190,6 @@ export const Header = () => {
             {isCalendarPage && currValue.full !== null && <>
                 <StyledCalendarRow>
                     <CalendarDirection />
-                    <MobileDateJump />
                     <CalendarHeading />
                     <StyledMobileAddPill type="button"
                                          onClick={handleCreateReservation}
