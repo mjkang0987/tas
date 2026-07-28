@@ -11,7 +11,7 @@ import {LabelBadge} from '../ui/LabelBadge';
 import {PageHero} from '../ui/PageHero';
 import {GuestNotice} from '../ui/GuestNotice';
 import {useToastStore} from '../../store/toastStore';
-import {StyledSettingsCard, StyledSaveBtn, StyledEditBtn} from './settings-styles';
+import {StyledSettingsCard, StyledSaveBtn, StyledEditBtn, StyledSettingsCardTitle} from './settings-styles';
 import {ROLE_LABELS} from '../../utils/labels';
 
 type LinkedAccount = {
@@ -182,6 +182,8 @@ export function SNSLinkingSection() {
             <PageHero eyebrow="SNS" title="계정 연동" subtitle="여러 SNS 계정을 연결하면 어떤 계정으로든 로그인할 수 있습니다." />
 
             {isGuest && <StyledGuestNoticeWrap><GuestNotice /></StyledGuestNoticeWrap>}
+
+            <StyledSettingsCardTitle>SNS 계정 연동</StyledSettingsCardTitle>
 
             <StyledProviderCard>
                 {loading ? (
