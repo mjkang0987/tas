@@ -2,7 +2,7 @@ import React from 'react';
 
 import styled from 'styled-components';
 
-import {ServiceChipList} from '../ui/ServiceChip';
+import {ServiceChipList, StyledServiceText} from '../ui/ServiceChip';
 import {ReservationStatusBadge} from '../ui/ReservationStatusBadge';
 import type {Customer} from '../../utils/customers';
 import {formatTel} from '../../utils/customers';
@@ -53,14 +53,14 @@ export function AddressCustomerSummary({customer, stats, serviceColorMap, checke
                     <StyledName>{customer.name}</StyledName>
                 )}
                 <StyledTel><StyledTelLink href={`tel:${customer.tel}`} onClick={(e) => e.stopPropagation()}>{formatTel(customer.tel)}</StyledTelLink></StyledTel>
-                <StyledRecentService>
-                    <StyledRecentServiceLabel>최근 서비스</StyledRecentServiceLabel>
-                    {stats?.recentService && stats.recentService !== '-'
-                        ? <ServiceChipList service={stats.recentService} serviceColorMap={serviceColorMap} keyPrefix={customer.id} />
-                        : '-'}
-                </StyledRecentService>
                 <StyledArrow $open={open} />
             </StyledInlineRow>
+            <StyledRecentService>
+                <StyledRecentServiceLabel>최근 서비스</StyledRecentServiceLabel>
+                {stats?.recentService && stats.recentService !== '-'
+                    ? <StyledServiceChips service={stats.recentService} serviceColorMap={serviceColorMap} keyPrefix={customer.id} />
+                    : '-'}
+            </StyledRecentService>
             <StyledBlockRow>
                 <StyledPrice><StyledPriceLabel>적립금</StyledPriceLabel>{formatPrice(customer.points ?? 0)}</StyledPrice>
                 <StyledStatusCounts>
@@ -143,12 +143,17 @@ const StyledSummaryRow = styled.div`
     }
 `;
 
+// 데스크톱에선 이름·연락처만큼만 차지하고 남는 폭은 최근 서비스에 넘긴다.
 const StyledInlineRow = styled.div`
     display: flex;
     align-items: center;
     gap: 10px;
     flex: 1;
     min-width: 0;
+
+    @media (min-width: 841px) {
+        flex: 0 1 auto;
+    }
 `;
 
 const StyledTel = styled.span`
@@ -157,14 +162,32 @@ const StyledTel = styled.span`
     color: var(--dark-gray-color);
 `;
 
+// 모바일만 한 줄을 통째로 써서 이름 줄과 분리(3줄). 데스크톱은 작업 이전 그대로 이름·연락처 옆.
 const StyledRecentService = styled.span`
-    flex: 1;
+    width: 100%;
     min-width: 0;
-    display: inline-flex;
+    display: flex;
     align-items: center;
-    gap: 4px;
+    gap: 4px 6px;
+    flex-wrap: wrap;
     font-size: var(--small-font);
-    overflow: hidden;
+
+    @media (min-width: 841px) {
+        width: auto;
+        flex: 1;
+        flex-wrap: nowrap;
+        gap: 4px;
+        overflow: hidden;
+    }
+`;
+
+// 시술명이 공백에서 쪼개지지 않게 — 모바일 한정. 데스크톱은 작업 이전 동작 유지.
+const StyledServiceChips = styled(ServiceChipList)`
+    @media (max-width: 840px) {
+        ${StyledServiceText} {
+            white-space: nowrap;
+        }
+    }
 `;
 
 const StyledRecentServiceLabel = styled.span`

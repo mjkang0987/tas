@@ -187,6 +187,7 @@ const StyledRangeNavButton = styled.button`
     display: inline-flex;
     align-items: center;
     justify-content: center;
+    flex-shrink: 0;
     padding: 0;
     border: 0;
     background: transparent;

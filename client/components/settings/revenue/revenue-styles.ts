@@ -12,11 +12,21 @@ export {actionButtonStyle} from '../settings-styles';
 
 /* ── Form / input helpers ── */
 
+// iOS Safari는 date 입력에 UA 고유 폭을 먹여 width:100%보다 넓게 그리고, 그만큼 옆 요소를
+// 덮는다(모바일 매출 기간 선택에서 두 번째 날짜가 다음 버튼과 겹침). appearance를 끄고
+// 값 영역 여백을 0으로 맞춰 폭을 우리가 지정한 값으로 고정한다.
 export const StyledDateInput = styled.input`
     width: 100%;
     min-width: 0;
     ${formControlStyle};
     padding: 0 8px;
+    -webkit-appearance: none;
+    appearance: none;
+
+    &::-webkit-date-and-time-value {
+        margin: 0;
+        text-align: left;
+    }
 `;
 
 /* ── List / row ── */

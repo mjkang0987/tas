@@ -72,9 +72,6 @@ const StyledTabBar = styled.nav`
         align-items: stretch;
         background-color: var(--white-color);
         border-top: 1px solid var(--light-gray-color);
-        /* 상하 여백 균형(각 8px) — 하단은 홈 인디케이터(safe-area)까지 탭바 색으로 채움 */
-        padding-top: 8px;
-        padding-bottom: max(env(safe-area-inset-bottom, 0px), 8px);
         z-index: 40;
     }
 `;
@@ -86,7 +83,9 @@ const StyledTab = styled(Link)<{ $active: boolean }>`
     align-items: center;
     justify-content: center;
     gap: 3px;
-    padding: 4px 0;
+    /* 상하 여백을 탭바가 아니라 링크가 갖는다 — 여백까지 탭 영역. 상:하 = 2:3, 하단은 홈 인디케이터(safe-area)까지 */
+    padding-top: 10px;
+    padding-bottom: max(env(safe-area-inset-bottom, 0px), 15px);
     text-decoration: none;
     color: ${(props) => props.$active ? 'var(--brand-color)' : 'var(--dark-gray-color2)'};
 
