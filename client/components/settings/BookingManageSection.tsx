@@ -2,7 +2,7 @@ import {useEffect, useMemo, useState} from 'react';
 
 import styled, {css} from 'styled-components';
 
-import {formControlStyle} from '../ui/FormControls';
+import {formControlStyle, StyledFieldSelect} from '../ui/FormControls';
 import {PageHero} from '../ui/PageHero';
 
 import {useToastStore} from '../../store/toastStore';
@@ -162,6 +162,7 @@ export function BookingManageSection() {
                 subtitle="고객이 직접 예약하는 공개 예약 페이지의 주소와 규칙을 설정합니다."
             />
 
+            <StyledPairRow>
             <StyledSettingsCard>
                 <StyledSettingsCardTitle>공개 예약 페이지 주소</StyledSettingsCardTitle>
                 <StyledSettingsHint>영문 매장명이 예약 페이지 주소가 됩니다. 영문 소문자·숫자·하이픈, 3~32자.</StyledSettingsHint>
@@ -187,7 +188,7 @@ export function BookingManageSection() {
                     {!slugFormatInvalid && checkState === 'invalid' && <StyledError>형식을 확인해 주세요.</StyledError>}
                 </StyledField>
                 <StyledField>
-                    <StyledLabel htmlFor="booking-contact">매장 연락처 <StyledRequired>필수</StyledRequired></StyledLabel>
+                    <StyledLabel htmlFor="booking-contact">매장 연락처 <StyledReq>필수</StyledReq></StyledLabel>
                     <StyledFieldCaption>
                         고객이 예약 문의와 개인정보 열람·삭제를 요구할 창구입니다. 예약 페이지와 개인정보 안내에 표시됩니다.
                     </StyledFieldCaption>
@@ -260,6 +261,7 @@ export function BookingManageSection() {
                     <span>고객이 담당자를 선택할 수 있게 하기 (끄면 매장이 배정)</span>
                 </StyledCheckboxRow>
             </StyledSettingsCard>
+            </StyledPairRow>
 
             <StyledSettingsCard>
                 <StyledSettingsCardTitle>안내문구</StyledSettingsCardTitle>
@@ -340,6 +342,18 @@ export function BookingManageSection() {
     );
 }
 
+/* 「공개 예약 페이지 주소」와 「예약 규칙」을 PC에서 한 줄 2열로.
+   카드 자체가 margin-bottom을 가지므로 세로 간격은 그대로 두고 열 간격만 준다. */
+const StyledPairRow = styled.div`
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    column-gap: 16px;
+
+    @media (max-width: 640px) {
+        grid-template-columns: 1fr;
+    }
+`;
+
 const StyledField = styled.div`
     display: flex;
     flex-direction: column;
@@ -365,18 +379,6 @@ const StyledMessageBlock = styled.div`
     }
 `;
 
-// 필수 항목 배지. 매장 연락처는 고객의 개인정보 열람·삭제 요구 창구라 비워둘 수 없다.
-const StyledRequired = styled.span`
-    margin-left: 6px;
-    padding: 1px 6px;
-    border-radius: var(--radius-sm);
-    background: var(--danger-color);
-    color: var(--white-color);
-    font-size: var(--xsmall-font);
-    font-weight: 600;
-    vertical-align: middle;
-`;
-
 const StyledFieldCaption = styled.span`
     font-size: var(--small-font);
     line-height: 1.5;
@@ -391,6 +393,7 @@ const StyledInput = styled.input<{$invalid?: boolean}>`
     ${(p) => p.$invalid && css`border-color: var(--danger-color);`}
 `;
 
+// 필수 항목 배지. 영문 매장명·매장 연락처 모두 비워둘 수 없어 동일 배지를 쓴다.
 const StyledReq = styled.span`
     font-size: var(--xsmall-font);
     font-weight: 600;
@@ -426,11 +429,8 @@ const StyledOk = styled.span`
     color: var(--success-color);
 `;
 
-const StyledFullSelect = styled.select`
-    ${formControlStyle};
+const StyledFullSelect = styled(StyledFieldSelect)`
     width: 100%;
-    color: var(--black-color);
-    cursor: pointer;
 `;
 
 const StyledTextarea = styled.textarea`
