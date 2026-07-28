@@ -3,9 +3,9 @@ import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import styled from 'styled-components';
 
 import {PageHero} from '../ui/PageHero';
-import {formControlStyle} from '../ui/FormControls';
+import {formControlStyle, StyledFieldSelect} from '../ui/FormControls';
 import {FieldError} from '../ui/FieldError';
-import {actionButtonStyle, StyledEditBtn, StyledDeleteBtn, StyledSaveBtn, StyledCancelBtn, StyledEmpty, EMPTY_TEXT} from './settings-styles';
+import {cardSurfaceStyle, actionButtonStyle, StyledEditBtn, StyledDeleteBtn, StyledSaveBtn, StyledCancelBtn, StyledEmpty, StyledSettingsCardTitle, EMPTY_TEXT} from './settings-styles';
 import {useToastStore} from '../../store/toastStore';
 import {useCalendarStore} from '../../store/calendarStore';
 import {shouldUseLocalDb} from '../../lib/local-db';
@@ -275,6 +275,7 @@ export const MembershipManageSection = () => {
 
                             {(isAdding || editingId !== null) && (
                                 <StyledFormCard>
+                                    <StyledSettingsCardTitle>{editingId !== null ? '회원권 상품 수정' : '회원권 상품 등록'}</StyledSettingsCardTitle>
                                     <StyledFieldGrid>
                                         <StyledField htmlFor="mp-name">
                                             <span>이름</span>
@@ -305,10 +306,8 @@ export const MembershipManageSection = () => {
                                 </StyledFormCard>
                             )}
 
-                            {loading ? (
+                            {loading || activeProducts.length === 0 ? (
                                 <StyledEmpty>{EMPTY_TEXT}</StyledEmpty>
-                            ) : activeProducts.length === 0 ? (
-                                <StyledEmpty>등록된 회원권이 없습니다.</StyledEmpty>
                             ) : (
                                 <StyledList>
                                     {activeProducts.map((p) => (
@@ -333,6 +332,7 @@ export const MembershipManageSection = () => {
                     {tab === 'issue' && (
                         <>
                             <StyledFormCard>
+                                <StyledSettingsCardTitle>회원권 발급</StyledSettingsCardTitle>
                                 <StyledFieldGrid>
                                     <CustomerAutocomplete
                                         id="mi-customer"
@@ -362,10 +362,8 @@ export const MembershipManageSection = () => {
                                 </StyledActionRow>
                             </StyledFormCard>
 
-                            {loading ? (
+                            {loading || memberships.length === 0 ? (
                                 <StyledEmpty>{EMPTY_TEXT}</StyledEmpty>
-                            ) : memberships.length === 0 ? (
-                                <StyledEmpty>발급된 회원권이 없습니다.</StyledEmpty>
                             ) : (
                                 <StyledList>
                                     {memberships.map((m) => (
@@ -429,9 +427,7 @@ const StyledFormCard = styled.div`
     flex-direction: column;
     gap: 10px;
     padding: 12px 10px;
-    border: 1px solid var(--light-gray-color);
-    border-radius: 10px;
-    background: var(--white-color);
+    ${cardSurfaceStyle};
 `;
 
 const StyledFieldGrid = styled.div`
@@ -456,9 +452,7 @@ const StyledInput = styled.input`
     ${formControlStyle};
 `;
 
-const StyledSelect = styled.select`
-    ${formControlStyle};
-`;
+const StyledSelect = styled(StyledFieldSelect)``;
 
 const StyledActionRow = styled.div`
     display: flex;
@@ -489,9 +483,9 @@ const StyledItemMain = styled.div`
 `;
 
 const StyledItemName = styled.strong`
-    font-size: var(--font);
-    font-weight: 600;
-    color: var(--black-color);
+    font-size: var(--large-font);
+    font-weight: 700;
+    color: var(--dark-gray-color);
 `;
 
 const StyledItemMeta = styled.span`
