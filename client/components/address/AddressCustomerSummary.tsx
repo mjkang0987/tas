@@ -2,7 +2,7 @@ import React from 'react';
 
 import styled from 'styled-components';
 
-import {ServiceChipList} from '../ui/ServiceChip';
+import {ServiceChipList, StyledServiceText, StyledServiceToken} from '../ui/ServiceChip';
 import {ReservationStatusBadge} from '../ui/ReservationStatusBadge';
 import type {Customer} from '../../utils/customers';
 import {formatTel} from '../../utils/customers';
@@ -56,7 +56,7 @@ export function AddressCustomerSummary({customer, stats, serviceColorMap, checke
                 <StyledRecentService>
                     <StyledRecentServiceLabel>최근 서비스</StyledRecentServiceLabel>
                     {stats?.recentService && stats.recentService !== '-'
-                        ? <ServiceChipList service={stats.recentService} serviceColorMap={serviceColorMap} keyPrefix={customer.id} />
+                        ? <StyledServiceChips service={stats.recentService} serviceColorMap={serviceColorMap} keyPrefix={customer.id} />
                         : '-'}
                 </StyledRecentService>
                 <StyledArrow $open={open} />
@@ -165,6 +165,20 @@ const StyledRecentService = styled.span`
     gap: 4px;
     font-size: var(--small-font);
     overflow: hidden;
+`;
+
+// 시술명은 한 줄 고정 — 이름 안에서도(공백 포함), 시술이 여러 개여도 줄바꿈하지 않고 넘치면 잘린다.
+const StyledServiceChips = styled(ServiceChipList)`
+    flex-wrap: nowrap;
+    overflow: hidden;
+
+    ${StyledServiceToken} {
+        flex-shrink: 0;
+    }
+
+    ${StyledServiceText} {
+        white-space: nowrap;
+    }
 `;
 
 const StyledRecentServiceLabel = styled.span`
