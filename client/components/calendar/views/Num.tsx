@@ -8,6 +8,7 @@ interface Props {
     isToday?: boolean;
     compact?: boolean;
     className?: string;
+    'aria-label'?: string;
 }
 
 export const Num: React.FC<Props> = ({children, isToday, compact, ...props}) => {
