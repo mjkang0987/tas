@@ -65,26 +65,82 @@ export async function listNaverCancellationEmails(
     return (json.messages ?? []).map((m) => m.id);
 }
 
+// 메일 본문 조회 실패 원인. 예전엔 전부 null 하나로 뭉개져 있어서, 알림에 messageId만 남고
+// "HTTP 403인지 / 메일에 HTML 파트가 없는지"를 사후에 구분할 수 없었다(2026-07 동기화 실패 조사).
+export type EmailFetchFailure =
+    | {reason: 'http'; status: number; detail: string}
+    | {reason: 'no_html_part'}
+    | {reason: 'network'; detail: string}
+    | {reason: 'cooldown'};
+
+export type EmailFetchResult =
+    | {ok: true; html: string}
+    | {ok: false; failure: EmailFetchFailure};
+
+export function describeEmailFetchFailure(failure: EmailFetchFailure): string {
+    switch (failure.reason) {
+        case 'http':
+            return `HTTP ${failure.status}${failure.detail ? ` (${failure.detail})` : ''}`;
+        case 'no_html_part':
+            return 'HTML 본문 파트 없음';
+        case 'network':
+            return `네트워크 오류 (${failure.detail})`;
+        case 'cooldown':
+            return 'Gmail 호출 제한 쿨다운 중';
+    }
+}
+
+// Google 에러 응답의 reason(예: rateLimitExceeded, insufficientPermissions)을 뽑는다.
+// 본문을 소비하므로 응답당 한 번만 호출할 것.
+async function readErrorDetail(res: Response): Promise<string> {
+    try {
+        const text = await res.text();
+        const json = JSON.parse(text) as {
+            error?: {errors?: Array<{reason?: string}>; status?: string; message?: string};
+        };
+        return json.error?.errors?.[0]?.reason
+            ?? json.error?.status
+            ?? json.error?.message
+            ?? text.slice(0, 200);
+    } catch {
+        return '';
+    }
+}
+
 export async function getEmailContent(
     accessToken: string,
     messageId: string,
-): Promise<string | null> {
-    if (isRateLimited()) return null;
+): Promise<EmailFetchResult> {
+    if (isRateLimited()) return {ok: false, failure: {reason: 'cooldown'}};
 
     const url = `${GMAIL_API}/messages/${messageId}?format=full`;
 
-    const res = await fetch(url, {
-        headers: {Authorization: `Bearer ${accessToken}`},
-    });
+    let res: Response;
+    try {
+        res = await fetch(url, {
+            headers: {Authorization: `Bearer ${accessToken}`},
+        });
+    } catch (err) {
+        const detail = err instanceof Error ? err.message : String(err);
+        console.error('[gmail-client] 메일 조회 네트워크 오류', messageId, detail);
+        return {ok: false, failure: {reason: 'network', detail}};
+    }
 
     if (!res.ok) {
         handleRateLimit(res);
-        console.error('[gmail-client] get message failed', res.status);
-        return null;
+        const detail = await readErrorDetail(res);
+        console.error('[gmail-client] 메일 조회 실패', messageId, res.status, detail);
+        return {ok: false, failure: {reason: 'http', status: res.status, detail}};
     }
 
     const json = await res.json() as GmailMessage;
-    return extractHtmlBody(json.payload);
+    const html = extractHtmlBody(json.payload);
+    if (!html) {
+        console.error('[gmail-client] 메일에 HTML 파트가 없음', messageId);
+        return {ok: false, failure: {reason: 'no_html_part'}};
+    }
+
+    return {ok: true, html};
 }
 
 interface GmailMessagePart {

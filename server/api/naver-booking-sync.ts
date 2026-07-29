@@ -5,7 +5,13 @@ import {Prisma} from '../../client/prisma/generated/prisma/client';
 import {prisma} from '../db/prisma';
 import {getApiSession, requireRole} from '../auth/api-session';
 import {getValidAccessTokenWithReason} from './gmail/token-manager';
-import {listNaverBookingEmails, listNaverCancellationEmails, getEmailContent} from './gmail/gmail-client';
+import {
+    listNaverBookingEmails,
+    listNaverCancellationEmails,
+    getEmailContent,
+    describeEmailFetchFailure,
+    type EmailFetchResult,
+} from './gmail/gmail-client';
 import {parseNaverBookingEmail, parseNaverCancellationEmail} from './gmail/naver-booking-parser';
 import type {NaverBookingData} from './gmail/naver-booking-parser';
 import {dbReservationToFrontend} from '../db/mappers';
@@ -161,15 +167,15 @@ export async function syncNaverBookingsForStore(storeId: string): Promise<NaverS
 
     // 예약 이메일 처리 (DB 쓰기는 순차 유지)
     for (let i = 0; i < bookingMessageIds.length; i++) {
-        const html = bookingContents[i];
-        if (!html) {
-            errors.push(`Failed to fetch email ${bookingMessageIds[i]}`);
+        const fetched = bookingContents[i];
+        if (!fetched.ok) {
+            errors.push(`예약 메일 조회 실패 ${bookingMessageIds[i]} — ${describeEmailFetchFailure(fetched.failure)}`);
             continue;
         }
 
-        const booking = parseNaverBookingEmail(html);
+        const booking = parseNaverBookingEmail(fetched.html);
         if (!booking) {
-            errors.push(`Failed to parse email ${bookingMessageIds[i]}`);
+            errors.push(`예약 메일 파싱 실패 ${bookingMessageIds[i]}`);
             continue;
         }
 
@@ -188,21 +194,21 @@ export async function syncNaverBookingsForStore(storeId: string): Promise<NaverS
                 skipped.push(booking.bookingId);
             }
         } catch (err) {
-            errors.push(`Error processing email ${bookingMessageIds[i]}: ${String(err)}`);
+            errors.push(`예약 메일 처리 오류 ${bookingMessageIds[i]}: ${String(err)}`);
         }
     }
 
     // 취소 이메일 처리
     for (let i = 0; i < cancelMessageIds.length; i++) {
-        const html = cancellationContents[i];
-        if (!html) {
-            errors.push(`Failed to fetch cancellation email ${cancelMessageIds[i]}`);
+        const fetched = cancellationContents[i];
+        if (!fetched.ok) {
+            errors.push(`취소 메일 조회 실패 ${cancelMessageIds[i]} — ${describeEmailFetchFailure(fetched.failure)}`);
             continue;
         }
 
-        const cancellation = parseNaverCancellationEmail(html);
+        const cancellation = parseNaverCancellationEmail(fetched.html);
         if (!cancellation) {
-            errors.push(`Failed to parse cancellation email ${cancelMessageIds[i]}`);
+            errors.push(`취소 메일 파싱 실패 ${cancelMessageIds[i]}`);
             continue;
         }
 
@@ -221,7 +227,7 @@ export async function syncNaverBookingsForStore(storeId: string): Promise<NaverS
                 skipped.push(cancellation.bookingId);
             }
         } catch (err) {
-            errors.push(`Error processing cancellation email ${cancelMessageIds[i]}: ${String(err)}`);
+            errors.push(`취소 메일 처리 오류 ${cancelMessageIds[i]}: ${String(err)}`);
         }
     }
 
@@ -239,8 +245,8 @@ export async function syncNaverBookingsForStore(storeId: string): Promise<NaverS
 async function fetchEmailContentsInBatches(
     accessToken: string,
     messageIds: string[],
-): Promise<Array<string | null>> {
-    const results: Array<string | null> = [];
+): Promise<EmailFetchResult[]> {
+    const results: EmailFetchResult[] = [];
 
     for (let i = 0; i < messageIds.length; i += EMAIL_FETCH_CONCURRENCY) {
         const batch = messageIds.slice(i, i + EMAIL_FETCH_CONCURRENCY);
@@ -248,7 +254,9 @@ async function fetchEmailContentsInBatches(
             batch.map((id) => getEmailContent(accessToken, id))
         );
         for (const result of batchResults) {
-            results.push(result.status === 'fulfilled' ? result.value : null);
+            results.push(result.status === 'fulfilled'
+                ? result.value
+                : {ok: false, failure: {reason: 'network', detail: String(result.reason)}});
         }
     }
 
