@@ -159,11 +159,11 @@ export async function syncNaverBookingsForStore(storeId: string): Promise<NaverS
     const skipped: string[] = [];
     const errors: string[] = [];
 
-    // 이메일 본문을 배치로 병렬 fetch
-    const [bookingContents, cancellationContents] = await Promise.all([
-        fetchEmailContentsInBatches(accessToken, bookingMessageIds),
-        fetchEmailContentsInBatches(accessToken, cancelMessageIds),
-    ]);
+    // 이메일 본문을 배치로 병렬 fetch.
+    // 예약·취소 두 배치를 Promise.all로 함께 돌리면 실동시성이 EMAIL_FETCH_CONCURRENCY의
+    // 2배(=20)가 돼 Gmail burst 스로틀을 유발한다. 순차로 돌려 의도한 상한을 지킨다.
+    const bookingContents = await fetchEmailContentsInBatches(accessToken, bookingMessageIds);
+    const cancellationContents = await fetchEmailContentsInBatches(accessToken, cancelMessageIds);
 
     // 예약 이메일 처리 (DB 쓰기는 순차 유지)
     for (let i = 0; i < bookingMessageIds.length; i++) {
