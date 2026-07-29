@@ -1,6 +1,24 @@
 export const GMAIL_API = 'https://www.googleapis.com/gmail/v1/users/me';
 
+// 일시적 실패 재시도 간격. Gmail은 순간 burst에 403 rateLimitExceeded를 흩뿌리는데,
+// 재시도가 없으면 그 메일이 이번 폴링에서 통째로 버려진다(2026-07 동기화 실패 원인).
+// 429는 여기서 재시도하지 않는다 — handleRateLimit이 쿨다운을 걸어 호출부 전체가 멈춰야 한다.
+const RETRY_DELAYS_MS = [400, 1200, 3000];
+
 let rateLimitUntil = 0;
+
+function sleep(ms: number): Promise<void> {
+    return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+// 재시도해서 나아질 수 있는 실패인지. 403은 사유에 따라 갈린다 —
+// rateLimitExceeded/userRateLimitExceeded는 일시적이지만, insufficientPermissions는
+// 스코프 문제라 몇 번을 다시 불러도 같다.
+function isRetryableStatus(status: number, detail: string): boolean {
+    if (status >= 500) return true;
+    if (status === 403) return /rateLimit|quotaExceeded|backendError/i.test(detail);
+    return false;
+}
 
 function isRateLimited(): boolean {
     return Date.now() < rateLimitUntil;
@@ -115,32 +133,45 @@ export async function getEmailContent(
 
     const url = `${GMAIL_API}/messages/${messageId}?format=full`;
 
-    let res: Response;
-    try {
-        res = await fetch(url, {
-            headers: {Authorization: `Bearer ${accessToken}`},
-        });
-    } catch (err) {
-        const detail = err instanceof Error ? err.message : String(err);
-        console.error('[gmail-client] 메일 조회 네트워크 오류', messageId, detail);
-        return {ok: false, failure: {reason: 'network', detail}};
-    }
+    for (let attempt = 0; ; attempt++) {
+        const canRetry = attempt < RETRY_DELAYS_MS.length;
 
-    if (!res.ok) {
+        let res: Response;
+        try {
+            res = await fetch(url, {
+                headers: {Authorization: `Bearer ${accessToken}`},
+            });
+        } catch (err) {
+            const detail = err instanceof Error ? err.message : String(err);
+            if (canRetry) {
+                await sleep(RETRY_DELAYS_MS[attempt]);
+                continue;
+            }
+            console.error('[gmail-client] 메일 조회 네트워크 오류', messageId, detail);
+            return {ok: false, failure: {reason: 'network', detail}};
+        }
+
+        if (res.ok) {
+            const json = await res.json() as GmailMessage;
+            const html = extractHtmlBody(json.payload);
+            if (!html) {
+                console.error('[gmail-client] 메일에 HTML 파트가 없음', messageId);
+                return {ok: false, failure: {reason: 'no_html_part'}};
+            }
+            return {ok: true, html};
+        }
+
         handleRateLimit(res);
         const detail = await readErrorDetail(res);
-        console.error('[gmail-client] 메일 조회 실패', messageId, res.status, detail);
+
+        if (canRetry && isRetryableStatus(res.status, detail)) {
+            await sleep(RETRY_DELAYS_MS[attempt]);
+            continue;
+        }
+
+        console.error('[gmail-client] 메일 조회 실패', messageId, res.status, detail, `시도 ${attempt + 1}회`);
         return {ok: false, failure: {reason: 'http', status: res.status, detail}};
     }
-
-    const json = await res.json() as GmailMessage;
-    const html = extractHtmlBody(json.payload);
-    if (!html) {
-        console.error('[gmail-client] 메일에 HTML 파트가 없음', messageId);
-        return {ok: false, failure: {reason: 'no_html_part'}};
-    }
-
-    return {ok: true, html};
 }
 
 interface GmailMessagePart {
