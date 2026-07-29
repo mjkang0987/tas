@@ -190,6 +190,11 @@ export async function syncNaverBookingsForStore(storeId: string): Promise<NaverS
                     appointmentTime: booking.appointmentTime,
                     reservationId: result.legacyId,
                 });
+            } else if (result.status === 'conflict') {
+                errors.push(
+                    `예약 번호 충돌로 누락 ${booking.bookingId} — 제약 ${result.detail}`
+                    + ' (동기화 동시 실행 추정, 다음 폴링에서 재시도됨)',
+                );
             } else {
                 skipped.push(booking.bookingId);
             }
@@ -264,10 +269,19 @@ async function fetchEmailContentsInBatches(
 }
 
 
+// P2002가 어느 제약에서 났는지. naverBookingId 중복이면 이미 동기화된 예약(정상),
+// legacyId 충돌이면 동시 실행이 같은 번호를 발급한 경쟁 상황이라 의미가 전혀 다르다.
+function p2002Target(err: Prisma.PrismaClientKnownRequestError): string {
+    const target = (err.meta as {target?: unknown} | undefined)?.target;
+    if (Array.isArray(target)) return target.join(',');
+    if (typeof target === 'string') return target;
+    return '';
+}
+
 async function createReservationFromBooking(
     ctx: SyncContext,
     booking: NaverBookingData,
-): Promise<{status: 'created'; legacyId: number} | {status: 'skipped'}> {
+): Promise<{status: 'created'; legacyId: number} | {status: 'skipped'} | {status: 'conflict'; detail: string}> {
     const {storeId, existingBookingMap, assigneeMap, serviceMap} = ctx;
 
     // 중복 확인 — DB 조회 없이 메모리에서 처리
@@ -394,7 +408,16 @@ async function createReservationFromBooking(
     } catch (err) {
         if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === 'P2002') {
             // 트랜잭션이 고객 생성까지 롤백하므로 수동 삭제 불필요(orphan 방지).
-            return {status: 'skipped'};
+            const target = p2002Target(err);
+
+            // naverBookingId 중복 = 이미 동기화된 예약. 정상 스킵.
+            if (target.includes('naverBookingId')) return {status: 'skipped'};
+
+            // 그 외(주로 legacyId) = 동기화가 겹쳐 돌면서 같은 번호를 발급한 경쟁 상황.
+            // legacyId는 실행 시작 시점 max+1을 메모리에서 증가시키므로, 정시 폴링과
+            // 온라인 예약이 트리거한 백그라운드 동기화가 겹치면 충돌한다.
+            // 이 예약은 이번 폴링에서 누락된다(다음 폴링에서 복구) — 조용히 삼키지 않고 집계한다.
+            return {status: 'conflict', detail: target || '알 수 없는 제약'};
         }
         throw err;
     }
