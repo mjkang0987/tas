@@ -31,56 +31,70 @@ function handleRateLimit(res: Response): void {
     }
 }
 
+// 검색 결과가 PAGE_SIZE를 넘으면 nextPageToken으로 이어 받는다. 예전엔 첫 페이지만 읽어서
+// 월 500건을 넘는 매장은 오래된 메일이 조용히 잘려나갔다.
+// MAX_PAGES는 폭주 방지용 상한 — 도달하면 경고를 남긴다.
+const PAGE_SIZE = 500;
+const MAX_PAGES = 10;
+
+async function listMessageIds(
+    accessToken: string,
+    query: string,
+    label: string,
+): Promise<string[]> {
+    if (isRateLimited()) return [];
+
+    const ids: string[] = [];
+    let pageToken: string | undefined;
+
+    for (let page = 0; page < MAX_PAGES; page++) {
+        const url = new URL(`${GMAIL_API}/messages`);
+        url.searchParams.set('q', query);
+        url.searchParams.set('maxResults', String(PAGE_SIZE));
+        if (pageToken) url.searchParams.set('pageToken', pageToken);
+
+        const res = await fetch(url.toString(), {
+            headers: {Authorization: `Bearer ${accessToken}`},
+        });
+
+        if (!res.ok) {
+            handleRateLimit(res);
+            console.error(`[gmail-client] ${label} 목록 조회 실패`, res.status, await readErrorDetail(res));
+            // 이미 받은 페이지는 살린다 — 전부 버리면 그 폴링이 통째로 비어버린다.
+            return ids;
+        }
+
+        const json = await res.json() as {messages?: Array<{id: string}>; nextPageToken?: string};
+        for (const m of json.messages ?? []) ids.push(m.id);
+
+        if (!json.nextPageToken) return ids;
+        pageToken = json.nextPageToken;
+    }
+
+    console.warn(`[gmail-client] ${label} 목록이 상한(${MAX_PAGES}페이지)에 도달해 이후를 건너뜀`, ids.length);
+    return ids;
+}
+
 export async function listNaverBookingEmails(
     accessToken: string,
     afterTimestamp: number,
 ): Promise<string[]> {
-    if (isRateLimited()) return [];
-
-    const query = `from:naverbooking_noreply@navercorp.com 예약 확정 after:${afterTimestamp}`;
-
-    const url = new URL(`${GMAIL_API}/messages`);
-    url.searchParams.set('q', query);
-    url.searchParams.set('maxResults', '500');
-
-    const res = await fetch(url.toString(), {
-        headers: {Authorization: `Bearer ${accessToken}`},
-    });
-
-    if (!res.ok) {
-        handleRateLimit(res);
-        console.error('[gmail-client] list failed', res.status, await res.text());
-        return [];
-    }
-
-    const json = await res.json() as {messages?: Array<{id: string}>};
-    return (json.messages ?? []).map((m) => m.id);
+    return listMessageIds(
+        accessToken,
+        `from:naverbooking_noreply@navercorp.com 예약 확정 after:${afterTimestamp}`,
+        '예약',
+    );
 }
 
 export async function listNaverCancellationEmails(
     accessToken: string,
     afterTimestamp: number,
 ): Promise<string[]> {
-    if (isRateLimited()) return [];
-
-    const query = `from:naverbooking_noreply@navercorp.com 취소 after:${afterTimestamp}`;
-
-    const url = new URL(`${GMAIL_API}/messages`);
-    url.searchParams.set('q', query);
-    url.searchParams.set('maxResults', '500');
-
-    const res = await fetch(url.toString(), {
-        headers: {Authorization: `Bearer ${accessToken}`},
-    });
-
-    if (!res.ok) {
-        handleRateLimit(res);
-        console.error('[gmail-client] list cancellations failed', res.status, await res.text());
-        return [];
-    }
-
-    const json = await res.json() as {messages?: Array<{id: string}>};
-    return (json.messages ?? []).map((m) => m.id);
+    return listMessageIds(
+        accessToken,
+        `from:naverbooking_noreply@navercorp.com 취소 after:${afterTimestamp}`,
+        '취소',
+    );
 }
 
 // 메일 본문 조회 실패 원인. 예전엔 전부 null 하나로 뭉개져 있어서, 알림에 messageId만 남고
