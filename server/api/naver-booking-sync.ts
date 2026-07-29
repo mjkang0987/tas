@@ -158,6 +158,9 @@ export async function syncNaverBookingsForStore(storeId: string): Promise<NaverS
     const cancelled: CancelledEntry[] = [];
     const skipped: string[] = [];
     const errors: string[] = [];
+    // 취소 메일 실패만 따로 센다 — 취소가 반영되지 않으면 취소된 예약이 캘린더에
+    // active로 남는(유령 예약) 유일한 경로라, 예약 메일 실패와 등급이 다르다.
+    let cancelFailureCount = 0;
 
     // 이메일 본문을 배치로 병렬 fetch.
     // 예약·취소 두 배치를 Promise.all로 함께 돌리면 실동시성이 EMAIL_FETCH_CONCURRENCY의
@@ -208,12 +211,14 @@ export async function syncNaverBookingsForStore(storeId: string): Promise<NaverS
         const fetched = cancellationContents[i];
         if (!fetched.ok) {
             errors.push(`취소 메일 조회 실패 ${cancelMessageIds[i]} — ${describeEmailFetchFailure(fetched.failure)}`);
+            cancelFailureCount++;
             continue;
         }
 
         const cancellation = parseNaverCancellationEmail(fetched.html);
         if (!cancellation) {
             errors.push(`취소 메일 파싱 실패 ${cancelMessageIds[i]}`);
+            cancelFailureCount++;
             continue;
         }
 
@@ -233,18 +238,41 @@ export async function syncNaverBookingsForStore(storeId: string): Promise<NaverS
             }
         } catch (err) {
             errors.push(`취소 메일 처리 오류 ${cancelMessageIds[i]}: ${String(err)}`);
+            cancelFailureCount++;
         }
     }
 
     // 동기화 실패(파싱/생성/취소 오류)는 운영 채널로 1건 요약 전송.
     // 폴링이 반복되므로 건별이 아닌 폴링 1회당 요약으로 노이즈를 줄인다.
     if (errors.length > 0) {
-        const head = errors.slice(0, 5).map((e) => `• ${e}`).join('\n');
-        const more = errors.length > 5 ? `\n…외 ${errors.length - 5}건` : '';
-        await notifySlackOps(`🛑 *네이버 동기화 실패* (${errors.length}건)\n${head}${more}`);
+        await notifySyncFailure(storeId, errors, cancelFailureCount);
     }
 
     return {synced, cancelled, skipped, errors};
+}
+
+// 실패 요약을 ops 채널로. 매장명이 없으면 멀티매장에서 어느 매장인지 알 수 없어 반드시 붙인다.
+// 알림 전송 실패가 동기화 결과를 뒤엎지 않도록 삼킨다.
+async function notifySyncFailure(
+    storeId: string,
+    errors: string[],
+    cancelFailureCount: number,
+): Promise<void> {
+    try {
+        const store = await prisma.store.findUnique({where: {id: storeId}, select: {name: true}});
+        const prefix = store?.name ? `*[${store.name}]* ` : '';
+        const head = errors.slice(0, 5).map((e) => `• ${e}`).join('\n');
+        const more = errors.length > 5 ? `\n…외 ${errors.length - 5}건` : '';
+        const cancelWarning = cancelFailureCount > 0
+            ? `\n⚠️ 이 중 취소 메일 ${cancelFailureCount}건 — 취소된 예약이 캘린더에 남아 있을 수 있습니다.`
+            : '';
+
+        await notifySlackOps(
+            `🛑 ${prefix}*네이버 동기화 실패* (${errors.length}건)\n${head}${more}${cancelWarning}`,
+        );
+    } catch (err) {
+        console.error('[naver-sync] 실패 알림 전송 오류', err);
+    }
 }
 
 async function fetchEmailContentsInBatches(
