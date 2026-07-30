@@ -16,7 +16,7 @@ import {parseNaverBookingEmail, parseNaverCancellationEmail} from './gmail/naver
 import type {NaverBookingData} from './gmail/naver-booking-parser';
 import {dbReservationToFrontend} from '../db/mappers';
 import {reservationSelectWithNames} from '../db/prisma-includes';
-import {calcEndTime, getLastNaverSyncTimestamp} from './gmail/helpers';
+import {calcEndTime, getLastNaverSyncTimestamp, markNaverSyncCompleted} from './gmail/helpers';
 import {findByNameContains} from '../utils/string-matching';
 import {notifySlackOps} from '../notify/slack';
 
@@ -78,6 +78,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 // 매장 Gmail을 파싱해 네이버 예약을 DB에 동기화한다. 세션 무관(storeId만) — 공개 예약 신청 흐름에서
 // 비동기(fire-and-forget)로도 호출해 예약 겹침을 2중 검증한다.
 export async function syncNaverBookingsForStore(storeId: string): Promise<NaverSyncResult> {
+    // 워터마크로 저장할 값. '시작' 시각이어야 한다 — 종료 시각을 쓰면 실행 중에 도착한 메일이
+    // (messages.list 스냅샷에 없었으므로) 다음 조회 범위에서 빠진다.
+    const runStartedAt = new Date();
+
     const {token: accessToken, reason: tokenFailReason} = await getValidAccessTokenWithReason(storeId);
     if (!accessToken) {
         return {
@@ -93,7 +97,7 @@ export async function syncNaverBookingsForStore(storeId: string): Promise<NaverS
 
     // 이메일 목록 조회 + 참조 데이터 DB 로드를 병렬 실행
     const [
-        [messageIds, cancelMessageIds],
+        [bookingList, cancelList],
         existingBookings,
         allAssignees,
         allServices,
@@ -135,8 +139,9 @@ export async function syncNaverBookingsForStore(storeId: string): Promise<NaverS
     ]);
 
     // 취소 이메일이 예약 확정 쿼리에도 매칭되는 경우 제거
+    const cancelMessageIds = cancelList.ids;
     const cancelIdSet = new Set(cancelMessageIds);
-    const bookingMessageIds = messageIds.filter((id) => !cancelIdSet.has(id));
+    const bookingMessageIds = bookingList.ids.filter((id) => !cancelIdSet.has(id));
 
     const ctx: SyncContext = {
         storeId,
@@ -246,6 +251,15 @@ export async function syncNaverBookingsForStore(storeId: string): Promise<NaverS
     // 폴링이 반복되므로 건별이 아닌 폴링 1회당 요약으로 노이즈를 줄인다.
     if (errors.length > 0) {
         await notifySyncFailure(storeId, errors, cancelFailureCount);
+    }
+
+    // 워터마크 전진은 "이번 실행이 대상 메일을 전부 보고 전부 처리했다"가 확실할 때만.
+    // 하나라도 어긋나면 그대로 두어, 다음 실행이 같은 범위를 다시 훑게 한다(유실 방지).
+    //   - errors: fetch·파싱·처리 실패가 있었다
+    //   - !complete: 목록을 끝까지 못 봤다(페이지 실패 / MAX_PAGES 상한 / 쿨다운)
+    const sawEverything = bookingList.complete && cancelList.complete;
+    if (errors.length === 0 && sawEverything) {
+        await markNaverSyncCompleted(storeId, runStartedAt);
     }
 
     return {synced, cancelled, skipped, errors};

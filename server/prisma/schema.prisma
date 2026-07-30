@@ -67,6 +67,10 @@ model GmailConnection {
   accessToken       String
   refreshToken      String?
   tokenExpiresAt    DateTime?
+  // 네이버 동기화 워터마크 — 마지막으로 성공 완주한 동기화의 '시작' 시각(순간, UTC).
+  // 날짜가 아니라 instant다: toDateKey 규칙(Reservation.date 등) 대상이 아니며 epoch 초로 변환해 쓴다.
+  // NULL = 미동기화 → 이번 달 1일부터 폴백.
+  lastSyncedAt      DateTime?
   createdAt         DateTime  @default(now())
   updatedAt         DateTime  @updatedAt
   store             Store     @relation(fields: [storeId], references: [id], onDelete: Cascade)
