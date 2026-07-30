@@ -4,6 +4,31 @@
 
 ---
 
+## 진행 중 — 담당자관리 카드 표시 정리 (에픽 #182)
+
+> 설정 > 담당자관리 UI만. DB·API 변경 없음이라 배포 순서 제약 없음. 브랜치 `claude/issue-182-assignee-card-cleanup`.
+
+### 배경
+담당자 카드가 읽기 상태에서도 모든 항목을 `disabled` 입력칸으로 렌더했다. 그래서 (1) 값 없는 연락처·메모·다국어 이름이 **빈 입력칸으로 남고**, (2) 근무시간 7행(요일 × 체크박스 + 시간 2개)이 항상 펼쳐져 카드가 길었다. 또 메타 그리드 3열을 **컬러칩(32px 고정)과 다국어 입력이 공유**해 컬러 옆은 빈칸이 크고 `中文` 칸만 눌렸다.
+
+### 구현
+1. **#183 `summarizeSchedule()`** (`features/assignees/model.ts`) — 연속 동일 근무시간 요일을 묶어 `월~금 10:00~20:00 · 토 10:00~18:00 · 일 휴무` 형태로. 순수 함수.
+2. **#184 읽기/편집 모드 분리** — 읽기 모드는 값 있는 항목만 라벨+값 텍스트(`StyledAssigneeReadMeta`), 근무시간은 1번 요약 한 줄. 컬러는 헤더 `Dot`이 이미 보여주므로 읽기 목록에서 제외. 편집 모드는 종전 입력·7행 유지하고 필드별 `disabled={!isEditing}` 제거(모드 분기로 대체). 상태 분기는 휴직/퇴직 안내 먼저 → 재직이면 편집/요약. 배경·라운드 잔재 제거(`MetaGrid`·`ScheduleList`·`DayLabel`).
+3. **#185 다국어 셀 등폭** — `StyledAssigneeMetaGrid`는 기본정보 3칸 전용(3열 `32px` 고정 복귀), `StyledAssigneeI18nGrid` 신설(`repeat(3, minmax(0, 1fr))`). 배경 제거 후 남은 `padding: 8px` 잔재 제거.
+
+### 변경 파일
+- `client/components/settings/AssigneeManageSection.tsx`
+- `client/components/settings/AssigneeManageSection.styles.ts`
+- `client/features/assignees/model.ts`
+
+### 검증
+- ✅ `tsc --noEmit` 0 (커밋 단위별로 확인).
+- ✅ `next build` 성공.
+- ⬜ 담당자관리 화면 실제 구동 — 읽기 모드 빈 입력칸 0개 / 근무시간 요약 문구 / 편집 모드 다국어 3칸 등폭 확인.
+
+### 절차 메모
+- 이 작업은 **이슈·브랜치 없이 `main` 워킹트리에서 편집**한 상태로 시작됐다(절차 위반). 커밋·푸시 전에 이슈 #182~#185를 만들고 브랜치로 옮겨 커밋을 3단위로 재구성했다. `main` 히스토리는 오염되지 않았다.
+
 ## 완료(배포) — 고객명단·하단탭·매출 모바일 정리 (v0.44.0)
 
 > 한 세션에서 이어진 UI 건들. DB·API 변경 없음, 전부 클라이언트 렌더 수정이라 배포 순서 제약 없음.
