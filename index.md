@@ -276,9 +276,11 @@ NextAuth 5.0 설정. Google·Kakao·Naver OAuth 지원.
 | `oauth-callback.ts` | `/api/gmail/oauth-callback` (GET) — 코드 교환 → GmailConnection upsert. 실패 시 `/settings/naver?gmail=error&reason=…`로 리다이렉트 |
 | `status.ts` | `/api/gmail/status` (GET, owner) — 매장 연동 여부·연동 이메일 |
 | `disconnect.ts` | `/api/gmail/disconnect` (POST, owner) — 연동 해제 |
-| `helpers.ts` | 네이버 결제 방법 매핑, 종료시간 계산, 동기화 타임스탬프(매월 1일부터) |
+| `helpers.ts` | 네이버 결제 방법 매핑, 종료시간 계산, **동기화 워터마크**(`getLastNaverSyncTimestamp`/`markNaverSyncCompleted`)[^11a] |
 
 [^11]: Rate limiting: 429 응답 시 15분 쿨다운(모듈 변수 — Cloud Run 인스턴스별로 따로 논다). 배치 fetch (`EMAIL_FETCH_CONCURRENCY = 10`) — 예약·취소 배치는 **순차** 실행할 것(`Promise.all`로 묶으면 실동시성이 2배가 돼 Gmail burst 스로틀을 부른다). `getEmailContent`는 일시적 실패(403 rateLimit 계열·5xx·네트워크)에 400ms/1.2s/3s 3회 재시도하고, 실패 시 `EmailFetchResult`로 원인(`http`/`no_html_part`/`network`/`cooldown`)을 구분해 돌려준다 — 전부 `null`이던 시절엔 알림에 messageId만 남아 사후 진단이 불가능했다(2026-07). 목록 조회는 `nextPageToken`을 상한 10페이지까지 순회하며, 중간 실패 시 이미 받은 페이지는 보존한다
+[^11a]: **동기화 워터마크**(`GmailConnection.lastSyncedAt`, 마이그레이션 `0020`). 예전엔 항상 이번 달 1일부터 재스캔해 월말이면 폴링 1회당 4주치 메일을 다시 fetch했다(→ Gmail burst 스로틀, 2026-07-29 동기화 실패). **저장값은 실행 '시작' 시각** — 종료 시각을 쓰면 실행 중 도착한 메일이 `messages.list` 스냅샷에 없었으므로 다음 범위에서 빠진다. **조회는 `lastSyncedAt - 1일`**: `after:`는 Gmail **수신 시각** 기준이라 발신 지연·SMTP 재시도는 무관하고 색인 지연(초~분)만 완충하면 된다. `now`로 상한 클램프 — 워터마크가 미래로 오염되면 범위가 비어 **알림 없이 동기화가 영구 정지**한다. `NULL`은 이번 달 1일 폴백(백필 불필요). ⚠️ **날짜가 아니라 순간(instant)이라 `toDateKey` 규칙 대상이 아니다**(UTC 저장 → epoch 초 변환). **전진 조건**: `errors` 없음 **AND** 예약·취소 목록이 모두 `complete` — 페이지 실패·`MAX_PAGES` 상한·**쿨다운**은 `complete=false`(쿨다운은 '변화 없음'이 아니라 '조회를 시도조차 못 함'이라, 빈 목록을 완주로 오해하면 그 구간이 통째로 유실된다)
+
 [^12]: `extractLabelValue(html, '예약상품')` → 담당자명, `extractLabelValue(html, '예약자명')` → 고객명. `parseServices(html)` → 시술 목록·예약금
 
 ### 인증·권한 (`server/auth/`)
