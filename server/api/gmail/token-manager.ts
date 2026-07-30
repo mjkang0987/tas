@@ -67,7 +67,10 @@ export async function getValidAccessTokenWithReason(storeId: string): Promise<{t
     }
 
     const now = new Date();
-    const bufferMs = 60_000;
+    // 동기화 한 번이 몇 분씩 걸릴 수 있다 — 월말엔 재스캔 대상이 4주치로 쌓이고, 일시적 실패에는
+    // 건당 최대 4.6초 백오프 재시도가 붙는다. 버퍼가 60초면 "시작 시점엔 유효"했던 토큰이
+    // 실행 도중 만료돼 뒷부분이 통째로 401로 떨어진다. 여유를 5분으로 둔다.
+    const bufferMs = 5 * 60_000;
     const isExpired = connection.tokenExpiresAt
         && connection.tokenExpiresAt.getTime() - bufferMs < now.getTime();
 

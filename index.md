@@ -92,7 +92,7 @@ hair_reservations/
 | `calendar/views/` | 캘린더 뷰 (일/주/월/년/타임라인) | `Calendar.tsx`, `Day.tsx`, `Week.tsx`, `Month.tsx`, `Timeline.tsx`, `TimelineCluster.tsx`(중복예약 클러스터 — 담당자 배지 표시) |
 | `calendar/overlays/` | 예약 생성·상세·수정 모달 | `ReservationCreate.tsx`(+`useReservationCreateForm.ts`/`ReservationCreateCustomerFields.tsx`), `ReservationDetail.tsx`(+`ReservationDetailSections`/`Header`/`FooterActions`/`PaymentLayer`/`ViewSection`, 순수 로직은 `reservationDetailUtils.ts`·타입은 `reservationDetailTypes.ts`), `CustomerDetail.tsx`(+`CustomerDetailSections.tsx`[^3a]), `ModalStyles.ts`(공통 모달 스타일·`OVERLAY_Z_INDEX`·접근성 훅), 컴포넌트별 `*.styles.ts` |
 | `calendar/service/` | 서비스 범례·필드 | `ServiceLegend.tsx`(시술 배지 디자인), `ServiceFields.tsx` |
-| `customers/` | 고객 공용 컴포넌트 | `CustomerAutocomplete.tsx`(고객명/연락처 검색 자동완성 — 예약 생성·회원권 발급 공용) |
+| `customers/` | 고객 공용 컴포넌트 | `CustomerAutocomplete.tsx`(고객명/연락처 검색 자동완성 — 예약 생성·회원권 발급 공용. 목록 순서는 받은 그대로 그리며 정렬은 호출부 책임 — 예약추가는 이름 가나다순) |
 | `layout/` | 공통 레이아웃 | `Header.tsx`(담당자 필터 base-select)+`HeaderSearchLayer.tsx`(고객 검색)+`Header.styles.ts`, `Aside.tsx`(역할별 설정 메뉴 + 하단 이용약관/개인정보처리방침 링크)+`AsideMenuIcon.tsx`(메뉴 아이콘)+`AsideGuestLogout.tsx`(게스트 로그아웃 확인, 동의 플래그 초기화 포함)+`Aside.styles.ts`, `StoreSwitcher.tsx`[^17], `LayoutComponent.tsx`, `MobileTabBar.tsx`·`MobileViewTabs.tsx`·`MobileDateJump.tsx`(모바일 ≤640px 하단 탭바·상단 일주월년 뷰 탭·헤더 날짜 선택(네이티브 `<input type=date>` 달력) — 데스크톱은 CSS로 격리)+`settingsMenu.ts`(aside·`/menu` 공유 설정 메뉴 정의·권한 게이팅), `Footer.tsx`, `NaverSyncNotification.tsx`[^1](+`.styles.ts`) |
 | `modals/` | 전역 오버레이 (layout과 분리) | `NaverSyncConflictModal.tsx`[^2](+`.styles.ts`), `CustomerMergeSuggestionModal.tsx`[^3], `GuestMigrationLayer.tsx`(게스트→계정 병합 레이어), `ConsentDpaLayer.tsx`(처리위탁 DPA 동의 레이어 — "보기"는 `PolicyViewLayer`) |
 | `policy/` | 정책 문서 표시 | `PolicyPage.tsx`(앱 인라인 페이지 레이아웃, mypage `StyledContainer` 사용), `PolicyViewLayer.tsx`(약관 "보기" — 공통 `ModalStyles` 레이어), `policyCss.ts`(인라인·풀페이지 공유 CSS + 독립 HTML 생성 `renderPolicyHtml`)[^20] |
@@ -127,7 +127,7 @@ hair_reservations/
 | 파일 | 모델 | 핵심 필드 |
 |------|------|----------|
 | `reservations/model.ts` | `Reservation` | id, date, startTime/endTime, customerId, assigneeId?, service, status[^4], price, naverBookingId?, channel[^5], publicToken?(온라인예약 고객 관리 링크) |
-| `customers/model.ts` | `Customer` | id, name, tel, points, memoTags, pointHistories. 헬퍼: `formatTel`(표시 000-0000-0000)·`normalizeTel`(저장용 숫자만, 단일 출처) |
+| `customers/model.ts` | `Customer` | id, name, tel, points, memoTags, pointHistories. 헬퍼: `formatTel`(표시 000-0000-0000)·`normalizeTel`(저장용 숫자만, 단일 출처)·`compareCustomerName`/`sortCustomersByName`(이름 한글 오름차순, `Intl.Collator('ko',{numeric:true})` + 동명이인 id 안정 정렬) |
 | `memberships/model.ts` | `MembershipProduct`/`CustomerMembership` | 회원권(횟수·기간권, 적립금과 별개). product: totalCount?/validDays?/price/status, 발급분: remainingCount/expiresAt?/status |
 | `assignees/model.ts` | `Assignee` | id, name, schedule(7일), status[^6], color, phone |
 | `services/model.ts` | `ServiceItem` | name, durationMinutes, category, price |
@@ -269,16 +269,18 @@ NextAuth 5.0 설정. Google·Kakao·Naver OAuth 지원.
 
 | 파일 | 역할 |
 |------|------|
-| `gmail-client.ts` | Gmail API 클라이언트[^11]. 이메일 목록 조회(`listNaverBookingEmails`), 본문 조회(`getEmailContent`) |
+| `gmail-client.ts` | Gmail API 클라이언트[^11]. 이메일 목록 조회(`listNaverBookingEmails`, 페이지 순회), 본문 조회(`getEmailContent` — 재시도 + 실패 원인 구분) |
 | `naver-booking-parser.ts` | 네이버 예약 이메일 HTML 파싱[^12]. `NaverBookingData` 추출 (bookingId, customerName, assigneeName, date/time, services, deposit) |
 | `token-manager.ts` | Gmail 연동 토큰 관리 (**GmailConnection** 테이블, **매장(storeId) 단위** — 한 오너가 연결하면 그 매장 모든 오너가 공유, `connectedByUserId`로 연결자 기록). 만료 시 refreshToken으로 자동 갱신 |
 | `connect.ts` | `/api/gmail/connect` (GET, owner) — Google OAuth 시작. 계정 선택 화면 강제(로그인 계정과 다른 Gmail 사용 가능) |
 | `oauth-callback.ts` | `/api/gmail/oauth-callback` (GET) — 코드 교환 → GmailConnection upsert. 실패 시 `/settings/naver?gmail=error&reason=…`로 리다이렉트 |
 | `status.ts` | `/api/gmail/status` (GET, owner) — 매장 연동 여부·연동 이메일 |
 | `disconnect.ts` | `/api/gmail/disconnect` (POST, owner) — 연동 해제 |
-| `helpers.ts` | 네이버 결제 방법 매핑, 종료시간 계산, 동기화 타임스탬프(매월 1일부터) |
+| `helpers.ts` | 네이버 결제 방법 매핑, 종료시간 계산, **동기화 워터마크**(`getLastNaverSyncTimestamp`/`markNaverSyncCompleted`)[^11a] |
 
-[^11]: Rate limiting: 429 응답 시 15분 쿨다운. 배치 fetch (`EMAIL_FETCH_CONCURRENCY = 10`)
+[^11]: Rate limiting: 429 응답 시 15분 쿨다운(모듈 변수 — Cloud Run 인스턴스별로 따로 논다). 배치 fetch (`EMAIL_FETCH_CONCURRENCY = 10`) — 예약·취소 배치는 **순차** 실행할 것(`Promise.all`로 묶으면 실동시성이 2배가 돼 Gmail burst 스로틀을 부른다). `getEmailContent`는 일시적 실패(403 rateLimit 계열·5xx·네트워크)에 400ms/1.2s/3s 3회 재시도하고, 실패 시 `EmailFetchResult`로 원인(`http`/`no_html_part`/`network`/`cooldown`)을 구분해 돌려준다 — 전부 `null`이던 시절엔 알림에 messageId만 남아 사후 진단이 불가능했다(2026-07). 목록 조회는 `nextPageToken`을 상한 10페이지까지 순회하며, 중간 실패 시 이미 받은 페이지는 보존한다
+[^11a]: **동기화 워터마크**(`GmailConnection.lastSyncedAt`, 마이그레이션 `0020`). 예전엔 항상 이번 달 1일부터 재스캔해 월말이면 폴링 1회당 4주치 메일을 다시 fetch했다(→ Gmail burst 스로틀, 2026-07-29 동기화 실패). **저장값은 실행 '시작' 시각** — 종료 시각을 쓰면 실행 중 도착한 메일이 `messages.list` 스냅샷에 없었으므로 다음 범위에서 빠진다. **조회는 `lastSyncedAt - 1일`**: `after:`는 Gmail **수신 시각** 기준이라 발신 지연·SMTP 재시도는 무관하고 색인 지연(초~분)만 완충하면 된다. `now`로 상한 클램프 — 워터마크가 미래로 오염되면 범위가 비어 **알림 없이 동기화가 영구 정지**한다. `NULL`은 이번 달 1일 폴백(백필 불필요). ⚠️ **날짜가 아니라 순간(instant)이라 `toDateKey` 규칙 대상이 아니다**(UTC 저장 → epoch 초 변환). **전진 조건**: `errors` 없음 **AND** 예약·취소 목록이 모두 `complete` — 페이지 실패·`MAX_PAGES` 상한·**쿨다운**은 `complete=false`(쿨다운은 '변화 없음'이 아니라 '조회를 시도조차 못 함'이라, 빈 목록을 완주로 오해하면 그 구간이 통째로 유실된다)
+
 [^12]: `extractLabelValue(html, '예약상품')` → 담당자명, `extractLabelValue(html, '예약자명')` → 고객명. `parseServices(html)` → 시술 목록·예약금
 
 ### 인증·권한 (`server/auth/`)
