@@ -4,14 +4,11 @@ import {useCalendarStore} from '../../store/calendarStore';
 import {PageHero} from '../ui/PageHero';
 import {ConfirmDialog} from '../ui/ConfirmDialog';
 import type {Assignee, AssigneeStatus} from '../../utils/assignees';
-import {WEEKDAY_LABELS, getAssigneeColor, getAssigneeStatus, getAssigneeStatusMeta, splitAssigneesByStatus, sortAssignees} from '../../utils/assignees';
+import {WEEKDAY_LABELS, getAssigneeColor, getAssigneeStatus, splitAssigneesByStatus, sortAssignees, summarizeSchedule} from '../../utils/assignees';
 import {Dot} from '../ui/Dot';
-import {LabelBadge} from '../ui/LabelBadge';
-import {formControlStyle} from '../ui/FormControls';
 import {useStoreLabels} from '../../hooks/useStoreLabels';
-import {EMPTY_TEXT, StyledEditBtn, StyledDeleteBtn, StyledSaveBtn, StyledCancelBtn, StyledEmpty, StyledServiceFooter} from './settings-styles';
+import {EMPTY_TEXT, StyledEditBtn, StyledDeleteBtn, StyledSaveBtn, StyledCancelBtn, StyledServiceFooter} from './settings-styles';
 import {
-    compactInputStyle,
     StyledAddInput,
     StyledAssigneeBody,
     StyledAssigneeCardGrid,
@@ -31,7 +28,14 @@ import {
     StyledAssigneeMetaInput,
     StyledAssigneeStatusSelect,
     StyledAssigneeStatusBadge,
+    StyledAssigneeReadMeta,
+    StyledAssigneeReadField,
+    StyledAssigneeReadLabel,
+    StyledAssigneeReadValue,
     StyledScheduleList,
+    StyledScheduleSummary,
+    StyledScheduleSummaryItem,
+    StyledScheduleSummaryDays,
     StyledScheduleCollapsedNotice,
     StyledScheduleRow,
     StyledDayLabel,
@@ -46,6 +50,10 @@ import {
 } from './AssigneeManageSection.styles';
 
 const ASSIGNEE_STATUS_OPTIONS: AssigneeStatus[] = ['재직', '휴직', '퇴직'];
+
+// 공개 예약 페이지 다국어 이름 입력 순서·라벨(선택 입력).
+const ASSIGNEE_I18N_FIELDS = [['en', 'English'], ['ja', '日本語'], ['zh', '中文']] as const;
+type AssigneeI18nCode = (typeof ASSIGNEE_I18N_FIELDS)[number][0];
 
 interface AssigneeCardProps {
     assignee: Assignee;
@@ -70,11 +78,22 @@ const AssigneeCard = ({
 }: AssigneeCardProps) => {
     const did = assignee.id;
     // 언어별 이름 변경 → nameI18n 객체 갱신(빈 값 제거, 전부 비면 null). 식별은 id, 표시만 번역.
-    const setNameI18n = (code: 'en' | 'ja' | 'zh', value: string) => {
+    const setNameI18n = (code: AssigneeI18nCode, value: string) => {
         const next = {...(assignee.nameI18n ?? {})};
         if (value.trim()) next[code] = value; else delete next[code];
         onUpdateAssignee(did, {nameI18n: Object.keys(next).length > 0 ? next : null});
     };
+    // 읽기 모드에선 값이 있는 항목만 텍스트로. 컬러는 헤더 Dot이 이미 보여주므로 제외.
+    const readFields = [
+        {key: 'phone', label: '연락처', value: assignee.phone ?? ''},
+        {key: 'note', label: '메모', value: assignee.note ?? ''},
+        ...ASSIGNEE_I18N_FIELDS.map(([code, label]) => ({
+            key: code,
+            label,
+            value: assignee.nameI18n?.[code] ?? '',
+        })),
+    ].filter((field) => field.value.trim().length > 0);
+
     return (
     <StyledAssigneeCard $status={getAssigneeStatus(assignee)} $assigneeColor={getAssigneeColor(assignee)} $isEditing={isEditing}>
         <StyledAssigneeHeader>
@@ -134,52 +153,65 @@ const AssigneeCard = ({
                 )}
             </StyledAssigneeHeaderActions>
         </StyledAssigneeHeader>
-        <StyledAssigneeMetaGrid>
-            <StyledAssigneeMetaField>
-                <StyledAssigneeMetaLabel htmlFor={`assignee-${did}-phone`}>연락처</StyledAssigneeMetaLabel>
-                <StyledAssigneeMetaInput
-                    id={`assignee-${did}-phone`}
-                    value={assignee.phone ?? ''}
-                    disabled={!isEditing}
-                    onChange={(e) => onUpdateAssignee(did, {phone: e.target.value})}
-                    placeholder="010-0000-0000"
-                />
-            </StyledAssigneeMetaField>
-            <StyledAssigneeMetaField>
-                <StyledAssigneeMetaLabel htmlFor={`assignee-${did}-note`}>메모</StyledAssigneeMetaLabel>
-                <StyledAssigneeMetaInput
-                    id={`assignee-${did}-note`}
-                    value={assignee.note ?? ''}
-                    disabled={!isEditing}
-                    onChange={(e) => onUpdateAssignee(did, {note: e.target.value})}
-                    placeholder="특이사항 메모"
-                />
-            </StyledAssigneeMetaField>
-            <StyledAssigneeMetaField>
-                <StyledAssigneeMetaLabel htmlFor={`assignee-${did}-color`}>컬러</StyledAssigneeMetaLabel>
-                <StyledAssigneeColorInput
-                    id={`assignee-${did}-color`}
-                    type="color"
-                    value={getAssigneeColor(assignee)}
-                    disabled={!isEditing}
-                    onChange={(e) => onUpdateAssignee(did, {color: e.target.value})}
-                />
-            </StyledAssigneeMetaField>
-            {/* 공개 예약 페이지 다국어 이름(선택). 비우면 위 담당자명이 그대로 표시. */}
-            {([['en', 'English'], ['ja', '日本語'], ['zh', '中文']] as const).map(([code, label]) => (
-                <StyledAssigneeMetaField key={code}>
-                    <StyledAssigneeMetaLabel htmlFor={`assignee-${did}-name-${code}`}>{label}</StyledAssigneeMetaLabel>
+        {isEditing ? (
+            <StyledAssigneeMetaGrid>
+                <StyledAssigneeMetaField>
+                    <StyledAssigneeMetaLabel htmlFor={`assignee-${did}-phone`}>연락처</StyledAssigneeMetaLabel>
                     <StyledAssigneeMetaInput
-                        id={`assignee-${did}-name-${code}`}
-                        value={assignee.nameI18n?.[code] ?? ''}
-                        disabled={!isEditing}
-                        onChange={(e) => setNameI18n(code, e.target.value)}
-                        placeholder={label}
+                        id={`assignee-${did}-phone`}
+                        value={assignee.phone ?? ''}
+                        onChange={(e) => onUpdateAssignee(did, {phone: e.target.value})}
+                        placeholder="010-0000-0000"
                     />
                 </StyledAssigneeMetaField>
-            ))}
-        </StyledAssigneeMetaGrid>
-        {getAssigneeStatus(assignee) === '재직' ? (
+                <StyledAssigneeMetaField>
+                    <StyledAssigneeMetaLabel htmlFor={`assignee-${did}-note`}>메모</StyledAssigneeMetaLabel>
+                    <StyledAssigneeMetaInput
+                        id={`assignee-${did}-note`}
+                        value={assignee.note ?? ''}
+                        onChange={(e) => onUpdateAssignee(did, {note: e.target.value})}
+                        placeholder="특이사항 메모"
+                    />
+                </StyledAssigneeMetaField>
+                <StyledAssigneeMetaField>
+                    <StyledAssigneeMetaLabel htmlFor={`assignee-${did}-color`}>컬러</StyledAssigneeMetaLabel>
+                    <StyledAssigneeColorInput
+                        id={`assignee-${did}-color`}
+                        type="color"
+                        value={getAssigneeColor(assignee)}
+                        onChange={(e) => onUpdateAssignee(did, {color: e.target.value})}
+                    />
+                </StyledAssigneeMetaField>
+                {/* 공개 예약 페이지 다국어 이름(선택). 비우면 위 담당자명이 그대로 표시. */}
+                {ASSIGNEE_I18N_FIELDS.map(([code, label]) => (
+                    <StyledAssigneeMetaField key={code}>
+                        <StyledAssigneeMetaLabel htmlFor={`assignee-${did}-name-${code}`}>{label}</StyledAssigneeMetaLabel>
+                        <StyledAssigneeMetaInput
+                            id={`assignee-${did}-name-${code}`}
+                            value={assignee.nameI18n?.[code] ?? ''}
+                            onChange={(e) => setNameI18n(code, e.target.value)}
+                            placeholder={label}
+                        />
+                    </StyledAssigneeMetaField>
+                ))}
+            </StyledAssigneeMetaGrid>
+        ) : readFields.length > 0 && (
+            <StyledAssigneeReadMeta>
+                {readFields.map((field) => (
+                    <StyledAssigneeReadField key={field.key}>
+                        <StyledAssigneeReadLabel>{field.label}</StyledAssigneeReadLabel>
+                        <StyledAssigneeReadValue>{field.value}</StyledAssigneeReadValue>
+                    </StyledAssigneeReadField>
+                ))}
+            </StyledAssigneeReadMeta>
+        )}
+        {getAssigneeStatus(assignee) !== '재직' ? (
+            <StyledScheduleCollapsedNotice $status={getAssigneeStatus(assignee)}>
+                {getAssigneeStatus(assignee) === '휴직'
+                    ? '휴직 상태에서는 근무시간 설정을 접어 둡니다. 복귀 후 다시 조정할 수 있습니다.'
+                    : '퇴직 상태에서는 예약 선택이 비활성화되며 근무시간 설정을 표시하지 않습니다.'}
+            </StyledScheduleCollapsedNotice>
+        ) : isEditing ? (
             <StyledScheduleList>
                 {WEEKDAY_LABELS.map((label, dayIndex) => {
                     const day = assignee.schedule[dayIndex];
@@ -194,7 +226,6 @@ const AssigneeCard = ({
                                     id={`${dayId}-enabled`}
                                     type="checkbox"
                                     checked={day.enabled}
-                                    disabled={!isEditing}
                                     onChange={(e) => onUpdateAssigneeDay(did, dayIndex, {enabled: e.target.checked})}
                                 />
                                 <span>{day.enabled ? '근무' : '휴무'}</span>
@@ -205,7 +236,7 @@ const AssigneeCard = ({
                                     type="time"
                                     value={day.start}
                                     aria-label={`${label} 시작`}
-                                    disabled={!isEditing || !day.enabled}
+                                    disabled={!day.enabled}
                                     onChange={(e) => onUpdateAssigneeDay(did, dayIndex, {start: e.target.value})}
                                 />
                                 <StyledTimeRangeDivider>~</StyledTimeRangeDivider>
@@ -214,7 +245,7 @@ const AssigneeCard = ({
                                     type="time"
                                     value={day.end}
                                     aria-label={`${label} 종료`}
-                                    disabled={!isEditing || !day.enabled}
+                                    disabled={!day.enabled}
                                     onChange={(e) => onUpdateAssigneeDay(did, dayIndex, {end: e.target.value})}
                                 />
                             </StyledTimeRange>
@@ -223,11 +254,14 @@ const AssigneeCard = ({
                 })}
             </StyledScheduleList>
         ) : (
-            <StyledScheduleCollapsedNotice $status={getAssigneeStatus(assignee)}>
-                {getAssigneeStatus(assignee) === '휴직'
-                    ? '휴직 상태에서는 근무시간 설정을 접어 둡니다. 복귀 후 다시 조정할 수 있습니다.'
-                    : '퇴직 상태에서는 예약 선택이 비활성화되며 근무시간 설정을 표시하지 않습니다.'}
-            </StyledScheduleCollapsedNotice>
+            <StyledScheduleSummary>
+                {summarizeSchedule(assignee.schedule).map((segment) => (
+                    <StyledScheduleSummaryItem key={segment.days}>
+                        <StyledScheduleSummaryDays>{segment.days}</StyledScheduleSummaryDays>
+                        {segment.hours}
+                    </StyledScheduleSummaryItem>
+                ))}
+            </StyledScheduleSummary>
         )}
     </StyledAssigneeCard>
     );
