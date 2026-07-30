@@ -34,18 +34,24 @@
 - If the documentation and implementation differ, report the discrepancy and request confirmation before proceeding.
 
 ## Development Workflow
-- Before starting any task, create a `plan.md` file (or add a section to it).
-- Document requirements, implementation approach, affected files, and expected outcomes in `plan.md`.
-- Review and finalize the plan before making code changes.
-- Update `plan.md` if the implementation scope changes during development.
-- When merging, bump the version in `package.json`. Determine the appropriate semver bump (patch / minor / major) based on the changes in the PR.
+- **작업 계획 수립:** 모든 작업을 시작하기 전 `plan.md`를 작성할 것. 요구사항, 구현 방식, 영향받는 파일,
+  예상 결과를 기록하고 검토가 끝난 후 코드를 수정할 것. (개발 중 범위가 변경되면 `plan.md` 즉시 업데이트)
+- **작업 분할 및 브랜치 생성:** 작업 요청 시 가장 작은 단위의 이슈로 나누고, `develop` 브랜치 파생으로
+  개별 `feature` 브랜치를 생성하여 시작할 것.
+- **Feature 검증 사이클:** `작업` > `코드리뷰` > `개선` > `검증` > `수정작업` > `코드리뷰` > `개선` > `검증`
+  — 이 프로세스를 `feature` 브랜치 내에서 완벽히 완료할 것. 리뷰를 건너뛰고 푸시하지 않는다.
+- **Dev 병합 및 2차 검증:** 단일 `feature` 검증이 끝나면 `develop` 브랜치에 머지 + 푸시할 것.
+  `develop` 에서도 동일한 사이클을 거쳐 통합 부작용을 해결할 것.
+- **Main 배포:** `develop` 진행이 완료되면 PR을 생성하고 `main` 머지를 **요청**할 것.
+  지시자의 명시적 승인 없이 `main`에 머지하지 않는다.
+- **버전 펌핑:** PR 머지 시 변경 규모(Patch / Minor / Major)를 판단하여 버전을 올릴 것. (`package.json`)
 
 ## Work Request Flow (업무 처리 절차)
 > 사용자가 업무를 요청하면 아래 순서를 따른다. 각 단계는 지정 도구를 사용한다.
 
 **세부 규약:**
-- **이슈당 브랜치 · 이슈당 PR.** 브랜치명 `claude/issue-<번호>-<짧은슬러그>`, `main`에서 분기. 한 번에 한 이슈.
-- **자동 머지.** 8단계(코드검증·자동리뷰·CI)가 모두 그린이면 사용자 승인 없이 머지한다.
+- **이슈당 브랜치 · 이슈당 PR.** 브랜치명 `feature/<짧은슬러그>`(또는 `claude/issue-<번호>-<슬러그>`), `develop`에서 분기. 한 번에 한 이슈.
+- **`develop` 까지만 자동 진행.** 검증·리뷰가 그린이면 `develop` 에 머지한다. `main` 머지는 지시자의 명시적 승인이 있을 때만.
 - **라벨**: `feature`/`fix`/`chore`/`refactor`/`docs` + `phase-*` (없으면 생성). 하위 작업 3개 이상이면 상위(에픽) 이슈 + 서브이슈.
 - **검증 범위**: 항상 빌드/타입체크. 런타임 변경은 `/verify`로 구동. 문서·설정만이면 빌드만.
 
@@ -58,7 +64,7 @@
 6. **재검증** — 리팩토링 후 다시 빌드·검증.
 7. **PR 생성** — 본문에 `Closes #<이슈>`를 포함한다. PR 생성 시 자동 코드리뷰 Action(`.github/workflows/pr-review.yml`)이 실행된다. **PR 생성 직후 `subscribe_pr_activity`로 자동 구독**하고 별도 승인 없이 CI·리뷰 이벤트를 지켜본다(그린이면 보고, 지적 있으면 4~6단계 반복). 세션이 살아 있어야 웹훅을 받으며, 세션 사후 상시 감시는 보장되지 않는다.
 8. **코드 검증** — PR 상태에서 코드를 최종 검증한다(`/verify` 빌드+구동). 자동 리뷰·CI 결과도 함께 확인. 지적이 있으면 4~6을 반복한다.
-9. **머지** — 8단계가 그린이면 자동 머지. `package.json` semver 버전 범프(`Development Workflow`). 머지되면 이슈 자동 종료, `index.md`·`plan.md` 갱신(`Documentation Maintenance`).
+9. **머지** — 8단계가 그린이면 `develop`으로 머지(`main` 머지는 지시자 승인 후). `package.json` semver 버전 범프(`Development Workflow`). 머지되면 이슈 자동 종료, `index.md`·`plan.md` 갱신(`Documentation Maintenance`).
 10. **배포** — `main` 머지 시 **Google Cloud Build 트리거가 자동으로 빌드·Cloud Run 배포**한다(코드). **DB 마이그레이션은 자동화돼 있지 않고**, 스키마 변경 시 사용자가 **Supabase에서 수동으로**(direct 5432) 적용한다. 그래서 스키마 변경 PR은 "**마이그레이션 먼저(수동), 코드 배포(자동) 나중**" 순서를 지킨다 — 머지되면 코드가 자동 배포되므로, 마이그레이션은 그 전에 적용돼 있어야 500이 안 난다.
 
 ## Front-End Standards
