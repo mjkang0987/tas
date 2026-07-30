@@ -37,12 +37,21 @@ function handleRateLimit(res: Response): void {
 const PAGE_SIZE = 500;
 const MAX_PAGES = 10;
 
+// complete=false 는 "이 목록을 끝까지 못 봤다"는 뜻이다. 호출부는 이때 동기화 워터마크를
+// 전진시켜선 안 된다 — 못 본 메일이 다음 조회 범위 밖으로 나가 영구 유실된다.
+export interface MessageListResult {
+    ids: string[];
+    complete: boolean;
+}
+
 async function listMessageIds(
     accessToken: string,
     query: string,
     label: string,
-): Promise<string[]> {
-    if (isRateLimited()) return [];
+): Promise<MessageListResult> {
+    // 쿨다운은 '변화 없음'이 아니라 '조회를 시도조차 못 함'이다. 빈 목록을 정상 완주로
+    // 오해하면 워터마크가 전진해 쿨다운 구간 메일이 통째로 유실된다.
+    if (isRateLimited()) return {ids: [], complete: false};
 
     const ids: string[] = [];
     let pageToken: string | undefined;
@@ -61,24 +70,25 @@ async function listMessageIds(
             handleRateLimit(res);
             console.error(`[gmail-client] ${label} 목록 조회 실패`, res.status, await readErrorDetail(res));
             // 이미 받은 페이지는 살린다 — 전부 버리면 그 폴링이 통째로 비어버린다.
-            return ids;
+            // 단 끝까지 못 봤으므로 complete=false.
+            return {ids, complete: false};
         }
 
         const json = await res.json() as {messages?: Array<{id: string}>; nextPageToken?: string};
         for (const m of json.messages ?? []) ids.push(m.id);
 
-        if (!json.nextPageToken) return ids;
+        if (!json.nextPageToken) return {ids, complete: true};
         pageToken = json.nextPageToken;
     }
 
     console.warn(`[gmail-client] ${label} 목록이 상한(${MAX_PAGES}페이지)에 도달해 이후를 건너뜀`, ids.length);
-    return ids;
+    return {ids, complete: false};
 }
 
 export async function listNaverBookingEmails(
     accessToken: string,
     afterTimestamp: number,
-): Promise<string[]> {
+): Promise<MessageListResult> {
     return listMessageIds(
         accessToken,
         `from:naverbooking_noreply@navercorp.com 예약 확정 after:${afterTimestamp}`,
@@ -89,7 +99,7 @@ export async function listNaverBookingEmails(
 export async function listNaverCancellationEmails(
     accessToken: string,
     afterTimestamp: number,
-): Promise<string[]> {
+): Promise<MessageListResult> {
     return listMessageIds(
         accessToken,
         `from:naverbooking_noreply@navercorp.com 취소 after:${afterTimestamp}`,
