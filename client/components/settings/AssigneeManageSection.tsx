@@ -26,6 +26,7 @@ import {
     StyledAssigneeColorInput,
     StyledAssigneeNameInput,
     StyledAssigneeMetaInput,
+    StyledAssigneeI18nGrid,
     StyledAssigneeStatusSelect,
     StyledAssigneeStatusBadge,
     StyledAssigneeReadMeta,
@@ -154,47 +155,51 @@ const AssigneeCard = ({
             </StyledAssigneeHeaderActions>
         </StyledAssigneeHeader>
         {isEditing ? (
-            <StyledAssigneeMetaGrid>
-                <StyledAssigneeMetaField>
-                    <StyledAssigneeMetaLabel htmlFor={`assignee-${did}-phone`}>연락처</StyledAssigneeMetaLabel>
-                    <StyledAssigneeMetaInput
-                        id={`assignee-${did}-phone`}
-                        value={assignee.phone ?? ''}
-                        onChange={(e) => onUpdateAssignee(did, {phone: e.target.value})}
-                        placeholder="010-0000-0000"
-                    />
-                </StyledAssigneeMetaField>
-                <StyledAssigneeMetaField>
-                    <StyledAssigneeMetaLabel htmlFor={`assignee-${did}-note`}>메모</StyledAssigneeMetaLabel>
-                    <StyledAssigneeMetaInput
-                        id={`assignee-${did}-note`}
-                        value={assignee.note ?? ''}
-                        onChange={(e) => onUpdateAssignee(did, {note: e.target.value})}
-                        placeholder="특이사항 메모"
-                    />
-                </StyledAssigneeMetaField>
-                <StyledAssigneeMetaField>
-                    <StyledAssigneeMetaLabel htmlFor={`assignee-${did}-color`}>컬러</StyledAssigneeMetaLabel>
-                    <StyledAssigneeColorInput
-                        id={`assignee-${did}-color`}
-                        type="color"
-                        value={getAssigneeColor(assignee)}
-                        onChange={(e) => onUpdateAssignee(did, {color: e.target.value})}
-                    />
-                </StyledAssigneeMetaField>
-                {/* 공개 예약 페이지 다국어 이름(선택). 비우면 위 담당자명이 그대로 표시. */}
-                {ASSIGNEE_I18N_FIELDS.map(([code, label]) => (
-                    <StyledAssigneeMetaField key={code}>
-                        <StyledAssigneeMetaLabel htmlFor={`assignee-${did}-name-${code}`}>{label}</StyledAssigneeMetaLabel>
+            <>
+                <StyledAssigneeMetaGrid>
+                    <StyledAssigneeMetaField>
+                        <StyledAssigneeMetaLabel htmlFor={`assignee-${did}-phone`}>연락처</StyledAssigneeMetaLabel>
                         <StyledAssigneeMetaInput
-                            id={`assignee-${did}-name-${code}`}
-                            value={assignee.nameI18n?.[code] ?? ''}
-                            onChange={(e) => setNameI18n(code, e.target.value)}
-                            placeholder={label}
+                            id={`assignee-${did}-phone`}
+                            value={assignee.phone ?? ''}
+                            onChange={(e) => onUpdateAssignee(did, {phone: e.target.value})}
+                            placeholder="010-0000-0000"
                         />
                     </StyledAssigneeMetaField>
-                ))}
-            </StyledAssigneeMetaGrid>
+                    <StyledAssigneeMetaField>
+                        <StyledAssigneeMetaLabel htmlFor={`assignee-${did}-note`}>메모</StyledAssigneeMetaLabel>
+                        <StyledAssigneeMetaInput
+                            id={`assignee-${did}-note`}
+                            value={assignee.note ?? ''}
+                            onChange={(e) => onUpdateAssignee(did, {note: e.target.value})}
+                            placeholder="특이사항 메모"
+                        />
+                    </StyledAssigneeMetaField>
+                    <StyledAssigneeMetaField>
+                        <StyledAssigneeMetaLabel htmlFor={`assignee-${did}-color`}>컬러</StyledAssigneeMetaLabel>
+                        <StyledAssigneeColorInput
+                            id={`assignee-${did}-color`}
+                            type="color"
+                            value={getAssigneeColor(assignee)}
+                            onChange={(e) => onUpdateAssignee(did, {color: e.target.value})}
+                        />
+                    </StyledAssigneeMetaField>
+                </StyledAssigneeMetaGrid>
+                {/* 공개 예약 페이지 다국어 이름(선택). 비우면 위 담당자명이 그대로 표시. */}
+                <StyledAssigneeI18nGrid>
+                    {ASSIGNEE_I18N_FIELDS.map(([code, label]) => (
+                        <StyledAssigneeMetaField key={code}>
+                            <StyledAssigneeMetaLabel htmlFor={`assignee-${did}-name-${code}`}>{label}</StyledAssigneeMetaLabel>
+                            <StyledAssigneeMetaInput
+                                id={`assignee-${did}-name-${code}`}
+                                value={assignee.nameI18n?.[code] ?? ''}
+                                onChange={(e) => setNameI18n(code, e.target.value)}
+                                placeholder={label}
+                            />
+                        </StyledAssigneeMetaField>
+                    ))}
+                </StyledAssigneeI18nGrid>
+            </>
         ) : readFields.length > 0 && (
             <StyledAssigneeReadMeta>
                 {readFields.map((field) => (

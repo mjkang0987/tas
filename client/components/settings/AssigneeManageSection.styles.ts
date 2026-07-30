@@ -127,18 +127,23 @@ export const StyledAssigneeHeaderActions = styled.div`
 
 export const StyledAssigneeMetaGrid = styled.div`
     display: grid;
-    /* 3열은 컬러 칩(32px 고정)과 中文 입력이 공유한다. 32px로 잠그면 中文이 잘린다. */
-    grid-template-columns: minmax(0, 1fr) minmax(0, 1.5fr) minmax(72px, 0.5fr);
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.5fr) 32px;
     gap: 4px;
 
     @media (max-width: 760px) {
-        grid-template-columns: 1fr 1fr;
+        grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) 32px;
     }
 
     @media (max-width: 480px) {
-        grid-template-columns: 1fr;
-        padding: 8px;
+        grid-template-columns: minmax(0, 1fr);
     }
+`;
+
+/* 다국어 이름은 세 칸이 같은 성격이라 등폭. 기본 정보 그리드와 열을 공유하지 않는다. */
+export const StyledAssigneeI18nGrid = styled.div`
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 4px;
 `;
 
 export const StyledAssigneeMetaField = styled.div`
