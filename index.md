@@ -14,7 +14,7 @@ hair_reservations/
 │   └── app/         # app 라우터 — NextAuth route handler + 전역 not-found(404)만
 ├── server/          # 백엔드 (API 핸들러 + DB + Auth + Prisma 자산)
 ├── docs/            # 문서
-├── plan.md          # 게스트 데이터 마이그레이션(병합 플로우) 계획
+├── plan.md          # 진행 중·예정 작업 계획 (완료분은 git 히스토리)
 ├── CLAUDE.md        # Claude 작업 지시사항 (세션 시작 규칙·워크플로·프론트 표준·커밋 컨벤션)
 └── index.md         # 이 파일
 ```
