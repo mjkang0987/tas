@@ -4,6 +4,48 @@
 
 ---
 
+## 완료 — 고객 예약 페이지 접근성 개선 (UI Skills `fixing-accessibility` 첫 적용)
+
+> 도입한 스킬을 실제로 써 본 첫 작업. 대상은 `book/[slug].tsx`(비로그인 고객이 직접 보는 유일한 화면, 로컬에서 인증 없이 구동 검증 가능).
+
+### 감사 결과 — 이미 돼 있던 것
+
+예상과 달리 기본기는 갖춰져 있었다. 선택 칩·날짜·시간 슬롯에 `aria-pressed` 5곳, 모든 입력에 `htmlFor`↔`id`, 언어 전환기는 네이티브 `<select>`+`aria-label`, 에러는 `role="alert"`, 커스텀 div 버튼 0건. **추측으로 지적하지 말고 실제 렌더 요소를 확인해야 한다는 사례.**
+
+### 고친 것
+
+| # | 문제 | 조치 | 화면 |
+|---|---|---|---|
+| 1 | 힌트가 입력과 미연결(저장소 전체 `aria-describedby` 0건) | `book-tel`·`book-memo`에 `aria-describedby`↔힌트 `id` | 무변화 |
+| 2 | 비활성 제출 버튼이 이유를 안 밝힘 | 버튼 위 "남은 항목" 안내 + `aria-describedby` | **변화** |
+| 4 | 슬롯 로딩·불가 안내가 라이브 리전 아님 | `role="status"` 래퍼 | 무변화 |
+| 5 | 범례 색상 견본에 `aria-hidden` 없음 | 추가 | 무변화 |
+
+- **1번이 가장 중요.** 요청사항의 `memoSensitiveHint`는 단순 도움말이 아니라 **민감정보 입력 자제 안내**로, 매장 방침 제8조를 "수집 항목으로 두지 않는다 + 입력 자제 안내"로 정정한 근거(#164)다. 그 안내가 보조기술에 전달되지 않고 있었다.
+- **2번 범위 축소** — `canSubmit` 조건은 5개지만 앞의 셋(시술·날짜·시간)은 요약 카드가 이미 "선택해 주세요"로 안내한다. 중복을 피해 **이름·연락처만** 다루고, 항목명은 기존 `t.name`·`t.contact` 재사용 → 새 i18n 키는 `submitMissing` 하나(4개국어).
+- **4번 `:empty { display: none }`** — 라이브 리전은 첫 렌더부터 DOM에 있어야 내용 변경이 announce된다. 그런데 카드가 `gap: 16px` 플렉스라 빈 래퍼를 그냥 두면 **16px 죽은 여백**이 생긴다. 두 요구를 동시에 만족시키는 처리.
+
+### 제외 (사용자 지시)
+
+- **#3 단계 제목 `strong`→`h2`** — `StyledSectionLabel`이 5곳에 쓰이고 페이지에 `h1` 하나뿐이라 heading 탐색이 무용지물이지만, "태그 변경건 제외" 지시로 보류. 재개 시 `styled.strong`→`styled.h2` 한 글자이며 양쪽 다 기본 스타일을 덮어써 **시각 변화 0**.
+- `BookingPickers.tsx:177` `SlotLegend`의 `i { }` **태그 셀렉터**(CLAUDE.md Front-End Standards 위반)도 같은 성격이라 함께 보류.
+
+### 검증 (완료)
+
+- ✅ `tsc --noEmit` 0 · `next build` 성공. **커밋 2개 각각의 상태에서 타입체크** — 중간 커밋도 단독으로 성립.
+- ✅ **실브라우저**(Playwright, 로컬 Postgres 16 + 시드 매장 `myshop`, iPhone 뷰포트). DB는 `current_database()`로 로컬 `takeaseat`임을 확인 후 마이그레이션 적용(운영 무관).
+  - 힌트 연결: `book-tel`→"하이픈(-) 없이 숫자만…", `book-memo`→"건강상태 등 민감한 정보는…"
+  - 라이브 리전 **두 상태 모두 포착**: 비었을 때 `display:none`/0px(레이아웃 영향 0), 로딩 중 `display:block`/17px
+  - 남은 항목: "이름, 연락처" → 이름 입력 → "연락처" → 둘 다 → 소멸 + `disabled=false` + `aria-describedby` 해제
+  - 범례 `aria-hidden` 2/2, **페이지 에러 0건**
+
+### 리스크
+
+- 스키마·API·마이그레이션 **무변경(코드-온리)**. 배포 순서 제약 없음.
+- 스크린리더 실기기 검증은 미실시 — DOM 배선과 계산 스타일까지만 확인했다.
+
+---
+
 ## 완료 — UI Skills 도입 (`.claude/skills/`)
 
 > 요청(사용자): "ui-skills" + https://www.ui-skills.com/
