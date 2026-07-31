@@ -588,11 +588,17 @@ export default function BookingPage({bookBase}: BookingPageProps) {
                 </ServiceChoiceWrap>
 
                 <StyledSectionLabel>{t.availableTime}</StyledSectionLabel>
-                {dayLoading && <StyledMuted>{t.loadingTime}</StyledMuted>}
-                {!dayLoading && day && !day.dateOk && <StyledMuted>{t.dateUnavailable}</StyledMuted>}
-                {!dayLoading && day && day.dateOk && day.slots.length === 0 && (
-                    <StyledMuted>{t.noAvailableTime}</StyledMuted>
-                )}
+                {/* 날짜를 바꾸면 슬롯이 조용히 교체된다(포커스는 날짜 셀에 남음). 라이브 리전으로
+                    상태 변화를 알린다. 래퍼는 첫 렌더부터 DOM에 있어야 변경이 announce되므로
+                    조건부로 붙였다 떼지 않고, 비었을 때만 :empty로 레이아웃에서 빠지게 한다
+                    (카드가 gap:16px 플렉스라 빈 박스를 두면 죽은 여백이 생긴다). */}
+                <StyledSlotStatus role="status">
+                    {dayLoading && <StyledMuted>{t.loadingTime}</StyledMuted>}
+                    {!dayLoading && day && !day.dateOk && <StyledMuted>{t.dateUnavailable}</StyledMuted>}
+                    {!dayLoading && day && day.dateOk && day.slots.length === 0 && (
+                        <StyledMuted>{t.noAvailableTime}</StyledMuted>
+                    )}
+                </StyledSlotStatus>
                 {!dayLoading && day && day.dateOk && day.slots.length > 0 && (
                     <>
                         <SlotGrid>
@@ -610,8 +616,8 @@ export default function BookingPage({bookBase}: BookingPageProps) {
                             ))}
                         </SlotGrid>
                         <SlotLegend>
-                            <span><i className="ok" /> {t.legendAvailable}</span>
-                            <span><i className="off" /> {t.legendClosed}</span>
+                            <span><i className="ok" aria-hidden="true" /> {t.legendAvailable}</span>
+                            <span><i className="off" aria-hidden="true" /> {t.legendClosed}</span>
                         </SlotLegend>
                     </>
                 )}
@@ -625,13 +631,15 @@ export default function BookingPage({bookBase}: BookingPageProps) {
                         </StyledField>
                         <StyledField>
                             <StyledFieldLabel htmlFor="book-tel">{t.contact}</StyledFieldLabel>
-                            <StyledTextInput id="book-tel" type="tel" inputMode="numeric" value={tel} placeholder="01012345678" onChange={(e) => setTel(e.target.value)} />
-                            <StyledFieldHint>{t.telHint}</StyledFieldHint>
+                            <StyledTextInput id="book-tel" type="tel" inputMode="numeric" value={tel} placeholder="01012345678" aria-describedby="book-tel-hint" onChange={(e) => setTel(e.target.value)} />
+                            <StyledFieldHint id="book-tel-hint">{t.telHint}</StyledFieldHint>
                         </StyledField>
                         <StyledField>
                             <StyledFieldLabel htmlFor="book-memo">{t.memoLabel}</StyledFieldLabel>
-                            <StyledTextArea id="book-memo" value={memo} maxLength={200} rows={3} placeholder={t.memoPlaceholder} onChange={(e) => setMemo(e.target.value)} />
-                            <StyledFieldHint>{t.memoSensitiveHint}</StyledFieldHint>
+                            {/* 민감정보 입력 자제 안내는 매장 방침 제8조가 기대는 안전장치라
+                                반드시 입력과 연결해 보조기술에도 전달되게 한다. */}
+                            <StyledTextArea id="book-memo" value={memo} maxLength={200} rows={3} placeholder={t.memoPlaceholder} aria-describedby="book-memo-hint" onChange={(e) => setMemo(e.target.value)} />
+                            <StyledFieldHint id="book-memo-hint">{t.memoSensitiveHint}</StyledFieldHint>
                         </StyledField>
 
                         {/* 개인정보 수집·이용 안내. 이름·연락처는 예약(계약) 이행에 필요한 최소 정보라
@@ -1071,6 +1079,12 @@ const StyledMuted = styled.p`
     margin: 0;
     font-size: var(--small-font);
     color: var(--dark-gray-color2);
+`;
+
+// 슬롯 로딩·불가 안내를 감싸는 라이브 리전. 첫 렌더부터 DOM에 있어야 하되,
+// 비었을 때 카드(gap:16px 플렉스)에 죽은 여백을 남기면 안 되므로 :empty에서 레이아웃 제외.
+const StyledSlotStatus = styled.div`
+    &:empty { display: none; }
 `;
 
 const StyledManageLink = styled.a`
