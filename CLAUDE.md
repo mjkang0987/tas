@@ -1,6 +1,6 @@
 # CLAUDE.md
 
-> 이 저장소에서 Claude가 항상 따라야 할 지시사항. 세션 시작 시 `index.md`·`plan.md`와 함께 읽는다.
+> 이 저장소에서 Claude가 항상 따라야 할 지시사항. 세션 시작 시 읽는 범위는 `Session Startup Rules` 를 따른다.
 
 ## Priority Order
 0. **DB Safety (파괴적 작업 금지) — 최우선, 예외 없음**
