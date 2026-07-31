@@ -305,17 +305,21 @@ export default function BookingPage({bookBase}: BookingPageProps) {
     const telRef = useRef<HTMLInputElement>(null);
 
     const goToFirstProblem = () => {
-        const go = (el: HTMLElement | null, focus: boolean) => {
+        // 스무스 스크롤을 강제하지 않는다 — 전정기관 문제가 있는 사용자에게 갑작스러운 이동은 불편을 준다.
+        const reduceMotion = typeof window !== 'undefined'
+            && !!window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+        // 스크롤만 하고 포커스를 안 옮기면 보조기술 사용자에게는 아무 일도 없는 것과 같다.
+        // 섹션 라벨은 원래 포커스를 못 받으므로 tabIndex={-1}을 줘서 옮길 수 있게 했다.
+        const go = (el: HTMLElement | null) => {
             if (!el) return false;
-            el.scrollIntoView({block: 'center', behavior: 'smooth'});
-            // 스크롤은 위에서 이미 했으므로 focus가 다시 튀지 않게 한다.
-            if (focus) el.focus({preventScroll: true});
+            el.scrollIntoView({block: 'center', behavior: reduceMotion ? 'auto' : 'smooth'});
+            el.focus({preventScroll: true}); // 스크롤은 위에서 했으므로 다시 튀지 않게
             return true;
         };
-        if (selectedServices.length === 0) return go(serviceSectionRef.current, false);
-        if (!date || !selectedSlot) return go(slotSectionRef.current, false);
-        if (!name.trim()) return go(nameRef.current, true);
-        if (!telValid) return go(telRef.current, true);
+        if (selectedServices.length === 0) return go(serviceSectionRef.current);
+        if (!date || !selectedSlot) return go(slotSectionRef.current);
+        if (!name.trim()) return go(nameRef.current);
+        if (!telValid) return go(telRef.current);
         return false;
     };
 
@@ -605,7 +609,8 @@ export default function BookingPage({bookBase}: BookingPageProps) {
                     })}
                 </PickerScrollRow>
 
-                <StyledSectionLabel ref={serviceSectionRef}>{t.selectService(labels.service)}</StyledSectionLabel>
+                {/* tabIndex={-1}: 탭 순서에는 안 들어가고 프로그램적 포커스만 받는다(제출 검증 시 이동 대상). */}
+                <StyledSectionLabel ref={serviceSectionRef} tabIndex={-1}>{t.selectService(labels.service)}</StyledSectionLabel>
                 {info.services.length === 0 && <StyledMuted>{t.noServices(labels.service)}</StyledMuted>}
                 <ServiceChoiceWrap>
                     {info.services.map((s) => {
@@ -626,7 +631,7 @@ export default function BookingPage({bookBase}: BookingPageProps) {
                     })}
                 </ServiceChoiceWrap>
 
-                <StyledSectionLabel ref={slotSectionRef}>{t.availableTime}</StyledSectionLabel>
+                <StyledSectionLabel ref={slotSectionRef} tabIndex={-1}>{t.availableTime}</StyledSectionLabel>
                 {/* 날짜를 바꾸면 슬롯이 조용히 교체된다(포커스는 날짜 셀에 남음). 라이브 리전으로
                     상태 변화를 알린다. 래퍼는 첫 렌더부터 DOM에 있어야 변경이 announce되므로
                     조건부로 붙였다 떼지 않고, 비었을 때만 :empty로 레이아웃에서 빠지게 한다
@@ -678,7 +683,10 @@ export default function BookingPage({bookBase}: BookingPageProps) {
                                 onChange={(e) => setName(e.target.value)}
                                 onBlur={() => setTouched((p) => ({...p, name: true}))}
                             />
-                            {showNameError && <FieldError variant="inline"><span id="book-name-error">{nameError}</span></FieldError>}
+                            {/* role="alert": aria-describedby는 그 입력에 포커스가 갈 때만 읽힌다.
+                                blur로 에러가 생긴 순간이나 제출 시도로 여러 필드가 동시에 걸릴 때도
+                                들리게 하려면 나타나는 것 자체가 announce돼야 한다. */}
+                            {showNameError && <FieldError variant="inline" id="book-name-error" role="alert">{nameError}</FieldError>}
                         </StyledField>
                         <StyledField>
                             <StyledFieldLabel htmlFor="book-tel">{t.contact}</StyledFieldLabel>
@@ -694,7 +702,7 @@ export default function BookingPage({bookBase}: BookingPageProps) {
                                 onChange={(e) => setTel(e.target.value)}
                                 onBlur={() => setTouched((p) => ({...p, tel: true}))}
                             />
-                            {showTelError && <FieldError variant="inline"><span id="book-tel-error">{telError}</span></FieldError>}
+                            {showTelError && <FieldError variant="inline" id="book-tel-error" role="alert">{telError}</FieldError>}
                             <StyledFieldHint id="book-tel-hint">{t.telHint}</StyledFieldHint>
                         </StyledField>
                         <StyledField>
