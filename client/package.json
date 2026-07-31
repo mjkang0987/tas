@@ -12,6 +12,8 @@
     "start": "next start",
     "postinstall": "prisma generate",
     "lint": "eslint .",
+    "test": "vitest run",
+    "test:watch": "vitest",
     "prisma:format": "prisma format",
     "prisma:generate": "prisma generate",
     "prisma:validate": "prisma validate",
@@ -54,7 +56,8 @@
     "eslint-config-next": "16.2.10",
     "fsevents": "^2.3.3",
     "prisma": "^7.8.0",
-    "typescript": "6.0.3"
+    "typescript": "6.0.3",
+    "vitest": "^4.1.0"
   },
   "overrides": {
     "react": "19.2.7",

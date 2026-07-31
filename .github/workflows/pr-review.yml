@@ -1,6 +1,6 @@
-# PR 자동 검증 (무료 정적분석) — 린트 + 빌드/타입체크.
+# PR 자동 검증 (무료 정적분석) — 린트 + 단위 테스트 + 빌드/타입체크.
 # AI 코드리뷰는 작성자(Claude)가 절차 5단계(/code-review)에서 세션 내에서 수행한다.
-# 이 CI는 자동 게이트: 타입/빌드 오류를 머지 전에 잡는다.
+# 이 CI는 자동 게이트: 테스트·타입·빌드 오류를 머지 전에 잡는다.
 name: CI
 
 on:
@@ -45,6 +45,9 @@ jobs:
       - name: Lint (advisory)
         run: pnpm lint
         continue-on-error: true
+
+      - name: Test (순수 함수 단위 테스트)
+        run: pnpm test
 
       - name: Build + typecheck
         run: pnpm build
