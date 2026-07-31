@@ -8,8 +8,14 @@ description: 현재 diff를 리뷰한다 (업무 절차 5단계)
 
 ```sh
 git diff                          # 워킹 트리
-git diff origin/develop...HEAD    # 브랜치 누적
+
+# 브랜치 누적. 원격 세션은 얕은 클론이라 base ref 가 없을 수 있다 — 없으면 먼저 받는다.
+git rev-parse --verify --quiet origin/develop \
+  || git fetch --depth=1 origin develop:refs/remotes/origin/develop
+git diff origin/develop...HEAD
 ```
+
+fetch 가 실패하면 그 사실을 보고에 적는다. base 를 못 구한 채 워킹 트리만 보고 "리뷰 완료"라고 하지 않는다.
 
 ## 반드시 확인할 것
 

@@ -61,8 +61,14 @@ function resolveSpec(fromFile, spec) {
     return null;
 }
 
+// 주석 안의 `from './x'` 가 커버리지로 오인되지 않게 먼저 걷어낸다.
+// 상대경로 스펙만 쓰므로 URL(`https://`) 이 잘려도 결과에 영향이 없다.
+function stripComments(src) {
+    return src.replace(/\/\*[\s\S]*?\*\//g, '').replace(/\/\/.*$/gm, '');
+}
+
 function importedPaths(testFile) {
-    const src = readFileSync(testFile, 'utf8');
+    const src = stripComments(readFileSync(testFile, 'utf8'));
     const specs = [...src.matchAll(/from\s+['"]([^'"]+)['"]/g)].map((m) => m[1]);
     return new Set(specs.map((s) => resolveSpec(testFile, s)).filter(Boolean));
 }
@@ -86,7 +92,7 @@ const changed = [...new Set([
     ...git('diff', '--name-only', '--diff-filter=ACM', `${baseRef}...HEAD`).split('\n'),
     ...git('diff', '--name-only', '--diff-filter=ACM', 'HEAD').split('\n'),
     ...git('diff', '--name-only', '--diff-filter=ACM', '--cached', 'HEAD').split('\n'),
-])].filter((f) => WATCHED.test(f) && !f.endsWith('.test.ts'));
+])].filter((f) => WATCHED.test(f) && !f.endsWith('.test.ts') && !f.endsWith('.d.ts'));
 
 if (changed.length === 0) {
     console.log(`✅ 검사 대상 순수 모듈 변경 없음 (기준: ${baseRef})`);
