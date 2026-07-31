@@ -4,6 +4,69 @@
 
 ---
 
+## 완료 — UI Skills 도입 (`.claude/skills/`)
+
+> 요청(사용자): "ui-skills" + https://www.ui-skills.com/
+
+### 사전 확인
+
+- **사이트는 이 세션에서 읽을 수 없다.** `www.ui-skills.com`이 조직 egress 정책에 막혀 프록시가 CONNECT에 403을 반환한다. 우회하지 않고 npm 레지스트리(프록시 예외)에서 패키지 `ui-skills@0.2.4`를 받아 내용을 확인했다.
+- 정체: **UI Skills — "Skills for Design Engineers"** (저자 `ibelick`, MIT). Claude Code·Codex·Cursor용 UI 작업 스킬 모음 + `npx ui-skills` CLI.
+- **CLI는 이 환경에서 무용지물.** `bin/ui-skills.ts`가 `start`/`categories`/`list`/`get` 전부 `https://www.ui-skills.com/skills/registry.json`을 fetch한다 → 차단된 호스트라 항상 실패. 반면 **패키지 tarball에 `SKILL.md` 원문이 동봉**돼 있어 오프라인 설치는 가능하다.
+
+### 스택 적합성 판정 (실측)
+
+저장소 실측: **Tailwind 참조 0건 · `motion`/`framer-motion` 0건 · Radix/Base UI/React Aria 0건 · styled-components 141개 파일 · `@media(max-width:640px)` 43개 파일.**
+
+| 스킬 | 판정 | 근거 |
+|---|---|---|
+| `fixing-accessibility` | ✅ 그대로 | 스택 무관. CLAUDE.md "네이티브 요소 우선·WCAG"와 정면 부합 |
+| `fixing-motion-performance` | ✅ 그대로 | 스택 무관 CSS/JS 규칙 |
+| `fixing-metadata` | ✅ 그대로 | `lib/seo.ts`·`SeoHead.tsx`·정책 풀페이지·공개 예약 4개국어(og/hreflang)에 실사용 가치 |
+| `improve-ui` | ✅ 그대로 | read-only 감사 → `design-plans/` 산출. 제품 소스 미수정이라 안전 |
+| `baseline-ui` | ⚠️ **각색 필요** | `Stack`·`Components` 절 전체가 Tailwind/`cn`/`motion/react`/Base UI 전제. 그대로 두면 styled-components 저장소에 Tailwind 클래스를 넣으라는 지시가 상주한다 |
+| `ui-skills-root` | ❌ **미설치** | 존재 이유가 `npx ui-skills` CLI 라우팅인데 그 호스트가 차단됨 → 매 UI 작업마다 실패하는 명령을 시도하게 된다. 로컬 설치 후엔 Claude Code 자체 스킬 탐색이 라우팅을 대신함 |
+
+### 구현
+
+1. `.claude/skills/` 신설. 위 표대로 4개는 원문 그대로, `baseline-ui`는 TAS 각색본.
+2. **`baseline-ui` 각색 원칙 — 규칙의 의도는 보존하고 표현 수단만 이 저장소 것으로 치환.** 삭제가 아니라 매핑:
+   - Tailwind 기본값 → `styles/globalStyle.ts` CSS 변수 토큰(+ `font-size` px 리터럴 금지, 기존 규칙)
+   - `cn`/`clsx` → styled-components props 분기
+   - Base UI/Radix/React Aria → **네이티브 HTML 요소 우선**(CLAUDE.md Front-End Standards) + `ModalStyles.ts` 접근성 훅
+   - `text-balance`/`tabular-nums`/`truncate`/`size-*`/`h-dvh` → 대응 CSS 속성
+   - Tailwind shadow/z 스케일 → `--shadow-*`·`--card-shadow` 토큰, `OVERLAY_Z_INDEX`(design-spec §6)
+   - 스택 무관 절(Animation·Performance·Design 대부분)은 **무변경**
+3. `.claude/skills/README.md` — 출처·버전·라이선스·각색 내역·재동기화 절차·CLI 차단 사실 기록.
+
+### 영향 파일
+
+- 신규: `.claude/skills/README.md`, `.claude/skills/{baseline-ui,fixing-accessibility,fixing-metadata,fixing-motion-performance,improve-ui}/SKILL.md`, `.claude/skills/improve-ui/references/plan-template.md`
+- 수정: `index.md`, `plan.md`
+- **앱 코드·스키마·마이그레이션 무변경.** 빌드 산출물에 영향 없음(에이전트 설정 파일만).
+
+### 검증 (완료)
+
+- ✅ **CLI 차단 실측** — `npx ui-skills start`·`categories`·`list --category motion`·`get baseline-ui` **4개 전부** `Failed to fetch https://www.ui-skills.com/skills/registry.json (403 Forbidden)`. `ui-skills-root` 미설치 판단의 근거이자, 로컬 설치를 택한 이유.
+- ✅ **원문 무결성** — 설치한 4종 + `plan-template.md`가 tarball과 `diff` 바이트 동일.
+- ✅ **스킬 인식** — 5개 모두 frontmatter `name`이 디렉터리명과 일치. Claude Code 스킬 목록에 노출 확인.
+- ✅ **재동기화 스니펫 실행 검증** — README의 curl+node 한 줄이 `dist-tags.latest`(0.2.4) tarball URL을 정확히 해석하고 실제 다운로드·전개까지 성공.
+- ✅ **앱 무영향** — `git status`상 `client/`·`server/` 변경 **0건**. 스키마·마이그레이션·빌드 산출물 무관(에이전트 설정 파일만) → 빌드 검증 불요(CLAUDE.md "문서·설정만이면 빌드만" 기준에서도 앱 코드 미변경).
+
+### 리스크
+
+- 상위 저장소가 스킬을 갱신하면 각색본은 자동으로 따라가지 않는다 → README에 원본 버전(`0.2.4`)과 재동기화 절차를 박아 둔다.
+- `improve-ui`는 `design-plans/` 디렉터리를 새로 만든다. 이 저장소의 단일 계획 소스는 `plan.md`이므로 **감사 산출물 전용**임을 README에 명시.
+- 네트워크가 열린 환경에서는 CLI가 동작하고, 사이트 레지스트리에는 동봉 6종 외 서드파티 스킬도 있다 → 그 환경에선 CLI 쪽이 더 최신일 수 있음(README에 명시).
+
+### 후속 후보 (미실행)
+
+- 설치한 `fixing-accessibility`로 모달·폼 계열 실제 감사(`ModalStyles`·`ReservationCreate`·설정 폼).
+- `fixing-metadata`로 공개 예약 페이지 4개국어 `hreflang`·`og:url`·canonical 점검(`lib/seo.ts`·`SeoHead.tsx`).
+- `baseline-ui` 각색본 기준 저장소 스윕(토큰 미사용 hex, 임의 `z-index`).
+
+---
+
 ## 완료 — 네이버 동기화 워터마크 (#179, 에픽 #176)
 
 > 1단계(#177 #178) 후속. 스캔 범위 자체를 줄여 burst를 원천 제거한다.
