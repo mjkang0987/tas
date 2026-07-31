@@ -11,6 +11,10 @@
 // 판정은 파일명이 아니라 **import 관계**로 한다.
 // (`model.ts` 의 테스트가 `dateKey.test.ts` 일 수 있다.)
 //
+// ⚠️ 한계: 이 게이트가 보장하는 것은 "테스트가 이 모듈을 import 한다"까지다.
+//    "제대로 테스트한다"는 보장하지 못한다 — 쓰지 않는 import 하나로 통과시킬 수 있다.
+//    테스트의 질은 `/test` 규약(변이 검사 의무)과 코드리뷰가 담당한다. 바닥이지 천장이 아니다.
+//
 // 사용: node scripts/check-pure-test-coverage.mjs [baseRef]
 
 import {execFileSync} from 'node:child_process';
@@ -37,11 +41,14 @@ function resolveBaseRef(explicit) {
     return null;
 }
 
-// 런타임 import 가 하나라도 있으면 순수하지 않다(타입 임포트는 런타임에 지워진다).
+// 런타임 의존이 하나라도 있으면 순수하지 않다(타입 임포트/재export 는 런타임에 지워진다).
+// `export {x} from './y'` 도 런타임 재export 이므로 의존으로 센다.
 function isPure(source) {
-    return !source
-        .split('\n')
-        .some((line) => /^import\s/.test(line) && !/^import\s+type\s/.test(line));
+    return !source.split('\n').some((line) => {
+        if (/^import\s+type\s/.test(line) || /^export\s+type\s/.test(line)) return false;
+        if (/^import\s/.test(line)) return true;
+        return /^export\s.*\sfrom\s/.test(line);
+    });
 }
 
 // import 스펙을 실제 파일 경로로 해석한다. 상대경로만 대상(패키지는 무시).
@@ -62,7 +69,15 @@ function importedPaths(testFile) {
 
 const baseRef = resolveBaseRef(process.argv[2]);
 if (!baseRef) {
-    console.log('⚠️  비교 기준 ref 를 찾지 못해 건너뜁니다(얕은 클론 등).');
+    // CI 에서 기준 ref 가 없으면 게이트가 통째로 무력화된다. 조용히 통과시키지 않는다.
+    // (actions/checkout 의 fetch-depth 가 0 이 아니면 base 브랜치 ref 가 없다.)
+    const msg = '비교 기준 ref 를 찾지 못했습니다(얕은 클론 등).';
+    if (process.env.CI) {
+        console.error(`\n🛑 ${msg} CI 에서는 게이트를 건너뛸 수 없습니다.`);
+        console.error('   actions/checkout 에 fetch-depth: 0 이 설정돼 있는지 확인하세요.\n');
+        process.exit(1);
+    }
+    console.log(`⚠️  ${msg} 로컬이므로 건너뜁니다.`);
     process.exit(0);
 }
 
@@ -80,7 +95,11 @@ if (changed.length === 0) {
 
 // 저장소의 모든 테스트가 import 하는 파일 집합
 const covered = new Set();
-const testFiles = git('ls-files', 'client').split('\n').filter((f) => f.endsWith('.test.ts'));
+// 추적 파일 + 아직 add 하지 않은 새 파일까지 본다.
+// (새 테스트를 쓰고 `git add` 전에 돌리면 "테스트가 없다"고 잘못 막힌다.)
+const testFiles = git('ls-files', '--cached', '--others', '--exclude-standard', 'client')
+    .split('\n')
+    .filter((f) => f.endsWith('.test.ts'));
 for (const t of testFiles) {
     for (const p of importedPaths(resolve(REPO, t))) covered.add(p);
 }

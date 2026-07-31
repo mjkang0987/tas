@@ -259,16 +259,29 @@ describe('pickAssigneeForSlot', () => {
         })).toBeNull();
     });
 
-    it('computeAvailableSlots의 가용 판정과 일치한다', () => {
-        // 가용이라고 계산된 슬롯은 실제로 배정 가능한 담당자가 있어야 한다.
-        const args = {
-            assignees: [assignee('a1'), assignee('a2')],
-            reservations: [reservation('10:00', '11:00', 'a1'), reservation('10:00', '11:00', null)],
-        };
-        const available = computeAvailableSlots(input(args)).includes('10:00');
-        const picked = pickAssigneeForSlot({...base, ...args});
-        expect(available).toBe(false);
-        expect(picked).toBeNull();
+    it('computeAvailableSlots의 가용 판정과 항상 일치한다', () => {
+        // 불변식: 슬롯이 가용이면 배정할 담당자가 있고, 불가면 없어야 한다.
+        // 한쪽만 맞는 케이스로는 어긋남을 못 잡으므로 여러 조합을 훑는다.
+        const cases: Array<Pick<AvailabilityInput, 'assignees' | 'reservations'>> = [
+            {assignees: [assignee('a1')], reservations: []},
+            {assignees: [assignee('a1')], reservations: [reservation('10:00', '11:00', 'a1')]},
+            {assignees: [assignee('a1'), assignee('a2')], reservations: [reservation('10:00', '11:00', 'a1')]},
+            {assignees: [assignee('a1'), assignee('a2')], reservations: [reservation('10:00', '11:00', null)]},
+            {
+                assignees: [assignee('a1'), assignee('a2')],
+                reservations: [reservation('10:00', '11:00', 'a1'), reservation('10:00', '11:00', null)],
+            },
+            {
+                assignees: [assignee('a1', [{dayIndex: MON, enabled: false, startTime: '09:00', endTime: '18:00'}])],
+                reservations: [],
+            },
+        ];
+
+        for (const args of cases) {
+            const available = computeAvailableSlots(input(args)).includes('10:00');
+            const picked = pickAssigneeForSlot({...base, ...args});
+            expect(picked !== null, JSON.stringify(args)).toBe(available);
+        }
     });
 });
 
@@ -306,10 +319,15 @@ describe('computeSlotCapacities', () => {
             reservations: [reservation('12:00', '13:00')],
         };
         const caps = computeSlotCapacities(input(args));
-        for (const {time, maxDurationMin} of caps) {
-            if (maxDurationMin < 60) continue;
-            const slots = computeAvailableSlots(input({...args, durationMin: 60}));
-            expect(slots).toContain(time);
+        const slots = computeAvailableSlots(input({...args, durationMin: 60}));
+
+        const fits = caps.filter((c) => c.maxDurationMin >= 60);
+        expect(fits.length).toBeGreaterThan(0); // 아무것도 검사 못 하고 통과하는 것 방지
+
+        for (const {time} of fits) expect(slots).toContain(time);
+        // 역방향: 용량이 모자란 시각은 슬롯에 없어야 한다
+        for (const {time} of caps.filter((c) => c.maxDurationMin < 60)) {
+            expect(slots).not.toContain(time);
         }
     });
 });
