@@ -16,7 +16,8 @@
 
 - **운영(Supabase)에 파괴적 명령 절대 금지.** `prisma migrate reset`, `migrate dev`(reset 유발), `db push --force-reset`, `DROP`, `TRUNCATE`, 대량 `DELETE` 는 운영을 향해 **절대** 실행하거나 사용자에게 안내하지 않는다.
 - **파괴적 명령 안내 전, 대상 DB를 반드시 증명한다.** 명령을 주기 전에 먼저 연결 대상 호스트/DB명을 출력해 **로컬임을 확인**한다. `Datasource ... database "<이름>"` 이 로컬 DB(예: `takeaseat`)여야 하며, `*.supabase.co`/pooler(6543)/direct(5432) 운영 호스트면 **중단**한다.
-- **`.env`/`prisma.config.ts` 함정 인지.** `migrate reset`은 `DIRECT_URL ?? DATABASE_URL`을 env/`.env`에서 읽는다. 셸에 운영 URL이 로드돼 있으면 **인라인 URL 없는 bare `migrate reset`이 운영을 지운다.** 로컬 리셋은 **항상** 로컬 URL을 인라인으로 명시(`DIRECT_URL="postgresql:///takeaseat" ...`)하고, 실행 후 datasource 줄이 로컬인지 **눈으로 확인한 뒤** 다음 단계로 간다.
+- **로컬 마이그레이션은 저장소의 안전 래퍼를 쓴다.** `pnpm prisma:migrate:local`(`client/scripts/migrate-local.sh`)은 `.env.local`의 `DATABASE_URL`을 `DIRECT_URL`/`DATABASE_URL`로 강제하고, **대상 host가 `localhost`/`127.0.0.1`이 아니면 실행을 거부**한다. URL을 손으로 조립하는 것보다 항상 안전하므로 **이 래퍼를 우선 사용**한다 (`pnpm prisma:migrate:local dev --name <변경명>` / `... status`, `client/`에서 실행).
+- **`.env`/`prisma.config.ts` 함정 인지.** `migrate reset`은 `DIRECT_URL ?? DATABASE_URL`을 env/`.env`에서 읽는다. 셸에 운영 URL이 로드돼 있으면 **인라인 URL 없는 bare `migrate reset`이 운영을 지운다.** 래퍼가 없는 명령(리셋 등)을 부득이 직접 돌릴 때는 **항상** 로컬 URL을 인라인으로 명시(`DIRECT_URL="postgresql:///takeaseat" ...`)하고, 실행 후 datasource 줄이 로컬인지 **눈으로 확인한 뒤** 다음 단계로 간다.
 - **운영 스키마 변경은 멱등·가산만.** 운영 마이그레이션은 `ADD COLUMN IF NOT EXISTS` / `ADD VALUE IF NOT EXISTS` 등 데이터를 지우지 않는 것만, 수동 선적용 후 검증. reset 계열 금지.
 - **드리프트/컬럼 없음 문제를 reset으로 풀지 않는다.** 로컬조차 reset 전에 데이터 보존 대안을 먼저 검토하고, reset이 유일하면 위 대상 증명 절차를 밟는다.
 - **확신 없으면 멈추고 물어본다.** 어느 DB인지 불확실하면 파괴적 명령을 주지 말고 사용자에게 확인한다. "일단 돌려보세요"는 금지.
@@ -27,11 +28,12 @@
 - If something fails, investigate the root cause before retrying.
 
 ## Session Startup Rules
-- At the start of a new session, read `index.md` and `plan.md` first.
-- Do not begin implementation until `index.md` and `plan.md` have been reviewed.
-- Use `index.md` as the source of truth for the project structure and current status.
-- Use `plan.md` as the source of truth for current tasks and future work.
-- If the documentation and implementation differ, report the discrepancy and request confirmation before proceeding.
+- 세션 시작 시 `plan.md` **전체**와 `index.md`의 **목차 + `횡단 규칙` 섹션**을 읽는다. 이 둘을 읽기 전에는 구현을 시작하지 않는다.
+- **`index.md` 전체를 읽지 않는다.** 목차에서 작업 영역에 해당하는 섹션만 펼쳐 읽는다.
+- **파일 위치·구조는 `index.md`가 아니라 코드에서 확인한다**(`ls`/`glob`/`grep`). 문서는 코드보다 뒤처질 수 있고, 실제로 라우팅 표에서 빠진 페이지가 있다.
+- `index.md`가 값을 갖는 지점은 **코드로 복원할 수 없는 것** — 함정·실패 이력·설계 근거·미구현 범위·법적 판단이다. 이 부분은 반드시 참고한다.
+- `plan.md`는 현재 작업·향후 작업의 단일 소스로 삼는다.
+- 문서와 구현이 다르면 보고하고 확인을 요청한 뒤 진행한다.
 
 ## Development Workflow
 - **작업 계획 수립:** 모든 작업을 시작하기 전 `plan.md`를 작성할 것. 요구사항, 구현 방식, 영향받는 파일,
