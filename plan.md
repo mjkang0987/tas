@@ -39,10 +39,36 @@
   - 남은 항목: "이름, 연락처" → 이름 입력 → "연락처" → 둘 다 → 소멸 + `disabled=false` + `aria-describedby` 해제
   - 범례 `aria-hidden` 2/2, **페이지 에러 0건**
 
+### 후속 — 미입력 안내 위치 개선 (사용자 지적)
+
+> "뭐가 누락됐을 때 아래 떠서 메시지를 못 보면 불편하다."
+
+**측정으로 원인을 갈랐다.** 소프트 키보드가 올라온 상태(가시 높이 560px)를 흉내내도 sticky 요약 바는 붙어 있어 안내가 계속 보였다 → **"가려진다"는 원인이 아니다.** 실제 원인은 셋:
+
+1. 안내가 문제 칸에서 **90px** 떨어진 **다른 블록**(요약 카드)에 떠서 "버튼에 대한 말"로 읽힌다.
+2. "남은 항목: 이름, 연락처"를 다시 필드로 매핑하는 게 사용자 몫.
+3. 비활성 버튼은 눌러도 무반응이라 원인 찾기도 사용자 몫.
+
+> 단, **실 iOS Safari에서는 가려질 수 있다** — 키보드가 열려도 레이아웃 뷰포트가 줄지 않아 `position:sticky; bottom:` 요소가 키보드 뒤로 들어가는 알려진 동작. Chromium 흉내로는 재현 불가라 확정하지 못했다.
+
+**조치 (A+B, 사용자 승인)**
+- **A. 필드 옆 인라인 에러** — 공용 `ui/FieldError`(variant=inline) 재사용 + `aria-invalid`. 거리 **90px → 5px**. 미터치 칸에 미리 띄우지 않게 **blur 이후 또는 제출 시도 이후**에만, 입력하면 즉시 소멸. 연락처는 미입력/형식오류 구분.
+- **B. 제출 버튼 상시 활성화 + 첫 문제 지점으로 이동** — `disabled`는 전송 중 중복 제출 방지 용도만 남김. 시술→시술 섹션, 시간→시간 섹션, 이름·연락처→해당 입력칸(`scrollIntoView` 후 `focus({preventScroll:true})`).
+- **하단 "남은 항목" 줄과 `submitMissing` 제거** — A+B가 같은 역할을 하므로 세 군데서 같은 말을 하게 된다. 대신 항목별 완성문 3종(`nameRequired`/`telRequired`/`telInvalid`) 추가 — **조사(을/를) 때문에 템플릿 함수를 쓰지 않았다.**
+- `canSubmit`은 소비처가 사라져 제거(`formValid`로 대체).
+
+**검증** — `tsc` 0 · `next build` 성공 · `eslint`가 **HEAD와 동일**(기존 `useEffect` 관련 4건, 신규 0). 실브라우저: 미선택 제출 시 `scrollY` 754→0, 시간 미선택 804→646, 이름 비운 채 제출 시 `activeElement=book-name`, 깨끗한 상태 에러 0 → 이름 blur 1/0 → 연락처 blur 1/1 → 입력 시 0, `tel`의 `aria-describedby="book-tel-error book-tel-hint"`, 페이지 에러 0.
+
 ### 리스크
 
 - 스키마·API·마이그레이션 **무변경(코드-온리)**. 배포 순서 제약 없음.
 - 스크린리더 실기기 검증은 미실시 — DOM 배선과 계산 스타일까지만 확인했다.
+- **제출 버튼 동작이 바뀌었다**(비활성 → 상시 활성 + 검증). 미입력 상태로 누르는 사용자가 생기므로 서버 검증이 최종 방어선인 점은 종전과 동일하나, 클라이언트 가드가 `formValid` 한 곳으로 모였다.
+
+### 검증 환경 메모 (재현용)
+
+- 로컬 Postgres 16을 스크래치패드에 `initdb`(포트 55432, `initdb`는 root 불가 → `postgres` 사용자로 실행, 상위 디렉터리에 `chmod o+x` 필요). 시드 후 `Store.useOnlineBooking=true`·`bookingSlug='myshop'`·`StoreBookingSettings.contactTel` 주입.
+- ⚠️ **`pkill -f` / `pgrep -f`로 next 프로세스를 찾지 말 것.** 패턴이 그 명령을 실행 중인 셸의 명령줄까지 매칭해 **셸 자신을 죽인다**(exit 144=SIGTERM). 두 번 당했다. 포트로 찾을 것: `ss -ltnpH "sport = :3123"`.
 
 ---
 
