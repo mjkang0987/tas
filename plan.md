@@ -65,10 +65,27 @@
 - 스크린리더 실기기 검증은 미실시 — DOM 배선과 계산 스타일까지만 확인했다.
 - **제출 버튼 동작이 바뀌었다**(비활성 → 상시 활성 + 검증). 미입력 상태로 누르는 사용자가 생기므로 서버 검증이 최종 방어선인 점은 종전과 동일하나, 클라이언트 가드가 `formValid` 한 곳으로 모였다.
 
+### 후속 보완 — A+B가 남긴 구멍 넷 (a3a3201)
+
+직전 조치를 스스로 점검해 나온 것들. **B가 시각 사용자만 구제하고 있었다.**
+
+| 문제 | 조치 |
+|---|---|
+| 시술·시간 미선택 시 **스크롤만 하고 포커스 미이동** → 보조기술 사용자에겐 여전히 무반응(앵커가 `strong`이라 포커스 불가) | 섹션 라벨에 `tabIndex={-1}`. 탭 순서엔 안 들어가고 프로그램적 포커스만 받는다 |
+| 인라인 에러가 **나타날 때 안 읽힘**(`aria-describedby`는 그 입력에 포커스가 가야 읽힘 → blur 발생분·제출 시 나머지 필드분 누락) | `role="alert"` 부여 |
+| `scrollIntoView`가 **항상 `smooth`** — 내가 방금 설치한 `baseline-ui`·`fixing-motion-performance`의 `prefers-reduced-motion` 규칙을 내 코드가 위반 | `reduce`면 `behavior:'auto'` |
+| `FieldError`가 `id`를 못 받아 `<FieldError><span id>`로 우회 → `aria-describedby`가 에러 요소가 아니라 내부 `span`을 가리킴 | `FieldError`에 `id`·`role` **선택** prop 추가(기존 사용처 11곳 무영향), 우회 제거 |
+
+**검증** — 실브라우저: 시술 미선택 제출 시 `activeElement`가 `strong "서비스 선택"`, 시간 미선택 시 `strong "예약 가능한 시간"`. 에러 요소 = `p[role=alert][id]`, span 우회 잔존 0. `reduce`는 80ms만에 목표 도달 / `no-preference`는 점진 이동. 기존 동작 회귀 없음. 페이지 에러 0.
+
+**아직 안 한 것** — ① 추가한 en/ja/zh 문구 3종 **원어민 미검수**(제가 쓴 것). ② 회귀 테스트 없음(러너 부재 → 방어선이 빌드 + 일회성 Playwright 스크립트뿐이고 그 스크립트는 컨테이너와 함께 사라진다). ③ 보류된 `strong`→`h2`.
+
 ### 검증 환경 메모 (재현용)
 
 - 로컬 Postgres 16을 스크래치패드에 `initdb`(포트 55432, `initdb`는 root 불가 → `postgres` 사용자로 실행, 상위 디렉터리에 `chmod o+x` 필요). 시드 후 `Store.useOnlineBooking=true`·`bookingSlug='myshop'`·`StoreBookingSettings.contactTel` 주입.
-- ⚠️ **`pkill -f` / `pgrep -f`로 next 프로세스를 찾지 말 것.** 패턴이 그 명령을 실행 중인 셸의 명령줄까지 매칭해 **셸 자신을 죽인다**(exit 144=SIGTERM). 두 번 당했다. 포트로 찾을 것: `ss -ltnpH "sport = :3123"`.
+- ⚠️ **`pkill -f` / `pgrep -f`로 next 프로세스를 찾지 말 것.** 패턴이 그 명령을 실행 중인 셸의 명령줄까지 매칭해 **셸 자신을 죽인다**(exit 144=SIGTERM). 두 번 당했다.
+- ⚠️ **`ss`가 이 컨테이너에서 3123 리스너를 못 보여준다.** 그래서 포트 기반 kill도 실패했고, **낡은 서버가 계속 응답**해 `_next/static/*`이 전부 400(하이드레이션 실패 → "불러오는 중…"에서 멈춤)이 됐다. 코드 문제로 한참 헤맸다. → `/proc/[0-9]*/cmdline`을 직접 훑되 `exe`가 node인 것만 대상으로 한다(셸 자기 살해 방지). **버그로 의심하기 전에 HTML의 buildId와 `.next/BUILD_ID`를 대조할 것** — 다르면 낡은 프로세스다.
+- ⚠️ **`next start`로 띄우지 말 것.** `output: 'standalone'`이라 정적 자산을 못 서빙한다. Dockerfile과 동일하게 `.next/standalone/client/server.js` + `.next/static`·`public` 수동 복사로 띄운다(운영과 같은 형태라 검증 정확도도 올라간다).
 
 ---
 
