@@ -88,7 +88,4 @@
 - Write commit messages in Korean.
 - Use conventional prefixes: `feat:`, `fix:`, `refactor:`, `style:`, `chore:`, etc.
 - Always push after committing.
-
-## Recurring Tasks
-- Around 4 PM KST daily, if work is in progress, ask whether to organize and commit changes.
-  - 주의: 시간 기반 자동 트리거는 Claude 자체로는 보장되지 않음(일회성 컨테이너). 자동화하려면 `.claude/settings.json` 훅 또는 외부 스케줄러가 필요.
+- **세션을 끝낼 때 커밋되지 않은 변경·푸시되지 않은 커밋을 남기지 않는다.** 원격 세션은 일회성 컨테이너라 남은 작업이 소실된다.
