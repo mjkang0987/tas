@@ -59,7 +59,7 @@
 
 1. **업무 요청 접수** — 요구사항이 모호하면 먼저 질문해 범위를 확정한다(추측 금지).
 2. **이슈 분할·생성** — 작업을 단위로 쪼개 GitHub 이슈를 만든다. 큰 기능은 상위(에픽) 이슈 + 서브이슈. 각 이슈에 배경·작업 체크리스트·완료 조건·관련 파일을 적는다.
-3. **작업** — 이슈당 브랜치(`claude/issue-<번호>-<슬러그>`)를 `main`에서 만들어 구현. 커밋은 최소 단위·한국어·conventional prefix (`On Commit` 준수). `plan.md` 계획 선행은 `Development Workflow` 준수.
+3. **작업** — 이슈당 브랜치(`claude/issue-<번호>-<슬러그>`)를 `develop`에서 만들어 구현(git-flow. 운영 긴급 수정만 `main`에서 파생). 커밋은 최소 단위·한국어·conventional prefix (`On Commit` 준수). `plan.md` 계획 선행은 `Development Workflow` 준수.
 4. **검증** — `/verify`로 빌드 + 실제 동작 확인(테스트만이 아니라 대상 흐름을 구동).
 5. **코드리뷰** — `/code-review`로 현재 diff를 리뷰한다.
    1. **리팩토링** — 리뷰 지적사항 반영 + 재사용·단순화(`/simplify`).

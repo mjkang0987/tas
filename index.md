@@ -67,7 +67,7 @@ hair_reservations/
 | `/login` | `login.tsx` | 로그인 (Google, Kakao, Naver OAuth) + 게스트 진입. 초대 링크(`?invite=CODE`) 코드 자동입력, 인앱 브라우저(WebView) 감지 시 안내 배너 + 카카오 우선 노출, 로고→루트 링크 |
 | `/logout` | `logout.tsx` | 로그아웃 후 `/login`으로 리다이렉트 |
 | `/mypage` | `mypage.tsx` | 계정 관리 (프로필, 연결된 SNS, 로그아웃, 회원탈퇴) |
-| `/settings/[tab]` | `settings/[tab].tsx` → `settings.tsx` | 설정 (탭: revenue/point/membership/coupon/service/assignee/store/member/sns/naver) |
+| `/settings/[tab]` | `settings/[tab].tsx` → `settings.tsx` | 설정 (탭: revenue/point/membership/coupon/booking/notice/service/assignee/store/member/sns/naver) |
 | `/address` | `address.tsx` | 고객 명단 |
 | `/menu` | `menu.tsx` | **모바일 설정(더보기) 허브** — aside 설정 메뉴를 iOS 리스트로 이관(하단 탭 '설정' 목적지). 매출·고객명단 제외, 고객센터·사용안내·로그아웃·약관 포함. 권한·기능 토글 게이팅은 `layout/settingsMenu.ts` 공유 |
 | `/onboarding` | `onboarding/index.tsx` | 신규 매장 초기 설정 (로그인 사용자). 온보딩 완료자는 이전 페이지로 리다이렉트 |
@@ -133,7 +133,7 @@ hair_reservations/
 | `modals/` | 전역 오버레이 (layout과 분리) | `NaverSyncConflictModal.tsx`[^2](+`.styles.ts`), `CustomerMergeSuggestionModal.tsx`[^3], `GuestMigrationLayer.tsx`(게스트→계정 병합 레이어), `ConsentDpaLayer.tsx`(처리위탁 DPA 동의 레이어 — "보기"는 `PolicyViewLayer`) |
 | `policy/` | 정책 문서 표시 | `PolicyPage.tsx`(앱 인라인 페이지 레이아웃, mypage `StyledContainer` 사용), `PolicyViewLayer.tsx`(약관 "보기" — 공통 `ModalStyles` 레이어), `policyCss.ts`(인라인·풀페이지 공유 CSS + 독립 HTML 생성 `renderPolicyHtml`)[^20] |
 | `onboarding/` | 온보딩 스텝 분리 | `OnboardingStep1~5.tsx`, `onboarding-types.ts`, `onboarding-step-styles.tsx` |
-| `settings/` | 설정 화면 섹션 | `StoreManageSection.tsx`(매장정보+업종+적립금/회원권 시스템 토글), `ServiceManageSection.tsx`, `AssigneeManageSection.tsx`, `PointManageSection.tsx`(+`PointSettingsTab`/`PointAdjustTab`/`PointHistoryTab`), `MembershipManageSection.tsx`(회원권 상품 CRUD + 고객 발급·잔여 조회)[^21], `CouponManageSection.tsx`(쿠폰 상품 CRUD — 정액/정률·코드·만료·최소금액. 발급·결제차감 미구현)[^22], `MemberSection.tsx`, `SNSLinkingSection.tsx`[^14], `NaverBookingSection.tsx`[^15], `settings-styles.ts`[^16]. 큰 섹션은 본체와 `*.styles.ts` 분리 |
+| `settings/` | 설정 화면 섹션 | `StoreManageSection.tsx`(매장정보+업종+적립금/회원권 시스템 토글), `ServiceManageSection.tsx`, `AssigneeManageSection.tsx`, `PointManageSection.tsx`(+`PointSettingsTab`/`PointAdjustTab`/`PointHistoryTab`), `MembershipManageSection.tsx`(회원권 상품 CRUD + 고객 발급·잔여 조회)[^21], `CouponManageSection.tsx`(쿠폰 상품 CRUD — 정액/정률·코드·만료·최소금액. 발급·결제차감 미구현)[^22], `BookingManageSection.tsx`(온라인예약 토글·슬러그·규칙·노출서비스)[^23], `NoticeManageSection.tsx`(매장 공지사항 CRUD)[^25], `MemberSection.tsx`, `SNSLinkingSection.tsx`[^14], `NaverBookingSection.tsx`[^15], `settings-styles.ts`[^16]. 큰 섹션은 본체와 `*.styles.ts` 분리 |
 | `settings/revenue/` | 매출 관리 | `RevenueSection.tsx`(+`.styles.ts`, 순수 차트 로직은 `revenueChartUtils.ts`), `RevenueChartGrid.tsx`, `RevenueKpiGrid.tsx`, `RevenueFilters.tsx`, `RevenueMetricModal.tsx`, `RevenueReservationList.tsx`, `RevenueDailyList.tsx`, `RevenueDailyDetailModal.tsx`, `revenue-styles.ts`/`revenue-chart-styles.ts` |
 | `address/` | 고객 명단 | `AddressContent.tsx`, `AddressCustomerRow.tsx`, `AddressCustomerSummary.tsx`, `AddressCustomerRecharge.tsx` |
 | `ui/` | 공통 UI | `Buttons.tsx`, `Icons.tsx`, `PageHero.tsx`, `SeoHead.tsx`, `ServiceChip.tsx`, `AssigneeLabel.tsx`/`ColorTag.tsx`(담당자 색상 배지), `LabelBadge.tsx`(tone×shape 배지), `ReservationStatusBadge.ts`(예약 상태 배지), `ReservationInfoCard.tsx`, `CsFooter.tsx`(고객센터 푸터 공통), `GuestNotice.tsx`, `FieldError.tsx`, `FormControls.ts` |
