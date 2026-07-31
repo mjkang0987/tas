@@ -4,6 +4,42 @@
 
 ---
 
+## 목차
+
+> **세션 시작 시**: 이 목차와 [횡단 규칙](#횡단-규칙-필독)만 읽고, 작업 영역에 해당하는 섹션만 펼쳐 읽는다. 전체를 읽지 않는다.
+>
+> **파일 위치·목록은 이 문서가 아니라 코드에서 확인한다**(`ls`/`glob`/`grep`). 문서는 뒤처질 수 있고, 실제로 라우팅 표에 빠진 페이지가 있다.
+>
+> 이 문서가 값을 갖는 지점은 **코드로 복원할 수 없는 것** — 함정·실패 이력·설계 근거·미구현 범위·법적 판단이다. 그 부분은 반드시 참고한다.
+
+| 섹션 | 언제 읽나 | 분량 |
+|------|----------|------|
+| [횡단 규칙](#횡단-규칙-필독) | **항상** | ~0.5k |
+| [디렉토리 구조](#디렉토리-구조) | 저장소 배치를 훑을 때 | ~0.2k |
+| [프론트엔드 (`client/`)](#프론트엔드-client) | 페이지·컴포넌트·스토어·훅·유틸·인증 작업 | ~7.7k |
+| [백엔드 API](#백엔드-api) | API 핸들러·Gmail 연동·권한·DB 매퍼 작업 | ~3.1k |
+| [DB 스키마](#db-스키마-serverprismaschemaprisma--prisma-설정) | 스키마·마이그레이션·Enum·ID 체계 작업 | ~0.9k |
+| [주요 기능 흐름 요약](#주요-기능-흐름-요약) | 네이버 동기화·병합·동의·적립금·업종 라벨 흐름 파악 | ~1.4k |
+| [권한 모델 요약](#권한-모델-요약) | 역할별 허용/차단 판단 | ~0.2k |
+| [환경 설정](#환경-설정) | 환경변수·마이그레이션 명령·설정 파일 | ~0.2k |
+
+---
+
+## 횡단 규칙 (필독)
+
+> 작업 영역과 무관하게 적용된다. **위반 이력이 있는 것만** 모았다. 규칙만 적고, 이유와 상세는 각 링크에 남겨둔다.
+
+1. **날짜 전용 컬럼(`Reservation.date`·`StoreClosedDate.date` 등)은 읽을 때 항상 `toDateKey`** — `.toISOString().slice(0,10)`(UTC) 금지. 서버가 KST면 하루 밀려 휴업일이 공개 예약에서 누락된다. 저장은 ``new Date(`${dateStr}T00:00:00`)``. → [^13]
+2. **예약 조회는 `prisma-includes.ts`의 명시적 `select`만 쓴다** — `include`(전체 컬럼 SELECT) 금지. 새 컬럼 추가 후 마이그레이션이 미적용된 채 배포되면 전체 예약 조회가 500난다(2026-07 `publicToken` 배포순서 사고). → [^13]
+3. **`legacyId`는 생성 시 반드시 부여** — null이면 프론트 id가 깨져 선택·수정이 안 된다. → [ID 체계](#id-체계)
+4. **스키마 변경은 마이그레이션(수동)이 먼저, 코드 배포가 나중** — `main` 머지 시 코드는 자동 배포되므로 순서가 뒤바뀌면 운영 500. → `CLAUDE.md` 배포 절차
+5. **로컬 마이그레이션은 `pnpm prisma:migrate:local`** — `prisma migrate dev`를 그냥 돌리면 `prisma.config.ts`가 `DIRECT_URL`(운영)을 우선해 **운영 DB로 간다**. 래퍼(`client/scripts/migrate-local.sh`)는 대상이 localhost가 아니면 실행을 거부한다. → [환경 설정](#환경-설정)
+6. **Cloudflare `tas-proxy` Worker 의존** — 오리진의 `host`는 항상 `run.app`이라 **원본 호스트는 Worker가 넣는 `x-forwarded-host`로만 알 수 있다.** Worker가 빠지면 사이트 전체가 다운된다. → [미들웨어](#미들웨어-clientproxyts)
+7. **정책 문서는 모든 렌더 경로(레이어·풀페이지·인라인)가 `applyPolicyVars`를 통과해야 한다** — 빠지면 `{{storeName}}` 토큰이 고객에게 그대로 노출된다. → [^27]
+8. **`font-size`에 px 리터럴을 쓰지 않는다** — `styles/globalStyle.ts`의 토큰만 사용(유일한 예외: `components/policy/policyCss.ts`). → [디자인 토큰](#디자인-토큰--폰트)
+
+---
+
 ## 디렉토리 구조
 
 ```
@@ -14,7 +50,7 @@ hair_reservations/
 │   └── app/         # app 라우터 — NextAuth route handler + 전역 not-found(404)만
 ├── server/          # 백엔드 (API 핸들러 + DB + Auth + Prisma 자산)
 ├── docs/            # 문서
-├── plan.md          # 게스트 데이터 마이그레이션(병합 플로우) 계획
+├── plan.md          # 진행 중·예정 작업 계획 (완료분은 git 히스토리)
 ├── CLAUDE.md        # Claude 작업 지시사항 (세션 시작 규칙·워크플로·프론트 표준·커밋 컨벤션)
 └── index.md         # 이 파일
 ```
@@ -31,7 +67,7 @@ hair_reservations/
 | `/login` | `login.tsx` | 로그인 (Google, Kakao, Naver OAuth) + 게스트 진입. 초대 링크(`?invite=CODE`) 코드 자동입력, 인앱 브라우저(WebView) 감지 시 안내 배너 + 카카오 우선 노출, 로고→루트 링크 |
 | `/logout` | `logout.tsx` | 로그아웃 후 `/login`으로 리다이렉트 |
 | `/mypage` | `mypage.tsx` | 계정 관리 (프로필, 연결된 SNS, 로그아웃, 회원탈퇴) |
-| `/settings/[tab]` | `settings/[tab].tsx` → `settings.tsx` | 설정 (탭: revenue/point/membership/coupon/service/assignee/store/member/sns/naver) |
+| `/settings/[tab]` | `settings/[tab].tsx` → `settings.tsx` | 설정 (탭: revenue/point/membership/coupon/booking/notice/service/assignee/store/member/sns/naver) |
 | `/address` | `address.tsx` | 고객 명단 |
 | `/menu` | `menu.tsx` | **모바일 설정(더보기) 허브** — aside 설정 메뉴를 iOS 리스트로 이관(하단 탭 '설정' 목적지). 매출·고객명단 제외, 고객센터·사용안내·로그아웃·약관 포함. 권한·기능 토글 게이팅은 `layout/settingsMenu.ts` 공유 |
 | `/onboarding` | `onboarding/index.tsx` | 신규 매장 초기 설정 (로그인 사용자). 온보딩 완료자는 이전 페이지로 리다이렉트 |
@@ -93,11 +129,11 @@ hair_reservations/
 | `calendar/overlays/` | 예약 생성·상세·수정 모달 | `ReservationCreate.tsx`(+`useReservationCreateForm.ts`/`ReservationCreateCustomerFields.tsx`), `ReservationDetail.tsx`(+`ReservationDetailSections`/`Header`/`FooterActions`/`PaymentLayer`/`ViewSection`, 순수 로직은 `reservationDetailUtils.ts`·타입은 `reservationDetailTypes.ts`), `CustomerDetail.tsx`(+`CustomerDetailSections.tsx`[^3a]), `ModalStyles.ts`(공통 모달 스타일·`OVERLAY_Z_INDEX`·접근성 훅), 컴포넌트별 `*.styles.ts` |
 | `calendar/service/` | 서비스 범례·필드 | `ServiceLegend.tsx`(시술 배지 디자인), `ServiceFields.tsx` |
 | `customers/` | 고객 공용 컴포넌트 | `CustomerAutocomplete.tsx`(고객명/연락처 검색 자동완성 — 예약 생성·회원권 발급 공용. 목록 순서는 받은 그대로 그리며 정렬은 호출부 책임 — 예약추가는 이름 가나다순) |
-| `layout/` | 공통 레이아웃 | `Header.tsx`(담당자 필터 base-select)+`HeaderSearchLayer.tsx`(고객 검색)+`Header.styles.ts`, `Aside.tsx`(역할별 설정 메뉴 + 하단 이용약관/개인정보처리방침 링크)+`AsideMenuIcon.tsx`(메뉴 아이콘)+`AsideGuestLogout.tsx`(게스트 로그아웃 확인, 동의 플래그 초기화 포함)+`Aside.styles.ts`, `StoreSwitcher.tsx`[^17], `LayoutComponent.tsx`, `MobileTabBar.tsx`·`MobileViewTabs.tsx`·`MobileDateJump.tsx`(모바일 ≤640px 하단 탭바·상단 일주월년 뷰 탭·헤더 날짜 선택(네이티브 `<input type=date>` 달력) — 데스크톱은 CSS로 격리)+`settingsMenu.ts`(aside·`/menu` 공유 설정 메뉴 정의·권한 게이팅), `Footer.tsx`, `NaverSyncNotification.tsx`[^1](+`.styles.ts`) |
+| `layout/` | 공통 레이아웃 | `Header.tsx`(담당자 필터 base-select)+`HeaderSearchLayer.tsx`(고객 검색)+`Header.styles.ts`, `Aside.tsx`(역할별 설정 메뉴 + 하단 이용약관/개인정보처리방침 링크)+`AsideMenuIcon.tsx`(메뉴 아이콘)+`AsideGuestLogout.tsx`(게스트 로그아웃 확인, 동의 플래그 초기화 포함)+`Aside.styles.ts`, `StoreSwitcher.tsx`[^17], `LayoutComponent.tsx`, `MobileTabBar.tsx`·`MobileViewTabs.tsx`(모바일 ≤640px 하단 탭바·상단 일주월년 뷰 탭 — 데스크톱은 CSS로 격리. 헤더 날짜 선택은 `calendar/CalendarHeading.tsx` 의 네이티브 `<input type=date>`)+`settingsMenu.ts`(aside·`/menu` 공유 설정 메뉴 정의·권한 게이팅), `Footer.tsx`, `NaverSyncNotification.tsx`[^1](+`.styles.ts`), `BookingRequestNotification.tsx`(오너용 온라인 예약 변경/취소 요청 승인 벨 — `useBookingRequests` 구독, 대기 요청 있을 때만 노출) |
 | `modals/` | 전역 오버레이 (layout과 분리) | `NaverSyncConflictModal.tsx`[^2](+`.styles.ts`), `CustomerMergeSuggestionModal.tsx`[^3], `GuestMigrationLayer.tsx`(게스트→계정 병합 레이어), `ConsentDpaLayer.tsx`(처리위탁 DPA 동의 레이어 — "보기"는 `PolicyViewLayer`) |
 | `policy/` | 정책 문서 표시 | `PolicyPage.tsx`(앱 인라인 페이지 레이아웃, mypage `StyledContainer` 사용), `PolicyViewLayer.tsx`(약관 "보기" — 공통 `ModalStyles` 레이어), `policyCss.ts`(인라인·풀페이지 공유 CSS + 독립 HTML 생성 `renderPolicyHtml`)[^20] |
 | `onboarding/` | 온보딩 스텝 분리 | `OnboardingStep1~5.tsx`, `onboarding-types.ts`, `onboarding-step-styles.tsx` |
-| `settings/` | 설정 화면 섹션 | `StoreManageSection.tsx`(매장정보+업종+적립금/회원권 시스템 토글), `ServiceManageSection.tsx`, `AssigneeManageSection.tsx`, `PointManageSection.tsx`(+`PointSettingsTab`/`PointAdjustTab`/`PointHistoryTab`), `MembershipManageSection.tsx`(회원권 상품 CRUD + 고객 발급·잔여 조회)[^21], `CouponManageSection.tsx`(쿠폰 상품 CRUD — 정액/정률·코드·만료·최소금액. 발급·결제차감 미구현)[^22], `MemberSection.tsx`, `SNSLinkingSection.tsx`[^14], `NaverBookingSection.tsx`[^15], `settings-styles.ts`[^16]. 큰 섹션은 본체와 `*.styles.ts` 분리 |
+| `settings/` | 설정 화면 섹션 | `StoreManageSection.tsx`(매장정보+업종+기능 토글 4종 `usePointSystem`/`useMembershipSystem`/`useCouponSystem`/`useOnlineBooking`), `ServiceManageSection.tsx`, `AssigneeManageSection.tsx`, `PointManageSection.tsx`(+`PointSettingsTab`/`PointAdjustTab`/`PointHistoryTab`), `MembershipManageSection.tsx`(회원권 상품 CRUD + 고객 발급·잔여 조회)[^21], `CouponManageSection.tsx`(쿠폰 상품 CRUD — 정액/정률·코드·만료·최소금액. 발급·결제차감 미구현)[^22], `BookingManageSection.tsx`(온라인예약 슬러그·규칙·노출서비스·매장 연락처·안내문. **토글 자체는 `StoreManageSection`**)[^23], `NoticeManageSection.tsx`(매장 공지사항 CRUD)[^25], `MemberSection.tsx`, `SNSLinkingSection.tsx`[^14], `NaverBookingSection.tsx`[^15], `settings-styles.ts`[^16]. 큰 섹션은 본체와 `*.styles.ts` 분리 |
 | `settings/revenue/` | 매출 관리 | `RevenueSection.tsx`(+`.styles.ts`, 순수 차트 로직은 `revenueChartUtils.ts`), `RevenueChartGrid.tsx`, `RevenueKpiGrid.tsx`, `RevenueFilters.tsx`, `RevenueMetricModal.tsx`, `RevenueReservationList.tsx`, `RevenueDailyList.tsx`, `RevenueDailyDetailModal.tsx`, `revenue-styles.ts`/`revenue-chart-styles.ts` |
 | `address/` | 고객 명단 | `AddressContent.tsx`, `AddressCustomerRow.tsx`, `AddressCustomerSummary.tsx`, `AddressCustomerRecharge.tsx` |
 | `ui/` | 공통 UI | `Buttons.tsx`, `Icons.tsx`, `PageHero.tsx`, `SeoHead.tsx`, `ServiceChip.tsx`, `AssigneeLabel.tsx`/`ColorTag.tsx`(담당자 색상 배지), `LabelBadge.tsx`(tone×shape 배지), `ReservationStatusBadge.ts`(예약 상태 배지), `ReservationInfoCard.tsx`, `CsFooter.tsx`(고객센터 푸터 공통), `GuestNotice.tsx`, `FieldError.tsx`, `FormControls.ts` |
@@ -209,7 +245,7 @@ NextAuth 5.0 설정. Google·Kakao·Naver OAuth 지원.
 ### 부팅/마이그레이션 (`client/pages/_app.tsx`)
 
 - **부팅 게이트**: 서비스·담당자·예약 3종 데이터가 준비될 때까지 전체 오버레이로 가림 (새로고침 시 기본값 플래시 방지). 로그인/온보딩 페이지는 제외
-- **게스트 → 서버 마이그레이션**: 인증 후 로컬 스냅샷에 데이터가 있으면 `/api/migrate-local` POST (owner만). **단, `termsVersion===CURRENT_TERMS_VERSION`(DPA 등 동의 기록 완료) 이후에만 실행** — 수탁자(서버) 저장 전에 위탁계약 동의가 선행되도록 보장. 성공 또는 409(이미 설정된 매장) 시 재시도 중단. 전체 데이터 병합 플로우는 `plan.md` 참고
+- **게스트 → 서버 마이그레이션**: 인증 후 로컬 스냅샷에 데이터가 있으면 `/api/migrate-local` POST (owner만). **단, `termsVersion===CURRENT_TERMS_VERSION`(DPA 등 동의 기록 완료) 이후에만 실행** — 수탁자(서버) 저장 전에 위탁계약 동의가 선행되도록 보장. 성공 또는 409(이미 설정된 매장) 시 재시도 중단. 전체 데이터 병합 플로우는 [게스트 → SNS 연동](#게스트--sns-연동-데이터-마이그레이션) 참고
 - **앱 레벨 DPA 동의 레이어**: 게스트 동의 보유자가 SNS 연동했고 DB 동의 기록만 없으면(`/consent` 우회 케이스) 앱 위에 `ConsentDpaLayer` 노출 → `POST /api/consent` 후 마이그레이션 진행
 
 ---
@@ -300,7 +336,7 @@ NextAuth 5.0 설정. Google·Kakao·Naver OAuth 지원.
 | `prisma.ts` | Prisma 클라이언트 싱글턴 (PrismaPg driver adapter 사용) |
 | `mappers.ts` | DB ↔ 프론트엔드 변환 함수[^13] |
 
-[^13]: `dbReservationToFrontend()`, `dbCustomerToFrontend()`, `dbAssigneeToFrontend()`, `dbServiceToFrontend()`, `dbStoreToFrontend()` 등. legacyId(number) ↔ CUID(string) 변환 포함. `legacyId`가 null이면 프론트 id가 깨지므로 생성 시 반드시 부여할 것. **예약 조회는 `prisma-includes.ts`의 명시적 `select`(`reservationSelect`/`reservationSelectWithNames`)만 사용** — `include`(전체 컬럼 SELECT)는 금지. 새 컬럼을 추가한 뒤 마이그레이션이 미적용된 채 배포되면 `include`가 없는 컬럼까지 SELECT하다 전체 예약 조회가 500나기 때문(2026-07 `publicToken` 배포순서 사고 재발방지). **날짜 전용 컬럼(`Reservation.date`·`StoreClosedDate.date` 등) 규칙**: 저장은 `new Date(\`${dateStr}T00:00:00\`)`(서버 로컬 파싱), 읽기는 **항상 `toDateKey`**(로컬 컴포넌트 추출) — 두 방향이 서버 TZ와 무관하게 오너 입력 달력일을 왕복시킨다. `.toISOString().slice(0,10)`(UTC)로 읽으면 서버가 KST일 때 하루 밀려 휴업일이 공개 예약에서 누락되므로 금지(오너·공개 부킹 API 모두 `toDateKey` 사용). 예외: `booking-helpers.nowKst()`는 의도적으로 KST-shift된 instant에 UTC 추출(TZ 독립)
+[^13]: `dbReservationToFrontend()`, `dbCustomerToFrontend()`, `dbAssigneeToFrontend()`, `dbServiceToFrontend()`, `dbStoreToFrontend()` 등. legacyId(number) ↔ CUID(string) 변환 포함. `legacyId`가 null이면 프론트 id가 깨지므로 생성 시 반드시 부여할 것. **예약 조회는 `prisma-includes.ts`의 명시적 `select`(`reservationSelect`/`reservationSelectWithNames`)만 사용** — `include`(전체 컬럼 SELECT)는 금지. 새 컬럼을 추가한 뒤 마이그레이션이 미적용된 채 배포되면 `include`가 없는 컬럼까지 SELECT하다 전체 예약 조회가 500나기 때문(2026-07 `publicToken` 배포순서 사고 재발방지). **날짜 전용 컬럼(`Reservation.date`·`StoreClosedDate.date` 등) 규칙**: 저장은 ``new Date(`${dateStr}T00:00:00`)``(서버 로컬 파싱), 읽기는 **항상 `toDateKey`**(로컬 컴포넌트 추출) — 두 방향이 서버 TZ와 무관하게 오너 입력 달력일을 왕복시킨다. `.toISOString().slice(0,10)`(UTC)로 읽으면 서버가 KST일 때 하루 밀려 휴업일이 공개 예약에서 누락되므로 금지(오너·공개 부킹 API 모두 `toDateKey` 사용). 예외: `booking-helpers.nowKst()`는 의도적으로 KST-shift된 instant에 UTC 추출(TZ 독립)
 
 ---
 
@@ -405,7 +441,7 @@ useCustomerMergeSuggestion.ts (동명이인 감지, 게스트 모드 제외)
     ├─ 빈 매장(200): 서비스·담당자·매장명 이전 → onboarded 플래그 해제
     └─ 기존 데이터 매장(409): 자동 이전 중단
   → 전체 데이터(고객·예약 포함) 병합: /api/migrate-local + 담당자 병합(/api/assignees/merge)
-    (확인 레이어 → append(ID remap) → 담당자/고객 병합 → 로컬 정리. 상세는 plan.md)
+    (확인 레이어 → append(ID remap) → 담당자/고객 병합 → 로컬 정리)
 ```
 
 ### 약관 동의 게이트

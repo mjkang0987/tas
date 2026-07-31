@@ -1,6 +1,6 @@
 {
   "name": "client",
-  "version": "0.45.0",
+  "version": "0.45.1",
   "private": true,
   "scripts": {
     "dev": "next dev",
@@ -12,6 +12,9 @@
     "start": "next start",
     "postinstall": "prisma generate",
     "lint": "eslint .",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:required": "node scripts/check-pure-test-coverage.mjs",
     "prisma:format": "prisma format",
     "prisma:generate": "prisma generate",
     "prisma:validate": "prisma validate",
@@ -54,7 +57,8 @@
     "eslint-config-next": "16.2.10",
     "fsevents": "^2.3.3",
     "prisma": "^7.8.0",
-    "typescript": "6.0.3"
+    "typescript": "6.0.3",
+    "vitest": "^4.1.0"
   },
   "overrides": {
     "react": "19.2.7",
