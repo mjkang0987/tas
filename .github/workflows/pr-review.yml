@@ -26,6 +26,10 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          # 테스트 필수 게이트가 base 브랜치와 diff 를 떠야 한다.
+          # 얕은 클론이면 base ref 가 없어 게이트가 조용히 통과된다.
+          fetch-depth: 0
 
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
@@ -48,6 +52,9 @@ jobs:
 
       - name: Test (순수 함수 단위 테스트)
         run: pnpm test
+
+      - name: 순수 모듈 테스트 필수 게이트
+        run: pnpm test:required "origin/${{ github.event.pull_request.base.ref }}"
 
       - name: Build + typecheck
         run: pnpm build
