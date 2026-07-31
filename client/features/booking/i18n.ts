@@ -233,6 +233,8 @@ export interface BookI18n {
     total: string;
     submitting: string;
     submit: string;
+    // 제출 버튼이 비활성인 이유(남은 입력 항목). 항목명은 name/contact/date/time·업종 라벨을 재사용한다.
+    submitMissing: string;
     // 완료
     reserveDoneTitle: string;
     reserveDoneNoticePrefix: string;
@@ -331,6 +333,7 @@ export const BOOK_STRINGS: Record<BookLang, BookI18n> = {
         total: '합계',
         submitting: '예약 중…',
         submit: '예약하기',
+        submitMissing: '남은 항목',
         reserveDoneTitle: '예약이 신청되었습니다',
         reserveDoneNoticePrefix: '예약 신청이 접수되었습니다. ',
         reserveDoneNoticeStrong: '매장 확인 후 확정',
@@ -420,6 +423,7 @@ export const BOOK_STRINGS: Record<BookLang, BookI18n> = {
         total: 'Total',
         submitting: 'Booking…',
         submit: 'Book Now',
+        submitMissing: 'Still needed',
         reserveDoneTitle: 'Your reservation has been requested',
         reserveDoneNoticePrefix: 'Your reservation request has been received. ',
         reserveDoneNoticeStrong: 'It will be confirmed after the store reviews it',
@@ -509,6 +513,7 @@ export const BOOK_STRINGS: Record<BookLang, BookI18n> = {
         total: '合计',
         submitting: '预约中…',
         submit: '立即预约',
+        submitMissing: '尚未填写',
         reserveDoneTitle: '预约申请已提交',
         reserveDoneNoticePrefix: '您的预约申请已收到。',
         reserveDoneNoticeStrong: '经店家确认后生效',
@@ -598,6 +603,7 @@ export const BOOK_STRINGS: Record<BookLang, BookI18n> = {
         total: '合計',
         submitting: '予約中…',
         submit: '予約する',
+        submitMissing: '未入力の項目',
         reserveDoneTitle: '予約を申し込みました',
         reserveDoneNoticePrefix: '予約の申し込みを受け付けました。',
         reserveDoneNoticeStrong: '店舗の確認後に確定',

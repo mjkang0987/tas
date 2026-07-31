@@ -285,6 +285,14 @@ export default function BookingPage({bookBase}: BookingPageProps) {
     const telValid = normalizeTel(tel).length >= 10 && normalizeTel(tel).length <= 11;
     const canSubmit = selectedServices.length > 0 && !!date && !!selectedSlot && name.trim().length > 0 && telValid && !submitting;
 
+    // 제출 버튼이 왜 비활성인지 노출한다. 흐린 버튼만 두면 무엇이 모자란지 알 길이 없다.
+    // 앞 단계(시술·날짜·시간)는 요약 카드가 이미 "선택해 주세요"로 안내하므로 중복을 피하고,
+    // 예약자 정보 입력이 열린 뒤의 이름·연락처만 다룬다.
+    const infoStepOpen = !!selectedSlot && selectedServices.length > 0;
+    const missingFields = infoStepOpen
+        ? [!name.trim() ? t.name : null, !telValid ? t.contact : null].filter((v): v is string => !!v)
+        : [];
+
     const submit = () => {
         if (!canSubmit) return;
         setSubmitting(true);
@@ -713,7 +721,18 @@ export default function BookingPage({bookBase}: BookingPageProps) {
 
                     {submitError && <StyledError role="alert">{submitError}</StyledError>}
 
-                    <StyledNextBtn type="button" disabled={!canSubmit} onClick={submit}>
+                    {missingFields.length > 0 && (
+                        <StyledMissingHint id="book-missing">
+                            {t.submitMissing}: {missingFields.join(', ')}
+                        </StyledMissingHint>
+                    )}
+
+                    <StyledNextBtn
+                        type="button"
+                        disabled={!canSubmit}
+                        aria-describedby={missingFields.length > 0 ? 'book-missing' : undefined}
+                        onClick={submit}
+                    >
                         {submitting ? t.submitting : t.submit}
                     </StyledNextBtn>
                 </StyledStickyFooter>
@@ -1085,6 +1104,13 @@ const StyledMuted = styled.p`
 // 비었을 때 카드(gap:16px 플렉스)에 죽은 여백을 남기면 안 되므로 :empty에서 레이아웃 제외.
 const StyledSlotStatus = styled.div`
     &:empty { display: none; }
+`;
+
+// 제출 버튼이 비활성인 이유. 에러가 아니라 남은 입력 안내이므로 danger 톤을 쓰지 않는다.
+const StyledMissingHint = styled.p`
+    margin: 0;
+    font-size: var(--xsmall-font);
+    color: var(--dark-gray-color2);
 `;
 
 const StyledManageLink = styled.a`
