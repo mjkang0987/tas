@@ -1,4 +1,4 @@
-import {useCallback, useEffect, useMemo, useState} from 'react';
+import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 
 import type {GetServerSideProps} from 'next';
 import {useRouter} from 'next/router';
@@ -16,6 +16,7 @@ import {SeoHead} from '../../components/ui/SeoHead';
 import {PolicyViewLayer} from '../../components/policy/PolicyViewLayer';
 import type {PolicySlug} from '../../content/policies';
 import {formControlStyle} from '../../components/ui/FormControls';
+import {FieldError} from '../../components/ui/FieldError';
 import {LabelBadge} from '../../components/ui/LabelBadge';
 import {LangSwitcher, useBookLang, LANG_BAR_OFFSET} from '../../components/booking/LangSwitcher';
 import {
@@ -283,18 +284,48 @@ export default function BookingPage({bookBase}: BookingPageProps) {
     const pickSlot = (t: string) => { if (isTimeEnabled(t)) setSelectedSlot((prev) => (prev === t ? '' : t)); };
 
     const telValid = normalizeTel(tel).length >= 10 && normalizeTel(tel).length <= 11;
-    const canSubmit = selectedServices.length > 0 && !!date && !!selectedSlot && name.trim().length > 0 && telValid && !submitting;
+    const formValid = selectedServices.length > 0 && !!date && !!selectedSlot && name.trim().length > 0 && telValid;
 
-    // 제출 버튼이 왜 비활성인지 노출한다. 흐린 버튼만 두면 무엇이 모자란지 알 길이 없다.
-    // 앞 단계(시술·날짜·시간)는 요약 카드가 이미 "선택해 주세요"로 안내하므로 중복을 피하고,
-    // 예약자 정보 입력이 열린 뒤의 이름·연락처만 다룬다.
-    const infoStepOpen = !!selectedSlot && selectedServices.length > 0;
-    const missingFields = infoStepOpen
-        ? [!name.trim() ? t.name : null, !telValid ? t.contact : null].filter((v): v is string => !!v)
-        : [];
+    // 미입력 안내는 '문제가 있는 칸 옆'에 붙인다. 하단 요약 바에 몰아 두면 이름 칸에서
+    // 90px 떨어진 다른 블록에 뜨는 셈이라 버튼에 대한 말로 읽힌다.
+    // 아직 건드리지도 않은 칸에 대고 미리 빨갛게 하지 않도록, blur 이후나 제출 시도 이후에만 보여준다.
+    const [touched, setTouched] = useState<{name: boolean; tel: boolean}>({name: false, tel: false});
+    const [submitTried, setSubmitTried] = useState(false);
+
+    const nameError = !name.trim() ? t.nameRequired : '';
+    const telError = !tel.trim() ? t.telRequired : !telValid ? t.telInvalid : '';
+    const showNameError = (touched.name || submitTried) && !!nameError;
+    const showTelError = (touched.tel || submitTried) && !!telError;
+
+    // 제출 버튼을 비활성으로 두면 눌러도 무반응이라 원인 찾기가 사용자 몫이 된다.
+    // 항상 누를 수 있게 하고, 검증에 걸리면 첫 번째 문제 지점으로 데려다준다.
+    const serviceSectionRef = useRef<HTMLElement>(null);
+    const slotSectionRef = useRef<HTMLElement>(null);
+    const nameRef = useRef<HTMLInputElement>(null);
+    const telRef = useRef<HTMLInputElement>(null);
+
+    const goToFirstProblem = () => {
+        const go = (el: HTMLElement | null, focus: boolean) => {
+            if (!el) return false;
+            el.scrollIntoView({block: 'center', behavior: 'smooth'});
+            // 스크롤은 위에서 이미 했으므로 focus가 다시 튀지 않게 한다.
+            if (focus) el.focus({preventScroll: true});
+            return true;
+        };
+        if (selectedServices.length === 0) return go(serviceSectionRef.current, false);
+        if (!date || !selectedSlot) return go(slotSectionRef.current, false);
+        if (!name.trim()) return go(nameRef.current, true);
+        if (!telValid) return go(telRef.current, true);
+        return false;
+    };
 
     const submit = () => {
-        if (!canSubmit) return;
+        if (submitting) return;
+        if (!formValid) {
+            setSubmitTried(true);
+            goToFirstProblem();
+            return;
+        }
         setSubmitting(true);
         setSubmitError('');
         fetch(`/api/book/${encodeURIComponent(slug)}/reserve`, {
@@ -574,7 +605,7 @@ export default function BookingPage({bookBase}: BookingPageProps) {
                     })}
                 </PickerScrollRow>
 
-                <StyledSectionLabel>{t.selectService(labels.service)}</StyledSectionLabel>
+                <StyledSectionLabel ref={serviceSectionRef}>{t.selectService(labels.service)}</StyledSectionLabel>
                 {info.services.length === 0 && <StyledMuted>{t.noServices(labels.service)}</StyledMuted>}
                 <ServiceChoiceWrap>
                     {info.services.map((s) => {
@@ -595,7 +626,7 @@ export default function BookingPage({bookBase}: BookingPageProps) {
                     })}
                 </ServiceChoiceWrap>
 
-                <StyledSectionLabel>{t.availableTime}</StyledSectionLabel>
+                <StyledSectionLabel ref={slotSectionRef}>{t.availableTime}</StyledSectionLabel>
                 {/* 날짜를 바꾸면 슬롯이 조용히 교체된다(포커스는 날짜 셀에 남음). 라이브 리전으로
                     상태 변화를 알린다. 래퍼는 첫 렌더부터 DOM에 있어야 변경이 announce되므로
                     조건부로 붙였다 떼지 않고, 비었을 때만 :empty로 레이아웃에서 빠지게 한다
@@ -635,11 +666,35 @@ export default function BookingPage({bookBase}: BookingPageProps) {
                         <StyledSectionLabel>{t.reserverInfo}</StyledSectionLabel>
                         <StyledField>
                             <StyledFieldLabel htmlFor="book-name">{t.name}</StyledFieldLabel>
-                            <StyledTextInput id="book-name" type="text" value={name} maxLength={40} placeholder={t.name} onChange={(e) => setName(e.target.value)} />
+                            <StyledTextInput
+                                id="book-name"
+                                ref={nameRef}
+                                type="text"
+                                value={name}
+                                maxLength={40}
+                                placeholder={t.name}
+                                aria-invalid={showNameError || undefined}
+                                aria-describedby={showNameError ? 'book-name-error' : undefined}
+                                onChange={(e) => setName(e.target.value)}
+                                onBlur={() => setTouched((p) => ({...p, name: true}))}
+                            />
+                            {showNameError && <FieldError variant="inline"><span id="book-name-error">{nameError}</span></FieldError>}
                         </StyledField>
                         <StyledField>
                             <StyledFieldLabel htmlFor="book-tel">{t.contact}</StyledFieldLabel>
-                            <StyledTextInput id="book-tel" type="tel" inputMode="numeric" value={tel} placeholder="01012345678" aria-describedby="book-tel-hint" onChange={(e) => setTel(e.target.value)} />
+                            <StyledTextInput
+                                id="book-tel"
+                                ref={telRef}
+                                type="tel"
+                                inputMode="numeric"
+                                value={tel}
+                                placeholder="01012345678"
+                                aria-invalid={showTelError || undefined}
+                                aria-describedby={showTelError ? 'book-tel-error book-tel-hint' : 'book-tel-hint'}
+                                onChange={(e) => setTel(e.target.value)}
+                                onBlur={() => setTouched((p) => ({...p, tel: true}))}
+                            />
+                            {showTelError && <FieldError variant="inline"><span id="book-tel-error">{telError}</span></FieldError>}
                             <StyledFieldHint id="book-tel-hint">{t.telHint}</StyledFieldHint>
                         </StyledField>
                         <StyledField>
@@ -721,18 +776,9 @@ export default function BookingPage({bookBase}: BookingPageProps) {
 
                     {submitError && <StyledError role="alert">{submitError}</StyledError>}
 
-                    {missingFields.length > 0 && (
-                        <StyledMissingHint id="book-missing">
-                            {t.submitMissing}: {missingFields.join(', ')}
-                        </StyledMissingHint>
-                    )}
-
-                    <StyledNextBtn
-                        type="button"
-                        disabled={!canSubmit}
-                        aria-describedby={missingFields.length > 0 ? 'book-missing' : undefined}
-                        onClick={submit}
-                    >
+                    {/* 미충족이어도 누를 수 있게 둔다. submit이 첫 번째 문제 지점으로 데려간다.
+                        disabled는 전송 중 중복 제출 방지 용도로만 남긴다. */}
+                    <StyledNextBtn type="button" disabled={submitting} onClick={submit}>
                         {submitting ? t.submitting : t.submit}
                     </StyledNextBtn>
                 </StyledStickyFooter>
@@ -1104,13 +1150,6 @@ const StyledMuted = styled.p`
 // 비었을 때 카드(gap:16px 플렉스)에 죽은 여백을 남기면 안 되므로 :empty에서 레이아웃 제외.
 const StyledSlotStatus = styled.div`
     &:empty { display: none; }
-`;
-
-// 제출 버튼이 비활성인 이유. 에러가 아니라 남은 입력 안내이므로 danger 톤을 쓰지 않는다.
-const StyledMissingHint = styled.p`
-    margin: 0;
-    font-size: var(--xsmall-font);
-    color: var(--dark-gray-color2);
 `;
 
 const StyledManageLink = styled.a`
