@@ -13,6 +13,7 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: write
+      pull-requests: write
 
     steps:
       - name: 체크아웃
@@ -33,15 +34,44 @@ jobs:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
         run: node scripts/update-default-prices.mjs
 
-      - name: 변경사항 커밋 & 푸시
+      # main 에 직접 푸시하지 않는다(CLAUDE.md `main` 직접 푸시 금지).
+      # main 푸시는 곧 Cloud Run 배포이므로, 그렇게 하면 반년마다 자정에 무인 배포가 일어난다.
+      # 게다가 이 변경은 LLM 이 생성한 것이라 사람이 값을 보고 머지해야 한다.
+      - name: 변경사항 브랜치 푸시 & PR 생성
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           git config --global user.name 'github-actions[bot]'
           git config --global user.email 'github-actions[bot]@users.noreply.github.com'
           git add server/api/onboarding.ts
           if git diff --staged --quiet; then
             echo "변경 없음 — 커밋 스킵"
-          else
-            MONTH=$(date '+%Y-%m')
-            git commit -m "chore: 기본 서비스 평균가 업데이트 (${MONTH})"
-            git push origin main
+            exit 0
           fi
+          MONTH=$(date '+%Y-%m')
+          BRANCH="chore/default-prices-${MONTH}"
+          # 재실행(workflow_dispatch)으로 같은 달 브랜치가 이미 있으면 덮어쓰지 않고 그대로 둔다.
+          if git ls-remote --exit-code --heads origin "$BRANCH" >/dev/null 2>&1; then
+            echo "브랜치 $BRANCH 가 이미 있다 — 기존 PR 을 확인할 것. 중단."
+            exit 0
+          fi
+          git checkout -b "$BRANCH"
+          git commit -m "chore: 기본 서비스 평균가 업데이트 (${MONTH})"
+          git push origin "$BRANCH"
+          # PR 본문은 heredoc 으로 파일에 쓴다. YAML 블록 스칼라 안이므로
+          # 본문·종료 마커의 들여쓰기를 나머지 줄과 반드시 같게 유지할 것
+          # (0열에 두면 YAML 블록이 거기서 끊겨 워크플로 파싱이 실패한다).
+          cat > /tmp/pr-body.md <<'BODY'
+          LLM(`scripts/update-default-prices.mjs`)이 생성한 기본 서비스 평균가 변경입니다.
+
+          - **머지 전에 값이 타당한지 확인하세요.** 생성된 숫자를 사람이 검토하는 것이 이 PR 의 목적입니다.
+          - 머지하면 `main` 푸시 → Cloud Build → Cloud Run **자동 배포**됩니다.
+          - 값이 이상하면 머지하지 말고 브랜치를 지우면 됩니다(다음 스케줄에 다시 생성).
+
+          > `GITHUB_TOKEN` 으로 만든 PR 이라 `pr-review.yml` CI 가 자동으로 돌지 않습니다
+          > (GitHub 의 워크플로 재귀 방지). 상수만 바뀌므로 값 확인으로 갈음하거나,
+          > CI 가 필요하면 브랜치에 빈 커밋을 얹어 트리거하세요.
+          BODY
+          gh pr create --base main --head "$BRANCH" \
+            --title "chore: 기본 서비스 평균가 업데이트 (${MONTH})" \
+            --body-file /tmp/pr-body.md
