@@ -50,10 +50,13 @@ hair_reservations/
 │   └── app/         # app 라우터 — NextAuth route handler + 전역 not-found(404)만
 ├── server/          # 백엔드 (API 핸들러 + DB + Auth + Prisma 자산)
 ├── docs/            # 문서
+├── .claude/skills/  # 에이전트 UI 스킬 (UI Skills 도입분)[^28]
 ├── plan.md          # 진행 중·예정 작업 계획 (완료분은 git 히스토리)
 ├── CLAUDE.md        # Claude 작업 지시사항 (세션 시작 규칙·워크플로·프론트 표준·커밋 컨벤션)
 └── index.md         # 이 파일
 ```
+
+[^28]: **UI 작업용 에이전트 스킬** — [UI Skills](https://www.ui-skills.com/)(`ui-skills@0.2.4`, ibelick, MIT)에서 도입. `fixing-accessibility`·`fixing-metadata`·`fixing-motion-performance`·`improve-ui`는 원문 그대로, **`baseline-ui`는 TAS 각색본**(원본이 Tailwind·`motion/react`·Radix 전제인데 이 저장소는 styled-components + `globalStyle.ts` 토큰이라 표현 수단을 치환. 규칙 삭제가 아니라 매핑). 라우팅용 `ui-skills-root`는 **미설치** — 존재 이유인 `npx ui-skills` CLI가 전부 `www.ui-skills.com`을 fetch하는데 그 호스트가 egress 정책에 막혀 403이라, 설치하면 매번 실패하는 명령을 시도하게 된다. 도입 경위·각색 내역·업스트림 재동기화 절차는 `.claude/skills/README.md`. **스킬은 CLAUDE.md를 대체하지 않으며 충돌 시 CLAUDE.md가 우선**한다.
 
 ---
 
