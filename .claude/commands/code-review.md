@@ -10,9 +10,9 @@ description: 현재 diff를 리뷰한다 (업무 절차 5단계)
 git diff                          # 워킹 트리
 
 # 브랜치 누적. 원격 세션은 얕은 클론이라 base ref 가 없을 수 있다 — 없으면 먼저 받는다.
-git rev-parse --verify --quiet origin/develop \
-  || git fetch --depth=1 origin develop:refs/remotes/origin/develop
-git diff origin/develop...HEAD
+git rev-parse --verify --quiet origin/main \
+  || git fetch --depth=1 origin main:refs/remotes/origin/main
+git diff origin/main...HEAD
 ```
 
 fetch 가 실패하면 그 사실을 보고에 적는다. base 를 못 구한 채 워킹 트리만 보고 "리뷰 완료"라고 하지 않는다.
@@ -45,7 +45,8 @@ fetch 가 실패하면 그 사실을 보고에 적는다. base 를 못 구한 �
 
 이 저장소에서 **가장 자주 재발한 실패 유형**이다 — 인스턴스를 고치고 **클래스를 놓친다.**
 실제 사례: 섹션만 고치고 헤더의 모순을 방치 / 컴포넌트 역할을 코드 안 보고 다른 문서에서 유추 /
-얕은 클론에 `develop` 이 없는 문제를 훅에서 진단해 고쳐놓고 명령 문서에서 그대로 반복.
+얕은 클론에 base ref 가 없는 문제를 훅에서 진단해 고쳐놓고 명령 문서에서 그대로 반복 /
+워크플로 기준을 `main` 으로 바꾸면서 `CLAUDE.md` 만 고치고 명령·CI·게이트의 `origin/develop` 을 방치.
 
 무언가를 고쳤으면 **같은 패턴을 저장소 전체에서 훑고 결과를 보고에 적는다.**
 "훑었고 없었다"도 적는다 — 훑지 않은 것과 구분돼야 한다.

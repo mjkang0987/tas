@@ -29,7 +29,9 @@ function git(...args) {
 }
 
 function resolveBaseRef(explicit) {
-    const candidates = explicit ? [explicit] : ['origin/develop', 'origin/main', 'origin/HEAD'];
+    // 워크플로 기준 브랜치는 main 이다(CLAUDE.md `Development Workflow`). develop 은 배포 경로가 아니라
+    // 통합 사전경보용이므로 base 로 삼으면 변경분 판정이 어긋난다.
+    const candidates = explicit ? [explicit] : ['origin/main', 'origin/HEAD'];
     for (const ref of candidates) {
         try {
             git('rev-parse', '--verify', '--quiet', ref);
