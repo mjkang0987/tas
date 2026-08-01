@@ -53,6 +53,40 @@ export function createDefaultSchedule(): DaySchedule[] {
     });
 }
 
+export interface ScheduleSummarySegment {
+    /** '월' 또는 '월~금' */
+    days: string;
+    /** '10:00~20:00' 또는 '휴무' */
+    hours: string;
+}
+
+const OFF_KEY = 'off';
+
+const scheduleDayKey = (day: DaySchedule | undefined): string =>
+    !day || !day.enabled ? OFF_KEY : `${day.start}~${day.end}`;
+
+/** 요일 7행을 같은 근무시간끼리 묶어 요약한다. 예: 월~금 10:00~20:00 · 토 10:00~18:00 · 일 휴무 */
+export function summarizeSchedule(schedule: DaySchedule[]): ScheduleSummarySegment[] {
+    const segments: ScheduleSummarySegment[] = [];
+    let segmentStart = 0;
+
+    for (let index = 0; index < WEEKDAY_LABELS.length; index += 1) {
+        const isLast = index === WEEKDAY_LABELS.length - 1;
+        if (!isLast && scheduleDayKey(schedule[index]) === scheduleDayKey(schedule[index + 1])) continue;
+
+        const key = scheduleDayKey(schedule[segmentStart]);
+        segments.push({
+            days: segmentStart === index
+                ? WEEKDAY_LABELS[segmentStart]
+                : `${WEEKDAY_LABELS[segmentStart]}~${WEEKDAY_LABELS[index]}`,
+            hours: key === OFF_KEY ? '휴무' : key,
+        });
+        segmentStart = index + 1;
+    }
+
+    return segments;
+}
+
 export function getAssigneeStatus(assignee: Assignee): AssigneeStatus {
     return assignee.status ?? '재직';
 }

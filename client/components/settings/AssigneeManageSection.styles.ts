@@ -129,17 +129,21 @@ export const StyledAssigneeMetaGrid = styled.div`
     display: grid;
     grid-template-columns: minmax(0, 1fr) minmax(0, 1.5fr) 32px;
     gap: 4px;
-    border-radius: 8px;
-    background: var(--neutral-bg);
 
     @media (max-width: 760px) {
-        grid-template-columns: 1fr 1fr;
+        grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) 32px;
     }
 
     @media (max-width: 480px) {
-        grid-template-columns: 1fr;
-        padding: 8px;
+        grid-template-columns: minmax(0, 1fr);
     }
+`;
+
+/* 다국어 이름은 세 칸이 같은 성격이라 등폭. 기본 정보 그리드와 열을 공유하지 않는다. */
+export const StyledAssigneeI18nGrid = styled.div`
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 4px;
 `;
 
 export const StyledAssigneeMetaField = styled.div`
@@ -149,9 +153,57 @@ export const StyledAssigneeMetaField = styled.div`
     min-width: 0;
 `;
 
-export const StyledAssigneeMetaLabel = styled.label`
+const metaLabelStyle = css`
     font-size: var(--xsmall-font);
     color: var(--dark-gray-color2);
+`;
+
+export const StyledAssigneeMetaLabel = styled.label`
+    ${metaLabelStyle};
+`;
+
+/* 읽기 모드: 입력칸 대신 값만 보여준다. 값이 있는 항목만 렌더하므로 폭 고정 그리드 대신 흐르는 배치. */
+export const StyledAssigneeReadMeta = styled.div`
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px 16px;
+`;
+
+export const StyledAssigneeReadField = styled.div`
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+`;
+
+export const StyledAssigneeReadLabel = styled.span`
+    ${metaLabelStyle};
+`;
+
+export const StyledAssigneeReadValue = styled.span`
+    font-size: var(--medium-font);
+    color: var(--dark-gray-color);
+    word-break: break-word;
+`;
+
+export const StyledScheduleSummary = styled.div`
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px 12px;
+    font-size: var(--small-font);
+    color: var(--dark-gray-color2);
+`;
+
+export const StyledScheduleSummaryItem = styled.span`
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    white-space: nowrap;
+`;
+
+export const StyledScheduleSummaryDays = styled.strong`
+    font-weight: 600;
+    color: var(--dark-gray-color);
 `;
 
 export const StyledAssigneeColorInput = styled.input`
@@ -220,8 +272,6 @@ export const StyledScheduleList = styled.div`
     display: flex;
     flex-direction: column;
     gap: 3px;
-    border-radius: 8px;
-    background: var(--bg-subtle);
 `;
 
 export const StyledScheduleCollapsedNotice = styled.div<{ $status: AssigneeStatus }>`
@@ -254,8 +304,6 @@ export const StyledDayLabel = styled.span`
     flex-shrink: 0;
     width: 20px;
     padding: 2px 0;
-    border-radius: 4px;
-    background: var(--neutral-bg);
     color: var(--dark-gray-color);
     font-weight: 600;
     text-align: center;
