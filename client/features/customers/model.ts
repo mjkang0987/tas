@@ -50,6 +50,20 @@ export function formatTel(tel: string): string {
     return tel;
 }
 
+// 고객명 정렬 기준(한글 가나다순). `Intl.Collator('ko')`가 한글·라틴·숫자를 한 규칙으로
+// 비교하므로 코드포인트 비교(`<`)처럼 '가' 앞에 'Z'가 끼는 문제가 없다.
+const customerNameCollator = new Intl.Collator('ko', {numeric: true});
+
+// 이름이 같으면(동명이인) id로 갈라 정렬을 안정화한다.
+export function compareCustomerName(a: Customer, b: Customer): number {
+    return customerNameCollator.compare(a.name, b.name) || a.id - b.id;
+}
+
+// 원본을 건드리지 않고 이름 오름차순 사본을 돌려준다.
+export function sortCustomersByName(list: Customer[]): Customer[] {
+    return [...list].sort(compareCustomerName);
+}
+
 export function toCustomerMap(list: Customer[]): CustomerMap {
     const map: CustomerMap = {};
 

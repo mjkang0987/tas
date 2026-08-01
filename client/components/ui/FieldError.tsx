@@ -6,13 +6,17 @@ interface FieldErrorProps {
     children?: ReactNode;
     variant?: 'box' | 'inline';
     className?: string;
+    /** aria-describedby 대상으로 삼을 때 쓴다. 없으면 입력과 에러가 프로그램적으로 연결되지 않는다. */
+    id?: string;
+    /** 나타나는 순간 읽히게 하려면 'alert'. 기본값 없음 — 기존 사용처의 동작을 바꾸지 않는다. */
+    role?: 'alert' | 'status';
 }
 
-export const FieldError = ({children, variant = 'box', className}: FieldErrorProps) => {
+export const FieldError = ({children, variant = 'box', className, id, role}: FieldErrorProps) => {
     if (!children) return null;
     return variant === 'inline'
-        ? <StyledInline className={className}>{children}</StyledInline>
-        : <StyledBox className={className}>{children}</StyledBox>;
+        ? <StyledInline className={className} id={id} role={role}>{children}</StyledInline>
+        : <StyledBox className={className} id={id} role={role}>{children}</StyledBox>;
 };
 
 const StyledBox = styled.p`

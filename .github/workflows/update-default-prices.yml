@@ -18,7 +18,7 @@ jobs:
       - name: 체크아웃
         uses: actions/checkout@v4
         with:
-          ref: develop
+          ref: main
 
       - name: Node.js 설정
         uses: actions/setup-node@v4
@@ -43,5 +43,5 @@ jobs:
           else
             MONTH=$(date '+%Y-%m')
             git commit -m "chore: 기본 서비스 평균가 업데이트 (${MONTH})"
-            git push origin develop
+            git push origin main
           fi

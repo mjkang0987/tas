@@ -92,10 +92,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
             let assigneeName: string | null = null;
             for (const msg of listJson.messages) {
-                const html = await getEmailContent(accessToken, msg.id);
-                if (!html) continue;
+                const fetched = await getEmailContent(accessToken, msg.id);
+                if (!fetched.ok) continue;
 
-                const booking = parseNaverBookingEmail(html);
+                const booking = parseNaverBookingEmail(fetched.html);
                 if (booking && booking.bookingId === naverBookingId) {
                     assigneeName = booking.assigneeName;
                     break;

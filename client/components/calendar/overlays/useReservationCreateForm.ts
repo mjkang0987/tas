@@ -5,7 +5,7 @@ import {useCalendarStore} from '../../../store/calendarStore';
 import type {Reservation, ReservationChannel} from '../../../utils/reservations';
 import {findOverlap} from '../../../utils/reservations';
 import type {Customer, CustomerMap} from '../../../utils/customers';
-import {normalizeTel} from '../../../utils/customers';
+import {normalizeTel, sortCustomersByName} from '../../../utils/customers';
 import type {Assignee} from '../../../utils/assignees';
 import {getAssigneeAvailabilityState, splitAssigneesByStatus} from '../../../utils/assignees';
 import {buildCatalogMap, calcEndTime, joinServiceNames, sumDurationMinutes, sumPrice} from '../../../utils/services';
@@ -44,7 +44,9 @@ export function useReservationCreateForm({
 
     const {active: activeAssignees, onLeave: onLeaveAssignees, resigned: resignedAssignees} = splitAssigneesByStatus(assignees);
     const defaultAssigneeId = activeAssignees[0]?.id ?? 0;
-    const customers = Object.values(customerMap);
+    // 추천 목록에 그대로 쓰이므로 이름 한글 오름차순으로 정렬해 둔다.
+    // (nextCustomerId는 최댓값이라 순서와 무관하게 같은 배열을 공유해도 안전)
+    const customers = useMemo(() => sortCustomersByName(Object.values(customerMap)), [customerMap]);
     const nextCustomerId = getNextNumericId(customers.map((customer) => customer.id));
     const nextReservationId = getNextNumericId(
         Object.values(reservationMap).flat().map((reservation) => reservation.id)
@@ -78,9 +80,12 @@ export function useReservationCreateForm({
     const [isEndTimeManual, setIsEndTimeManual] = useState(false);
     const [error, setError] = useState<ReservationFieldError | null>(null);
 
-    const filteredCustomers = customerQuery.trim()
-        ? customers.filter((customer) => customer.name.includes(customerQuery) || customer.tel.includes(customerQuery))
-        : customers;
+    // customers가 이미 정렬돼 있어 걸러낸 결과도 순서를 유지한다.
+    const filteredCustomers = useMemo(() => (
+        customerQuery.trim()
+            ? customers.filter((customer) => customer.name.includes(customerQuery) || customer.tel.includes(customerQuery))
+            : customers
+    ), [customers, customerQuery]);
 
     const totalDuration = sumDurationMinutes(selectedServices, catalogMap);
     const totalPrice = sumPrice(selectedServices, catalogMap);
