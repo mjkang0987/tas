@@ -5,6 +5,70 @@
 
 ---
 
+## 미확인 — 로딩 화면에 걸어 다니는 공룡 (구현·검증 완료, 실기기 확인만 남음)
+
+> 다른 저장소(`clipnote`)에 있는 로딩용 공룡을 TAS로 가져와, **로딩 중인 모든 화면**에 띄운다.
+>
+> **구현·자동 검증은 끝났다** — 빌드·타입체크·eslint·단위 테스트 52건 통과, 헤드리스 브라우저로
+> 부팅 오버레이에서 CSS→JS 인수인계와 네 면 걷기·코너 도약 실측(아래 검증 결과). 남은 것:
+> **Safari·iOS 실기기 확인**(`steps()` 스프라이트 전환·`scaleX(-1)` 뒤집기)과, 라우트 전환
+> 오버레이(300ms 지연 후 노출)에서의 체감.
+
+### 배경
+`clipnote`(및 `clipnote-ios`)에는 로딩 동안 화면 테두리를 걸어 다니는 도트 공룡이 있다.
+TAS의 로딩 화면은 지금 회전 스피너 + 문구뿐이라 같은 장면을 여기에도 둔다.
+
+### 범위
+- **붙이는 곳은 `LoadingOverlay` 한 곳.** TAS의 로딩 표시는 전부 이 컴포넌트를 지나간다 —
+  부팅(`_app.tsx` `isBooting`), 라우트 전환(`_app.tsx` `RouteLoading`), 로그인, 약관, 매장 전환.
+  여기 한 번 붙이면 7개 사용처가 모두 덮인다. 화면마다 따로 넣지 않는다.
+- 기존 `Spinner`는 **그대로 둔다.** 공룡은 장식이고 진행 표시는 스피너·문구가 계속 맡는다.
+
+### 구현
+- `client/public/dino-run.png` — 4프레임 47×45 스프라이트(clipnote/앱과 동일 파일).
+- `client/components/ui/RunningDino.tsx` **(신규 컴포넌트 — 사유는 아래)**
+  - 창을 상자로 삼아 네 면을 걷는다. 좌표는 `requestAnimationFrame` + DOM 직접 조작
+    (초당 60회 리렌더 방지). 코너는 도약으로 돌고, 프레임은 시간이 아니라 걸은 거리로 넘긴다.
+  - **JS가 붙기 전에도 보이게 한다.** 부팅 오버레이는 하이드레이션 전에도 화면에 있다.
+    styled-components `keyframes`로 바닥 왕복을 기본 동작으로 깔고, effect가 뜨면
+    `animation: none`으로 끄고 네 면 걷기를 이어받는다(실행 중 CSS 애니메이션이
+    인라인 `transform`보다 우선하므로 반드시 꺼야 한다).
+  - `prefers-reduced-motion: reduce`면 세워만 두고 걷지 않는다. `aria-hidden` + 클릭 통과.
+- `client/components/ui/LoadingOverlay.tsx` — `<RunningDino />` 한 줄 추가.
+
+### 신규 컴포넌트 사유 (Front-End Standards)
+기존 재사용 대상이 없다. `Spinner`는 회전 원형 하나로 스프라이트 시트·좌표 애니메이션을
+표현할 수 없고, 성격도 다르다(스피너=진행 표시, 공룡=대기 시간 장식). 오버레이 본문에
+인라인으로 넣으면 `LoadingOverlay`가 200줄짜리 좌표 계산을 떠안는다.
+
+### 영향 파일
+`client/components/ui/RunningDino.tsx`(신규), `client/components/ui/LoadingOverlay.tsx`,
+`client/public/dino-run.png`(신규 에셋).
+
+### 검증 결과 (프로덕션 빌드 + 헤드리스 Chromium)
+세션 응답을 붙잡아 부팅 오버레이를 유지시킨 상태에서 스프라이트 좌표를 샘플링했다.
+
+| 시점 | 관측 | 뜻 |
+|---|---|---|
+| 0ms | `(0, 666)` 인라인 transform 없음 | 하이드레이션 전 — **CSS 바닥 왕복**이 돌고 있다 |
+| 276~1027ms | `translate(1065px, 150→33px) rotate(270deg)` | JS 인수인계 후 오른쪽 벽을 타고 올라감 |
+| 1277ms | `rotate(262.8deg)` | 코너 도약 중(각도 보간) |
+| 1527ms~ | `translate(1057→982px, 0px) rotate(180deg)` | 천장을 거꾸로 매달려 왼쪽으로 |
+
+빌드·`tsc --noEmit`·eslint(변경 파일)·`pnpm test`(52건)·`test:required` 게이트 전부 통과.
+
+### 리스크 / 남는 것
+- **Safari·iOS 미확인.** `steps()` 스프라이트 전환, `scaleX(-1)` 뒤집기, `image-rendering:
+  pixelated`는 표준이지만 헤드리스 Chromium 하나로만 봤다.
+- 오버레이는 `backdrop="dim"`(반투명)일 때 뒤 화면이 비친다 — 공룡이 콘텐츠와 겹쳐도
+  `pointer-events: none`이라 조작을 막지는 않는다.
+- 라우트 전환 오버레이는 300ms 지연 후에 뜬다(`_app.tsx`). 짧은 이동에서는 공룡도 안 뜬다 —
+  의도된 동작이다.
+- 순수 로직(좌표 계산)이 컴포넌트 파일 안에 있다. `client/features/**`가 아니라 단위 테스트
+  의무 대상은 아니지만(`test:required` 게이트도 "변경 없음" 판정), 나중에 옮길 여지는 있다.
+
+---
+
 ## 미확인 — 담당자관리 카드 실기기/화면 확인 (PR #186 후속)
 
 > 구현·자동 검증은 PR #186에서 끝났다(빌드·타입·단위 테스트 11건 + 변이 검사). 화면을 직접 띄워본 확인만 남았다.
