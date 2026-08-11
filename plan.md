@@ -57,8 +57,8 @@
   리다이렉트·헤더 알림 벨·`/api/gmail/status` 폴링·`/api/gmail/connect` 403까지 확인.
 
 ### 남은 것
-- 운영 매장 `hairsalonkimeun`의 `bookingSlug` 실제 설정 여부는 미확인(운영 DB 조회 불가). 비어 있어도
-  기존 Gmail 연동 보유로 계속 노출되지만, 설정 > 고객 예약 설정에서 영문 매장명이 맞는지 한 번 확인 필요.
+- 없음. 운영 매장의 `bookingSlug`가 `hairsalonkimeun` 임을 지시자가 확인(2026-08-11) — 허용 목록이 슬러그만으로
+  성립하므로 Gmail 연동 예외(폴백)에 기대지 않는다.
 
 ---
 
