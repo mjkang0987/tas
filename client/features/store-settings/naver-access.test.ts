@@ -24,8 +24,7 @@ describe('isNaverBookingAllowedSlug', () => {
     });
 
     it('빈 문자열·공백뿐인 값은 제외한다', () => {
-        // 정규화 결과가 빈 문자열이 되는 값들. 목록 대조 전에 걸러내지 않으면
-        // 목록에 빈 항목이 섞였을 때 슬러그 없는 매장이 통째로 통과한다.
+        // 슬러그가 사실상 없는 값. "값이 없으면 허용"으로 뒤집히지 않는지 못박는다.
         expect(isNaverBookingAllowedSlug('')).toBe(false);
         expect(isNaverBookingAllowedSlug('   ')).toBe(false);
     });
