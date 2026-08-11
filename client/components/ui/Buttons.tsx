@@ -16,6 +16,8 @@ interface Props {
     $cancelled?: boolean | undefined;
     $requested?: boolean | undefined;
     $active?: boolean | undefined;
+    /** 카드 높이에 맞춘 표시 단계 — 'full'(두 줄) | 'compact'(한 줄) | 'name'(이름만). */
+    $detail?: 'full' | 'compact' | 'name' | undefined;
     'aria-label'?: string | undefined;
 }
 
@@ -178,11 +180,46 @@ const StyledReserveButton = styled.button <Props>`
         }
     }
 
+    /* 한 줄 표시(짧은 예약) — 넘치는 글자는 말줄임. 카드가 세로로 낮아 줄바꿈은 곧 잘림이다. */
+    .oneline {
+        display: flex;
+        align-items: center;
+        gap: 3px;
+        min-width: 0;
+        font-size: var(--tiny-font);
+        line-height: 1.2;
+    }
+
+    .oneline-text {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        min-width: 0;
+    }
+
     @media (hover: hover) and (pointer: fine) {
         &:hover {
         z-index: 10;
         box-shadow: 0 6px 16px rgba(15, 23, 42, 0.18);
     }
+    }
+
+    /* 마우스·키보드가 있는 기기에선 올려두면 자연 높이로 펴서 전체 정보를 보여준다.
+       터치 기기는 hover가 없으므로 탭 → 예약 상세가 그 역할을 한다(카드엔 최소 정보가 남아 있다). */
+    @media (hover: hover) and (pointer: fine) {
+        &:hover:not([data-dragging="true"]),
+        &:focus-visible:not([data-dragging="true"]) {
+            height: auto;
+            min-height: ${props => props.$detail === 'full' ? 'auto' : '34px'};
+            overflow: visible;
+            z-index: 10;
+
+            .oneline-text {
+                overflow: visible;
+                text-overflow: clip;
+                white-space: normal;
+            }
+        }
     }
 `;
 

@@ -1,9 +1,11 @@
 import type React from 'react';
 
-import {TIMELINE_MINUTE_HEIGHT, ViewType} from '../../../utils/constants';
+import {ViewType} from '../../../utils/constants';
+import {roundToUnit} from '../../../features/reservations/timeline-scale';
+import type {TimelineScale} from '../../../hooks/useTimelineScale';
 import type {Reservation} from '../../../utils/reservations';
 import {toDateKey} from '../../../utils/reservations';
-import {roundToHalfHour, pad} from '../../../utils/timeRound';
+import {pad} from '../../../utils/timeRound';
 import {buildInitialDragPreview, type DragState} from './timelineDrag';
 
 type CreateReservationInitial = {
@@ -20,6 +22,7 @@ export function buildCreateReservationFromPointer({
     fullYear,
     month,
     date,
+    scale,
 }: {
     container: HTMLDivElement;
     clientY: number;
@@ -29,6 +32,8 @@ export function buildCreateReservationFromPointer({
     fullYear: number;
     month: number;
     date: number;
+    /** 블록·눈금과 같은 배율이어야 클릭한 자리와 잡히는 시각이 맞는다. */
+    scale: TimelineScale;
 }): CreateReservationInitial {
     const rect = container.getBoundingClientRect();
     // 예약 카드/현재시간 바는 StyledTimelineWrap 안에 position:absolute; top: (경과분*분당높이 + blockOffset)으로 그려진다.
@@ -37,17 +42,18 @@ export function buildCreateReservationFromPointer({
     // ⚠️ Timeline.tsx의 blockOffset과 반드시 일치(축 눈금선 정렬값).
     const blockOffset = type === ViewType.Day ? 55 : 25;
     const relativeY = clientY - rect.top - blockOffset;
-    const totalMin = Math.max(0, relativeY) / TIMELINE_MINUTE_HEIGHT;
+    const totalMin = Math.max(0, relativeY) / scale.minuteHeight;
     let clickHour = start + Math.floor(totalMin / 60);
     const clickMinute = Math.floor(totalMin % 60);
     clickHour = Math.min(Math.max(clickHour, start), end - 1);
 
-    const rounded = roundToHalfHour(clickHour, clickMinute);
+    // 격자 정렬은 매장 단위로. 30분 고정이던 시절엔 10분 매장에서 10:10을 눌러도 10:00·10:30만 잡혔다.
+    const rounded = roundToUnit(clickHour, clickMinute, scale.unit);
     clickHour = Math.min(rounded.hour, end - 1);
 
     return {
         date: toDateKey(fullYear, month, date),
-        startTime: `${pad(clickHour)}:${pad(rounded.rounded)}`,
+        startTime: `${pad(clickHour)}:${pad(rounded.minute)}`,
     };
 }
 

@@ -10,6 +10,7 @@ import {
     cardHeightFor,
     hourHeightForUnit,
     resolveTimelineUnit,
+    roundToUnit,
 } from './timeline-scale';
 
 describe('resolveTimelineUnit', () => {
@@ -105,5 +106,29 @@ describe('cardDetailForHeight', () => {
             const minuteHeight = hourHeightForUnit(unit) / 60;
             expect(cardDetailForHeight(cardHeightFor(30, minuteHeight))).toBe('full');
         }
+    });
+});
+
+describe('roundToUnit', () => {
+    it('30분 단위는 기존 roundToHalfHour 와 같은 결과', () => {
+        expect(roundToUnit(10, 14, 30)).toEqual({hour: 10, minute: 0});
+        expect(roundToUnit(10, 15, 30)).toEqual({hour: 10, minute: 30});
+        expect(roundToUnit(10, 44, 30)).toEqual({hour: 10, minute: 30});
+        expect(roundToUnit(10, 45, 30)).toEqual({hour: 11, minute: 0});
+    });
+
+    it('10분 단위 매장은 10분 격자로 잡힌다', () => {
+        // 30분 고정이던 시절엔 10:10을 눌러도 10:00 이나 10:30 으로만 갔다.
+        expect(roundToUnit(10, 12, 10)).toEqual({hour: 10, minute: 10});
+        expect(roundToUnit(10, 26, 10)).toEqual({hour: 10, minute: 30});
+    });
+
+    it('5분 단위도 마찬가지', () => {
+        expect(roundToUnit(10, 7, 5)).toEqual({hour: 10, minute: 5});
+        expect(roundToUnit(10, 3, 5)).toEqual({hour: 10, minute: 5});
+    });
+
+    it('시간 경계를 넘어가면 시(hour)가 올라간다', () => {
+        expect(roundToUnit(10, 58, 10)).toEqual({hour: 11, minute: 0});
     });
 });

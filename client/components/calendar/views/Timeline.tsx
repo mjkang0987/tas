@@ -9,8 +9,7 @@ import {ReservationMoveConfirmModal} from '../overlays/ReservationMoveConfirmMod
 import {
     TIMELINE_DAY_TOP,
     TIMELINE_TOP,
-    TIMELINE_HOUR_HEIGHT,
-    TIMELINE_MINUTE_HEIGHT,
+
     ViewType,
 } from '../../../utils/constants';
 
@@ -30,6 +29,8 @@ import {TimelineDragGhost, TimelineReservationCard} from './TimelineReservationC
 import type {PendingMove} from './timelineDrag';
 import {buildTimelineEntries} from './timelineEntries';
 import {useTimelineDrag} from './useTimelineDrag';
+import {useTimelineScale} from '../../../hooks/useTimelineScale';
+import {cardDetailForHeight, cardHeightFor} from '../../../features/reservations/timeline-scale';
 
 export const Timeline = ({
                              fullYear,
@@ -59,6 +60,8 @@ export const Timeline = ({
     const calendarAssigneeId = useCalendarStore((s) => s.calendarAssigneeId);
 
     const dateKey = toDateKey(fullYear, month, date);
+    // 시간축·블록·드래그·클릭생성이 공유하는 배율. 한 곳만 다른 값을 쓰면 화면이 예약 시각을 거짓말한다.
+    const scale = useTimelineScale();
     // 타임라인(일별/주별/3일)에서는 취소된 예약을 숨긴다(블록·건수 부풀림 방지).
     // 단, 고객 예약 페이지 경유(온라인) 취소 건은 기록 추적을 위해 취소 상태로 남긴다.
     const reservations = (reservationMap[dateKey] || []).filter((reservation) => (
@@ -102,9 +105,9 @@ export const Timeline = ({
     }, [isToday]);
 
     const barTop = blockOffset
-        + (now.getHours() - start) * TIMELINE_HOUR_HEIGHT
-        + now.getMinutes() * TIMELINE_MINUTE_HEIGHT
-        + now.getSeconds() * (TIMELINE_MINUTE_HEIGHT / 60);
+        + (now.getHours() - start) * scale.hourHeight
+        + now.getMinutes() * scale.minuteHeight
+        + now.getSeconds() * (scale.minuteHeight / 60);
     const timelineRef = useRef<HTMLDivElement | null>(null);
     const [isTouchDevice, setIsTouchDevice] = useState(false);
     const [openClusterState, setOpenClusterState] = useState<{ dateKey: string; cluster: TimelineClusterData } | null>(null);
@@ -128,6 +131,7 @@ export const Timeline = ({
         reservationMap,
         customerMap,
         assignees,
+        scale,
         onOpenReservationDetail: openReservationDetail,
     });
 
@@ -177,6 +181,7 @@ export const Timeline = ({
             fullYear,
             month,
             date,
+            scale,
         }));
     };
 
@@ -198,8 +203,8 @@ export const Timeline = ({
         {timelineEntries.map((entry) => {
             if (entry.kind === 'cluster') {
                 const {cluster} = entry;
-                const blockTop = (Math.floor(cluster.startMinutes / 60) - start) * TIMELINE_HOUR_HEIGHT + (cluster.startMinutes % 60) * TIMELINE_MINUTE_HEIGHT + blockOffset;
-                const blockHeight = (cluster.endMinutes - cluster.startMinutes) * TIMELINE_MINUTE_HEIGHT;
+                const blockTop = (Math.floor(cluster.startMinutes / 60) - start) * scale.hourHeight + (cluster.startMinutes % 60) * scale.minuteHeight + blockOffset;
+                const blockHeight = cardHeightFor(cluster.endMinutes - cluster.startMinutes, scale.minuteHeight);
                 return (
                     <TimelineCluster
                         key={cluster.id}
@@ -216,8 +221,9 @@ export const Timeline = ({
             const r = entry.reservation;
             const [sH, sM] = r.startTime.split(':').map(Number);
             const [eH, eM] = r.endTime.split(':').map(Number);
-            const blockTop = (sH - start) * TIMELINE_HOUR_HEIGHT + sM * TIMELINE_MINUTE_HEIGHT + blockOffset;
-            const blockHeight = (eH - sH) * TIMELINE_HOUR_HEIGHT + (eM - sM) * TIMELINE_MINUTE_HEIGHT;
+            const blockTop = (sH - start) * scale.hourHeight + sM * scale.minuteHeight + blockOffset;
+            // 비례 높이가 글자 한 줄도 못 담으면 최소 높이가 받는다(오너가 소요시간을 직접 줄인 예약).
+            const blockHeight = cardHeightFor(((eH - sH) * 60) + (eM - sM), scale.minuteHeight);
             const customer = customerMap[r.customerId];
             const preview = dragPreview?.reservationId === r.id ? dragPreview : null;
             const durationMinutes = (eH * 60 + eM) - (sH * 60 + sM);
