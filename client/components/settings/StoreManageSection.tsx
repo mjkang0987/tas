@@ -1,5 +1,7 @@
 import {useEffect, useState} from 'react';
 
+import {useSession} from 'next-auth/react';
+
 import styled from 'styled-components';
 
 import {cardSurfaceStyle, EMPTY_TEXT, StyledEditBtn, StyledDeleteBtn, StyledSaveBtn, StyledCancelBtn, StyledEmpty, StyledHeaderActions} from './settings-styles';
@@ -21,6 +23,10 @@ const WEEKDAY_LABELS = ['월', '화', '수', '목', '금', '토', '일'];
 
 export const StoreManageSection = ({formatDateLabel}: StoreManageSectionProps) => {
     const toast = useToastStore((s) => s.show);
+    // 세션으로 판정한다. `shouldUseLocalDb()`는 SSR에 sessionStorage가 없어 항상 true라
+    // 렌더 중 호출하면 서버/클라이언트 결과가 어긋난다(하이드레이션 불일치).
+    const {data: session} = useSession();
+    const isGuest = !session;
     const storeName = useCalendarStore((s) => s.storeName);
     const storeNameI18n = useCalendarStore((s) => s.storeNameI18n);
     const shopType = useCalendarStore((s) => s.shopType);
@@ -388,6 +394,10 @@ export const StoreManageSection = ({formatDateLabel}: StoreManageSectionProps) =
                             <StyledFeatureDesc>결제 시 적립·선불 충전(선불금) 기능. 켜면 설정 메뉴에 ‘적립금 관리’가 나타납니다.</StyledFeatureDesc>
                         </StyledFeatureText>
                     </StyledFeatureItem>
+                    {/* 회원권·쿠폰·고객 예약은 서버가 있어야 동작한다(발급·차감 API, 공개 예약 페이지).
+                        게스트에게 토글만 주면 켜도 쓸 수 없으니 아예 노출하지 않는다(앱과 같은 규칙).
+                        이미 켜 둔 게스트의 값은 끄지 않고 감추기만 한다 — 로그인하면 그대로 돌아온다. */}
+                    {!isGuest && <>
                     <StyledFeatureItem htmlFor="feature-membership">
                         <StyledFeatureCheckbox
                             id="feature-membership"
@@ -433,7 +443,13 @@ export const StoreManageSection = ({formatDateLabel}: StoreManageSectionProps) =
                             <StyledFeatureDesc>고객이 직접 예약하는 공개 예약 페이지. 켜면 왼쪽 메뉴에 '고객 예약 설정'이 나타납니다.</StyledFeatureDesc>
                         </StyledFeatureText>
                     </StyledFeatureItem>
+                    </>}
                 </StyledFeatureList>
+                {isGuest && (
+                    <StyledFeatureGuestNote>
+                        게스트 모드에선 적립금만 사용할 수 있습니다. 회원권·쿠폰·고객 예약 서비스는 로그인 후 켤 수 있습니다.
+                    </StyledFeatureGuestNote>
+                )}
             </StyledFeatureCard>
         </StyledStoreSection>
     );
@@ -535,6 +551,14 @@ const StyledFeatureName = styled.strong`
 
 const StyledFeatureDesc = styled.em`
     font-style: normal;
+    font-size: var(--small-font);
+    color: var(--dark-gray-color2);
+    line-height: 1.5;
+`;
+
+// 게스트에게 감춘 토글이 "왜 없는지"를 알려주는 안내. 없으면 적립금 하나만 덩그러니 남는다.
+const StyledFeatureGuestNote = styled.p`
+    margin: 10px 0 0;
     font-size: var(--small-font);
     color: var(--dark-gray-color2);
     line-height: 1.5;

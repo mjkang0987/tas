@@ -37,6 +37,7 @@ const Menu: NextPage = () => {
     const gate = {
         isOwner,
         isLoggedInStaff,
+        isGuest,
         usePointSystem,
         useMembershipSystem,
         useCouponSystem,

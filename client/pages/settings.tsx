@@ -63,6 +63,11 @@ function shiftDateKey(baseDate: Date, days: number): string {
     return toDateKey(d.getFullYear(), d.getMonth(), d.getDate());
 }
 
+// 게스트에게 열지 않는 탭 — 쿠폰·회원권·고객 예약(+그에 딸린 공지)은 서버 기능이라 로컬 모드에선 쓸 수 없다.
+// 메뉴 게이팅(`settingsMenu.ts`)과 같은 규칙이며, 이쪽은 주소로 직접 들어오는 경로를 막는다.
+// (`naver`는 매장 단위 판정이 따로 필요해 아래에서 별도로 처리한다.)
+const GUEST_BLOCKED_TABS = new Set<string>(['membership', 'coupon', 'booking', 'notice']);
+
 function isSettingsTab(value: string): value is SettingsTab {
     return value === 'revenue' || value === 'point' || value === 'membership' || value === 'coupon' || value === 'booking' || value === 'notice' || value === 'service' || value === 'assignee' || value === 'store' || value === 'member' || value === 'sns' || value === 'naver';
 }
@@ -330,6 +335,12 @@ export const getServerSideProps: GetServerSideProps<SettingsProps> = async (ctx)
     // 네이버예약 연동은 노출 대상 매장에만 열린다. 메뉴에서 감추는 것만으로는 주소를 아는 사람이
     // 그대로 들어오므로 여기서 돌려보낸다. 게스트(세션 없음)는 매장 연동 대상이 아니라 항상 차단.
     if (resolvedTab === 'naver' && !(session && await isNaverBookingEnabledStore(session.storeId))) {
+        return {redirect: {destination: '/settings/revenue', permanent: false}};
+    }
+
+    // 서버가 있어야 동작하는 탭은 게스트(로컬 모드)에게 열지 않는다 — 메뉴에서 감춰도 주소는 남는다.
+    // 게스트가 들어가면 빈 화면을 만지다 저장에서 401을 맞는다(예전 '고객 예약 설정'이 그랬다).
+    if (!session && GUEST_BLOCKED_TABS.has(resolvedTab)) {
         return {redirect: {destination: '/settings/revenue', permanent: false}};
     }
 
