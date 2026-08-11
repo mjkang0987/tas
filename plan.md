@@ -5,6 +5,63 @@
 
 ---
 
+## 진행 중 — 네이버예약 연동 노출 제한 + 통합예약관리 문구 제거
+
+> 요구: 네이버예약 연동은 `hairsalonkimeun` 매장에서만 보이게 하고, 나머지 매장/계정에서는 노출하지 않는다.
+> **삭제가 아니라 비노출** — 나중에 공개 범위를 넓힐 수 있어야 하므로 코드·기능은 그대로 두고 게이트만 건다.
+
+### 판별 기준
+- 허용 목록은 **영문 매장명(`Store.bookingSlug`)** 기준 (`hairsalonkimeun`). 오너가 아는 유일한 매장 식별자다.
+- **이미 Gmail 연동을 붙여 쓰는 매장은 유지**(`gmailConnection` 존재). 슬러그가 비어 있거나 바뀌어도
+  실제로 동기화를 쓰던 매장이 갑자기 연동을 잃지 않게 하는 안전장치다.
+- 이 안전장치가 우회로가 되지 않도록 **신규 연동 시작(`/api/gmail/connect`·`oauth-callback`)은 서버에서 차단**한다.
+  (허용 매장 외에는 새 연결을 만들 수 없으므로, "연결하면 노출된다"는 순환이 생기지 않는다.)
+
+### 구현 항목
+1. `client/features/store-settings/naver-access.ts` (신규, 순수) — 허용 슬러그 목록 + `isNaverBookingAllowedSlug`. 단위 테스트 동반.
+2. `server/naver-access.ts` (신규) — `isNaverBookingEnabledStore(storeId)`: 허용 슬러그 **또는** 기존 Gmail 연동.
+3. `server/api/store.ts` GET 응답에 `naverBookingEnabled` 추가 → `_app.tsx` → `calendarStore.naverBookingEnabled`.
+   (`setStoreFeatures` 인자를 객체로 바꿔 boolean 5개 나열을 피한다.)
+4. UI 비노출: 설정 메뉴(`settingsMenu.ts` + `Aside`·`/menu`), 온보딩 4단계(네이버 안내), 헤더 동기화 훅(`useNaverBookingSync`의 `canUseSync`).
+5. `/settings/naver` 직접 진입은 `getServerSideProps`에서 `/settings/revenue`로 리다이렉트(게스트 포함).
+6. 서버 차단: `/api/gmail/connect`, `/api/gmail/oauth-callback` — 허용 매장 외 진입 거부.
+
+### 영향 파일
+- 신규: `client/features/store-settings/naver-access.ts`(+`.test.ts`), `server/naver-access.ts`
+- 수정: `server/api/store.ts`, `server/api/gmail/connect.ts`, `server/api/gmail/oauth-callback.ts`,
+  `client/pages/_app.tsx`, `client/pages/settings.tsx`, `client/pages/menu.tsx`, `client/pages/onboarding/index.tsx`,
+  `client/store/calendarStore.ts`, `client/components/layout/settingsMenu.ts`, `client/components/layout/Aside.tsx`,
+  `client/hooks/useNaverBookingSync.ts`
+
+### 리스크
+- **허용 매장이 연동을 잃는 것**이 최악의 회귀다. Gmail 연동 존재를 함께 허용 조건으로 둬서 막는다.
+- 플래그는 `/api/store` 응답으로 도착하므로 초기 렌더 한 틱은 `false`(메뉴 미표시 → 표시). 다른 기능 토글과 동일한 동작이라 수용.
+- 스키마 변경 없음 → 마이그레이션 불필요.
+
+### 완료 조건
+- 허용 외 매장: 설정 메뉴·`/settings/naver`·온보딩 안내·동기화 폴링 모두 비노출, 새 Gmail 연동 시작 불가.
+- 허용 매장: 기존과 동일하게 동작.
+- 빌드·타입체크·단위 테스트 그린.
+
+### 곁들인 작업 — "네이버·당근 등 통합 예약 관리" 문구 제거
+> 외부 플랫폼 통합 예약 관리는 미구축인데 서비스 전면에 광고돼 있었다. 제공 범위(예약·고객·담당자·매출)만 남긴다.
+- `client/lib/seo.ts`(제목·description·OG/Twitter·키워드), `client/public/favicon/manifest.json`(PWA 이름),
+  `client/pages/about.tsx`(소개 description), `client/pages/index.tsx`(홈 타이틀).
+- `client/public/img-share.png` — 공유 카드에 "네이버 예약까지 간편하게 관리 / 네이버 예약 + 자체 예약을 한 화면에서"가
+  박혀 있어 같은 톤(그라데이션·Pretendard)으로 재생성해 교체.
+- 정책 문서(`terms.ts`·`privacy.ts`)의 카카오·네이버 언급은 **SNS 로그인·제3자 서비스 고지**라 사실이므로 유지.
+
+### 검증 결과 (2026-08-11)
+- 단위 테스트 58건 통과(신규 6건) + 변이 검사 3종 모두 실패 확인. `pnpm build`·`tsc --noEmit` 그린, 린트 신규 0건.
+- 로컬 Postgres + `next start` 실구동: 허용/비허용 매장 2곳으로 `/api/store` 플래그·설정 메뉴·`/settings/naver`
+  리다이렉트·헤더 알림 벨·`/api/gmail/status` 폴링·`/api/gmail/connect` 403까지 확인.
+
+### 남은 것
+- 운영 매장 `hairsalonkimeun`의 `bookingSlug` 실제 설정 여부는 미확인(운영 DB 조회 불가). 비어 있어도
+  기존 Gmail 연동 보유로 계속 노출되지만, 설정 > 고객 예약 설정에서 영문 매장명이 맞는지 한 번 확인 필요.
+
+---
+
 ## 미확인 — 담당자관리 카드 실기기/화면 확인 (PR #186 후속)
 
 > 구현·자동 검증은 PR #186에서 끝났다(빌드·타입·단위 테스트 11건 + 변이 검사). 화면을 직접 띄워본 확인만 남았다.
