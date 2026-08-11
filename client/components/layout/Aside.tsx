@@ -222,6 +222,7 @@ export const Aside = () => {
                             {SETTINGS_SUBMENU.filter((item) => isSettingsMenuVisible(item, {
                                 isOwner,
                                 isLoggedInStaff,
+                                isGuest,
                                 usePointSystem,
                                 useMembershipSystem,
                                 useCouponSystem,

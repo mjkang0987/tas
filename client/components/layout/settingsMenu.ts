@@ -28,6 +28,9 @@ export const SETTINGS_SUBMENU: SettingsMenuItem[] = [
 export interface SettingsMenuGate {
     isOwner: boolean;
     isLoggedInStaff: boolean;
+    // 미로그인(로컬 모드). 세션이 아직 안 풀린 로딩 상태도 여기에 들어온다 — 서버가 필요한 항목은
+    // 확정될 때까지 감추는 쪽이 안전하다(sns·member와 같은 취급).
+    isGuest: boolean;
     usePointSystem: boolean;
     useMembershipSystem: boolean;
     useCouponSystem: boolean;
@@ -49,6 +52,12 @@ export function isSettingsMenuVisible(item: SettingsMenuItem, gate: SettingsMenu
     }
     // 멤버(staff)는 기존 노출 항목(고객 명단·계정 관리)만 유지
     if (gate.isLoggedInStaff && item.tab !== 'customers' && item.tab !== 'my') return false;
+    // 쿠폰·회원권·고객예약(+그에 딸린 공지)은 서버가 있어야 동작한다(발급·차감 API, 공개 예약 페이지).
+    // 게스트에겐 토글 자체를 주지 않으므로 메뉴도 함께 감춘다 — 켤 수는 있는데 못 쓰는 항목은 두지 않는다.
+    // 판정을 토글 값에 맡기지 않는 이유: 예전에 켜 둔 게스트의 로컬 값이 남아 있으면 그대로 노출된다.
+    if (gate.isGuest && (item.tab === 'membership' || item.tab === 'coupon' || item.tab === 'booking' || item.tab === 'notice')) {
+        return false;
+    }
     // 매장 기능 토글로 켠 경우에만 노출
     if (item.tab === 'point') return gate.usePointSystem;
     if (item.tab === 'membership') return gate.useMembershipSystem;
