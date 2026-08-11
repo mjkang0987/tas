@@ -245,7 +245,9 @@ export function useNaverBookingSync() {
     // Gmail 연동은 로그인 계정과 분리 — 연동 여부는 서버 상태로 판단
     const [gmailConnected, setGmailConnected] = useState(false);
     const [conflictResolutions, setConflictResolutions] = useState<Record<string, {reason: string; memo?: string}>>({});
-    const canUseSync = session?.user?.role === 'owner' && !!session.user.storeId;
+    // 노출 대상 매장이 아니면 Gmail 상태 조회·폴링·알림까지 전부 멈춘다(헤더 동기화 버튼·알림 벨 포함).
+    const naverBookingEnabled = useCalendarStore((s) => s.naverBookingEnabled);
+    const canUseSync = session?.user?.role === 'owner' && !!session.user.storeId && naverBookingEnabled;
 
     useEffect(() => {
         if (!canUseSync) {

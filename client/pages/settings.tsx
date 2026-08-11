@@ -31,6 +31,7 @@ import {NoticeManageSection} from '../components/settings/NoticeManageSection';
 
 import {loadLocalDbSnapshot, subscribeLocalDb, type LocalDbSnapshot} from '../lib/local-db';
 import {getPageSession, loadPageData} from '../lib/page-data';
+import {isNaverBookingEnabledStore} from '../lib/naver-access';
 import {SeoHead} from '../components/ui/SeoHead';
 import {CsFooter} from '../components/ui/CsFooter';
 
@@ -325,6 +326,13 @@ export const getServerSideProps: GetServerSideProps<SettingsProps> = async (ctx)
     }
 
     const session = await getPageSession(ctx);
+
+    // 네이버예약 연동은 노출 대상 매장에만 열린다. 메뉴에서 감추는 것만으로는 주소를 아는 사람이
+    // 그대로 들어오므로 여기서 돌려보낸다. 게스트(세션 없음)는 매장 연동 대상이 아니라 항상 차단.
+    if (resolvedTab === 'naver' && !(session && await isNaverBookingEnabledStore(session.storeId))) {
+        return {redirect: {destination: '/settings/revenue', permanent: false}};
+    }
+
     if (!session) {
         return {
             props: {

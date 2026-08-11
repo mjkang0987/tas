@@ -11,6 +11,7 @@ import {DEFAULT_SERVICES, SHOP_CATEGORY_COLOR_MAP} from '../../features/services
 import type {ShopType} from '../../features/services/default-services';
 import {createDefaultSchedule, getAssigneeColor} from '../../utils/assignees';
 import {clearGuestConsentAck, createDefaultLocalDbSnapshot, loadLocalDbSnapshot, saveLocalDbSnapshot, setGuestTermsAgreed} from '../../lib/local-db';
+import {useCalendarStore} from '../../store/calendarStore';
 import {CURRENT_TERMS_VERSION} from '../../utils/terms';
 import type {ServiceItem} from '../../utils/services';
 import {SeoHead} from '../../components/ui/SeoHead';
@@ -72,6 +73,9 @@ const OnboardingPage: NextPage = () => {
 
     const realShopTypes = shopTypes.filter((t): t is ShopType => t !== 'etc');
     const skipServiceStep = realShopTypes.length === 0;
+    // 네이버예약 연동 안내(4단계)는 연동이 노출되는 매장에서만 보여준다.
+    // 신규 매장·게스트는 노출 대상이 아니므로 3단계에서 바로 완료로 넘어간다.
+    const showNaverStep = useCalendarStore((s) => s.naverBookingEnabled);
     const mergedCategoryColors = useMemo(() => {
         const colors: Record<string, string> = {};
         for (const t of realShopTypes) Object.assign(colors, SHOP_CATEGORY_COLOR_MAP[t] ?? {});
@@ -79,7 +83,7 @@ const OnboardingPage: NextPage = () => {
     }, [realShopTypes]);
 
     const prevStep = (): OnboardingStep => {
-        if (step === 5) return 4;
+        if (step === 5) return showNaverStep ? 4 : 3;
         if (step === 4) return 3;
         if (step === 3) return skipServiceStep ? 1 : 2;
         if (step === 2) return 1;
@@ -231,7 +235,8 @@ const OnboardingPage: NextPage = () => {
         }
     };
 
-    const visibleSteps: OnboardingStep[] = skipServiceStep ? [1, 3, 4, 5] : [1, 2, 3, 4, 5];
+    const visibleSteps: OnboardingStep[] = ([1, 2, 3, 4, 5] as OnboardingStep[])
+        .filter((s) => (s !== 2 || !skipServiceStep) && (s !== 4 || showNaverStep));
     const stepIndex = visibleSteps.indexOf(step as (typeof visibleSteps)[number]);
 
     return (
@@ -301,8 +306,8 @@ const OnboardingPage: NextPage = () => {
                         <OnboardingStep3
                             localAssignees={localAssignees}
                             onAssigneesChange={setLocalAssignees}
-                            onNext={() => setStep(4)}
-                            onSkip={() => setStep(4)}
+                            onNext={() => setStep(showNaverStep ? 4 : 5)}
+                            onSkip={() => setStep(showNaverStep ? 4 : 5)}
                             onBack={() => setStep(prevStep())}
                         />
                     </StyledStepBody>

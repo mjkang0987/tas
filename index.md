@@ -147,7 +147,7 @@ hair_reservations/
 [^3]: 동명이인·유사 고객 병합 제안 모달 (게스트 모드에서는 비활성)
 [^3a]: 고객 상세의 하위 UI 분리 — 적립금 이력 아이템(`PointHistoryItem` 공용), 메모 태그 섹션, 이력 더보기 모달, 병합 분리 확인 모달
 [^14]: Google/Kakao/Naver 계정 연결·해제. 타 계정 충돌 시 계정 병합(merge-preview→merge) 플로우 제공. 해제 확인 모달 포함
-[^15]: `/settings/naver` 탭. Gmail 연동 상태(연동/해제/다른 계정으로 연동)·오너 권한 체크, 동기화 상태 표시, 수동 동기화 버튼, 연동 실패 안내 레이어
+[^15]: `/settings/naver` 탭. Gmail 연동 상태(연동/해제/다른 계정으로 연동)·오너 권한 체크, 동기화 상태 표시, 수동 동기화 버튼, 연동 실패 안내 레이어. **노출 대상 매장에만 열린다** — 메뉴에서 감춰지고 직접 진입은 `getServerSideProps`가 `/settings/revenue`로 돌려보낸다([노출 범위 제한](#네이버-예약-동기화))
 [^16]: 설정 공통 styled-components — `StyledSettingsCard`, `StyledSettingsCardTitle`, `StyledSettingsHint`, `StyledEditBtn`, `StyledSaveBtn`, `StyledCancelBtn`, `StyledDeleteBtn`, `StyledSelect`
 [^17]: 멀티매장 전환 드롭다운. `/api/user/stores`로 멤버십 매장 목록 조회 → 선택 시 세션 `preferredStoreId` 갱신
 [^18]: app 라우터에 `app/` 디렉터리(NextAuth route handler)가 있으면 잘못된 경로의 404를 app 라우터가 처리하므로, `app/not-found.tsx`(+최소 `app/layout.tsx`)에 디자인 가이드 동일 스타일 + 자동 리다이렉트를 구현. `pages/404.tsx`는 pages 라우터 폴백용으로 동일 UI 유지
@@ -228,7 +228,7 @@ hair_reservations/
 | `lib/page-data.ts` | SSR 페이지 데이터 로딩 |
 | `lib/local-db.ts` | 게스트 모드 로컬 DB (re-export from features) |
 | `lib/authz.ts` | 권한 관리 |
-| `lib/seo.ts` | SEO 상수 (`SITE_URL`, `SITE_TITLE`, OG/Twitter 메타값) |
+| `lib/seo.ts` | SEO 상수 (`SITE_URL`, `SITE_TITLE`, OG/Twitter 메타값). **외부 플랫폼(네이버·당근·카카오) 통합 예약 관리는 미구축이라 문구·키워드·공유 이미지(`public/img-share.png`)에서 제외** — 실제 제공 범위(예약·고객·담당자·매출)만 적는다 |
 | `lib/gmail-status.ts` | Gmail 연동 상태 조회 (`/api/gmail/status`, 페이지 로드당 1회 캐시) |
 | `scripts/backfill-assignee-legacyid.mjs` | 담당자 null legacyId 백필 스크립트 (`--dry-run` 지원) |
 | `scripts/recalc-reservation-endtimes.mjs` | 서비스 duration 변경 후 기존 예약 endTime 재계산 (매장별 카탈로그 기준, 기본 dry-run / `--apply`로 반영, 대상: active·미결제) |
@@ -415,6 +415,15 @@ Gmail (네이버 예약 메일)
   → NaverSyncNotification.tsx (UI 표시)
 ```
 
+> **노출 범위 제한(전체 공개 아님).** 이 연동은 허용 매장에만 보인다 — 판별은 `server/naver-access.ts`의
+> `isNaverBookingEnabledStore()`(허용 슬러그 목록 `client/features/store-settings/naver-access.ts` **또는**
+> 기존 `GmailConnection` 보유). 결과는 `/api/store`의 `naverBookingEnabled`로 내려가 `calendarStore`에 담기고,
+> 설정 메뉴(`settingsMenu.ts`)·온보딩 4단계·`useNaverBookingSync`의 `canUseSync`가 이 값을 본다.
+> `/settings/naver` 직접 진입은 `settings.tsx`의 `getServerSideProps`가 `/settings/revenue`로 돌려보내고,
+> `/api/gmail/connect`·`oauth-callback`은 403이다.
+> ⚠️ **"이미 연동된 매장은 유지" 예외가 성립하는 전제가 이 서버 차단이다** — 연결 생성을 막지 않으면
+> 아무 매장이나 연결을 만든 뒤 그 연결을 근거로 노출 대상이 돼 게이트가 스스로 무너진다. 둘은 같이 움직여야 한다.
+
 ### 고객 병합
 
 ```
@@ -509,6 +518,7 @@ StorePointSettings (적립률, 충전규칙)
 
 - Aside 설정 메뉴: 오너=전체, 매니저·멤버(비오너)=고객 명단·계정 관리만(동일 아코디언), 게스트=멤버 관리 제외
 - manager = staff + 예약 영구삭제. owner = manager + 고객삭제·매장설정·멤버·초대·네이버연동
+- **네이버연동만 역할 위에 매장 조건이 하나 더 붙는다** — 오너라도 노출 대상 매장이어야 보인다([네이버 예약 동기화](#네이버-예약-동기화)의 노출 범위 제한)
 
 ---
 

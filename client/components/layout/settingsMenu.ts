@@ -32,13 +32,19 @@ export interface SettingsMenuGate {
     useMembershipSystem: boolean;
     useCouponSystem: boolean;
     useOnlineBooking: boolean;
+    // 매장 기능 토글이 아니라 서버가 정하는 공개 범위(`server/naver-access.ts`).
+    naverBookingEnabled: boolean;
 }
 
 // aside의 필터 로직과 동일 — 권한·기능 토글 게이팅.
 export function isSettingsMenuVisible(item: SettingsMenuItem, gate: SettingsMenuGate): boolean {
+    // 네이버예약 연동은 아직 전체 공개가 아니라, 오너 중에서도 노출 대상 매장에만 보인다.
+    if (item.tab === 'naver') {
+        return gate.isOwner && gate.naverBookingEnabled;
+    }
     // 서버 로그인(오너)이 필요한 기능은 오너에게만 노출.
     // 게스트·멤버는 물론, 세션이 아직 안 풀린 로딩 상태(isOwner=false)에서도 노출 금지.
-    if (item.tab === 'naver' || item.tab === 'sns' || item.tab === 'member') {
+    if (item.tab === 'sns' || item.tab === 'member') {
         return gate.isOwner;
     }
     // 멤버(staff)는 기존 노출 항목(고객 명단·계정 관리)만 유지
