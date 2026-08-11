@@ -3,6 +3,7 @@ import crypto from 'node:crypto';
 import type {NextApiRequest, NextApiResponse} from 'next';
 
 import {getApiSession, requireRole} from '../../auth/api-session';
+import {isNaverBookingEnabledStore} from '../../naver-access';
 import {GMAIL_OAUTH_SCOPE, buildStateCookie, getBaseUrl, getRedirectUri} from './oauth-shared';
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
@@ -13,6 +14,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     const session = await getApiSession(req, res);
     if (!requireRole(session, 'owner', res)) return;
+
+    // 노출 대상이 아닌 매장은 연동 시작 자체를 막는다. UI를 숨기는 것만으로는
+    // URL을 직접 치면 연결이 만들어지고, 그 연결이 다시 노출 조건이 돼 게이트가 무력해진다.
+    if (!(await isNaverBookingEnabledStore(session.storeId))) {
+        return res.status(403).json({error: 'Naver booking integration is not available for this store'});
+    }
 
     if (!process.env.AUTH_GOOGLE_ID || !process.env.AUTH_GOOGLE_SECRET) {
         return res.redirect(302, '/settings/naver?gmail=error&reason=config');
