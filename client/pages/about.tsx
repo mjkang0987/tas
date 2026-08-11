@@ -18,7 +18,7 @@ export default function AboutPage() {
         <StyledWrapper>
             <SeoHead
                 title="서비스 소개"
-                description="예약·고객 관리 서비스 TAS. 네이버·당근 등 여러 플랫폼의 예약을 한 곳에서 통합 관리하세요."
+                description="예약·고객 관리 서비스 TAS. 예약 캘린더부터 고객·담당자·매출까지 매장 운영을 한 곳에서 관리하세요."
                 path="/about"
             />
             <StyledMain>
