@@ -61,6 +61,8 @@ export function TimelineReservationCard({
         <ButtonReserve
             $detail={detail}
             data-timeline-interactive="true"
+            // 드래그 중엔 hover 확장을 끈다 — 끌고 있는 카드가 커서 아래에서 커졌다 작아지면 조준이 흔들린다.
+            data-dragging={preview ? 'true' : undefined}
             style={hideOriginalBlock ? {visibility: 'hidden'} : undefined}
             $position="absolute"
             $top={preview?.top ?? blockTop}

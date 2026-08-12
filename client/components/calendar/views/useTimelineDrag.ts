@@ -1,6 +1,5 @@
 import {useEffect, useEffectEvent, useRef, useState} from 'react';
 
-import {ViewType} from '../../../utils/constants';
 import type {TimelineScale} from '../../../hooks/useTimelineScale';
 import {findOverlap, type Reservation, type ReservationMap} from '../../../utils/reservations';
 import type {CustomerMap} from '../../../utils/customers';
@@ -129,7 +128,9 @@ export function useTimelineDrag({
         const movedPx = Math.abs(nextTop - dragState.originTop);
         const nextHeight = dragState.durationMinutes * scaleRef.current.minuteHeight;
 
-        if (movedPx > 3) {
+        // 드래그로 볼지 탭으로 볼지. 세로 이동만 보면 **같은 시각의 옆 날짜로 끌기**가 탭이 돼
+        // 이동 대신 상세가 열린다(3일·주별에서 실제로 그랬다). 날짜 칸을 벗어난 것도 드래그다.
+        if (movedPx > 3 || targetDate !== dragState.reservation.date) {
             dragState.didDrag = true;
         }
 
