@@ -36,7 +36,8 @@
 5. **로컬 마이그레이션은 `pnpm prisma:migrate:local`** — `prisma migrate dev`를 그냥 돌리면 `prisma.config.ts`가 `DIRECT_URL`(운영)을 우선해 **운영 DB로 간다**. 래퍼(`client/scripts/migrate-local.sh`)는 대상이 localhost가 아니면 실행을 거부한다. → [환경 설정](#환경-설정)
 6. **Cloudflare `tas-proxy` Worker 의존** — 오리진의 `host`는 항상 `run.app`이라 **원본 호스트는 Worker가 넣는 `x-forwarded-host`로만 알 수 있다.** Worker가 빠지면 사이트 전체가 다운된다. → [미들웨어](#미들웨어-clientproxyts)
 7. **정책 문서는 모든 렌더 경로(레이어·풀페이지·인라인)가 `applyPolicyVars`를 통과해야 한다** — 빠지면 `{{storeName}}` 토큰이 고객에게 그대로 노출된다. → [^27]
-8. **`font-size`에 px 리터럴을 쓰지 않는다** — `styles/globalStyle.ts`의 토큰만 사용(유일한 예외: `components/policy/policyCss.ts`). → [디자인 토큰](#디자인-토큰--폰트)
+8. **타임라인 배율은 `useTimelineScale()` 한 곳에서만 얻는다** — 축·블록·드래그·클릭생성이 나눠 쓰는 값이라, 한 곳만 옛 상수(`TIMELINE_HOUR_HEIGHT`)를 쓰면 눈금과 카드가 어긋나 **화면이 예약 시각을 거짓말한다.** 배율은 서비스 최소 소요시간에서 자동 판정(5분 200px·10분 120px·15분 이상 100px). → [주요 기능 흐름](#주요-기능-흐름-요약)
+9. **`font-size`에 px 리터럴을 쓰지 않는다** — `styles/globalStyle.ts`의 토큰만 사용(유일한 예외: `components/policy/policyCss.ts`). → [디자인 토큰](#디자인-토큰--폰트)
 
 ---
 
