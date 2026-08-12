@@ -65,3 +65,14 @@ export function cardDetailForHeight(heightPx: number): CardDetail {
     if (heightPx >= COMPACT_MIN_HEIGHT) return 'compact';
     return 'name';
 }
+
+/**
+ * 클릭한 지점을 단위 격자에 맞춘다(반올림).
+ *
+ * 예전엔 30분 고정(`roundToHalfHour`)이라 10분 단위 매장에서 10:10을 눌러도 10:00·10:30으로만 잡혔다.
+ * 상한(영업 종료) 클램프는 호출부 책임 — 여기선 격자 정렬만 한다.
+ */
+export function roundToUnit(hour: number, minute: number, unit: TimelineUnit): {hour: number; minute: number} {
+    const snapped = Math.round((hour * 60 + minute) / unit) * unit;
+    return {hour: Math.floor(snapped / 60), minute: snapped % 60};
+}
