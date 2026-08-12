@@ -1,6 +1,5 @@
 import {useEffect, useEffectEvent, useRef, useState} from 'react';
 
-import {TIMELINE_DAY_TOP, TIMELINE_TOP, ViewType} from '../../../utils/constants';
 import type {TimelineScale} from '../../../hooks/useTimelineScale';
 import {findOverlap, type Reservation, type ReservationMap} from '../../../utils/reservations';
 import type {CustomerMap} from '../../../utils/customers';
@@ -118,15 +117,20 @@ export function useTimelineDrag({
         if (!timeline) return;
 
         const rect = timeline.getBoundingClientRect();
-        const paddingTop = typeRef.current === ViewType.Day ? TIMELINE_DAY_TOP : TIMELINE_TOP;
-        const rawTop = clientY - rect.top - paddingTop - dragState.pointerOffsetY;
+        // 패딩은 빼지 않는다. 카드는 position:absolute 라 컨테이닝 블록이 **패딩 박스**이고,
+        // top 값이 곧 wrap 상단 기준 거리다(blockOffset 만 빼면 된다 — 클릭 생성 경로와 같은 규칙).
+        // 예전엔 여기서만 패딩을 한 번 더 빼서 드래그가 40px(=100px/시간 기준 24분) 위로 계산됐고,
+        // 제자리에서 살짝 흔들기만 해도 예약이 한 칸 위로 점프했다.
+        const rawTop = clientY - rect.top - dragState.pointerOffsetY;
         const nextStartTime = getStartTimeFromTop(rawTop, dragState.durationMinutes, startRef.current, endRef.current, blockOffsetRef.current, scaleRef.current);
         const [nextHour, nextMinute] = nextStartTime.split(':').map(Number);
         const nextTop = (nextHour - startRef.current) * scaleRef.current.hourHeight + nextMinute * scaleRef.current.minuteHeight + blockOffsetRef.current;
         const movedPx = Math.abs(nextTop - dragState.originTop);
         const nextHeight = dragState.durationMinutes * scaleRef.current.minuteHeight;
 
-        if (movedPx > 3) {
+        // 드래그로 볼지 탭으로 볼지. 세로 이동만 보면 **같은 시각의 옆 날짜로 끌기**가 탭이 돼
+        // 이동 대신 상세가 열린다(3일·주별에서 실제로 그랬다). 날짜 칸을 벗어난 것도 드래그다.
+        if (movedPx > 3 || targetDate !== dragState.reservation.date) {
             dragState.didDrag = true;
         }
 

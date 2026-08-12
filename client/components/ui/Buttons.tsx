@@ -210,7 +210,10 @@ const StyledReserveButton = styled.button <Props>`
         &:hover:not([data-dragging="true"]),
         &:focus-visible:not([data-dragging="true"]) {
             height: auto;
-            min-height: ${props => props.$detail === 'full' ? 'auto' : '34px'};
+            /* 펴지는 건 아래로만. 줄어들면 길이=시간이 깨지고(30분 카드가 올려두기만 해도 29px로 줄었다)
+               가운데 붙은 드래그 손잡이가 커서 밑에서 달아난다. */
+            min-height: max(${props => props.$height ?? 34}px, 34px);
+            max-height: none;
             overflow: visible;
             z-index: 10;
 
