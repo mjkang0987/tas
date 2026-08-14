@@ -175,11 +175,21 @@ export function RunningDino() {
         sprite.style.bottom = 'auto';
         sprite.style.top = '0';
 
+        // 상자 크기는 **매 프레임 재지 않는다.** 크기를 읽으면 브라우저가 레이아웃을 강제로
+        // 계산하는데, 바로 다음 줄에서 `transform`을 쓰므로 초당 60번 읽기-쓰기가 엇갈린다
+        // (레이아웃 스래싱). 창이 바뀔 때만 다시 잰다.
+        let width = frame.clientWidth;
+        let height = frame.clientHeight;
+        const observer = new ResizeObserver(([entry]) => {
+            width = entry.contentRect.width;
+            height = entry.contentRect.height;
+        });
+        observer.observe(frame);
+
         // **React 상태로 그리지 않는다.** 좌표가 초당 60번 바뀌는데 그때마다 리렌더하면
         // 장식 하나 때문에 화면 전체가 다시 그려진다. DOM을 직접 만진다.
         const draw = (elapsed: number) => {
-            const rect = frame.getBoundingClientRect();
-            const spot = spotAt(elapsed, offset, rect.width, rect.height);
+            const spot = spotAt(elapsed, offset, width, height);
             if (!spot) return;
             sprite.style.backgroundPosition = `-${spot.frame * WIDTH}px 0`;
             sprite.style.transform =
@@ -191,9 +201,11 @@ export function RunningDino() {
 
         // 동작 줄이기가 켜져 있으면 움직이지 않는다 — 전정기관 장애가 있는 사용자에게 화면을
         // 가로지르는 반복 운동은 불편을 준다. 세워는 두되 걷지 않는다.
-        if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+        // `matchMedia?.`는 저장소의 기존 표기를 따른다(`pages/book/[slug].tsx`) — 이 API가 없는
+        // 환경에서 터지지 않게 한다.
+        if (window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) {
             draw(0);
-            return;
+            return () => observer.disconnect();
         }
 
         let raf = 0;
@@ -203,7 +215,10 @@ export function RunningDino() {
             raf = requestAnimationFrame(tick);
         };
         raf = requestAnimationFrame(tick);
-        return () => cancelAnimationFrame(raf);
+        return () => {
+            cancelAnimationFrame(raf);
+            observer.disconnect();
+        };
     }, []);
 
     return (
