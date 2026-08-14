@@ -9,6 +9,15 @@ import type {Customer} from '../../../utils/customers';
 import type {Reservation} from '../../../utils/reservations';
 import {hasCompletedPayment} from '../../../utils/reservations';
 import type {DragPreview} from './timelineDrag';
+import {cardDetailForHeight} from '../../../features/reservations/timeline-scale';
+
+// 상태 접미사 — 어느 표시 단계에서도 같은 문구를 쓴다.
+function statusSuffix(reservation: Reservation): string {
+    if (reservation.status === 'requested') return ' (확정대기)';
+    if (reservation.status === 'cancelled') return ' (취소)';
+    if (reservation.status === 'noshow') return ' (노쇼)';
+    return hasCompletedPayment(reservation) ? ' (결제완료)' : '';
+}
 
 type TimelineReservationCardProps = {
     reservation: Reservation;
@@ -44,11 +53,16 @@ export function TimelineReservationCard({
     onTouchDragStart,
 }: TimelineReservationCardProps) {
     const isCancelled = reservation.status === 'cancelled' || reservation.status === 'noshow' || reservation.status === 'completed';
-
+    // 짧은 예약은 두 줄이 안 들어간다. 높이에 맞춰 서비스 → 한 줄 → 이름만으로 줄인다.
+    // (매장 단위가 아니라 이 카드의 높이로 정한다 — 예약별로 소요시간을 줄인 건도 있다.)
+    const detail = cardDetailForHeight(blockHeight);
 
     return (
         <ButtonReserve
+            $detail={detail}
             data-timeline-interactive="true"
+            // 드래그 중엔 hover 확장을 끈다 — 끌고 있는 카드가 커서 아래에서 커졌다 작아지면 조준이 흔들린다.
+            data-dragging={preview ? 'true' : undefined}
             style={hideOriginalBlock ? {visibility: 'hidden'} : undefined}
             $position="absolute"
             $top={preview?.top ?? blockTop}
@@ -72,17 +86,29 @@ export function TimelineReservationCard({
                     <span className="a11y">예약 이동</span>
                 </span>
             )}
-            <strong className="highlight">
-                <StyledTimelineServiceList service={reservation.service}
-                                          serviceColorMap={serviceColorMap}
-                                          keyPrefix={reservation.id} />
-                {reservation.status === 'requested' ? ' (확정대기)' : reservation.status === 'cancelled' ? ' (취소)' : reservation.status === 'noshow' ? ' (노쇼)' : hasCompletedPayment(reservation) ? ' (결제완료)' : ''}
-            </strong>
-            {preview && <span className="sub">{preview.date} {preview.startTime}~{preview.endTime}</span>}
-            {customerName && (
-                <span className="detail">
+            {detail === 'full' ? (<>
+                <strong className="highlight">
+                    <StyledTimelineServiceList service={reservation.service}
+                                              serviceColorMap={serviceColorMap}
+                                              keyPrefix={reservation.id} />
+                    {statusSuffix(reservation)}
+                </strong>
+                {preview && <span className="sub">{preview.date} {preview.startTime}~{preview.endTime}</span>}
+                {customerName && (
+                    <span className="detail">
+                        {isNewCustomer && <NewCustomerBadge>N</NewCustomerBadge>}
+                        <span>{customerName}</span>
+                    </span>
+                )}
+            </>) : (
+                // 한 줄에 담는다. 넘치면 말줄임 — 무엇인지는 왼쪽 색 막대가 이미 말해준다.
+                <span className="oneline">
                     {isNewCustomer && <NewCustomerBadge>N</NewCustomerBadge>}
-                    <span>{customerName}</span>
+                    <span className="oneline-text">
+                        {customerName || '고객'}
+                        {detail === 'compact' && reservation.service ? ` · ${reservation.service}` : ''}
+                        {statusSuffix(reservation)}
+                    </span>
                 </span>
             )}
         </ButtonReserve>

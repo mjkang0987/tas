@@ -3,12 +3,16 @@ import {useMemo} from 'react';
 import styled from 'styled-components';
 
 import {useCalendarStore} from '../../../store/calendarStore';
-import {TIMELINE_HALF_HOUR_HEIGHT} from '../../../utils/constants';
+import {useTimelineScale} from '../../../hooks/useTimelineScale';
 import {getTimelineRange} from '../../../utils/timelineRange';
 
 export const TimelineTitle = () => {
     const view = useCalendarStore((s) => s.view);
     const storeSettings = useCalendarStore((s) => s.storeSettings);
+    // 눈금 간격 = 매장 단위. 블록과 같은 배율을 써야 축과 카드가 맞는다.
+    const scale = useTimelineScale();
+    // 5·10분 단위에서 모든 칸에 라벨을 달면 축이 숫자로 뒤덮인다 → 라벨은 30분마다, 칸만 단위대로 나눈다.
+    const labelEvery = Math.max(1, Math.round(30 / scale.unit));
 
     // Timeline과 동일한 파생 규칙으로 좌측 시간축 라벨 범위를 맞춘다(축↔블록 정렬 유지).
     const {start, end} = useMemo(
@@ -17,25 +21,25 @@ export const TimelineTitle = () => {
     );
 
     const setTimes = () => {
-        const arr = new Array((end - start + 1)).fill(start);
-        const result: { full: string; compact: string }[] = [];
+        const result: { key: string; full: string; compact: string }[] = [];
+        const slotsPerHour = 60 / scale.unit;
 
-        for (let i = 0; i < arr.length; i++) {
+        for (let i = 0; i < (end - start + 1); i++) {
             const num = start + i;
-
             const isMorning = num < 12 ? '오전' : '오후';
             const isHalf = num > 12 ? num - 12 : num;
             const isSingle = String(isHalf + 1).length < 2 ? 0 : '';
-
             const hour = isHalf === 0 ? 12 : isHalf;
-            result.push({
-                full: `${isMorning} ${isSingle}${isHalf}:00`,
-                compact: `${hour}:00`,
-            });
-            result.push({
-                full: `${isMorning} ${isSingle}${isHalf}:30`,
-                compact: `${hour}:30`,
-            });
+
+            for (let slot = 0; slot < slotsPerHour; slot++) {
+                const minute = slot * scale.unit;
+                const labeled = slot % labelEvery === 0;
+                result.push({
+                    key: `${num}-${minute}`,
+                    full: labeled ? `${isMorning} ${isSingle}${isHalf}:${String(minute).padStart(2, '0')}` : '',
+                    compact: labeled ? `${hour}:${String(minute).padStart(2, '0')}` : '',
+                });
+            }
         }
 
         return result;
@@ -43,8 +47,8 @@ export const TimelineTitle = () => {
 
     return (<StyledTimelineTitle>
             <StyledTimes>
-                {setTimes().map((t) => <StyledTime key={`time_${t.full}`}>
-                    <StyledNum>
+                {setTimes().map((t) => <StyledTime key={`time_${t.key}`} $height={scale.hourHeight / (60 / scale.unit)}>
+                    <StyledNum $height={scale.hourHeight / (60 / scale.unit)}>
                         <span className="full">{t.full}</span>
                         <span className="compact">{t.compact}</span>
                     </StyledNum>
@@ -67,7 +71,7 @@ const StyledTimes = styled.ul`
     margin: 30px 0 60px;
 `;
 
-const StyledTime = styled.li`
+const StyledTime = styled.li<{$height: number}>`
     display: flex;
     justify-content: center;
     position: relative;
@@ -83,12 +87,12 @@ const StyledTime = styled.li`
     }
 `;
 
-const StyledNum = styled.span`
+const StyledNum = styled.span<{$height: number}>`
     display: flex;
     justify-content: center;
     align-items: center;
     width: 100%;
-    height: ${TIMELINE_HALF_HOUR_HEIGHT}px;
+    height: ${props => props.$height}px;
     padding: 0 10px;
     font-size: var(--tiny-font);
     color: var(--gray-color);

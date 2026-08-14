@@ -27,6 +27,7 @@ const Menu: NextPage = () => {
     const useMembershipSystem = useCalendarStore((s) => s.useMembershipSystem);
     const useCouponSystem = useCalendarStore((s) => s.useCouponSystem);
     const useOnlineBooking = useCalendarStore((s) => s.useOnlineBooking);
+    const naverBookingEnabled = useCalendarStore((s) => s.naverBookingEnabled);
     const labels = useStoreLabels();
 
     const isGuest = !session;
@@ -36,10 +37,12 @@ const Menu: NextPage = () => {
     const gate = {
         isOwner,
         isLoggedInStaff,
+        isGuest,
         usePointSystem,
         useMembershipSystem,
         useCouponSystem,
         useOnlineBooking,
+        naverBookingEnabled,
     };
 
     const items = SETTINGS_SUBMENU.filter(

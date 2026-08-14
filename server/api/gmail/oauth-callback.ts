@@ -1,6 +1,7 @@
 import type {NextApiRequest, NextApiResponse} from 'next';
 
 import {getApiSession, requireRole} from '../../auth/api-session';
+import {isNaverBookingEnabledStore} from '../../naver-access';
 import {saveGmailConnection} from './token-manager';
 import {GMAIL_OAUTH_STATE_COOKIE, buildStateCookie, getBaseUrl, getRedirectUri} from './oauth-shared';
 
@@ -31,6 +32,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         return res.redirect(302, '/login');
     }
     if (!requireRole(session, 'owner', res)) return;
+
+    // 노출 대상이 아닌 매장은 연결을 만들지 않는다(connect 를 우회해 콜백만 직접 부르는 경우 차단).
+    if (!(await isNaverBookingEnabledStore(session.storeId))) {
+        return res.status(403).json({error: 'Naver booking integration is not available for this store'});
+    }
 
     // state 쿠키는 1회용 — 결과와 무관하게 즉시 만료
     const secure = getBaseUrl(req).startsWith('https');

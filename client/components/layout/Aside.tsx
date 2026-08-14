@@ -125,6 +125,7 @@ export const Aside = () => {
     const useMembershipSystem = useCalendarStore((s) => s.useMembershipSystem);
     const useCouponSystem = useCalendarStore((s) => s.useCouponSystem);
     const useOnlineBooking = useCalendarStore((s) => s.useOnlineBooking);
+    const naverBookingEnabled = useCalendarStore((s) => s.naverBookingEnabled);
     const labels = useStoreLabels();
     const submenuLabel = (item: typeof SETTINGS_SUBMENU[number]) =>
         item.tab === 'assignee' ? `${labels.assignee} 관리`
@@ -221,10 +222,12 @@ export const Aside = () => {
                             {SETTINGS_SUBMENU.filter((item) => isSettingsMenuVisible(item, {
                                 isOwner,
                                 isLoggedInStaff,
+                                isGuest,
                                 usePointSystem,
                                 useMembershipSystem,
                                 useCouponSystem,
                                 useOnlineBooking,
+                                naverBookingEnabled,
                             })).map((item) =>
                                 <StyledSubNavLink href={item.href}
                                                   $active={item.tab === 'my'

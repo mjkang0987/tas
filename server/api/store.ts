@@ -4,6 +4,7 @@ import {Prisma} from '../../client/prisma/generated/prisma/client';
 
 import {prisma} from '../db/prisma';
 import {getApiSession, requireRole} from '../auth/api-session';
+import {isNaverBookingEnabledStore} from '../naver-access';
 import {dbStoreToFrontend, parseI18nText} from '../db/mappers';
 import type {StoreSettings, BookingSettings} from '../../client/features/store-settings/model';
 import {DEFAULT_STORE_SETTINGS, DEFAULT_BOOKING_SETTINGS, isValidBookingSlug, parseBookableServiceNames, sanitizeClosedWeekdays} from '../../client/features/store-settings/model';
@@ -77,6 +78,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             // 마이그레이션 미적용 등 — 기본값 유지 (앱 부팅 보장)
         }
 
+        // 네이버예약 연동 노출 여부. 판별은 서버에만 두고 클라이언트엔 결과(boolean)만 내려,
+        // 메뉴·페이지·동기화 훅이 같은 값을 본다.
+        const naverBookingEnabled = await isNaverBookingEnabledStore(session.storeId);
+
         const result = dbStoreToFrontend({businessHours, closedDates, pointSettings});
         return res.status(200).json({
             ...result,
@@ -89,6 +94,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             useOnlineBooking,
             bookingSlug,
             bookingSettings,
+            naverBookingEnabled,
         });
     }
 

@@ -143,7 +143,7 @@ const Home: NextPage<HomeProps> = (props) => {
     };
 
     return (<>
-            <SeoHead title="통합 예약·고객 관리 시스템" />
+            <SeoHead title="예약·고객 관리 시스템" />
             <StyledSection $isVisible={aside.isVisible}>
                 {curr && <Calendar/>}
             </StyledSection>

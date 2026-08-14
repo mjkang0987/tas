@@ -143,6 +143,8 @@ export interface CalendarState {
     useMembershipSystem: boolean;
     useCouponSystem: boolean;
     useOnlineBooking: boolean;
+    // 네이버예약 연동 노출 여부. 오너가 켜는 토글이 아니라 서버가 정하는 공개 범위다(`server/naver-access.ts`).
+    naverBookingEnabled: boolean;
     storeSettings: StoreSettings;
     syncNotifications: SyncNotification[];
 
@@ -177,7 +179,13 @@ export interface CalendarState {
     setAssignees: (assignees: Assignee[]) => void;
     setStoreInfo: (name: string, type: string | null, nameI18n?: {en?: string | null; ja?: string | null; zh?: string | null} | null) => void;
     updateStoreInfo: (name: string, type: string | null, nameI18n?: {en?: string | null; ja?: string | null; zh?: string | null} | null) => void;
-    setStoreFeatures: (usePointSystem: boolean, useMembershipSystem: boolean, useCouponSystem: boolean, useOnlineBooking: boolean) => void;
+    setStoreFeatures: (features: {
+        usePointSystem: boolean;
+        useMembershipSystem: boolean;
+        useCouponSystem: boolean;
+        useOnlineBooking: boolean;
+        naverBookingEnabled: boolean;
+    }) => void;
     updateStoreFeatures: (patch: {usePointSystem?: boolean; useMembershipSystem?: boolean; useCouponSystem?: boolean; useOnlineBooking?: boolean}) => void;
     setStoreSettings: (storeSettings: StoreSettings) => void;
     updateStoreBusinessHours: (hours: Partial<StoreSettings['businessHours']>) => void;
@@ -279,6 +287,7 @@ export const useCalendarStore = create<CalendarState>((set) => ({
     useMembershipSystem: false,
     useCouponSystem: false,
     useOnlineBooking: false,
+    naverBookingEnabled: false,
     storeSettings: DEFAULT_STORE_SETTINGS,
     syncNotifications: [],
 
@@ -446,7 +455,7 @@ export const useCalendarStore = create<CalendarState>((set) => ({
         set(storeNameI18n !== undefined ? {storeName, shopType, storeNameI18n} : {storeName, shopType});
         syncStoreInfo(storeName, shopType, storeNameI18n);
     },
-    setStoreFeatures: (usePointSystem, useMembershipSystem, useCouponSystem, useOnlineBooking) => set({usePointSystem, useMembershipSystem, useCouponSystem, useOnlineBooking}),
+    setStoreFeatures: (features) => set(features),
     updateStoreFeatures: (patch) => {
         set(patch);
         syncStoreFeatures(patch);
