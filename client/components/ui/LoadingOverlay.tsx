@@ -1,5 +1,6 @@
 import styled, {css} from 'styled-components';
 
+import {RunningDino} from './RunningDino';
 import {Spinner} from './Spinner';
 
 type Backdrop = 'solid' | 'dim' | 'blur';
@@ -35,6 +36,8 @@ export function LoadingOverlay({
 
     return (
         <StyledOverlay className={className} $backdrop={backdrop} $zIndex={zIndex}>
+            {/* 기다리는 동안 테두리를 걸어 다니는 장식. 진행 표시는 스피너·문구가 계속 맡는다. */}
+            <RunningDino />
             {boxed ? <StyledCard>{inner}</StyledCard> : inner}
         </StyledOverlay>
     );
