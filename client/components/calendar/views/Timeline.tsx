@@ -333,22 +333,11 @@ const StyledTimelineWrap = styled.div<{
     box-sizing: border-box;
     user-select: none;
 
-    /* 휴무 표시 = 상단 3px 색 띠 + 옅은 틴트. 열 폭을 먹지 않아 모바일 주별(열 ~49px)에서도
-       안전하다. 띠는 예약 카드(z-index 30)보다 아래, 클릭은 통과. */
+    /* 휴무 표시 = 옅은 틴트 + 테두리. 열 폭을 먹지 않아 모바일 주별(열 ~49px)에서도 안전하다.
+       테두리는 inset box-shadow — border 를 주면 열 폭이 밀려 시간축과 어긋난다. */
     ${props => props.$closedKind && `
     background-color: ${props.$closedKind === 'date' ? 'var(--danger-bg)' : 'var(--neutral-bg)'};
-
-    &::after {
-      content: "";
-      position: absolute;
-      top: 0;
-      left: 0;
-      right: 0;
-      height: 3px;
-      background-color: ${props.$closedKind === 'date' ? 'var(--danger-color)' : 'var(--dark-gray-color2)'};
-      z-index: 1;
-      pointer-events: none;
-    }
+    box-shadow: inset 0 0 0 1px ${props.$closedKind === 'date' ? 'var(--danger-border)' : 'var(--neutral-border)'};
   `}
 `;
 

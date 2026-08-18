@@ -120,22 +120,12 @@ const StyledDate = styled.li<{ type: string; $closedKind?: StoreClosedKind }>`
         border-top: none;
     }
 
-    /* 휴무 표시 = 상단 3px 색 띠 + 옅은 틴트. 글자를 쓰지 않으므로 좁은 모바일 셀에서도
-       자리를 다투지 않는다(배지는 390px 주별 열에서 넘쳤다). 종류는 색으로 구분. */
+    /* 휴무 표시 = 옅은 틴트 + 테두리. 글자를 쓰지 않으므로 좁은 모바일 셀에서도 자리를 다투지
+       않는다(배지는 390px 주별 열에서 넘쳤다). 테두리는 inset box-shadow 로 그린다 —
+       border 를 주면 셀 크기가 1px 밀려 달력 격자가 어긋난다. 종류는 색으로 구분. */
     ${props => props.$closedKind && `
-    position: relative;
     background-color: ${props.$closedKind === 'date' ? 'var(--danger-bg)' : 'var(--neutral-bg)'};
-
-    &::after {
-      content: "";
-      position: absolute;
-      top: 0;
-      left: 0;
-      right: 0;
-      height: 3px;
-      background-color: ${props.$closedKind === 'date' ? 'var(--danger-color)' : 'var(--dark-gray-color2)'};
-      pointer-events: none;
-    }
+    box-shadow: inset 0 0 0 1px ${props.$closedKind === 'date' ? 'var(--danger-border)' : 'var(--neutral-border)'};
   `}
 
     ${props => (props.type === 'prev' || props.type === 'next') && `
