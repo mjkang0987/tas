@@ -30,6 +30,7 @@ import type {PendingMove} from './timelineDrag';
 import {buildTimelineEntries} from './timelineEntries';
 import {useTimelineDrag} from './useTimelineDrag';
 import {useTimelineScale} from '../../../hooks/useTimelineScale';
+import {LabelBadge} from '../../ui/LabelBadge';
 import {cardDetailForHeight, cardHeightFor} from '../../../features/reservations/timeline-scale';
 
 export const Timeline = ({
@@ -60,6 +61,9 @@ export const Timeline = ({
     const calendarAssigneeId = useCalendarStore((s) => s.calendarAssigneeId);
 
     const dateKey = toDateKey(fullYear, month, date);
+    // 휴업일(설정 > 매장관리). dateKey·closedDates 모두 toDateKey 형식이라 그대로 대조한다.
+    // 일별·주별·3일 뷰가 전부 이 컴포넌트를 지나가므로 표시도 여기 한 곳에서 붙인다.
+    const isClosedDate = storeSettings.closedDates.includes(dateKey);
     // 시간축·블록·드래그·클릭생성이 공유하는 배율. 한 곳만 다른 값을 쓰면 화면이 예약 시각을 거짓말한다.
     const scale = useTimelineScale();
     // 타임라인(일별/주별/3일)에서는 취소된 예약을 숨긴다(블록·건수 부풀림 방지).
@@ -191,7 +195,9 @@ export const Timeline = ({
 
     return (<StyledTimelineWrap ref={timelineRef}
                                 data-timeline-date={dateKey}
-                                $type={type}>
+                                $type={type}
+                                $isClosed={isClosedDate}>
+        {isClosedDate && <StyledClosedMark $tone="danger">휴무</StyledClosedMark>}
         {!isTouchDevice && (
             <StyledTimelineBackground
                 type="button"
@@ -312,7 +318,8 @@ export const Timeline = ({
     </StyledTimelineWrap>);
 };
 const StyledTimelineWrap = styled.div<{
-    $type: string
+    $type: string;
+    $isClosed?: boolean;
 }>`
     flex: 1;
     display: flex;
@@ -322,6 +329,21 @@ const StyledTimelineWrap = styled.div<{
     padding: ${props => props.$type === ViewType.Day ? TIMELINE_DAY_TOP : TIMELINE_TOP}px 5px 0;
     box-sizing: border-box;
     user-select: none;
+
+    ${props => props.$isClosed && `
+    background-color: var(--danger-bg);
+  `}
+`;
+
+// 휴업일 표식. 예약 카드(z-index 30)·클러스터(12)보다 아래에 두고 클릭은 통과시킨다
+// (휴업일에도 예약 추가·이동은 그대로 되어야 한다).
+const StyledClosedMark = styled(LabelBadge)`
+    position: absolute;
+    top: 4px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 1;
+    pointer-events: none;
 `;
 
 const StyledTimelineBackground = styled.button`

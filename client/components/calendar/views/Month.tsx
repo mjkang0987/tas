@@ -14,6 +14,7 @@ import {toDateKey} from '../../../utils/reservations';
 
 import {Num} from './Num';
 import {ButtonAdd} from '../../ui/Buttons';
+import {LabelBadge} from '../../ui/LabelBadge';
 import {ReservationList} from './ReservationList';
 
 interface MonthType {
@@ -31,6 +32,7 @@ export const Month = ({
     const target = useCalendarStore((s) => s.target);
     const curr = useMemo(() => computeTargetDerived(target), [target]);
     const reservationMap = useCalendarStore((s) => s.reservationMap);
+    const storeSettings = useCalendarStore((s) => s.storeSettings);
     const calendarAssigneeId = useCalendarStore((s) => s.calendarAssigneeId);
     const setReservationListFilter = useCalendarStore((s) => s.setReservationListFilter);
     const setCreateReservationInitial = useCalendarStore((s) => s.setCreateReservationInitial);
@@ -53,9 +55,12 @@ export const Month = ({
                 normalizedDate.getDate()
             );
             const dateLabel = isAdjacentMonth ? `${normalizedDate.getMonth() + 1}/${val}` : String(val);
+            // 휴업일(설정 > 매장관리). dateKey·closedDates 모두 toDateKey 형식이라 그대로 대조한다.
+            const isClosedDate = storeSettings.closedDates.includes(dateKey);
 
             return (<StyledDate key={`month_${val + index}`}
-                                type={type}>
+                                type={type}
+                                $isClosed={isClosedDate}>
                 <StyledDateHeader>
                     <Num onClick={() => setReservationListFilter({type: 'date', dateKey})}
                          aria-label={`${normalizedDate.getMonth() + 1}월 ${normalizedDate.getDate()}일 예약 ${dateReservations.length}건 보기`}
@@ -65,6 +70,8 @@ export const Month = ({
                     <ButtonAdd onClick={() => setCreateReservationInitial({date: toDateKey(fullYear, currMonth, val), startTime: '10:00'})}
                                aria-label={`${normalizedDate.getMonth() + 1}월 ${normalizedDate.getDate()}일 예약 추가`}/>
                 </StyledDateHeader>
+                {/* 배지는 날짜 헤더 아래 한 줄로 — 헤더에 끼우면 모바일(셀 폭 ~56px)에서 셀 밖으로 나간다. */}
+                {isClosedDate && <StyledClosedBadge $tone="danger">휴무</StyledClosedBadge>}
                 {hasReservations && (
                     <ReservationList reservations={dateReservations}
                                      variant="date"
@@ -85,13 +92,19 @@ export const Month = ({
     </>);
 };
 
+const StyledClosedBadge = styled(LabelBadge)`
+    margin: 0 auto 2px;
+    padding: 2px 5px;
+    font-size: var(--tiny-font);
+`;
+
 const StyledDateHeader = styled.div`
     display: flex;
     align-items: center;
     justify-content: space-between;
 `;
 
-const StyledDate = styled.li<{ type: string }>`
+const StyledDate = styled.li<{ type: string; $isClosed?: boolean }>`
     display: flex;
     flex-direction: column;
     padding: 2px;
@@ -108,6 +121,10 @@ const StyledDate = styled.li<{ type: string }>`
     &:nth-child(-n+7) {
         border-top: none;
     }
+
+    ${props => props.$isClosed && `
+    background-color: var(--danger-bg);
+  `}
 
     ${props => (props.type === 'prev' || props.type === 'next') && `
     .faded { color: var(--gray-color); }
