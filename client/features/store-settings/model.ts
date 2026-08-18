@@ -107,12 +107,11 @@ export function isValidBookingSlug(value: string): boolean {
 // 정기 휴무보다 구체적인 의사표시다.
 export type StoreClosedKind = 'date' | 'weekday' | null;
 
-// 휴무 배지 문구. **조각 배열**인 이유는 좁은 열에서 줄바꿈 지점을 우리가 정하기 위해서다 —
-// 한국어는 글자 사이 어디서나 끊기므로 CSS 에 맡기면 모바일 주별(열 ~49px)에서
-// '정/기/휴/무' 처럼 한 글자씩 세로로 쪼개진다. 조각을 flex 로 쌓으면 '정기 / 휴무' 두 줄이 된다.
-export const STORE_CLOSED_LABEL_PARTS: Record<Exclude<StoreClosedKind, null>, string[]> = {
-    date: ['휴업일'],
-    weekday: ['정기', '휴무'],
+// 휴무 문구. 화면에는 글자를 띄우지 않고(색 띠 + 틴트로 표시) **스크린리더·툴팁에만** 쓴다 —
+// 순수 시각 표시는 시각장애 사용자에게 아무것도 전달하지 못하므로 텍스트를 DOM 에 남긴다.
+export const STORE_CLOSED_LABEL: Record<Exclude<StoreClosedKind, null>, string> = {
+    date: '휴업일',
+    weekday: '정기휴무',
 };
 
 export function getStoreClosedKind(

@@ -12,12 +12,11 @@ import {
 
 import {toDateKey} from '../../../utils/reservations';
 
-import {getStoreClosedKind, STORE_CLOSED_LABEL_PARTS} from '../../../features/store-settings/model';
+import {getStoreClosedKind, STORE_CLOSED_LABEL} from '../../../features/store-settings/model';
 import type {StoreClosedKind} from '../../../features/store-settings/model';
 
 import {Num} from './Num';
 import {ButtonAdd} from '../../ui/Buttons';
-import {LabelBadge} from '../../ui/LabelBadge';
 import {ReservationList} from './ReservationList';
 
 interface MonthType {
@@ -63,7 +62,8 @@ export const Month = ({
 
             return (<StyledDate key={`month_${val + index}`}
                                 type={type}
-                                $closedKind={closedKind}>
+                                $closedKind={closedKind}
+                                title={closedKind ? STORE_CLOSED_LABEL[closedKind] : undefined}>
                 <StyledDateHeader>
                     <Num onClick={() => setReservationListFilter({type: 'date', dateKey})}
                          aria-label={`${normalizedDate.getMonth() + 1}월 ${normalizedDate.getDate()}일 예약 ${dateReservations.length}건 보기`}
@@ -73,12 +73,9 @@ export const Month = ({
                     <ButtonAdd onClick={() => setCreateReservationInitial({date: toDateKey(fullYear, currMonth, val), startTime: '10:00'})}
                                aria-label={`${normalizedDate.getMonth() + 1}월 ${normalizedDate.getDate()}일 예약 추가`}/>
                 </StyledDateHeader>
-                {/* 배지는 날짜 헤더 아래 한 줄로 — 헤더에 끼우면 모바일(셀 폭 ~56px)에서 셀 밖으로 나간다. */}
-                {closedKind && (
-                    <StyledClosedBadge $tone={closedKind === 'date' ? 'danger' : 'neutral'}>
-                        {STORE_CLOSED_LABEL_PARTS[closedKind].map((part) => <span key={part}>{part}</span>)}
-                    </StyledClosedBadge>
-                )}
+                {/* 휴무는 상단 색 띠 + 틴트로만 보인다(글자 없음). 화면에 안 보이는 만큼
+                    스크린리더용 문구를 남긴다 — 색만으로는 아무것도 전달되지 않는다. */}
+                {closedKind && <span className="a11y">{STORE_CLOSED_LABEL[closedKind]}</span>}
                 {hasReservations && (
                     <ReservationList reservations={dateReservations}
                                      variant="date"
@@ -98,21 +95,6 @@ export const Month = ({
         })}
     </>);
 };
-
-// 모바일 셀은 폭이 ~56px(390px 화면) 뿐이라 '정기휴무'가 한 줄로는 빠듯하다.
-// 좁은 화면에서는 라벨 조각을 세로로 쌓아 '정기 / 휴무' 두 줄로 만든다
-// (CSS 줄바꿈에 맡기면 한 글자씩 쪼개진다 — 라벨을 조각으로 나눠 둔 이유).
-const StyledClosedBadge = styled(LabelBadge)`
-    margin: 4px auto 2px;
-    padding: 2px 4px;
-    max-width: 100%;
-    line-height: 1.15;
-    font-size: var(--tiny-font);
-
-    @media (max-width: 640px) {
-        flex-direction: column;
-    }
-`;
 
 const StyledDateHeader = styled.div`
     display: flex;
@@ -138,8 +120,22 @@ const StyledDate = styled.li<{ type: string; $closedKind?: StoreClosedKind }>`
         border-top: none;
     }
 
+    /* 휴무 표시 = 상단 3px 색 띠 + 옅은 틴트. 글자를 쓰지 않으므로 좁은 모바일 셀에서도
+       자리를 다투지 않는다(배지는 390px 주별 열에서 넘쳤다). 종류는 색으로 구분. */
     ${props => props.$closedKind && `
+    position: relative;
     background-color: ${props.$closedKind === 'date' ? 'var(--danger-bg)' : 'var(--neutral-bg)'};
+
+    &::after {
+      content: "";
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 3px;
+      background-color: ${props.$closedKind === 'date' ? 'var(--danger-color)' : 'var(--dark-gray-color2)'};
+      pointer-events: none;
+    }
   `}
 
     ${props => (props.type === 'prev' || props.type === 'next') && `

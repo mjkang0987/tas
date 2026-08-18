@@ -30,8 +30,7 @@ import type {PendingMove} from './timelineDrag';
 import {buildTimelineEntries} from './timelineEntries';
 import {useTimelineDrag} from './useTimelineDrag';
 import {useTimelineScale} from '../../../hooks/useTimelineScale';
-import {LabelBadge} from '../../ui/LabelBadge';
-import {getStoreClosedKind, STORE_CLOSED_LABEL_PARTS} from '../../../features/store-settings/model';
+import {getStoreClosedKind, STORE_CLOSED_LABEL} from '../../../features/store-settings/model';
 import type {StoreClosedKind} from '../../../features/store-settings/model';
 import {cardDetailForHeight, cardHeightFor} from '../../../features/reservations/timeline-scale';
 
@@ -198,12 +197,10 @@ export const Timeline = ({
     return (<StyledTimelineWrap ref={timelineRef}
                                 data-timeline-date={dateKey}
                                 $type={type}
-                                $closedKind={closedKind}>
-        {closedKind && (
-            <StyledClosedMark $tone={closedKind === 'date' ? 'danger' : 'neutral'}>
-                {STORE_CLOSED_LABEL_PARTS[closedKind].map((part) => <span key={part}>{part}</span>)}
-            </StyledClosedMark>
-        )}
+                                $closedKind={closedKind}
+                                title={closedKind ? STORE_CLOSED_LABEL[closedKind] : undefined}>
+        {/* 휴무는 상단 색 띠 + 틴트로만 보인다(글자 없음). 스크린리더용 문구만 남긴다. */}
+        {closedKind && <span className="a11y">{STORE_CLOSED_LABEL[closedKind]}</span>}
         {!isTouchDevice && (
             <StyledTimelineBackground
                 type="button"
@@ -336,33 +333,27 @@ const StyledTimelineWrap = styled.div<{
     box-sizing: border-box;
     user-select: none;
 
+    /* 휴무 표시 = 상단 3px 색 띠 + 옅은 틴트. 열 폭을 먹지 않아 모바일 주별(열 ~49px)에서도
+       안전하다. 띠는 예약 카드(z-index 30)보다 아래, 클릭은 통과. */
     ${props => props.$closedKind && `
     background-color: ${props.$closedKind === 'date' ? 'var(--danger-bg)' : 'var(--neutral-bg)'};
+
+    &::after {
+      content: "";
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 3px;
+      background-color: ${props.$closedKind === 'date' ? 'var(--danger-color)' : 'var(--dark-gray-color2)'};
+      z-index: 1;
+      pointer-events: none;
+    }
   `}
 `;
 
 // 휴무 표식. 예약 카드(z-index 30)·클러스터(12)보다 아래에 두고 클릭은 통과시킨다
 // (휴무일에도 예약 추가·이동은 그대로 되어야 한다).
-// 모바일 주별은 한 열이 ~49px 뿐이라 '정기휴무'가 한 줄로는 넘친다(실측 58px vs 49.4px).
-// 폰트 토큰(10px)이 하한이라 줄여서는 해결되지 않으므로, 좁은 화면에서는 라벨 조각을
-// 세로로 쌓아 두 줄로 만든다(CSS 줄바꿈에 맡기면 한 글자씩 쪼개진다).
-const StyledClosedMark = styled(LabelBadge)`
-    position: absolute;
-    top: 12px;
-    left: 50%;
-    transform: translateX(-50%);
-    z-index: 1;
-    pointer-events: none;
-    padding: 2px 4px;
-    max-width: 100%;
-    line-height: 1.15;
-    font-size: var(--tiny-font);
-
-    @media (max-width: 640px) {
-        flex-direction: column;
-    }
-`;
-
 const StyledTimelineBackground = styled.button`
     position: absolute;
     inset: 0;

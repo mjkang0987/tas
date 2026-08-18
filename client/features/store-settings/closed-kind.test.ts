@@ -6,7 +6,7 @@ process.env.TZ = 'Asia/Seoul';
 
 import {describe, expect, it} from 'vitest';
 
-import {getStoreClosedKind, STORE_CLOSED_LABEL_PARTS} from './model';
+import {getStoreClosedKind, STORE_CLOSED_LABEL} from './model';
 
 const EMPTY = {closedDates: [] as string[], closedWeekdays: [] as number[]};
 
@@ -65,16 +65,16 @@ describe('getStoreClosedKind — 우선순위·방어', () => {
     });
 });
 
-describe('STORE_CLOSED_LABEL_PARTS — 배지 문구', () => {
-    it('조각을 이으면 화면 문구가 된다', () => {
-        expect(STORE_CLOSED_LABEL_PARTS.date.join('')).toBe('휴업일');
-        expect(STORE_CLOSED_LABEL_PARTS.weekday.join('')).toBe('정기휴무');
+describe('STORE_CLOSED_LABEL — 스크린리더·툴팁 문구', () => {
+    it('휴무 종류마다 문구가 다르다', () => {
+        expect(STORE_CLOSED_LABEL.date).toBe('휴업일');
+        expect(STORE_CLOSED_LABEL.weekday).toBe('정기휴무');
     });
 
-    // 좁은 열(모바일 주별 ~49px)에서 조각을 세로로 쌓아 두 줄을 만든다.
-    // 조각이 하나로 합쳐지면 다시 한 글자씩 쪼개지므로 개수를 고정한다.
-    it('정기 휴무는 두 조각으로 나뉘어 있다', () => {
-        expect(STORE_CLOSED_LABEL_PARTS.weekday).toHaveLength(2);
-        expect(STORE_CLOSED_LABEL_PARTS.date).toHaveLength(1);
+    // 화면에는 색 띠·틴트만 보이므로, 이 문구가 비면 휴무 정보가 스크린리더에서 완전히 사라진다.
+    it('빈 문구가 없다', () => {
+        for (const label of Object.values(STORE_CLOSED_LABEL)) {
+            expect(label.trim().length).toBeGreaterThan(0);
+        }
     });
 });
