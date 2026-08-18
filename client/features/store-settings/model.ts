@@ -102,6 +102,25 @@ export function isValidBookingSlug(value: string): boolean {
     return BOOKING_SLUG_PATTERN.test(value);
 }
 
+// 캘린더 휴무 표시 판정. 임시 휴업일(특정 날짜)과 정기 휴무(매주 요일)는 화면 문구가 달라
+// 어느 쪽인지까지 돌려준다. 둘 다 해당하면 **임시 휴업일이 이긴다** — 오너가 직접 찍은 날이라
+// 정기 휴무보다 구체적인 의사표시다.
+export type StoreClosedKind = 'date' | 'weekday' | null;
+
+export function getStoreClosedKind(
+    settings: Pick<StoreSettings, 'closedDates' | 'closedWeekdays'>,
+    dateKey: string,
+): StoreClosedKind {
+    if (settings.closedDates.includes(dateKey)) return 'date';
+
+    // dayIndex 규칙은 0=월 … 6=일, JS getDay()는 0=일 … 6=토 → (getDay()+6)%7.
+    // 날짜 전용 문자열은 로컬 자정으로 파싱한다(횡단 규칙 1번 — UTC 파싱은 하루 밀린다).
+    const day = new Date(`${dateKey}T00:00:00`).getDay();
+    if (Number.isNaN(day)) return null;
+
+    return (settings.closedWeekdays ?? []).includes((day + 6) % 7) ? 'weekday' : null;
+}
+
 export const DEFAULT_STORE_SETTINGS: StoreSettings = {
     businessHours: {
         start: '10:00',
