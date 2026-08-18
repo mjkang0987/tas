@@ -107,7 +107,7 @@ export function isValidBookingSlug(value: string): boolean {
 // 정기 휴무보다 구체적인 의사표시다.
 export type StoreClosedKind = 'date' | 'weekday' | null;
 
-// 휴무 문구. 화면에는 글자를 띄우지 않고(색 띠 + 틴트로 표시) **스크린리더·툴팁에만** 쓴다 —
+// 휴무 문구. 화면에는 글자를 띄우지 않고(틴트 + 테두리로 표시) **스크린리더·툴팁에만** 쓴다 —
 // 순수 시각 표시는 시각장애 사용자에게 아무것도 전달하지 못하므로 텍스트를 DOM 에 남긴다.
 export const STORE_CLOSED_LABEL: Record<Exclude<StoreClosedKind, null>, string> = {
     date: '휴업일',
@@ -120,12 +120,17 @@ export function getStoreClosedKind(
 ): StoreClosedKind {
     if (settings.closedDates.includes(dateKey)) return 'date';
 
+    // 정기 휴무가 없으면 날짜를 파싱하지 않는다 — 월 뷰는 매 렌더마다 42칸이 이 함수를 부른다
+    // (iOS 이식본 `Store.closedKind(on:)` 과 같은 가드).
+    const closedWeekdays = settings.closedWeekdays ?? [];
+    if (closedWeekdays.length === 0) return null;
+
     // dayIndex 규칙은 0=월 … 6=일, JS getDay()는 0=일 … 6=토 → (getDay()+6)%7.
     // 날짜 전용 문자열은 로컬 자정으로 파싱한다(횡단 규칙 1번 — UTC 파싱은 하루 밀린다).
     const day = new Date(`${dateKey}T00:00:00`).getDay();
     if (Number.isNaN(day)) return null;
 
-    return (settings.closedWeekdays ?? []).includes((day + 6) % 7) ? 'weekday' : null;
+    return closedWeekdays.includes((day + 6) % 7) ? 'weekday' : null;
 }
 
 export const DEFAULT_STORE_SETTINGS: StoreSettings = {

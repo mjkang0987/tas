@@ -64,6 +64,8 @@ export const Timeline = ({
     const dateKey = toDateKey(fullYear, month, date);
     // 휴무 표시(설정 > 매장관리) — 임시 휴업일 / 정기 휴무(요일).
     // 일별·주별·3일 뷰가 전부 이 컴포넌트를 지나가므로 표시도 여기 한 곳에서 붙인다.
+    // title(툴팁)은 달지 않는다 — 이 래퍼는 하루 열 전체라, 자식이 title 을 물려받아
+    // 예약 카드에 마우스를 올려도 '휴업일' 이 뜬다. 월별 셀에만 단다.
     const closedKind = getStoreClosedKind(storeSettings, dateKey);
     // 시간축·블록·드래그·클릭생성이 공유하는 배율. 한 곳만 다른 값을 쓰면 화면이 예약 시각을 거짓말한다.
     const scale = useTimelineScale();
@@ -197,9 +199,8 @@ export const Timeline = ({
     return (<StyledTimelineWrap ref={timelineRef}
                                 data-timeline-date={dateKey}
                                 $type={type}
-                                $closedKind={closedKind}
-                                title={closedKind ? STORE_CLOSED_LABEL[closedKind] : undefined}>
-        {/* 휴무는 상단 색 띠 + 틴트로만 보인다(글자 없음). 스크린리더용 문구만 남긴다. */}
+                                $closedKind={closedKind}>
+        {/* 휴무는 틴트 + 테두리로만 보인다(글자 없음). 스크린리더용 문구만 남긴다. */}
         {closedKind && <span className="a11y">{STORE_CLOSED_LABEL[closedKind]}</span>}
         {!isTouchDevice && (
             <StyledTimelineBackground
@@ -341,8 +342,6 @@ const StyledTimelineWrap = styled.div<{
   `}
 `;
 
-// 휴무 표식. 예약 카드(z-index 30)·클러스터(12)보다 아래에 두고 클릭은 통과시킨다
-// (휴무일에도 예약 추가·이동은 그대로 되어야 한다).
 const StyledTimelineBackground = styled.button`
     position: absolute;
     inset: 0;

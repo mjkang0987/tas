@@ -73,7 +73,7 @@ export const Month = ({
                     <ButtonAdd onClick={() => setCreateReservationInitial({date: toDateKey(fullYear, currMonth, val), startTime: '10:00'})}
                                aria-label={`${normalizedDate.getMonth() + 1}월 ${normalizedDate.getDate()}일 예약 추가`}/>
                 </StyledDateHeader>
-                {/* 휴무는 상단 색 띠 + 틴트로만 보인다(글자 없음). 화면에 안 보이는 만큼
+                {/* 휴무는 틴트 + 테두리로만 보인다(글자 없음). 화면에 안 보이는 만큼
                     스크린리더용 문구를 남긴다 — 색만으로는 아무것도 전달되지 않는다. */}
                 {closedKind && <span className="a11y">{STORE_CLOSED_LABEL[closedKind]}</span>}
                 {hasReservations && (

@@ -71,7 +71,7 @@ describe('STORE_CLOSED_LABEL — 스크린리더·툴팁 문구', () => {
         expect(STORE_CLOSED_LABEL.weekday).toBe('정기휴무');
     });
 
-    // 화면에는 색 띠·틴트만 보이므로, 이 문구가 비면 휴무 정보가 스크린리더에서 완전히 사라진다.
+    // 화면에는 틴트·테두리만 보이므로, 이 문구가 비면 휴무 정보가 스크린리더에서 완전히 사라진다.
     it('빈 문구가 없다', () => {
         for (const label of Object.values(STORE_CLOSED_LABEL)) {
             expect(label.trim().length).toBeGreaterThan(0);
