@@ -12,6 +12,9 @@ import {
 
 import {toDateKey} from '../../../utils/reservations';
 
+import {getStoreClosedKind, STORE_CLOSED_LABEL} from '../../../features/store-settings/model';
+import type {StoreClosedKind} from '../../../features/store-settings/model';
+
 import {Num} from './Num';
 import {ButtonAdd} from '../../ui/Buttons';
 import {ReservationList} from './ReservationList';
@@ -31,6 +34,7 @@ export const Month = ({
     const target = useCalendarStore((s) => s.target);
     const curr = useMemo(() => computeTargetDerived(target), [target]);
     const reservationMap = useCalendarStore((s) => s.reservationMap);
+    const storeSettings = useCalendarStore((s) => s.storeSettings);
     const calendarAssigneeId = useCalendarStore((s) => s.calendarAssigneeId);
     const setReservationListFilter = useCalendarStore((s) => s.setReservationListFilter);
     const setCreateReservationInitial = useCalendarStore((s) => s.setCreateReservationInitial);
@@ -53,9 +57,13 @@ export const Month = ({
                 normalizedDate.getDate()
             );
             const dateLabel = isAdjacentMonth ? `${normalizedDate.getMonth() + 1}/${val}` : String(val);
+            // 휴무 표시(설정 > 매장관리) — 임시 휴업일 / 정기 휴무(요일).
+            const closedKind = getStoreClosedKind(storeSettings, dateKey);
 
             return (<StyledDate key={`month_${val + index}`}
-                                type={type}>
+                                type={type}
+                                $closedKind={closedKind}
+                                title={closedKind ? STORE_CLOSED_LABEL[closedKind] : undefined}>
                 <StyledDateHeader>
                     <Num onClick={() => setReservationListFilter({type: 'date', dateKey})}
                          aria-label={`${normalizedDate.getMonth() + 1}월 ${normalizedDate.getDate()}일 예약 ${dateReservations.length}건 보기`}
@@ -65,6 +73,9 @@ export const Month = ({
                     <ButtonAdd onClick={() => setCreateReservationInitial({date: toDateKey(fullYear, currMonth, val), startTime: '10:00'})}
                                aria-label={`${normalizedDate.getMonth() + 1}월 ${normalizedDate.getDate()}일 예약 추가`}/>
                 </StyledDateHeader>
+                {/* 휴무는 틴트 + 테두리로만 보인다(글자 없음). 화면에 안 보이는 만큼
+                    스크린리더용 문구를 남긴다 — 색만으로는 아무것도 전달되지 않는다. */}
+                {closedKind && <span className="a11y">{STORE_CLOSED_LABEL[closedKind]}</span>}
                 {hasReservations && (
                     <ReservationList reservations={dateReservations}
                                      variant="date"
@@ -91,7 +102,7 @@ const StyledDateHeader = styled.div`
     justify-content: space-between;
 `;
 
-const StyledDate = styled.li<{ type: string }>`
+const StyledDate = styled.li<{ type: string; $closedKind?: StoreClosedKind }>`
     display: flex;
     flex-direction: column;
     padding: 2px;
@@ -108,6 +119,14 @@ const StyledDate = styled.li<{ type: string }>`
     &:nth-child(-n+7) {
         border-top: none;
     }
+
+    /* 휴무 표시 = 옅은 틴트 + 테두리. 글자를 쓰지 않으므로 좁은 모바일 셀에서도 자리를 다투지
+       않는다(배지는 390px 주별 열에서 넘쳤다). 테두리는 inset box-shadow 로 그린다 —
+       border 를 주면 셀 크기가 1px 밀려 달력 격자가 어긋난다. 종류는 색으로 구분. */
+    ${props => props.$closedKind && `
+    background-color: ${props.$closedKind === 'date' ? 'var(--danger-bg)' : 'var(--neutral-bg)'};
+    box-shadow: inset 0 0 0 1px ${props.$closedKind === 'date' ? 'var(--danger-border)' : 'var(--neutral-border)'};
+  `}
 
     ${props => (props.type === 'prev' || props.type === 'next') && `
     .faded { color: var(--gray-color); }

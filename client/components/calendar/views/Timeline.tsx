@@ -30,6 +30,8 @@ import type {PendingMove} from './timelineDrag';
 import {buildTimelineEntries} from './timelineEntries';
 import {useTimelineDrag} from './useTimelineDrag';
 import {useTimelineScale} from '../../../hooks/useTimelineScale';
+import {getStoreClosedKind, STORE_CLOSED_LABEL} from '../../../features/store-settings/model';
+import type {StoreClosedKind} from '../../../features/store-settings/model';
 import {cardDetailForHeight, cardHeightFor} from '../../../features/reservations/timeline-scale';
 
 export const Timeline = ({
@@ -60,6 +62,11 @@ export const Timeline = ({
     const calendarAssigneeId = useCalendarStore((s) => s.calendarAssigneeId);
 
     const dateKey = toDateKey(fullYear, month, date);
+    // 휴무 표시(설정 > 매장관리) — 임시 휴업일 / 정기 휴무(요일).
+    // 일별·주별·3일 뷰가 전부 이 컴포넌트를 지나가므로 표시도 여기 한 곳에서 붙인다.
+    // title(툴팁)은 달지 않는다 — 이 래퍼는 하루 열 전체라, 자식이 title 을 물려받아
+    // 예약 카드에 마우스를 올려도 '휴업일' 이 뜬다. 월별 셀에만 단다.
+    const closedKind = getStoreClosedKind(storeSettings, dateKey);
     // 시간축·블록·드래그·클릭생성이 공유하는 배율. 한 곳만 다른 값을 쓰면 화면이 예약 시각을 거짓말한다.
     const scale = useTimelineScale();
     // 타임라인(일별/주별/3일)에서는 취소된 예약을 숨긴다(블록·건수 부풀림 방지).
@@ -191,7 +198,10 @@ export const Timeline = ({
 
     return (<StyledTimelineWrap ref={timelineRef}
                                 data-timeline-date={dateKey}
-                                $type={type}>
+                                $type={type}
+                                $closedKind={closedKind}>
+        {/* 휴무는 틴트 + 테두리로만 보인다(글자 없음). 스크린리더용 문구만 남긴다. */}
+        {closedKind && <span className="a11y">{STORE_CLOSED_LABEL[closedKind]}</span>}
         {!isTouchDevice && (
             <StyledTimelineBackground
                 type="button"
@@ -312,7 +322,8 @@ export const Timeline = ({
     </StyledTimelineWrap>);
 };
 const StyledTimelineWrap = styled.div<{
-    $type: string
+    $type: string;
+    $closedKind?: StoreClosedKind;
 }>`
     flex: 1;
     display: flex;
@@ -322,6 +333,13 @@ const StyledTimelineWrap = styled.div<{
     padding: ${props => props.$type === ViewType.Day ? TIMELINE_DAY_TOP : TIMELINE_TOP}px 5px 0;
     box-sizing: border-box;
     user-select: none;
+
+    /* 휴무 표시 = 옅은 틴트 + 테두리. 열 폭을 먹지 않아 모바일 주별(열 ~49px)에서도 안전하다.
+       테두리는 inset box-shadow — border 를 주면 열 폭이 밀려 시간축과 어긋난다. */
+    ${props => props.$closedKind && `
+    background-color: ${props.$closedKind === 'date' ? 'var(--danger-bg)' : 'var(--neutral-bg)'};
+    box-shadow: inset 0 0 0 1px ${props.$closedKind === 'date' ? 'var(--danger-border)' : 'var(--neutral-border)'};
+  `}
 `;
 
 const StyledTimelineBackground = styled.button`
