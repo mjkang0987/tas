@@ -6,7 +6,7 @@ process.env.TZ = 'Asia/Seoul';
 
 import {describe, expect, it} from 'vitest';
 
-import {getStoreClosedKind} from './model';
+import {getStoreClosedKind, STORE_CLOSED_LABEL_PARTS} from './model';
 
 const EMPTY = {closedDates: [] as string[], closedWeekdays: [] as number[]};
 
@@ -62,5 +62,19 @@ describe('getStoreClosedKind — 우선순위·방어', () => {
 
     it('날짜가 깨져 있으면 null(캘린더가 터지지 않는다)', () => {
         expect(getStoreClosedKind({...EMPTY, closedWeekdays: [0, 1, 2, 3, 4, 5, 6]}, 'not-a-date')).toBeNull();
+    });
+});
+
+describe('STORE_CLOSED_LABEL_PARTS — 배지 문구', () => {
+    it('조각을 이으면 화면 문구가 된다', () => {
+        expect(STORE_CLOSED_LABEL_PARTS.date.join('')).toBe('휴업일');
+        expect(STORE_CLOSED_LABEL_PARTS.weekday.join('')).toBe('정기휴무');
+    });
+
+    // 좁은 열(모바일 주별 ~49px)에서 조각을 세로로 쌓아 두 줄을 만든다.
+    // 조각이 하나로 합쳐지면 다시 한 글자씩 쪼개지므로 개수를 고정한다.
+    it('정기 휴무는 두 조각으로 나뉘어 있다', () => {
+        expect(STORE_CLOSED_LABEL_PARTS.weekday).toHaveLength(2);
+        expect(STORE_CLOSED_LABEL_PARTS.date).toHaveLength(1);
     });
 });

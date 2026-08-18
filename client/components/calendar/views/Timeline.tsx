@@ -31,7 +31,7 @@ import {buildTimelineEntries} from './timelineEntries';
 import {useTimelineDrag} from './useTimelineDrag';
 import {useTimelineScale} from '../../../hooks/useTimelineScale';
 import {LabelBadge} from '../../ui/LabelBadge';
-import {getStoreClosedKind} from '../../../features/store-settings/model';
+import {getStoreClosedKind, STORE_CLOSED_LABEL_PARTS} from '../../../features/store-settings/model';
 import type {StoreClosedKind} from '../../../features/store-settings/model';
 import {cardDetailForHeight, cardHeightFor} from '../../../features/reservations/timeline-scale';
 
@@ -201,7 +201,7 @@ export const Timeline = ({
                                 $closedKind={closedKind}>
         {closedKind && (
             <StyledClosedMark $tone={closedKind === 'date' ? 'danger' : 'neutral'}>
-                {closedKind === 'date' ? '휴업일' : '정기휴무'}
+                {STORE_CLOSED_LABEL_PARTS[closedKind].map((part) => <span key={part}>{part}</span>)}
             </StyledClosedMark>
         )}
         {!isTouchDevice && (
@@ -343,6 +343,9 @@ const StyledTimelineWrap = styled.div<{
 
 // 휴무 표식. 예약 카드(z-index 30)·클러스터(12)보다 아래에 두고 클릭은 통과시킨다
 // (휴무일에도 예약 추가·이동은 그대로 되어야 한다).
+// 모바일 주별은 한 열이 ~49px 뿐이라 '정기휴무'가 한 줄로는 넘친다(실측 58px vs 49.4px).
+// 폰트 토큰(10px)이 하한이라 줄여서는 해결되지 않으므로, 좁은 화면에서는 라벨 조각을
+// 세로로 쌓아 두 줄로 만든다(CSS 줄바꿈에 맡기면 한 글자씩 쪼개진다).
 const StyledClosedMark = styled(LabelBadge)`
     position: absolute;
     top: 12px;
@@ -350,6 +353,14 @@ const StyledClosedMark = styled(LabelBadge)`
     transform: translateX(-50%);
     z-index: 1;
     pointer-events: none;
+    padding: 2px 4px;
+    max-width: 100%;
+    line-height: 1.15;
+    font-size: var(--tiny-font);
+
+    @media (max-width: 640px) {
+        flex-direction: column;
+    }
 `;
 
 const StyledTimelineBackground = styled.button`

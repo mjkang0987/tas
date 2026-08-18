@@ -12,7 +12,7 @@ import {
 
 import {toDateKey} from '../../../utils/reservations';
 
-import {getStoreClosedKind} from '../../../features/store-settings/model';
+import {getStoreClosedKind, STORE_CLOSED_LABEL_PARTS} from '../../../features/store-settings/model';
 import type {StoreClosedKind} from '../../../features/store-settings/model';
 
 import {Num} from './Num';
@@ -76,7 +76,7 @@ export const Month = ({
                 {/* 배지는 날짜 헤더 아래 한 줄로 — 헤더에 끼우면 모바일(셀 폭 ~56px)에서 셀 밖으로 나간다. */}
                 {closedKind && (
                     <StyledClosedBadge $tone={closedKind === 'date' ? 'danger' : 'neutral'}>
-                        {closedKind === 'date' ? '휴업일' : '정기휴무'}
+                        {STORE_CLOSED_LABEL_PARTS[closedKind].map((part) => <span key={part}>{part}</span>)}
                     </StyledClosedBadge>
                 )}
                 {hasReservations && (
@@ -99,10 +99,19 @@ export const Month = ({
     </>);
 };
 
+// 모바일 셀은 폭이 ~56px(390px 화면) 뿐이라 '정기휴무'가 한 줄로는 빠듯하다.
+// 좁은 화면에서는 라벨 조각을 세로로 쌓아 '정기 / 휴무' 두 줄로 만든다
+// (CSS 줄바꿈에 맡기면 한 글자씩 쪼개진다 — 라벨을 조각으로 나눠 둔 이유).
 const StyledClosedBadge = styled(LabelBadge)`
     margin: 4px auto 2px;
-    padding: 2px 5px;
+    padding: 2px 4px;
+    max-width: 100%;
+    line-height: 1.15;
     font-size: var(--tiny-font);
+
+    @media (max-width: 640px) {
+        flex-direction: column;
+    }
 `;
 
 const StyledDateHeader = styled.div`
