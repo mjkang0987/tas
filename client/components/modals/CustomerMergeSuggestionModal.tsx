@@ -199,7 +199,7 @@ export const CustomerMergeSuggestionModal = ({
                         {candidates.map((customer) => {
                             const isTarget = customer.id === selectedTargetId;
                             return (
-                                <StyledCustomerItem key={customer.id} $isTarget={hasChoice && isTarget}>
+                                <StyledCustomerItem key={customer.id} $isTarget={isTarget}>
                                     <StyledIdentityRow>
                                         <StyledChoiceLabel as={hasChoice ? 'label' : 'div'} $interactive={hasChoice}>
                                             {hasChoice && (
@@ -286,14 +286,18 @@ const StyledCustomerList = styled.div`
     gap: 8px;
 `;
 
+/* 기준 고객이 한눈에 보여야 한다. 전에는 강조가 `hasChoice && isTarget` 조건이라
+   후보가 1명일 때 아예 걸리지 않았고, 사라질 카드와 남을 카드가 똑같은 회색이었다.
+   빗금·좌측 바 같은 장식 대신 **배경색만으로** 가른다 — 카드 안에 예약 카드가 또 들어가
+   테두리가 겹치는 구조라, 장식을 더하면 그 경계들과 싸운다. */
 const StyledCustomerItem = styled.div<{$isTarget?: boolean}>`
     display: flex;
     flex-direction: column;
     gap: 0;
     padding: 10px 12px;
-    border: 1px solid ${(p) => p.$isTarget ? 'rgba(45, 127, 249, 0.35)' : 'var(--light-gray-color)'};
+    border: 1px solid ${(p) => p.$isTarget ? 'rgba(45, 127, 249, 0.45)' : 'var(--light-gray-color)'};
     border-radius: var(--radius-md);
-    background: ${(p) => p.$isTarget ? 'rgba(45, 127, 249, 0.04)' : 'var(--gray-color2)'};
+    background: ${(p) => p.$isTarget ? 'rgba(45, 127, 249, 0.10)' : 'var(--gray-color2)'};
     transition: border-color 0.14s, background 0.14s;
 `;
 
