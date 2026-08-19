@@ -145,7 +145,7 @@ hair_reservations/
 
 [^1]: 네이버 동기화 알림 벨 아이콘 + 알림 목록 패널. 미읽음 카운트는 `!read || (conflict && !confirmed)` 조건으로 계산. 알림에 박제된 고객명·담당자명은 `patchNotificationNames`(calendarStore)가 데이터 로드/변경 시 현재 이름과 다르면 자동 동기화(이름 변경 반영, 미배정은 '미지정')
 [^2]: 네이버 예약 시간 중복(conflict) 해결 모달. pending → deferred/confirmed 상태 전이
-[^3]: 동명이인·유사 고객 병합 제안 모달 (게스트 모드에서는 비활성)
+[^3]: 마스킹 이름 고객 병합 제안 모달 (게스트 모드에서는 비활성). 선택 컨트롤은 라디오 하나뿐이고 후보가 2명 이상일 때만 뜬다. 클릭 영역은 라디오와 그 이름까지 — 카드 전체를 누르면 기준이 바뀌던 동작이 오조작을 불렀다
 [^3a]: 고객 상세의 하위 UI 분리 — 적립금 이력 아이템(`PointHistoryItem` 공용), 메모 태그 섹션, 이력 더보기 모달, 병합 분리 확인 모달
 [^14]: Google/Kakao/Naver 계정 연결·해제. 타 계정 충돌 시 계정 병합(merge-preview→merge) 플로우 제공. 해제 확인 모달 포함
 [^15]: `/settings/naver` 탭. Gmail 연동 상태(연동/해제/다른 계정으로 연동)·오너 권한 체크, 동기화 상태 표시, 수동 동기화 버튼, 연동 실패 안내 레이어. **노출 대상 매장에만 열린다** — 메뉴에서 감춰지고 직접 진입은 `getServerSideProps`가 `/settings/revenue`로 돌려보낸다([노출 범위 제한](#네이버-예약-동기화))
@@ -169,6 +169,7 @@ hair_reservations/
 |------|------|----------|
 | `reservations/model.ts` | `Reservation` | id, date, startTime/endTime, customerId, assigneeId?, service, status[^4], price, naverBookingId?, channel[^5], publicToken?(온라인예약 고객 관리 링크) |
 | `customers/model.ts` | `Customer` | id, name, tel, points, memoTags, pointHistories. 헬퍼: `formatTel`(표시 000-0000-0000)·`normalizeTel`(저장용 숫자만, 단일 출처)·`compareCustomerName`/`sortCustomersByName`(이름 한글 오름차순, `Intl.Collator('ko',{numeric:true})` + 동명이인 id 안정 정렬) |
+| `customers/merge-suggestion.ts` | - | 마스킹 이름 병합 제안의 순수 함수 — 그룹 규칙(`detectMergeGroups`/`isMaskedName`/`isMaskedNameMatch`/`buildMergeGroupKey`) + 예약 집계·기준 선정(`summarizeCustomerReservations`/`selectMergeTarget`). 훅·모달이 재사용 ([고객 병합](#고객-병합)) |
 | `memberships/model.ts` | `MembershipProduct`/`CustomerMembership` | 회원권(횟수·기간권, 적립금과 별개). product: totalCount?/validDays?/price/status, 발급분: remainingCount/expiresAt?/status |
 | `assignees/model.ts` | `Assignee` | id, name, schedule(7일), status[^6], color, phone. 헬퍼: `summarizeSchedule`(7행을 연속 동일 근무시간끼리 묶어 `월~금 10:00~20:00 · 토~일 휴무` 형태로 — 담당자 카드 읽기 모드 한 줄 표시용. `enabled=false`면 남아 있는 start/end 를 무시하고 휴무로 묶는다) |
 | `services/model.ts` | `ServiceItem` | name, durationMinutes, category, price |
@@ -206,7 +207,7 @@ hair_reservations/
 | `useStoreLabels.ts` | 매장 업종(shopType)에 맞는 `{assignee, service}` 표시어 반환 (업종별 라벨) |
 | `useNaverBookingSync.ts` | 네이버 예약 동기화[^8]. 자동 폴링, 중복 감지, 알림 생성, conflict 큐 관리 |
 | `naverSyncConflictStorage.ts` | conflict 상태 localStorage 영속화 |
-| `useCustomerMergeSuggestion.ts` | 동명이인·유사 고객 병합 제안 감지 (게스트 모드 제외) |
+| `useCustomerMergeSuggestion.ts` | 마스킹 이름 병합 제안 감지·큐 (게스트 모드 제외). 그룹 규칙은 `features/customers/merge-suggestion.ts` |
 | `useRouteChangeSync.ts` | 라우트 변경 시 데이터 동기화 |
 | `useIsomorphicEffect.tsx` | SSR 안전한 useEffect |
 
@@ -429,12 +430,27 @@ Gmail (네이버 예약 메일)
 ### 고객 병합
 
 ```
-useCustomerMergeSuggestion.ts (동명이인 감지, 게스트 모드 제외)
+features/customers/merge-suggestion.ts (그룹 규칙 — 순수 모듈)
+  → useCustomerMergeSuggestion.ts (감지·큐, 게스트 모드 제외)
   → CustomerMergeSuggestionModal.tsx (제안 UI)
   → /api/customers/merge (병합 실행)
     └─ 트랜잭션: 예약·포인트·태그 이전 + 이력 기록 + 원본 삭제
   → /api/customers/unmerge (병합 해제 가능)
 ```
+
+**그룹 규칙** — 그룹 하나에 마스킹 고객은 **정확히 1명**, 나머지는 그와 이름 패턴이 맞는 실명 고객이다.[^31]
+
+| 고객 | 제안 | 이유 |
+|---|---|---|
+| `김민수` + `김*수` | 1건 | 후보 1명 — 기준 선택 없이 확인만 |
+| `김민수`(A) + `김민수`(B) + `김*수` | 1건 (후보 2명) | 실명 이름이 1종이라 모호하지 않다. 누구인지는 라디오로 고른다 |
+| `김민수` + `김민*` + `김*수` | **2건** | 마스킹이 2명 → 각각 별도 제안. 큐가 순차로 띄운다 |
+| `김민수` + `김진수` + `김*수` | 0건 | 실명 이름이 2종 — `김*수`가 누구인지 판정 불가 |
+| `김민*` + `김*수` | 0건 | 실명 후보 없음 — 기준이 될 이름이 없다 |
+
+병합 시 **source는 언제나 마스킹 고객 1명뿐**이다. 실명 고객끼리는 어떤 경우에도 병합하지 않는다.
+
+[^31]: 이전 구현은 마스킹 고객을 다리 삼아 실명 고객까지 한 덩어리로 합쳤다(`김민수(A) ↔ 김*수 ↔ 김민수(B)` → 3명 한 그룹). 전화번호가 다른 = 서로 다른 사람일 수 있는 실명 고객끼리 병합돼 예약·적립금이 섞였고, `김민수`/`김진수`가 한 카드에 같이 뜨기도 했다. 전이 병합을 없애고 마스킹 1명당 그룹 1개로 바꿨다. 부수 효과로 source가 고정되어 **체크박스가 사라지고** 선택 컨트롤이 라디오 하나만 남았다(후보 2명 이상일 때만 노출).
 
 ### 계정 병합 (SNS 연결 충돌)
 
