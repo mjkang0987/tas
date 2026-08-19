@@ -1,5 +1,6 @@
-import {useCallback, useEffect, useRef, useState} from 'react';
+import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 
+import {detectMergeGroups} from '../features/customers/merge-suggestion';
 import {useCalendarStore} from '../store/calendarStore';
 import {useToastStore} from '../store/toastStore';
 import {shouldUseLocalDb} from '../lib/local-db';
@@ -10,7 +11,11 @@ import {groupByDate} from '../utils/reservations';
 
 export interface MergeSuggestion {
     key: string;
-    customers: Customer[];
+    /** 합쳐져 사라질 마스킹 고객. 그룹당 정확히 1명이라 source 는 선택 대상이 아니다 */
+    masked: Customer;
+    /** 기준이 될 수 있는 실명 후보. 1명 이상이며 이름 값은 모두 같다 */
+    candidates: Customer[];
+    /** 기본 선택된 기준 고객 (후보가 1명이면 그 1명) */
     targetId: number;
 }
 
@@ -31,17 +36,6 @@ function saveReviewedKey(key: string): void {
     const keys = loadReviewedKeys();
     keys.add(key);
     localStorage.setItem(REVIEWED_KEY, JSON.stringify([...keys]));
-}
-
-/** 마스킹(`*`) 위치를 무시하고 이름 패턴이 동일한지 비교 */
-function isMaskedNameMatch(a: string, b: string): boolean {
-    if (a === b) return true;
-    if (a.length !== b.length) return false;
-    for (let i = 0; i < a.length; i++) {
-        if (a[i] === '*' || b[i] === '*') continue;
-        if (a[i] !== b[i]) return false;
-    }
-    return true;
 }
 
 /** 고객의 마지막 예약 날짜 조회 (없으면 '9999') */
@@ -70,24 +64,22 @@ function countReservations(customerId: number, reservationMap: Record<string, Re
 
 /**
  * 병합 기준 고객 자동 선정
- * 우선순위: 1) 마스킹 없는 고객  2) 전화번호 있는 고객  3) 마지막 예약이 더 과거인 고객
+ *
+ * 후보는 전부 마스킹 없는 실명이고 이름 값도 같으므로, 이름으로는 갈리지 않는다.
+ * 남는 차이는 어느 레코드가 살아남느냐다 — 병합 시 target 의 연락처만 유지되므로
+ * 연락처를 가진 쪽을, 그다음으로는 더 오래된 단골을 기본값으로 둔다.
  */
 function selectTarget(
-    customers: Customer[],
+    candidates: Customer[],
     reservationMap: Record<string, Reservation[]>,
 ): number {
-    // 1. 마스킹 없는 고객 필터
-    const unmasked = customers.filter((c) => !c.name.includes('*'));
-    if (unmasked.length === 1) return unmasked[0].id;
-
-    // 2. 전화번호 있는 고객 필터
-    const pool = unmasked.length > 0 ? unmasked : customers;
-    const withTel = pool.filter((c) => c.tel && c.tel.trim());
+    // 1. 전화번호 있는 고객 필터
+    const withTel = candidates.filter((c) => c.tel && c.tel.trim());
     if (withTel.length === 1) return withTel[0].id;
 
-    // 3. 마지막 예약이 더 과거인 고객 (= 기존 단골)
-    const candidates = withTel.length > 0 ? withTel : pool;
-    const target = candidates.reduce((best, c) => {
+    // 2. 마지막 예약이 더 과거인 고객 (= 기존 단골)
+    const pool = withTel.length > 0 ? withTel : candidates;
+    const target = pool.reduce((best, c) => {
         const lastDate = getLastReservationDate(c.id, reservationMap);
         const bestDate = getLastReservationDate(best.id, reservationMap);
         return lastDate < bestDate ? c : best;
@@ -95,63 +87,30 @@ function selectTarget(
     return target.id;
 }
 
-/** 마스킹 이름 패턴으로 중복 고객 그룹 감지 */
+/** 마스킹 이름 패턴으로 중복 고객 그룹 감지 (규칙은 features/customers/merge-suggestion) */
 function detectDuplicates(
     customerMap: Record<number, Customer>,
     reservationMap: Record<string, Reservation[]>,
 ): MergeSuggestion[] {
-    const customers = Object.values(customerMap);
-    const maskedCustomers = customers.filter((c) => c.name.includes('*'));
-    if (maskedCustomers.length === 0) return [];
+    const groups = detectMergeGroups(Object.values(customerMap));
+    if (groups.length === 0) return [];
 
     const reviewed = loadReviewedKeys();
-    const groupMap = new Map<string, Set<number>>();
-
-    for (const masked of maskedCustomers) {
-        for (const other of customers) {
-            if (other.id === masked.id) continue;
-            if (!isMaskedNameMatch(masked.name, other.name)) continue;
-
-            // 두 ID를 정렬해서 pair key 생성
-            const pairKey = [masked.id, other.id].sort((a, b) => a - b).join('-');
-            const existing = groupMap.get(pairKey);
-            if (existing) {
-                existing.add(masked.id);
-                existing.add(other.id);
-            } else {
-                groupMap.set(pairKey, new Set([masked.id, other.id]));
-            }
-        }
-    }
-
-    // pair들을 연결된 그룹으로 합침 (union-find 대신 간단 병합)
-    const mergedGroups: Set<number>[] = [];
-    for (const ids of groupMap.values()) {
-        let merged = false;
-        for (const group of mergedGroups) {
-            if ([...ids].some((id) => group.has(id))) {
-                for (const id of ids) group.add(id);
-                merged = true;
-                break;
-            }
-        }
-        if (!merged) {
-            mergedGroups.push(new Set(ids));
-        }
-    }
-
     const suggestions: MergeSuggestion[] = [];
-    for (const group of mergedGroups) {
-        const key = [...group].sort((a, b) => a - b).join('-');
-        if (reviewed.has(key)) continue;
 
-        const groupCustomers = [...group]
-            .map((id) => customerMap[id])
-            .filter(Boolean);
-        if (groupCustomers.length < 2) continue;
+    for (const group of groups) {
+        if (reviewed.has(group.key)) continue;
 
-        const targetId = selectTarget(groupCustomers, reservationMap);
-        suggestions.push({key, customers: groupCustomers, targetId});
+        const masked = customerMap[group.maskedId];
+        const candidates = group.candidateIds.map((id) => customerMap[id]).filter(Boolean);
+        if (!masked || candidates.length === 0) continue;
+
+        suggestions.push({
+            key: group.key,
+            masked,
+            candidates,
+            targetId: selectTarget(candidates, reservationMap),
+        });
     }
 
     return suggestions;
@@ -192,7 +151,24 @@ export function useCustomerMergeSuggestion() {
         }
     }, [customerMap, reservationMap]);
 
-    const currentSuggestion: MergeSuggestion | null = suggestions[currentIndex] ?? null;
+    // 큐에 담긴 제안은 감지 시점의 고객 스냅샷이다. 후보를 공유하는 제안이 연달아 뜨는 것이
+    // 새 규칙에서는 정상 흐름이라(`김민수 + 김민* + 김*수` → 2건), 앞 병합으로 바뀐 적립금·
+    // 첫방문이 다음 카드에 반영되지 않으면 오너가 낡은 값을 보고 기준을 고르게 된다.
+    // 예약 건수는 살아있는 reservationMap 으로 계산되므로 그대로 두면 한 카드 안에서 값이 엇갈린다.
+    const currentSuggestion: MergeSuggestion | null = useMemo(() => {
+        const snapshot = suggestions[currentIndex];
+        if (!snapshot) return null;
+
+        const masked = customerMap[snapshot.masked.id];
+        const candidates = snapshot.candidates.map((c) => customerMap[c.id]).filter(Boolean);
+        // 병합·삭제로 사라졌으면 제안 자체가 무효다.
+        if (!masked || candidates.length === 0) return null;
+
+        const targetId = candidates.some((c) => c.id === snapshot.targetId)
+            ? snapshot.targetId
+            : candidates[0].id;
+        return {...snapshot, masked, candidates, targetId};
+    }, [suggestions, currentIndex, customerMap]);
 
     const advance = useCallback(() => {
         setCurrentIndex((prev) => {
@@ -205,13 +181,13 @@ export function useCustomerMergeSuggestion() {
         });
     }, [suggestions.length]);
 
-    const merge = useCallback(async (targetId: number, explicitSourceIds?: number[]) => {
+    const merge = useCallback(async (targetId: number) => {
         if (!currentSuggestion || merging) return;
         setMerging(true);
 
-        const sourceIds = explicitSourceIds ?? currentSuggestion.customers
-            .filter((c) => c.id !== targetId)
-            .map((c) => c.id);
+        // 합쳐져 사라지는 쪽은 언제나 마스킹 고객 1명뿐이다. 실명 후보끼리는
+        // 서로 다른 사람일 수 있으므로 어떤 경우에도 병합하지 않는다.
+        const sourceIds = [currentSuggestion.masked.id];
 
         try {
             const res = await fetch('/api/customers/merge', {
