@@ -190,7 +190,15 @@ export const CustomerMergeSuggestionModal = ({
                         {renderCustomerDetail(masked)}
                     </StyledCustomerItem>
 
-                    <StyledMergeArrow aria-hidden="true">↓</StyledMergeArrow>
+                    <StyledMergeArrow aria-hidden="true">
+                        <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+                            <path d="M10 3.5v13M4.5 11l5.5 5.5L15.5 11"
+                                  stroke="currentColor"
+                                  strokeWidth="2"
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round" />
+                        </svg>
+                    </StyledMergeArrow>
 
                     <StyledSectionTitle id="merge-target-label">
                         {hasChoice ? '병합 기준 고객 선택' : '병합 기준 고객'}
@@ -270,10 +278,16 @@ const StyledSectionTitle = styled.p`
     color: var(--dark-gray-color2);
 `;
 
+/* 두 카드를 잇는 연결 표시. 글자 ↓ 는 본문 크기에 묶여 너무 작게 읽혔다. */
 const StyledMergeArrow = styled.div`
-    margin: 8px 0;
-    text-align: center;
-    font-size: var(--font);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 34px;
+    height: 34px;
+    margin: 10px auto;
+    border-radius: 50%;
+    background: var(--gray-color2);
     color: var(--dark-gray-color2);
 `;
 
