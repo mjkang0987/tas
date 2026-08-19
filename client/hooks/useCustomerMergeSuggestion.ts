@@ -1,4 +1,4 @@
-import {useCallback, useEffect, useRef, useState} from 'react';
+import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 
 import {detectMergeGroups} from '../features/customers/merge-suggestion';
 import {useCalendarStore} from '../store/calendarStore';
@@ -151,7 +151,24 @@ export function useCustomerMergeSuggestion() {
         }
     }, [customerMap, reservationMap]);
 
-    const currentSuggestion: MergeSuggestion | null = suggestions[currentIndex] ?? null;
+    // 큐에 담긴 제안은 감지 시점의 고객 스냅샷이다. 후보를 공유하는 제안이 연달아 뜨는 것이
+    // 새 규칙에서는 정상 흐름이라(`김민수 + 김민* + 김*수` → 2건), 앞 병합으로 바뀐 적립금·
+    // 첫방문이 다음 카드에 반영되지 않으면 오너가 낡은 값을 보고 기준을 고르게 된다.
+    // 예약 건수는 살아있는 reservationMap 으로 계산되므로 그대로 두면 한 카드 안에서 값이 엇갈린다.
+    const currentSuggestion: MergeSuggestion | null = useMemo(() => {
+        const snapshot = suggestions[currentIndex];
+        if (!snapshot) return null;
+
+        const masked = customerMap[snapshot.masked.id];
+        const candidates = snapshot.candidates.map((c) => customerMap[c.id]).filter(Boolean);
+        // 병합·삭제로 사라졌으면 제안 자체가 무효다.
+        if (!masked || candidates.length === 0) return null;
+
+        const targetId = candidates.some((c) => c.id === snapshot.targetId)
+            ? snapshot.targetId
+            : candidates[0].id;
+        return {...snapshot, masked, candidates, targetId};
+    }, [suggestions, currentIndex, customerMap]);
 
     const advance = useCallback(() => {
         setCurrentIndex((prev) => {

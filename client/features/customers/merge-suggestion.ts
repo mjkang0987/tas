@@ -25,8 +25,12 @@ export interface MergeCandidateGroup {
 }
 
 /**
- * 그룹 식별자. 이전 구현(그룹 전체 ID를 정렬해 이어붙임)과 형식을 맞춰
- * 이미 "검토함"으로 기록된 그룹이 되살아나지 않게 한다.
+ * 그룹 식별자. 이전 구현과 같은 형식(그룹 전체 ID를 오름차순으로 이어붙임)이라
+ * 구성원이 그대로인 그룹은 `customer-merge-reviewed` 기록이 계속 통한다.
+ *
+ * 다만 **한 그룹이 둘로 갈리는 경우는 기록이 승계되지 않는다** —
+ * `김민수 + 김민* + 김*수` 는 옛 키 `1-2-3` 하나가 새 키 `1-2`/`1-3` 둘이 되므로,
+ * 이미 건너뛴 제안이라도 한 번은 다시 뜬다. 규칙이 바뀌었으니 다시 판단받는 편이 맞다.
  */
 export function buildMergeGroupKey(maskedId: number, candidateIds: number[]): string {
     return [maskedId, ...candidateIds].sort((a, b) => a - b).join('-');

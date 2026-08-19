@@ -128,7 +128,7 @@ describe('detectMergeGroups', () => {
 });
 
 describe('buildMergeGroupKey', () => {
-    it('그룹 전체 ID를 오름차순으로 이어붙인다 (기존 검토 기록과 형식 호환)', () => {
+    it('그룹 전체 ID를 오름차순으로 이어붙인다 (이전 구현과 같은 형식)', () => {
         expect(buildMergeGroupKey(3, [1, 2])).toBe('1-2-3');
         expect(buildMergeGroupKey(1, [3])).toBe('1-3');
     });

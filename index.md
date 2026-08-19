@@ -169,6 +169,7 @@ hair_reservations/
 |------|------|----------|
 | `reservations/model.ts` | `Reservation` | id, date, startTime/endTime, customerId, assigneeId?, service, status[^4], price, naverBookingId?, channel[^5], publicToken?(온라인예약 고객 관리 링크) |
 | `customers/model.ts` | `Customer` | id, name, tel, points, memoTags, pointHistories. 헬퍼: `formatTel`(표시 000-0000-0000)·`normalizeTel`(저장용 숫자만, 단일 출처)·`compareCustomerName`/`sortCustomersByName`(이름 한글 오름차순, `Intl.Collator('ko',{numeric:true})` + 동명이인 id 안정 정렬) |
+| `customers/merge-suggestion.ts` | - | 마스킹 이름 병합 제안 그룹 규칙 순수 함수(`detectMergeGroups`/`isMaskedName`/`isMaskedNameMatch`/`buildMergeGroupKey`). 훅·모달이 재사용 ([고객 병합](#고객-병합)) |
 | `memberships/model.ts` | `MembershipProduct`/`CustomerMembership` | 회원권(횟수·기간권, 적립금과 별개). product: totalCount?/validDays?/price/status, 발급분: remainingCount/expiresAt?/status |
 | `assignees/model.ts` | `Assignee` | id, name, schedule(7일), status[^6], color, phone. 헬퍼: `summarizeSchedule`(7행을 연속 동일 근무시간끼리 묶어 `월~금 10:00~20:00 · 토~일 휴무` 형태로 — 담당자 카드 읽기 모드 한 줄 표시용. `enabled=false`면 남아 있는 start/end 를 무시하고 휴무로 묶는다) |
 | `services/model.ts` | `ServiceItem` | name, durationMinutes, category, price |
