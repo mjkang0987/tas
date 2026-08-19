@@ -13,8 +13,11 @@ import {
     detectMergeGroups,
     isMaskedName,
     isMaskedNameMatch,
+    selectMergeTarget,
+    summarizeCustomerReservations,
 } from './merge-suggestion';
 import type {Customer} from './model';
+import type {Reservation, ReservationMap} from '../reservations/model';
 
 function customer(id: number, name: string, tel = ''): Customer {
     return {id, name, tel};
@@ -135,5 +138,101 @@ describe('buildMergeGroupKey', () => {
 
     it('같은 그룹이면 마스킹 ID 위치와 무관하게 같은 키', () => {
         expect(buildMergeGroupKey(2, [1])).toBe(buildMergeGroupKey(1, [2]));
+    });
+});
+
+function reservation(id: number, customerId: number, date: string, startTime = '10:00'): Reservation {
+    return {
+        id, customerId, date, startTime,
+        endTime: '11:00', service: '펌', price: 0, status: 'active',
+    };
+}
+
+function map(...list: Reservation[]): ReservationMap {
+    const out: ReservationMap = {};
+    for (const r of list) (out[r.date] ??= []).push(r);
+    return out;
+}
+
+describe('summarizeCustomerReservations', () => {
+    it('요청한 고객만 집계한다', () => {
+        const summary = summarizeCustomerReservations([1], map(
+            reservation(1, 1, '2026-01-10'),
+            reservation(2, 2, '2026-01-11'),
+        ));
+
+        expect(Object.keys(summary)).toEqual(['1']);
+        expect(summary[1].count).toBe(1);
+    });
+
+    it('예약이 없는 고객도 0건으로 자리를 만든다 — 카드가 빈 값을 읽지 않도록', () => {
+        const summary = summarizeCustomerReservations([1, 2], map(reservation(1, 1, '2026-01-10')));
+
+        expect(summary[2]).toEqual({count: 0, last: null});
+    });
+
+    it('최근 예약은 날짜, 같은 날이면 시작시각으로 고른다', () => {
+        const summary = summarizeCustomerReservations([1], map(
+            reservation(1, 1, '2026-01-10', '09:00'),
+            reservation(2, 1, '2026-01-10', '15:00'),
+            reservation(3, 1, '2026-01-09', '20:00'),
+        ));
+
+        expect(summary[1].count).toBe(3);
+        expect(summary[1].last?.id).toBe(2);
+    });
+});
+
+describe('selectMergeTarget', () => {
+    const summary = (entries: Record<number, string | null>) => Object.fromEntries(
+        Object.entries(entries).map(([id, date]) => [
+            id,
+            {count: date ? 1 : 0, last: date ? reservation(1, Number(id), date) : null},
+        ]),
+    );
+
+    it('연락처를 가진 후보가 하나뿐이면 그 고객 — 병합 시 target 의 연락처만 살아남는다', () => {
+        const target = selectMergeTarget(
+            [customer(1, '김민수'), customer(2, '김민수', '01011112222')],
+            summary({1: '2026-01-01', 2: '2026-05-01'}),
+        );
+
+        expect(target).toBe(2);
+    });
+
+    it('연락처가 여럿이면 마지막 예약이 더 과거인 고객 (= 기존 단골)', () => {
+        const target = selectMergeTarget(
+            [customer(1, '김민수', '01011112222'), customer(2, '김민수', '01033334444')],
+            summary({1: '2026-05-01', 2: '2026-01-01'}),
+        );
+
+        expect(target).toBe(2);
+    });
+
+    it('연락처가 아무에게도 없으면 후보 전체에서 오래된 순으로 고른다', () => {
+        const target = selectMergeTarget(
+            [customer(1, '김민수'), customer(2, '김민수')],
+            summary({1: '2026-05-01', 2: '2026-01-01'}),
+        );
+
+        expect(target).toBe(2);
+    });
+
+    it('예약이 없는 고객은 뒤로 밀린다 — 오래된 단골로 오해하지 않는다', () => {
+        const target = selectMergeTarget(
+            [customer(1, '김민수'), customer(2, '김민수')],
+            summary({1: null, 2: '2026-05-01'}),
+        );
+
+        expect(target).toBe(2);
+    });
+
+    it('공백뿐인 연락처는 없는 것으로 본다', () => {
+        const target = selectMergeTarget(
+            [customer(1, '김민수', '   '), customer(2, '김민수', '01033334444')],
+            summary({1: '2026-01-01', 2: '2026-05-01'}),
+        );
+
+        expect(target).toBe(2);
     });
 });

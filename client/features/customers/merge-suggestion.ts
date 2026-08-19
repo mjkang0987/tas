@@ -1,3 +1,4 @@
+import type {Reservation, ReservationMap} from '../reservations/model';
 import type {Customer} from './model';
 
 /** 이름에 마스킹(`*`)이 포함됐는지 */
@@ -76,4 +77,62 @@ export function detectMergeGroups(customers: Customer[]): MergeCandidateGroup[] 
     }
 
     return groups;
+}
+
+export interface CustomerReservationSummary {
+    count: number;
+    /** 가장 최근 예약(날짜·시작시각 기준). 예약이 없으면 null */
+    last: Reservation | null;
+}
+
+/** 예약이 없는 고객이 "가장 오래된 단골" 비교에서 뒤로 밀리도록 쓰는 감시값 */
+const NO_RESERVATION_DATE = '9999';
+
+/**
+ * 예약 맵을 **한 번만** 훑어 고객별 예약 건수·최근 예약을 낸다.
+ *
+ * 고객마다 따로 훑으면 카드 하나당 전체 예약을 두 번(건수·최근 예약) 재순회하게 되고,
+ * 라디오를 누를 때마다 그 비용을 다시 치른다.
+ */
+export function summarizeCustomerReservations(
+    customerIds: number[],
+    reservationMap: ReservationMap,
+): Record<number, CustomerReservationSummary> {
+    const summary: Record<number, CustomerReservationSummary> = {};
+    for (const id of customerIds) summary[id] = {count: 0, last: null};
+
+    for (const reservations of Object.values(reservationMap)) {
+        for (const r of reservations) {
+            const entry = summary[r.customerId];
+            if (!entry) continue;
+            entry.count++;
+            const last = entry.last;
+            if (!last || r.date > last.date || (r.date === last.date && r.startTime > last.startTime)) {
+                entry.last = r;
+            }
+        }
+    }
+
+    return summary;
+}
+
+/**
+ * 병합 기준 고객 자동 선정
+ *
+ * 후보는 전부 마스킹 없는 실명이고 이름 값도 같으므로 이름으로는 갈리지 않는다.
+ * 남는 차이는 어느 레코드가 살아남느냐다 — 병합 시 target 의 연락처만 유지되므로
+ * 연락처를 가진 쪽을, 그다음으로는 더 오래된 단골을 기본값으로 둔다.
+ *
+ * 후보가 비어 있으면 호출하지 않는다(그룹 규칙상 최소 1명).
+ */
+export function selectMergeTarget(
+    candidates: Customer[],
+    summary: Record<number, CustomerReservationSummary>,
+): number {
+    const withTel = candidates.filter((c) => c.tel && c.tel.trim());
+    if (withTel.length === 1) return withTel[0].id;
+
+    const pool = withTel.length > 0 ? withTel : candidates;
+    const lastDateOf = (id: number) => summary[id]?.last?.date ?? NO_RESERVATION_DATE;
+    return pool.reduce((best, c) => lastDateOf(c.id) < lastDateOf(best.id) ? c : best).id;
 }

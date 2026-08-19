@@ -60,6 +60,22 @@
 - **키 호환성 서술 과장.** 2인 그룹은 기록이 승계되지만 한 그룹이 둘로 갈리는 경우
   (`1-2-3` → `1-2`/`1-3`)는 승계되지 않아 이미 건너뛴 제안이 한 번 다시 뜬다. 주석·테스트명을 실제에 맞췄다.
 
+### /simplify 에서 고친 것
+- **카드마다 전체 예약을 두 번씩 훑었다.** `countReservations` + `getLastReservation` 이 각각
+  `reservationMap` 전체를 순회해, 카드 3장이면 렌더 한 번에 6회 전수 순회였고 라디오를 누를 때마다
+  다시 치렀다. `summarizeCustomerReservations`(한 번 훑어 고객별 건수·최근 예약)로 합치고
+  모달은 `useMemo` 로 한 번만 계산한다. 감지 단계도 그룹마다 훑던 것을 한 번으로 줄였다.
+- **순수 함수가 훅 안에 묶여 테스트를 못 받고 있었다.** 기준 선정(`selectMergeTarget`)과 예약 집계를
+  `features/customers/merge-suggestion.ts` 로 옮겼다. 모달이 훅에서 유틸(`countReservations`)을
+  import 하던 이상한 의존도 사라졌다. 테스트 8건 추가(총 22건) — 연락처 우선·오래된 단골·
+  예약 없는 고객·공백 연락처 등 갈림길을 전부 고정.
+- **의미 없는 래퍼 정리.** 예약 카드를 감싸던 빈 `<div>` 를 프래그먼트로, 라디오 유무로 갈리던
+  이름 마크업 중복을 `StyledChoiceLabel` 한 곳으로 합쳤다(`as` + `$interactive`).
+
+**넘긴 것** — `components/address/AddressContent.tsx:97` 에 기준 고객 선정 로직이 한 벌 더 있다
+(고객 목록에서 수동 병합할 때). 규칙이 달라(연락처 우선 단계 없음) 합치면 동작이 바뀌고,
+이 PR 범위 밖 화면을 건드리게 된다. 별건으로 둔다.
+
 ### 같은 클래스 (이번 범위 밖)
 - `client/hooks/naverSyncConflictStorage.ts` `restoreConflictsFromPairs` 도 localStorage 에 박제된
   `Reservation` 을 그대로 되돌려준다. id 존재만 확인하고 최신 값을 다시 읽지 않는다.

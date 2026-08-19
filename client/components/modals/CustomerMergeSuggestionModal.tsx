@@ -5,8 +5,8 @@ import styled from 'styled-components';
 
 import {buildAssigneeColorMap, buildAssigneeNameMap} from '../../features/assignees/model';
 import {buildServiceColorMap} from '../../features/services/model';
+import {summarizeCustomerReservations} from '../../features/customers/merge-suggestion';
 import type {MergeSuggestion} from '../../hooks/useCustomerMergeSuggestion';
-import {countReservations} from '../../hooks/useCustomerMergeSuggestion';
 import {useCalendarStore} from '../../store/calendarStore';
 import type {Customer} from '../../utils/customers';
 import {formatTel} from '../../utils/customers';
@@ -35,19 +35,6 @@ interface Props {
     onSkip: () => void;
     onDismiss: () => void;
     onReservationClick?: (reservation: Reservation) => void;
-}
-
-function getLastReservation(customerId: number, reservationMap: Record<string, Reservation[]>): Reservation | null {
-    let last: Reservation | null = null;
-    for (const reservations of Object.values(reservationMap)) {
-        for (const r of reservations) {
-            if (r.customerId !== customerId) continue;
-            if (!last || r.date > last.date || (r.date === last.date && r.startTime > last.startTime)) {
-                last = r;
-            }
-        }
-    }
-    return last;
 }
 
 function formatDate(dateStr: string | null | undefined): string {
@@ -84,6 +71,11 @@ export const CustomerMergeSuggestionModal = ({
     );
 
     const assigneeColorMap = useMemo(() => buildAssigneeColorMap(assignees), [assignees]);
+    // 카드마다 전체 예약을 두 번(건수·최근 예약) 훑던 것을 한 번으로 줄인다.
+    const reservationSummary = useMemo(
+        () => summarizeCustomerReservations([masked.id, ...candidates.map((c) => c.id)], reservationMap),
+        [masked.id, candidates, reservationMap],
+    );
     const assigneeNameMap = useMemo(() => buildAssigneeNameMap(assignees, true), [assignees]);
 
     const modalRoot = typeof document !== 'undefined' ? document.getElementById('modal-root') : null;
@@ -105,8 +97,7 @@ export const CustomerMergeSuggestionModal = ({
     };
 
     const renderCustomerDetail = (customer: Customer) => {
-        const resCount = countReservations(customer.id, reservationMap);
-        const lastRes = getLastReservation(customer.id, reservationMap);
+        const {count: resCount, last: lastRes} = reservationSummary[customer.id] ?? {count: 0, last: null};
         const hasTags = customer.memoTags && customer.memoTags.length > 0;
         const assigneeName = lastRes?.assigneeId
             ? (assigneeNameMap[lastRes.assigneeId] ?? '미지정')
@@ -143,7 +134,7 @@ export const CustomerMergeSuggestionModal = ({
                     )}
                 </StyledMetaLine>
                 {lastRes && (
-                    <div>
+                    <>
                         <ReservationInfoCard
                             reservation={lastRes}
                             serviceColorMap={serviceColorMap}
@@ -159,7 +150,7 @@ export const CustomerMergeSuggestionModal = ({
                         {lastRes.naverBookingId && (
                             <StyledNaverInfo reservation={lastRes} />
                         )}
-                    </div>
+                    </>
                 )}
             </StyledExtraInfo>
         );
@@ -210,19 +201,17 @@ export const CustomerMergeSuggestionModal = ({
                             return (
                                 <StyledCustomerItem key={customer.id} $isTarget={hasChoice && isTarget}>
                                     <StyledIdentityRow>
-                                        {hasChoice ? (
-                                            <StyledChoiceLabel>
+                                        <StyledChoiceLabel as={hasChoice ? 'label' : 'div'} $interactive={hasChoice}>
+                                            {hasChoice && (
                                                 <StyledRadio
                                                     type="radio"
                                                     name="mergeTarget"
                                                     checked={isTarget}
                                                     onChange={() => setSelectedTargetId(customer.id)}
                                                 />
-                                                <StyledCustomerName>{customer.name}</StyledCustomerName>
-                                            </StyledChoiceLabel>
-                                        ) : (
+                                            )}
                                             <StyledCustomerName>{customer.name}</StyledCustomerName>
-                                        )}
+                                        </StyledChoiceLabel>
                                         <StyledTel>{customer.tel ? formatTel(customer.tel) : '연락처 없음'}</StyledTel>
                                     </StyledIdentityRow>
                                     {renderCustomerDetail(customer)}
@@ -316,20 +305,23 @@ const StyledIdentityRow = styled.div`
 
 /* 선택 영역은 라디오와 그 이름까지로 한정한다. 카드 전체를 누르면 기준이
    바뀌던 동작이 오조작을 불렀다. */
-const StyledChoiceLabel = styled.label`
+const StyledChoiceLabel = styled.label<{$interactive: boolean}>`
     display: inline-flex;
     align-items: center;
     gap: 8px;
-    padding: 8px 8px 8px 6px;
-    margin: -8px 0 -8px -6px;
-    border-radius: var(--radius-md);
-    cursor: pointer;
 
-    @media (hover: hover) and (pointer: fine) {
-        &:hover {
-            background: rgba(45, 127, 249, 0.08);
+    ${(p) => p.$interactive && `
+        padding: 8px 8px 8px 6px;
+        margin: -8px 0 -8px -6px;
+        border-radius: var(--radius-md);
+        cursor: pointer;
+
+        @media (hover: hover) and (pointer: fine) {
+            &:hover {
+                background: rgba(45, 127, 249, 0.08);
+            }
         }
-    }
+    `}
 `;
 
 const StyledRadio = styled.input`
