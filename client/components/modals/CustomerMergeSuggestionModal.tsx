@@ -180,7 +180,8 @@ export const CustomerMergeSuggestionModal = ({
                     <CloseIconButton onClick={onDismiss} />
                 </StyledHeader>
                 <StyledScrollArea>
-                    <StyledSectionTitle>삭제</StyledSectionTitle>
+                    {/* 위 카드에는 구획 제목을 두지 않는다. 헤더가 이미 이 고객을 지목하고 있고,
+                        아래 화살표가 방향을 말한다. */}
                     <StyledCustomerItem>
                         <StyledIdentityRow>
                             <StyledCustomerName>{masked.name}</StyledCustomerName>
@@ -224,7 +225,7 @@ export const CustomerMergeSuggestionModal = ({
                     <StyledGuide>
                         {hasChoice
                             ? '이름이 같은 고객이 여러 명입니다. 연락처·예약 내역을 보고 고르세요. 고르지 않은 고객은 그대로 남습니다.'
-                            : '병합 기준 고객의 이름·연락처가 유지되고, 삭제되는 고객의 예약·적립금이 옮겨집니다.'}
+                            : '병합 기준 고객의 이름·연락처가 유지되고, 위 고객의 예약·적립금이 옮겨집니다.'}
                     </StyledGuide>
                 </StyledScrollArea>
                 <StyledFooter>
