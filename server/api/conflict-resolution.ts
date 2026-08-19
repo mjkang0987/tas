@@ -29,10 +29,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             return res.status(400).json({error: 'Invalid conflictKey'});
         }
 
+        // 사유는 선택 입력이다(모달이 "처리 사유 (선택)"으로 띄운다). 사유 없이 확인만 눌러도
+        // "이 매장에서 이미 처리된 충돌"이라는 사실은 남아야 한다 — 안 남기면 다른 관리자
+        // 브라우저에서 같은 충돌이 계속 뜬다. 빈 문자열로 저장한다(컬럼 non-null, 마이그레이션 불필요).
         const trimmedReason = typeof reason === 'string' ? reason.trim() : '';
-        if (!trimmedReason) {
-            return res.status(400).json({error: 'Invalid reason'});
-        }
 
         const trimmedMemo = typeof memo === 'string' && memo.trim() ? memo.trim() : null;
 

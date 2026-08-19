@@ -144,7 +144,8 @@ hair_reservations/
 | `account/` | 계정 관련 모달 | `AccountDeleteModal.tsx` |
 
 [^1]: 네이버 동기화 알림 벨 아이콘 + 알림 목록 패널. 미읽음 카운트는 `!read || (conflict && !confirmed)` 조건으로 계산. 알림에 박제된 고객명·담당자명은 `patchNotificationNames`(calendarStore)가 데이터 로드/변경 시 현재 이름과 다르면 자동 동기화(이름 변경 반영, 미배정은 '미지정')
-[^2]: 네이버 예약 시간 중복(conflict) 해결 모달. pending → deferred/confirmed 상태 전이
+[^2]: 네이버 예약 시간 중복(conflict) 해결 모달. pending → deferred/confirmed 상태 전이. **처리 여부의 단일 출처는 서버 `ConflictResolution`**(매장 단위) — 로컬만 보면 관리자마다 따로 논다[^32]
+[^32]: **충돌 처리 여부는 매장 단위 사실이라 서버에 있어야 한다.** 예전엔 처리 완료가 로컬 `sync-notifications`(`conflictStatus`)에만 남아, 한 관리자가 메모를 남기고 처리해도 **초대코드로 합류한 다른 관리자에게는 같은 중복예약이 계속 떴다**. 서버 `ConflictResolution` 테이블·`/api/conflict-resolution` 은 있었지만 (1) GET 이 `canUseSync && gmailConnected` 에 묶여 **Gmail 연동을 꺼 두면 호출조차 안 됐고**(감지는 `role==='owner'` 만 보고 계속 돌았다 — 감지는 하는데 해소 정보는 못 받는 비대칭), (2) 받아온 값을 사유·메모 표시에만 쓰고 충돌 억제에는 안 썼으며, (3) POST 를 `if (reason)` 로 감싸 **사유 없이 확인하면 아무것도 안 남았다**(사유는 모달에서 "선택" 항목이다). 지금은 GET 조건을 감지와 같은 `role==='owner'` 로 맞추고, 그 응답을 받은 뒤 감지가 돌며, 억제 키를 `로컬 confirmed ∪ 서버 기록` 으로 만들고, 사유가 비어도 처리 사실을 남긴다(`reason` 은 non-null 컬럼이라 빈 문자열 저장 — 마이그레이션 불필요). GET 이 실패하면 감지를 **열어 준다** — 막으면 충돌을 아예 못 보게 되는데 그건 이미 처리된 걸 또 보는 것보다 나쁘다.
 [^3]: 마스킹 이름 고객 병합 제안 모달 (게스트 모드에서는 비활성). 선택 컨트롤은 라디오 하나뿐이고 후보가 2명 이상일 때만 뜬다. 클릭 영역은 라디오와 그 이름까지 — 카드 전체를 누르면 기준이 바뀌던 동작이 오조작을 불렀다
 [^3a]: 고객 상세의 하위 UI 분리 — 적립금 이력 아이템(`PointHistoryItem` 공용), 메모 태그 섹션, 이력 더보기 모달, 병합 분리 확인 모달
 [^14]: Google/Kakao/Naver 계정 연결·해제. 타 계정 충돌 시 계정 병합(merge-preview→merge) 플로우 제공. 해제 확인 모달 포함
@@ -206,7 +207,7 @@ hair_reservations/
 |------|------|
 | `useStoreLabels.ts` | 매장 업종(shopType)에 맞는 `{assignee, service}` 표시어 반환 (업종별 라벨) |
 | `useNaverBookingSync.ts` | 네이버 예약 동기화[^8]. 자동 폴링, 중복 감지, 알림 생성, conflict 큐 관리 |
-| `naverSyncConflictStorage.ts` | conflict 상태 localStorage 영속화 |
+| `naverSyncConflictStorage.ts` | conflict **표시 상태**(미해결 충돌쌍) localStorage 영속화. 처리 여부는 여기가 아니라 서버가 갖는다[^32] |
 | `useCustomerMergeSuggestion.ts` | 마스킹 이름 병합 제안 감지·큐 (게스트 모드 제외). 그룹 규칙은 `features/customers/merge-suggestion.ts` |
 | `useRouteChangeSync.ts` | 라우트 변경 시 데이터 동기화 |
 | `useIsomorphicEffect.tsx` | SSR 안전한 useEffect |
@@ -267,6 +268,7 @@ NextAuth 5.0 설정. Google·Kakao·Naver OAuth 지원.
 | `customers-merge.ts` | `/api/customers/merge` | POST | staff | 고객 병합 (예약·포인트·태그 이전) |
 | `customers-unmerge.ts` | `/api/customers/unmerge` | POST | staff | 병합 해제 (이력 기반 복원) |
 | `customers-merge-history.ts` | `/api/customers/merge-history` | GET | staff | 병합 이력 조회 |
+| `conflict-resolution.ts` | `/api/conflict-resolution` | GET/POST | staff | 예약 시간 중복 처리 기록(매장 단위). **처리 여부의 단일 출처** — 사유·메모는 선택이라 POST 는 빈 사유도 받는다[^32] |
 | `assignees.ts` | `/api/assignees` | GET(staff) / PUT(owner) / DELETE(owner) | - | 담당자 CRUD + 일정(AssigneeSchedule) upsert. DELETE는 영구 삭제(분리): 예약은 assigneeId=null로 보존, 스케줄은 cascade 삭제 |
 | `assignees-merge.ts` | `/api/assignees/merge` | POST | owner | 담당자 병합 (source→target 예약 재배정 후 source 삭제) |
 | `services.ts` | `/api/services` | GET(staff) / PUT(owner) | - | 서비스 카탈로그 관리 |
