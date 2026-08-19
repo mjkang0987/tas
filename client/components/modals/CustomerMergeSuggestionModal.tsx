@@ -117,29 +117,31 @@ export const CustomerMergeSuggestionModal = ({
 
         return (
             <StyledExtraInfo>
-                <StyledDetailRow>
-                    <StyledDetailItem>
-                        <StyledDetailLabel>예약</StyledDetailLabel>
-                        <StyledDetailValue>{resCount}건</StyledDetailValue>
-                    </StyledDetailItem>
-                    <StyledDetailItem>
-                        <StyledDetailLabel>적립금</StyledDetailLabel>
-                        <StyledDetailValue>{(customer.points ?? 0).toLocaleString()}원</StyledDetailValue>
-                    </StyledDetailItem>
-                    {customer.firstVisitDate && (
+                <StyledMetaLine>
+                    <StyledDetailRow>
                         <StyledDetailItem>
-                            <StyledDetailLabel>첫방문</StyledDetailLabel>
-                            <StyledDetailValue>{formatDate(customer.firstVisitDate)}</StyledDetailValue>
+                            <StyledDetailLabel>예약</StyledDetailLabel>
+                            <StyledDetailValue>{resCount}건</StyledDetailValue>
                         </StyledDetailItem>
+                        <StyledDetailItem>
+                            <StyledDetailLabel>적립금</StyledDetailLabel>
+                            <StyledDetailValue>{(customer.points ?? 0).toLocaleString()}원</StyledDetailValue>
+                        </StyledDetailItem>
+                        {customer.firstVisitDate && (
+                            <StyledDetailItem>
+                                <StyledDetailLabel>첫방문</StyledDetailLabel>
+                                <StyledDetailValue>{formatDate(customer.firstVisitDate)}</StyledDetailValue>
+                            </StyledDetailItem>
+                        )}
+                    </StyledDetailRow>
+                    {hasTags && (
+                        <StyledTagList>
+                            {customer.memoTags!.map((tag, i) => (
+                                <StyledTag key={i} $color={tag.color}>{tag.text}</StyledTag>
+                            ))}
+                        </StyledTagList>
                     )}
-                </StyledDetailRow>
-                {hasTags && (
-                    <StyledTagList>
-                        {customer.memoTags!.map((tag, i) => (
-                            <StyledTag key={i} $color={tag.color}>{tag.text}</StyledTag>
-                        ))}
-                    </StyledTagList>
-                )}
+                </StyledMetaLine>
                 {lastRes && (
                     <div>
                         <ReservationInfoCard
@@ -178,7 +180,7 @@ export const CustomerMergeSuggestionModal = ({
                     <CloseIconButton onClick={onDismiss} />
                 </StyledHeader>
                 <StyledScrollArea>
-                    <StyledSectionTitle>사라질 고객</StyledSectionTitle>
+                    <StyledSectionTitle>삭제</StyledSectionTitle>
                     <StyledCustomerItem>
                         <StyledIdentityRow>
                             <StyledCustomerName>{masked.name}</StyledCustomerName>
@@ -190,7 +192,7 @@ export const CustomerMergeSuggestionModal = ({
                     <StyledMergeArrow aria-hidden="true">↓</StyledMergeArrow>
 
                     <StyledSectionTitle id="merge-target-label">
-                        {hasChoice ? '남을 고객 선택' : '남을 고객'}
+                        {hasChoice ? '병합 기준 고객 선택' : '병합 기준 고객'}
                     </StyledSectionTitle>
                     <StyledCustomerList role={hasChoice ? 'radiogroup' : undefined}
                                         aria-labelledby={hasChoice ? 'merge-target-label' : undefined}>
@@ -222,7 +224,7 @@ export const CustomerMergeSuggestionModal = ({
                     <StyledGuide>
                         {hasChoice
                             ? '이름이 같은 고객이 여러 명입니다. 연락처·예약 내역을 보고 고르세요. 고르지 않은 고객은 그대로 남습니다.'
-                            : '남을 고객의 이름·연락처가 유지되고, 사라질 고객의 예약·적립금이 옮겨집니다.'}
+                            : '병합 기준 고객의 이름·연락처가 유지되고, 삭제되는 고객의 예약·적립금이 옮겨집니다.'}
                     </StyledGuide>
                 </StyledScrollArea>
                 <StyledFooter>
@@ -344,16 +346,33 @@ const StyledExtraInfo = styled.div`
     border-top: 1px solid rgba(0, 0, 0, 0.06);
 `;
 
+/* 예약·적립금·첫방문·태그를 한 줄로 묶는다. 항목마다 줄을 차지하면 카드가 길어져
+   모바일에서 두 번째 후보가 화면 밖으로 밀린다. */
+const StyledMetaLine = styled.div`
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 2px 8px;
+`;
+
 const StyledDetailRow = styled.dl`
     display: flex;
     flex-wrap: wrap;
-    gap: 2px 12px;
+    align-items: center;
+    gap: 2px 8px;
+    margin: 0;
 `;
 
 const StyledDetailItem = styled.div`
     display: flex;
     gap: 4px;
     font-size: var(--xsmall-font);
+
+    & + &::before {
+        content: '·';
+        margin-right: 4px;
+        color: var(--gray-color);
+    }
 `;
 
 const StyledDetailLabel = styled.dt`
@@ -366,9 +385,12 @@ const StyledDetailValue = styled.dd`
     font-weight: 600;
 `;
 
+/* 태그는 색 있는 칩이라 그 자체로 구분된다. 앞에 가운뎃점을 두면 좁은 폭에서
+   줄이 바뀔 때 점만 홀로 남는다. */
 const StyledTagList = styled.div`
     display: flex;
     flex-wrap: wrap;
+    align-items: center;
     gap: 4px;
 `;
 
