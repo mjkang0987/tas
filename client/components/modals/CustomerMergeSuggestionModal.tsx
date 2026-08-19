@@ -191,10 +191,10 @@ export const CustomerMergeSuggestionModal = ({
                     </StyledCustomerItem>
 
                     <StyledMergeArrow aria-hidden="true">
-                        <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+                        <svg width="30" height="30" viewBox="0 0 20 20" fill="none">
                             <path d="M10 3.5v13M4.5 11l5.5 5.5L15.5 11"
                                   stroke="currentColor"
-                                  strokeWidth="2"
+                                  strokeWidth="1.8"
                                   strokeLinecap="round"
                                   strokeLinejoin="round" />
                         </svg>
@@ -283,11 +283,7 @@ const StyledMergeArrow = styled.div`
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 34px;
-    height: 34px;
-    margin: 10px auto;
-    border-radius: 50%;
-    background: var(--gray-color2);
+    margin: 10px 0;
     color: var(--dark-gray-color2);
 `;
 
