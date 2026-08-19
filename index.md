@@ -267,6 +267,7 @@ NextAuth 5.0 설정. Google·Kakao·Naver OAuth 지원.
 | `customers-merge.ts` | `/api/customers/merge` | POST | staff | 고객 병합 (예약·포인트·태그 이전) |
 | `customers-unmerge.ts` | `/api/customers/unmerge` | POST | staff | 병합 해제 (이력 기반 복원) |
 | `customers-merge-history.ts` | `/api/customers/merge-history` | GET | staff | 병합 이력 조회 |
+| `conflict-resolution.ts` | `/api/conflict-resolution` | GET/POST | staff | 예약 시간 중복 처리 기록(매장 단위). **처리 여부의 단일 출처** — 사유·메모는 선택이라 POST 는 빈 사유도 받는다[^32] |
 | `assignees.ts` | `/api/assignees` | GET(staff) / PUT(owner) / DELETE(owner) | - | 담당자 CRUD + 일정(AssigneeSchedule) upsert. DELETE는 영구 삭제(분리): 예약은 assigneeId=null로 보존, 스케줄은 cascade 삭제 |
 | `assignees-merge.ts` | `/api/assignees/merge` | POST | owner | 담당자 병합 (source→target 예약 재배정 후 source 삭제) |
 | `services.ts` | `/api/services` | GET(staff) / PUT(owner) | - | 서비스 카탈로그 관리 |

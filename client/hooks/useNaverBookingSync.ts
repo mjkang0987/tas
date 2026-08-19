@@ -3,6 +3,7 @@ import {useCallback, useEffect, useRef, useState} from 'react';
 import {useSession} from 'next-auth/react';
 
 import {useCalendarStore} from '../store/calendarStore';
+import {useToastStore} from '../store/toastStore';
 import {fetchGmailStatus} from '../lib/gmail-status';
 import {groupByDate} from '../utils/reservations';
 import {toCustomerMap} from '../utils/customers';
@@ -147,6 +148,7 @@ export function useNaverBookingSync() {
     const customerMap = useCalendarStore((s) => s.customerMap);
     const patchNotificationNames = useCalendarStore((s) => s.patchNotificationNames);
     const conflictDetectedRef = useRef(false);
+    const toast = useToastStore((s) => s.show);
 
     // 충돌 해결 기록은 **서버**에 있다(`ConflictResolution`). 로컬 알림만 보고 판단하면
     // 다른 관리자가 이미 처리한 충돌이 내 브라우저에서는 계속 뜬다 — 초대코드로 합류한
@@ -195,6 +197,8 @@ export function useNaverBookingSync() {
         if (session?.user?.role !== 'owner') return;
         // 서버 해결 기록을 받기 전에 감지하면, 이미 처리된 충돌이 잠깐 떴다가 사라진다.
         if (!resolutionsLoaded) return;
+        // 아래 본문은 세션당 한 번만 돈다. 의존성에 resolvedKeys·conflictResolutions 가 있어도
+        // 이 가드에 걸려 재실행되지 않는다 — 다른 관리자가 방금 처리한 건은 새로고침해야 반영된다.
         if (conflictDetectedRef.current) return;
 
         const reservationDates = Object.keys(reservationMap);
@@ -233,10 +237,11 @@ export function useNaverBookingSync() {
         // (해결된 충돌의 모달이 다시 뜨거나 저장쌍이 계속 복원되던 버그 방지)
         // 로컬에서 확인한 것 + **서버에 처리 기록이 있는 것**. 후자가 없으면 다른 관리자가
         // 처리한 충돌이 내 브라우저에서만 계속 살아난다.
-        const confirmedKeys = new Set<string | undefined>([
+        const confirmedKeys = new Set<string>([
             ...useCalendarStore.getState().syncNotifications
-                .filter((n) => n.type === 'conflict' && n.conflictStatus === 'confirmed' && n.conflictKey)
-                .map((n) => n.conflictKey),
+                .flatMap((n) => (
+                    n.type === 'conflict' && n.conflictStatus === 'confirmed' && n.conflictKey ? [n.conflictKey] : []
+                )),
             ...resolvedKeys,
         ]);
 
@@ -486,11 +491,19 @@ export function useNaverBookingSync() {
                 setConflictResolutions((prev) => ({...prev, [key]: {reason: trimmedReason ?? '', memo: trimmedMemo}}));
             }
             setResolvedKeys((prev) => new Set(prev).add(key));
-            fetch('/api/conflict-resolution', {
+            // 이 요청이 곧 "다른 관리자에게 다시 뜨지 않게 하는" 경로다. 조용히 삼키면
+            // 내 화면에서만 처리된 것처럼 보이고 증상이 그대로 재현되므로 실패를 알린다.
+            void fetch('/api/conflict-resolution', {
                 method: 'POST',
                 headers: {'Content-Type': 'application/json'},
                 body: JSON.stringify({conflictKey: key, reason: trimmedReason ?? '', memo: trimmedMemo}),
-            }).catch(() => {});
+            })
+                .then((res) => {
+                    if (!res.ok) throw new Error(String(res.status));
+                })
+                .catch(() => {
+                    toast('처리 내역 저장에 실패했습니다. 다른 관리자에게는 이 중복예약이 계속 보일 수 있습니다.', 'error');
+                });
             updateConflictNotificationStatus(key, 'confirmed', 'manual', {reason: trimmedReason, memo: trimmedMemo});
             removeActiveConflictPair(key);
             // 확인 시 해당 알림 읽음 처리
@@ -511,7 +524,7 @@ export function useNaverBookingSync() {
             }
             return nextIndex;
         });
-    }, [activeQueue.length, currentConflict, updateConflictNotificationStatus]);
+    }, [activeQueue.length, currentConflict, updateConflictNotificationStatus, toast]);
 
     const deferConflict = useCallback(() => {
         if (!currentConflict) return;
