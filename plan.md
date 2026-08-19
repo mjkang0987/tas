@@ -5,6 +5,52 @@
 
 ---
 
+## 진행 중 — 중복예약이 다른 관리자에게 계속 뜨는 문제 (`feature/conflict-resolution-sync`)
+
+### 증상
+중복예약을 한 관리자가 **예약 시간 변경 없이 메모를 남기며 처리**했는데,
+초대코드로 합류한 다른 관리자에게는 같은 중복예약이 계속 떴다.
+
+### 원인
+충돌 "처리 완료"가 **브라우저에만** 남는다.
+
+| 저장소 | 위치 | 내용 |
+|---|---|---|
+| `sync-notifications` | `calendarStore.ts` | `conflictStatus: 'confirmed'` ← 처리 완료 표시가 여기 |
+| `naver-sync-active-conflicts` | `naverSyncConflictStorage.ts` | 미해결 충돌쌍 |
+| `naver-sync-deferred-conflicts` | `useNaverBookingSync.ts` | 나중에 보기 |
+
+서버에 `ConflictResolution` 테이블과 `/api/conflict-resolution` 이 **이미 있었는데도** 안 쓰였다.
+1. GET 이 `isActive = canUseSync && gmailConnected` 에 묶여 **Gmail 연동이 꺼져 있으면 호출조차 안 됨.**
+   반면 감지는 `role === 'owner'` 만 보고 계속 돈다 — **감지는 하는데 해소 정보는 못 받는 비대칭**이 버그의 본체.
+2. 받아온 값을 사유·메모 **표시에만** 쓰고, 충돌 억제(`confirmedKeys`)는 로컬 알림만 봤다.
+3. POST 가 `if (trimmedReason)` 로 감싸여 있어 **사유 없이 확인하면 서버에 아무 기록도 안 남았다**
+   (사유는 모달에서 "(선택)" 항목이다). 서버도 빈 사유를 400으로 거부했다.
+
+### 구현
+- `server/api/conflict-resolution.ts` — 빈 사유 허용(빈 문자열 저장). `reason` 은 non-null 컬럼이라
+  **마이그레이션 불필요**.
+- `client/hooks/useNaverBookingSync.ts`
+  - 해결기록 GET 을 `gmailConnected` 게이트에서 떼어내 **감지와 같은 조건**(`role === 'owner'`)으로.
+  - 감지 effect 는 `resolutionsLoaded` 이후에 돈다 — 안 그러면 이미 처리된 충돌이 잠깐 떴다 사라진다.
+  - `confirmedKeys` = **로컬 confirmed ∪ 서버 기록**.
+  - 서버 기록이 있는데 로컬에 미확인으로 남은 알림은 confirmed 로 내린다(알림 벨 배지 정리).
+  - 사유가 비어도 처리 사실을 POST 한다.
+- GET 실패 시에는 감지를 **막지 않는다.** 막으면 충돌을 아예 못 보게 되는데, 그건
+  "이미 처리된 걸 또 보는 것"보다 나쁘다.
+
+### 검증
+- 타입체크·eslint(경고 4건은 변경 전과 동일, 신규 0)·`next build`·단위 테스트 85건 통과.
+- **관리자 2명 시나리오는 이 컨테이너에서 재현할 수 없다** — 서버 세션·DB·초대 계정이 필요하다.
+  실제 확인은 배포 후 두 계정으로 해야 한다.
+
+### 남은 것
+- `restoreConflictsFromPairs`(`naverSyncConflictStorage.ts`)가 localStorage 에 박제된 `Reservation` 을
+  그대로 되돌려준다. id 존재만 확인하고 최신 값을 다시 읽지 않아 예약 시간이 바뀌어도 옛 시간이 뜬다.
+  이번 증상과는 원인이 다르지만 같은 클래스 — 별건으로 둔다.
+
+---
+
 ## 미확인 — 로딩 화면에 걸어 다니는 공룡 (구현·검증 완료, 실기기 확인만 남음)
 
 > 다른 저장소(`clipnote`)에 있는 로딩용 공룡을 TAS로 가져와, **로딩 중인 모든 화면**에 띄운다.
