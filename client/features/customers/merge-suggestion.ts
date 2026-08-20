@@ -79,6 +79,21 @@ export function detectMergeGroups(customers: Customer[]): MergeCandidateGroup[] 
     return groups;
 }
 
+/** 병합 레이어가 자동 제안에서 열렸는지, 주소록의 수동 병합에서 열렸는지 */
+export type MergeMode = 'suggestion' | 'manual';
+
+/** 병합 레이어가 그릴 한 건. 두 경로가 같은 모달을 쓰도록 형태를 맞춘 것 */
+export interface MergeSelection {
+    key: string;
+    mode: MergeMode;
+    /** 자동 제안에서 항상 흡수되는 마스킹 고객. 수동 병합에선 null */
+    maskedSource: Customer | null;
+    /** 기준이 될 수 있는 고객. 2명 이상이면 라디오가 뜬다 */
+    targetChoices: Customer[];
+    /** 기본으로 선택된 기준 고객 */
+    targetId: number;
+}
+
 export interface CustomerReservationSummary {
     count: number;
     /** 가장 최근 예약(날짜·시작시각 기준). 예약이 없으면 null */
@@ -135,4 +150,33 @@ export function selectMergeTarget(
     const pool = withTel.length > 0 ? withTel : candidates;
     const lastDateOf = (id: number) => summary[id]?.last?.date ?? NO_RESERVATION_DATE;
     return pool.reduce((best, c) => lastDateOf(c.id) < lastDateOf(best.id) ? c : best).id;
+}
+
+/**
+ * 수동 병합(주소록에서 직접 골라 합치기)의 기준 고객 기본값.
+ *
+ * 자동 제안과 달리 선택 목록에 마스킹 이름이 섞일 수 있다. 마스킹 이름을 기준으로
+ * 삼으면 `김*수` 가 살아남아 병합의 목적을 잃으므로, 실명이 하나라도 있으면
+ * 실명들 안에서만 고른다. 그 안에서의 판정은 자동 제안과 같은 `selectMergeTarget`
+ * 을 쓴다 — 두 경로가 서로 다른 기본값을 내놓지 않게 한다.
+ */
+export function selectManualMergeTarget(
+    customers: Customer[],
+    summary: Record<number, CustomerReservationSummary>,
+): number {
+    const realNames = customers.filter((c) => !isMaskedName(c.name));
+    return selectMergeTarget(realNames.length > 0 ? realNames : customers, summary);
+}
+
+/**
+ * 병합 레이어 상단에 놓일 고객 — 흡수되어 사라지는 쪽.
+ *
+ * 자동 제안은 마스킹 고객 1명으로 고정이다. 기준을 누구로 고르든 나머지 실명 후보는
+ * 병합 대상이 아니라 그대로 남는다. 반면 수동 병합은 기준으로 고르지 않은 선택 고객이
+ * **전부** 흡수되므로, 기준이 바뀌면 상단 목록도 따라 바뀐다.
+ */
+export function mergeSources(selection: MergeSelection, targetId: number): Customer[] {
+    return selection.mode === 'suggestion'
+        ? (selection.maskedSource ? [selection.maskedSource] : [])
+        : selection.targetChoices.filter((c) => c.id !== targetId);
 }
