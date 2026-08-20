@@ -2,7 +2,6 @@ import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 
 import {
     detectMergeGroups,
-    isReviewedPair,
     selectMergeTarget,
     summarizeCustomerReservations,
 } from '../features/customers/merge-suggestion';
@@ -17,23 +16,31 @@ import {groupByDate} from '../utils/reservations';
 
 export type {MergeSelection} from '../features/customers/merge-suggestion';
 
-const REVIEWED_KEY = 'customer-merge-reviewed';
+// 건너뛰기 기록은 서버가 갖는다(`/api/customer-merge-skip`).
+// localStorage 에 두면 기기·관리자마다 따로 놀고(PC 에서 건너뛴 것이 태블릿에서 또 뜬다)
+// 캐시를 지우면 판단이 통째로 사라진다. 중복예약 처리 이력과 같은 이유다.
+//
+// 옛 localStorage 기록은 이전하지 않는다 — 아직 운영 매장이 없어 버려도 되는 값이고,
+// 이전 로직을 두면 기기마다 다른 기록이 서버로 섞여 들어온다. 남아 있던 키는 지운다.
+const LEGACY_REVIEWED_KEY = 'customer-merge-reviewed';
 
-function loadReviewedKeys(): Set<string> {
-    if (typeof window === 'undefined') return new Set();
-    try {
-        const raw = localStorage.getItem(REVIEWED_KEY);
-        return raw ? new Set(JSON.parse(raw)) : new Set();
-    } catch {
-        return new Set();
-    }
+function dropLegacyReviewedKeys(): void {
+    if (typeof window === 'undefined') return;
+    localStorage.removeItem(LEGACY_REVIEWED_KEY);
 }
 
-function saveReviewedKey(key: string): void {
-    if (typeof window === 'undefined') return;
-    const keys = loadReviewedKeys();
-    keys.add(key);
-    localStorage.setItem(REVIEWED_KEY, JSON.stringify([...keys]));
+/** 건너뛴 쌍 집합. `${maskedId}-${candidateId}` 형태 */
+function pairKey(selection: MergeSelection): string | null {
+    const maskedId = selection.maskedSource?.id;
+    const candidateId = selection.targetChoices[0]?.id;
+    return maskedId === undefined || candidateId === undefined ? null : `${maskedId}-${candidateId}`;
+}
+
+async function fetchSkippedPairs(): Promise<Set<string>> {
+    const response = await fetch('/api/customer-merge-skip');
+    if (!response.ok) throw new Error(`${response.status}`);
+    const data = await response.json() as {skips?: {maskedId: number; candidateId: number}[]};
+    return new Set((data.skips ?? []).map((s) => `${s.maskedId}-${s.candidateId}`));
 }
 
 /** 고객의 예약 건수 */
@@ -51,15 +58,15 @@ function countReservations(customerId: number, reservationMap: Record<string, Re
 function detectDuplicates(
     customerMap: Record<number, Customer>,
     reservationMap: Record<string, Reservation[]>,
+    skipped: Set<string>,
 ): MergeSelection[] {
     const groups = detectMergeGroups(Object.values(customerMap));
     if (groups.length === 0) return [];
 
-    const reviewed = loadReviewedKeys();
     const suggestions: MergeSelection[] = [];
 
     for (const group of groups) {
-        if (isReviewedPair(group.key, reviewed)) continue;
+        if (skipped.has(`${group.maskedId}-${group.candidateIds[0]}`)) continue;
 
         const masked = customerMap[group.maskedId];
         const candidates = group.candidateIds.map((id) => customerMap[id]).filter(Boolean);
@@ -90,6 +97,8 @@ export function useCustomerMergeSuggestion() {
     const [merging, setMerging] = useState(false);
 
     const prevSignatureRef = useRef<string | null>(null);
+    // 서버에 저장된 '건너뛴 쌍'. 감지보다 먼저 확보돼야 이미 판단한 제안이 다시 뜨지 않는다.
+    const skippedRef = useRef<Set<string> | null>(null);
 
     // 고객 목록의 '내용'이 바뀌면 다시 감지한다.
     //
@@ -112,11 +121,30 @@ export function useCustomerMergeSuggestion() {
 
         const signature = customers.map((c) => `${c.id}:${c.name}:${c.tel}`).join('|');
         if (signature === prevSignatureRef.current) return;
-        prevSignatureRef.current = signature;
 
-        const detected = detectDuplicates(customerMap, reservationMap);
-        setSuggestions(detected);
-        setCurrentIndex(0);
+        let cancelled = false;
+
+        // 건너뛴 쌍을 못 받으면 감지하지 않는다. 빈 집합으로 진행하면 이미 "다른 사람"
+        // 이라고 판단한 제안이 전부 다시 뜬다 — 조용히 틀리느니 안 띄우는 편이 낫다.
+        // (시그니처도 이때는 갱신하지 않아, 다음 변경에 다시 시도한다.)
+        const run = async () => {
+            const skipped = skippedRef.current ?? await fetchSkippedPairs();
+            if (cancelled) return;
+            skippedRef.current = skipped;
+            dropLegacyReviewedKeys();
+
+            prevSignatureRef.current = signature;
+            setSuggestions(detectDuplicates(customerMap, reservationMap, skipped));
+            setCurrentIndex(0);
+        };
+
+        run().catch((error) => {
+            console.error('[merge-suggestion] 건너뛰기 기록 조회 실패:', error);
+        });
+
+        return () => {
+            cancelled = true;
+        };
     }, [customerMap, reservationMap]);
 
     // 큐에 담긴 제안은 감지 시점의 고객 스냅샷이다. 후보를 공유하는 제안이 연달아 뜨는 것이
@@ -171,8 +199,8 @@ export function useCustomerMergeSuggestion() {
                 return;
             }
 
-            // 리뷰 완료 기록
-            saveReviewedKey(currentSuggestion.key);
+            // 건너뛰기 기록은 남기지 않는다 — 병합되면 마스킹 고객 자체가 사라져
+            // 같은 쌍이 다시 감지되지 않는다.
 
             // 고객 + 예약 데이터 리로드
             const [custRes, resRes] = await Promise.all([
@@ -198,11 +226,32 @@ export function useCustomerMergeSuggestion() {
         }
     }, [currentSuggestion, merging, advance, setCustomerMap, setReservationMap, toast]);
 
+    // 건너뛰기 = "이 둘은 다른 사람이다". 매장의 판단이므로 서버에 남긴다.
+    // 낙관적으로 먼저 큐를 넘기고, 실패하면 알린다(다음 감지 때 다시 뜬다).
     const skip = useCallback(() => {
         if (!currentSuggestion) return;
-        saveReviewedKey(currentSuggestion.key);
+
+        const key = pairKey(currentSuggestion);
+        const maskedId = currentSuggestion.maskedSource?.id;
+        const candidateId = currentSuggestion.targetChoices[0]?.id;
         advance();
-    }, [currentSuggestion, advance]);
+
+        if (key === undefined || key === null || maskedId === undefined || candidateId === undefined) return;
+        skippedRef.current?.add(key);
+
+        fetch('/api/customer-merge-skip', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({maskedId, candidateId}),
+        }).then((res) => {
+            if (res.ok) return;
+            skippedRef.current?.delete(key);
+            toast('건너뛰기가 저장되지 않았습니다. 다음에 다시 표시됩니다.', 'error');
+        }).catch(() => {
+            skippedRef.current?.delete(key);
+            toast('건너뛰기가 저장되지 않았습니다. 다음에 다시 표시됩니다.', 'error');
+        });
+    }, [currentSuggestion, advance, toast]);
 
     const dismiss = useCallback(() => {
         setSuggestions([]);
@@ -211,8 +260,7 @@ export function useCustomerMergeSuggestion() {
 
     /** 수동 재감지 (동기화 후 호출) */
     const triggerDetection = useCallback(() => {
-        const detected = detectDuplicates(customerMap, reservationMap);
-        setSuggestions(detected);
+        setSuggestions(detectDuplicates(customerMap, reservationMap, skippedRef.current ?? new Set()));
         setCurrentIndex(0);
     }, [customerMap, reservationMap]);
 
