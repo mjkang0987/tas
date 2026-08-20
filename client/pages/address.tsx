@@ -302,6 +302,7 @@ const Address: NextPage<AddressProps> = ({customers, reservations, history, stor
             <AddressContent
                 filteredCustomers={filteredCustomers}
                 reservationsByCustomer={reservationsByCustomer}
+                reservationMap={reservationMap}
                 editingId={editingId}
                 tagColors={TAG_COLORS}
                 tagInput={tagInput}
