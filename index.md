@@ -191,13 +191,15 @@ hair_reservations/
 | 파일 | 역할 |
 |------|------|
 | `calendarStore.ts` | 메인 Zustand 스토어[^7]. 캘린더 상태, 예약/고객/담당자/서비스 데이터, UI 상태, 동기화 알림, 액션 메서드 모두 포함. `serviceCatalog`/`assignees` 초기값은 빈 배열(부팅 게이트와 연동) |
-| `calendarStoreHelpers.ts` | 동기화 헬퍼 (데이터 fetch & store 갱신) |
+| `calendarStoreHelpers.ts` | 동기화 헬퍼 (데이터 fetch & store 갱신). 서버 쓰기는 전부 `requestServerSync` 를 거친다 — 실패를 삼키지 않기 위한 단일 통로[^35] |
 | `calendarStoreAssigneeHelpers.ts` | 담당자 상태 빌더 (add, update, delete) |
 | `calendarStoreReservationHelpers.ts` | 예약 상태 빌더 (reservationMap 조작) |
 | `calendarStoreOverlayHelpers.ts` | 오버레이(모달) 상태 관리 |
 | `calendarStoreServiceHelpers.ts` | 서비스 카탈로그 상태 빌더 + 서비스 변경(소요시간·가격·이름) 시 앞으로의 미결제 예약 일괄 반영(`buildServiceCatalogReservationUpdates`, 수동조정 건 보존) |
 | `calendarStoreStoreSettingsHelpers.ts` | 매장 설정 상태 빌더 |
 | `toastStore.ts` | 토스트 알림 |
+
+[^35]: **낙관적 UI 는 유지하되 실패는 알린다.** `fetch` 는 500·403·401 에도 정상 resolve 하므로 `res.ok` 를 보지 않으면 실패가 `.catch` 에 걸리지 않는다. 예전엔 쓰기 12곳이 `.then(() => undefined).catch(() => {})` 이거나 아예 핸들러 없는 떠다니는 promise 여서, **예약 취소·삭제가 서버에서 실패해도 화면은 성공한 것처럼 남았다**(새로고침하면 되살아남). 주석에는 "나중에 재시도"라 적혀 있었지만 재시도 코드는 없었다. 지금은 `res.ok` 를 확인하고 실패 시 error 토스트를 띄운다. 로컬 상태를 **되돌리지는 않는다** — 되돌리면 방금 입력한 내용이 사라지고 일시적 네트워크 오류에도 작업을 잃는다. 되돌리기(롤백·재시도 큐)는 미구현.
 
 [^7]: 주요 상태: `reservationMap`(날짜별 예약 맵), `customerMap`(ID별 고객), `assignees[]`, `serviceCatalog[]`, `storeSettings`, `syncNotifications[]`, `reservationHistory[]`
 
