@@ -129,7 +129,7 @@ hair_reservations/
 
 | 폴더 | 역할 | 주요 파일 |
 |------|------|----------|
-| `calendar/views/` | 캘린더 뷰 (일/주/월/년/타임라인) | `Calendar.tsx`, `Day.tsx`, `Week.tsx`, `Month.tsx`, `Timeline.tsx`, `TimelineCluster.tsx`(중복예약 클러스터 — 담당자 배지 표시) |
+| `calendar/views/` | 캘린더 뷰 (일/주/월/년/타임라인) | `Calendar.tsx`, `Day.tsx`, `Week.tsx`, `Month.tsx`, `Timeline.tsx`(오늘이면 마운트 시 현재시각 바로 자동 스크롤 — 최초 1회만), `TimelineCluster.tsx`(중복예약 클러스터 — 담당자 배지 표시) |
 | `calendar/overlays/` | 예약 생성·상세·수정 모달 | `ReservationCreate.tsx`(+`useReservationCreateForm.ts`/`ReservationCreateCustomerFields.tsx`), `ReservationDetail.tsx`(+`ReservationDetailSections`/`Header`/`FooterActions`/`PaymentLayer`/`ViewSection`, 순수 로직은 `reservationDetailUtils.ts`·타입은 `reservationDetailTypes.ts`), `CustomerDetail.tsx`(+`CustomerDetailSections.tsx`[^3a]), `ModalStyles.ts`(공통 모달 스타일·`OVERLAY_Z_INDEX`·접근성 훅), 컴포넌트별 `*.styles.ts` |
 | `calendar/service/` | 서비스 범례·필드 | `ServiceLegend.tsx`(시술 배지 디자인), `ServiceFields.tsx` |
 | `customers/` | 고객 공용 컴포넌트 | `CustomerAutocomplete.tsx`(고객명/연락처 검색 자동완성 — 예약 생성·회원권 발급 공용. 목록 순서는 받은 그대로 그리며 정렬은 호출부 책임 — 예약추가는 이름 가나다순) |
