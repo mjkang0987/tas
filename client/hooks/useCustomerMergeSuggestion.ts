@@ -236,7 +236,7 @@ export function useCustomerMergeSuggestion() {
         const candidateId = currentSuggestion.targetChoices[0]?.id;
         advance();
 
-        if (key === undefined || key === null || maskedId === undefined || candidateId === undefined) return;
+        if (key === null || maskedId === undefined || candidateId === undefined) return;
         skippedRef.current?.add(key);
 
         fetch('/api/customer-merge-skip', {

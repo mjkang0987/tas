@@ -119,7 +119,20 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                 : source.firstVisitDate ?? currentTargetFirstVisit;
             currentTargetFirstVisit = earliestDate;
 
-            // 6. source 고객 삭제
+            // 6. source 고객 삭제 + 그 고객을 가리키던 병합 건너뛰기 기록 정리.
+            //
+            // `CustomerMergeSkip` 은 프론트 id(=legacyId)를 담고 FK 가 없다. 그대로 두면
+            // 고아 기록이 남는데, 네이버 동기화가 legacyId 를 `max + 1` 로 발급하므로
+            // (`naver-booking-sync.ts:124`) 방금 지운 고객이 최대값이었다면 **다음 고객이
+            // 같은 번호를 물려받는다.** 그러면 남의 판단이 엉뚱한 고객의 제안을 조용히 막는다.
+            if (source.legacyId !== null) {
+                await tx.customerMergeSkip.deleteMany({
+                    where: {
+                        storeId: session.storeId,
+                        OR: [{maskedId: source.legacyId}, {candidateId: source.legacyId}],
+                    },
+                });
+            }
             await tx.customer.delete({where: {id: source.id}});
         }
 
