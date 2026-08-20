@@ -170,7 +170,7 @@ hair_reservations/
 |------|------|----------|
 | `reservations/model.ts` | `Reservation` | id, date, startTime/endTime, customerId, assigneeId?, service, status[^4], price, naverBookingId?, channel[^5], publicToken?(온라인예약 고객 관리 링크) |
 | `customers/model.ts` | `Customer` | id, name, tel, points, memoTags, pointHistories. 헬퍼: `formatTel`(표시 000-0000-0000)·`normalizeTel`(저장용 숫자만, 단일 출처)·`compareCustomerName`/`sortCustomersByName`(이름 한글 오름차순, `Intl.Collator('ko',{numeric:true})` + 동명이인 id 안정 정렬) |
-| `customers/merge-suggestion.ts` | - | 마스킹 이름 병합 제안의 순수 함수 — 그룹 규칙(`detectMergeGroups`/`isMaskedName`/`isMaskedNameMatch`/`buildMergeGroupKey`) + 예약 집계·기준 선정(`summarizeCustomerReservations`/`selectMergeTarget`). 훅·모달이 재사용 ([고객 병합](#고객-병합)) |
+| `customers/merge-suggestion.ts` | - | 마스킹 이름 병합 제안의 순수 함수 — 그룹 규칙(`detectMergeGroups`/`isMaskedName`/`isMaskedNameMatch`/`buildMergeGroupKey`) + 예약 집계·기준 선정(`summarizeCustomerReservations`/`selectMergeTarget`/`selectManualMergeTarget`) + 레이어 공용 타입(`MergeSelection`/`mergeSources`). 훅·모달·주소록이 재사용 ([고객 병합](#고객-병합)) |
 | `memberships/model.ts` | `MembershipProduct`/`CustomerMembership` | 회원권(횟수·기간권, 적립금과 별개). product: totalCount?/validDays?/price/status, 발급분: remainingCount/expiresAt?/status |
 | `assignees/model.ts` | `Assignee` | id, name, schedule(7일), status[^6], color, phone. 헬퍼: `summarizeSchedule`(7행을 연속 동일 근무시간끼리 묶어 `월~금 10:00~20:00 · 토~일 휴무` 형태로 — 담당자 카드 읽기 모드 한 줄 표시용. `enabled=false`면 남아 있는 start/end 를 무시하고 휴무로 묶는다) |
 | `services/model.ts` | `ServiceItem` | name, durationMinutes, category, price |
@@ -456,6 +456,19 @@ features/customers/merge-suggestion.ts (그룹 규칙 — 순수 모듈)
 병합 시 **source는 언제나 마스킹 고객 1명뿐**이다. 실명 고객끼리는 어떤 경우에도 병합하지 않는다.
 
 [^33]: 예전엔 후보를 한 카드에 모아 라디오로 고르게 하고, 실명 이름이 2종 이상이면 "누구인지 판정 불가"로 아예 접었다. **고객이 수백 명이면 이 규칙이 제안을 거의 전멸시킨다** — `이*민` 은 `이O민` 전부와 매칭되므로 후보가 여럿이 되고 이름도 여러 종이 된다(운영 264명에서 `이*민` 하나에 이상민·이승민·이유민이 잡혀 배제됐다). 판정은 어차피 사람이 하므로 묶어서 접지 않고 하나씩 묻는다. 부수 효과로 자동 제안 경로에서 **라디오가 사라진다**(수동 병합에는 남는다). 건너뛰기 기록은 그룹 전체 id를 이어붙인 문자열이라 쪼개면 안 맞는다 — `isReviewedPair` 가 문자열 일치가 아니라 **id 포함 관계**로 판정해 기존 기록을 승계한다.
+
+**수동 병합 (주소록)** — 자동 제안이 못 잡는 조합(마스킹 이름이 안 맞거나, 실명끼리 합쳐야 하는 경우)은 사람이 직접 고른다. `주소록`에서 체크박스로 2명 이상 고르고 `병합`을 누르면 **같은 레이어**(`CustomerMergeSuggestionModal`)가 뜬다. 다른 점은 셋이다.[^34]
+
+| | 자동 제안 | 수동 병합 |
+|---|---|---|
+| source | 마스킹 고객 1명 **고정** (한 건은 언제나 1:1) | 기준으로 고르지 않은 나머지 **전부** (기준을 바꾸면 따라 바뀜) |
+| 레이아웃 | 상단 카드 + 화살표 + 후보 1명 | 목록 한 벌 + 행마다 `기준`/`삭제` 배지 |
+| 좌측 버튼 | `건너뛰기` (다시 안 뜸) | `취소` (그냥 닫기) |
+| 라디오 | 없음 (후보가 항상 1명) | 선택 고객이 2명 이상이면 표시 |
+
+기준 고객 기본값은 **두 경로가 같은 규칙**을 쓴다 — `selectMergeTarget`. 수동 병합은 그 앞에 마스킹 이름을 후보에서 빼는 단계(`selectManualMergeTarget`)만 더 있다.
+
+[^34]: 예전엔 주소록이 검색줄 아래에 인라인 미리보기를 펼쳤고, 기준 선정도 자기 규칙(마스킹 이름 우선 + **첫** 예약이 더 과거인 쪽)을 따로 갖고 있었다. 같은 고객을 두고 경로에 따라 기본값이 갈렸다. 수동 병합에서 상단 카드를 두지 않는 이유는 선택 고객 **전원이 기준 후보**여서다 — 상단에 또 세우면 같은 고객이 한 레이어에 두 번 그려진다.
 
 [^31]: 이전 구현은 마스킹 고객을 다리 삼아 실명 고객까지 한 덩어리로 합쳤다(`김민수(A) ↔ 김*수 ↔ 김민수(B)` → 3명 한 그룹). 전화번호가 다른 = 서로 다른 사람일 수 있는 실명 고객끼리 병합돼 예약·적립금이 섞였고, `김민수`/`김진수`가 한 카드에 같이 뜨기도 했다. 전이 병합을 없애고 마스킹 1명당 그룹 1개로 바꿨다. 부수 효과로 source가 고정되어 **체크박스가 사라지고** 선택 컨트롤이 라디오 하나만 남았다(후보 2명 이상일 때만 노출).
 

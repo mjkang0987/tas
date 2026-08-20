@@ -14,9 +14,12 @@ import {
     isMaskedName,
     isMaskedNameMatch,
     isReviewedPair,
+    mergeSources,
+    selectManualMergeTarget,
     selectMergeTarget,
     summarizeCustomerReservations,
 } from './merge-suggestion';
+import type {MergeSelection} from './merge-suggestion';
 import type {Customer} from './model';
 import type {Reservation, ReservationMap} from '../reservations/model';
 
@@ -257,6 +260,64 @@ describe('selectMergeTarget', () => {
         );
 
         expect(target).toBe(2);
+    });
+});
+
+describe('selectManualMergeTarget', () => {
+    const summary = (byId: Record<number, string | null>) => (
+        Object.fromEntries(Object.entries(byId).map(([id, date]) => [
+            id,
+            {count: date ? 1 : 0, last: date ? ({date, startTime: '10:00'} as Reservation) : null},
+        ]))
+    );
+
+    it('마스킹 이름은 기준에서 뺀다 — 합쳐도 `김*수` 가 남으면 병합할 이유가 없다', () => {
+        const target = selectManualMergeTarget(
+            [customer(1, '김*수'), customer(2, '김민수')],
+            summary({1: '2026-01-01', 2: '2026-05-01'}),
+        );
+
+        expect(target).toBe(2);
+    });
+
+    it('실명이 없으면 마스킹끼리 고른다 — 고를 것이 그것뿐이다', () => {
+        const target = selectManualMergeTarget(
+            [customer(1, '김*수'), customer(2, '김민*')],
+            summary({1: '2026-05-01', 2: '2026-01-01'}),
+        );
+
+        expect(target).toBe(2);
+    });
+
+    it('실명끼리는 자동 제안과 같은 규칙으로 고른다 — 연락처 가진 쪽', () => {
+        const customers = [customer(1, '김민수'), customer(2, '김민수', '01011112222')];
+        const s = summary({1: '2026-01-01', 2: '2026-05-01'});
+
+        expect(selectManualMergeTarget(customers, s)).toBe(selectMergeTarget(customers, s));
+    });
+});
+
+describe('mergeSources', () => {
+    const base = (mode: MergeSelection['mode'], maskedSource: MergeSelection['maskedSource']): MergeSelection => ({
+        key: 'k',
+        mode,
+        maskedSource,
+        targetChoices: [customer(1, '김민수'), customer(2, '김민수')],
+        targetId: 1,
+    });
+
+    it('자동 제안은 기준을 바꿔도 마스킹 고객 1명만 흡수한다', () => {
+        const selection = base('suggestion', customer(3, '김*수'));
+
+        expect(mergeSources(selection, 1).map((c) => c.id)).toEqual([3]);
+        expect(mergeSources(selection, 2).map((c) => c.id)).toEqual([3]);
+    });
+
+    it('수동 병합은 기준으로 고르지 않은 고객이 전부 흡수된다', () => {
+        const selection = base('manual', null);
+
+        expect(mergeSources(selection, 1).map((c) => c.id)).toEqual([2]);
+        expect(mergeSources(selection, 2).map((c) => c.id)).toEqual([1]);
     });
 });
 
