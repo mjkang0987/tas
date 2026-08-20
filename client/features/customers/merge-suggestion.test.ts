@@ -13,6 +13,7 @@ import {
     detectMergeGroups,
     isMaskedName,
     isMaskedNameMatch,
+    isReviewedPair,
     mergeSources,
     selectManualMergeTarget,
     selectMergeTarget,
@@ -51,7 +52,7 @@ describe('isMaskedNameMatch', () => {
 });
 
 describe('detectMergeGroups', () => {
-    it('실명 1명 + 마스킹 1명이면 그룹 하나', () => {
+    it('실명 1명 + 마스킹 1명이면 제안 하나', () => {
         const groups = detectMergeGroups([
             customer(1, '김민수'),
             customer(2, '김*수'),
@@ -62,26 +63,47 @@ describe('detectMergeGroups', () => {
         expect(groups[0].candidateIds).toEqual([1]);
     });
 
-    it('같은 이름의 실명이 여러 명이면 후보로 모두 남긴다 — 누구인지는 사용자가 고른다', () => {
+    it('후보가 여럿이면 후보 수만큼 1:1 로 쪼갠다 — 운영에서 이 조합이 통째로 사라졌다', () => {
+        const groups = detectMergeGroups([
+            customer(204, '이상민', '01094561234'),
+            customer(329, '이승민', '01043071234'),
+            customer(388, '이유민', '01044431234'),
+            customer(389, '이*민'),
+        ]);
+
+        expect(groups).toHaveLength(3);
+        expect(groups.map((g) => g.candidateIds[0])).toEqual([204, 329, 388]);
+        expect(groups.every((g) => g.maskedId === 389)).toBe(true);
+    });
+
+    it('동명이인도 1:1 로 쪼갠다 — 라디오로 고르게 하지 않는다', () => {
         const groups = detectMergeGroups([
             customer(1, '김민수', '01011112222'),
             customer(2, '김민수', '01033334444'),
             customer(3, '김*수'),
         ]);
 
-        expect(groups).toHaveLength(1);
-        expect(groups[0].maskedId).toBe(3);
-        expect(groups[0].candidateIds).toEqual([1, 2]);
+        expect(groups).toHaveLength(2);
+        expect(groups.map((g) => g.candidateIds[0])).toEqual([1, 2]);
     });
 
-    it('실명 이름이 2종 이상이면 제안하지 않는다 — 마스킹이 누구인지 판정 불가', () => {
+    it('연락처는 제안 여부를 가르지 않는다 — 1:1 이라 번호로 갈릴 일이 없다', () => {
+        const withTel = detectMergeGroups([customer(1, '김민수', '01011112222'), customer(2, '김*수')]);
+        const withoutTel = detectMergeGroups([customer(1, '김민수'), customer(2, '김*수')]);
+
+        expect(withTel).toHaveLength(1);
+        expect(withoutTel).toHaveLength(1);
+    });
+
+    it('후보 순서는 id 오름차순 — 큐에 뜨는 순서가 매번 같아야 한다', () => {
         const groups = detectMergeGroups([
-            customer(1, '김민수'),
-            customer(2, '김진수'),
-            customer(3, '김*수'),
+            customer(30, '김진수'),
+            customer(10, '김민수'),
+            customer(20, '김철수'),
+            customer(99, '김*수'),
         ]);
 
-        expect(groups).toEqual([]);
+        expect(groups.map((g) => g.candidateIds[0])).toEqual([10, 20, 30]);
     });
 
     it('마스킹이 2명이면 그룹도 2개로 따로 나온다 — 마스킹끼리는 묶지 않는다', () => {
@@ -98,17 +120,18 @@ describe('detectMergeGroups', () => {
         }
     });
 
-    it('실명 고객끼리는 같은 그룹에 들어가지 않는다 (전이 병합 방지)', () => {
+    it('실명 고객끼리는 절대 한 건에 들어가지 않는다 (전이 병합 방지)', () => {
         const groups = detectMergeGroups([
-            customer(1, '김민수'),
-            customer(2, '김민수'),
+            customer(1, '김민수', '01011112222'),
+            customer(2, '김민수', '01033334444'),
             customer(3, '김*수'),
         ]);
 
-        // 후보로는 둘 다 뜨지만, 그룹의 source 는 마스킹 1명뿐이라
-        // 병합해도 김민수끼리 합쳐지지 않는다.
-        expect(groups[0].maskedId).toBe(3);
-        expect(groups[0].candidateIds).not.toContain(3);
+        // 각 건의 source 는 언제나 마스킹 1명, target 은 실명 1명이다.
+        for (const g of groups) {
+            expect(g.maskedId).toBe(3);
+            expect(g.candidateIds).toHaveLength(1);
+        }
     });
 
     it('후보가 전부 마스킹이면 제안하지 않는다', () => {
@@ -295,5 +318,31 @@ describe('mergeSources', () => {
 
         expect(mergeSources(selection, 1).map((c) => c.id)).toEqual([2]);
         expect(mergeSources(selection, 2).map((c) => c.id)).toEqual([1]);
+    });
+});
+
+describe('isReviewedPair', () => {
+    it('같은 키면 이미 본 것', () => {
+        expect(isReviewedPair('204-389', ['204-389'])).toBe(true);
+    });
+
+    it('옛 묶음 키가 두 id 를 다 담고 있으면 이미 본 것 — 쪼개면서 기록이 날아가면 안 된다', () => {
+        expect(isReviewedPair('204-389', ['204-329-388-389'])).toBe(true);
+        expect(isReviewedPair('329-389', ['204-329-388-389'])).toBe(true);
+        expect(isReviewedPair('388-389', ['204-329-388-389'])).toBe(true);
+    });
+
+    it('한쪽 id 만 겹치면 본 적 없는 것', () => {
+        expect(isReviewedPair('204-389', ['204-500'])).toBe(false);
+        expect(isReviewedPair('204-389', ['389-500'])).toBe(false);
+    });
+
+    it('기록이 비어 있으면 false', () => {
+        expect(isReviewedPair('204-389', [])).toBe(false);
+    });
+
+    it('부분 문자열에 속지 않는다 — id 단위로 비교한다', () => {
+        // '4-89' 는 '204-389' 의 부분 문자열이지만 id 로는 4·89 라 무관하다.
+        expect(isReviewedPair('4-89', ['204-389'])).toBe(false);
     });
 });

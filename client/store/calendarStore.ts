@@ -28,7 +28,10 @@ import {
     syncStoreInfo,
     syncStoreFeatures,
     syncStoreSettings,
+    requestServerSync,
+    jsonRequest,
 } from './calendarStoreHelpers';
+import {useToastStore} from './toastStore';
 import {
     buildClosedReservationState,
     buildOpenedReservationState,
@@ -587,9 +590,16 @@ export const useCalendarStore = create<CalendarState>((set) => ({
                     body: JSON.stringify({updates}),
                 })
                     .then((res) => {
-                        if (!res.ok) console.error('[updateService] 예약 일괄 갱신 실패:', res.status);
+                        if (res.ok) return;
+                        console.error('[updateService] 예약 일괄 갱신 실패:', res.status);
+                        useToastStore.getState().show(
+                            '서비스 변경을 예약에 반영하지 못했습니다. 새로고침 후 다시 확인해 주세요.', 'error');
                     })
-                    .catch((err) => console.error('[updateService] 예약 일괄 갱신 요청 실패:', err));
+                    .catch((err) => {
+                        console.error('[updateService] 예약 일괄 갱신 요청 실패:', err);
+                        useToastStore.getState().show(
+                            '서비스 변경을 예약에 반영하지 못했습니다. 새로고침 후 다시 확인해 주세요.', 'error');
+                    });
             }
         }
 
@@ -649,11 +659,8 @@ export const useCalendarStore = create<CalendarState>((set) => ({
             return;
         }
 
-        fetch('/api/reservations', {
-            method: 'POST',
-            headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify(reservation)
-        });
+        void requestServerSync('/api/reservations', jsonRequest('POST', reservation),
+            '예약 저장에 실패했습니다. 새로고침 후 다시 확인해 주세요.');
     },
 
     updateReservation: (prev, updated) => {
@@ -687,7 +694,12 @@ export const useCalendarStore = create<CalendarState>((set) => ({
             body: JSON.stringify({prev, updated})
         })
             .then(async (response) => {
-                if (!response.ok) return null;
+                if (!response.ok) {
+                    console.error('[updateReservation] 저장 실패:', response.status, response.statusText);
+                    useToastStore.getState().show(
+                        '예약 수정 저장에 실패했습니다. 새로고침 후 다시 확인해 주세요.', 'error');
+                    return null;
+                }
                 return response.json() as Promise<{reservation?: Reservation}>;
             })
             .then((data) => {
@@ -721,8 +733,12 @@ export const useCalendarStore = create<CalendarState>((set) => ({
                     };
                 });
             })
-            .catch(() => {
-                // Preserve optimistic local UX if the sync request fails.
+            .catch((error) => {
+                // 낙관적 로컬 상태는 되돌리지 않는다. 되돌리면 방금 고친 내용이 사라진다.
+                // 대신 서버에 안 들어갔다는 사실을 알린다.
+                console.error('[updateReservation] 저장 요청 실패:', error);
+                useToastStore.getState().show(
+                    '예약 수정 저장에 실패했습니다. 새로고침 후 다시 확인해 주세요.', 'error');
             });
     },
 
@@ -749,11 +765,11 @@ export const useCalendarStore = create<CalendarState>((set) => ({
             return;
         }
 
-        fetch('/api/reservations', {
-            method: 'PATCH',
-            headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify({id: reservation.id, status, ...(reason ? {reason} : {})})
-        });
+        void requestServerSync(
+            '/api/reservations',
+            jsonRequest('PATCH', {id: reservation.id, status, ...(reason ? {reason} : {})}),
+            '예약 상태 변경이 서버에 반영되지 않았습니다. 새로고침 후 다시 시도해 주세요.',
+        );
     },
 
     restoreReservation: (reservation) => {
@@ -793,11 +809,8 @@ export const useCalendarStore = create<CalendarState>((set) => ({
             return;
         }
 
-        fetch('/api/reservations', {
-            method: 'PATCH',
-            headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify({id: reservation.id, status: 'active'})
-        });
+        void requestServerSync('/api/reservations', jsonRequest('PATCH', {id: reservation.id, status: 'active'}),
+            '예약 복원이 서버에 반영되지 않았습니다. 새로고침 후 다시 시도해 주세요.');
     },
 
     deleteReservation: (reservation) => {
@@ -821,11 +834,8 @@ export const useCalendarStore = create<CalendarState>((set) => ({
             return;
         }
 
-        fetch('/api/reservations', {
-            method: 'DELETE',
-            headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify({id: reservation.id})
-        });
+        void requestServerSync('/api/reservations', jsonRequest('DELETE', {id: reservation.id}),
+            '예약 삭제가 서버에 반영되지 않았습니다. 새로고침 후 다시 시도해 주세요.');
     },
 
     addSyncNotifications: (items) =>

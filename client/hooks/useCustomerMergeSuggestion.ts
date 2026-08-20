@@ -2,6 +2,7 @@ import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 
 import {
     detectMergeGroups,
+    isReviewedPair,
     selectMergeTarget,
     summarizeCustomerReservations,
 } from '../features/customers/merge-suggestion';
@@ -58,7 +59,7 @@ function detectDuplicates(
     const suggestions: MergeSelection[] = [];
 
     for (const group of groups) {
-        if (reviewed.has(group.key)) continue;
+        if (isReviewedPair(group.key, reviewed)) continue;
 
         const masked = customerMap[group.maskedId];
         const candidates = group.candidateIds.map((id) => customerMap[id]).filter(Boolean);
@@ -88,28 +89,34 @@ export function useCustomerMergeSuggestion() {
     const [currentIndex, setCurrentIndex] = useState(0);
     const [merging, setMerging] = useState(false);
 
-    const detectedRef = useRef(false);
-    const prevCustomerCountRef = useRef(0);
+    const prevSignatureRef = useRef<string | null>(null);
 
-    // customerMap 크기 증가 시 (= 동기화 후 새 고객 추가) 감지 실행
+    // 고객 목록의 '내용'이 바뀌면 다시 감지한다.
+    //
+    // 예전엔 `고객 수가 늘었을 때`만 다시 돌렸다. 그러면 마스킹 이름을 실명으로
+    // 고치는 것처럼 **수가 그대로인 변경**에는 반응하지 못해, 방금 만든 병합 대상이
+    // 새로고침 전까지 안 떴다.
+    //
+    // `customerMap` 객체 참조로 걸지 않는 이유 — 스토어가 무관한 갱신에도 새 객체를
+    // 만들어서 불필요하게 돌고, 감지 결과가 렌더를 부르면 루프가 될 수 있다.
+    // 판정에 실제로 쓰이는 값(id·이름·연락처)만 뽑아 비교한다.
     useEffect(() => {
         // 게스트/미인증 모드에서는 고객 병합 제안(네이버 동기화 기반 서버 기능)을 띄우지 않음
         if (shouldUseLocalDb()) {
             setSuggestions([]);
             return;
         }
-        const customerCount = Object.keys(customerMap).length;
-        if (customerCount === 0) return;
 
-        // 최초 로드 시에도 한 번 실행
-        if (!detectedRef.current || customerCount > prevCustomerCountRef.current) {
-            detectedRef.current = true;
-            prevCustomerCountRef.current = customerCount;
+        const customers = Object.values(customerMap);
+        if (customers.length === 0) return;
 
-            const detected = detectDuplicates(customerMap, reservationMap);
-            setSuggestions(detected);
-            setCurrentIndex(0);
-        }
+        const signature = customers.map((c) => `${c.id}:${c.name}:${c.tel}`).join('|');
+        if (signature === prevSignatureRef.current) return;
+        prevSignatureRef.current = signature;
+
+        const detected = detectDuplicates(customerMap, reservationMap);
+        setSuggestions(detected);
+        setCurrentIndex(0);
     }, [customerMap, reservationMap]);
 
     // 큐에 담긴 제안은 감지 시점의 고객 스냅샷이다. 후보를 공유하는 제안이 연달아 뜨는 것이
