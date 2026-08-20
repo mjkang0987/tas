@@ -84,3 +84,25 @@ describe('jsonRequest', () => {
         });
     });
 });
+
+// 한 번의 사용자 동작이 서버 쓰기를 여러 건 일으키는 경로가 있다
+// (예: 예약 취소 → 예약 PATCH + 고객 PUT). 서버가 죽으면 같은 안내가 겹쳐 쌓인다.
+describe('알림 중복', () => {
+    it('같은 문구가 이미 떠 있으면 겹쳐 쌓지 않는다', async () => {
+        vi.stubGlobal('fetch', vi.fn().mockResolvedValue(response(500)));
+
+        await requestServerSync('/api/a', jsonRequest('PUT', {}), '저장 실패');
+        await requestServerSync('/api/b', jsonRequest('PUT', {}), '저장 실패');
+
+        expect(toastMessages()).toEqual(['저장 실패']);
+    });
+
+    it('문구가 다르면 각각 띄운다 — 무엇이 실패했는지 구분돼야 한다', async () => {
+        vi.stubGlobal('fetch', vi.fn().mockResolvedValue(response(500)));
+
+        await requestServerSync('/api/a', jsonRequest('PUT', {}), '예약 저장 실패');
+        await requestServerSync('/api/b', jsonRequest('PUT', {}), '고객 저장 실패');
+
+        expect(toastMessages()).toEqual(['예약 저장 실패', '고객 저장 실패']);
+    });
+});
