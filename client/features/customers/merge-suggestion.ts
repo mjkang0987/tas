@@ -1,6 +1,19 @@
 import type {Reservation, ReservationMap} from '../reservations/model';
-import {normalizeTel} from './model';
 import type {Customer} from './model';
+
+/**
+ * 번호 비교용 정규화 — 숫자만 남긴다. `model.ts` 의 `normalizeTel` 과 같은 규칙이다.
+ *
+ * **왜 import 하지 않고 여기 두는가** — 이 모듈은 런타임 import 가 없는 '순수 모듈'
+ * 이라 `scripts/check-pure-test-coverage.mjs` 게이트가 "바꿨으면 테스트도 있어야 한다"를
+ * 강제한다. 그 판정은 런타임 import 유무라는 거친 대용치라, `normalizeTel` 을 가져오는
+ * 순간 이 파일이 **게이트 대상에서 조용히 빠진다.** 한 줄 재사용과 맞바꾸기엔 비싸다.
+ *
+ * 대신 두 구현이 갈리지 않도록 테스트에서 `normalizeTel` 과 결과가 같은지 고정한다.
+ */
+export function telDigits(tel: string | undefined): string {
+    return (tel ?? '').replace(/\D/g, '');
+}
 
 /** 이름에 마스킹(`*`)이 포함됐는지 */
 export function isMaskedName(name: string): boolean {
@@ -22,7 +35,7 @@ export interface MergeCandidateGroup {
     key: string;
     /** 합쳐져 사라질 마스킹 고객. 그룹당 정확히 1명 */
     maskedId: number;
-    /** 기준이 될 수 있는 실명 고객. 1명 이상이며 이름 값이 같고, 연락처도 1종 이하다 */
+    /** 기준이 될 수 있는 실명 고객. 1명 이상이며 이름 값이 같다 (연락처는 그룹 전체에서 1종 이하) */
     candidateIds: number[];
 }
 
@@ -48,7 +61,8 @@ export function buildMergeGroupKey(maskedId: number, candidateIds: number[]): st
  * - 실명 후보의 **이름 값이 2종 이상**이면 제외한다. `김민수`/`김진수` 중
  *   `김*수` 가 누구인지 판정할 수 없다. 반면 같은 이름이 여러 명인 경우
  *   (동명이인)는 1종으로 세어 허용하고, 누구인지는 사용자가 고른다.
- * - 실명 후보의 **연락처가 2종 이상**이면 제외하고 수동 병합에 맡긴다.
+ * - **그룹 안에**(마스킹 고객 포함) 서로 다른 연락처가 2종 이상이면 제외하고
+ *   수동 병합에 맡긴다.
  *   같은 이름 + 다른 번호는 *동명이인* 일 수도, *번호를 바꾼 같은 사람* 일 수도 있고
  *   자동으로는 구분할 방법이 없다. 잘못 고르면 남의 예약·적립금이 섞인다.
  *   반대로 **연락처가 없거나 한 종류뿐이면** 갈릴 여지가 없으므로 그대로 제안한다
@@ -81,12 +95,11 @@ export function detectMergeGroups(customers: Customer[]): MergeCandidateGroup[] 
         // 나중에 번호를 채워 넣을 수 있고(`CustomerDetail` 편집엔 마스킹 이름 가드가 없다),
         // 그 번호가 실명 후보와 다르면 다른 사람일 가능성이 생긴다.
         //
-        // 비교 전 `normalizeTel` 로 숫자만 남긴다. 서버가 저장 시 정규화하긴 하지만
-        // 표기만 다른 같은 번호(`010-1111-2222` / `01011112222`)를 2종으로 세면
-        // 멀쩡한 제안이 조용히 사라진다.
+        // 비교 전 숫자만 남긴다. 서버가 저장 시 정규화하긴 하지만, 표기만 다른 같은 번호
+        // (`010-1111-2222` / `01011112222`)를 2종으로 세면 멀쩡한 제안이 조용히 사라진다.
         const distinctTels = new Set(
             [masked, ...candidates]
-                .map((c) => normalizeTel(c.tel ?? ''))
+                .map((c) => telDigits(c.tel))
                 .filter((tel) => !!tel),
         );
         if (distinctTels.size > 1) continue;

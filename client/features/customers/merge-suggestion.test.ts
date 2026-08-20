@@ -15,7 +15,9 @@ import {
     isMaskedNameMatch,
     selectMergeTarget,
     summarizeCustomerReservations,
+    telDigits,
 } from './merge-suggestion';
+import {normalizeTel} from './model';
 import type {Customer} from './model';
 import type {Reservation, ReservationMap} from '../reservations/model';
 
@@ -319,5 +321,26 @@ describe('selectMergeTarget', () => {
         );
 
         expect(target).toBe(2);
+    });
+});
+
+// `telDigits` 는 `model.ts` 의 `normalizeTel` 사본이다 — 이 모듈을 순수하게 유지해
+// 테스트 커버리지 게이트 대상으로 남기려고 일부러 import 하지 않는다.
+// 두 구현이 조용히 갈리지 않도록 여기서 결과를 맞물어 둔다.
+describe('telDigits', () => {
+    it.each([
+        '01011112222',
+        '010-1111-2222',
+        '010 1111 2222',
+        '  ',
+        '-',
+        '',
+        '+82 10-1111-2222',
+    ])('normalizeTel 과 같은 결과: %j', (input) => {
+        expect(telDigits(input)).toBe(normalizeTel(input));
+    });
+
+    it('undefined 는 빈 문자열로 본다 — `normalizeTel` 은 undefined 를 받지 않는다', () => {
+        expect(telDigits(undefined)).toBe('');
     });
 });
