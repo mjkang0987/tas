@@ -174,7 +174,10 @@ const StyledRecentService = styled.span`
 
     @media (min-width: 841px) {
         width: auto;
-        flex: 1;
+        /* 줄어들지 않는다. 자리가 모자라면 이게 짜부라지는 대신
+           옆의 적립금·예약상태 블록이 부모의 flex-wrap 을 타고 아랫줄로 내려간다. */
+        flex: 1 0 auto;
+        max-width: 100%;
         flex-wrap: nowrap;
         gap: 4px;
         overflow: hidden;
@@ -182,11 +185,20 @@ const StyledRecentService = styled.span`
 `;
 
 // 시술명이 공백에서 쪼개지지 않게 — 모바일 한정. 데스크톱은 작업 이전 동작 유지.
+// 이 목록에선 시술명을 **어떤 폭에서도 한 줄**로 둔다.
+//
+// 글자 단위로 쪼개지는 것 자체는 공용 칩(`StyledServiceText`)의 `word-break: keep-all`
+// 이 막는다. 여기서 `nowrap` 을 더하는 이유는 한 행에 여러 정보가 나란히 놓이는
+// 목록이라 시술명이 두 줄이 되면 행 높이가 들쭉날쭉해지기 때문이다.
+// 예전엔 이 nowrap 이 `max-width: 840px` 안에만 있어 그 위 구간(841~980px)이 비었고,
+// 사이드바를 연 좁은 데스크톱에서 행 높이가 19px → 98px 로 터졌다.
+//
+// 폭이 모자라면 대신 예약 상태 배지가 아랫줄로 내려간다(`StyledStatusCounts`).
 const StyledServiceChips = styled(ServiceChipList)`
-    @media (max-width: 840px) {
-        ${StyledServiceText} {
-            white-space: nowrap;
-        }
+    ${StyledServiceText} {
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
     }
 `;
 
@@ -202,6 +214,13 @@ const StyledBlockRow = styled.div`
     gap: 8px;
     flex-shrink: 0;
 
+    /* 데스크톱에선 이 래퍼를 없애 적립금·상태배지를 부모의 직접 자식으로 만든다.
+       그래야 적립금은 첫 줄에 남고 상태 배지'만' 아랫줄로 내려간다.
+       (래퍼째 내려가면 적립금까지 같이 끌려 내려간다.) */
+    @media (min-width: 841px) {
+        display: contents;
+    }
+
     @media (max-width: 840px) {
         width: 100%;
         justify-content: space-between;
@@ -215,6 +234,12 @@ const StyledPrice = styled.span`
     font-size: var(--small-font);
     font-weight: 600;
     color: var(--dark-gray-color);
+
+    /* 래퍼가 display: contents 라 여기서 직접 우측으로 민다. */
+    @media (min-width: 841px) {
+        margin-left: auto;
+        flex-shrink: 0;
+    }
 `;
 
 const StyledPriceLabel = styled.span`
@@ -227,5 +252,11 @@ const StyledStatusCounts = styled.div`
     gap: 4px;
     flex-wrap: wrap;
     justify-content: flex-end;
+
+    /* 자리가 모자라면 이것만 아랫줄로 내려간다(부모가 flex-wrap: wrap). */
+    @media (min-width: 841px) {
+        flex-shrink: 0;
+        margin-left: auto;
+    }
 `;
 

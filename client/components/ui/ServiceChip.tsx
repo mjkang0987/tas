@@ -15,6 +15,11 @@ export const StyledServiceText = styled.span<{ $color: string }>`
     font-size: var(--xsmall-font);
     font-weight: 600;
     line-height: 1.2;
+    /* 한글은 공백이 없어도 글자 사이에서 끊긴다. 이게 없으면 폭이 좁아질 때
+       "남자디자인펌" 이 한 글자씩 세로로 쪼개진다(주소록에서 행 높이가 19px → 98px
+       로 터졌다). 칩이 글자 단위로 갈라지는 게 맞는 화면은 없으므로 공용으로 막는다.
+       한 줄을 강제하지는 않는다 — 그건 소비처가 필요하면 nowrap 으로 정한다. */
+    word-break: keep-all;
 `;
 
 export const StyledServiceToken = styled.span`
