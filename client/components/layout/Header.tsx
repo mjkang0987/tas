@@ -338,7 +338,7 @@ export const Header = () => {
             )}
             {!(canUseSync && currentConflict) && currentSuggestion && (
                 <CustomerMergeSuggestionModal key={currentSuggestion.key}
-                                              suggestion={currentSuggestion}
+                                              selection={currentSuggestion}
                                               reservationMap={suggestionReservationMap}
                                               merging={mergeSuggestionMerging}
                                               onMerge={mergeSuggestion}

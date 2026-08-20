@@ -5,8 +5,8 @@ import styled from 'styled-components';
 
 import {buildAssigneeColorMap, buildAssigneeNameMap} from '../../features/assignees/model';
 import {buildServiceColorMap} from '../../features/services/model';
-import {summarizeCustomerReservations} from '../../features/customers/merge-suggestion';
-import type {MergeSuggestion} from '../../hooks/useCustomerMergeSuggestion';
+import {mergeSources, summarizeCustomerReservations} from '../../features/customers/merge-suggestion';
+import type {MergeSelection} from '../../features/customers/merge-suggestion';
 import {useCalendarStore} from '../../store/calendarStore';
 import type {Customer} from '../../utils/customers';
 import {formatTel} from '../../utils/customers';
@@ -24,18 +24,34 @@ import {
     useDialogAccessibility,
 } from '../calendar/overlays/ModalStyles';
 import {CloseIconButton} from '../ui/CloseIconButton';
+import {LabelBadge} from '../ui/LabelBadge';
 import {ReservationInfoCard} from '../ui/ReservationInfoCard';
 import {NaverBookingInfo} from '../ui/NaverBookingInfo';
 
 interface Props {
-    suggestion: MergeSuggestion;
+    selection: MergeSelection;
     reservationMap: Record<string, Reservation[]>;
     merging: boolean;
     onMerge: (targetId: number) => void;
+    /** 자동 제안은 '건너뛰기'(다시 안 뜸), 수동 병합은 '취소'(그냥 닫기) */
     onSkip: () => void;
     onDismiss: () => void;
     onReservationClick?: (reservation: Reservation) => void;
 }
+
+/** 경로별 문구. 상단/하단 카드가 뜻하는 바가 달라 그대로 쓸 수 없다 */
+const COPY = {
+    suggestion: {
+        skipLabel: '건너뛰기',
+        guideMulti: '이름이 같은 고객이 여러 명입니다. 연락처·예약 내역을 보고 고르세요. 고르지 않은 고객은 그대로 남습니다.',
+        guideSingle: '병합 기준 고객의 이름·연락처가 유지되고, 위 고객의 예약·적립금이 옮겨집니다.',
+    },
+    manual: {
+        skipLabel: '취소',
+        guideMulti: '기준 고객의 이름·연락처가 유지되고, 삭제 표시된 고객의 예약·적립금이 모두 옮겨집니다.',
+        guideSingle: '기준 고객의 이름·연락처가 유지되고, 나머지 고객의 예약·적립금이 옮겨집니다.',
+    },
+} as const;
 
 function formatDate(dateStr: string | null | undefined): string {
     if (!dateStr) return '-';
@@ -43,7 +59,7 @@ function formatDate(dateStr: string | null | undefined): string {
 }
 
 export const CustomerMergeSuggestionModal = ({
-    suggestion,
+    selection,
     reservationMap,
     merging,
     onMerge,
@@ -54,11 +70,14 @@ export const CustomerMergeSuggestionModal = ({
     const noop = useCallback(() => {}, []);
     const dialogRef = useDialogAccessibility<HTMLDivElement>(noop);
 
-    const {masked, candidates} = suggestion;
+    const {mode, targetChoices} = selection;
     // 후보가 1명뿐이면 고를 것이 없다. 선택 컨트롤 자체를 띄우지 않는다.
-    const hasChoice = candidates.length > 1;
+    const hasChoice = targetChoices.length > 1;
+    const copy = COPY[mode];
 
-    const [selectedTargetId, setSelectedTargetId] = useState(suggestion.targetId);
+    const [selectedTargetId, setSelectedTargetId] = useState(selection.targetId);
+    // 흡수되어 사라질 고객. 수동 병합은 기준을 바꾸면 여기도 바뀐다.
+    const sources = mergeSources(selection, selectedTargetId);
 
     const serviceCatalog = useCalendarStore((s) => s.serviceCatalog);
     const categoryBaseColorMap = useCalendarStore((s) => s.categoryBaseColorMap);
@@ -73,15 +92,30 @@ export const CustomerMergeSuggestionModal = ({
     const assigneeColorMap = useMemo(() => buildAssigneeColorMap(assignees), [assignees]);
     // 카드마다 전체 예약을 두 번(건수·최근 예약) 훑던 것을 한 번으로 줄인다.
     const reservationSummary = useMemo(
-        () => summarizeCustomerReservations([masked.id, ...candidates.map((c) => c.id)], reservationMap),
-        [masked.id, candidates, reservationMap],
+        () => summarizeCustomerReservations(
+            [...(selection.maskedSource ? [selection.maskedSource.id] : []), ...targetChoices.map((c) => c.id)],
+            reservationMap,
+        ),
+        [selection.maskedSource, targetChoices, reservationMap],
     );
     const assigneeNameMap = useMemo(() => buildAssigneeNameMap(assignees, true), [assignees]);
 
     const modalRoot = typeof document !== 'undefined' ? document.getElementById('modal-root') : null;
     if (!modalRoot) return null;
 
-    const canMerge = candidates.some((c) => c.id === selectedTargetId);
+    // 자동 제안은 "이 마스킹 고객이 누구냐"를 묻는다. 수동 병합은 고객을 이미 사람이
+    // 골라 왔으므로, 남길 기준이 누구인지만 물으면 된다.
+    const sourceNames = sources.map((c) => c.name).join(', ');
+    const title = mode === 'manual'
+        ? '고객 병합'
+        : (hasChoice ? '어느 고객인가요?' : '같은 고객인가요?');
+    const description = mode === 'manual'
+        ? `선택한 ${targetChoices.length}명 중 남길 기준 고객을 고르세요.`
+        : (hasChoice
+            ? `${sourceNames} 님을 합칠 고객을 선택하세요.`
+            : `${sourceNames} 님과 ${targetChoices[0].name} 님이 같은 분이면 합칩니다.`);
+
+    const canMerge = targetChoices.some((c) => c.id === selectedTargetId) && sources.length > 0;
 
     const handleMerge = () => {
         if (!canMerge) return;
@@ -161,42 +195,45 @@ export const CustomerMergeSuggestionModal = ({
             <StyledMergeModal ref={dialogRef} tabIndex={-1} onClick={(e) => e.stopPropagation()}>
                 <StyledHeader>
                     <StyledHeaderTitleGroup>
-                        <StyledMergeTitle>{hasChoice ? '어느 고객인가요?' : '같은 고객인가요?'}</StyledMergeTitle>
-                        <StyledHeaderTitleGroupText>
-                            {hasChoice
-                                ? `${masked.name} 님을 합칠 고객을 선택하세요.`
-                                : `${masked.name} 님과 ${candidates[0].name} 님이 같은 분이면 합칩니다.`}
-                        </StyledHeaderTitleGroupText>
+                        <StyledMergeTitle>{title}</StyledMergeTitle>
+                        <StyledHeaderTitleGroupText>{description}</StyledHeaderTitleGroupText>
                     </StyledHeaderTitleGroup>
                     <CloseIconButton onClick={onDismiss} />
                 </StyledHeader>
                 <StyledScrollArea>
-                    {/* 위 카드에는 구획 제목을 두지 않는다. 헤더가 이미 이 고객을 지목하고 있고,
-                        아래 화살표가 방향을 말한다. */}
-                    <StyledCustomerItem>
-                        <StyledIdentityRow>
-                            <StyledCustomerName>{masked.name}</StyledCustomerName>
-                            <StyledTel>{masked.tel ? formatTel(masked.tel) : '연락처 없음'}</StyledTel>
-                        </StyledIdentityRow>
-                        {renderCustomerDetail(masked)}
-                    </StyledCustomerItem>
+                    {/* 자동 제안은 흡수될 마스킹 고객이 고정이라 위에 따로 세우고 화살표로 방향을 말한다.
+                        수동 병합은 선택한 고객 전원이 기준 후보라, 같은 고객을 위아래에 두 번 그리게 된다.
+                        그래서 목록 하나만 두고 행마다 기준/삭제 배지로 방향을 표시한다. */}
+                    {mode === 'suggestion' && (
+                        <>
+                            {sources.map((source) => (
+                                <StyledCustomerItem key={source.id}>
+                                    <StyledIdentityRow>
+                                        <StyledCustomerName>{source.name}</StyledCustomerName>
+                                        <StyledTel>{source.tel ? formatTel(source.tel) : '연락처 없음'}</StyledTel>
+                                    </StyledIdentityRow>
+                                    {renderCustomerDetail(source)}
+                                </StyledCustomerItem>
+                            ))}
 
-                    <StyledMergeArrow aria-hidden="true">
-                        <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
-                            <path d="M10 3.5v13M4.5 11l5.5 5.5L15.5 11"
-                                  stroke="currentColor"
-                                  strokeWidth="2"
-                                  strokeLinecap="round"
-                                  strokeLinejoin="round" />
-                        </svg>
-                    </StyledMergeArrow>
+                            <StyledMergeArrow aria-hidden="true">
+                                <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+                                    <path d="M10 3.5v13M4.5 11l5.5 5.5L15.5 11"
+                                          stroke="currentColor"
+                                          strokeWidth="2"
+                                          strokeLinecap="round"
+                                          strokeLinejoin="round" />
+                                </svg>
+                            </StyledMergeArrow>
+                        </>
+                    )}
 
                     <StyledSectionTitle id="merge-target-label">
                         {hasChoice ? '병합 기준 고객 선택' : '병합 기준 고객'}
                     </StyledSectionTitle>
                     <StyledCustomerList role={hasChoice ? 'radiogroup' : undefined}
                                         aria-labelledby={hasChoice ? 'merge-target-label' : undefined}>
-                        {candidates.map((customer) => {
+                        {targetChoices.map((customer) => {
                             const isTarget = customer.id === selectedTargetId;
                             return (
                                 <StyledCustomerItem key={customer.id} $isTarget={isTarget}>
@@ -211,6 +248,11 @@ export const CustomerMergeSuggestionModal = ({
                                                 />
                                             )}
                                             <StyledCustomerName>{customer.name}</StyledCustomerName>
+                                            {mode === 'manual' && (
+                                                <LabelBadge $tone={isTarget ? 'info' : 'danger'}>
+                                                    {isTarget ? '기준' : '삭제'}
+                                                </LabelBadge>
+                                            )}
                                         </StyledChoiceLabel>
                                         <StyledTel>{customer.tel ? formatTel(customer.tel) : '연락처 없음'}</StyledTel>
                                     </StyledIdentityRow>
@@ -219,15 +261,11 @@ export const CustomerMergeSuggestionModal = ({
                             );
                         })}
                     </StyledCustomerList>
-                    <StyledGuide>
-                        {hasChoice
-                            ? '이름이 같은 고객이 여러 명입니다. 연락처·예약 내역을 보고 고르세요. 고르지 않은 고객은 그대로 남습니다.'
-                            : '병합 기준 고객의 이름·연락처가 유지되고, 위 고객의 예약·적립금이 옮겨집니다.'}
-                    </StyledGuide>
+                    <StyledGuide>{hasChoice ? copy.guideMulti : copy.guideSingle}</StyledGuide>
                 </StyledScrollArea>
                 <StyledFooter>
                     <StyledActionButton type="button" onClick={onSkip} disabled={merging}>
-                        건너뛰기
+                        {copy.skipLabel}
                     </StyledActionButton>
                     <StyledActionButton type="button" $primary onClick={handleMerge} disabled={merging || !canMerge}>
                         {merging ? '병합 중...' : '병합'}
