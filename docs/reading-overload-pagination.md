@@ -92,7 +92,7 @@
   - ⚠️ 현재 서버는 **클라가 보낸 값을 수동 저장만** 함(`customers.ts:46/121/132`, 병합만 `customers-merge.ts:120`에서 이른값 채택). 즉 "서버가 유지"는 **신규 로직**: 예약 생성 시 min 갱신 + **취소/삭제 시 그 고객 예약 재조회로 재계산**(완화는 by-customer 조회 동반). map 페이징과 직접 충돌하는 최대 난점.
 - **전수 스캔 — 충돌/중복/병합 (집계 아님, `groupBy` 불가 → 별도 방침):**
   - 병합제안: `useCustomerMergeSuggestion.ts:49/62/102`, `CustomerMergeSuggestionModal.tsx:43`.
-  - 네이버 동기화 충돌/중복: `useNaverBookingSync.ts:105/162/545/600`, `NaverSyncNotification.tsx:95/294`, `NaverSyncConflictModal.tsx:69`, `naverSyncConflictStorage.ts:44`.
+  - 네이버 동기화 충돌/중복: `useNaverBookingSync.ts:105/162/545/600`, `NaverSyncNotification.tsx:95/294`, `NaverSyncConflictModal.tsx:69`.
   - → **결정 필요(B 착수 전, 위 전수스캔 전체에 일괄 적용)**: ⓐ 탐지를 서버로 이관 vs ⓑ "로드된 윈도우 한정"으로 축소(기능 약화 감수). **하나만 고치면 나머지 구멍.**
     - ⚠️ ⓐ로 가도 **서버측 스캔 자체를 bound**해야 함: `naver-booking-sync.ts:88`의 매 폴링 `findMany({naverBookingId:{not:null}})` 풀스캔은 클라 이관과 별개로 무한증가 → 인덱스+범위/증분 조회로 제한.
 

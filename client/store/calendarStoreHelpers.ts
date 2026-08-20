@@ -9,6 +9,64 @@ import {
     shouldUseLocalDb,
     updateLocalDbSnapshot,
 } from '../lib/local-db';
+import {useToastStore} from './toastStore';
+
+/** 응답 본문에서 서버가 준 사유를 뽑는다. 없으면 상태줄로 대신한다. */
+async function readErrorMessage(response: Response): Promise<string> {
+    const fallback = `${response.status} ${response.statusText}`;
+    try {
+        const data = await response.clone().json();
+        if (data?.error) return String(data.error);
+    } catch {
+        // JSON 이 아니면 본문을 그대로 본다.
+    }
+    try {
+        const text = await response.text();
+        if (text) return text;
+    } catch {
+        // 본문을 못 읽으면 상태줄로 충분하다.
+    }
+    return fallback;
+}
+
+/**
+ * 서버 반영 요청. **실패를 삼키지 않는다.**
+ *
+ * `fetch` 는 500·403·401 에도 정상 resolve 한다. 그래서 `res.ok` 를 보지 않으면
+ * 실패가 `.catch` 에 걸리지 않고 성공으로 흘러간다. 예전 구현이 정확히 그랬고,
+ * "로컬은 저장됐는데 서버는 모르는" 상태가 조용히 만들어졌다 — 사용자는 새로고침
+ * 하고 나서야 사라진 것을 알았다.
+ *
+ * 낙관적 로컬 상태는 되돌리지 않는다. 되돌리면 방금 입력한 내용이 눈앞에서
+ * 사라지고, 일시적 네트워크 오류에도 작업을 잃는다. 대신 실패를 토스트로 알려
+ * 사용자가 새로고침해 실제 상태를 확인하게 한다.
+ */
+export async function requestServerSync(
+    endpoint: string,
+    init: RequestInit,
+    failMessage: string,
+): Promise<boolean> {
+    const method = init.method ?? 'GET';
+    try {
+        const response = await fetch(endpoint, init);
+        if (response.ok) return true;
+        console.error(`[sync] ${method} ${endpoint} 실패:`, await readErrorMessage(response));
+    } catch (error) {
+        console.error(`[sync] ${method} ${endpoint} 요청 실패:`, error);
+    }
+
+    useToastStore.getState().show(failMessage, 'error');
+    return false;
+}
+
+/** JSON 본문 요청의 공통 init */
+export function jsonRequest(method: string, payload: unknown): RequestInit {
+    return {
+        method,
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify(payload),
+    };
+}
 
 export function syncServiceSettings(services: ServiceItem[], categoryBaseColors: Record<string, string>): void {
     const normalizedServices = services.map((service) => ({
@@ -49,68 +107,37 @@ export function syncServiceSettings(services: ServiceItem[], categoryBaseColors:
         return;
     }
 
-    fetch('/api/services', {
-        method: 'PUT',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({services: normalizedServices, categoryBaseColors})
-    })
-        .then(async (response) => {
-            if (response.ok) {
-                return;
-            }
-
-            let message = `${response.status} ${response.statusText}`;
-
-            try {
-                const data = await response.json();
-                if (data?.error) {
-                    message = data.error;
-                }
-            } catch {
-                try {
-                    const text = await response.text();
-                    if (text) {
-                        message = text;
-                    }
-                } catch {
-                    // Keep fallback message.
-                }
-            }
-
-            console.error('[services] sync failed:', message, normalizedServices);
-        })
-        .catch(() => {
-        // Preserve local UX even if sync fails; server data can be retried later.
-        });
+    void requestServerSync(
+        '/api/services',
+        jsonRequest('PUT', {services: normalizedServices, categoryBaseColors}),
+        '서비스 저장에 실패했습니다. 새로고침 후 다시 시도해 주세요.',
+    );
 }
 
 function syncToServer(
     endpoint: string,
     payload: unknown,
     localDbUpdater: (current: LocalDbSnapshot) => LocalDbSnapshot,
+    failMessage: string,
 ): Promise<void> {
     if (shouldUseLocalDb()) {
         updateLocalDbSnapshot(localDbUpdater);
         return Promise.resolve();
     }
 
-    return fetch(endpoint, {
-        method: 'PUT',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify(payload),
-    }).then(() => undefined).catch(() => {
-        // Preserve local UX even if sync fails; server data can be retried later.
-    });
+    return requestServerSync(endpoint, jsonRequest('PUT', payload), failMessage).then(() => undefined);
 }
 
 export function syncAssigneeSettings(assignees: Assignee[]): void {
-    void syncToServer('/api/assignees', {assignees}, (c) => ({...c, assignees}));
+    void syncToServer('/api/assignees', {assignees}, (c) => ({...c, assignees}),
+        '담당자 저장에 실패했습니다. 새로고침 후 다시 시도해 주세요.');
 }
 
 // 서버 저장이 끝나면 resolve. 신규 고객을 만든 직후 예약을 POST해야 하는 경우,
 // 호출 측에서 await 해 고객이 서버에 먼저 존재하도록 보장한다.
 export function syncCustomerSettings(customers: Customer[]): Promise<void> {
-    return syncToServer('/api/customers', {customers}, (c) => ({...c, customers}));
+    return syncToServer('/api/customers', {customers}, (c) => ({...c, customers}),
+        '고객 정보 저장에 실패했습니다. 새로고침 후 다시 시도해 주세요.');
 }
 
 // 신규 고객 1명만 빠르게 저장(서버는 단일 POST). 전체 목록 PUT(고객 수에 비례해 수 초)
@@ -122,11 +149,8 @@ export function persistNewCustomer(customer: Customer, allCustomers: Customer[])
         return Promise.resolve();
     }
 
-    return fetch('/api/customers', {
-        method: 'POST',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({customer}),
-    }).then(() => undefined).catch(() => {});
+    return requestServerSync('/api/customers', jsonRequest('POST', {customer}),
+        '고객 등록에 실패했습니다. 새로고침 후 다시 시도해 주세요.').then(() => undefined);
 }
 
 // 고객 영구 삭제. 서버에선 그 고객의 예약·적립금·메모가 cascade로 함께 삭제된다.
@@ -140,11 +164,8 @@ export function deleteCustomerOnServer(customerId: number): Promise<void> {
         return Promise.resolve();
     }
 
-    return fetch('/api/customers', {
-        method: 'DELETE',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({id: customerId}),
-    }).then(() => undefined).catch(() => {});
+    return requestServerSync('/api/customers', jsonRequest('DELETE', {id: customerId}),
+        '고객 삭제가 서버에 반영되지 않았습니다. 새로고침 후 다시 시도해 주세요.').then(() => undefined);
 }
 
 // 담당자 영구 삭제(분리 삭제). 서버에선 스케줄이 cascade로 함께 삭제되고,
@@ -161,15 +182,13 @@ export function deleteAssigneeOnServer(assigneeId: number): Promise<void> {
         return Promise.resolve();
     }
 
-    return fetch('/api/assignees', {
-        method: 'DELETE',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({id: assigneeId}),
-    }).then(() => undefined).catch(() => {});
+    return requestServerSync('/api/assignees', jsonRequest('DELETE', {id: assigneeId}),
+        '담당자 삭제가 서버에 반영되지 않았습니다. 새로고침 후 다시 시도해 주세요.').then(() => undefined);
 }
 
 export function syncStoreSettings(storeSettings: StoreSettings): void {
-    syncToServer('/api/store', storeSettings, (c) => ({...c, storeSettings}));
+    void syncToServer('/api/store', storeSettings, (c) => ({...c, storeSettings}),
+        '매장 설정 저장에 실패했습니다. 새로고침 후 다시 시도해 주세요.');
 }
 
 export function syncStoreInfo(
@@ -182,11 +201,11 @@ export function syncStoreInfo(
         return;
     }
 
-    fetch('/api/store', {
-        method: 'PATCH',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify(storeNameI18n !== undefined ? {storeName, shopType, storeNameI18n} : {storeName, shopType}),
-    }).catch(() => {});
+    void requestServerSync(
+        '/api/store',
+        jsonRequest('PATCH', storeNameI18n !== undefined ? {storeName, shopType, storeNameI18n} : {storeName, shopType}),
+        '매장 정보 저장에 실패했습니다. 새로고침 후 다시 시도해 주세요.',
+    );
 }
 
 export function syncStoreFeatures(patch: {usePointSystem?: boolean; useMembershipSystem?: boolean; useCouponSystem?: boolean; useOnlineBooking?: boolean}): void {
@@ -195,11 +214,8 @@ export function syncStoreFeatures(patch: {usePointSystem?: boolean; useMembershi
         return;
     }
 
-    fetch('/api/store', {
-        method: 'PATCH',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify(patch),
-    }).catch(() => {});
+    void requestServerSync('/api/store', jsonRequest('PATCH', patch),
+        '매장 설정 저장에 실패했습니다. 새로고침 후 다시 시도해 주세요.');
 }
 
 export function syncReservationState(reservationMap: ReservationMap, history: ReservationHistoryEntry[]): void {
