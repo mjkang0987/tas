@@ -109,6 +109,44 @@ export const Timeline = ({
         + now.getMinutes() * scale.minuteHeight
         + now.getSeconds() * (scale.minuteHeight / 60);
     const timelineRef = useRef<HTMLDivElement | null>(null);
+    const nowBarRef = useRef<HTMLSpanElement | null>(null);
+
+    // 오늘이면 열자마자 현재시각이 화면 위쪽에 오도록 스크롤한다.
+    //
+    // 타임라인은 영업시간 전체(예: 09~20시)를 세로로 펼치므로 첫 화면은 언제나 개점
+    // 시각이다. 오후에 열면 현재시각 바가 한참 아래에 있어 매번 손으로 내려야 했다.
+    // 위쪽 여백은 `StyledBar` 의 `scroll-margin-top` 이 정한다 — 가운데 두면 이미
+    // 지나간 시간대가 절반을 먹는다. 앞으로 올 예약이 더 보여야 한다.
+    //
+    // **높이가 확정된 뒤에 놓아야 한다.** 마운트 직후엔 콘텐츠가 짧아 스크롤이 그 시점의
+    // 최대치에 걸린다(측정: 목표 72px 인데 426px 에서 멈췄고, 나중에 최대치가 늘어도
+    // 그대로였다). 그래서 크기가 바뀔 때마다 다시 놓는다.
+    //
+    // 최초 1회만(deps: isToday). 매 30초 `now` 가 갱신될 때마다 스크롤하면 사용자가
+    // 다른 시간대를 보고 있어도 계속 끌려온다.
+    useEffect(() => {
+        if (!isToday) return;
+
+        const place = () => {
+            nowBarRef.current?.scrollIntoView({block: 'start', inline: 'nearest', behavior: 'auto'});
+        };
+
+        // 크기가 바뀔 때마다 다시 놓되, 짧은 창(1초) 뒤에는 관찰을 끝낸다.
+        // "더 이상 안 움직이면 정착"으로 판정했더니 `ResizeObserver` 가 관찰 시작 시
+        // 한 번 즉시 호출되는 바람에 콘텐츠가 커지기도 전에 끊겨, 최대치에 걸린
+        // 위치(72px 목표인데 426px)에 머물렀다.
+        const observer = new ResizeObserver(place);
+        const wrap = timelineRef.current;
+        if (wrap) observer.observe(wrap);
+        place();
+
+        const stop = window.setTimeout(() => observer.disconnect(), 1000);
+
+        return () => {
+            window.clearTimeout(stop);
+            observer.disconnect();
+        };
+    }, [isToday]);
     const [isTouchDevice, setIsTouchDevice] = useState(false);
     const [openClusterState, setOpenClusterState] = useState<{ dateKey: string; cluster: TimelineClusterData } | null>(null);
     const pendingClusterReservationRef = useRef<Reservation | null>(null);
@@ -199,7 +237,7 @@ export const Timeline = ({
                 onClick={setMousePositionHandler}
             />
         )}
-        {isToday && <StyledBar $top={barTop} />}
+        {isToday && <StyledBar ref={nowBarRef} $top={barTop} />}
         {timelineEntries.map((entry) => {
             if (entry.kind === 'cluster') {
                 const {cluster} = entry;
@@ -342,6 +380,9 @@ const StyledBar = styled.span<{ $top: number }>`
     height: 2px;
     background-color: var(--orange-color);
     pointer-events: none;
+    /* 자동 스크롤 시 화면 맨 위에 딱 붙지 않게 여백을 둔다.
+       바로 앞 시간대가 조금 보여야 "지금 어디쯤인지" 읽힌다. */
+    scroll-margin-top: 72px;
 
     &:before {
         content: "";
