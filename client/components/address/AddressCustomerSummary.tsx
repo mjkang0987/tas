@@ -174,7 +174,10 @@ const StyledRecentService = styled.span`
 
     @media (min-width: 841px) {
         width: auto;
-        flex: 1;
+        /* 줄어들지 않는다. 자리가 모자라면 이게 짜부라지는 대신
+           옆의 적립금·예약상태 블록이 부모의 flex-wrap 을 타고 아랫줄로 내려간다. */
+        flex: 1 0 auto;
+        max-width: 100%;
         flex-wrap: nowrap;
         gap: 4px;
         overflow: hidden;
@@ -182,11 +185,19 @@ const StyledRecentService = styled.span`
 `;
 
 // 시술명이 공백에서 쪼개지지 않게 — 모바일 한정. 데스크톱은 작업 이전 동작 유지.
+// 시술명은 어떤 폭에서도 줄바꿈하지 않는다.
+//
+// 한글은 공백이 없어도 글자 사이에서 끊기므로, 폭이 모자라면 `남자디자인펌` 이
+// 한 글자씩 세로로 쪼개져 행 높이가 19px → 98px 로 터진다(841~980px 구간에서 실제로
+// 그랬다 — nowrap 이 `max-width: 840px` 안에만 있어 그 위 구간이 비어 있었다).
+//
+// 대신 폭이 모자라면 **예약 상태 배지가 줄바꿈**한다(`StyledStatusCounts`).
+// 시술명은 한 줄로 두고 넘치면 말줄임한다.
 const StyledServiceChips = styled(ServiceChipList)`
-    @media (max-width: 840px) {
-        ${StyledServiceText} {
-            white-space: nowrap;
-        }
+    ${StyledServiceText} {
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
     }
 `;
 
@@ -201,10 +212,14 @@ const StyledBlockRow = styled.div`
     align-items: center;
     gap: 8px;
     flex-shrink: 0;
+    /* 자리가 모자라면 통째로 아랫줄로 내려간다(부모가 flex-wrap: wrap).
+       시술명을 짜부라뜨리지 않기 위해 이쪽이 양보한다. */
+    margin-left: auto;
 
     @media (max-width: 840px) {
         width: 100%;
         justify-content: space-between;
+        margin-left: 0;
     }
 `;
 
