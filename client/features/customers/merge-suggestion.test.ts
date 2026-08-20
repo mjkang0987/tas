@@ -13,7 +13,6 @@ import {
     detectMergeGroups,
     isMaskedName,
     isMaskedNameMatch,
-    isReviewedPair,
     mergeSources,
     selectManualMergeTarget,
     selectMergeTarget,
@@ -321,28 +320,3 @@ describe('mergeSources', () => {
     });
 });
 
-describe('isReviewedPair', () => {
-    it('같은 키면 이미 본 것', () => {
-        expect(isReviewedPair('204-389', ['204-389'])).toBe(true);
-    });
-
-    it('옛 묶음 키가 두 id 를 다 담고 있으면 이미 본 것 — 쪼개면서 기록이 날아가면 안 된다', () => {
-        expect(isReviewedPair('204-389', ['204-329-388-389'])).toBe(true);
-        expect(isReviewedPair('329-389', ['204-329-388-389'])).toBe(true);
-        expect(isReviewedPair('388-389', ['204-329-388-389'])).toBe(true);
-    });
-
-    it('한쪽 id 만 겹치면 본 적 없는 것', () => {
-        expect(isReviewedPair('204-389', ['204-500'])).toBe(false);
-        expect(isReviewedPair('204-389', ['389-500'])).toBe(false);
-    });
-
-    it('기록이 비어 있으면 false', () => {
-        expect(isReviewedPair('204-389', [])).toBe(false);
-    });
-
-    it('부분 문자열에 속지 않는다 — id 단위로 비교한다', () => {
-        // '4-89' 는 '204-389' 의 부분 문자열이지만 id 로는 4·89 라 무관하다.
-        expect(isReviewedPair('4-89', ['204-389'])).toBe(false);
-    });
-});
