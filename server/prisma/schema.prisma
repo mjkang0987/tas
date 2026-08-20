@@ -423,6 +423,25 @@ model CustomerMergeHistory {
   @@index([storeId])
 }
 
+/// 병합 제안 '건너뛰기' 기록. 마스킹 고객 1명 : 실명 고객 1명 쌍 단위.
+///
+/// localStorage 에 두면 기기·관리자마다 따로 놀고 캐시를 지우면 사라진다.
+/// 중복예약 처리 이력(ConflictResolution)과 같은 이유로 서버에 둔다 —
+/// 한 사람이 "다른 사람이다" 라고 판단했으면 그건 매장의 판단이지 브라우저의 것이 아니다.
+model CustomerMergeSkip {
+  id          String   @id @default(cuid())
+  storeId     String
+  /// 프론트 id(= Customer.legacyId). Customer.id(cuid)가 아니다.
+  maskedId    Int
+  /// 프론트 id(= Customer.legacyId)
+  candidateId Int
+  skippedBy   String?
+  createdAt   DateTime @default(now())
+
+  @@unique([storeId, maskedId, candidateId])
+  @@index([storeId])
+}
+
 model ConflictResolution {
   id          String   @id @default(cuid())
   storeId     String

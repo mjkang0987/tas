@@ -267,6 +267,7 @@ NextAuth 5.0 설정. Google·Kakao·Naver OAuth 지원.
 | `reservations.ts` | `/api/reservations` | GET/POST/PUT/PATCH(staff) / DELETE(manager) | - | 예약 CRUD + 상태 변경. legacyId↔CUID 변환. 신규/취소/노쇼/삭제/변경 시 Slack 알림(`notifySlackForStore`). DELETE=영구삭제(매니저 이상) |
 | `customers.ts` | `/api/customers` | GET/PUT/POST(staff) / DELETE(owner) | - | GET 조회, PUT 다건 upsert, **POST 단건 저장(신규 고객→예약 레이스 방지)**, DELETE 고객 영구삭제(예약·적립금 cascade, 오너 전용) |
 | `customers-merge.ts` | `/api/customers/merge` | POST | staff | 고객 병합 (예약·포인트·태그 이전) |
+| `customer-merge-skip.ts` | `/api/customer-merge-skip` | GET·POST | staff | 병합 제안 '건너뛰기' 기록[^36] |
 | `customers-unmerge.ts` | `/api/customers/unmerge` | POST | staff | 병합 해제 (이력 기반 복원) |
 | `customers-merge-history.ts` | `/api/customers/merge-history` | GET | staff | 병합 이력 조회 |
 | `conflict-resolution.ts` | `/api/conflict-resolution` | GET/POST | staff | 예약 시간 중복 처리 기록(매장 단위). **처리 여부의 단일 출처** — 사유·메모는 선택이라 POST 는 빈 사유도 받는다[^32] |
@@ -454,6 +455,8 @@ features/customers/merge-suggestion.ts (그룹 규칙 — 순수 모듈)
 | `김민*` + `김*수` | 0건 | 실명 후보 없음 — 기준이 될 이름이 없다 |
 
 병합 시 **source는 언제나 마스킹 고객 1명뿐**이다. 실명 고객끼리는 어떤 경우에도 병합하지 않는다.
+
+[^36]: 마스킹 1명 : 실명 1명 **쌍 단위**로 저장한다(`CustomerMergeSkip`, `@@unique([storeId, maskedId, candidateId])`). 예전엔 localStorage 에 뒀는데, 그러면 기기·관리자마다 따로 놀고(PC 에서 건너뛴 것이 태블릿에서 또 뜬다) 캐시를 지우면 판단이 통째로 사라진다 — 중복예약 처리 이력(`ConflictResolution`)을 서버에 둔 것과 같은 이유다. ⚠️ 오가는 `maskedId`/`candidateId` 는 **프론트 id = `Customer.legacyId`** 다(`Customer.id` 는 cuid). 기록을 못 받으면 **감지를 아예 하지 않는다** — 빈 집합으로 진행하면 이미 "다른 사람"이라 판단한 제안이 전부 다시 뜬다. 건너뛰기를 **되돌리는 UI 는 없다**(알림에도 남지 않는다 — `SyncNotification.type` 은 `sync|cancel|conflict` 뿐이다). 잘못 눌러도 **주소록의 수동 병합**으로 언제든 합칠 수 있으므로 되돌릴 길을 따로 두지 않았다 — 되돌릴 수 없는 것은 *제안이 다시 뜨는 것* 이지 *병합* 이 아니다. FK 가 없으므로 **고객 삭제·병합 시 그 고객을 가리키던 기록을 함께 지운다**(`customers.ts` DELETE, `customers-merge.ts`) — 안 지우면 고아로 남고, 네이버 동기화가 `legacyId` 를 `max + 1` 로 발급하므로 지운 고객이 최대값이었을 때 **다음 고객이 같은 번호를 물려받아 엉뚱한 제안이 조용히 막힌다.**
 
 [^33]: 예전엔 후보를 한 카드에 모아 라디오로 고르게 하고, 실명 이름이 2종 이상이면 "누구인지 판정 불가"로 아예 접었다. **고객이 수백 명이면 이 규칙이 제안을 거의 전멸시킨다** — `이*민` 은 `이O민` 전부와 매칭되므로 후보가 여럿이 되고 이름도 여러 종이 된다(운영 264명에서 `이*민` 하나에 이상민·이승민·이유민이 잡혀 배제됐다). 판정은 어차피 사람이 하므로 묶어서 접지 않고 하나씩 묻는다. 부수 효과로 자동 제안 경로에서 **라디오가 사라진다**(수동 병합에는 남는다). 건너뛰기 기록은 그룹 전체 id를 이어붙인 문자열이라 쪼개면 안 맞는다 — `isReviewedPair` 가 문자열 일치가 아니라 **id 포함 관계**로 판정해 기존 기록을 승계한다.
 

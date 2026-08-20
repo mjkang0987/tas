@@ -188,7 +188,17 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             return res.status(404).json({error: 'Customer not found'});
         }
 
-        await prisma.customer.delete({where: {id: customer.id}});
+        // 병합 건너뛰기 기록도 함께 지운다. FK 가 없어 그대로 두면 고아로 남고,
+        // legacyId 가 재발급되면 엉뚱한 고객의 제안을 막는다(`customers-merge.ts` 참조).
+        await prisma.$transaction([
+            prisma.customerMergeSkip.deleteMany({
+                where: {
+                    storeId: session.storeId,
+                    OR: [{maskedId: id}, {candidateId: id}],
+                },
+            }),
+            prisma.customer.delete({where: {id: customer.id}}),
+        ]);
         return res.status(200).json({ok: true});
     }
 

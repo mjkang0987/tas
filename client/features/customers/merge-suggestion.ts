@@ -98,28 +98,6 @@ export interface MergeSelection {
     targetId: number;
 }
 
-/**
- * 이 제안을 이미 건너뛴 적이 있는가.
- *
- * 예전엔 후보 여럿을 한 건으로 묶어 키가 `'204-329-388-389'` 처럼 길었다. 1:1 로
- * 쪼개면 키가 `'204-389'` 가 되어 옛 기록과 문자열이 안 맞고, **건너뛴 제안이
- * 전부 되살아난다**(운영에 126건이 쌓여 있었다).
- *
- * 그래서 문자열 일치가 아니라 **id 포함 관계**로 본다 — 옛 키가 이 쌍의 두 id를
- * 모두 담고 있으면 그때 같이 보여준 조합이므로 이미 판단한 것으로 친다.
- */
-export function isReviewedPair(key: string, reviewedKeys: Iterable<string>): boolean {
-    const ids = key.split('-');
-
-    for (const reviewed of reviewedKeys) {
-        if (reviewed === key) return true;
-        const reviewedIds = new Set(reviewed.split('-'));
-        if (ids.every((id) => reviewedIds.has(id))) return true;
-    }
-
-    return false;
-}
-
 export interface CustomerReservationSummary {
     count: number;
     /** 가장 최근 예약(날짜·시작시각 기준). 예약이 없으면 null */
