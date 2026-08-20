@@ -206,8 +206,7 @@ hair_reservations/
 | 파일 | 역할 |
 |------|------|
 | `useStoreLabels.ts` | 매장 업종(shopType)에 맞는 `{assignee, service}` 표시어 반환 (업종별 라벨) |
-| `useNaverBookingSync.ts` | 네이버 예약 동기화[^8]. 자동 폴링, 중복 감지, 알림 생성, conflict 큐 관리 |
-| `naverSyncConflictStorage.ts` | conflict **표시 상태**(미해결 충돌쌍) localStorage 영속화. 처리 여부는 여기가 아니라 서버가 갖는다[^32] |
+| `useNaverBookingSync.ts` | 네이버 예약 동기화[^8]. 자동 폴링, 중복 감지, 알림 생성, conflict 큐 관리. 미해결 충돌쌍의 localStorage 영속화도 여기 있다(처리 여부는 서버가 갖는다[^32]) |
 | `useCustomerMergeSuggestion.ts` | 마스킹 이름 병합 제안 감지·큐 (게스트 모드 제외). 그룹 규칙은 `features/customers/merge-suggestion.ts` |
 | `useRouteChangeSync.ts` | 라우트 변경 시 데이터 동기화 |
 | `useIsomorphicEffect.tsx` | SSR 안전한 useEffect |
