@@ -212,14 +212,17 @@ const StyledBlockRow = styled.div`
     align-items: center;
     gap: 8px;
     flex-shrink: 0;
-    /* 자리가 모자라면 통째로 아랫줄로 내려간다(부모가 flex-wrap: wrap).
-       시술명을 짜부라뜨리지 않기 위해 이쪽이 양보한다. */
-    margin-left: auto;
+
+    /* 데스크톱에선 이 래퍼를 없애 적립금·상태배지를 부모의 직접 자식으로 만든다.
+       그래야 적립금은 첫 줄에 남고 상태 배지'만' 아랫줄로 내려간다.
+       (래퍼째 내려가면 적립금까지 같이 끌려 내려간다.) */
+    @media (min-width: 841px) {
+        display: contents;
+    }
 
     @media (max-width: 840px) {
         width: 100%;
         justify-content: space-between;
-        margin-left: 0;
     }
 `;
 
@@ -230,6 +233,12 @@ const StyledPrice = styled.span`
     font-size: var(--small-font);
     font-weight: 600;
     color: var(--dark-gray-color);
+
+    /* 래퍼가 display: contents 라 여기서 직접 우측으로 민다. */
+    @media (min-width: 841px) {
+        margin-left: auto;
+        flex-shrink: 0;
+    }
 `;
 
 const StyledPriceLabel = styled.span`
@@ -242,5 +251,11 @@ const StyledStatusCounts = styled.div`
     gap: 4px;
     flex-wrap: wrap;
     justify-content: flex-end;
+
+    /* 자리가 모자라면 이것만 아랫줄로 내려간다(부모가 flex-wrap: wrap). */
+    @media (min-width: 841px) {
+        flex-shrink: 0;
+        margin-left: auto;
+    }
 `;
 
