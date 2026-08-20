@@ -124,6 +124,36 @@ describe('detectMergeGroups', () => {
         expect(groups[0].candidateIds).toEqual([1, 2]);
     });
 
+    it('표기만 다른 같은 번호는 1종으로 센다 — 하이픈 때문에 제안이 사라지면 안 된다', () => {
+        const groups = detectMergeGroups([
+            customer(1, '김민수', '010-1111-2222'),
+            customer(2, '김민수', '01011112222'),
+            customer(3, '김*수'),
+        ]);
+
+        expect(groups).toHaveLength(1);
+        expect(groups[0].candidateIds).toEqual([1, 2]);
+    });
+
+    it('마스킹 고객의 번호도 함께 센다 — 실명 후보와 다르면 제안하지 않는다', () => {
+        const groups = detectMergeGroups([
+            customer(1, '김민수', '01011112222'),
+            customer(2, '김*수', '01033334444'),
+        ]);
+
+        expect(groups).toEqual([]);
+    });
+
+    it('마스킹 고객의 번호가 실명 후보와 같으면 제안한다', () => {
+        const groups = detectMergeGroups([
+            customer(1, '김민수', '01011112222'),
+            customer(2, '김*수', '010-1111-2222'),
+        ]);
+
+        expect(groups).toHaveLength(1);
+        expect(groups[0].maskedId).toBe(2);
+    });
+
     it('실명 이름이 2종 이상이면 제안하지 않는다 — 마스킹이 누구인지 판정 불가', () => {
         const groups = detectMergeGroups([
             customer(1, '김민수'),

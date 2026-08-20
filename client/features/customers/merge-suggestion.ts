@@ -1,4 +1,5 @@
 import type {Reservation, ReservationMap} from '../reservations/model';
+import {normalizeTel} from './model';
 import type {Customer} from './model';
 
 /** 이름에 마스킹(`*`)이 포함됐는지 */
@@ -75,8 +76,18 @@ export function detectMergeGroups(customers: Customer[]): MergeCandidateGroup[] 
 
         // 빈 연락처는 "다른 번호"로 세지 않는다. 비어 있는 것은 정보가 없는 것이지
         // 다르다는 뜻이 아니다.
+        //
+        // 마스킹 고객도 함께 센다. 네이버 유입 시점엔 `tel: ''` 이지만 주소록에서
+        // 나중에 번호를 채워 넣을 수 있고(`CustomerDetail` 편집엔 마스킹 이름 가드가 없다),
+        // 그 번호가 실명 후보와 다르면 다른 사람일 가능성이 생긴다.
+        //
+        // 비교 전 `normalizeTel` 로 숫자만 남긴다. 서버가 저장 시 정규화하긴 하지만
+        // 표기만 다른 같은 번호(`010-1111-2222` / `01011112222`)를 2종으로 세면
+        // 멀쩡한 제안이 조용히 사라진다.
         const distinctTels = new Set(
-            candidates.map((c) => c.tel?.trim()).filter((tel): tel is string => !!tel),
+            [masked, ...candidates]
+                .map((c) => normalizeTel(c.tel ?? ''))
+                .filter((tel) => !!tel),
         );
         if (distinctTels.size > 1) continue;
 
