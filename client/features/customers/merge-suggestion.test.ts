@@ -71,97 +71,53 @@ describe('detectMergeGroups', () => {
         expect(groups[0].candidateIds).toEqual([1, 2]);
     });
 
-    it('연락처가 2종 이상이면 제안하지 않는다 — 동명이인인지 번호를 바꾼 같은 사람인지 알 수 없다', () => {
-        const groups = detectMergeGroups([
-            customer(1, '김민수', '01011112222'),
-            customer(2, '김민수', '01033334444'),
-            customer(3, '김*수'),
-        ]);
-
-        expect(groups).toEqual([]);
-    });
-
-    it('후보가 하나뿐이면 그 후보가 연락처를 가져도 제안한다 — 갈릴 여지가 없다', () => {
+    it('후보에게 번호가 있으면 제안하지 않는다 — 수동 병합으로 보낸다', () => {
         const groups = detectMergeGroups([
             customer(1, '김민수', '01011112222'),
             customer(2, '김*수'),
         ]);
 
-        expect(groups).toHaveLength(1);
-        expect(groups[0].candidateIds).toEqual([1]);
+        expect(groups).toEqual([]);
     });
 
-    it('한쪽만 연락처가 있으면 제안한다 — 빈 연락처는 "다른 번호"가 아니다', () => {
+    it('한 명만 번호를 가져도 제안하지 않는다', () => {
         const groups = detectMergeGroups([
             customer(1, '김민수', '01011112222'),
             customer(2, '김민수'),
             customer(3, '김*수'),
         ]);
 
-        expect(groups).toHaveLength(1);
-        expect(groups[0].candidateIds).toEqual([1, 2]);
+        expect(groups).toEqual([]);
     });
 
-    it('연락처가 모두 같으면 제안한다 — 한 사람이 두 번 등록된 경우', () => {
+    it('번호가 서로 같아도 제안하지 않는다 — 가족 공유번호일 수 있다', () => {
         const groups = detectMergeGroups([
             customer(1, '김민수', '01011112222'),
             customer(2, '김민수', '01011112222'),
             customer(3, '김*수'),
-        ]);
-
-        expect(groups).toHaveLength(1);
-        expect(groups[0].candidateIds).toEqual([1, 2]);
-    });
-
-    it('공백뿐인 연락처는 없는 것으로 본다', () => {
-        const groups = detectMergeGroups([
-            customer(1, '김민수', '01011112222'),
-            customer(2, '김민수', '   '),
-            customer(3, '김*수'),
-        ]);
-
-        expect(groups).toHaveLength(1);
-        expect(groups[0].candidateIds).toEqual([1, 2]);
-    });
-
-    it('표기만 다른 같은 번호는 1종으로 센다 — 하이픈 때문에 제안이 사라지면 안 된다', () => {
-        const groups = detectMergeGroups([
-            customer(1, '김민수', '010-1111-2222'),
-            customer(2, '김민수', '01011112222'),
-            customer(3, '김*수'),
-        ]);
-
-        expect(groups).toHaveLength(1);
-        expect(groups[0].candidateIds).toEqual([1, 2]);
-    });
-
-    it('마스킹 고객의 번호도 함께 센다 — 실명 후보와 다르면 제안하지 않는다', () => {
-        const groups = detectMergeGroups([
-            customer(1, '김민수', '01011112222'),
-            customer(2, '김*수', '01033334444'),
         ]);
 
         expect(groups).toEqual([]);
     });
 
-    it('마스킹 고객의 번호가 실명 후보와 같으면 제안한다', () => {
-        const groups = detectMergeGroups([
-            customer(1, '김민수', '01011112222'),
-            customer(2, '김*수', '010-1111-2222'),
-        ]);
-
-        expect(groups).toHaveLength(1);
-        expect(groups[0].maskedId).toBe(2);
-    });
-
-    it('실명 이름이 2종 이상이면 제안하지 않는다 — 마스킹이 누구인지 판정 불가', () => {
+    it('마스킹 고객이 번호를 가져도 제안하지 않는다 — 주소록에서 나중에 채워질 수 있다', () => {
         const groups = detectMergeGroups([
             customer(1, '김민수'),
-            customer(2, '김진수'),
-            customer(3, '김*수'),
+            customer(2, '김*수', '01011112222'),
         ]);
 
         expect(groups).toEqual([]);
+    });
+
+    it('숫자가 없는 값은 번호로 보지 않는다 — 표기 쓰레기 때문에 제안이 빠지면 안 된다', () => {
+        const groups = detectMergeGroups([
+            customer(1, '김민수', '   '),
+            customer(2, '김민수', '-'),
+            customer(3, '김*수'),
+        ]);
+
+        expect(groups).toHaveLength(1);
+        expect(groups[0].candidateIds).toEqual([1, 2]);
     });
 
     it('마스킹이 2명이면 그룹도 2개로 따로 나온다 — 마스킹끼리는 묶지 않는다', () => {
@@ -283,8 +239,9 @@ describe('selectMergeTarget', () => {
         expect(target).toBe(2);
     });
 
-    // 자동 제안(`detectMergeGroups`)은 연락처가 2종 이상이면 그룹을 만들지 않으므로
-    // 이 조합은 수동 병합(주소록에서 직접 골라 합치는 경로)에서만 들어온다.
+    // 자동 제안(`detectMergeGroups`)은 번호가 하나라도 있으면 그룹을 만들지 않으므로,
+    // 번호가 있는 조합은 전부 수동 병합(주소록에서 직접 골라 합치는 경로)에서만 들어온다.
+    // 아래 연락처 분기 테스트들이 고정하는 것은 그 수동 경로의 기본값이다.
     it('연락처가 여럿이면 마지막 예약이 더 과거인 고객 (= 기존 단골)', () => {
         const target = selectMergeTarget(
             [customer(1, '김민수', '01011112222'), customer(2, '김민수', '01033334444')],
