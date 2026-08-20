@@ -77,9 +77,10 @@
 이 PR 범위 밖 화면을 건드리게 된다. 별건으로 둔다.
 
 ### 같은 클래스 (이번 범위 밖)
-- `client/hooks/naverSyncConflictStorage.ts` `restoreConflictsFromPairs` 도 localStorage 에 박제된
-  `Reservation` 을 그대로 되돌려준다. id 존재만 확인하고 최신 값을 다시 읽지 않는다.
-  중복예약 건(`feature/conflict-resolution-sync`)에서 함께 본다.
+- ~~`restoreConflictsFromPairs` 가 localStorage 에 박제된 `Reservation` 을 그대로 되돌려준다~~
+  → 해결(`fix/conflict-pairs-stale-snapshot`). 로드된 예약은 `reservationMap` 의 현재 값으로 갱신하고,
+  미로드 예약만 스냅샷을 폴백으로 남긴다. 구현은 `useNaverBookingSync.ts` 안에 있다
+  (같은 이름의 `naverSyncConflictStorage.ts` 는 **아무 데서도 import 되지 않던 죽은 파일**이라 삭제했다).
 
 ### 남은 것 / 알려진 한계
 - **동명이인이 실제로 다른 사람인 경우는 이름만으로 못 거른다.** 후보 2명을 띄우고 오너가 고르게
@@ -111,7 +112,7 @@
 | 저장소 | 위치 | 내용 |
 |---|---|---|
 | `sync-notifications` | `calendarStore.ts` | `conflictStatus: 'confirmed'` ← 처리 완료 표시가 여기 |
-| `naver-sync-active-conflicts` | `naverSyncConflictStorage.ts` | 미해결 충돌쌍 |
+| `naver-sync-active-conflicts` | `useNaverBookingSync.ts` | 미해결 충돌쌍 |
 | `naver-sync-deferred-conflicts` | `useNaverBookingSync.ts` | 나중에 보기 |
 
 서버에 `ConflictResolution` 테이블과 `/api/conflict-resolution` 이 **이미 있었는데도** 안 쓰였다.
@@ -163,9 +164,8 @@
 - `client/store/calendarStoreHelpers.ts` 의 서버 반영 경로 5곳(`/api/customers` POST, `/api/store` PATCH 등)이
   모두 `.catch(() => {})` 다. "로컬은 됐다고 보는데 서버는 모른다"는 **이번 버그와 같은 클래스**다.
   한 번에 손대면 범위가 커져 별건으로 둔다.
-- `restoreConflictsFromPairs`(`naverSyncConflictStorage.ts`)가 localStorage 에 박제된 `Reservation` 을
-  그대로 되돌려준다. id 존재만 확인하고 최신 값을 다시 읽지 않아 예약 시간이 바뀌어도 옛 시간이 뜬다.
-  이번 증상과는 원인이 다르지만 같은 클래스 — 별건으로 둔다.
+- ~~`restoreConflictsFromPairs` 가 박제된 `Reservation` 을 그대로 되돌려준다~~
+  → 해결(`fix/conflict-pairs-stale-snapshot`).
 
 ---
 
