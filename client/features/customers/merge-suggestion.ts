@@ -19,10 +19,10 @@ export function isMaskedNameMatch(a: string, b: string): boolean {
 
 export interface MergeCandidateGroup {
     key: string;
-    /** 합쳐져 사라질 마스킹 고객. 그룹당 정확히 1명 */
+    /** 합쳐져 사라질 마스킹 고객 */
     maskedId: number;
-    /** 기준이 될 수 있는 실명 고객. 1명 이상이며 이름 값은 모두 같다 */
-    candidateIds: number[];
+    /** 기준이 될 실명 고객. **항상 1명** — 제안은 언제나 1:1 이다 */
+    candidateIds: [number];
 }
 
 /**
@@ -38,15 +38,20 @@ export function buildMergeGroupKey(maskedId: number, candidateIds: number[]): st
 }
 
 /**
- * 마스킹 이름 패턴으로 병합 후보 그룹을 만든다.
+ * 마스킹 이름 패턴으로 병합 제안을 만든다. **한 건은 언제나 마스킹 1명 : 실명 1명.**
  *
  * 규칙:
- * - 그룹 하나에 마스킹 고객은 **정확히 1명**. 마스킹끼리는 묶지 않는다.
- *   `김민수 + 김민* + 김*수` 는 `김민*` 그룹과 `김*수` 그룹으로 **따로** 뜬다.
- * - 실명 후보가 없으면 제외한다. 기준이 될 이름이 없으므로 병합할 수 없다.
- * - 실명 후보의 **이름 값이 2종 이상**이면 제외한다. `김민수`/`김진수` 중
- *   `김*수` 가 누구인지 판정할 수 없다. 반면 같은 이름이 여러 명인 경우
- *   (동명이인)는 1종으로 세어 허용하고, 누구인지는 사용자가 고른다.
+ * - 마스킹끼리는 묶지 않는다. 기준이 될 실명이 없으면 병합할 수 없다.
+ * - 마스킹 하나에 실명 후보가 여럿이면 **후보 수만큼 별건으로 낸다.**
+ *   `이*민` + `이상민`/`이승민`/`이유민` → 3건. 큐가 순차로 하나씩 띄우고,
+ *   각 건은 "이 사람이 맞나요?" 라는 독립된 예/아니오다.
+ * - 후보 이름이 같든(동명이인) 다르든 구분하지 않는다. 둘 다 1:1 이다.
+ *
+ * **왜 묶지 않는가** — 예전엔 후보를 한 카드에 모아 라디오로 고르게 했고, 이름이
+ * 2종 이상이면 "누구인지 판정 불가"로 아예 접었다. 그런데 고객이 수백 명이면
+ * `이*민` 은 `이O민` 전부와 매칭되므로 **거의 항상 2종 이상이 되어 제안이 사라진다**
+ * (운영 264명에서 실제로 그랬다). 판정은 어차피 사람이 하는 것이라, 묶어서 접는
+ * 대신 하나씩 물어본다.
  *
  * 이전 구현은 마스킹 고객을 다리 삼아 실명 고객들까지 한 덩어리로 합쳤다
  * (`김민수1 ↔ 김*수 ↔ 김민수2` → 3명 한 그룹). 그러면 서로 다른 사람일 수 있는
@@ -58,25 +63,46 @@ export function detectMergeGroups(customers: Customer[]): MergeCandidateGroup[] 
     for (const masked of customers) {
         if (!isMaskedName(masked.name)) continue;
 
-        const candidates = customers.filter((c) => (
-            c.id !== masked.id
-            && !isMaskedName(c.name)
-            && isMaskedNameMatch(masked.name, c.name)
-        ));
-        if (candidates.length === 0) continue;
+        const candidates = customers
+            .filter((c) => (
+                c.id !== masked.id
+                && !isMaskedName(c.name)
+                && isMaskedNameMatch(masked.name, c.name)
+            ))
+            .sort((a, b) => a.id - b.id);
 
-        const distinctNames = new Set(candidates.map((c) => c.name));
-        if (distinctNames.size > 1) continue;
-
-        const candidateIds = candidates.map((c) => c.id).sort((a, b) => a - b);
-        groups.push({
-            key: buildMergeGroupKey(masked.id, candidateIds),
-            maskedId: masked.id,
-            candidateIds,
-        });
+        for (const candidate of candidates) {
+            groups.push({
+                key: buildMergeGroupKey(masked.id, [candidate.id]),
+                maskedId: masked.id,
+                candidateIds: [candidate.id],
+            });
+        }
     }
 
     return groups;
+}
+
+/**
+ * 이 제안을 이미 건너뛴 적이 있는가.
+ *
+ * 예전엔 후보 여럿을 한 건으로 묶어 키가 `'204-329-388-389'` 처럼 길었다. 1:1 로
+ * 쪼개면 키가 `'204-389'` 가 되어 옛 기록과 문자열이 안 맞고, **건너뛴 제안이
+ * 전부 되살아난다**(운영에 126건이 쌓여 있었다).
+ *
+ * 그래서 문자열 일치가 아니라 **id 포함 관계**로 본다 — 옛 키가 이 쌍의 두 id를
+ * 모두 담고 있으면 그때 같이 보여준 조합이므로 이미 판단한 것으로 친다.
+ */
+export function isReviewedPair(key: string, reviewedKeys: Iterable<string>): boolean {
+    const ids = key.split('-');
+
+    for (const reviewed of reviewedKeys) {
+        if (reviewed === key) return true;
+        const reviewedIds = new Set(reviewed.split('-'));
+        if (ids.every((id) => reviewedIds.has(id))) return true;
+    }
+
+    return false;
 }
 
 export interface CustomerReservationSummary {
