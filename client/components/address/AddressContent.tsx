@@ -5,7 +5,6 @@ import styled from 'styled-components';
 import type {Customer} from '../../utils/customers';
 import type {Reservation} from '../../utils/reservations';
 import {
-    buildMergeGroupKey,
     selectManualMergeTarget,
     summarizeCustomerReservations,
 } from '../../features/customers/merge-suggestion';
@@ -101,7 +100,11 @@ export function AddressContent({
         // 두 경로가 다른 기본값을 내놓으면 같은 고객을 두고 판단이 갈린다.
         const summary = summarizeCustomerReservations(ids, reservationMap);
         setMergeSelection({
-            key: buildMergeGroupKey(ids[0], ids.slice(1)),
+            // `buildMergeGroupKey` 를 쓰지 않는다 — 그 키는 "다시 띄우지 않음"
+            // 기록(`customer-merge-reviewed`)의 식별자다. 같은 고객 조합을 수동으로
+            // 합치면 자동 제안 그룹과 키가 겹쳐, 나중에 어느 한쪽이 상대의 기록을
+            // 건드리게 된다. 여기서 키는 레이어 식별용일 뿐이라 따로 만든다.
+            key: `manual-${[...ids].sort((a, b) => a - b).join('-')}`,
             mode: 'manual',
             maskedSource: null,
             targetChoices: customers,

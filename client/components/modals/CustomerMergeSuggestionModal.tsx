@@ -191,7 +191,8 @@ export const CustomerMergeSuggestionModal = ({
     };
 
     return createPortal(
-        <StyledMergeOverlay role="dialog" aria-modal="true" aria-label="고객 병합 제안">
+        <StyledMergeOverlay role="dialog" aria-modal="true"
+                            aria-label={mode === 'manual' ? '고객 병합' : '고객 병합 제안'}>
             <StyledMergeModal ref={dialogRef} tabIndex={-1} onClick={(e) => e.stopPropagation()}>
                 <StyledHeader>
                     <StyledHeaderTitleGroup>
