@@ -102,11 +102,19 @@ function restoreConflictsFromPairs(): ConflictInfo[] {
     // 로드되지 않은(=확인 불가) 예약은 스냅샷을 그대로 유지해야, 다른 날짜를 보고 있어도
     // 알림에서 해당 충돌 모달을 열 수 있다. (예전엔 미로드 예약을 '없는 것'으로 보고 버려서
     // 다른 날짜로 이동하면 충돌이 영구히 안 열리던 회귀의 원인)
-    const resolvedIds = new Set(
-        Object.values(reservationMap).flat()
-            .filter((r) => r.status === 'cancelled' || r.status === 'noshow')
-            .map((r) => r.id),
-    );
+    const resolvedIds = new Set<number>();
+    // 로드된 예약의 '현재' 값. 저장 시점 이후 시간·담당자가 바뀌었을 수 있으므로
+    // 로드돼 있으면 스냅샷 대신 이 값을 쓴다(박제된 옛 시각이 모달에 뜨는 문제).
+    const liveById = new Map<number, Reservation>();
+
+    for (const r of Object.values(reservationMap).flat()) {
+        if (r.status === 'cancelled' || r.status === 'noshow') {
+            resolvedIds.add(r.id);
+            continue;
+        }
+        liveById.set(r.id, r);
+    }
+
     const conflicts: ConflictInfo[] = [];
 
     for (const stored of pairs) {
@@ -114,10 +122,11 @@ function restoreConflictsFromPairs(): ConflictInfo[] {
         if (resolvedIds.has(stored.newReservation.id) || resolvedIds.has(stored.existingReservation.id)) {
             continue;
         }
-        // 원본 스냅샷을 유지 (변경 비교용 + 미로드 날짜에서도 모달 오픈 가능)
+        // 로드된 예약은 현재 값으로 갱신, 미로드 예약은 스냅샷 유지
+        // (미로드를 버리면 다른 날짜에서 알림으로 모달을 열 수 없던 회귀가 재발한다)
         conflicts.push({
-            newReservation: stored.newReservation,
-            existingReservation: stored.existingReservation,
+            newReservation: liveById.get(stored.newReservation.id) ?? stored.newReservation,
+            existingReservation: liveById.get(stored.existingReservation.id) ?? stored.existingReservation,
         });
     }
 
