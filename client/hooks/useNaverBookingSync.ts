@@ -93,41 +93,58 @@ function removeActiveConflictPair(key: string): void {
     localStorage.setItem(ACTIVE_CONFLICTS_KEY, JSON.stringify(next));
 }
 
+/** 현재 로드된 예약. `byId` 는 취소·노쇼 포함 전부, `resolvedIds` 는 그중 해소된 것 */
+interface LiveReservations {
+    byId: Map<number, Reservation>;
+    resolvedIds: Set<number>;
+}
+
+function readLiveReservations(): LiveReservations {
+    const reservationMap = useCalendarStore.getState().reservationMap;
+    const byId = new Map<number, Reservation>();
+    const resolvedIds = new Set<number>();
+
+    for (const r of Object.values(reservationMap).flat()) {
+        byId.set(r.id, r);
+        if (r.status === 'cancelled' || r.status === 'noshow') resolvedIds.add(r.id);
+    }
+
+    return {byId, resolvedIds};
+}
+
+/**
+ * 저장된 충돌쌍을 화면에 쓸 형태로 되살린다.
+ *
+ * 로드된 예약은 `reservationMap` 의 **현재 값**으로 갱신한다. 스냅샷을 그대로 쓰면
+ * 저장 이후 시간·담당자가 바뀌어도 옛 값이 모달에 뜬다.
+ *
+ * 미로드 예약은 스냅샷을 폴백으로 유지한다. 버리면 다른 날짜를 보고 있을 때
+ * 알림에서 모달을 열 수 없던 회귀가 재발한다.
+ */
+function toLiveConflict(stored: StoredConflictPair, live: LiveReservations): ConflictInfo {
+    return {
+        newReservation: live.byId.get(stored.newReservation.id) ?? stored.newReservation,
+        existingReservation: live.byId.get(stored.existingReservation.id) ?? stored.existingReservation,
+    };
+}
+
+/** 취소·노쇼로 해소된 것이 **확인된** 예약이 하나라도 있는가 (미로드는 확인 불가라 false) */
+function isResolvedPair(stored: StoredConflictPair, live: LiveReservations): boolean {
+    return live.resolvedIds.has(stored.newReservation.id)
+        || live.resolvedIds.has(stored.existingReservation.id);
+}
+
 function restoreConflictsFromPairs(): ConflictInfo[] {
     const pairs = loadActiveConflictPairs();
     if (pairs.length === 0) return [];
 
-    const reservationMap = useCalendarStore.getState().reservationMap;
-    // 현재 로드된 범위에서 '취소/노쇼로 해소된 것이 확인된' 예약 id만 모은다.
-    // 로드되지 않은(=확인 불가) 예약은 스냅샷을 그대로 유지해야, 다른 날짜를 보고 있어도
-    // 알림에서 해당 충돌 모달을 열 수 있다. (예전엔 미로드 예약을 '없는 것'으로 보고 버려서
-    // 다른 날짜로 이동하면 충돌이 영구히 안 열리던 회귀의 원인)
-    const resolvedIds = new Set<number>();
-    // 로드된 예약의 '현재' 값. 저장 시점 이후 시간·담당자가 바뀌었을 수 있으므로
-    // 로드돼 있으면 스냅샷 대신 이 값을 쓴다(박제된 옛 시각이 모달에 뜨는 문제).
-    const liveById = new Map<number, Reservation>();
-
-    for (const r of Object.values(reservationMap).flat()) {
-        if (r.status === 'cancelled' || r.status === 'noshow') {
-            resolvedIds.add(r.id);
-            continue;
-        }
-        liveById.set(r.id, r);
-    }
-
+    const live = readLiveReservations();
     const conflicts: ConflictInfo[] = [];
 
     for (const stored of pairs) {
-        // 둘 중 하나라도 취소/노쇼로 확인되면 해소된 것으로 보고 제외
-        if (resolvedIds.has(stored.newReservation.id) || resolvedIds.has(stored.existingReservation.id)) {
-            continue;
-        }
-        // 로드된 예약은 현재 값으로 갱신, 미로드 예약은 스냅샷 유지
-        // (미로드를 버리면 다른 날짜에서 알림으로 모달을 열 수 없던 회귀가 재발한다)
-        conflicts.push({
-            newReservation: liveById.get(stored.newReservation.id) ?? stored.newReservation,
-            existingReservation: liveById.get(stored.existingReservation.id) ?? stored.existingReservation,
-        });
+        // 해소가 확인된 쌍은 더 띄울 충돌이 아니다.
+        if (isResolvedPair(stored, live)) continue;
+        conflicts.push(toLiveConflict(stored, live));
     }
 
     return conflicts;
@@ -592,11 +609,12 @@ export function useNaverBookingSync() {
             const savedPair = loadActiveConflictPairs().find(
                 (p) => `${p.newReservation.id}-${p.existingReservation.id}` === key,
             );
+            // 스냅샷을 그대로 쓰지 않는다 — 로드된 예약은 현재 값으로 갱신해야
+            // 알림으로 연 모달에도 바뀐 시각이 뜬다.
+            // 여기선 해소 여부로 거르지 않는다: 사용자가 그 알림을 직접 눌렀고,
+            // 모달이 '처리 완료' 상태를 따로 그린다.
             if (savedPair) {
-                existing = {
-                    newReservation: savedPair.newReservation,
-                    existingReservation: savedPair.existingReservation,
-                };
+                existing = toLiveConflict(savedPair, readLiveReservations());
             } else {
                 const [newIdStr, existingIdStr] = key.split('-');
                 const newId = Number(newIdStr);
