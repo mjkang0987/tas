@@ -109,6 +109,63 @@ export const Timeline = ({
         + now.getMinutes() * scale.minuteHeight
         + now.getSeconds() * (scale.minuteHeight / 60);
     const timelineRef = useRef<HTMLDivElement | null>(null);
+    const nowBarRef = useRef<HTMLSpanElement | null>(null);
+
+    // 오늘이면 열자마자 현재시각이 화면 위쪽에 오도록 스크롤한다.
+    //
+    // 타임라인은 영업시간 전체(예: 09~20시)를 세로로 펼치므로 첫 화면은 언제나 개점
+    // 시각이다. 오후에 열면 현재시각 바가 한참 아래에 있어 매번 손으로 내려야 했다.
+    //
+    // `scrollIntoView({block: 'start'})` 는 안 쓴다 — 재보니 스크롤러 861px 중 426px,
+    // 한가운데에 놓였다. 위쪽에 두려면 목표 위치를 직접 계산해야 한다.
+    // (가운데면 이미 지나간 시간대가 절반을 먹는다. 앞으로 올 예약이 더 보여야 한다.)
+    //
+    // **높이가 확정된 뒤에 놓아야 한다.** 마운트 직후엔 콘텐츠가 아직 짧아
+    // `scrollTop` 이 그 시점의 최대치에 걸린다(측정: 목표 1686 인데 1330 에서 멈췄고,
+    // 나중에 최대치가 1629 로 늘어도 위치는 그대로였다). 그래서 크기 변화를 지켜보다가
+    // 목표에 실제로 닿으면 그때 관찰을 끝낸다.
+    //
+    // 최초 1회만(deps: isToday). 매 30초 `now` 가 갱신될 때마다 스크롤하면 사용자가
+    // 다른 시간대를 보고 있어도 계속 끌려온다.
+    useEffect(() => {
+        if (!isToday) return;
+
+        const gapFromTop = () => {
+            const bar = nowBarRef.current;
+            const scroller = bar && findScrollableParent(bar);
+            if (!bar || !scroller) return null;
+            return {
+                scroller,
+                gap: bar.getBoundingClientRect().top - scroller.getBoundingClientRect().top,
+            };
+        };
+
+        let settled = false;
+
+        const place = () => {
+            const measured = gapFromTop();
+            if (!measured) return;
+
+            measured.scroller.scrollTop += measured.gap - NOW_BAR_TOP_GAP;
+
+            // 클램프에 걸리지 않고 목표에 닿았으면 끝. 아직이면 다음 크기 변화를 기다린다.
+            const after = gapFromTop();
+            if (after && Math.abs(after.gap - NOW_BAR_TOP_GAP) < 2) {
+                settled = true;
+                observer.disconnect();
+            }
+        };
+
+        const observer = new ResizeObserver(() => {
+            if (!settled) place();
+        });
+
+        const wrap = timelineRef.current;
+        if (wrap) observer.observe(wrap);
+        place();
+
+        return () => observer.disconnect();
+    }, [isToday]);
     const [isTouchDevice, setIsTouchDevice] = useState(false);
     const [openClusterState, setOpenClusterState] = useState<{ dateKey: string; cluster: TimelineClusterData } | null>(null);
     const pendingClusterReservationRef = useRef<Reservation | null>(null);
@@ -199,7 +256,7 @@ export const Timeline = ({
                 onClick={setMousePositionHandler}
             />
         )}
-        {isToday && <StyledBar $top={barTop} />}
+        {isToday && <StyledBar ref={nowBarRef} $top={barTop} />}
         {timelineEntries.map((entry) => {
             if (entry.kind === 'cluster') {
                 const {cluster} = entry;
@@ -333,6 +390,23 @@ const StyledTimelineBackground = styled.button`
     margin: 0;
     z-index: 0;
 `;
+
+/** 자동 스크롤 시 현재시각 바를 화면 맨 위에서 이만큼 떨어뜨린다.
+ *  바로 앞 시간대가 조금 보여야 "지금 어디쯤인지" 읽힌다. */
+const NOW_BAR_TOP_GAP = 72;
+
+/** 세로로 스크롤되는 가장 가까운 조상. 없으면 null */
+function findScrollableParent(el: HTMLElement): HTMLElement | null {
+    let node = el.parentElement;
+    while (node) {
+        const {overflowY} = getComputedStyle(node);
+        if ((overflowY === 'auto' || overflowY === 'scroll') && node.scrollHeight > node.clientHeight) {
+            return node;
+        }
+        node = node.parentElement;
+    }
+    return null;
+}
 
 const StyledBar = styled.span<{ $top: number }>`
     position: absolute;
