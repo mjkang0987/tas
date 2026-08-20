@@ -21,7 +21,7 @@ export interface MergeCandidateGroup {
     key: string;
     /** 합쳐져 사라질 마스킹 고객. 그룹당 정확히 1명 */
     maskedId: number;
-    /** 기준이 될 수 있는 실명 고객. 1명 이상이며 이름 값은 모두 같다 */
+    /** 기준이 될 수 있는 실명 고객. 1명 이상이며 이름 값이 같고, 연락처도 1종 이하다 */
     candidateIds: number[];
 }
 
@@ -47,6 +47,11 @@ export function buildMergeGroupKey(maskedId: number, candidateIds: number[]): st
  * - 실명 후보의 **이름 값이 2종 이상**이면 제외한다. `김민수`/`김진수` 중
  *   `김*수` 가 누구인지 판정할 수 없다. 반면 같은 이름이 여러 명인 경우
  *   (동명이인)는 1종으로 세어 허용하고, 누구인지는 사용자가 고른다.
+ * - 실명 후보의 **연락처가 2종 이상**이면 제외하고 수동 병합에 맡긴다.
+ *   같은 이름 + 다른 번호는 *동명이인* 일 수도, *번호를 바꾼 같은 사람* 일 수도 있고
+ *   자동으로는 구분할 방법이 없다. 잘못 고르면 남의 예약·적립금이 섞인다.
+ *   반대로 **연락처가 없거나 한 종류뿐이면** 갈릴 여지가 없으므로 그대로 제안한다
+ *   (네이버 유입 고객은 연락처가 비어 있어, 이 경우가 오히려 흔하다).
  *
  * 이전 구현은 마스킹 고객을 다리 삼아 실명 고객들까지 한 덩어리로 합쳤다
  * (`김민수1 ↔ 김*수 ↔ 김민수2` → 3명 한 그룹). 그러면 서로 다른 사람일 수 있는
@@ -67,6 +72,13 @@ export function detectMergeGroups(customers: Customer[]): MergeCandidateGroup[] 
 
         const distinctNames = new Set(candidates.map((c) => c.name));
         if (distinctNames.size > 1) continue;
+
+        // 빈 연락처는 "다른 번호"로 세지 않는다. 비어 있는 것은 정보가 없는 것이지
+        // 다르다는 뜻이 아니다.
+        const distinctTels = new Set(
+            candidates.map((c) => c.tel?.trim()).filter((tel): tel is string => !!tel),
+        );
+        if (distinctTels.size > 1) continue;
 
         const candidateIds = candidates.map((c) => c.id).sort((a, b) => a - b);
         groups.push({

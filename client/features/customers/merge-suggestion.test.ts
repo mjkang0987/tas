@@ -59,15 +59,68 @@ describe('detectMergeGroups', () => {
         expect(groups[0].candidateIds).toEqual([1]);
     });
 
-    it('같은 이름의 실명이 여러 명이면 후보로 모두 남긴다 — 누구인지는 사용자가 고른다', () => {
+    it('같은 이름의 실명이 여러 명이어도 연락처가 없으면 후보로 모두 남긴다 — 누구인지는 사용자가 고른다', () => {
+        const groups = detectMergeGroups([
+            customer(1, '김민수'),
+            customer(2, '김민수'),
+            customer(3, '김*수'),
+        ]);
+
+        expect(groups).toHaveLength(1);
+        expect(groups[0].maskedId).toBe(3);
+        expect(groups[0].candidateIds).toEqual([1, 2]);
+    });
+
+    it('연락처가 2종 이상이면 제안하지 않는다 — 동명이인인지 번호를 바꾼 같은 사람인지 알 수 없다', () => {
         const groups = detectMergeGroups([
             customer(1, '김민수', '01011112222'),
             customer(2, '김민수', '01033334444'),
             customer(3, '김*수'),
         ]);
 
+        expect(groups).toEqual([]);
+    });
+
+    it('후보가 하나뿐이면 그 후보가 연락처를 가져도 제안한다 — 갈릴 여지가 없다', () => {
+        const groups = detectMergeGroups([
+            customer(1, '김민수', '01011112222'),
+            customer(2, '김*수'),
+        ]);
+
         expect(groups).toHaveLength(1);
-        expect(groups[0].maskedId).toBe(3);
+        expect(groups[0].candidateIds).toEqual([1]);
+    });
+
+    it('한쪽만 연락처가 있으면 제안한다 — 빈 연락처는 "다른 번호"가 아니다', () => {
+        const groups = detectMergeGroups([
+            customer(1, '김민수', '01011112222'),
+            customer(2, '김민수'),
+            customer(3, '김*수'),
+        ]);
+
+        expect(groups).toHaveLength(1);
+        expect(groups[0].candidateIds).toEqual([1, 2]);
+    });
+
+    it('연락처가 모두 같으면 제안한다 — 한 사람이 두 번 등록된 경우', () => {
+        const groups = detectMergeGroups([
+            customer(1, '김민수', '01011112222'),
+            customer(2, '김민수', '01011112222'),
+            customer(3, '김*수'),
+        ]);
+
+        expect(groups).toHaveLength(1);
+        expect(groups[0].candidateIds).toEqual([1, 2]);
+    });
+
+    it('공백뿐인 연락처는 없는 것으로 본다', () => {
+        const groups = detectMergeGroups([
+            customer(1, '김민수', '01011112222'),
+            customer(2, '김민수', '   '),
+            customer(3, '김*수'),
+        ]);
+
+        expect(groups).toHaveLength(1);
         expect(groups[0].candidateIds).toEqual([1, 2]);
     });
 
@@ -200,6 +253,8 @@ describe('selectMergeTarget', () => {
         expect(target).toBe(2);
     });
 
+    // 자동 제안(`detectMergeGroups`)은 연락처가 2종 이상이면 그룹을 만들지 않으므로
+    // 이 조합은 수동 병합(주소록에서 직접 골라 합치는 경로)에서만 들어온다.
     it('연락처가 여럿이면 마지막 예약이 더 과거인 고객 (= 기존 단골)', () => {
         const target = selectMergeTarget(
             [customer(1, '김민수', '01011112222'), customer(2, '김민수', '01033334444')],
