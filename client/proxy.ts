@@ -27,7 +27,6 @@ const authMiddleware = auth((req) => {
         /\.[^/]+$/.test(pathname) ||
         pathname.startsWith('/book/') ||
         pathname.startsWith('/login') ||
-        pathname.startsWith('/about') ||
         pathname.startsWith('/logout') ||
         pathname.startsWith('/consent') ||
         pathname.startsWith('/terms') ||

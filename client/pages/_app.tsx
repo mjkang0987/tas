@@ -171,7 +171,7 @@ function AppContent({Component, pageProps}: AppContentProps) {
         const path = router.pathname;
 
         // 로그인 / 약관 문서 / 공개 예약 페이지는 자유 접근
-        if (path === '/login' || path === '/about' || path === '/terms' || path === '/privacy' || path === '/logout' || path === '/maintenance' || isBookingRoute(path)) return;
+        if (path === '/login' || path === '/terms' || path === '/privacy' || path === '/logout' || path === '/maintenance' || isBookingRoute(path)) return;
 
         const consented = getGuestTermsVersion() === CURRENT_TERMS_VERSION;
         // 영구 동의는 온보딩 완료 시점에 기록되므로, 온보딩 진입 가드는 세션 ack도 허용
@@ -193,12 +193,14 @@ function AppContent({Component, pageProps}: AppContentProps) {
         }
 
         // 미인증 진입 라우팅:
-        //  - 로컬(게스트) 데이터·로그인 모두 없음 → 루트는 소개(/about), 그 외 보호경로는 /login
+        //  - 로컬(게스트) 데이터·로그인 모두 없음 → /login
         //  - 로컬 데이터가 있으면 메인으로 진입(이하 동의/온보딩 게이트는 기존대로 처리)
         if (!hasGuestData()) {
             // 루트 소개 화면은 서버가 이미 내려줬다 — 여기서 또 옮기면 색인 대상 URL 이 사라진다.
             if (isLanding) return;
-            router.replace(path === '/' ? '/about' : '/login');
+            // 동의 쿠키는 있는데 로컬 데이터가 없는 경우(동의 후 이탈)가 여기 온다. 서버는 쿠키만 보고
+            // 앱 셸을 내려주므로 이 화면에 머물 수 없다. 소개는 루트가 이미 맡으니 로그인으로 보낸다.
+            router.replace('/login');
             return;
         }
 
@@ -405,7 +407,7 @@ function AppContent({Component, pageProps}: AppContentProps) {
     // SSR/첫 렌더 모두 status==='loading'이라 하이드레이션 불일치가 없음.
     const isAuthFlowPage = router.pathname.startsWith('/login') || router.pathname.startsWith('/onboarding')
         || isBookingRoute(router.pathname)
-        || router.pathname === '/consent' || router.pathname === '/about' || router.pathname === '/logout'
+        || router.pathname === '/consent' || router.pathname === '/logout'
         || router.pathname === '/terms' || router.pathname === '/privacy' || router.pathname === '/maintenance'
         // 루트 소개 화면도 로그인 전 화면이다 — 빼면 부팅 오버레이가 소개 내용을 덮는다.
         || isLanding;

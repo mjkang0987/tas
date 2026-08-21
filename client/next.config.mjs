@@ -49,6 +49,14 @@ const nextConfig = {
     turbopack: {
         root: path.resolve('..'),
     },
+    async redirects() {
+        return [
+            // 소개 내용은 루트(`/`)가 직접 응답한다. `/about` 은 같은 내용을 한 벌 더 두는 URL 이라
+            // 없앴고, 기존 링크만 살려 둔다. 영구(308)로 굳히지 않는 것은 되돌릴 여지를 남기기
+            // 위해서다(`/book` 307 유지와 같은 판단).
+            {source: '/about', destination: '/', permanent: false},
+        ];
+    },
     async rewrites() {
         return [
             ...asides.map((aside) => ({
