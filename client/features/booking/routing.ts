@@ -45,6 +45,14 @@ export function resolveRequestHost(forwardedHost?: string | null, host?: string 
     return raw.split(',')[0].trim().toLowerCase();
 }
 
+// SSR(`getServerSideProps`)의 요청 헤더에서 원 요청 호스트를 얻는다.
+// Node 는 중복 헤더를 ', ' 로 이어붙이지만 타입은 `string[]` 도 허용하므로 여기서 한 번만 좁힌다
+// (호출부마다 `as string | undefined` 로 캐스팅하던 것을 대체한다).
+export function resolveHostFromHeaders(headers: {'x-forwarded-host'?: string | string[]; host?: string}): string {
+    const forwarded = headers['x-forwarded-host'];
+    return resolveRequestHost(Array.isArray(forwarded) ? forwarded[0] : forwarded, headers.host);
+}
+
 export function isBookingHost(host?: string | null): boolean {
     return resolveRequestHost(null, host) === BOOKING_HOST;
 }

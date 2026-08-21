@@ -154,15 +154,11 @@ export default function LayoutComponent({children, isLanding = false}: NodeType 
             return;
         }
 
-        // 루트 소개 화면은 캘린더가 아니다. 이 효과는 루트를 `/month/YYYY/M` 로 정규화하는데,
-        // 랜딩에서 그러면 색인 대상 URL(`/`)이 주소창에서 사라진다.
-        if (isLanding) {
-            return;
-        }
-
         const currentRouter = routerRef.current;
         const segments = currentRouter.asPath.split('?')[0].split('/');
-        const isCalPath = isCalendar(segments) || segments.join('').length === 0;
+        // 루트는 보통 캘린더 경로로 치지만(뷰 URL 로 정규화된다), **소개 화면일 때는 아니다** —
+        // 정규화하면 `/` 가 `/month/YYYY/M` 이 돼 색인 대상 URL 이 주소창에서 사라진다.
+        const isCalPath = !isLanding && (isCalendar(segments) || segments.join('').length === 0);
 
         if (!isCalPath) {
             return;

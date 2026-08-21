@@ -233,28 +233,18 @@ export const getServerSideProps: GetServerSideProps<HomeProps> = async (ctx) => 
         // 게스트(로컬 데이터로 쓰는 중)인지는 서버가 localStorage 를 못 보므로 동의 쿠키로만 안다.
         // 쿠키는 /consent 에서 데이터가 생기기 전에 심긴다(features/local-db/storage.ts).
         const isGuest = !!ctx.req.cookies[GUEST_TERMS_COOKIE];
-        if (!isGuest) {
-            // 공유 캐시(s-maxage)는 일부러 열지 않는다. 모든 트래픽이 Cloudflare `tas-proxy` Worker 를
-            // 지나는데, 거기에 HTML 을 캐시하는 규칙이 있으면 익명 소개 화면이 `/` 에 캐시돼 로그인
-            // 사용자에게까지 돌아간다(Cloudflare 는 `Vary: Cookie` 를 캐시 키에 넣지 않는다).
-            // 15KB 페이지를 캐시해서 얻는 것보다 오너 화면이 소개 페이지로 바뀌는 쪽이 훨씬 비싸다.
-            return {
-                props: {
-                    reservations: [],
-                    customers: [],
-                    history: [],
-                    storageMode: 'local',
-                    landing: true,
-                }
-            };
-        }
 
+        // 소개 화면에도 공유 캐시(s-maxage)는 일부러 열지 않는다. 모든 트래픽이 Cloudflare `tas-proxy`
+        // Worker 를 지나는데, 거기에 HTML 을 캐시하는 규칙이 있으면 익명 소개 화면이 `/` 에 캐시돼
+        // 로그인 사용자에게까지 돌아간다(Cloudflare 는 `Vary: Cookie` 를 캐시 키에 넣지 않는다).
+        // 15KB 페이지를 캐시해서 얻는 것보다 오너 화면이 소개 페이지로 바뀌는 쪽이 훨씬 비싸다.
         return {
             props: {
                 reservations: [],
                 customers: [],
                 history: [],
                 storageMode: 'local',
+                landing: !isGuest,
             }
         };
     }

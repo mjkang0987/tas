@@ -9,7 +9,7 @@ import {
     BOOK_STRINGS, formatDurationL, formatPriceL, localizedStoreLabels,
     statusLabelL, dowLabelL, todayLabelL, pickI18n, type I18nText,
 } from '../../../../features/booking/i18n';
-import {bookBaseForHost, resolveRequestHost} from '../../../../features/booking/routing';
+import {bookBaseForHost, resolveHostFromHeaders} from '../../../../features/booking/routing';
 import {SeoHead} from '../../../../components/ui/SeoHead';
 import {LabelBadge} from '../../../../components/ui/LabelBadge';
 import {LangSwitcher, useBookLang, LANG_BAR_OFFSET} from '../../../../components/booking/LangSwitcher';
@@ -388,7 +388,7 @@ interface ReservationManagePageProps {
 }
 
 export const getServerSideProps: GetServerSideProps<ReservationManagePageProps> = async ({req}) => ({
-    props: {bookBase: bookBaseForHost(resolveRequestHost(req.headers['x-forwarded-host'] as string | undefined, req.headers.host))},
+    props: {bookBase: bookBaseForHost(resolveHostFromHeaders(req.headers))},
 });
 
 const StyledWrap = styled.div`

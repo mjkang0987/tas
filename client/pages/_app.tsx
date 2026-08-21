@@ -38,7 +38,7 @@ function AppContent({Component, pageProps}: AppContentProps) {
     const router = useRouter();
     // 루트가 익명 방문자에게 소개 화면을 서버렌더했는지(pages/index.tsx `landing`).
     // 경로가 같아서(`/`) 캘린더와 구분할 다른 신호가 없다.
-    const isLanding = router.pathname === '/' && (pageProps as {landing?: boolean}).landing === true;
+    const isLanding = router.pathname === '/' && pageProps.landing === true;
     const setServiceCatalog = useCalendarStore((s) => s.setServiceCatalog);
     const setCategoryBaseColorMap = useCalendarStore((s) => s.setCategoryBaseColorMap);
     const setAssignees = useCalendarStore((s) => s.setAssignees);

@@ -1,6 +1,6 @@
 import type {GetServerSideProps} from 'next';
 
-import {isBookingHost, resolveRequestHost} from '../features/booking/routing';
+import {isBookingHost, resolveHostFromHeaders} from '../features/booking/routing';
 import {SITE_URL} from '../lib/seo';
 
 /**
@@ -48,7 +48,7 @@ Disallow: /api/
 `;
 
 export const getServerSideProps: GetServerSideProps = async ({req, res}) => {
-    const host = resolveRequestHost(req.headers['x-forwarded-host'] as string | undefined, req.headers.host);
+    const host = resolveHostFromHeaders(req.headers);
     res.setHeader('Content-Type', 'text/plain; charset=utf-8');
     res.setHeader('Cache-Control', 'public, max-age=3600, s-maxage=3600');
     res.write(isBookingHost(host) ? BOOKING_ROBOTS : MAIN_ROBOTS);

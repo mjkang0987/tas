@@ -1,6 +1,6 @@
 import type {GetServerSideProps} from 'next';
 
-import {isBookingHost, resolveRequestHost} from '../features/booking/routing';
+import {isBookingHost, resolveHostFromHeaders} from '../features/booking/routing';
 import {SITE_URL} from '../lib/seo';
 
 /**
@@ -20,7 +20,7 @@ function buildSitemap(): string {
 export const getServerSideProps: GetServerSideProps = async ({req, res}) => {
     // 예약 서브도메인에는 사이트맵이 없다. 여기서 메인 URL 목록을 200 으로 주면
     // 다른 호스트의 URL 을 실은 사이트맵이 되어 검색엔진이 거부한다.
-    const host = resolveRequestHost(req.headers['x-forwarded-host'] as string | undefined, req.headers.host);
+    const host = resolveHostFromHeaders(req.headers);
     if (isBookingHost(host)) {
         return {notFound: true};
     }
