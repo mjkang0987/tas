@@ -114,15 +114,49 @@
   앱 안의 `/terms`·`/privacy` 는 다른 렌더 경로라 영향이 없다(`renderPolicyHtml` 의 유일한 사용처는
   `pages/api/policies/[slug].ts`). 확인함 — `/terms` 는 canonical 그대로, `robots` 메타 0건.
 
+### 예약 서브도메인 robots (`claude/booking-host-robots` → 이 브랜치에 머지)
+> 위 robots 점검에서 "범위 밖"으로 뒀던 것. 지시로 별도 브랜치에서 작업해 합쳤다(PR 은 하나).
+
+**문제** — `public/robots.txt` 로 두면 **예약 서브도메인도 같은 파일을 받는다.** `proxy.ts` 의
+`handleBookingHost` 가 확장자 있는 경로를 그대로 통과시키기 때문이다(실제로 확인함).
+
+| # | 어긋남 | 처리 |
+|---|---|---|
+| 1 | `Allow: /` 라 **예약 확인 링크(`/{slug}/r/{token}`)까지 색인 대상**. 토큰이 공개되면 고객 예약 내용이 색인될 수 있다 | 페이지에 `noindex` |
+| 2 | `Disallow: /month`·`/login`·`/settings` 가 **매장 슬러그를 막는다**(예약 호스트는 루트 바로 아래가 슬러그) | 호스트별 robots |
+| 3 | `Sitemap:` 이 다른 호스트를 가리키고, 예약 호스트의 `/sitemap.xml` 도 메인 URL 목록을 200 으로 준다 | 예약 호스트에서 404 |
+
+**구현**
+- `client/pages/robots.txt.tsx` **(신규)** — `public/robots.txt` 를 지우고 라우트로 옮겼다
+  (정적 파일이 라우트보다 먼저 서비스되므로 둘을 같이 둘 수 없다). `isBookingHost` 로 갈라
+  메인/예약용 본문을 준다. 호스트 판정은 기존 단일 소스(`features/booking/routing.ts`)를 그대로 쓴다.
+- `client/pages/sitemap.xml.tsx` — 예약 호스트면 `notFound`.
+- `client/components/ui/SeoHead.tsx` — `noindex` prop 추가. `maintenance.tsx` 가 따로 들고 있던
+  raw `<Head><meta robots></Head>` 도 이걸로 흡수했다(중복 제거).
+- `client/pages/book/[slug]/r/[token].tsx` — 세 분기 전부 `noindex`.
+
+**설계 판단 두 가지**
+- **토큰 페이지를 `robots.txt` 로 막지 않는다.** 크롤을 막으면 크롤러가 `noindex` 를 읽지 못해
+  오히려 URL 만 남은 색인이 생긴다. 크롤은 열고 색인만 뺀다.
+- **`noindex` 는 로딩 분기에도 넣었다.** 예약을 클라이언트에서 받아오므로 **로딩 상태가 곧 서버 HTML**
+  이다. 거기 빠지면 JS 를 실행하지 않는 크롤러는 태그를 못 본다. (처음엔 빠뜨렸고, 서버 HTML 을
+  직접 받아 보고 발견했다.)
+- 매장 예약 페이지(`/{slug}`) 자체는 **색인을 열어 뒀다** — 오너가 공개 예약을 켜서 만든 URL 이고
+  매장 노출에 도움이 된다. 닫으려면 `BOOKING_ROBOTS` 한 줄이다.
+
+**검증** (`NEXT_PUBLIC_BOOKING_HOST` 로 예약 호스트를 로컬 재현)
+
+| 요청 | 결과 |
+|---|---|
+| 메인 `/robots.txt` | 기존 규칙 그대로 + `/menu` · `Sitemap:` 메인 |
+| 예약 `/robots.txt` | `Allow: /` + `Disallow: /api/` 만 — 슬러그를 막는 규칙 없음 |
+| 메인 `/sitemap.xml` | 200 |
+| 예약 `/sitemap.xml` | **404** |
+| 예약 `/{slug}/r/{token}` **서버 HTML** | `<meta name="robots" content="noindex">` |
+| 예약 `/{slug}` 서버 HTML | robots 메타 0건(색인 허용, 의도) |
+| `/maintenance` | `noindex` 유지(리팩토링 회귀 없음) |
+
 ### 같은 클래스 (이번 범위 밖 · 기존 결함)
-- **예약 서브도메인(`book.takeaseat.co.kr`)이 메인 사이트의 `robots.txt`·`sitemap.xml` 을 그대로 받는다.**
-  `proxy.ts` 의 `handleBookingHost` 가 확장자 있는 경로를 통과시키므로 `public/robots.txt` 가 그대로 나간다
-  (실제로 확인함). 결과로 세 가지가 어긋난다.
-  1. `Allow: /` 라 고객 예약 페이지 `/{slug}` 와 **예약 확인 링크 `/{slug}/r/{token}` 이 색인 대상**이다.
-     토큰 페이지에는 `noindex` 가 없다 — 토큰이 어딘가에 공개되면 고객 예약 내용이 색인될 수 있다.
-  2. `Disallow: /month`·`/settings`·`/login` 등이 **슬러그와 충돌**한다. 매장 슬러그가 `month` 면 막힌다.
-  3. `Sitemap:` 이 다른 호스트를 가리키고, `book` 호스트의 `/sitemap.xml` 도 메인 URL 목록을 200 으로 준다.
-  호스트별로 나누려면 `robots.txt` 를 정적 파일에서 동적 라우트로 바꿔야 해 범위가 커진다. **별건으로 둔다.**
 - **스토리지 접근이 예외를 던지는 브라우저에서는 페이지가 죽는다.** `localStorage`/`sessionStorage`
   getter 가 `SecurityError` 를 던지면(차단 설정·일부 임베드 환경) `hasGuestData()`·
   `getGuestTermsVersion()` 이 그대로 터져 Next 클라이언트 예외 화면(본문 127자)이 뜬다.
