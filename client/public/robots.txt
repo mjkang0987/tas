@@ -5,6 +5,7 @@ Allow: /
 Disallow: /api/
 Disallow: /mypage
 Disallow: /settings
+Disallow: /menu
 Disallow: /consent
 Disallow: /address
 Disallow: /onboarding

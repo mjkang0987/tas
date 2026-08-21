@@ -100,7 +100,29 @@
 | `/month/…` + 쿠키O·데이터X | `/login` 정지 |
 | **쿠키가 차단된 환경 + 게스트 데이터 O** | 복구 새로고침 **1회 후 정지** — `takeaseat.guest-cookie-repaired` 세션 플래그가 재시도를 막는다 |
 
+### robots.txt 점검에서 고친 것
+루트 색인을 손본 김에 `robots.txt` 를 실제 라우팅과 대조했다.
+
+- **`/menu` 가 Disallow 목록에서 빠져 있었다.** 모바일 설정 허브(로그인 전용)라 `/settings` 와 같은
+  성격인데 크롤이 열려 있었다. 추가.
+- **`/policies/:slug` 풀페이지가 `/terms`·`/privacy` 와 본문이 같은데 색인이 열려 있었다.**
+  `robots.txt` 의 `Disallow: /api/` 는 rewrite 이전 경로라 이 URL 을 덮지 않는다.
+  → `renderPolicyHtml` 에 **`<meta name="robots" content="noindex">`** 를 넣었다.
+  **`robots.txt` 로 막지 않은 이유** — 이 URL 은 OAuth 검수에 제출되는 주소다. 크롤을 막으면
+  검수 쪽 조회까지 영향을 줄 수 있어, 크롤은 열어 두고 색인만 뺀다(noindex 가 더 정확한 도구이기도 하다 —
+  Disallow 는 URL 만 남긴 색인을 막지 못한다).
+  앱 안의 `/terms`·`/privacy` 는 다른 렌더 경로라 영향이 없다(`renderPolicyHtml` 의 유일한 사용처는
+  `pages/api/policies/[slug].ts`). 확인함 — `/terms` 는 canonical 그대로, `robots` 메타 0건.
+
 ### 같은 클래스 (이번 범위 밖 · 기존 결함)
+- **예약 서브도메인(`book.takeaseat.co.kr`)이 메인 사이트의 `robots.txt`·`sitemap.xml` 을 그대로 받는다.**
+  `proxy.ts` 의 `handleBookingHost` 가 확장자 있는 경로를 통과시키므로 `public/robots.txt` 가 그대로 나간다
+  (실제로 확인함). 결과로 세 가지가 어긋난다.
+  1. `Allow: /` 라 고객 예약 페이지 `/{slug}` 와 **예약 확인 링크 `/{slug}/r/{token}` 이 색인 대상**이다.
+     토큰 페이지에는 `noindex` 가 없다 — 토큰이 어딘가에 공개되면 고객 예약 내용이 색인될 수 있다.
+  2. `Disallow: /month`·`/settings`·`/login` 등이 **슬러그와 충돌**한다. 매장 슬러그가 `month` 면 막힌다.
+  3. `Sitemap:` 이 다른 호스트를 가리키고, `book` 호스트의 `/sitemap.xml` 도 메인 URL 목록을 200 으로 준다.
+  호스트별로 나누려면 `robots.txt` 를 정적 파일에서 동적 라우트로 바꿔야 해 범위가 커진다. **별건으로 둔다.**
 - **스토리지 접근이 예외를 던지는 브라우저에서는 페이지가 죽는다.** `localStorage`/`sessionStorage`
   getter 가 `SecurityError` 를 던지면(차단 설정·일부 임베드 환경) `hasGuestData()`·
   `getGuestTermsVersion()` 이 그대로 터져 Next 클라이언트 예외 화면(본문 127자)이 뜬다.

@@ -81,7 +81,7 @@ hair_reservations/
 | `/terms` | `terms.tsx` | 이용약관 (앱 인라인, Aside 포함)[^20] |
 | `/privacy` | `privacy.tsx` | 개인정보처리방침 (앱 인라인)[^20] |
 | `/dpa` | `dpa.tsx` | 개인정보 처리 위탁계약(DPA) (앱 인라인)[^20] |
-| `/policies/:slug` | `pages/api/policies/[slug].ts` | 정책 **풀페이지**(앱 셸 없는 독립 HTML, OAuth 검수·외부 링크용). `next.config` rewrite로 연결[^20]. slug: `terms`·`privacy`·`dpa`(TAS↔오너) + `booking-consent`·`store-privacy`(매장↔고객)[^27] |
+| `/policies/:slug` | `pages/api/policies/[slug].ts` | 정책 **풀페이지**(앱 셸 없는 독립 HTML, OAuth 검수·외부 링크용). `/terms`·`/privacy` 와 본문이 같아 **`noindex`** — robots.txt 로 막지 않는 것은 OAuth 검수가 여는 주소이기 때문이다. `next.config` rewrite로 연결[^20]. slug: `terms`·`privacy`·`dpa`(TAS↔오너) + `booking-consent`·`store-privacy`(매장↔고객)[^27] |
 | `/about` | (삭제됨) | 소개 내용을 루트가 직접 응답하므로 없앴다. `next.config.mjs` 가 `/` 로 **307** 리다이렉트해 기존 링크만 살린다[^37] |
 | `/sitemap.xml` | `sitemap.xml.tsx` | 색인 대상 공개 경로 목록(`/`·`/terms`·`/privacy`). `robots.txt` 가 이 URL 을 가리킨다 |
 | `/maintenance` | `maintenance.tsx` | 점검 안내(`noindex`). `MAINTENANCE_MODE` 일 때 `proxy.ts` 가 모든 요청을 여기로 rewrite |
