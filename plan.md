@@ -5,6 +5,116 @@
 
 ---
 
+## 진행 중 — 루트(`/`)를 색인 가능한 소개 페이지로 (`claude/root-auth-redirect-sitemap-2gk7i5`)
+
+> Google Search Console 이 **"발견됨 – 현재 색인이 생성되지 않음"** 을 띄운다.
+> 색인 대상 URL 이 `/about`·`/terms`·`/privacy` 3개뿐이고, **정작 외부 링크가 붙는 루트(`/`)가
+> 색인 대상에서 빠져 있다.**
+
+### 진단 (코드 기준)
+익명 방문자가 `/` 에 오면 지금은 이렇게 흐른다.
+
+| 단계 | 위치 | 결과 |
+|---|---|---|
+| 미들웨어 | `proxy.ts` | 익명은 게이트 통과 — 리다이렉트 없음 |
+| SSR | `pages/index.tsx` `getServerSideProps` | 세션 없으면 `storageMode:'local'` 로 **200**, 빈 캘린더 앱 셸 |
+| CSR | `pages/_app.tsx:196` | 그제서야 JS 로 `router.replace('/about')` |
+
+크롤러가 받는 것은 **내용 없는 앱 셸 200** 이고, 리다이렉트는 렌더링 이후에야 드러난다.
+루트는 사이트에서 가장 링크가 많이 붙는 URL 인데 크롤 가치가 0 이다.
+
+**"발견됨 – 색인 생성 안 됨" 자체는 크롤링 우선순위 문제라 코드만으로는 안 풀린다**(사이트가 새롭고
+외부 링크·색인 URL 이 적다). 이 작업은 "크롤이 왔을 때 색인할 것이 있게" 만드는 쪽이다.
+
+### 선택 — 리다이렉트(A) 가 아니라 루트 렌더(B)
+- **A. 루트 → `/about` 서버 리다이렉트**: 변경 1곳으로 끝나지만 **루트를 "색인할 것이 없는 URL"로
+  확정**시킨다. 사이트맵에 `/` 를 넣는 것도 그때는 오히려 해가 된다(GSC "페이지에 리디렉션이 있음"으로 제외).
+- **B. 루트가 소개 내용을 200 으로 응답**(채택): 발견된 루트 URL 에 색인할 내용이 생기고,
+  사이트맵에 `/` 를 넣는 것이 그제야 정합적이 된다. 대신 변경 지점이 6곳이다.
+
+### 구현
+- `client/components/landing/LandingContent.tsx` **(신규 컴포넌트)** — `about.tsx` 본문·스타일 이동.
+  - **신규 사유(Front-End Standards)**: 같은 소개 마크업이 `/` 와 `/about` 두 라우트에서 렌더돼야 한다.
+    재사용 가능한 기존 컴포넌트가 없고, 복붙은 규칙 위반이다.
+- `client/pages/about.tsx` — `SeoHead` + `LandingContent` 만 남긴다. canonical 을 **`/`** 로 지정해
+  루트로 통합한다(중복 색인 방지).
+- `client/pages/index.tsx`
+  - `getServerSideProps`: 세션 없음 **AND** `tas-guest-terms` 쿠키 없음 → `landing: true` 로 200 응답.
+    게스트 판별은 서버가 쓸 수 있는 유일한 신호가 이 쿠키다(`features/local-db/storage.ts:76`,
+    `proxy.ts:44` 가 이미 같은 쿠키를 본다).
+  - 렌더 분기는 **별도 컴포넌트**로 한다(`Home` 안에서 early return 하면 훅 순서가 깨진다).
+  - 루트 `SeoHead` 에 `path="/"` canonical + 소개 전용 description.
+- `client/lib/seo.ts` — `LANDING_DESCRIPTION` 상수 추가(`/` 와 `/about` 이 공유).
+- `client/pages/_app.tsx`
+  - 미인증 가드: 루트는 서버가 랜딩을 주므로 `/about` 으로 보내지 않는다.
+  - `isAuthFlowPage` 에 루트 랜딩 포함 — 아니면 부팅 오버레이가 소개 화면을 덮고 데이터 로딩이 돈다.
+  - `LayoutComponent` 에 랜딩 여부 전달.
+- `client/components/layout/LayoutComponent.tsx` — `isBarePage` 에 랜딩 포함(앱 셸·Aside 없이).
+- `client/pages/sitemap.xml.tsx` — `/about` → `/` 로 교체. 주석의 "루트는 리다이렉트되므로 제외" 갱신.
+
+### 영향 파일
+`components/landing/LandingContent.tsx`(신규), `pages/index.tsx`, `pages/about.tsx`, `pages/_app.tsx`,
+`components/layout/LayoutComponent.tsx`, `pages/sitemap.xml.tsx`, `lib/seo.ts`, `index.md`.
+`proxy.ts`·`robots.txt` 는 변경 없음(익명 루트는 이미 통과, `Allow: /`).
+
+### 구동 검증에서 잡은 것 (계획대로 두면 깨졌던 것)
+- **랜딩인데 URL 이 `/month/2026/8` 로 바뀌었다.** `LayoutComponent` 의 캘린더 URL 동기화 효과가
+  루트 경로를 캘린더 경로로 정규화한다. 색인 대상 URL 이 주소창에서 사라지므로 이 작업의 목적이 통째로
+  무너진다. 랜딩이면 효과를 건너뛴다.
+- **쿠키만 지워진 게스트가 막다른 길에 갇혔다.** 처음엔 "소개 화면을 보게 되지만 로그인으로 복귀 가능"
+  이라고 감수하려 했는데, **실제로 눌러 보니 복귀가 안 됐다.** `_app` 이 "이전 데이터 불러오기 → 예"를
+  띄워 주긴 하는데, 앱 셸이 서버에서 오지 않았으므로 눌러도 소개 화면에 그대로 머문다.
+  → `Landing` 이 게스트 데이터를 발견하면 **동의 쿠키를 되살리고 한 번만 새로고침**한다
+  (`takeaseat.guest-cookie-repaired` 세션 플래그로 쿠키가 안 붙는 환경의 무한 새로고침 차단).
+
+### 코드리뷰에서 고친 것
+- **랜딩 응답에 `Cache-Control: public, s-maxage=3600` 을 붙였다가 뺐다.** 모든 트래픽이 Cloudflare
+  `tas-proxy` Worker 를 지나는데(횡단 규칙 6), 거기 HTML 캐시 규칙이 있으면 익명 소개 화면이 `/` 에
+  캐시돼 **로그인 사용자에게까지 돌아간다.** Cloudflare 는 `Vary: Cookie` 를 캐시 키에 넣지 않아
+  쿠키로 구분되지도 않는다. 여기서 CF 설정을 확인할 방법이 없고, 15KB 페이지를 캐시해 얻는 것보다
+  오너 화면이 소개 페이지로 바뀌는 쪽이 훨씬 비싸다. 지금은 Next 기본값(`private, no-store`)을 쓴다.
+- **익명이 `/month/2026/8` 같은 캘린더 URL 로 직접 들어오면 소개 화면이 뜬다.** `next.config.mjs` 가
+  그 경로들을 `/` 로 rewrite 하므로 `landing` 판정이 그대로 적용된다. `robots.txt` 가 이 경로들을
+  Disallow 하고 canonical 이 `/` 라 색인 문제는 없다. 기존엔 앱 셸 → `/about` 이었으니 동작 변화이지만,
+  내용이 같고 리다이렉트가 사라진 것이라 그대로 둔다.
+- **`/about` 은 이제 UI 어디서도 링크되지 않는다.** 남은 진입은 `_app` 가드(쿠키만 있고 데이터 없는
+  게스트)와 기존 외부 링크뿐이다. 그 둘 때문에 유지한다.
+
+### 리스크 / 감수한 것
+- 쿠키 복구 경로는 **게스트 동의 버전이 localStorage 에 남아 있을 때만** 돈다. 동의 기록까지 지운
+  경우는 소개 화면에 머물고 `/login` → `/consent` 로 다시 밟아야 한다(없는 동의를 만들어 낼 수는 없다).
+- **`/about` 은 계속 200** 이다(기존 링크 보존). canonical 로 `/` 에 통합한다. 되돌리기 쉬운 선택이며,
+  영구 리다이렉트(301)는 캐시가 남아 되돌리기 어려워 쓰지 않는다(`/book` 307 유지와 같은 판단).
+- 색인 자체는 이 변경만으로 보장되지 않는다. **비코드 작업이 따로 필요**하다 — GSC 사이트맵 제출 확인,
+  URL 검사 → 색인 생성 요청, 외부 링크 확보.
+
+### 검증
+- `next build`·`tsc --noEmit` 통과, `pnpm test` 123건 통과, `test:required` 통과.
+  eslint 는 변경 파일 기준 **baseline(`origin/main`)과 동일**(7 errors·4 warnings, 전부 기존 것, 신규 0).
+- 프로덕션 빌드를 띄워 실제 응답 확인:
+
+| 요청 | 결과 |
+|---|---|
+| 익명 `/` | 200 · `<title>TAS \| 예약·고객 관리</title>` · description · `canonical https://takeaseat.co.kr/` · 소개 본문(h2 4개·CTA) SSR |
+| 게스트 쿠키 `/` | 앱 셸(랜딩 아님) · `Cache-Control: private, no-store` |
+| 익명 `/month/2026/8` | 소개 화면(next.config 가 `/` 로 rewrite) · canonical `/` |
+| `/about` | 200 · canonical `https://takeaseat.co.kr/` |
+| `/sitemap.xml` | `/`·`/terms`·`/privacy` |
+
+- 헤드리스 Chromium 으로 하이드레이션 이후까지 확인:
+
+| 시나리오 | 결과 |
+|---|---|
+| 익명 첫 방문 | `/` 에 머묾 · 리다이렉트 0 · 부팅 오버레이 없음 · 소개 화면 |
+| 게스트(쿠키+데이터) | 캘린더(`/month/2026/8`) 진입 — 회귀 없음 |
+| 게스트(쿠키만·데이터 없음) | `/about` — 기존 동작 그대로 |
+| 게스트(쿠키 삭제·데이터 보유) | 쿠키 복구 후 새로고침 → 캘린더 진입 |
+
+- **로그인 사용자 경로는 여기서 구동하지 못했다**(DB·세션 필요). `getServerSideProps` 의 세션 분기는
+  건드리지 않았고 빌드·타입체크까지만 확인했다.
+
+---
+
 ## 완료 — 고객 병합 제안 그룹 규칙 재정의 (`feature/customer-merge-masked-rule`)
 
 > 마스킹 이름(`김*수`) 병합 제안이 서로 다른 사람을 한 덩어리로 묶던 문제를 규칙 차원에서 고쳤다.

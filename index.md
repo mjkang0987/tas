@@ -67,7 +67,7 @@ hair_reservations/
 
 | 경로 | 파일 | 설명 |
 |------|------|------|
-| `/` | `index.tsx` | 메인 캘린더 (SSR, `getServerSideProps`로 예약·고객·이력 초기 로드) |
+| `/` | `index.tsx` | **두 화면을 겸한다.** 로그인·게스트는 메인 캘린더 (SSR, `getServerSideProps`로 예약·고객·이력 초기 로드). **익명 첫 방문은 소개 화면을 서버렌더**(`landing` prop, `LandingContent`) — 크롤러가 색인할 내용을 루트에서 받게 하려는 것이다[^37] |
 | `/login` | `login.tsx` | 로그인 (Google, Kakao, Naver OAuth) + 게스트 진입. 초대 링크(`?invite=CODE`) 코드 자동입력, 인앱 브라우저(WebView) 감지 시 안내 배너 + 카카오 우선 노출, 로고→루트 링크 |
 | `/logout` | `logout.tsx` | 로그아웃 후 `/login`으로 리다이렉트 |
 | `/mypage` | `mypage.tsx` | 계정 관리 (프로필, 연결된 SNS, 로그아웃, 회원탈퇴) |
@@ -82,6 +82,9 @@ hair_reservations/
 | `/privacy` | `privacy.tsx` | 개인정보처리방침 (앱 인라인)[^20] |
 | `/dpa` | `dpa.tsx` | 개인정보 처리 위탁계약(DPA) (앱 인라인)[^20] |
 | `/policies/:slug` | `pages/api/policies/[slug].ts` | 정책 **풀페이지**(앱 셸 없는 독립 HTML, OAuth 검수·외부 링크용). `next.config` rewrite로 연결[^20]. slug: `terms`·`privacy`·`dpa`(TAS↔오너) + `booking-consent`·`store-privacy`(매장↔고객)[^27] |
+| `/about` | `about.tsx` | 서비스 소개. 루트와 **같은 내용**(`LandingContent` 공유)이라 canonical 을 `/` 로 걸어 색인을 루트로 모은다. 사이트맵에는 싣지 않는다[^37] |
+| `/sitemap.xml` | `sitemap.xml.tsx` | 색인 대상 공개 경로 목록(`/`·`/terms`·`/privacy`). `robots.txt` 가 이 URL 을 가리킨다 |
+| `/maintenance` | `maintenance.tsx` | 점검 안내(`noindex`). `MAINTENANCE_MODE` 일 때 `proxy.ts` 가 모든 요청을 여기로 rewrite |
 | (404) | `pages/404.tsx` + `app/not-found.tsx` | 안내 페이지 + 5초 카운트다운 후 홈 자동 리다이렉트[^18] |
 | (500) | `pages/500.tsx` | 서버 오류 안내 페이지 |
 
@@ -156,6 +159,8 @@ hair_reservations/
 [^19]: 약관 버전은 `utils/terms.ts`의 `CURRENT_TERMS_VERSION`(날짜 기반 `YYYY-MM-DD`)으로 관리. 동의 여부 판정 — 게스트: `getGuestTermsVersion()===CURRENT_TERMS_VERSION`(localStorage), 로그인: 세션 `termsVersion===CURRENT_TERMS_VERSION`. 미동의 시 게이트 노출, 동의 시 게스트는 localStorage(`setGuestTermsAgreed`)·로그인은 `POST /api/consent`(→ `User.agreedTermsVersion`/`agreedTermsAt` 갱신) 후 세션 갱신. `/consent/<경로>` 형태로 복귀 경로를 슬래시로 전달(`next.config.mjs` rewrite). Aside 하단에 이용약관/개인정보처리방침 링크 제공, 게스트 로그아웃 시 동의 플래그도 초기화. **동의 항목 구성** — 게스트: 이용약관 + 개인정보 수집·이용(서버 위탁 없음). 로그인(SNS 연동, 서버 보관): 위 2개 + **개인정보 처리위탁(DPA)** 별도 항목. 게스트가 SNS 연동한 경우는 이미 받은 동의는 건너뛰고 DPA만 `_app.tsx`의 앱 레벨 `ConsentDpaLayer`로 추가 수령. 각 항목 "보기"는 `PolicyViewLayer`로 표시
 [^27]: **고객 대상 정책 문서**(`booking-consent`·`store-privacy`) — 기존 3개와 **당사자가 다르다**. terms/privacy/dpa가 "TAS ↔ 매장 오너"라면 이 둘은 "**매장(개인정보처리자) ↔ 고객(정보주체)**"이고 주어가 매장이다(TAS는 수탁자로 등장). 수집 근거는 「개인정보 보호법」 제15조제1항제4호(**계약의 체결·이행**) — 예약은 계약이고 이름·연락처 없이는 성립하지 않으므로 **별도 동의가 필요 없어 예약 폼에 동의 체크박스를 두지 않는다**(네이버 예약도 같은 구조에서 첫 블록을 "안내"로 둔다). 본문의 `{{storeName}}`은 `applyPolicyVars`가 렌더 시점에 치환하며, 매장 컨텍스트가 없는 경로(풀페이지)에서는 "예약하신 매장"으로 폴백해 토큰이 노출되지 않는다. **모든 렌더 경로(레이어·풀페이지·인라인)가 `applyPolicyVars`를 통과해야 한다.** 예약 폼에는 요약 안내 박스(수집항목·목적·보유기간·위탁)를 4개국어로 노출하고 전문은 `PolicyViewLayer`로 연다(전문 자체는 한국어 — 법적 기준 문서). 요청사항 칸에는 민감정보 입력 자제 안내를 둔다.
 
+[^37]: **루트(`/`)를 색인 가능하게 만든 이유** — Google Search Console 이 "발견됨 – 현재 색인이 생성되지 않음"을 띄웠다. 그전 구조에서 익명 방문자는 루트에서 **빈 앱 셸을 200 으로** 받고, `_app.tsx` 가 하이드레이션 후에야 JS 로 `/about` 으로 옮겼다. 크롤러 입장에서 루트는 내용이 없는 URL 인데, 외부 링크가 붙는 곳은 대개 루트다 — 사이트에서 가장 링크가 많은 URL 이 크롤 가치 0 이었다. **서버 리다이렉트(`/` → `/about`)는 일부러 택하지 않았다.** 그러면 루트가 '색인할 것이 없는 URL' 로 확정되고 사이트맵에 `/` 를 넣는 것도 해가 된다(GSC 가 "페이지에 리디렉션이 있음"으로 제외). 대신 루트가 소개 내용을 직접 200 으로 응답한다. ⚠️ **서버는 게스트를 동의 쿠키(`tas-guest-terms`)로만 알아본다** — localStorage 를 못 보기 때문이다. 쿠키만 지워지고 게스트 데이터가 남으면 소개 화면이 잘못 뜨는데, 그 상태로 두면 `_app` 의 "이전 데이터 불러오기"를 눌러도 **캘린더로 갈 수 없다**(앱 셸이 서버에서 오지 않았으므로). 그래서 `Landing` 이 쿠키를 되살리고 한 번만 새로고침한다 (세션 플래그로 무한 새로고침 방지). 또 하나 — `LayoutComponent` 의 캘린더 URL 동기화 효과는 랜딩에서 **반드시 꺼야 한다**. 안 끄면 루트가 `/month/YYYY/M` 으로 정규화돼 색인 대상 URL 이 주소창에서 사라진다(실제로 그렇게 났다). 익명이 `/month/2026/8` 같은 캘린더 URL 로 직접 들어와도 소개 화면이 뜬다 — `next.config.mjs` 가 그 경로를 `/` 로 rewrite 하기 때문이다(`robots.txt` Disallow + canonical `/` 라 색인 영향은 없다). **공유 캐시(`s-maxage`)는 열지 않는다** — Cloudflare Worker 를 지나므로 HTML 캐시 규칙이 있으면 익명 소개 화면이 로그인 사용자에게 돌아갈 수 있고, CF 는 `Vary: Cookie` 로 구분하지 않는다. **색인 자체는 이 변경만으로 보장되지 않는다** — "발견됨"은 크롤링 우선순위 문제이고, 사이트맵 제출·색인 생성 요청·외부 링크가 따로 필요하다.
+
 [^20]: **정책 문서 단일 소스 구조** — 법률 본문은 문서당 파일 하나(`content/policies/{terms,privacy,dpa}.ts`)에만 두고, 제목 메타는 `content/policies/index.ts` 레지스트리(`navTitle`/`docTitle`/`body`)로 관리. 이 본문을 **인라인 페이지**(`/terms`·`/privacy`·`/dpa` → `PolicyPage`)·**보기 레이어**(`PolicyViewLayer`)·**풀페이지**(`/policies/:slug` → `api/policies/[slug].ts`가 `renderPolicyHtml`로 독립 HTML 응답)가 모두 공유 → 한 곳만 고치면 전체 반영. 공통 CSS도 `components/policy/policyCss.ts`(`POLICY_VARS_*`·`POLICY_ELEMENT_CSS`)에서 styled-components(인라인)·`<style>`(풀페이지) 양쪽이 같은 문자열 사용. DPA는 서버 보관(수탁) 개시 시점에 필요하므로 SNS 연동(인증) 이후에만 노출
 [^21]: 회원권 관리는 `Store.useMembershipSystem` 토글 ON일 때만 aside 메뉴·`/settings/membership` 탭 노출. 상품(횟수/기간권) CRUD + 고객 발급·수동 차감까지 구현(Phase 1·2). **결제 연동(예약 결제수단으로 자동 차감, `PaymentMethod.membership`)은 미구현(Phase 3 예정)**
 [^22]: 쿠폰 관리는 `Store.useCouponSystem` 토글 ON일 때만 aside 메뉴·`/settings/coupon` 탭 노출. **Phase 1만 구현** — 상품(정액 amount/정률 rate, maxDiscount·minOrderAmount·validDays·code) CRUD(`/api/coupons` owner, `server/api/coupons.ts`). **직접 발급·발급취소는 구현**(`/api/coupon-issue` staff, `server/api/coupon-issue.ts` — POST 발급 / DELETE 는 삭제가 아니라 `status='cancelled'`). 보관(archived) 상품 발급 금지, `oncePerCustomer` 상품은 미사용(active) 보유분이 있으면 재발급 거부(마이그레이션 `0017`). **코드형 발급(고객이 코드 입력)은 미구현** — 직접 발급 API 가 `code` 있는 상품을 명시적으로 거부한다. **결제 자동 차감(`PaymentMethod.coupon`)도 미구현** — enum 에 `coupon` 값 자체가 없다. 회원권 시스템 패턴 미러링
@@ -229,11 +234,11 @@ hair_reservations/
 | `utils/timeRound.ts` | 시간 반올림 |
 | `utils/timelineRange.ts` | 캘린더 시간축 범위 파생 (`getTimelineRange(viewType, businessHours)`: 영업시간 기준 floor/ceil, 0~24 클램프. 뷰별 패딩 `VIEW_PADDING_HOURS`는 현재 전부 0=영업시간 그대로). Timeline·TimelineTitle이 구독 |
 | `utils/labels.ts` | 표시 라벨 공통 (`ROLE_LABELS` 오너/멤버, `PROVIDER_LABELS` Google/Kakao/Naver) |
-| `utils/terms.ts` | 약관 동의 버전 상수 `CURRENT_TERMS_VERSION`(현재 `2026-06-16`) 정의 (게스트 동의 헬퍼는 `features/local-db/storage.ts`) |
+| `utils/terms.ts` | 약관 동의 버전 상수 `CURRENT_TERMS_VERSION`(현재 `2026-06-16`)과 **서버가 읽는 게스트 쿠키 이름 `GUEST_TERMS_COOKIE`** 정의 (게스트 동의 헬퍼·쿠키를 심는 쪽은 `features/local-db/storage.ts`. `features/**` 가 바깥을 import 하지 않는 경계라 이름이 양쪽에 있다 — 바꾸면 함께 고칠 것) |
 | `lib/page-data.ts` | SSR 페이지 데이터 로딩 |
 | `lib/local-db.ts` | 게스트 모드 로컬 DB (re-export from features) |
 | `lib/authz.ts` | 권한 관리 |
-| `lib/seo.ts` | SEO 상수 (`SITE_URL`, `SITE_TITLE`, OG/Twitter 메타값). **외부 플랫폼(네이버·당근·카카오) 통합 예약 관리는 미구축이라 문구·키워드·공유 이미지(`public/img-share.png`)에서 제외** — 실제 제공 범위(예약·고객·담당자·매출)만 적는다 |
+| `lib/seo.ts` | SEO 상수 (`SITE_URL`, `SITE_TITLE`, `LANDING_DESCRIPTION`, OG/Twitter 메타값). **외부 플랫폼(네이버·당근·카카오) 통합 예약 관리는 미구축이라 문구·키워드·공유 이미지(`public/img-share.png`)에서 제외** — 실제 제공 범위(예약·고객·담당자·매출)만 적는다 |
 | `lib/gmail-status.ts` | Gmail 연동 상태 조회 (`/api/gmail/status`, 페이지 로드당 1회 캐시) |
 | `scripts/backfill-assignee-legacyid.mjs` | 담당자 null legacyId 백필 스크립트 (`--dry-run` 지원) |
 | `scripts/recalc-reservation-endtimes.mjs` | 서비스 duration 변경 후 기존 예약 endTime 재계산 (매장별 카탈로그 기준, 기본 dry-run / `--apply`로 반영, 대상: active·미결제) |
