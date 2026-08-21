@@ -11,7 +11,7 @@ import {
     resolveRequestHost,
 } from './features/booking/routing';
 import {SITE_URL} from './lib/seo';
-import {CURRENT_TERMS_VERSION} from './utils/terms';
+import {CURRENT_TERMS_VERSION, GUEST_TERMS_COOKIE} from './utils/terms';
 
 const authMiddleware = auth((req) => {
     const {pathname} = req.nextUrl;
@@ -27,7 +27,6 @@ const authMiddleware = auth((req) => {
         /\.[^/]+$/.test(pathname) ||
         pathname.startsWith('/book/') ||
         pathname.startsWith('/login') ||
-        pathname.startsWith('/about') ||
         pathname.startsWith('/logout') ||
         pathname.startsWith('/consent') ||
         pathname.startsWith('/terms') ||
@@ -41,7 +40,7 @@ const authMiddleware = auth((req) => {
 
     // 1) 약관 동의 게이트: 로그인된 실제 계정인데 현재 약관 버전 미동의 → /consent
     //    단, 게스트로 이미 동의(쿠키)한 경우는 통과시키고 처리위탁(DPA) 동의만 앱 위 레이어로 받는다.
-    const guestTermsAgreed = req.cookies.get('tas-guest-terms')?.value === CURRENT_TERMS_VERSION;
+    const guestTermsAgreed = req.cookies.get(GUEST_TERMS_COOKIE)?.value === CURRENT_TERMS_VERSION;
     if (user?.id && !user.loginError && user.termsVersion !== CURRENT_TERMS_VERSION && !isExempt && !guestTermsAgreed) {
         return Response.redirect(new URL('/consent', req.url));
     }

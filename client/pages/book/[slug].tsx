@@ -11,7 +11,7 @@ import {
     localizedStoreLabels, lookupStatusL, dowLabelL, todayLabelL,
     pickI18n, bookHref, bookRoute, type I18nText,
 } from '../../features/booking/i18n';
-import {bookBaseForHost, resolveRequestHost} from '../../features/booking/routing';
+import {bookBaseForHost, resolveHostFromHeaders} from '../../features/booking/routing';
 import {SeoHead} from '../../components/ui/SeoHead';
 import {PolicyViewLayer} from '../../components/policy/PolicyViewLayer';
 import type {PolicySlug} from '../../content/policies';
@@ -810,7 +810,7 @@ interface BookingPageProps {
 }
 
 export const getServerSideProps: GetServerSideProps<BookingPageProps> = async ({req}) => ({
-    props: {bookBase: bookBaseForHost(resolveRequestHost(req.headers['x-forwarded-host'] as string | undefined, req.headers.host))},
+    props: {bookBase: bookBaseForHost(resolveHostFromHeaders(req.headers))},
 });
 
 const StyledWrap = styled.div`

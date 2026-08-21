@@ -2,8 +2,6 @@ import Link from 'next/link';
 
 import styled from 'styled-components';
 
-import {SeoHead} from '../components/ui/SeoHead';
-
 type Feature = {title: string; desc: string};
 
 const FEATURES: Feature[] = [
@@ -13,14 +11,9 @@ const FEATURES: Feature[] = [
     {title: '결제·매출', desc: '결제 내역과 매출을 기록하고 자동으로 집계합니다.'},
 ];
 
-export default function AboutPage() {
+export function LandingContent() {
     return (
         <StyledWrapper>
-            <SeoHead
-                title="서비스 소개"
-                description="예약·고객 관리 서비스 TAS. 예약 캘린더부터 고객·담당자·매출까지 매장 운영을 한 곳에서 관리하세요."
-                path="/about"
-            />
             <StyledMain>
                 <StyledHero>
                     <StyledBrandLogo src="/logo/logo-black.svg" alt="Take a Seat" />

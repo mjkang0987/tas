@@ -64,6 +64,8 @@ export function shouldUseLocalDb(): boolean {
 const GUEST_TERMS_KEY = 'takeaseat.guest-terms-version';
 // 미들웨어(proxy.ts)가 SNS 연동 시 "게스트로 이미 동의함"을 판별하기 위한 쿠키.
 // 이 경우 /consent 리다이렉트 대신 통과시키고, DPA 동의는 앱 위 레이어로 받는다.
+// 서버(proxy.ts·pages/index.tsx)가 읽는 쪽 상수는 `utils/terms.ts` 의 `GUEST_TERMS_COOKIE` 다.
+// features/** 는 바깥을 import 하지 않는 경계라 이름을 여기 따로 둔다 — 바꾸면 양쪽을 함께 고칠 것.
 const GUEST_TERMS_COOKIE = 'tas-guest-terms';
 
 // 게스트(미로그인) 약관 동의 버전 — 로그인 계정은 DB(User.agreedTermsVersion)에 저장

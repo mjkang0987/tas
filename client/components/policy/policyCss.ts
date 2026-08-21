@@ -93,9 +93,12 @@ export const POLICY_ELEMENT_CSS = `
 `;
 
 // 풀페이지(독립 HTML) 문자열 생성. API 라우트에서 text/html로 응답한다.
+// `noindex` 인 이유 — 이 독립 HTML(`/policies/:slug`)은 앱 안의 `/terms`·`/privacy` 와 **본문이 같다.**
+// 둘 다 색인되면 중복이고, 크롤 예산이 갈린다. robots.txt 로 막지 않는 것은 이 URL 이 OAuth 검수에
+// 제출되는 주소이기 때문이다 — 크롤 자체는 열어 두고 색인만 뺀다.
 export function renderPolicyHtml(headTitle: string, h1Title: string, body: string): string {
     return `<!DOCTYPE html>
-<html lang="ko"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>${headTitle}</title><style>
+<html lang="ko"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="robots" content="noindex"><title>${headTitle}</title><style>
 :root{${POLICY_VARS_LIGHT}}
 html,body{margin:0;background:var(--tas-bg);}
 .tas-doc{max-width:820px;margin:0 auto;padding:40px 20px 80px;color:var(--tas-fg);font-family:${FONT_STACK};line-height:1.75;font-size:16px;word-break:keep-all;}

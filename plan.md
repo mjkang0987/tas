@@ -5,6 +5,236 @@
 
 ---
 
+## 완료 — 루트(`/`)를 색인 가능한 소개 페이지로 (PR #215, v0.53.0)
+
+> Google Search Console 이 **"발견됨 – 현재 색인이 생성되지 않음"** 을 띄운다.
+> 색인 대상 URL 이 `/about`·`/terms`·`/privacy` 3개뿐이고, **정작 외부 링크가 붙는 루트(`/`)가
+> 색인 대상에서 빠져 있다.**
+
+### 진단 (코드 기준)
+익명 방문자가 `/` 에 오면 지금은 이렇게 흐른다.
+
+| 단계 | 위치 | 결과 |
+|---|---|---|
+| 미들웨어 | `proxy.ts` | 익명은 게이트 통과 — 리다이렉트 없음 |
+| SSR | `pages/index.tsx` `getServerSideProps` | 세션 없으면 `storageMode:'local'` 로 **200**, 빈 캘린더 앱 셸 |
+| CSR | `pages/_app.tsx:196` | 그제서야 JS 로 `router.replace('/about')` |
+
+크롤러가 받는 것은 **내용 없는 앱 셸 200** 이고, 리다이렉트는 렌더링 이후에야 드러난다.
+루트는 사이트에서 가장 링크가 많이 붙는 URL 인데 크롤 가치가 0 이다.
+
+**"발견됨 – 색인 생성 안 됨" 자체는 크롤링 우선순위 문제라 코드만으로는 안 풀린다**(사이트가 새롭고
+외부 링크·색인 URL 이 적다). 이 작업은 "크롤이 왔을 때 색인할 것이 있게" 만드는 쪽이다.
+
+### 선택 — 리다이렉트(A) 가 아니라 루트 렌더(B)
+- **A. 루트 → `/about` 서버 리다이렉트**: 변경 1곳으로 끝나지만 **루트를 "색인할 것이 없는 URL"로
+  확정**시킨다. 사이트맵에 `/` 를 넣는 것도 그때는 오히려 해가 된다(GSC "페이지에 리디렉션이 있음"으로 제외).
+- **B. 루트가 소개 내용을 200 으로 응답**(채택): 발견된 루트 URL 에 색인할 내용이 생기고,
+  사이트맵에 `/` 를 넣는 것이 그제야 정합적이 된다. 대신 변경 지점이 6곳이다.
+
+### 구현
+- `client/components/landing/LandingContent.tsx` **(신규 컴포넌트)** — `about.tsx` 본문·스타일 이동.
+  - **신규 사유(Front-End Standards)**: 같은 소개 마크업이 `/` 와 `/about` 두 라우트에서 렌더돼야 한다.
+    재사용 가능한 기존 컴포넌트가 없고, 복붙은 규칙 위반이다.
+- `client/pages/about.tsx` — `SeoHead` + `LandingContent` 만 남긴다. canonical 을 **`/`** 로 지정해
+  루트로 통합한다(중복 색인 방지).
+- `client/pages/index.tsx`
+  - `getServerSideProps`: 세션 없음 **AND** `tas-guest-terms` 쿠키 없음 → `landing: true` 로 200 응답.
+    게스트 판별은 서버가 쓸 수 있는 유일한 신호가 이 쿠키다(`features/local-db/storage.ts:76`,
+    `proxy.ts:44` 가 이미 같은 쿠키를 본다).
+  - 렌더 분기는 **별도 컴포넌트**로 한다(`Home` 안에서 early return 하면 훅 순서가 깨진다).
+  - 루트 `SeoHead` 에 `path="/"` canonical + 소개 전용 description.
+- `client/lib/seo.ts` — `LANDING_DESCRIPTION` 상수 추가(`/` 와 `/about` 이 공유).
+- `client/pages/_app.tsx`
+  - 미인증 가드: 루트는 서버가 랜딩을 주므로 `/about` 으로 보내지 않는다.
+  - `isAuthFlowPage` 에 루트 랜딩 포함 — 아니면 부팅 오버레이가 소개 화면을 덮고 데이터 로딩이 돈다.
+  - `LayoutComponent` 에 랜딩 여부 전달.
+- `client/components/layout/LayoutComponent.tsx` — `isBarePage` 에 랜딩 포함(앱 셸·Aside 없이).
+- `client/pages/sitemap.xml.tsx` — `/about` → `/` 로 교체. 주석의 "루트는 리다이렉트되므로 제외" 갱신.
+
+### 영향 파일
+`components/landing/LandingContent.tsx`(신규), `pages/index.tsx`, `pages/about.tsx`, `pages/_app.tsx`,
+`components/layout/LayoutComponent.tsx`, `pages/sitemap.xml.tsx`, `lib/seo.ts`, `index.md`.
+`proxy.ts`·`robots.txt` 는 변경 없음(익명 루트는 이미 통과, `Allow: /`).
+
+### 구동 검증에서 잡은 것 (계획대로 두면 깨졌던 것)
+- **랜딩인데 URL 이 `/month/2026/8` 로 바뀌었다.** `LayoutComponent` 의 캘린더 URL 동기화 효과가
+  루트 경로를 캘린더 경로로 정규화한다. 색인 대상 URL 이 주소창에서 사라지므로 이 작업의 목적이 통째로
+  무너진다. 랜딩이면 효과를 건너뛴다.
+- **쿠키만 지워진 게스트가 막다른 길에 갇혔다.** 처음엔 "소개 화면을 보게 되지만 로그인으로 복귀 가능"
+  이라고 감수하려 했는데, **실제로 눌러 보니 복귀가 안 됐다.** `_app` 이 "이전 데이터 불러오기 → 예"를
+  띄워 주긴 하는데, 앱 셸이 서버에서 오지 않았으므로 눌러도 소개 화면에 그대로 머문다.
+  → `Landing` 이 게스트 데이터를 발견하면 **동의 쿠키를 되살리고 한 번만 새로고침**한다
+  (`takeaseat.guest-cookie-repaired` 세션 플래그로 쿠키가 안 붙는 환경의 무한 새로고침 차단).
+
+### 코드리뷰에서 고친 것
+- **랜딩 응답에 `Cache-Control: public, s-maxage=3600` 을 붙였다가 뺐다.** 모든 트래픽이 Cloudflare
+  `tas-proxy` Worker 를 지나는데(횡단 규칙 6), 거기 HTML 캐시 규칙이 있으면 익명 소개 화면이 `/` 에
+  캐시돼 **로그인 사용자에게까지 돌아간다.** Cloudflare 는 `Vary: Cookie` 를 캐시 키에 넣지 않아
+  쿠키로 구분되지도 않는다. 여기서 CF 설정을 확인할 방법이 없고, 15KB 페이지를 캐시해 얻는 것보다
+  오너 화면이 소개 페이지로 바뀌는 쪽이 훨씬 비싸다. 지금은 Next 기본값(`private, no-store`)을 쓴다.
+- **익명이 `/month/2026/8` 같은 캘린더 URL 로 직접 들어오면 소개 화면이 뜬다.** `next.config.mjs` 가
+  그 경로들을 `/` 로 rewrite 하므로 `landing` 판정이 그대로 적용된다. `robots.txt` 가 이 경로들을
+  Disallow 하고 canonical 이 `/` 라 색인 문제는 없다. 기존엔 앱 셸 → `/about` 이었으니 동작 변화이지만,
+  내용이 같고 리다이렉트가 사라진 것이라 그대로 둔다.
+- **`/about` 을 삭제했다.** 루트가 같은 내용을 응답하게 된 순간 존재 이유가 사라졌다 — UI 어디서도
+  링크되지 않고, 같은 내용을 두 URL 에 두면 크롤 예산이 갈린다(이 사이트의 문제가 바로 크롤 우선순위다).
+  exempt 목록 4곳(`proxy.ts`, `_app.tsx` ×2, `LayoutComponent`)의 특례도 함께 사라졌다.
+  - ⚠️ **그냥 지우면 무한 리다이렉트가 난다.** `_app` 가드가 B-3(동의 쿠키 O · 로컬 데이터 X)을 루트에서
+    `/about` 으로 보내고 있어서, `/about` → `/` → 앱 셸 → 가드 → `/about` 으로 돈다. 404 로 지워도
+    404 페이지가 5초 뒤 홈으로 가므로 느린 루프가 된다. **가드 목적지를 `/login` 으로 먼저 바꾼 뒤** 지웠다.
+  - 기존 링크는 `next.config.mjs` 의 **307**(영구 아님 — 되돌릴 여지) 리다이렉트로 살린다.
+
+### 리다이렉트 위험 점검 (전수)
+새로 넣은 것이 **서버 307 하나**(`/about` → `/`)와 **클라이언트 새로고침 하나**(B-2 쿠키 복구)라
+루프·체인을 실제로 돌려 확인했다.
+
+| 점검 | 결과 |
+|---|---|
+| 크롤러(쿠키 없음)가 `/` 진입 | **리다이렉트 0회** · 200 — 색인 경로에 리다이렉트가 없다 |
+| `/about` 체인 | 1홉 → `/` 200. `?ref=x` 쿼리 보존, `/about/sub` 는 404(기존과 동일) |
+| `Location` 헤더 | **`/` 상대경로** — `x-forwarded-host` 를 위조해도 그대로. Cloudflare Worker 뒤에서 `run.app` 호스트가 새지 않는다 |
+| 307 캐시 | 307 은 기본 캐시되지 않는다 — 되돌릴 때 브라우저에 박히지 않는다 |
+| B-3 (쿠키O·데이터X) | `/login` 에서 정지 (16초 관찰, 이동 4회 후 증가 없음) |
+| `/about` 직접 + 쿠키O·데이터X | `/login` 정지 (13초 관찰) |
+| `/month/…` + 쿠키O·데이터X | `/login` 정지 |
+| **쿠키가 차단된 환경 + 게스트 데이터 O** | 복구 새로고침 **1회 후 정지** — `takeaseat.guest-cookie-repaired` 세션 플래그가 재시도를 막는다 |
+
+### robots.txt 점검에서 고친 것
+루트 색인을 손본 김에 `robots.txt` 를 실제 라우팅과 대조했다.
+
+- **`/menu` 가 Disallow 목록에서 빠져 있었다.** 모바일 설정 허브(로그인 전용)라 `/settings` 와 같은
+  성격인데 크롤이 열려 있었다. 추가.
+- **`/policies/:slug` 풀페이지가 `/terms`·`/privacy` 와 본문이 같은데 색인이 열려 있었다.**
+  `robots.txt` 의 `Disallow: /api/` 는 rewrite 이전 경로라 이 URL 을 덮지 않는다.
+  → `renderPolicyHtml` 에 **`<meta name="robots" content="noindex">`** 를 넣었다.
+  **`robots.txt` 로 막지 않은 이유** — 이 URL 은 OAuth 검수에 제출되는 주소다. 크롤을 막으면
+  검수 쪽 조회까지 영향을 줄 수 있어, 크롤은 열어 두고 색인만 뺀다(noindex 가 더 정확한 도구이기도 하다 —
+  Disallow 는 URL 만 남긴 색인을 막지 못한다).
+  앱 안의 `/terms`·`/privacy` 는 다른 렌더 경로라 영향이 없다(`renderPolicyHtml` 의 유일한 사용처는
+  `pages/api/policies/[slug].ts`). 확인함 — `/terms` 는 canonical 그대로, `robots` 메타 0건.
+
+### 예약 서브도메인 robots (`claude/booking-host-robots` → 이 브랜치에 머지)
+> 위 robots 점검에서 "범위 밖"으로 뒀던 것. 지시로 별도 브랜치에서 작업해 합쳤다(PR 은 하나).
+
+**문제** — `public/robots.txt` 로 두면 **예약 서브도메인도 같은 파일을 받는다.** `proxy.ts` 의
+`handleBookingHost` 가 확장자 있는 경로를 그대로 통과시키기 때문이다(실제로 확인함).
+
+| # | 어긋남 | 처리 |
+|---|---|---|
+| 1 | `Allow: /` 라 **예약 확인 링크(`/{slug}/r/{token}`)까지 색인 대상**. 토큰이 공개되면 고객 예약 내용이 색인될 수 있다 | 페이지에 `noindex` |
+| 2 | `Disallow: /month`·`/login`·`/settings` 가 **매장 슬러그를 막는다**(예약 호스트는 루트 바로 아래가 슬러그) | 호스트별 robots |
+| 3 | `Sitemap:` 이 다른 호스트를 가리키고, 예약 호스트의 `/sitemap.xml` 도 메인 URL 목록을 200 으로 준다 | 예약 호스트에서 404 |
+
+**구현**
+- `client/pages/robots.txt.tsx` **(신규)** — `public/robots.txt` 를 지우고 라우트로 옮겼다
+  (정적 파일이 라우트보다 먼저 서비스되므로 둘을 같이 둘 수 없다). `isBookingHost` 로 갈라
+  메인/예약용 본문을 준다. 호스트 판정은 기존 단일 소스(`features/booking/routing.ts`)를 그대로 쓴다.
+- `client/pages/sitemap.xml.tsx` — 예약 호스트면 `notFound`.
+- `client/components/ui/SeoHead.tsx` — `noindex` prop 추가. `maintenance.tsx` 가 따로 들고 있던
+  raw `<Head><meta robots></Head>` 도 이걸로 흡수했다(중복 제거).
+- `client/pages/book/[slug]/r/[token].tsx` — 세 분기 전부 `noindex`.
+
+**설계 판단 두 가지**
+- **토큰 페이지를 `robots.txt` 로 막지 않는다.** 크롤을 막으면 크롤러가 `noindex` 를 읽지 못해
+  오히려 URL 만 남은 색인이 생긴다. 크롤은 열고 색인만 뺀다.
+- **`noindex` 는 로딩 분기에도 넣었다.** 예약을 클라이언트에서 받아오므로 **로딩 상태가 곧 서버 HTML**
+  이다. 거기 빠지면 JS 를 실행하지 않는 크롤러는 태그를 못 본다. (처음엔 빠뜨렸고, 서버 HTML 을
+  직접 받아 보고 발견했다.)
+- 매장 예약 페이지(`/{slug}`) 자체는 **색인을 열어 뒀다** — 오너가 공개 예약을 켜서 만든 URL 이고
+  매장 노출에 도움이 된다. 닫으려면 `BOOKING_ROBOTS` 한 줄이다.
+
+**검증** (`NEXT_PUBLIC_BOOKING_HOST` 로 예약 호스트를 로컬 재현)
+
+| 요청 | 결과 |
+|---|---|
+| 메인 `/robots.txt` | 기존 규칙 그대로 + `/menu` · `Sitemap:` 메인 |
+| 예약 `/robots.txt` | `Allow: /` + `Disallow: /api/` 만 — 슬러그를 막는 규칙 없음 |
+| 메인 `/sitemap.xml` | 200 |
+| 예약 `/sitemap.xml` | **404** |
+| 예약 `/{slug}/r/{token}` **서버 HTML** | `<meta name="robots" content="noindex">` |
+| 예약 `/{slug}` 서버 HTML | robots 메타 0건(색인 허용, 의도) |
+| `/maintenance` | `noindex` 유지(리팩토링 회귀 없음) |
+
+### 5-1 리팩토링 (`/simplify`) — 뒤늦게 채움
+> 업무 절차 5-1 을 두 번 다 건너뛰었다가 지적받고 돌렸다. CI 가 검사하지 않는 단계라 아무것도 못 잡았다.
+
+- **재사용** — `resolveRequestHost(req.headers['x-forwarded-host'] as string | undefined, …)` 가
+  SSR **4곳**에 복제돼 있었고 매번 같은 캐스팅을 했다. `resolveHostFromHeaders` 로 묶었다.
+  캐스팅으로 덮고 있던 `string[]` 케이스도 실제로 처리한다.
+- **단순화** — `pages/index.tsx` 미인증 분기가 `landing` 한 필드만 다른 반환 블록 둘이었다 → `landing: !isGuest`.
+- **구현 깊이** — `LayoutComponent` 의 "랜딩이면 탈출" 특례를 `isCalPath` 판정에 녹였다.
+  실제 규칙은 "루트 소개 화면은 캘린더 경로가 아니다" 이지 "여기서만 빠져나간다" 가 아니다.
+- **군더더기** — `_app.tsx` 의 `(pageProps as {landing?: boolean})` 캐스팅 제거(`pageProps` 는 `any`).
+
+**테스트 부채도 함께 갚았다** — `features/booking/routing.ts` 는 순수 모듈인데 **테스트가 0건**이었다.
+이번 변경으로 호스트 판정이 robots·sitemap 분기의 핵심이 됐으므로 24건을 채웠다(총 147건).
+변이 3종(우선순위 뒤집기 · 콤마 처리 제거 · 배열 처리 되돌리기)을 주입해 **4건이 실패**하는 것을 확인했다.
+
+### 6-1 `develop` 통합 테스트
+`origin/develop` 에 `origin/main` 을 먼저 받아 최신화한 뒤 이 브랜치를 머지했다. **충돌 없음**,
+타입체크·테스트 147건·빌드 통과.
+
+⚠️ 다만 **지금 `develop` 은 미출시분을 하나도 갖고 있지 않다** — `git diff origin/main origin/develop`
+가 보여주는 차이는 develop 이 main 보다 **뒤처진** 것뿐이고, 머지 결과 트리는 이 브랜치와
+**바이트 단위로 동일**했다(`git diff <feature> develop` 이 빈 출력). 즉 이번엔 통합으로 새로 검증된
+조합이 없다. 부딪힐 다른 진행 건이 없다는 뜻이므로 통과로 본다. `develop` 브랜치는 **푸시하지 않았다**
+(지정 브랜치 외 푸시 금지 — 필요하면 말해 달라).
+
+### 같은 클래스 (이번 범위 밖 · 기존 결함)
+- **스토리지 접근이 예외를 던지는 브라우저에서는 페이지가 죽는다.** `localStorage`/`sessionStorage`
+  getter 가 `SecurityError` 를 던지면(차단 설정·일부 임베드 환경) `hasGuestData()`·
+  `getGuestTermsVersion()` 이 그대로 터져 Next 클라이언트 예외 화면(본문 127자)이 뜬다.
+  **`origin/main` 에서 동일하게 재현된다** — `/` 도 `/about` 도 똑같이 죽었다. 이번 변경으로
+  나빠지지 않았고(루프도 아니다), 고치려면 `features/local-db/storage.ts` 의 접근자를 전부
+  방어적으로 바꿔야 해 범위가 커진다. 별건으로 둔다.
+
+### 리스크 / 감수한 것
+- 쿠키 복구 경로는 **게스트 동의 버전이 localStorage 에 남아 있을 때만** 돈다. 동의 기록까지 지운
+  경우는 소개 화면에 머물고 `/login` → `/consent` 로 다시 밟아야 한다(없는 동의를 만들어 낼 수는 없다).
+- **`/about` 은 계속 200** 이다(기존 링크 보존). canonical 로 `/` 에 통합한다. 되돌리기 쉬운 선택이며,
+  영구 리다이렉트(301)는 캐시가 남아 되돌리기 어려워 쓰지 않는다(`/book` 307 유지와 같은 판단).
+- 색인 자체는 이 변경만으로 보장되지 않는다. **비코드 작업이 따로 필요**하다 — GSC 사이트맵 제출 확인,
+  URL 검사 → 색인 생성 요청, 외부 링크 확보.
+
+### 검증
+- `next build`·`tsc --noEmit` 통과, `pnpm test` 123건 통과, `test:required` 통과.
+  eslint 는 변경 파일 기준 **baseline(`origin/main`)과 동일**(7 errors·4 warnings, 전부 기존 것, 신규 0).
+- 프로덕션 빌드를 띄워 실제 응답 확인:
+
+| 요청 | 결과 |
+|---|---|
+| 익명 `/` | 200 · `<title>TAS \| 예약·고객 관리</title>` · description · `canonical https://takeaseat.co.kr/` · 소개 본문(h2 4개·CTA) SSR |
+| 게스트 쿠키 `/` | 앱 셸(랜딩 아님) · `Cache-Control: private, no-store` |
+| 익명 `/month/2026/8` | 소개 화면(next.config 가 `/` 로 rewrite) · canonical `/` |
+| `/about` | 200 · canonical `https://takeaseat.co.kr/` |
+| `/sitemap.xml` | `/`·`/terms`·`/privacy` |
+
+- 헤드리스 Chromium 으로 하이드레이션 이후까지 확인:
+
+| 시나리오 | 결과 |
+|---|---|
+| 익명 첫 방문 | `/` 에 머묾 · 리다이렉트 0 · 부팅 오버레이 없음 · 소개 화면 |
+| 게스트(쿠키+데이터) | 캘린더(`/month/2026/8`) 진입 — 회귀 없음 |
+| 게스트(쿠키만·데이터 없음) | `/login` — `/about` 삭제에 맞춰 목적지 변경 |
+| 구 링크 `/about` 직접 진입 | 307 → `/` 소개 화면 |
+| 게스트(쿠키 삭제·데이터 보유) | 쿠키 복구 후 새로고침 → 캘린더 진입 |
+
+- **로그인 사용자 경로도 실제로 구동해 확인했다.** 로컬 Postgres 임시 클러스터(`127.0.0.1:55432`,
+  `takeaseat_verify`)에 마이그레이션·시드를 넣고 오너 멤버십을 만든 뒤, 실제 세션 쿠키로 루트를 요청했다.
+
+| 확인 | 결과 |
+|---|---|
+| SSR 페이로드 | `storageMode:"remote"` · 예약 57건 · 고객 12건 · `landing` 없음 |
+| 응답 헤더 | `Cache-Control: private, no-cache, no-store` |
+| 하이드레이션 후 | 캘린더(`/month/2026/8`) · 앱 셸(aside) 있음 · 소개 CTA 0 |
+
+  **`origin/main` 대조군과 결과가 문자 단위로 같다**(최종 URL·aside·title·본문 길이 495자 동일).
+  같은 대조군에서 **익명 경로는 기존 증상이 재현됐다** — `/` → `/month/2026/8` → `/about` 로
+  JS 리다이렉트 2회를 거쳐 루트를 떠난다. 브랜치에서는 `/` 에 머문다.
+
+---
+
 ## 완료 — 고객 병합 제안 그룹 규칙 재정의 (`feature/customer-merge-masked-rule`)
 
 > 마스킹 이름(`김*수`) 병합 제안이 서로 다른 사람을 한 덩어리로 묶던 문제를 규칙 차원에서 고쳤다.

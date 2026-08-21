@@ -9,7 +9,7 @@ import {
     BOOK_STRINGS, formatDurationL, formatPriceL, localizedStoreLabels,
     statusLabelL, dowLabelL, todayLabelL, pickI18n, type I18nText,
 } from '../../../../features/booking/i18n';
-import {bookBaseForHost, resolveRequestHost} from '../../../../features/booking/routing';
+import {bookBaseForHost, resolveHostFromHeaders} from '../../../../features/booking/routing';
 import {SeoHead} from '../../../../components/ui/SeoHead';
 import {LabelBadge} from '../../../../components/ui/LabelBadge';
 import {LangSwitcher, useBookLang, LANG_BAR_OFFSET} from '../../../../components/booking/LangSwitcher';
@@ -215,6 +215,9 @@ export default function ReservationManagePage({bookBase}: ReservationManagePageP
     if (loading) {
         return (
             <StyledWrap>
+                {/* 로딩 분기가 곧 서버 HTML 이다(예약은 클라이언트에서 받아온다).
+                    여기에 noindex 가 없으면 JS 를 실행하지 않는 크롤러는 태그를 보지 못한다. */}
+                <SeoHead title={t.myReservation} noindex />
                 <StyledCard><StyledMuted>{t.loading}</StyledMuted></StyledCard>
                 <LangSwitcher lang={lang} onChange={setLang} />
             </StyledWrap>
@@ -223,7 +226,7 @@ export default function ReservationManagePage({bookBase}: ReservationManagePageP
     if (notFound || !reservation) {
         return (
             <StyledWrap>
-                <SeoHead title={t.resNotFoundTitle} />
+                <SeoHead title={t.resNotFoundTitle} noindex />
                 <StyledCard>
                     <StyledTitle>{t.resNotFoundTitle}</StyledTitle>
                     <StyledMuted>{t.resNotFoundDesc}</StyledMuted>
@@ -248,7 +251,7 @@ export default function ReservationManagePage({bookBase}: ReservationManagePageP
 
     return (
         <StyledWrap>
-            <SeoHead title={`${reservation.storeName} · ${t.myReservation}`} />
+            <SeoHead title={`${reservation.storeName} · ${t.myReservation}`} noindex />
             <StyledCard>
                 <StyledStore>{reservation.storeName}</StyledStore>
                 <StyledTitle>{t.myReservation}</StyledTitle>
@@ -385,7 +388,7 @@ interface ReservationManagePageProps {
 }
 
 export const getServerSideProps: GetServerSideProps<ReservationManagePageProps> = async ({req}) => ({
-    props: {bookBase: bookBaseForHost(resolveRequestHost(req.headers['x-forwarded-host'] as string | undefined, req.headers.host))},
+    props: {bookBase: bookBaseForHost(resolveHostFromHeaders(req.headers))},
 });
 
 const StyledWrap = styled.div`

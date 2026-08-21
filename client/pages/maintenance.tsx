@@ -1,5 +1,3 @@
-import Head from 'next/head';
-
 import styled from 'styled-components';
 
 import {SeoHead} from '../components/ui/SeoHead';
@@ -9,10 +7,7 @@ import {SeoHead} from '../components/ui/SeoHead';
 export default function MaintenancePage() {
     return (
         <>
-            <SeoHead title="점검 중" description="서비스 점검 중입니다. 잠시 후 다시 접속해 주세요." />
-            <Head>
-                <meta name="robots" content="noindex" />
-            </Head>
+            <SeoHead title="점검 중" description="서비스 점검 중입니다. 잠시 후 다시 접속해 주세요." noindex />
             <StyledPage>
                 <StyledCard>
                     <StyledIcon aria-hidden="true">🛠️</StyledIcon>

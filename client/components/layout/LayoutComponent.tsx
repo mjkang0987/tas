@@ -28,21 +28,24 @@ import {Icon} from '../ui/Icons';
 import {ReservationCreate} from '../calendar/overlays/ReservationCreate';
 import {AdBanner} from '../ad/AdBanner';
 
-export default function LayoutComponent({children}: NodeType) {
+/**
+ * `isLanding` — 루트(`/`)가 익명 방문자에게 소개 화면을 서버렌더한 경우.
+ * 경로만으로는 앱과 구분되지 않아 _app 이 pageProps 로 알려준다.
+ */
+export default function LayoutComponent({children, isLanding = false}: NodeType & {isLanding?: boolean}) {
     const router = useRouter();
     const {status} = useSession();
 
     const isLoginPage = router.pathname === '/login';
-    const isAboutPage = router.pathname === '/about';
     const isOnboardingPage = router.pathname.startsWith('/onboarding');
     const isPublicPolicyPage = router.pathname === '/terms' || router.pathname === '/privacy';
     const isMaintenancePage = router.pathname === '/maintenance';
     // _app이 공개 예약 페이지를 세션 트리 밖에서 렌더하므로 평소엔 여기 도달하지 않는다(안전망).
     const isBookingPage = isBookingRoute(router.pathname);
-    // 로그인/소개/온보딩/동의/점검은 항상 풀페이지. 약관·개인정보는 미인증(로그인 전)일 때만
+    // 로그인/루트 소개/온보딩/동의/점검은 항상 풀페이지. 약관·개인정보는 미인증(로그인 전)일 때만
     // 앱 셸(Aside·Header) 없이 풀페이지로, 로그인 사용자에겐 셸 안에서 보여준다.
     // (DPA 는 운영자 전용 — 미인증 접근은 proxy.ts 에서 /login 으로 리다이렉트)
-    const isBarePage = isLoginPage || isAboutPage || isOnboardingPage || isMaintenancePage
+    const isBarePage = isLoginPage || isLanding || isOnboardingPage || isMaintenancePage
         || isBookingPage
         || router.pathname === '/consent'
         || (isPublicPolicyPage && status !== 'authenticated');
@@ -153,7 +156,9 @@ export default function LayoutComponent({children}: NodeType) {
 
         const currentRouter = routerRef.current;
         const segments = currentRouter.asPath.split('?')[0].split('/');
-        const isCalPath = isCalendar(segments) || segments.join('').length === 0;
+        // 루트는 보통 캘린더 경로로 치지만(뷰 URL 로 정규화된다), **소개 화면일 때는 아니다** —
+        // 정규화하면 `/` 가 `/month/YYYY/M` 이 돼 색인 대상 URL 이 주소창에서 사라진다.
+        const isCalPath = !isLanding && (isCalendar(segments) || segments.join('').length === 0);
 
         if (!isCalPath) {
             return;
@@ -190,7 +195,7 @@ export default function LayoutComponent({children}: NodeType) {
             date : routeDate.getDate(),
             router: currentRouter
         });
-    }, [currValue, setRouterSlice, view]);
+    }, [currValue, isLanding, setRouterSlice, view]);
 
     if (isBarePage) {
         return <>{children}</>;
