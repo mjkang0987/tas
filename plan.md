@@ -156,6 +156,31 @@
 | 예약 `/{slug}` 서버 HTML | robots 메타 0건(색인 허용, 의도) |
 | `/maintenance` | `noindex` 유지(리팩토링 회귀 없음) |
 
+### 5-1 리팩토링 (`/simplify`) — 뒤늦게 채움
+> 업무 절차 5-1 을 두 번 다 건너뛰었다가 지적받고 돌렸다. CI 가 검사하지 않는 단계라 아무것도 못 잡았다.
+
+- **재사용** — `resolveRequestHost(req.headers['x-forwarded-host'] as string | undefined, …)` 가
+  SSR **4곳**에 복제돼 있었고 매번 같은 캐스팅을 했다. `resolveHostFromHeaders` 로 묶었다.
+  캐스팅으로 덮고 있던 `string[]` 케이스도 실제로 처리한다.
+- **단순화** — `pages/index.tsx` 미인증 분기가 `landing` 한 필드만 다른 반환 블록 둘이었다 → `landing: !isGuest`.
+- **구현 깊이** — `LayoutComponent` 의 "랜딩이면 탈출" 특례를 `isCalPath` 판정에 녹였다.
+  실제 규칙은 "루트 소개 화면은 캘린더 경로가 아니다" 이지 "여기서만 빠져나간다" 가 아니다.
+- **군더더기** — `_app.tsx` 의 `(pageProps as {landing?: boolean})` 캐스팅 제거(`pageProps` 는 `any`).
+
+**테스트 부채도 함께 갚았다** — `features/booking/routing.ts` 는 순수 모듈인데 **테스트가 0건**이었다.
+이번 변경으로 호스트 판정이 robots·sitemap 분기의 핵심이 됐으므로 24건을 채웠다(총 147건).
+변이 3종(우선순위 뒤집기 · 콤마 처리 제거 · 배열 처리 되돌리기)을 주입해 **4건이 실패**하는 것을 확인했다.
+
+### 6-1 `develop` 통합 테스트
+`origin/develop` 에 `origin/main` 을 먼저 받아 최신화한 뒤 이 브랜치를 머지했다. **충돌 없음**,
+타입체크·테스트 147건·빌드 통과.
+
+⚠️ 다만 **지금 `develop` 은 미출시분을 하나도 갖고 있지 않다** — `git diff origin/main origin/develop`
+가 보여주는 차이는 develop 이 main 보다 **뒤처진** 것뿐이고, 머지 결과 트리는 이 브랜치와
+**바이트 단위로 동일**했다(`git diff <feature> develop` 이 빈 출력). 즉 이번엔 통합으로 새로 검증된
+조합이 없다. 부딪힐 다른 진행 건이 없다는 뜻이므로 통과로 본다. `develop` 브랜치는 **푸시하지 않았다**
+(지정 브랜치 외 푸시 금지 — 필요하면 말해 달라).
+
 ### 같은 클래스 (이번 범위 밖 · 기존 결함)
 - **스토리지 접근이 예외를 던지는 브라우저에서는 페이지가 죽는다.** `localStorage`/`sessionStorage`
   getter 가 `SecurityError` 를 던지면(차단 설정·일부 임베드 환경) `hasGuestData()`·
