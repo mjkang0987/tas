@@ -5,7 +5,7 @@
 
 ---
 
-## 진행 중 — 루트(`/`)를 색인 가능한 소개 페이지로 (`claude/root-auth-redirect-sitemap-2gk7i5`)
+## 완료 — 루트(`/`)를 색인 가능한 소개 페이지로 (PR #215, v0.53.0)
 
 > Google Search Console 이 **"발견됨 – 현재 색인이 생성되지 않음"** 을 띄운다.
 > 색인 대상 URL 이 `/about`·`/terms`·`/privacy` 3개뿐이고, **정작 외부 링크가 붙는 루트(`/`)가
