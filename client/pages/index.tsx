@@ -24,6 +24,10 @@ import {ServiceLegend} from '../components/calendar/service/ServiceLegend';
 
 import {getPageSession, loadPageData} from '../lib/page-data';
 import {SeoHead} from '../components/ui/SeoHead';
+import {LandingContent} from '../components/landing/LandingContent';
+import {LANDING_DESCRIPTION} from '../lib/seo';
+import {GUEST_TERMS_COOKIE} from '../utils/terms';
+import {getGuestTermsVersion, hasGuestData, setGuestTermsAgreed} from '../lib/local-db';
 import {GuidedTour, TourStep} from '../components/ui/GuidedTour';
 
 const TOUR_DONE_KEY = 'tas-tour-main-v1';
@@ -43,6 +47,11 @@ type HomeProps = {
     customers: Customer[];
     history: ReservationHistoryEntry[];
     storageMode: 'remote' | 'local';
+    /**
+     * 익명 첫 방문 — 캘린더 대신 소개 화면을 서버렌더한다.
+     * 크롤러가 루트에서 받는 것이 앱 셸이 아니라 색인 가능한 내용이 되게 하려는 것이다.
+     */
+    landing?: boolean;
 };
 
 const Home: NextPage<HomeProps> = (props) => {
@@ -171,7 +180,44 @@ const Home: NextPage<HomeProps> = (props) => {
     );
 };
 
-export default Home;
+// 동의 쿠키만 지워지고 게스트 데이터는 남은 경우를 한 번만 되돌리기 위한 표시.
+// 쿠키가 붙지 않는 환경에서 새로고침이 무한 반복되지 않게 세션에 남긴다.
+const GUEST_COOKIE_REPAIRED_KEY = 'takeaseat.guest-cookie-repaired';
+
+/**
+ * 익명 방문자용 소개 화면.
+ *
+ * 서버는 localStorage 를 못 보므로 동의 쿠키로만 게스트를 알아본다(`getServerSideProps`).
+ * 쿠키만 지워지고 게스트 데이터가 남으면 여기로 잘못 오는데, 그대로 두면 `_app` 의
+ * "이전 데이터 불러오기"를 눌러도 캘린더로 못 간다 — 앱 셸이 애초에 서버에서 오지 않았다.
+ * 그래서 쿠키를 되살리고 서버 판정을 한 번 다시 받는다.
+ */
+const Landing: NextPage = () => {
+    useEffect(() => {
+        const version = getGuestTermsVersion();
+        if (!version || !hasGuestData()) return;
+        if (sessionStorage.getItem(GUEST_COOKIE_REPAIRED_KEY)) return;
+
+        sessionStorage.setItem(GUEST_COOKIE_REPAIRED_KEY, '1');
+        setGuestTermsAgreed(version);
+        window.location.replace('/');
+    }, []);
+
+    return (
+        <>
+            <SeoHead title="예약·고객 관리" description={LANDING_DESCRIPTION} path="/"/>
+            <LandingContent/>
+        </>
+    );
+};
+
+/**
+ * 루트는 두 화면을 겸한다 — 로그인·게스트는 캘린더, 익명 첫 방문은 소개.
+ * `Home` 안에서 early return 하면 훅 순서가 깨지므로 컴포넌트 자체를 갈라 놓는다.
+ */
+const HomePage: NextPage<HomeProps> = (props) => (props.landing ? <Landing/> : <Home {...props}/>);
+
+export default HomePage;
 
 const StyledSection = styled.section <{ $isVisible: boolean }>`
   flex: 1;
@@ -184,6 +230,25 @@ const StyledSection = styled.section <{ $isVisible: boolean }>`
 export const getServerSideProps: GetServerSideProps<HomeProps> = async (ctx) => {
     const session = await getPageSession(ctx);
     if (!session) {
+        // 게스트(로컬 데이터로 쓰는 중)인지는 서버가 localStorage 를 못 보므로 동의 쿠키로만 안다.
+        // 쿠키는 /consent 에서 데이터가 생기기 전에 심긴다(features/local-db/storage.ts).
+        const isGuest = !!ctx.req.cookies[GUEST_TERMS_COOKIE];
+        if (!isGuest) {
+            // 공유 캐시(s-maxage)는 일부러 열지 않는다. 모든 트래픽이 Cloudflare `tas-proxy` Worker 를
+            // 지나는데, 거기에 HTML 을 캐시하는 규칙이 있으면 익명 소개 화면이 `/` 에 캐시돼 로그인
+            // 사용자에게까지 돌아간다(Cloudflare 는 `Vary: Cookie` 를 캐시 키에 넣지 않는다).
+            // 15KB 페이지를 캐시해서 얻는 것보다 오너 화면이 소개 페이지로 바뀌는 쪽이 훨씬 비싸다.
+            return {
+                props: {
+                    reservations: [],
+                    customers: [],
+                    history: [],
+                    storageMode: 'local',
+                    landing: true,
+                }
+            };
+        }
+
         return {
             props: {
                 reservations: [],

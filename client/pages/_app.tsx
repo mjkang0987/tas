@@ -36,6 +36,9 @@ type AppContentProps = Pick<AppProps, 'Component' | 'pageProps'>;
 function AppContent({Component, pageProps}: AppContentProps) {
     const {data: session, status, update} = useSession();
     const router = useRouter();
+    // 루트가 익명 방문자에게 소개 화면을 서버렌더했는지(pages/index.tsx `landing`).
+    // 경로가 같아서(`/`) 캘린더와 구분할 다른 신호가 없다.
+    const isLanding = router.pathname === '/' && (pageProps as {landing?: boolean}).landing === true;
     const setServiceCatalog = useCalendarStore((s) => s.setServiceCatalog);
     const setCategoryBaseColorMap = useCalendarStore((s) => s.setCategoryBaseColorMap);
     const setAssignees = useCalendarStore((s) => s.setAssignees);
@@ -193,6 +196,8 @@ function AppContent({Component, pageProps}: AppContentProps) {
         //  - 로컬(게스트) 데이터·로그인 모두 없음 → 루트는 소개(/about), 그 외 보호경로는 /login
         //  - 로컬 데이터가 있으면 메인으로 진입(이하 동의/온보딩 게이트는 기존대로 처리)
         if (!hasGuestData()) {
+            // 루트 소개 화면은 서버가 이미 내려줬다 — 여기서 또 옮기면 색인 대상 URL 이 사라진다.
+            if (isLanding) return;
             router.replace(path === '/' ? '/about' : '/login');
             return;
         }
@@ -213,7 +218,7 @@ function AppContent({Component, pageProps}: AppContentProps) {
 
         // 데이터 있음 + 동의 완료 + 미결정 → 불러오기 안내
         setShowGuestEntry(true);
-    }, [status, router]);
+    }, [status, router, isLanding]);
 
     useEffect(() => {
         if (status === 'loading') return;
@@ -401,7 +406,9 @@ function AppContent({Component, pageProps}: AppContentProps) {
     const isAuthFlowPage = router.pathname.startsWith('/login') || router.pathname.startsWith('/onboarding')
         || isBookingRoute(router.pathname)
         || router.pathname === '/consent' || router.pathname === '/about' || router.pathname === '/logout'
-        || router.pathname === '/terms' || router.pathname === '/privacy' || router.pathname === '/maintenance';
+        || router.pathname === '/terms' || router.pathname === '/privacy' || router.pathname === '/maintenance'
+        // 루트 소개 화면도 로그인 전 화면이다 — 빼면 부팅 오버레이가 소개 내용을 덮는다.
+        || isLanding;
     // 미인증 + 로컬데이터 없음 = /login 리다이렉트 대기 → 달력이 깜빡이지 않게 오버레이 유지
     // (게이트가 데이터 없으면 resolved와 무관하게 /login으로 보내므로 동일 조건으로 맞춤)
     const guestRedirectPending = status === 'unauthenticated' && !isAuthFlowPage && !hasGuestData();
@@ -424,7 +431,7 @@ function AppContent({Component, pageProps}: AppContentProps) {
                 <title>{SITE_TITLE}</title>
             </Head>
             <GlobalStyle/>
-            <LayoutComponent>
+            <LayoutComponent isLanding={isLanding}>
                 <Component {...pageProps} />
             </LayoutComponent>
             {isBooting && (

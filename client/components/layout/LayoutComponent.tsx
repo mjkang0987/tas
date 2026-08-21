@@ -28,7 +28,11 @@ import {Icon} from '../ui/Icons';
 import {ReservationCreate} from '../calendar/overlays/ReservationCreate';
 import {AdBanner} from '../ad/AdBanner';
 
-export default function LayoutComponent({children}: NodeType) {
+/**
+ * `isLanding` — 루트(`/`)가 익명 방문자에게 소개 화면을 서버렌더한 경우.
+ * 경로만으로는 앱과 구분되지 않아 _app 이 pageProps 로 알려준다.
+ */
+export default function LayoutComponent({children, isLanding = false}: NodeType & {isLanding?: boolean}) {
     const router = useRouter();
     const {status} = useSession();
 
@@ -42,7 +46,7 @@ export default function LayoutComponent({children}: NodeType) {
     // 로그인/소개/온보딩/동의/점검은 항상 풀페이지. 약관·개인정보는 미인증(로그인 전)일 때만
     // 앱 셸(Aside·Header) 없이 풀페이지로, 로그인 사용자에겐 셸 안에서 보여준다.
     // (DPA 는 운영자 전용 — 미인증 접근은 proxy.ts 에서 /login 으로 리다이렉트)
-    const isBarePage = isLoginPage || isAboutPage || isOnboardingPage || isMaintenancePage
+    const isBarePage = isLoginPage || isAboutPage || isLanding || isOnboardingPage || isMaintenancePage
         || isBookingPage
         || router.pathname === '/consent'
         || (isPublicPolicyPage && status !== 'authenticated');
@@ -151,6 +155,12 @@ export default function LayoutComponent({children}: NodeType) {
             return;
         }
 
+        // 루트 소개 화면은 캘린더가 아니다. 이 효과는 루트를 `/month/YYYY/M` 로 정규화하는데,
+        // 랜딩에서 그러면 색인 대상 URL(`/`)이 주소창에서 사라진다.
+        if (isLanding) {
+            return;
+        }
+
         const currentRouter = routerRef.current;
         const segments = currentRouter.asPath.split('?')[0].split('/');
         const isCalPath = isCalendar(segments) || segments.join('').length === 0;
@@ -190,7 +200,7 @@ export default function LayoutComponent({children}: NodeType) {
             date : routeDate.getDate(),
             router: currentRouter
         });
-    }, [currValue, setRouterSlice, view]);
+    }, [currValue, isLanding, setRouterSlice, view]);
 
     if (isBarePage) {
         return <>{children}</>;
