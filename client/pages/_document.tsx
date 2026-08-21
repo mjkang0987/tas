@@ -40,6 +40,7 @@ class ReservationDocument extends Document {
         return (
             <Html lang="ko">
                 <Head>
+                    <meta name="naver-site-verification" content="007f9bb5b9d7d529ee9b602a19c8a3da58298eee" />
                     <meta name="keywords" content={SITE_KEYWORDS} />
                     <meta name="author" content="TAS" />
                     <meta property="og:type" content="website" />
