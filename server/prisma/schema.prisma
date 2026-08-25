@@ -241,6 +241,31 @@ model Reservation {
   @@index([storeId, date])
 }
 
+// 예약페이지로 들어온 예약(publicToken 보유)을 오너가 영구 삭제했을 때 남기는 흔적.
+//
+// 예약 행 자체는 지금처럼 실제로 삭제한다(매장 화면·매출·슬롯 계산은 전부 무변경). 대신 고객이
+// 이미 받아 간 관리 링크(`/{slug}/r/{token}`)가 404로 죽지 않도록, 그 링크가 "취소됨"을 보여주는 데
+// 필요한 최소 정보만 여기 남긴다. 소프트 삭제(deletedAt)를 택하지 않은 이유는 예약을 읽는 모든
+// 경로에 필터를 심어야 하고 한 곳만 빠뜨려도 삭제한 예약이 슬롯을 막거나 매출에 되살아나기 때문.
+//
+// 고객 이름·전화번호·customerId 는 담지 않는다 — 삭제의 취지를 거스르지 않기 위해서다.
+// publicToken 은 무작위 문자열이라 그 자체로 신원과 연결되지 않는다.
+// Store 관계를 걸지 않는 것은 마이그레이션을 순수 가산(CREATE only)으로 두기 위함(CustomerMergeSkip 과 동일).
+model DeletedBooking {
+  id             String   @id @default(cuid())
+  storeId        String
+  publicToken    String   @unique
+  date           DateTime
+  startTime      String
+  endTime        String
+  serviceSummary String
+  /// 오너가 마지막으로 남긴 사유(취소 시 입력분). 없으면 매장 취소 안내문구로 대체된다.
+  reason         String?
+  deletedAt      DateTime @default(now())
+
+  @@index([storeId])
+}
+
 model ReservationPaymentEntry {
   id            String        @id @default(cuid())
   reservationId String
