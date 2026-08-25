@@ -51,7 +51,7 @@ export const GlobalStyle = createGlobalStyle`
         --success-border: rgba(34, 197, 94, 0.2);
         --caution-color: #a88417;
 
-        /* 캘린더 휴무 배경 — 시간축 눈금선이 비쳐야 하므로 **반투명**이다(불투명 색은 선을 덮는다).
+        /* 캘린더 휴무 배경 — 시간축 눈금선이 비쳐야 하므로 반투명이다(불투명 색은 선을 덮는다).
            임시 휴업일은 오너가 직접 찍은 날이라 눈에 띄게(적색), 정기 휴무는 매주 반복이라 가라앉힌다(회색). */
         --closed-date-bg: rgba(201, 58, 48, .07);
         --closed-weekday-bg: rgba(0, 0, 0, .05);

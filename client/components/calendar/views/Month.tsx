@@ -12,8 +12,7 @@ import {
 
 import {toDateKey} from '../../../utils/reservations';
 
-import {getStoreClosedKind, STORE_CLOSED_LABEL} from '../../../features/store-settings/model';
-import type {StoreClosedKind} from '../../../features/store-settings/model';
+import {getStoreClosedKind, STORE_CLOSED_LABEL, type StoreClosedKind} from '../../../features/store-settings/model';
 import {storeClosedCss} from './storeClosedCss';
 
 import {Num} from './Num';

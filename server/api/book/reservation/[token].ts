@@ -64,14 +64,13 @@ async function respondDeleted(token: string, res: NextApiResponse) {
     const deleted = await findDeletedBookingByPublicToken(token);
     if (!deleted) return res.status(404).json({error: 'not_found'});
 
-    const [store, settings] = await Promise.all([
-        prisma.store.findUnique({
-            where: {id: deleted.storeId},
-            select: {name: true, shopType: true, bookingSlug: true},
-        }),
-        loadBookingSettings(deleted.storeId),
-    ]);
+    const store = await prisma.store.findUnique({
+        where: {id: deleted.storeId},
+        select: {name: true, shopType: true, bookingSlug: true},
+    });
     if (!store) return res.status(404).json({error: 'not_found'});
+
+    const settings = await loadBookingSettings(deleted.storeId);
 
     return res.status(200).json({
         status: 'cancelled',

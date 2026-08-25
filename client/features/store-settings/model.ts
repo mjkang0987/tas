@@ -115,8 +115,9 @@ export function getStoreClosedKind(
     if (!dateKey) return null;
     if (settings.closedDates?.includes(dateKey)) return 'date';
 
+    // 게스트 로컬 스냅샷은 closedWeekdays 가 추가되기 전 형태일 수 있어 방어적으로 본다.
     const closedWeekdays = settings.closedWeekdays;
-    if (!closedWeekdays || closedWeekdays.length === 0) return null;
+    if (!closedWeekdays?.length) return null;
 
     const day = new Date(`${dateKey}T00:00:00`).getDay();
     if (Number.isNaN(day)) return null;

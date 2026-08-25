@@ -17,8 +17,7 @@ import {buildAssigneeColorMap} from '../../../utils/assignees';
 import {isNewCustomerVisit} from '../../../utils/customers';
 import {buildServiceColorMap} from '../../../utils/services';
 import {getTimelineRange} from '../../../utils/timelineRange';
-import {getStoreClosedKind, STORE_CLOSED_LABEL} from '../../../features/store-settings/model';
-import type {StoreClosedKind} from '../../../features/store-settings/model';
+import {getStoreClosedKind, STORE_CLOSED_LABEL, type StoreClosedKind} from '../../../features/store-settings/model';
 import {storeClosedCss} from './storeClosedCss';
 
 import type {Reservation} from '../../../utils/reservations';
