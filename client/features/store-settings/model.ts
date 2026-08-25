@@ -95,6 +95,35 @@ export function sanitizeClosedWeekdays(value: unknown): number[] {
     return [...set].sort((a, b) => a - b);
 }
 
+// 캘린더 휴무 표시 구분. iOS 앱(`StoreClosedKind`)과 같은 규칙을 쓴다.
+export type StoreClosedKind = 'date' | 'weekday';
+
+// 표시는 글자가 아니라 배경 틴트다(좁은 셀에 글자가 들어가지 않는다). 이 문구는 색만으로는
+// 아무것도 전달되지 않는 경로 — 스크린리더·툴팁 — 에 쓴다.
+export const STORE_CLOSED_LABEL: Record<StoreClosedKind, string> = {
+    date: '휴업일',
+    weekday: '정기휴무',
+};
+
+// 해당 날짜(YYYY-MM-DD)가 휴무인지, 어떤 휴무인지. 휴무가 아니면 null.
+// 둘 다 해당하면 **임시 휴업일이 이긴다** — 오너가 직접 찍은 날이 매주 반복 설정보다 구체적인 의사표시다.
+// closedWeekdays 의 dayIndex 는 앱 공통 규칙(0=월 … 6=일)이라 getDay()(0=일)를 (day+6)%7 로 옮긴다.
+export function getStoreClosedKind(
+    settings: Pick<StoreSettings, 'closedDates' | 'closedWeekdays'>,
+    dateKey: string,
+): StoreClosedKind | null {
+    if (!dateKey) return null;
+    if (settings.closedDates?.includes(dateKey)) return 'date';
+
+    const closedWeekdays = settings.closedWeekdays;
+    if (!closedWeekdays || closedWeekdays.length === 0) return null;
+
+    const day = new Date(`${dateKey}T00:00:00`).getDay();
+    if (Number.isNaN(day)) return null;
+
+    return closedWeekdays.includes((day + 6) % 7) ? 'weekday' : null;
+}
+
 // 공개 URL 슬러그: 소문자 영숫자·하이픈, 3~32자, 하이픈으로 시작/끝 불가.
 export const BOOKING_SLUG_PATTERN = /^[a-z0-9](?:[a-z0-9-]{1,30}[a-z0-9])$/;
 
