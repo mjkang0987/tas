@@ -106,6 +106,13 @@ iOS 앱에는 있고 **웹에는 없다.**
 - `views/Timeline.tsx` — 일·주·3일 뷰가 공유하는 `StyledTimelineWrap` 에 틴트 + `.a11y` 텍스트.
 - 표시 전용이다 — 앱과 마찬가지로 휴무일에도 예약 생성은 막지 않는다.
 
+> **남겨 둔 중복(의도적)**: 휴무 판정이 이제 두 곳에 있다 — 오너 캘린더의 `getStoreClosedKind`
+> (`closedDates` + `closedWeekdays`)와 공개 예약 페이지의 `isDateClosed`
+> (`closedDates` + `businessHours[].enabled`, `pages/book/[slug].tsx:123`). 같은 DB 사실
+> (`StoreClosedDate` + `StoreBusinessHour.enabled`)에서 나오지만 **API 가 내려주는 모양이 다르다**
+> (공개 API 는 7행 배열, 오너 스토어는 요일 배열). 하나로 합치려면 공개 API 응답 모양을 바꿔야 해서
+> 이번 범위 밖으로 뒀다. 규칙이 갈라지면 두 곳을 함께 고칠 것.
+
 ### 리스크
 - 타임라인은 카드·드래그 레이어가 겹치는 곳이라 배경만 넣고 `z-index` 는 건드리지 않는다.
 
