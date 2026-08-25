@@ -37,7 +37,8 @@
 6. **Cloudflare `tas-proxy` Worker 의존** — 오리진의 `host`는 항상 `run.app`이라 **원본 호스트는 Worker가 넣는 `x-forwarded-host`로만 알 수 있다.** Worker가 빠지면 사이트 전체가 다운된다. → [미들웨어](#미들웨어-clientproxyts)
 7. **정책 문서는 모든 렌더 경로(레이어·풀페이지·인라인)가 `applyPolicyVars`를 통과해야 한다** — 빠지면 `{{storeName}}` 토큰이 고객에게 그대로 노출된다. → [^27]
 8. **타임라인 배율은 `useTimelineScale()` 한 곳에서만 얻는다** — 축·블록·드래그·클릭생성이 나눠 쓰는 값이라, 한 곳만 옛 상수(`TIMELINE_HOUR_HEIGHT`)를 쓰면 눈금과 카드가 어긋나 **화면이 예약 시각을 거짓말한다.** 배율은 서비스 최소 소요시간에서 자동 판정(5분 200px·10분 120px·15분 이상 100px). 좌표 역변환(포인터 Y → 시각)에선 **패딩을 빼지 않는다** — 카드가 `position:absolute`라 기준이 패딩 박스이고 `blockOffset`만 빼면 된다(드래그 경로에서만 `TIMELINE_DAY_TOP` 40px을 한 번 더 빼 24분 어긋났다). hover 확장은 **아래로만** — `height:auto`만 주면 30분 카드가 29px로 줄어 길이=시간이 깨지고 가운데 붙은 드래그 손잡이가 커서 밑에서 달아난다. → [주요 기능 흐름](#주요-기능-흐름-요약)
-9. **`font-size`에 px 리터럴을 쓰지 않는다** — `styles/globalStyle.ts`의 토큰만 사용(유일한 예외: `components/policy/policyCss.ts`). → [디자인 토큰](#디자인-토큰--폰트)
+9. **고객 예약 페이지(`pages/book/**`)의 최상위 래퍼는 `flex-shrink: 0`** — `#__next` 가 `height:100%` 고정 flex 컬럼이라 기본값(1)이면 래퍼가 내용보다 작게 찌그러져 **긴 화면의 하단이 잘린다**(변경 요청 폼 버튼이 언어 바 뒤에 가려 있었다). → [^41]
+10. **`font-size`에 px 리터럴을 쓰지 않는다** — `styles/globalStyle.ts`의 토큰만 사용(유일한 예외: `components/policy/policyCss.ts`). → [디자인 토큰](#디자인-토큰--폰트)
 
 ---
 
@@ -585,6 +586,9 @@ StorePointSettings (적립률, 충전규칙)
 | `client/prisma.config.ts` | Prisma 7 설정 (datasource URL, migration, seed) |
 | `tsconfig.json` | ES2017, strict, path aliases |
 | `package.json` | dev/build 스크립트, 의존성 |
+
+[^41]: **고객 예약 페이지 세로 레이아웃 함정**(`pages/book/[slug].tsx`·`book/[slug]/r/[token].tsx`의 `StyledWrap`). `#__next` 는 `height:100%` **고정** flex 컬럼이라, 그 자식인 페이지 래퍼는 flex 아이템이다. `flex-shrink` 기본값(1)이면 **래퍼가 내용보다 작게 찌그러져** 문서가 화면보다 커지지 못하고, 넘친 만큼 하단이 잘린다 — 변경 요청 폼을 열면 최하단까지 스크롤해도 버튼이 고정 언어 바 뒤에 가려 있었다(측정: 래퍼 800px 고정, 카드 825px, 문서 스크롤 범위 49px뿐). **`flex-shrink: 0` 으로 내용 높이를 지켜야 한다.** 세로 가운데 정렬(`StyledCard`의 `margin: auto 0`)은 원인이 아니었다 — 래퍼가 내용 높이를 지키면 넘칠 일이 없어 그대로 둔다.
+    - 짝이 되는 규칙: 모바일 카드 높이는 `calc(100dvh - LANG_BAR_OFFSET)`. 래퍼가 하단에 언어 바 높이를 패딩으로 두므로 카드까지 `100dvh` 를 다 쓰면 짧은 화면에서도 그만큼 군더더기 스크롤이 생긴다.
 
 [^39]: **삭제된 온라인 예약의 흔적**(`DeletedBooking`, 마이그레이션 `0022`). 오너가 예약을 **영구 삭제**하면 행이 실제로 사라지는데, 예약페이지로 들어온 건은 고객이 이미 관리 링크(`/{slug}/r/{token}`)를 받아 갔기 때문에 링크가 404로 죽는다 — 고객은 취소된 건지 링크가 잘못된 건지 알 수 없었다. 그래서 `publicToken` 이 있는 예약만 삭제 시 **최소 정보(토큰·날짜·시간·시술·사유)를 흔적으로 남기고**, 토큰 조회(`api/book/reservation/[token]`)가 예약을 못 찾으면 이 흔적으로 `status:'cancelled'` 응답을 만든다(변경·취소 요청은 둘 다 막음). **매장 화면에는 남지 않는다** — 예약 행은 그대로 삭제되므로 예약 목록·매출·슬롯 계산은 무변경이다.
     - **소프트 삭제(`deletedAt`)를 쓰지 않은 이유**: 예약을 읽는 모든 경로(목록·타임라인·매출·공개 슬롯 가용성·네이버 동기화·고객 이력)에 필터를 심어야 하고, **한 곳만 빠뜨리면 삭제한 예약이 슬롯을 막거나 매출에 되살아난다.** 흔적 방식은 손대는 곳이 삭제 핸들러 1곳 + 토큰 조회 1곳뿐이다.
