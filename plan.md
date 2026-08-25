@@ -5,6 +5,123 @@
 
 ---
 
+## 검증 완료(머지 대기) — 삭제된 온라인 예약도 고객 링크에서는 조회되게 (`claude/deleted-reservation-visibility-ec70wk`)
+
+> ⚠️ **머지 전에 마이그레이션 `0022_deleted_booking` 을 Supabase(direct 5432)에 먼저 적용할 것.**
+> 테이블 없이 코드가 배포되면 **예약 삭제가 500** 난다(횡단 규칙 4).
+
+### 배경 (코드 기준)
+오너 화면의 파괴 동작은 둘이고, 고객 가시성이 서로 다르다.
+
+| 동작 | 서버 | 고객 관리 링크(`book.takeaseat.co.kr/{slug}/r/{token}`) |
+|---|---|---|
+| 취소 | `status='cancelled'` (`server/api/reservations.ts` PATCH) | "취소됨" 배지 + 오너 사유 + 매장 취소 안내문구 |
+| **영구 삭제** | `prisma.reservation.delete` (`reservations.ts:326`) | **404 → "예약을 찾을 수 없습니다"만** |
+
+예약페이지로 들어온 예약(= `publicToken` 보유)을 오너가 삭제하면 **고객 링크가 조용히 깨진다.**
+고객은 취소된 건지 링크가 잘못된 건지 알 수 없고, 삭제 알림은 매장 슬랙으로만 간다.
+행이 사라지면서 `publicToken` 도 함께 사라지는 것이 원인이다.
+
+### 결정 — 흔적(tombstone) 테이블
+사용자 요구: **"매장에서는 안 보여도 되지만, 온라인예약으로 들어온 건은 고객에게 보여야 한다."**
+
+- **채택 — 삭제 시 흔적만 남긴다.** 예약 행은 지금처럼 실제로 삭제하고(오너 화면·매출·슬롯 계산 전부 무변경),
+  고객 조회에 필요한 최소 정보만 별도 테이블에 남겨 토큰 조회가 "취소됨"으로 응답하게 한다.
+  손대는 곳이 **DELETE 핸들러 1곳 + 공개 토큰 조회 1곳**뿐이다.
+- **반려 — 소프트 삭제(`deletedAt`)**: 정석이지만 예약을 읽는 모든 경로(예약 목록·타임라인·매출·
+  공개 슬롯 가용성·네이버 동기화·고객 이력)에 `deletedAt: null` 필터를 넣어야 하고,
+  **한 곳만 빠뜨리면 삭제한 예약이 슬롯을 막거나 매출에 되살아난다.** 위험 대비 이득이 없다.
+- **반려 — 온라인 예약 삭제 금지**: 오기입·스팸 예약을 오너가 정리할 방법이 사라진다.
+
+### 구현
+- `server/prisma/schema.prisma` — `DeletedBooking` 모델 추가(가산). `publicToken` unique,
+  `storeId`·`date`·`startTime`·`endTime`·`serviceSummary`·`reason`·`deletedAt`.
+  **고객 이름·전화번호·customerId 는 담지 않는다** — 삭제 요청의 취지를 거스르지 않으려는 것이고,
+  토큰은 무작위 문자열이라 그 자체로 신원과 연결되지 않는다.
+- `server/prisma/migrations/0022_deleted_booking/migration.sql` — `CREATE TABLE IF NOT EXISTS` 만(가산·멱등).
+- `server/api/reservations.ts` DELETE — `publicToken` 이 있으면 트랜잭션으로 흔적 생성 + 예약 삭제.
+  **공유 `reservationSelect` 는 넓히지 않는다**(횡단 규칙 2) — `publicToken`·`decisionReason` 은 이 호출부에서만 스프레드로 더한다.
+- `server/api/book/reservation/[token].ts` — 예약이 없으면 흔적을 찾아 `status:'cancelled'` 로 응답.
+  `canRequest`/`canCancel` 은 false, 매장 취소 안내문구는 그대로 태운다.
+- `server/api/book/booking-helpers.ts` — `findDeletedBookingByPublicToken` 추가.
+
+### 리스크
+- **마이그레이션 선적용 필수**(횡단 규칙 4). `DeletedBooking` 테이블 없이 코드가 배포되면 **예약 삭제가 500**난다.
+  → 머지 전에 사용자가 Supabase(direct 5432)에서 `0022` SQL 을 먼저 적용한다.
+- 이미 삭제된 예약은 토큰이 남아 있지 않아 되살릴 수 없다(이번 변경은 앞으로 삭제되는 건에만 적용).
+
+### 검증 결과
+로컬 PostgreSQL 16 를 새로 띄워(`takeaseat_verify`, 127.0.0.1:55432 — datasource 줄로 로컬 확인) `prisma migrate deploy`
+전체 재생이 통과했고, **실제 핸들러를 구동**해 흐름 전체를 확인했다(next-auth 만 vitest 에서 해석되지 않아 세션 모듈만 대체).
+1. 삭제 전 토큰 조회 → `active`
+2. `/api/reservations` DELETE → 예약 행 사라짐
+3. 삭제 후 토큰 조회 → **200 `cancelled`** + 날짜·시간·시술·매장명·슬러그·오너 사유·매장 취소 안내문구, `canRequest`/`canCancel` 둘 다 false, `customerName` null
+4. 알 수 없는 토큰 → 여전히 404
+5. 전화예약(토큰 없음) 삭제 → 흔적을 남기지 않음(`DeletedBooking` 0건 유지)
+
+빌드/타입체크·단위 테스트 152개·순수모듈 테스트 게이트 모두 통과. lint 는 변경 전과 동일(80건, 신규 0건).
+
+### 같은 패턴 전수 점검 — 남은 인스턴스 1건(판단 필요)
+"온라인 예약이 사라지면 고객 링크가 죽는다"는 클래스로 저장소를 훑었다.
+
+| 경로 | 예약이 사라지는가 | 상태 |
+|---|---|---|
+| `reservations.ts` DELETE | 사라짐 | **이번에 해결** |
+| `customers.ts` DELETE (고객 영구 삭제, 오너) | 그 고객의 예약이 **cascade 삭제** | **미해결 — 아래 판단 필요** |
+| `customers-merge.ts` | 예약을 target 으로 **옮긴 뒤** source 고객만 삭제(`tx.reservation.updateMany`) | 문제 없음 |
+| `Store` cascade | 매장 자체가 사라지는 경우 | 대상 아님(매장이 없으면 링크도 의미 없음) |
+
+**고객 영구 삭제는 일부러 이번 범위에 넣지 않았다.** 증상은 같지만 성격이 다르다 — 고객 삭제는
+개인정보 삭제 요구를 이행하는 경로일 때가 많고, 그때 흔적을 남겨 링크를 살려 두는 것이
+오히려 취지에 어긋날 수 있다. **어느 쪽을 원하는지 확인이 필요하다.**
+
+---
+
+## 검증 완료(머지 대기) — 웹 오너 캘린더에 휴무(임시 휴업일·정기 휴무) 배경 표시 (같은 브랜치)
+
+### 배경
+iOS 앱에는 있고 **웹에는 없다.**
+
+| | 임시 휴업일 | 정기 휴무 | 위치 |
+|---|---|---|---|
+| iOS | 적색 틴트 + 테두리 | 회색 틴트 + 테두리 | `TAS/Core/UI/StoreClosedStyle.swift`, 월 셀·일 헤더·주 헤더 |
+| 웹 오너 캘린더 | **없음** | **없음** | `components/calendar/**` 는 `businessHours` 만 읽는다 |
+| 웹 공개 예약 페이지 | 날짜 선택 비활성 | 날짜 선택 비활성 | `pages/book/[slug].tsx:124` |
+
+앱 주석이 웹 `getStoreClosedKind`(`client/features/store-settings/model.ts`) 이식이라고 적고 있으나
+**웹에 그 함수는 없다** — 앱에서 먼저 만든 것이다. 이번에 같은 이름·같은 규칙으로 웹에 만들어 주석을 사실로 만든다.
+
+> 참고: "임시공휴일"(법정 공휴일) 개념은 두 저장소 어디에도 없다. 지금 있는 것은
+> **임시 휴업일**(오너가 찍은 특정 날짜)과 **정기 휴무**(요일)뿐이다. 공휴일 자동 표시는 별건.
+
+### 구현
+- `client/features/store-settings/model.ts` — `getStoreClosedKind(settings, dateKey)` + `STORE_CLOSED_LABEL`.
+  순수 모듈이므로 **단위 테스트 필수**(`model.test.ts`).
+  규칙은 앱과 동일: 둘 다 해당하면 **임시 휴업일이 이긴다**, dayIndex 는 0=월…6=일.
+- `client/components/calendar/views/storeClosedCss.ts` **(신규, 컴포넌트 아님)** — 틴트 CSS 조각 1개.
+  **신규 사유(Front-End Standards)**: 붙는 대상이 월 셀 `<li>` 와 타임라인 `<div>` 로 태그·레이아웃이 달라
+  공용 컴포넌트로 감싸면 기존 그리드·여백이 틀어진다. 감싸지 않고 **배경만 입히는 css 헬퍼**로 둔다.
+  색은 기존 토큰만 쓴다 — 임시 휴업일 `--danger-bg`, 정기 휴무 `--gray-color2`.
+- `views/Month.tsx` — 월 셀에 틴트 + 전역 `.a11y` 클래스로 "휴업일/정기휴무" 텍스트(색만으로 전달 금지).
+- `views/Timeline.tsx` — 일·주·3일 뷰가 공유하는 `StyledTimelineWrap` 에 틴트 + `.a11y` 텍스트.
+- 표시 전용이다 — 앱과 마찬가지로 휴무일에도 예약 생성은 막지 않는다.
+
+### 리스크
+- 타임라인은 카드·드래그 레이어가 겹치는 곳이라 배경만 넣고 `z-index` 는 건드리지 않는다.
+
+### 검증 결과 — 함정 하나를 실제로 밟았다
+게스트 모드로 앱을 띄워 월/주/일 뷰를 실제로 렌더해 확인했다(8/26=임시 휴업일, 매주 월=정기 휴무).
+
+**처음엔 불투명 토큰(`--danger-bg`·`--gray-color2`)을 썼는데, 휴무 열에서만 시간축 눈금선이 사라졌다.**
+눈금선은 좌측 시간축(`TimelineTitle`)의 가로 `100vw` 가상요소가 **뒤에서** 그리는 것이라 불투명 배경이 덮어 버린다.
+→ 반투명 토큰(`--closed-date-bg`·`--closed-weekday-bg`)을 새로 만들어 해결. 재렌더로 눈금선 복귀 확인.
+
+- 월 뷰: 임시 휴업일 셀 분홍, 매주 월요일 셀 회색. 예약 카드·"전체 (n)" 버튼 가독성 유지.
+- 주 뷰: 해당 열 전체 틴트, 눈금선 비침, 예약 카드 가독성 유지.
+- 일 뷰: 화면 전체 틴트, 동일.
+
+---
+
 ## 완료 — 루트(`/`)를 색인 가능한 소개 페이지로 (PR #215, v0.53.0)
 
 > Google Search Console 이 **"발견됨 – 현재 색인이 생성되지 않음"** 을 띄운다.
