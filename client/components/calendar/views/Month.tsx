@@ -12,6 +12,9 @@ import {
 
 import {toDateKey} from '../../../utils/reservations';
 
+import {getStoreClosedKind, STORE_CLOSED_LABEL, type StoreClosedKind} from '../../../features/store-settings/model';
+import {storeClosedCss} from './storeClosedCss';
+
 import {Num} from './Num';
 import {ButtonAdd} from '../../ui/Buttons';
 import {ReservationList} from './ReservationList';
@@ -34,6 +37,7 @@ export const Month = ({
     const calendarAssigneeId = useCalendarStore((s) => s.calendarAssigneeId);
     const setReservationListFilter = useCalendarStore((s) => s.setReservationListFilter);
     const setCreateReservationInitial = useCalendarStore((s) => s.setCreateReservationInitial);
+    const storeSettings = useCalendarStore((s) => s.storeSettings);
 
     const fullYear = curr!.fullYear;
 
@@ -53,9 +57,12 @@ export const Month = ({
                 normalizedDate.getDate()
             );
             const dateLabel = isAdjacentMonth ? `${normalizedDate.getMonth() + 1}/${val}` : String(val);
+            const closedKind = getStoreClosedKind(storeSettings, dateKey);
 
             return (<StyledDate key={`month_${val + index}`}
-                                type={type}>
+                                type={type}
+                                $closedKind={closedKind}>
+                {closedKind && <span className="a11y">{STORE_CLOSED_LABEL[closedKind]}</span>}
                 <StyledDateHeader>
                     <Num onClick={() => setReservationListFilter({type: 'date', dateKey})}
                          aria-label={`${normalizedDate.getMonth() + 1}월 ${normalizedDate.getDate()}일 예약 ${dateReservations.length}건 보기`}
@@ -91,7 +98,8 @@ const StyledDateHeader = styled.div`
     justify-content: space-between;
 `;
 
-const StyledDate = styled.li<{ type: string }>`
+const StyledDate = styled.li<{ type: string, $closedKind: StoreClosedKind | null }>`
+    ${props => storeClosedCss(props.$closedKind)}
     display: flex;
     flex-direction: column;
     padding: 2px;

@@ -17,6 +17,8 @@ import {buildAssigneeColorMap} from '../../../utils/assignees';
 import {isNewCustomerVisit} from '../../../utils/customers';
 import {buildServiceColorMap} from '../../../utils/services';
 import {getTimelineRange} from '../../../utils/timelineRange';
+import {getStoreClosedKind, STORE_CLOSED_LABEL, type StoreClosedKind} from '../../../features/store-settings/model';
+import {storeClosedCss} from './storeClosedCss';
 
 import type {Reservation} from '../../../utils/reservations';
 import {isOnlineReservation, toDateKey} from '../../../utils/reservations';
@@ -60,6 +62,8 @@ export const Timeline = ({
     const calendarAssigneeId = useCalendarStore((s) => s.calendarAssigneeId);
 
     const dateKey = toDateKey(fullYear, month, date);
+    // 휴무(임시 휴업일·정기 휴무) 배경 표시. 표시 전용이며 휴무일에도 예약 생성은 막지 않는다(앱과 동일).
+    const closedKind = getStoreClosedKind(storeSettings, dateKey);
     // 시간축·블록·드래그·클릭생성이 공유하는 배율. 한 곳만 다른 값을 쓰면 화면이 예약 시각을 거짓말한다.
     const scale = useTimelineScale();
     // 타임라인(일별/주별/3일)에서는 취소된 예약을 숨긴다(블록·건수 부풀림 방지).
@@ -229,7 +233,9 @@ export const Timeline = ({
 
     return (<StyledTimelineWrap ref={timelineRef}
                                 data-timeline-date={dateKey}
-                                $type={type}>
+                                $type={type}
+                                $closedKind={closedKind}>
+        {closedKind && <span className="a11y">{STORE_CLOSED_LABEL[closedKind]}</span>}
         {!isTouchDevice && (
             <StyledTimelineBackground
                 type="button"
@@ -350,8 +356,10 @@ export const Timeline = ({
     </StyledTimelineWrap>);
 };
 const StyledTimelineWrap = styled.div<{
-    $type: string
+    $type: string,
+    $closedKind: StoreClosedKind | null
 }>`
+    ${props => storeClosedCss(props.$closedKind)}
     flex: 1;
     display: flex;
     flex-direction: column;

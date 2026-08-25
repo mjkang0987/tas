@@ -190,6 +190,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
         // 병합 건너뛰기 기록도 함께 지운다. FK 가 없어 그대로 두면 고아로 남고,
         // legacyId 가 재발급되면 엉뚱한 고객의 제안을 막는다(`customers-merge.ts` 참조).
+        //
+        // 삭제된 온라인 예약의 흔적(DeletedBooking)도 지운다. 살아 있는 예약은 cascade 로
+        // 사라져 고객 관리 링크가 함께 죽지만, **예전에 개별 삭제한 예약의 흔적은 FK 가 없어
+        // 남는다** — 그러면 고객을 지웠는데 그 링크만 계속 조회된다. 고객 기록 자체를 지우는
+        // 행위이므로 링크도 같이 없앤다.
         await prisma.$transaction([
             prisma.customerMergeSkip.deleteMany({
                 where: {
@@ -197,6 +202,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                     OR: [{maskedId: id}, {candidateId: id}],
                 },
             }),
+            prisma.deletedBooking.deleteMany({where: {customerId: customer.id}}),
             prisma.customer.delete({where: {id: customer.id}}),
         ]);
         return res.status(200).json({ok: true});

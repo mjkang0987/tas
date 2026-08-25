@@ -133,6 +133,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                     },
                 });
             }
+            // 삭제된 온라인 예약의 흔적도 예약과 같이 target 으로 옮긴다. 남겨 두면 주인이
+            // 사라져, 나중에 target 을 지워도 그 링크만 살아남는다(`customers.ts` DELETE 참조).
+            await tx.deletedBooking.updateMany({
+                where: {customerId: source.id},
+                data: {customerId: target.id},
+            });
             await tx.customer.delete({where: {id: source.id}});
         }
 

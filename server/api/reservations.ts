@@ -313,7 +313,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
         const dbReservation = await prisma.reservation.findUnique({
             where: {storeId_legacyId: {storeId: session.storeId, legacyId: id}},
-            select: reservationSelect,
+            // publicToken·decisionReason 은 삭제 흔적에만 쓰므로 공유 select 를 넓히지 않고 여기서만 더한다
+            // (공유 select 를 넓히면 새 컬럼이 메인 예약 조회에 실려 배포순서 사고 위험이 생긴다).
+            select: {...reservationSelect, publicToken: true, decisionReason: true},
         });
 
         if (!dbReservation) {
@@ -323,7 +325,31 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         const deleted = dbReservationToFrontend(dbReservation);
 
         // 결제내역·예약이력은 cascade 삭제, 포인트이력의 참조는 SET NULL 로 정리됨.
-        await prisma.reservation.delete({where: {id: dbReservation.id}});
+        //
+        // 예약페이지로 들어온 건(publicToken 보유)은 고객이 이미 관리 링크를 받아 갔다. 행을 그냥
+        // 지우면 그 링크가 404가 돼 고객은 취소된 건지 링크가 잘못된 건지 알 수 없다. 그래서
+        // 고객 조회에 필요한 최소 정보만 흔적으로 남기고 지운다(매장 화면에는 남지 않는다).
+        // 흔적 생성과 삭제는 한 트랜잭션 — 흔적만 남고 예약이 살아 있는 상태를 만들지 않는다.
+        const {publicToken} = dbReservation;
+        await prisma.$transaction([
+            ...(publicToken ? [prisma.deletedBooking.create({
+                data: {
+                    storeId: session.storeId,
+                    customerId: dbReservation.customerId,
+                    publicToken,
+                    date: dbReservation.date,
+                    startTime: dbReservation.startTime,
+                    endTime: dbReservation.endTime,
+                    serviceSummary: dbReservation.serviceSummary,
+                    // 사유는 **이미 취소된 건**에서만 가져온다. decisionReason 은 취소 전용이 아니라
+                    // 승인 시에도 쓰이므로(book-requests.ts), 확정 상태 예약을 삭제하면 "취소됨 ·
+                    // 사유: 확정됐습니다" 처럼 승인 문구가 취소 사유로 둔갑한다.
+                    // 비우면 고객 페이지가 매장 취소 안내문구 → 기본 취소문구 순으로 대체한다.
+                    reason: dbReservation.status === 'cancelled' ? dbReservation.decisionReason : null,
+                },
+            })] : []),
+            prisma.reservation.delete({where: {id: dbReservation.id}}),
+        ]);
 
         await notifySlackForStore(session.storeId,
             `🗑️ *예약 삭제*\n• 날짜: ${deleted.date}`

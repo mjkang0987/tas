@@ -37,7 +37,8 @@
 6. **Cloudflare `tas-proxy` Worker 의존** — 오리진의 `host`는 항상 `run.app`이라 **원본 호스트는 Worker가 넣는 `x-forwarded-host`로만 알 수 있다.** Worker가 빠지면 사이트 전체가 다운된다. → [미들웨어](#미들웨어-clientproxyts)
 7. **정책 문서는 모든 렌더 경로(레이어·풀페이지·인라인)가 `applyPolicyVars`를 통과해야 한다** — 빠지면 `{{storeName}}` 토큰이 고객에게 그대로 노출된다. → [^27]
 8. **타임라인 배율은 `useTimelineScale()` 한 곳에서만 얻는다** — 축·블록·드래그·클릭생성이 나눠 쓰는 값이라, 한 곳만 옛 상수(`TIMELINE_HOUR_HEIGHT`)를 쓰면 눈금과 카드가 어긋나 **화면이 예약 시각을 거짓말한다.** 배율은 서비스 최소 소요시간에서 자동 판정(5분 200px·10분 120px·15분 이상 100px). 좌표 역변환(포인터 Y → 시각)에선 **패딩을 빼지 않는다** — 카드가 `position:absolute`라 기준이 패딩 박스이고 `blockOffset`만 빼면 된다(드래그 경로에서만 `TIMELINE_DAY_TOP` 40px을 한 번 더 빼 24분 어긋났다). hover 확장은 **아래로만** — `height:auto`만 주면 30분 카드가 29px로 줄어 길이=시간이 깨지고 가운데 붙은 드래그 손잡이가 커서 밑에서 달아난다. → [주요 기능 흐름](#주요-기능-흐름-요약)
-9. **`font-size`에 px 리터럴을 쓰지 않는다** — `styles/globalStyle.ts`의 토큰만 사용(유일한 예외: `components/policy/policyCss.ts`). → [디자인 토큰](#디자인-토큰--폰트)
+9. **고객 예약 페이지(`pages/book/**`)의 최상위 래퍼는 `flex-shrink: 0`** — `#__next` 가 `height:100%` 고정 flex 컬럼이라 기본값(1)이면 래퍼가 내용보다 작게 찌그러져 **긴 화면의 하단이 잘린다**(변경 요청 폼 버튼이 언어 바 뒤에 가려 있었다). → [^41]
+10. **`font-size`에 px 리터럴을 쓰지 않는다** — `styles/globalStyle.ts`의 토큰만 사용(유일한 예외: `components/policy/policyCss.ts`). → [디자인 토큰](#디자인-토큰--폰트)
 
 ---
 
@@ -133,7 +134,7 @@ hair_reservations/
 
 | 폴더 | 역할 | 주요 파일 |
 |------|------|----------|
-| `calendar/views/` | 캘린더 뷰 (일/주/월/년/타임라인) | `Calendar.tsx`, `Day.tsx`, `Week.tsx`, `Month.tsx`, `Timeline.tsx`(오늘이면 마운트 시 현재시각 바로 자동 스크롤 — 최초 1회만), `TimelineCluster.tsx`(중복예약 클러스터 — 담당자 배지 표시) |
+| `calendar/views/` | 캘린더 뷰 (일/주/월/년/타임라인) | `Calendar.tsx`, `Day.tsx`, `Week.tsx`, `Month.tsx`, `Timeline.tsx`(오늘이면 마운트 시 현재시각 바로 자동 스크롤 — 최초 1회만), `TimelineCluster.tsx`(중복예약 클러스터 — 담당자 배지 표시), `storeClosedCss.ts`(휴무 배경 틴트 — 월 셀·타임라인 공유)[^40] |
 | `calendar/overlays/` | 예약 생성·상세·수정 모달 | `ReservationCreate.tsx`(+`useReservationCreateForm.ts`/`ReservationCreateCustomerFields.tsx`), `ReservationDetail.tsx`(+`ReservationDetailSections`/`Header`/`FooterActions`/`PaymentLayer`/`ViewSection`, 순수 로직은 `reservationDetailUtils.ts`·타입은 `reservationDetailTypes.ts`), `CustomerDetail.tsx`(+`CustomerDetailSections.tsx`[^3a]), `ModalStyles.ts`(공통 모달 스타일·`OVERLAY_Z_INDEX`·접근성 훅), 컴포넌트별 `*.styles.ts` |
 | `calendar/service/` | 서비스 범례·필드 | `ServiceLegend.tsx`(시술 배지 디자인), `ServiceFields.tsx` |
 | `customers/` | 고객 공용 컴포넌트 | `CustomerAutocomplete.tsx`(고객명/연락처 검색 자동완성 — 예약 생성·회원권 발급 공용. 목록 순서는 받은 그대로 그리며 정렬은 호출부 책임 — 예약추가는 이름 가나다순) |
@@ -183,7 +184,7 @@ hair_reservations/
 | `assignees/model.ts` | `Assignee` | id, name, schedule(7일), status[^6], color, phone. 헬퍼: `summarizeSchedule`(7행을 연속 동일 근무시간끼리 묶어 `월~금 10:00~20:00 · 토~일 휴무` 형태로 — 담당자 카드 읽기 모드 한 줄 표시용. `enabled=false`면 남아 있는 start/end 를 무시하고 휴무로 묶는다) |
 | `services/model.ts` | `ServiceItem` | name, durationMinutes, category, price |
 | `services/default-services.ts` | - | 업종(ShopType) union + 업종별 기본 서비스·카테고리 색상(Partial, 온보딩용) |
-| `store-settings/model.ts` | `StoreSettings`/`BookingSettings` | businessHours, closedDates(특정 날짜 휴업일), `closedWeekdays`(정기 휴무 요일, 0=월…6=일 — DB는 `StoreBusinessHour.enabled=false`로 저장, `sanitizeClosedWeekdays`로 정규화), pointSettings(적립률, 충전규칙). `BookingSettings`(공개 예약 규칙: slotIntervalMin·minLeadMinutes·maxAdvanceDays·allowAssigneeChoice·**contactTel**[매장 연락처 — 고객 문의·개인정보 열람/삭제 요구 창구. 온라인예약 사용 시 **필수**, 서버가 검증. 지역번호·대표번호는 자릿수 규칙이 달라 `formatTel` 재포맷 없이 **입력 원문 그대로** 저장·표시]·noticeText·`bookableServiceNames`[노출 서비스 화이트리스트, null=전체]) + slug 검증(`isValidBookingSlug`)·노출 헬퍼(`parseBookableServiceNames`/`areServicesBookable`) |
+| `store-settings/model.ts` | `StoreSettings`/`BookingSettings` | businessHours, closedDates(특정 날짜 휴업일), `closedWeekdays`(정기 휴무 요일, 0=월…6=일 — DB는 `StoreBusinessHour.enabled=false`로 저장, `sanitizeClosedWeekdays`로 정규화), pointSettings(적립률, 충전규칙), 캘린더 휴무 판정 `getStoreClosedKind`/`STORE_CLOSED_LABEL`[^40]. `BookingSettings`(공개 예약 규칙: slotIntervalMin·minLeadMinutes·maxAdvanceDays·allowAssigneeChoice·**contactTel**[매장 연락처 — 고객 문의·개인정보 열람/삭제 요구 창구. 온라인예약 사용 시 **필수**, 서버가 검증. 지역번호·대표번호는 자릿수 규칙이 달라 `formatTel` 재포맷 없이 **입력 원문 그대로** 저장·표시]·noticeText·`bookableServiceNames`[노출 서비스 화이트리스트, null=전체]) + slug 검증(`isValidBookingSlug`)·노출 헬퍼(`parseBookableServiceNames`/`areServicesBookable`) |
 | `booking/availability.ts` | - | 공개 온라인 예약 슬롯 계산 순수 함수(`computeAvailableSlots`/`pickAssigneeForSlot`). 서버 API가 재사용. 영업시간−기존예약−담당자스케줄−소요−최소사전시간, 담당자 용량 모델[^23] |
 | `booking/routing.ts` | - | **고객 예약 공개 호스트·경로 단일 소스**(미들웨어와 공유하는 Edge 안전 순수 모듈). `BOOKING_HOST`(`NEXT_PUBLIC_BOOKING_HOST` 오버라이드)·`isBookingHost`/`isMainHost`/`resolveRequestHost`·`bookBaseForHost`(호스트별 접두 `''`\|`/book`), 언어 코드(`BookLang`·`BOOK_LANGS`·`isBookLang`), 공개 URL `bookHref`·내부 라우트 `bookRoute`. `i18n.ts`가 언어·경로 API를 재export |
 | `booking/i18n.ts` | - | **고객 예약 페이지 다국어**(ko/en/ja/zh). UI 문구 사전(`BOOK_STRINGS`)·언어 목록(`BOOK_LANGS`)·로케일 포매터(`formatDurationL`·`formatBookDateLabel`·`formatPriceL`·`statusLabelL`·`dowLabelL`)·업종 라벨 번역(`localizedStoreLabels`, category 기준). 매장 오너 콘텐츠(매장명·서비스명·안내문·담당자명)는 번역 제외[^24] |
@@ -272,7 +273,7 @@ NextAuth 5.0 설정. Google·Kakao·Naver OAuth 지원.
 
 | 파일 | 엔드포인트 | 메서드 | 권한 | 설명 |
 |------|-----------|-------|------|------|
-| `reservations.ts` | `/api/reservations` | GET/POST/PUT/PATCH(staff) / DELETE(manager) | - | 예약 CRUD + 상태 변경. legacyId↔CUID 변환. 신규/취소/노쇼/삭제/변경 시 Slack 알림(`notifySlackForStore`). DELETE=영구삭제(매니저 이상) |
+| `reservations.ts` | `/api/reservations` | GET/POST/PUT/PATCH(staff) / DELETE(manager) | - | 예약 CRUD + 상태 변경. legacyId↔CUID 변환. 신규/취소/노쇼/삭제/변경 시 Slack 알림(`notifySlackForStore`). DELETE=영구삭제(매니저 이상). **`publicToken` 있는 건(예약페이지 유입)은 삭제 시 `DeletedBooking` 흔적을 트랜잭션으로 남긴다** — 고객 관리 링크가 404로 죽지 않게[^39] |
 | `customers.ts` | `/api/customers` | GET/PUT/POST(staff) / DELETE(owner) | - | GET 조회, PUT 다건 upsert, **POST 단건 저장(신규 고객→예약 레이스 방지)**, DELETE 고객 영구삭제(예약·적립금 cascade, 오너 전용) |
 | `customers-merge.ts` | `/api/customers/merge` | POST | staff | 고객 병합 (예약·포인트·태그 이전) |
 | `customer-merge-skip.ts` | `/api/customer-merge-skip` | GET·POST | staff | 병합 제안 '건너뛰기' 기록[^36] |
@@ -290,6 +291,7 @@ NextAuth 5.0 설정. Google·Kakao·Naver OAuth 지원.
 | `notices.ts` | `/api/notices` | GET(staff) / POST·PUT·DELETE(owner) | - | 매장 공지사항 CRUD(제목·내용·카테고리[notice/event/info]·공개여부 visible, 제목/내용 4개국어). 공개 노출은 `book/[slug]`가 visible=true만 반환(방어적 조회) |
 | `book/[slug].ts` | `/api/book/[slug]` | GET | **공개(비로그인)** | 온라인예약 매장 공개정보(매장명·서비스·담당자·영업시간·휴무일·규칙). 고객/예약 정보 절대 미노출[^23] |
 | `book/[slug]/availability.ts` | `/api/book/[slug]/availability` | GET | **공개(비로그인)** | 선택 서비스·담당자·날짜의 예약 가능 슬롯 배열. 순수 슬롯 계산(`features/booking/availability.ts`) 재사용, KST 기준 날짜 검증[^23] |
+| `book/reservation/[token].ts` | `/api/book/reservation/[token]` | GET | **공개(비로그인)** | 고객 관리 링크 조회(토큰이 곧 접근 권한). 상태·일시·시술·매장 안내문구만 반환. **예약이 없으면 `DeletedBooking` 흔적으로 폴백해 `cancelled` 로 응답**(오너가 영구 삭제한 건), 흔적도 없으면 404[^39] |
 | `book/[slug]/reserve.ts` | `/api/book/[slug]/reserve` | POST | **공개(비로그인)** | 셀프 예약 생성. 서버 슬롯 재검증(트랜잭션 Serializable) + 고객 upsert(정규화 tel) + 예약 생성(channel=online·`publicToken` 발급) + Slack 알림[^23] |
 | `onboarding.ts` | `/api/onboarding` | POST | owner | 매장 초기 설정 (legacyId 부여). **이미 담당자/서비스가 있으면 409 `ALREADY_SETUP` 거부** |
 | `migrate-local.ts` | `/api/migrate-local` | POST | owner | 게스트 로컬 데이터 전체 이전 (services/assignees/customers/reservations). 기존 데이터 있으면 409 + `confirm` 플래그로 병합 진행 |
@@ -389,6 +391,8 @@ Store ─┬── Customer ──── Reservation ──── ReservationPay
        ├── StoreNotice
        ├── StorePointSettings
        └── Invite
+
+DeletedBooking (관계 없음 — storeId 컬럼만)[^39]
 ```
 
 > **Store 기능 토글**: `usePointSystem`/`useMembershipSystem`/`useCouponSystem`(모두 `@default(false)`). 적립금·회원권·**쿠폰** 모두 토글 → aside 메뉴/페이지 연동 완료. **쿠폰은 Phase 2(토글 배선·상품 CRUD·`/settings/coupon` 탭 + 직접 발급/발급취소)까지 구현. 코드형 발급·`PaymentMethod.coupon` 결제 차감(Phase 3)은 미구현(예정).**
@@ -582,3 +586,20 @@ StorePointSettings (적립률, 충전규칙)
 | `client/prisma.config.ts` | Prisma 7 설정 (datasource URL, migration, seed) |
 | `tsconfig.json` | ES2017, strict, path aliases |
 | `package.json` | dev/build 스크립트, 의존성 |
+
+[^41]: **고객 예약 페이지 세로 레이아웃 함정**(`pages/book/[slug].tsx`·`book/[slug]/r/[token].tsx`의 `StyledWrap`). `#__next` 는 `height:100%` **고정** flex 컬럼이라, 그 자식인 페이지 래퍼는 flex 아이템이다. `flex-shrink` 기본값(1)이면 **래퍼가 내용보다 작게 찌그러져** 문서가 화면보다 커지지 못하고, 넘친 만큼 하단이 잘린다 — 변경 요청 폼을 열면 최하단까지 스크롤해도 버튼이 고정 언어 바 뒤에 가려 있었다(측정: 래퍼 800px 고정, 카드 825px, 문서 스크롤 범위 49px뿐). **`flex-shrink: 0` 으로 내용 높이를 지켜야 한다.** 세로 가운데 정렬(`StyledCard`의 `margin: auto 0`)은 원인이 아니었다 — 래퍼가 내용 높이를 지키면 넘칠 일이 없어 그대로 둔다.
+    - 짝이 되는 규칙: 모바일 카드 높이는 `calc(100dvh - LANG_BAR_OFFSET)`. 래퍼가 하단에 언어 바 높이를 패딩으로 두므로 카드까지 `100dvh` 를 다 쓰면 짧은 화면에서도 그만큼 군더더기 스크롤이 생긴다.
+
+[^39]: **삭제된 온라인 예약의 흔적**(`DeletedBooking`, 마이그레이션 `0022`). 오너가 예약을 **영구 삭제**하면 행이 실제로 사라지는데, 예약페이지로 들어온 건은 고객이 이미 관리 링크(`/{slug}/r/{token}`)를 받아 갔기 때문에 링크가 404로 죽는다 — 고객은 취소된 건지 링크가 잘못된 건지 알 수 없었다. 그래서 `publicToken` 이 있는 예약만 삭제 시 **최소 정보(토큰·날짜·시간·시술·사유)를 흔적으로 남기고**, 토큰 조회(`api/book/reservation/[token]`)가 예약을 못 찾으면 이 흔적으로 `status:'cancelled'` 응답을 만든다(변경·취소 요청은 둘 다 막음). **매장 화면에는 남지 않는다** — 예약 행은 그대로 삭제되므로 예약 목록·매출·슬롯 계산은 무변경이다.
+    - **소프트 삭제(`deletedAt`)를 쓰지 않은 이유**: 예약을 읽는 모든 경로(목록·타임라인·매출·공개 슬롯 가용성·네이버 동기화·고객 이력)에 필터를 심어야 하고, **한 곳만 빠뜨리면 삭제한 예약이 슬롯을 막거나 매출에 되살아난다.** 흔적 방식은 손대는 곳이 삭제 핸들러 1곳 + 토큰 조회 1곳뿐이다.
+    - **개인정보를 담지 않는다**: 고객 이름·전화번호를 넣지 않는다. `publicToken` 은 24바이트 난수라 그 자체로 신원과 연결되지 않는다. `customerId`(무작위 cuid)는 **정리용 열쇠로만** 담는다 — 아래 참조.
+    - **고객을 영구 삭제하면 흔적도 함께 지운다**(`customers.ts` DELETE). 살아 있는 예약은 cascade 로 사라져 링크가 함께 죽지만, **예전에 개별 삭제한 예약의 흔적은 FK 가 없어 남는다** — 그러면 고객을 지웠는데 그 링크만 계속 조회된다. 고객 기록 자체를 지우는 행위(개인정보 삭제 요구 이행 경로이기도 하다)이므로 링크도 없앤다. 이걸 하려면 흔적이 누구 것인지 알아야 해서 `customerId` 를 담는다 — 저장하는 쪽이 삭제를 **더 완전하게** 이행한다.
+    - **병합 시에는 예약과 같이 target 으로 옮긴다**(`customers-merge.ts`). 남겨 두면 주인이 사라져, 나중에 target 을 지워도 그 링크만 살아남는다. (되돌리기[`customers-unmerge.ts`]는 병합 시점에 기록해 둔 예약 id 로 복원하므로 흔적은 target 에 남는다 — 병합→예약삭제→되돌리기 순서의 드문 경우이고, 어느 쪽을 지우든 target 삭제 시 정리된다.)
+    - **적용 범위**: 이 변경 **이후** 삭제되는 건만이다. 그 전에 삭제된 예약은 토큰이 남아 있지 않아 되살릴 수 없다.
+    - `Store` 관계(FK)를 걸지 않은 것은 마이그레이션을 순수 가산(CREATE only)으로 두기 위함이다(`CustomerMergeSkip` 과 동일).
+
+[^40]: **캘린더 휴무 배경 표시**. 판정은 `features/store-settings/model.ts` 의 `getStoreClosedKind(settings, dateKey)` → `'date'`(임시 휴업일) | `'weekday'`(정기 휴무) | `null`. **둘 다 해당하면 임시 휴업일이 이긴다**(오너가 직접 찍은 날이 매주 반복 설정보다 구체적인 의사표시). `closedWeekdays` 의 dayIndex 는 앱 공통 규칙 0=월…6=일이라 `getDay()`(0=일)를 `(day+6)%7` 로 옮긴다.
+    - 표시는 **글자가 아니라 배경 틴트**다 — 월 셀은 날짜·예약 카드로 이미 차 있고, 3일/주 뷰 열은 모바일에서 글자가 세로로 쪼개질 만큼 좁다. 색만으로는 스크린리더에 아무것도 전달되지 않으므로 전역 `.a11y` 클래스 텍스트(`STORE_CLOSED_LABEL`)를 함께 넣는다.
+    - **틴트는 반드시 반투명**(`--closed-date-bg`·`--closed-weekday-bg`). 시간축 눈금선은 좌측 시간축(`TimelineTitle`)의 가로 `100vw` 가상요소가 **뒤에서** 그리는 것이라, 불투명 배경을 깔면 휴무 열에서만 눈금선이 사라진다(실제로 그렇게 만들었다가 되돌림).
+    - 붙는 곳은 두 군데뿐이다 — 월 셀(`views/Month.tsx`)과 일·주·3일이 공유하는 `views/Timeline.tsx`. CSS 조각(`views/storeClosedCss.ts`)으로 둔 것은 대상 태그·레이아웃이 달라 공용 컴포넌트로 감싸면 기존 그리드·여백이 틀어지기 때문이다.
+    - **표시 전용** — 휴무일에도 예약 생성은 막지 않는다(iOS 앱과 동일). iOS 쪽 대응은 `TAS/Core/UI/StoreClosedStyle.swift`·`Models/Store.swift`(앱이 먼저 구현했고, 웹이 같은 이름·같은 규칙으로 뒤따랐다).
