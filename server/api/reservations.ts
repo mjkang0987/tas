@@ -340,7 +340,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                     startTime: dbReservation.startTime,
                     endTime: dbReservation.endTime,
                     serviceSummary: dbReservation.serviceSummary,
-                    reason: dbReservation.decisionReason,
+                    // 사유는 **이미 취소된 건**에서만 가져온다. decisionReason 은 취소 전용이 아니라
+                    // 승인 시에도 쓰이므로(book-requests.ts), 확정 상태 예약을 삭제하면 "취소됨 ·
+                    // 사유: 확정됐습니다" 처럼 승인 문구가 취소 사유로 둔갑한다.
+                    // 비우면 고객 페이지가 매장 취소 안내문구 → 기본 취소문구 순으로 대체한다.
+                    reason: dbReservation.status === 'cancelled' ? dbReservation.decisionReason : null,
                 },
             })] : []),
             prisma.reservation.delete({where: {id: dbReservation.id}}),
