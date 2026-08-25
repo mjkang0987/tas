@@ -817,6 +817,11 @@ const StyledWrap = styled.div`
     min-height: 100%;
     display: flex;
     justify-content: center;
+    /* #__next 가 height:100% 고정 flex 컬럼이라, 이 래퍼는 그 flex 아이템이다.
+       flex-shrink 기본값(1)이면 내용보다 작게 찌그러져 문서가 화면보다 커지지 못하고,
+       넘친 만큼 하단이 잘린다(변경 요청 폼을 열면 버튼이 언어 바 뒤에 가려 있었다).
+       0 으로 고정해 내용 높이를 지켜야 페이지가 정상적으로 스크롤된다. */
+    flex-shrink: 0;
     /* 하단 여백은 고정 언어 바 높이만큼 확보(콘텐츠가 바에 가리지 않도록). */
     padding: 24px 16px ${LANG_BAR_OFFSET};
     box-sizing: border-box;
@@ -847,7 +852,9 @@ const StyledCard = styled.div<{$flush?: boolean}>`
         max-width: none;
         border-radius: 0;
         box-shadow: none;
-        min-height: 100dvh;
+        /* 래퍼가 하단에 언어 바 높이를 패딩으로 두므로, 카드까지 100dvh 를 다 차지하면
+           짧은 화면에서도 그 패딩만큼 군더더기 스크롤이 생긴다. 바를 뺀 높이로 채운다. */
+        min-height: calc(100dvh - ${LANG_BAR_OFFSET});
         padding: 24px 18px;
         ${(p) => (p.$flush ? `padding-bottom: ${LANG_BAR_OFFSET};` : '')}
     }
