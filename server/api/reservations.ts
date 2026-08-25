@@ -335,6 +335,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             ...(publicToken ? [prisma.deletedBooking.create({
                 data: {
                     storeId: session.storeId,
+                    customerId: dbReservation.customerId,
                     publicToken,
                     date: dbReservation.date,
                     startTime: dbReservation.startTime,
