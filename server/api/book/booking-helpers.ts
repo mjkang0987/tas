@@ -109,6 +109,23 @@ export async function findReservationByPublicToken(token: string) {
     });
 }
 
+// 오너가 영구 삭제한 온라인 예약의 흔적. 예약 행이 사라져도 고객이 받아 간 관리 링크가
+// 404로 죽지 않게 하려고 남겨 둔 최소 정보다(DeletedBooking). 없으면 null.
+export async function findDeletedBookingByPublicToken(token: string) {
+    if (!token) return null;
+    return prisma.deletedBooking.findUnique({
+        where: {publicToken: token},
+        select: {
+            storeId: true,
+            date: true,
+            startTime: true,
+            endTime: true,
+            serviceSummary: true,
+            reason: true,
+        },
+    });
+}
+
 // 매장 예약 규칙(없으면 기본값).
 export async function loadBookingSettings(storeId: string): Promise<BookingSettings> {
     const row = await prisma.storeBookingSettings.findUnique({where: {storeId}});

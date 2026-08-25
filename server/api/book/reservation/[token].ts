@@ -1,6 +1,11 @@
 import type {NextApiRequest, NextApiResponse} from 'next';
 
-import {findReservationByPublicToken, loadBookingSettings} from '../booking-helpers';
+import {
+    findDeletedBookingByPublicToken,
+    findReservationByPublicToken,
+    loadBookingSettings,
+} from '../booking-helpers';
+import {prisma} from '../../../db/prisma';
 import {toDateKey} from '../../../db/mappers';
 
 // 공개(비로그인) 예약 조회. 관리 링크 토큰으로만 접근하며, 고객 본인 예약의 최소 정보만 반환한다.
@@ -13,7 +18,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     const token = typeof req.query.token === 'string' ? req.query.token : '';
     const reservation = await findReservationByPublicToken(token);
-    if (!reservation) return res.status(404).json({error: 'not_found'});
+    // 예약이 없으면 오너가 영구 삭제한 건일 수 있다. 흔적이 남아 있으면 취소된 것으로 보여 준다
+    // (링크를 받은 고객에게 "찾을 수 없음"만 띄우면 취소인지 잘못된 링크인지 알 수 없다).
+    if (!reservation) return respondDeleted(token, res);
 
     const pendingChange = reservation.pendingAction === 'change' ? reservation.pendingPayloadJson : null;
 
@@ -47,5 +54,42 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         canRequest: reservation.status === 'active',
         canCancel: reservation.status === 'active' || reservation.status === 'requested',
         statusMessage,
+    });
+}
+
+// 삭제된 예약의 흔적(DeletedBooking)으로 응답. 고객 입장에서 삭제와 취소는 결과가 같으므로
+// 'cancelled'로 내려 기존 취소 화면(배지·안내문구)을 그대로 태운다. 담당자·고객 이름은 흔적에
+// 남기지 않으므로 null이고, 변경·취소 요청은 대상이 없어 둘 다 막는다.
+async function respondDeleted(token: string, res: NextApiResponse) {
+    const deleted = await findDeletedBookingByPublicToken(token);
+    if (!deleted) return res.status(404).json({error: 'not_found'});
+
+    const [store, settings] = await Promise.all([
+        prisma.store.findUnique({
+            where: {id: deleted.storeId},
+            select: {name: true, shopType: true, bookingSlug: true},
+        }),
+        loadBookingSettings(deleted.storeId),
+    ]);
+    if (!store) return res.status(404).json({error: 'not_found'});
+
+    return res.status(200).json({
+        status: 'cancelled',
+        date: toDateKey(deleted.date),
+        startTime: deleted.startTime,
+        endTime: deleted.endTime,
+        serviceSummary: deleted.serviceSummary,
+        assigneeName: null,
+        customerName: null,
+        storeName: store.name,
+        shopType: store.shopType,
+        slug: store.bookingSlug,
+        pendingAction: 'none',
+        pendingChange: null,
+        pendingRequestedAt: null,
+        decisionReason: deleted.reason ?? null,
+        canRequest: false,
+        canCancel: false,
+        statusMessage: {text: settings.cancelText ?? null, i18n: settings.cancelI18n ?? null},
     });
 }
