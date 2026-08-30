@@ -659,19 +659,31 @@ TAS의 로딩 화면은 지금 회전 스피너 + 문구뿐이라 같은 장면�
 
 ## 의존성 보안 패치 스윕 (#85)
 
-### 요구사항
-- Dependabot 취약점 9건(high 8, moderate 1) 대응. 알림 목록 조회 불가 → **블라인드 패치 스윕**.
+### 진행 현황 (2026-08-18 갱신)
+- ✅ **개발 도구 경유분 완료** (브랜치 `claude/dep-security-devtools`) — `pnpm audit` **45건 → 19건**.
+  - **원인은 신규 유입이 아니라 override 에 박힌 취약본이었다.** `postcss: 8.5.13`·
+    `brace-expansion@1: 1.1.12` 고정 핀이 이후 패치를 막고 있었다(Dependabot 의 nanoid 알림도
+    postcss 핀이 낳은 결과 — 경로는 `vitest > vite > postcss > nanoid`, **배포물 아님**).
+    고정 핀 → 하한(`>=x <메이저`)으로 전환. override 는 **메이저 스코프**를 붙인다
+    (`js-yaml@4`·`fast-uri@3`) — 스코프 없이 걸면 나중에 구버전을 요구하는 의존성이
+    들어왔을 때 조용히 메이저를 올려 깨뜨린다.
+  - `deepmerge-ts: '>=8'` 은 prisma 가 아직 <8 을 물고 있어 메이저 강제 — `prisma validate`·
+    `generate`·빌드로 확인.
+  - prisma 7.8.0 → 7.9.1, eslint 9.39.4 → 9.39.5.
+  - **보안과 무관한 런타임 범프는 되돌렸다**(styled-components 6.4→6.5·zustand·nodemailer).
+    `pnpm update` 가 함께 끌어올린 것들로, 변경면을 좁게 유지하기 위해 제외.
 
-### 구현 방침
-- `pnpm update`로 semver 범위 내 최신 패치 반영(transitive 완화 포함), pin된 `next` 등은 패치 범프 검토.
-- **제외**: `xlsx@0.18.5`(npm 패치본 없음, export-only 수용 리스크 — `revenue-export.ts` 문서화), `next-auth`(beta)·`react`(pin) major/beta 범프.
+### 남은 19건 — 전부 운영 런타임 (별건)
+| 대상 | 건수 | 조치 |
+|---|---|---|
+| `next` 16.2.10 → 16.2.11 | high 4, mod 5 | 패치 범프. 미들웨어 우회·SSRF·캐시 혼동 |
+| `next-auth` beta.30 → beta.32 + `@auth/core` | critical 3, high 1, mod 1 (+@auth/core 3) | **인증 경로** — 로그인 흐름 구동 확인 필수 |
+| `sharp` | high 1 | next 경유 이미지 최적화 |
+| `xlsx` 0.18.5 | high 2 | **npm 패치본 없음** — export-only 수용 리스크(기존 결정 유지) |
 
-### 영향 파일
-- `client/package.json`, `pnpm-lock.yaml`
+- **루트 저장소(`/pnpm-lock.yaml`)는 감사하지 않았다.** 이번 작업은 `client/` 범위.
 
 ### 검증
-- `pnpm build`(prisma generate + next build) + 타입체크 그린 = 회귀 없음.
-
-### 완료 조건
-- 빌드 그린, 안전 범위 취약 의존성 패치 갱신. 남은 알림(xlsx)은 수용 리스크로 명시.
-
+- `pnpm build`(prisma generate + next build)·`tsc --noEmit`·`pnpm test`(85건)·`prisma validate` 그린.
+- 프로덕션 빌드 구동(`/login`·캘린더 200, 서버 로그 에러 0).
+- `pnpm lint` 은 26 errors 로 실패하지만 **`main` 에서도 동일**하다(이번 변경과 무관, 별도 트랙).
