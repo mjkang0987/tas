@@ -91,6 +91,8 @@ export const StyledTrendChartBox = styled.div`
 
 export const StyledChartTooltip = styled.div<{ $leftRatio: number; $topRatio: number }>`
     position: absolute;
+    /* 막대(position:relative)가 DOM 상 뒤에 오므로, 없으면 막대가 툴팁을 덮는다. */
+    z-index: 1;
     left: ${(p) => `clamp(84px, calc(74px + (${p.$leftRatio} * (100% - 74px)) - 58px), calc(100% - 132px))`};
     top: ${(p) => `max(10px, calc(14px + (${p.$topRatio} * 190px) - 58px))`};
     display: inline-flex;
@@ -162,7 +164,9 @@ export const StyledTrendChartStage = styled.div<{ $count: number }>`
     position: relative;
     display: flex;
     align-items: flex-end;
-    gap: ${(p) => p.$count > 45 ? '1px' : p.$count > 20 ? '2px' : '4px'};
+    /* 폭 상한이 걸린 구간에서도 막대 중심이 각 1/n 슬롯 가운데 — 툴팁 가로 위치(xRatio)와 맞는다. */
+    justify-content: space-around;
+    gap: ${(p) => p.$count > 120 ? '0' : p.$count > 45 ? '1px' : p.$count > 20 ? '2px' : '4px'};
     height: 190px;
     border-radius: 10px;
     overflow: hidden;
@@ -184,6 +188,8 @@ export const StyledTrendColumn = styled.button<{ $active: boolean }>`
     align-items: flex-end;
     flex: 1 1 0;
     min-width: 0;
+    /* 기간이 짧아도(오늘=1일) 막대가 차트 폭을 통째로 채우지 않게. */
+    max-width: 48px;
     height: 100%;
     padding: 0;
     border: 0;
