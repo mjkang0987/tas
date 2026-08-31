@@ -82,14 +82,17 @@ export const StyledTrendChartBox = styled.div`
         min-height: auto;
     }
     padding: 14px 16px 4px;
-    border: 1px solid rgba(45, 127, 249, 0.08);
+    border: 1px solid rgba(101, 38, 217, 0.08);
     border-radius: 18px;
     background:
-        radial-gradient(circle at top right, rgba(45, 127, 249, 0.12), transparent 28%),
-        linear-gradient(180deg, #f8fbff 0%, #ffffff 100%);
+        radial-gradient(circle at top right, rgba(101, 38, 217, 0.1), transparent 28%),
+        linear-gradient(180deg, #faf8ff 0%, #ffffff 100%);
 `;
 
 export const REVENUE_TOOLTIP_WIDTH = 140;
+
+/** 막대 hover 색 — 키컬러(#6526d9 ≒ hsl(261,70%,50%))에서 채도만 낮춘 톤. */
+const TREND_BAR_HOVER = 'hsl(261, 40%, 60%)';
 
 /* 위치는 실제 막대·박스를 재서 px 로 받는다 — 비율식으로 추정하면 툴팁 폭만큼 어긋난다. */
 export const StyledChartTooltip = styled.div<{ $left: number; $top: number; $arrowLeft: number }>`
@@ -108,7 +111,7 @@ export const StyledChartTooltip = styled.div<{ $left: number; $top: number; $arr
     gap: 2px;
     width: ${REVENUE_TOOLTIP_WIDTH}px;
     padding: 9px 11px;
-    border: 1px solid rgba(45, 127, 249, 0.14);
+    border: 1px solid var(--brand-color-border);
     border-radius: 8px;
     background: rgba(255, 255, 255, 0.96);
     box-shadow: 0 12px 28px rgba(15, 23, 42, 0.12);
@@ -123,8 +126,8 @@ export const StyledChartTooltip = styled.div<{ $left: number; $top: number; $arr
         width: 10px;
         height: 10px;
         background: rgba(255, 255, 255, 0.96);
-        border-right: 1px solid rgba(45, 127, 249, 0.14);
-        border-bottom: 1px solid rgba(45, 127, 249, 0.14);
+        border-right: 1px solid var(--brand-color-border);
+        border-bottom: 1px solid var(--brand-color-border);
         transform: translateX(-50%) rotate(45deg);
     }
 `;
@@ -138,7 +141,7 @@ export const StyledChartTooltipLabel = styled.strong`
 export const StyledChartTooltipValue = styled.span`
     font-size: var(--medium-font);
     font-weight: 800;
-    color: var(--blue-color);
+    color: var(--brand-color);
 `;
 
 export const StyledTrendChartFrame = styled.div`
@@ -201,7 +204,7 @@ export const StyledTrendColumn = styled.button<{ $active: boolean }>`
     padding: 0;
     border: 0;
     border-radius: 4px 4px 0 0;
-    background: ${(p) => p.$active ? 'rgba(45, 127, 249, 0.08)' : 'transparent'};
+    background: ${(p) => p.$active ? 'var(--brand-color-bg)' : 'transparent'};
 `;
 
 export const StyledTrendColumnFill = styled.span<{ $heightRatio: number; $active: boolean }>`
@@ -211,7 +214,8 @@ export const StyledTrendColumnFill = styled.span<{ $heightRatio: number; $active
     /* 매출이 있는 날은 아주 작아도 보이게 — 0원인 날(0)과 구분된다. */
     min-height: ${(p) => p.$heightRatio > 0 ? '3px' : '0'};
     border-radius: 3px 3px 0 0;
-    background: ${(p) => p.$active ? 'var(--orange-color)' : 'var(--blue-color)'};
+    /* 키컬러(--brand-color). hover 는 같은 색상에서 채도만 낮춘 톤 — 강조는 툴팁이 맡는다. */
+    background: ${(p) => p.$active ? TREND_BAR_HOVER : 'var(--brand-color)'};
 `;
 
 export const StyledChartAxis = styled.div`
