@@ -1,4 +1,4 @@
-import {Fragment, useState} from 'react';
+import {useState} from 'react';
 
 import {formatPrice} from '../../../utils/services';
 import type {CustomerMap} from '../../../utils/customers';
@@ -9,10 +9,10 @@ import {StyledColorSwatch} from './revenue-styles';
 import {
     StyledChartGrid, StyledChartCard, StyledChartHeader, StyledChartEmpty,
     StyledChartHeaderTitle, StyledChartHeaderMeta,
-    StyledLineChartBox, StyledChartTooltip, StyledLineChartFrame, StyledYAxis,
+    StyledTrendChartBox, StyledChartTooltip, StyledTrendChartFrame, StyledYAxis,
     StyledChartTooltipLabel, StyledChartTooltipValue, StyledYAxisLabel,
-    StyledLineChartStage, StyledChartHorizontalGuide, StyledLineChart,
-    StyledChartGuide, StyledChartPointHalo, StyledChartPointButton, StyledChartAxis,
+    StyledTrendChartStage, StyledChartHorizontalGuide,
+    StyledTrendColumn, StyledTrendColumnFill, StyledChartAxis,
     StyledBarChartList, StyledBarRow, StyledBarHeaderRow, StyledBarLabel,
     StyledBarLabelText, StyledBarValue, StyledBarTrack, StyledBarFill,
     StyledShareSection, StyledShareSectionTitle, StyledShareBar, StyledShareSegment,
@@ -26,14 +26,13 @@ import {
     StyledOperationLabel, StyledChartRevenueMetaLabel,
     StyledOperationLabelName, StyledOperationLabelSub,
     StyledOperationCustomerButton, StyledOperationRate,
-    REVENUE_CHART_WIDTH, REVENUE_CHART_HEIGHT,
 } from './revenue-chart-styles';
 
 interface ChartPoint {
     dateKey: string;
     total: number;
     xRatio: number;
-    yRatio: number;
+    heightRatio: number;
 }
 
 interface PaymentChartItem {
@@ -85,9 +84,8 @@ interface RevenueChartGridProps {
     fromDateKey: string;
     toDateKeyValue: string;
     assigneeKey: string;
-    chartPath: {linePath: string; areaPath: string};
     chartPoints: ChartPoint[];
-    lineMax: number;
+    chartMax: number;
     paidTotal: number;
     paymentDonutGradient: string;
     paymentChartItems: PaymentChartItem[];
@@ -110,9 +108,8 @@ export const RevenueChartGrid = ({
     fromDateKey,
     toDateKeyValue,
     assigneeKey,
-    chartPath,
     chartPoints,
-    lineMax,
+    chartMax,
     paidTotal,
     paymentDonutGradient,
     paymentChartItems,
@@ -136,7 +133,7 @@ export const RevenueChartGrid = ({
 
     return (
         <StyledChartGrid>
-            {/* Line chart */}
+            {/* Trend bar chart */}
             <StyledChartCard $hero>
                 <StyledChartHeader>
                     <StyledChartHeaderTitle>기간별 매출 추이</StyledChartHeaderTitle>
@@ -146,53 +143,47 @@ export const RevenueChartGrid = ({
                     <StyledChartEmpty>{EMPTY_TEXT}</StyledChartEmpty>
                 ) : (
                     <>
-                        <StyledLineChartBox>
+                        <StyledTrendChartBox>
                             {hoveredPoint && (
-                                <StyledChartTooltip $leftRatio={hoveredPoint.xRatio} $topRatio={hoveredPoint.yRatio}>
+                                <StyledChartTooltip $leftRatio={hoveredPoint.xRatio} $topRatio={1 - hoveredPoint.heightRatio}>
                                     <StyledChartTooltipLabel>{hoveredPoint.dateKey}</StyledChartTooltipLabel>
                                     <StyledChartTooltipValue>{formatPrice(hoveredPoint.total)}</StyledChartTooltipValue>
                                 </StyledChartTooltip>
                             )}
-                            <StyledLineChartFrame>
+                            <StyledTrendChartFrame>
                                 <StyledYAxis>
-                                    <StyledYAxisLabel className="top">{formatPrice(lineMax)}</StyledYAxisLabel>
-                                    <StyledYAxisLabel className="middle">{formatPrice(Math.round(lineMax / 2))}</StyledYAxisLabel>
+                                    <StyledYAxisLabel className="top">{formatPrice(chartMax)}</StyledYAxisLabel>
+                                    <StyledYAxisLabel className="middle">{formatPrice(Math.round(chartMax / 2))}</StyledYAxisLabel>
                                     <StyledYAxisLabel className="bottom">{formatPrice(0)}</StyledYAxisLabel>
                                 </StyledYAxis>
-                                <StyledLineChartStage>
+                                <StyledTrendChartStage $count={chartPoints.length}>
                                     <StyledChartHorizontalGuide $topRatio={0} />
                                     <StyledChartHorizontalGuide $topRatio={0.5} />
                                     <StyledChartHorizontalGuide $topRatio={1} />
-                                    <StyledLineChart viewBox={`0 0 ${REVENUE_CHART_WIDTH} ${REVENUE_CHART_HEIGHT}`} preserveAspectRatio="none">
-                                        <path d={chartPath.areaPath} fill="rgba(45, 127, 249, 0.14)" />
-                                        <path d={chartPath.linePath} fill="none" stroke="var(--blue-color)" strokeWidth="2.25" strokeLinecap="round" />
-                                    </StyledLineChart>
                                     {chartPoints.map((item) => {
                                         const isActive = hoveredDateKey === item.dateKey;
                                         return (
-                                            <Fragment key={item.dateKey}>
-                                                {isActive && (
-                                                    <>
-                                                        <StyledChartGuide $leftRatio={item.xRatio} />
-                                                        <StyledChartPointHalo $leftRatio={item.xRatio} $topRatio={item.yRatio} />
-                                                    </>
-                                                )}
-                                                <StyledChartPointButton
-                                                    type="button"
-                                                    aria-label={`${item.dateKey} ${formatPrice(item.total)}`}
-                                                    onMouseEnter={() => setHoveredDateKey(item.dateKey)}
-                                                    onMouseLeave={() => setHoveredDateKey((c) => c === item.dateKey ? null : c)}
-                                                    onClick={() => onChartDetailClick({kind: 'date', dateKey: item.dateKey})}
+                                            <StyledTrendColumn
+                                                key={item.dateKey}
+                                                type="button"
+                                                aria-label={`${item.dateKey} ${formatPrice(item.total)}`}
+                                                onMouseEnter={() => setHoveredDateKey(item.dateKey)}
+                                                onMouseLeave={() => setHoveredDateKey((c) => c === item.dateKey ? null : c)}
+                                                onFocus={() => setHoveredDateKey(item.dateKey)}
+                                                onBlur={() => setHoveredDateKey((c) => c === item.dateKey ? null : c)}
+                                                onClick={() => onChartDetailClick({kind: 'date', dateKey: item.dateKey})}
+                                                $active={isActive}
+                                            >
+                                                <StyledTrendColumnFill
+                                                    $heightRatio={item.heightRatio}
                                                     $active={isActive}
-                                                    $leftRatio={item.xRatio}
-                                                    $topRatio={item.yRatio}
                                                 />
-                                            </Fragment>
+                                            </StyledTrendColumn>
                                         );
                                     })}
-                                </StyledLineChartStage>
-                            </StyledLineChartFrame>
-                        </StyledLineChartBox>
+                                </StyledTrendChartStage>
+                            </StyledTrendChartFrame>
+                        </StyledTrendChartBox>
                         <StyledChartAxis>
                             <span>{fromDateKey.slice(5)}</span>
                             <span>{toDateKeyValue.slice(5)}</span>

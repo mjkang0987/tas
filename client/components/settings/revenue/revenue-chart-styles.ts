@@ -2,9 +2,6 @@ import styled from 'styled-components';
 
 import {StyledEmpty} from '../settings-styles';
 
-const REVENUE_CHART_WIDTH = 320;
-const REVENUE_CHART_HEIGHT = 160;
-
 /* ── Grid / card wrappers ── */
 
 export const StyledChartGrid = styled.div`
@@ -72,9 +69,9 @@ export const StyledChartEmpty = styled(StyledEmpty).attrs({$size: 'sm' as const}
     background: var(--gray-color2);
 `;
 
-/* ── Line chart ── */
+/* ── Trend bar chart ── */
 
-export const StyledLineChartBox = styled.div`
+export const StyledTrendChartBox = styled.div`
     position: relative;
     display: flex;
     flex-direction: column;
@@ -135,7 +132,7 @@ export const StyledChartTooltipValue = styled.span`
     color: var(--blue-color);
 `;
 
-export const StyledLineChartFrame = styled.div`
+export const StyledTrendChartFrame = styled.div`
     display: grid;
     grid-template-columns: 64px minmax(0, 1fr);
     gap: 10px;
@@ -161,12 +158,14 @@ export const StyledYAxisLabel = styled.span`
     line-height: 1;
 `;
 
-export const StyledLineChartStage = styled.div`
+export const StyledTrendChartStage = styled.div<{ $count: number }>`
     position: relative;
+    display: flex;
+    align-items: flex-end;
+    gap: ${(p) => p.$count > 45 ? '1px' : p.$count > 20 ? '2px' : '4px'};
     height: 190px;
     border-radius: 10px;
     overflow: hidden;
-    line-height: 0;
 `;
 
 export const StyledChartHorizontalGuide = styled.div<{ $topRatio: number }>`
@@ -179,46 +178,27 @@ export const StyledChartHorizontalGuide = styled.div<{ $topRatio: number }>`
     pointer-events: none;
 `;
 
-export const StyledLineChart = styled.svg`
+export const StyledTrendColumn = styled.button<{ $active: boolean }>`
+    position: relative;
+    display: flex;
+    align-items: flex-end;
+    flex: 1 1 0;
+    min-width: 0;
+    height: 100%;
+    padding: 0;
+    border: 0;
+    border-radius: 4px 4px 0 0;
+    background: ${(p) => p.$active ? 'rgba(45, 127, 249, 0.08)' : 'transparent'};
+`;
+
+export const StyledTrendColumnFill = styled.span<{ $heightRatio: number; $active: boolean }>`
     display: block;
     width: 100%;
-    height: 100%;
-    overflow: visible;
-`;
-
-export const StyledChartGuide = styled.div<{ $leftRatio: number }>`
-    position: absolute;
-    top: 0; bottom: 0;
-    left: ${(p) => `${p.$leftRatio * 100}%`};
-    width: 1px;
-    border-left: 1px dashed rgba(45, 127, 249, 0.2);
-    transform: translateX(-50%);
-    pointer-events: none;
-`;
-
-export const StyledChartPointHalo = styled.div<{ $leftRatio: number; $topRatio: number }>`
-    position: absolute;
-    left: ${(p) => `${p.$leftRatio * 100}%`};
-    top: ${(p) => `${p.$topRatio * 100}%`};
-    width: 24px; height: 24px;
-    border-radius: 50%;
-    background: rgba(45, 127, 249, 0.14);
-    transform: translate(-50%, -50%);
-    pointer-events: none;
-`;
-
-export const StyledChartPointButton = styled.button<{ $active: boolean; $leftRatio: number; $topRatio: number }>`
-    position: absolute;
-    left: ${(p) => `${p.$leftRatio * 100}%`};
-    top: ${(p) => `${p.$topRatio * 100}%`};
-    width: ${(p) => p.$active ? '10px' : '7px'};
-    height: ${(p) => p.$active ? '10px' : '7px'};
-    padding: 0;
-    border: 2px solid #fff;
-    border-radius: 50%;
+    height: ${(p) => `${p.$heightRatio * 100}%`};
+    /* 매출이 있는 날은 아주 작아도 보이게 — 0원인 날(0)과 구분된다. */
+    min-height: ${(p) => p.$heightRatio > 0 ? '3px' : '0'};
+    border-radius: 3px 3px 0 0;
     background: ${(p) => p.$active ? 'var(--orange-color)' : 'var(--blue-color)'};
-    box-shadow: 0 2px 8px rgba(15, 23, 42, 0.14);
-    transform: translate(-50%, -50%);
 `;
 
 export const StyledChartAxis = styled.div`
@@ -528,6 +508,3 @@ export const StyledOperationRate = styled.strong`
     font-size: var(--large-font);
     color: var(--blue-color);
 `;
-
-/* ── SVG dimensions (exported for use in JSX) ── */
-export {REVENUE_CHART_WIDTH, REVENUE_CHART_HEIGHT};
