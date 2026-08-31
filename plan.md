@@ -675,3 +675,35 @@ TAS의 로딩 화면은 지금 회전 스피너 + 문구뿐이라 같은 장면�
 ### 완료 조건
 - 빌드 그린, 안전 범위 취약 의존성 패치 갱신. 남은 알림(xlsx)은 수용 리스크로 명시.
 
+
+---
+
+## 진행 중 — 매출 추이 차트를 SVG 라인 → CSS 세로 막대로 (`claude/revenue-app-bar-chart-607spf`)
+
+### 배경
+설정 > 매출의 "기간별 매출 추이"만 **SVG 라인 차트**다(`buildRevenueLinePath`로 path 문자열을 만들고
+`<svg>` 안에 line/area 두 개를 그린 뒤, 각 점 위에 7px 원형 버튼을 절대배치).
+같은 화면의 다른 차트(담당자별 막대, 결제수단·유입 도넛)는 전부 **div + CSS**로 그려져 있고,
+iOS 앱(`tas-ios` `RevenueView`)의 같은 지표도 Swift Charts `BarMark` — **막대**다.
+
+라인이 불리한 지점:
+- 일 매출은 연속량이 아니라 **하루 단위 합계**다. 예약 없는 날이 0으로 내려갔다 올라오며 톱니가 된다.
+- 클릭 대상이 지름 7px 점이라 조준이 어렵고, 툴팁도 그 점 위에 올려야만 뜬다.
+
+### 구현 (SVG 제거, CSS만)
+- `revenueChartUtils.ts` — `buildRevenueLinePath` 삭제(유일한 호출부가 이 차트).
+- `revenue-chart-styles.ts` — `StyledLineChart`(svg)·`StyledChartGuide`·`StyledChartPointHalo`·
+  `StyledChartPointButton`·`REVENUE_CHART_WIDTH/HEIGHT` 삭제. `StyledLineChart*` → `StyledTrendChart*` 로 이름 정리.
+  추가: `StyledTrendChartStage`(flex, 막대를 바닥 정렬) / `StyledTrendColumn`(막대 1개 = **스테이지 전체 높이 버튼**) /
+  `StyledTrendColumnFill`(높이 = 비율).
+- `RevenueChartGrid.tsx` — 점 대신 막대. 툴팁·가로 가이드·Y축·X축·클릭 상세(`{kind:'date'}`)는 그대로.
+- `RevenueSection.tsx` — `chartPath` 제거, `chartPoints`의 `yRatio` → `heightRatio`.
+
+### 설계 판단
+- **막대 자체가 아니라 열 전체가 버튼**이다. 매출 0인 날도 폭이 있는 클릭 대상이 되고, 조준 면적이 7px → 열 높이 전체로 커진다.
+- 0원인 날은 높이 0이라 안 보이므로, **금액이 있는 날만 최소 3px**를 준다(0과 소액을 구분).
+- 막대 간격은 개수에 따라 줄인다(20개 이하 4px / 45개 이하 2px / 그 이상 1px). 기본 빠른 범위가 오늘·7일·30일이라
+  대부분 4~2px 구간이고, 커스텀 장기간에서도 막대가 사라지지 않는다.
+
+### 검증
+`pnpm lint` + `next build`(타입체크 포함). 순수 모듈(`client/features/**`) 변경 없음 — 테스트 추가 대상 아님.
