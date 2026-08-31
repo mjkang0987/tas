@@ -1,4 +1,4 @@
-import {useState} from 'react';
+import {useRef, useState} from 'react';
 
 import {formatPrice} from '../../../utils/services';
 import type {CustomerMap} from '../../../utils/customers';
@@ -10,6 +10,7 @@ import {
     StyledChartGrid, StyledChartCard, StyledChartHeader, StyledChartEmpty,
     StyledChartHeaderTitle, StyledChartHeaderMeta,
     StyledTrendChartBox, StyledChartTooltip, StyledTrendChartFrame, StyledYAxis,
+    REVENUE_TOOLTIP_WIDTH,
     StyledChartTooltipLabel, StyledChartTooltipValue, StyledYAxisLabel,
     StyledTrendChartStage, StyledChartHorizontalGuide,
     StyledTrendColumn, StyledTrendColumnFill, StyledChartAxis,
@@ -31,8 +32,15 @@ import {
 interface ChartPoint {
     dateKey: string;
     total: number;
-    xRatio: number;
-    heightRatio: number;
+}
+
+/** 화면에 떠 있는 툴팁 — 위치는 막대를 실제로 재서 담는다. */
+interface TrendTooltip {
+    dateKey: string;
+    total: number;
+    left: number;
+    top: number;
+    arrowLeft: number;
 }
 
 interface PaymentChartItem {
@@ -126,10 +134,32 @@ export const RevenueChartGrid = ({
     onChartDetailClick,
 }: RevenueChartGridProps) => {
     const labels = useStoreLabels();
-    const [hoveredDateKey, setHoveredDateKey] = useState<string | null>(null);
-    const hoveredPoint = chartPoints.find((item) => item.dateKey === hoveredDateKey) ?? null;
+    const trendBoxRef = useRef<HTMLDivElement>(null);
+    const [tooltip, setTooltip] = useState<TrendTooltip | null>(null);
     // 매출이 0뿐인 기간도 빈 상태로 — 막대가 하나도 없는 빈 격자에 축만 "1원"(Math.max(…,1))으로 남는다.
     const hasTrend = chartPoints.some((item) => item.total > 0);
+
+    // 툴팁을 막대 중앙·상단에 맞춘다. 비율로 추정하면 툴팁 폭(140px)만큼 어긋나 실제로 가장자리에서 60px 벌어졌다.
+    const showTooltip = (point: ChartPoint, column: HTMLElement) => {
+        const box = trendBoxRef.current;
+        if (!box) return;
+        const boxRect = box.getBoundingClientRect();
+        const columnRect = column.getBoundingClientRect();
+        const fillRect = column.firstElementChild?.getBoundingClientRect();
+        const center = columnRect.left + columnRect.width / 2 - boxRect.left;
+        // 박스를 벗어나지 않게 가둔다(가장자리 막대). 화살표는 막대 쪽에 남는다.
+        const left = Math.min(Math.max(center - REVENUE_TOOLTIP_WIDTH / 2, 0), Math.max(boxRect.width - REVENUE_TOOLTIP_WIDTH, 0));
+        const barTop = (fillRect?.top ?? columnRect.bottom) - boxRect.top;
+        setTooltip({
+            dateKey: point.dateKey,
+            total: point.total,
+            left,
+            arrowLeft: center - left,
+            // 막대가 높아도 툴팁이 카드 위로 넘치지 않게. 62 = 툴팁 높이 + 여백 어림값(가둘 때만 쓴다).
+            top: Math.max(barTop, 62),
+        });
+    };
+    const hideTooltip = (dateKey: string) => setTooltip((c) => c?.dateKey === dateKey ? null : c);
 
     return (
         <StyledChartGrid>
@@ -143,11 +173,11 @@ export const RevenueChartGrid = ({
                     <StyledChartEmpty>{EMPTY_TEXT}</StyledChartEmpty>
                 ) : (
                     <>
-                        <StyledTrendChartBox>
-                            {hoveredPoint && (
-                                <StyledChartTooltip $leftRatio={hoveredPoint.xRatio} $topRatio={1 - hoveredPoint.heightRatio}>
-                                    <StyledChartTooltipLabel>{hoveredPoint.dateKey}</StyledChartTooltipLabel>
-                                    <StyledChartTooltipValue>{formatPrice(hoveredPoint.total)}</StyledChartTooltipValue>
+                        <StyledTrendChartBox ref={trendBoxRef}>
+                            {tooltip && (
+                                <StyledChartTooltip $left={tooltip.left} $top={tooltip.top} $arrowLeft={tooltip.arrowLeft}>
+                                    <StyledChartTooltipLabel>{tooltip.dateKey}</StyledChartTooltipLabel>
+                                    <StyledChartTooltipValue>{formatPrice(tooltip.total)}</StyledChartTooltipValue>
                                 </StyledChartTooltip>
                             )}
                             <StyledTrendChartFrame>
@@ -161,21 +191,21 @@ export const RevenueChartGrid = ({
                                     <StyledChartHorizontalGuide $topRatio={0.5} />
                                     <StyledChartHorizontalGuide $topRatio={1} />
                                     {chartPoints.map((item) => {
-                                        const isActive = hoveredDateKey === item.dateKey;
+                                        const isActive = tooltip?.dateKey === item.dateKey;
                                         return (
                                             <StyledTrendColumn
                                                 key={item.dateKey}
                                                 type="button"
                                                 aria-label={`${item.dateKey} ${formatPrice(item.total)}`}
-                                                onMouseEnter={() => setHoveredDateKey(item.dateKey)}
-                                                onMouseLeave={() => setHoveredDateKey((c) => c === item.dateKey ? null : c)}
-                                                onFocus={() => setHoveredDateKey(item.dateKey)}
-                                                onBlur={() => setHoveredDateKey((c) => c === item.dateKey ? null : c)}
+                                                onMouseEnter={(e) => showTooltip(item, e.currentTarget)}
+                                                onMouseLeave={() => hideTooltip(item.dateKey)}
+                                                onFocus={(e) => showTooltip(item, e.currentTarget)}
+                                                onBlur={() => hideTooltip(item.dateKey)}
                                                 onClick={() => onChartDetailClick({kind: 'date', dateKey: item.dateKey})}
                                                 $active={isActive}
                                             >
                                                 <StyledTrendColumnFill
-                                                    $heightRatio={item.heightRatio}
+                                                    $heightRatio={item.total / chartMax}
                                                     $active={isActive}
                                                 />
                                             </StyledTrendColumn>

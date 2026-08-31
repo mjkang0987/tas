@@ -176,15 +176,6 @@ export const RevenueSection = ({
         [operationInsights.assigneeCancellationRates, assigneeMap]
     );
     const chartMax = Math.max(...revenueInsights.series.map((item) => item.total), 1);
-    const chartPoints = useMemo(
-        () => revenueInsights.series.map((item, index) => ({
-            ...item,
-            // 막대 중앙 — 툴팁 가로 위치용.
-            xRatio: (index + 0.5) / revenueInsights.series.length,
-            heightRatio: item.total / chartMax,
-        })),
-        [revenueInsights.series, chartMax]
-    );
     const paymentDonutGradient = buildPaymentDonutGradient(
         paymentChartItems.map((item) => item.color),
         paymentChartItems.map((item) => item.total)
@@ -490,7 +481,7 @@ export const RevenueSection = ({
                         fromDateKey={fromDateKey}
                         toDateKeyValue={toDateKeyValue}
                         assigneeKey={assigneeKey}
-                        chartPoints={chartPoints}
+                        chartPoints={revenueInsights.series}
                         chartMax={chartMax}
                         paidTotal={revenueInsights.paidTotal}
                         paymentDonutGradient={paymentDonutGradient}

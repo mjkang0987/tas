@@ -89,29 +89,36 @@ export const StyledTrendChartBox = styled.div`
         linear-gradient(180deg, #f8fbff 0%, #ffffff 100%);
 `;
 
-export const StyledChartTooltip = styled.div<{ $leftRatio: number; $topRatio: number }>`
+export const REVENUE_TOOLTIP_WIDTH = 140;
+
+/* 위치는 실제 막대·박스를 재서 px 로 받는다 — 비율식으로 추정하면 툴팁 폭만큼 어긋난다. */
+export const StyledChartTooltip = styled.div<{ $left: number; $top: number; $arrowLeft: number }>`
     position: absolute;
     /* 막대(position:relative)가 DOM 상 뒤에 오므로, 없으면 막대가 툴팁을 덮는다. */
     z-index: 1;
-    left: ${(p) => `clamp(84px, calc(74px + (${p.$leftRatio} * (100% - 74px)) - 58px), calc(100% - 132px))`};
-    top: ${(p) => `max(10px, calc(14px + (${p.$topRatio} * 190px) - 58px))`};
+    left: ${(p) => `${p.$left}px`};
+    top: ${(p) => `${p.$top}px`};
+    /* 자기 높이만큼 위로 — 높이를 상수로 가정하지 않는다. */
+    transform: translateY(calc(-100% - 8px));
+    /* 이 저장소의 border-box 는 button/input/a 에만 걸려 있다 — div 는 명시하지 않으면 폭에 패딩이 더해진다. */
+    box-sizing: border-box;
     display: inline-flex;
     flex-direction: column;
     align-items: center;
     gap: 2px;
-    min-width: 116px;
+    width: ${REVENUE_TOOLTIP_WIDTH}px;
     padding: 9px 11px;
     border: 1px solid rgba(45, 127, 249, 0.14);
     border-radius: 8px;
     background: rgba(255, 255, 255, 0.96);
     box-shadow: 0 12px 28px rgba(15, 23, 42, 0.12);
     backdrop-filter: var(--sticky-backdrop);
-    transform: translateZ(0);
 
     &::after {
         content: '';
         position: absolute;
-        left: 50%;
+        /* 툴팁이 가장자리에서 잘려 밀리면 화살표만 막대 쪽에 남는다. */
+        left: ${(p) => `${p.$arrowLeft}px`};
         bottom: -6px;
         width: 10px;
         height: 10px;
