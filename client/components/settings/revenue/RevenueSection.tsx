@@ -507,7 +507,6 @@ export const RevenueSection = ({
                         totalNoshowRate={operationInsights.totalNoshowRate}
                         onSelectCustomer={onSelectCustomer}
                         onChartDetailClick={setChartDetailKey}
-                        seriesLength={revenueInsights.series.length}
                     />
                 </StyledDashboard>
             )}

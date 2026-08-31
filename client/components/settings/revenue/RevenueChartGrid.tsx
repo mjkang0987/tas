@@ -101,7 +101,6 @@ interface RevenueChartGridProps {
     channelTotalCount: number;
     onSelectCustomer: (customerId: number) => void;
     onChartDetailClick: (key: ChartDetailKey) => void;
-    seriesLength: number;
 }
 
 export const RevenueChartGrid = ({
@@ -125,11 +124,12 @@ export const RevenueChartGrid = ({
     channelTotalCount,
     onSelectCustomer,
     onChartDetailClick,
-    seriesLength,
 }: RevenueChartGridProps) => {
     const labels = useStoreLabels();
     const [hoveredDateKey, setHoveredDateKey] = useState<string | null>(null);
     const hoveredPoint = chartPoints.find((item) => item.dateKey === hoveredDateKey) ?? null;
+    // 매출이 0뿐인 기간도 빈 상태로 — 막대가 하나도 없는 빈 격자에 축만 "1원"(Math.max(…,1))으로 남는다.
+    const hasTrend = chartPoints.some((item) => item.total > 0);
 
     return (
         <StyledChartGrid>
@@ -139,7 +139,7 @@ export const RevenueChartGrid = ({
                     <StyledChartHeaderTitle>기간별 매출 추이</StyledChartHeaderTitle>
                     <StyledChartHeaderMeta>{fromDateKey} ~ {toDateKeyValue}</StyledChartHeaderMeta>
                 </StyledChartHeader>
-                {seriesLength === 0 ? (
+                {!hasTrend ? (
                     <StyledChartEmpty>{EMPTY_TEXT}</StyledChartEmpty>
                 ) : (
                     <>
