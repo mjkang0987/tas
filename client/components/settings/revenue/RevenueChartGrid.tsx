@@ -145,6 +145,7 @@ export const RevenueChartGrid = ({
         if (!box) return;
         const boxRect = box.getBoundingClientRect();
         const columnRect = column.getBoundingClientRect();
+        // 채워진 막대(첫 자식) 상단에 붙인다. 없으면 바닥 — 0원인 날과 같은 자리라 폴백해도 어긋나지 않는다.
         const fillRect = column.firstElementChild?.getBoundingClientRect();
         const center = columnRect.left + columnRect.width / 2 - boxRect.left;
         // 박스를 벗어나지 않게 가둔다(가장자리 막대). 화살표는 막대 쪽에 남는다.
