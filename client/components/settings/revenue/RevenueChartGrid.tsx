@@ -1,4 +1,4 @@
-import {Fragment, useState} from 'react';
+import {useRef, useState} from 'react';
 
 import {formatPrice} from '../../../utils/services';
 import type {CustomerMap} from '../../../utils/customers';
@@ -9,10 +9,11 @@ import {StyledColorSwatch} from './revenue-styles';
 import {
     StyledChartGrid, StyledChartCard, StyledChartHeader, StyledChartEmpty,
     StyledChartHeaderTitle, StyledChartHeaderMeta,
-    StyledLineChartBox, StyledChartTooltip, StyledLineChartFrame, StyledYAxis,
+    StyledTrendChartBox, StyledChartTooltip, StyledTrendChartFrame, StyledYAxis,
+    REVENUE_TOOLTIP_WIDTH,
     StyledChartTooltipLabel, StyledChartTooltipValue, StyledYAxisLabel,
-    StyledLineChartStage, StyledChartHorizontalGuide, StyledLineChart,
-    StyledChartGuide, StyledChartPointHalo, StyledChartPointButton, StyledChartAxis,
+    StyledTrendChartStage, StyledTrendScrollContent, StyledTrendChartTrack, StyledChartHorizontalGuide,
+    StyledTrendColumn, StyledTrendColumnFill, StyledChartAxis,
     StyledBarChartList, StyledBarRow, StyledBarHeaderRow, StyledBarLabel,
     StyledBarLabelText, StyledBarValue, StyledBarTrack, StyledBarFill,
     StyledShareSection, StyledShareSectionTitle, StyledShareBar, StyledShareSegment,
@@ -26,14 +27,20 @@ import {
     StyledOperationLabel, StyledChartRevenueMetaLabel,
     StyledOperationLabelName, StyledOperationLabelSub,
     StyledOperationCustomerButton, StyledOperationRate,
-    REVENUE_CHART_WIDTH, REVENUE_CHART_HEIGHT,
 } from './revenue-chart-styles';
 
 interface ChartPoint {
     dateKey: string;
     total: number;
-    xRatio: number;
-    yRatio: number;
+}
+
+/** 화면에 떠 있는 툴팁 — 위치는 막대를 실제로 재서 담는다. */
+interface TrendTooltip {
+    dateKey: string;
+    total: number;
+    left: number;
+    top: number;
+    arrowLeft: number;
 }
 
 interface PaymentChartItem {
@@ -85,9 +92,8 @@ interface RevenueChartGridProps {
     fromDateKey: string;
     toDateKeyValue: string;
     assigneeKey: string;
-    chartPath: {linePath: string; areaPath: string};
     chartPoints: ChartPoint[];
-    lineMax: number;
+    chartMax: number;
     paidTotal: number;
     paymentDonutGradient: string;
     paymentChartItems: PaymentChartItem[];
@@ -103,16 +109,14 @@ interface RevenueChartGridProps {
     channelTotalCount: number;
     onSelectCustomer: (customerId: number) => void;
     onChartDetailClick: (key: ChartDetailKey) => void;
-    seriesLength: number;
 }
 
 export const RevenueChartGrid = ({
     fromDateKey,
     toDateKeyValue,
     assigneeKey,
-    chartPath,
     chartPoints,
-    lineMax,
+    chartMax,
     paidTotal,
     paymentDonutGradient,
     paymentChartItems,
@@ -128,75 +132,97 @@ export const RevenueChartGrid = ({
     channelTotalCount,
     onSelectCustomer,
     onChartDetailClick,
-    seriesLength,
 }: RevenueChartGridProps) => {
     const labels = useStoreLabels();
-    const [hoveredDateKey, setHoveredDateKey] = useState<string | null>(null);
-    const hoveredPoint = chartPoints.find((item) => item.dateKey === hoveredDateKey) ?? null;
+    const trendBoxRef = useRef<HTMLDivElement>(null);
+    const [tooltip, setTooltip] = useState<TrendTooltip | null>(null);
+    // 매출이 0뿐인 기간도 빈 상태로 — 막대가 하나도 없는 빈 격자에 축만 "1원"(Math.max(…,1))으로 남는다.
+    const hasTrend = chartPoints.some((item) => item.total > 0);
+
+    // 툴팁을 막대 중앙·상단에 맞춘다. 비율로 추정하면 툴팁 폭(140px)만큼 어긋나 실제로 가장자리에서 60px 벌어졌다.
+    const showTooltip = (point: ChartPoint, column: HTMLElement) => {
+        const box = trendBoxRef.current;
+        if (!box) return;
+        const boxRect = box.getBoundingClientRect();
+        const columnRect = column.getBoundingClientRect();
+        // 채워진 막대(첫 자식) 상단에 붙인다. 없으면 바닥 — 0원인 날과 같은 자리라 폴백해도 어긋나지 않는다.
+        const fillRect = column.firstElementChild?.getBoundingClientRect();
+        const center = columnRect.left + columnRect.width / 2 - boxRect.left;
+        // 박스를 벗어나지 않게 가둔다(가장자리 막대). 화살표는 막대 쪽에 남는다.
+        const left = Math.min(Math.max(center - REVENUE_TOOLTIP_WIDTH / 2, 0), Math.max(boxRect.width - REVENUE_TOOLTIP_WIDTH, 0));
+        const barTop = (fillRect?.top ?? columnRect.bottom) - boxRect.top;
+        setTooltip({
+            dateKey: point.dateKey,
+            total: point.total,
+            left,
+            arrowLeft: center - left,
+            // 막대가 높아도 툴팁이 카드 위로 넘치지 않게. 62 = 툴팁 높이 + 여백 어림값(가둘 때만 쓴다).
+            top: Math.max(barTop, 62),
+        });
+    };
+    const hideTooltip = (dateKey: string) => setTooltip((c) => c?.dateKey === dateKey ? null : c);
 
     return (
         <StyledChartGrid>
-            {/* Line chart */}
+            {/* Trend bar chart */}
             <StyledChartCard $hero>
                 <StyledChartHeader>
                     <StyledChartHeaderTitle>기간별 매출 추이</StyledChartHeaderTitle>
                     <StyledChartHeaderMeta>{fromDateKey} ~ {toDateKeyValue}</StyledChartHeaderMeta>
                 </StyledChartHeader>
-                {seriesLength === 0 ? (
+                {!hasTrend ? (
                     <StyledChartEmpty>{EMPTY_TEXT}</StyledChartEmpty>
                 ) : (
                     <>
-                        <StyledLineChartBox>
-                            {hoveredPoint && (
-                                <StyledChartTooltip $leftRatio={hoveredPoint.xRatio} $topRatio={hoveredPoint.yRatio}>
-                                    <StyledChartTooltipLabel>{hoveredPoint.dateKey}</StyledChartTooltipLabel>
-                                    <StyledChartTooltipValue>{formatPrice(hoveredPoint.total)}</StyledChartTooltipValue>
+                        <StyledTrendChartBox ref={trendBoxRef}>
+                            {tooltip && (
+                                <StyledChartTooltip $left={tooltip.left} $top={tooltip.top} $arrowLeft={tooltip.arrowLeft}>
+                                    <StyledChartTooltipLabel>{tooltip.dateKey}</StyledChartTooltipLabel>
+                                    <StyledChartTooltipValue>{formatPrice(tooltip.total)}</StyledChartTooltipValue>
                                 </StyledChartTooltip>
                             )}
-                            <StyledLineChartFrame>
+                            <StyledTrendChartFrame>
                                 <StyledYAxis>
-                                    <StyledYAxisLabel className="top">{formatPrice(lineMax)}</StyledYAxisLabel>
-                                    <StyledYAxisLabel className="middle">{formatPrice(Math.round(lineMax / 2))}</StyledYAxisLabel>
+                                    <StyledYAxisLabel className="top">{formatPrice(chartMax)}</StyledYAxisLabel>
+                                    <StyledYAxisLabel className="middle">{formatPrice(Math.round(chartMax / 2))}</StyledYAxisLabel>
                                     <StyledYAxisLabel className="bottom">{formatPrice(0)}</StyledYAxisLabel>
                                 </StyledYAxis>
-                                <StyledLineChartStage>
-                                    <StyledChartHorizontalGuide $topRatio={0} />
-                                    <StyledChartHorizontalGuide $topRatio={0.5} />
-                                    <StyledChartHorizontalGuide $topRatio={1} />
-                                    <StyledLineChart viewBox={`0 0 ${REVENUE_CHART_WIDTH} ${REVENUE_CHART_HEIGHT}`} preserveAspectRatio="none">
-                                        <path d={chartPath.areaPath} fill="rgba(45, 127, 249, 0.14)" />
-                                        <path d={chartPath.linePath} fill="none" stroke="var(--blue-color)" strokeWidth="2.25" strokeLinecap="round" />
-                                    </StyledLineChart>
-                                    {chartPoints.map((item) => {
-                                        const isActive = hoveredDateKey === item.dateKey;
-                                        return (
-                                            <Fragment key={item.dateKey}>
-                                                {isActive && (
-                                                    <>
-                                                        <StyledChartGuide $leftRatio={item.xRatio} />
-                                                        <StyledChartPointHalo $leftRatio={item.xRatio} $topRatio={item.yRatio} />
-                                                    </>
-                                                )}
-                                                <StyledChartPointButton
-                                                    type="button"
-                                                    aria-label={`${item.dateKey} ${formatPrice(item.total)}`}
-                                                    onMouseEnter={() => setHoveredDateKey(item.dateKey)}
-                                                    onMouseLeave={() => setHoveredDateKey((c) => c === item.dateKey ? null : c)}
-                                                    onClick={() => onChartDetailClick({kind: 'date', dateKey: item.dateKey})}
-                                                    $active={isActive}
-                                                    $leftRatio={item.xRatio}
-                                                    $topRatio={item.yRatio}
-                                                />
-                                            </Fragment>
-                                        );
-                                    })}
-                                </StyledLineChartStage>
-                            </StyledLineChartFrame>
-                        </StyledLineChartBox>
-                        <StyledChartAxis>
-                            <span>{fromDateKey.slice(5)}</span>
-                            <span>{toDateKeyValue.slice(5)}</span>
-                        </StyledChartAxis>
+                                <StyledTrendChartStage>
+                                    <StyledTrendScrollContent>
+                                        <StyledTrendChartTrack $count={chartPoints.length}>
+                                            <StyledChartHorizontalGuide $topRatio={0} />
+                                            <StyledChartHorizontalGuide $topRatio={0.5} />
+                                            <StyledChartHorizontalGuide $topRatio={1} />
+                                            {chartPoints.map((item) => {
+                                                const isActive = tooltip?.dateKey === item.dateKey;
+                                                return (
+                                                    <StyledTrendColumn
+                                                        key={item.dateKey}
+                                                        type="button"
+                                                        aria-label={`${item.dateKey} ${formatPrice(item.total)}`}
+                                                        onMouseEnter={(e) => showTooltip(item, e.currentTarget)}
+                                                        onMouseLeave={() => hideTooltip(item.dateKey)}
+                                                        onFocus={(e) => showTooltip(item, e.currentTarget)}
+                                                        onBlur={() => hideTooltip(item.dateKey)}
+                                                        onClick={() => onChartDetailClick({kind: 'date', dateKey: item.dateKey})}
+                                                        $active={isActive}
+                                                    >
+                                                        <StyledTrendColumnFill
+                                                            $heightRatio={item.total / chartMax}
+                                                            $active={isActive}
+                                                        />
+                                                    </StyledTrendColumn>
+                                                );
+                                            })}
+                                        </StyledTrendChartTrack>
+                                        <StyledChartAxis>
+                                            <span>{fromDateKey.slice(5)}</span>
+                                            <span>{toDateKeyValue.slice(5)}</span>
+                                        </StyledChartAxis>
+                                    </StyledTrendScrollContent>
+                                </StyledTrendChartStage>
+                            </StyledTrendChartFrame>
+                        </StyledTrendChartBox>
                     </>
                 )}
             </StyledChartCard>

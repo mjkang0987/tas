@@ -21,24 +21,20 @@ export function getDiffDays(fromDateKey: string, toDateKeyValue: string): number
     return Math.max(Math.round((to.getTime() - from.getTime()) / 86400000), 0);
 }
 
-export function buildRevenueLinePath(values: number[], width: number, height: number): {linePath: string; areaPath: string} {
-    if (values.length === 0) return {linePath: '', areaPath: ''};
-    const max = Math.max(...values, 1);
-    if (values.length === 1) {
-        const y = height - (values[0] / max) * height;
-        return {
-            linePath: `M 0 ${y} L ${width} ${y}`,
-            areaPath: `M 0 ${y} L ${width} ${y} L ${width} ${height} L 0 ${height} Z`,
-        };
-    }
-    const stepX = width / (values.length - 1);
-    const points = values.map((value, index) => ({
-        x: index * stepX,
-        y: height - (value / max) * height,
-    }));
-    const linePath = points.map((point, index) => `${index === 0 ? 'M' : 'L'} ${point.x} ${point.y}`).join(' ');
-    const areaPath = `${linePath} L ${points[points.length - 1].x} ${height} L ${points[0].x} ${height} Z`;
-    return {linePath, areaPath};
+/**
+ * 매출 기간 상한 — 시작~종료 간격(일). 365면 윤년을 포함한 만 1년이 들어간다.
+ * 차트만이 아니라 KPI·일별 목록·엑셀 내보내기가 같은 기간을 쓰므로, 연간 정산을 막지 않는 선이 하한선이다.
+ */
+export const REVENUE_MAX_RANGE_DAYS = 365;
+
+/** 상한을 넘는 기간을 최근 쪽으로 자른다 — 끝을 남기고 시작을 당긴다. */
+export function clampRevenueRange(startDateKey: string, endDateKey: string): {startDateKey: string; endDateKey: string} {
+    const ascending = startDateKey <= endDateKey;
+    const [from, to] = ascending ? [startDateKey, endDateKey] : [endDateKey, startDateKey];
+    if (getDiffDays(from, to) <= REVENUE_MAX_RANGE_DAYS) return {startDateKey, endDateKey};
+
+    const clamped = shiftDateKey(to, -REVENUE_MAX_RANGE_DAYS);
+    return ascending ? {startDateKey: clamped, endDateKey} : {startDateKey, endDateKey: clamped};
 }
 
 export function buildPaymentDonutGradient(colors: string[], totals: number[]): string {

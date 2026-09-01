@@ -2,9 +2,6 @@ import styled from 'styled-components';
 
 import {StyledEmpty} from '../settings-styles';
 
-const REVENUE_CHART_WIDTH = 320;
-const REVENUE_CHART_HEIGHT = 160;
-
 /* ── Grid / card wrappers ── */
 
 export const StyledChartGrid = styled.div`
@@ -72,9 +69,9 @@ export const StyledChartEmpty = styled(StyledEmpty).attrs({$size: 'sm' as const}
     background: var(--gray-color2);
 `;
 
-/* ── Line chart ── */
+/* ── Trend bar chart ── */
 
-export const StyledLineChartBox = styled.div`
+export const StyledTrendChartBox = styled.div`
     position: relative;
     display: flex;
     flex-direction: column;
@@ -85,40 +82,52 @@ export const StyledLineChartBox = styled.div`
         min-height: auto;
     }
     padding: 14px 16px 4px;
-    border: 1px solid rgba(45, 127, 249, 0.08);
+    border: 1px solid rgba(101, 38, 217, 0.08);
     border-radius: 18px;
     background:
-        radial-gradient(circle at top right, rgba(45, 127, 249, 0.12), transparent 28%),
-        linear-gradient(180deg, #f8fbff 0%, #ffffff 100%);
+        radial-gradient(circle at top right, rgba(101, 38, 217, 0.1), transparent 28%),
+        linear-gradient(180deg, #faf8ff 0%, #ffffff 100%);
 `;
 
-export const StyledChartTooltip = styled.div<{ $leftRatio: number; $topRatio: number }>`
+export const REVENUE_TOOLTIP_WIDTH = 140;
+
+/** 막대 hover 색 — 키컬러(#6526d9 ≒ hsl(261,70%,50%))에서 채도만 낮춘 톤. */
+const TREND_BAR_HOVER = 'hsl(261, 40%, 60%)';
+
+/* 위치는 실제 막대·박스를 재서 px 로 받는다 — 비율식으로 추정하면 툴팁 폭만큼 어긋난다. */
+export const StyledChartTooltip = styled.div<{ $left: number; $top: number; $arrowLeft: number }>`
     position: absolute;
-    left: ${(p) => `clamp(84px, calc(74px + (${p.$leftRatio} * (100% - 74px)) - 58px), calc(100% - 132px))`};
-    top: ${(p) => `max(10px, calc(14px + (${p.$topRatio} * 190px) - 58px))`};
+    /* 막대(position:relative)가 DOM 상 뒤에 오므로, 없으면 막대가 툴팁을 덮는다. */
+    z-index: 1;
+    left: ${(p) => `${p.$left}px`};
+    top: ${(p) => `${p.$top}px`};
+    /* 자기 높이만큼 위로 — 높이를 상수로 가정하지 않는다. */
+    transform: translateY(calc(-100% - 8px));
+    /* 이 저장소의 border-box 는 button/input/a 에만 걸려 있다 — div 는 명시하지 않으면 폭에 패딩이 더해진다. */
+    box-sizing: border-box;
     display: inline-flex;
     flex-direction: column;
     align-items: center;
     gap: 2px;
-    min-width: 116px;
+    width: ${REVENUE_TOOLTIP_WIDTH}px;
     padding: 9px 11px;
-    border: 1px solid rgba(45, 127, 249, 0.14);
+    border: 1px solid var(--brand-color-border);
     border-radius: 8px;
     background: rgba(255, 255, 255, 0.96);
     box-shadow: 0 12px 28px rgba(15, 23, 42, 0.12);
     backdrop-filter: var(--sticky-backdrop);
-    transform: translateZ(0);
 
     &::after {
         content: '';
         position: absolute;
-        left: 50%;
+        /* 툴팁이 가장자리에서 잘려 밀리면 화살표만 막대 쪽에 남는다. */
+        left: ${(p) => `${p.$arrowLeft}px`};
         bottom: -6px;
         width: 10px;
         height: 10px;
         background: rgba(255, 255, 255, 0.96);
-        border-right: 1px solid rgba(45, 127, 249, 0.14);
-        border-bottom: 1px solid rgba(45, 127, 249, 0.14);
+        border-right: 1px solid var(--brand-color-border);
+        border-bottom: 1px solid var(--brand-color-border);
         transform: translateX(-50%) rotate(45deg);
     }
 `;
@@ -132,10 +141,10 @@ export const StyledChartTooltipLabel = styled.strong`
 export const StyledChartTooltipValue = styled.span`
     font-size: var(--medium-font);
     font-weight: 800;
-    color: var(--blue-color);
+    color: var(--brand-color);
 `;
 
-export const StyledLineChartFrame = styled.div`
+export const StyledTrendChartFrame = styled.div`
     display: grid;
     grid-template-columns: 64px minmax(0, 1fr);
     gap: 10px;
@@ -161,12 +170,35 @@ export const StyledYAxisLabel = styled.span`
     line-height: 1;
 `;
 
-export const StyledLineChartStage = styled.div`
+/* 막대가 최소 폭 아래로 눌리면 가로 스크롤로 넘어간다(기간이 길 때). 스크롤바가 그래프를
+   깎지 않도록 높이는 트랙이 갖고, 스테이지는 필요한 만큼만 늘어난다. */
+export const StyledTrendChartStage = styled.div`
     position: relative;
-    height: 190px;
     border-radius: 10px;
-    overflow: hidden;
-    line-height: 0;
+    overflow-x: auto;
+    overflow-y: hidden;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: thin;
+`;
+
+export const StyledTrendScrollContent = styled.div`
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    /* 좁으면 스테이지를 꽉 채우고, 넘치면 내용만큼 넓어져 스크롤된다. */
+    width: max-content;
+    min-width: 100%;
+`;
+
+export const StyledTrendChartTrack = styled.div<{ $count: number }>`
+    position: relative;
+    display: flex;
+    align-items: flex-end;
+    /* 막대 중심이 각 1/n 슬롯 가운데 — 폭 상한이 걸려도 툴팁·화살표와 어긋나지 않는다. */
+    justify-content: space-around;
+    /* 막대 최소 폭은 min-width 가 지킨다(넘치면 스크롤) — 간격은 밀도에 맞춰 좁히기만 한다. */
+    gap: ${(p) => p.$count > 45 ? '1px' : p.$count > 20 ? '2px' : '4px'};
+    height: 190px;
 `;
 
 export const StyledChartHorizontalGuide = styled.div<{ $topRatio: number }>`
@@ -179,55 +211,39 @@ export const StyledChartHorizontalGuide = styled.div<{ $topRatio: number }>`
     pointer-events: none;
 `;
 
-export const StyledLineChart = styled.svg`
+export const StyledTrendColumn = styled.button<{ $active: boolean }>`
+    position: relative;
+    display: flex;
+    align-items: flex-end;
+    flex: 1 1 0;
+    /* 이 아래로는 못 줄인다 — 대신 스테이지가 가로 스크롤된다(약 90일부터). */
+    min-width: 6px;
+    /* 기간이 짧아도(오늘=1일) 막대가 차트 폭을 통째로 채우지 않게. */
+    max-width: 48px;
+    height: 100%;
+    padding: 0;
+    border: 0;
+    border-radius: 4px 4px 0 0;
+    background: ${(p) => p.$active ? 'var(--brand-color-bg)' : 'transparent'};
+`;
+
+export const StyledTrendColumnFill = styled.span<{ $heightRatio: number; $active: boolean }>`
     display: block;
     width: 100%;
-    height: 100%;
-    overflow: visible;
+    height: ${(p) => `${p.$heightRatio * 100}%`};
+    /* 매출이 있는 날은 아주 작아도 보이게 — 0원인 날(0)과 구분된다. */
+    min-height: ${(p) => p.$heightRatio > 0 ? '3px' : '0'};
+    border-radius: 3px 3px 0 0;
+    /* 키컬러(--brand-color). hover 는 같은 색상에서 채도만 낮춘 톤 — 강조는 툴팁이 맡는다. */
+    background: ${(p) => p.$active ? TREND_BAR_HOVER : 'var(--brand-color)'};
 `;
 
-export const StyledChartGuide = styled.div<{ $leftRatio: number }>`
-    position: absolute;
-    top: 0; bottom: 0;
-    left: ${(p) => `${p.$leftRatio * 100}%`};
-    width: 1px;
-    border-left: 1px dashed rgba(45, 127, 249, 0.2);
-    transform: translateX(-50%);
-    pointer-events: none;
-`;
-
-export const StyledChartPointHalo = styled.div<{ $leftRatio: number; $topRatio: number }>`
-    position: absolute;
-    left: ${(p) => `${p.$leftRatio * 100}%`};
-    top: ${(p) => `${p.$topRatio * 100}%`};
-    width: 24px; height: 24px;
-    border-radius: 50%;
-    background: rgba(45, 127, 249, 0.14);
-    transform: translate(-50%, -50%);
-    pointer-events: none;
-`;
-
-export const StyledChartPointButton = styled.button<{ $active: boolean; $leftRatio: number; $topRatio: number }>`
-    position: absolute;
-    left: ${(p) => `${p.$leftRatio * 100}%`};
-    top: ${(p) => `${p.$topRatio * 100}%`};
-    width: ${(p) => p.$active ? '10px' : '7px'};
-    height: ${(p) => p.$active ? '10px' : '7px'};
-    padding: 0;
-    border: 2px solid #fff;
-    border-radius: 50%;
-    background: ${(p) => p.$active ? 'var(--orange-color)' : 'var(--blue-color)'};
-    box-shadow: 0 2px 8px rgba(15, 23, 42, 0.14);
-    transform: translate(-50%, -50%);
-`;
-
+/* 스크롤 콘텐츠 안에 둔다 — 밖에 두면 90일 넘는 범위에서 보이는 막대와 라벨이 어긋난다. */
 export const StyledChartAxis = styled.div`
     display: flex;
     justify-content: space-between;
     font-size: var(--xsmall-font);
     color: var(--dark-gray-color2);
-    margin-top: -2px;
-    padding-left: 74px;
 `;
 
 /* ── Bar chart (assignee) ── */
@@ -528,6 +544,3 @@ export const StyledOperationRate = styled.strong`
     font-size: var(--large-font);
     color: var(--blue-color);
 `;
-
-/* ── SVG dimensions (exported for use in JSX) ── */
-export {REVENUE_CHART_WIDTH, REVENUE_CHART_HEIGHT};

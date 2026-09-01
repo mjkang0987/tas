@@ -37,10 +37,8 @@ import {
     PAYMENT_METHOD_ORDER,
     shiftDateKey,
     getDiffDays,
-    buildRevenueLinePath,
     buildPaymentDonutGradient,
 } from './revenueChartUtils';
-import {REVENUE_CHART_WIDTH, REVENUE_CHART_HEIGHT} from './revenue-chart-styles';
 
 export type RevenueAssigneeKey = 'all' | `${number}`;
 export type RevenueQuickRange = 'month' | 'week' | 'today';
@@ -177,16 +175,7 @@ export const RevenueSection = ({
             })),
         [operationInsights.assigneeCancellationRates, assigneeMap]
     );
-    const chartPath = buildRevenueLinePath(revenueInsights.series.map((item) => item.total), REVENUE_CHART_WIDTH, REVENUE_CHART_HEIGHT);
-    const lineMax = Math.max(...revenueInsights.series.map((item) => item.total), 1);
-    const chartPoints = useMemo(
-        () => revenueInsights.series.map((item, index) => ({
-            ...item,
-            xRatio: revenueInsights.series.length > 1 ? index / (revenueInsights.series.length - 1) : 0.5,
-            yRatio: 1 - (item.total / lineMax),
-        })),
-        [revenueInsights.series, lineMax]
-    );
+    const chartMax = Math.max(...revenueInsights.series.map((item) => item.total), 1);
     const paymentDonutGradient = buildPaymentDonutGradient(
         paymentChartItems.map((item) => item.color),
         paymentChartItems.map((item) => item.total)
@@ -492,9 +481,8 @@ export const RevenueSection = ({
                         fromDateKey={fromDateKey}
                         toDateKeyValue={toDateKeyValue}
                         assigneeKey={assigneeKey}
-                        chartPath={chartPath}
-                        chartPoints={chartPoints}
-                        lineMax={lineMax}
+                        chartPoints={revenueInsights.series}
+                        chartMax={chartMax}
                         paidTotal={revenueInsights.paidTotal}
                         paymentDonutGradient={paymentDonutGradient}
                         paymentChartItems={paymentChartItems}
@@ -510,7 +498,6 @@ export const RevenueSection = ({
                         totalNoshowRate={operationInsights.totalNoshowRate}
                         onSelectCustomer={onSelectCustomer}
                         onChartDetailClick={setChartDetailKey}
-                        seriesLength={revenueInsights.series.length}
                     />
                 </StyledDashboard>
             )}
