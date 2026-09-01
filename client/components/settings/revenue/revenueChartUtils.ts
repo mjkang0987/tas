@@ -21,6 +21,22 @@ export function getDiffDays(fromDateKey: string, toDateKeyValue: string): number
     return Math.max(Math.round((to.getTime() - from.getTime()) / 86400000), 0);
 }
 
+/**
+ * 매출 기간 상한 — 시작~종료 간격(일). 365면 윤년을 포함한 만 1년이 들어간다.
+ * 차트만이 아니라 KPI·일별 목록·엑셀 내보내기가 같은 기간을 쓰므로, 연간 정산을 막지 않는 선이 하한선이다.
+ */
+export const REVENUE_MAX_RANGE_DAYS = 365;
+
+/** 상한을 넘는 기간을 최근 쪽으로 자른다 — 끝을 남기고 시작을 당긴다. */
+export function clampRevenueRange(startDateKey: string, endDateKey: string): {startDateKey: string; endDateKey: string} {
+    const ascending = startDateKey <= endDateKey;
+    const [from, to] = ascending ? [startDateKey, endDateKey] : [endDateKey, startDateKey];
+    if (getDiffDays(from, to) <= REVENUE_MAX_RANGE_DAYS) return {startDateKey, endDateKey};
+
+    const clamped = shiftDateKey(to, -REVENUE_MAX_RANGE_DAYS);
+    return ascending ? {startDateKey: clamped, endDateKey} : {startDateKey, endDateKey: clamped};
+}
+
 export function buildPaymentDonutGradient(colors: string[], totals: number[]): string {
     const sum = totals.reduce((acc, value) => acc + value, 0);
     if (sum <= 0 || colors.length === 0) return 'conic-gradient(#E5E7EB 0deg 360deg)';

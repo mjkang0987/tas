@@ -7,6 +7,7 @@ import {sortAssignees} from '../../../utils/assignees';
 import type {RevenueFilterMode} from '../../../utils/revenue';
 import {DirectionIcon} from '../../ui/DirectionIcon';
 import {actionButtonStyle, StyledDateInput} from './revenue-styles';
+import {REVENUE_MAX_RANGE_DAYS, shiftDateKey} from './revenueChartUtils';
 
 import type {RevenueAssigneeKey, RevenueQuickRange} from './RevenueSection';
 
@@ -48,6 +49,9 @@ export const RevenueFilters = ({
     onExport,
 }: RevenueFiltersProps) => {
     const [showCriteriaHint, setShowCriteriaHint] = useState(false);
+    // 상한(1년)은 네이티브 min/max 로 건다 — 각 입력을 상대 날짜의 ±상한 안으로 가둔다.
+    const startBounds = {min: shiftDateKey(endDateKey, -REVENUE_MAX_RANGE_DAYS), max: shiftDateKey(endDateKey, REVENUE_MAX_RANGE_DAYS)};
+    const endBounds = {min: shiftDateKey(startDateKey, -REVENUE_MAX_RANGE_DAYS), max: shiftDateKey(startDateKey, REVENUE_MAX_RANGE_DAYS)};
 
     return (
         <StyledStickyArea>
@@ -63,11 +67,11 @@ export const RevenueFilters = ({
                         <DirectionIcon direction="left" />
                     </StyledRangeNavButton>
                     <StyledRangeInputWrap htmlFor="revenue-start-date">
-                        <StyledDateInput id="revenue-start-date" type="date" value={startDateKey} onChange={(e) => setStartDateKey(e.target.value)} />
+                        <StyledDateInput id="revenue-start-date" type="date" value={startDateKey} min={startBounds.min} max={startBounds.max} onChange={(e) => setStartDateKey(e.target.value)} />
                     </StyledRangeInputWrap>
                     <StyledRangeDivider>~</StyledRangeDivider>
                     <StyledRangeInputWrap htmlFor="revenue-end-date">
-                        <StyledDateInput id="revenue-end-date" type="date" value={endDateKey} onChange={(e) => setEndDateKey(e.target.value)} />
+                        <StyledDateInput id="revenue-end-date" type="date" value={endDateKey} min={endBounds.min} max={endBounds.max} onChange={(e) => setEndDateKey(e.target.value)} />
                     </StyledRangeInputWrap>
                     <StyledRangeNavButton type="button" onClick={() => onMoveRange('next')} aria-label="다음 기간">
                         <DirectionIcon direction="right" />

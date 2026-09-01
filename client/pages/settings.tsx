@@ -21,7 +21,7 @@ import {MemberSection} from '../components/settings/MemberSection';
 import {PointManageSection} from '../components/settings/PointManageSection';
 import {MembershipManageSection} from '../components/settings/MembershipManageSection';
 import {CouponManageSection} from '../components/settings/CouponManageSection';
-import {RevenueSection, type RevenueAssigneeKey, type RevenueQuickRange} from '../components/settings/revenue';
+import {RevenueSection, clampRevenueRange, type RevenueAssigneeKey, type RevenueQuickRange} from '../components/settings/revenue';
 import {ServiceManageSection} from '../components/settings/ServiceManageSection';
 import {NaverBookingSection} from '../components/settings/NaverBookingSection';
 import {SNSLinkingSection} from '../components/settings/SNSLinkingSection';
@@ -137,8 +137,11 @@ const Settings: NextPage<SettingsProps> = ({reservations, customers, history, st
     const revenueAssigneeKey: RevenueAssigneeKey = Number.isInteger(parsedAssigneeId) && parsedAssigneeId > 0
         ? String(parsedAssigneeId) as RevenueAssigneeKey
         : 'all';
-    const startDateKey = typeof q.start === 'string' && isValidDateKey(q.start) ? q.start : monthStartKey;
-    const endDateKey = typeof q.end === 'string' && isValidDateKey(q.end) ? q.end : todayKey;
+    // URL 쿼리로도 상한을 넘길 수 있으므로 여기서 자른다(북마크·수동 편집 우회 차단).
+    const {startDateKey, endDateKey} = clampRevenueRange(
+        typeof q.start === 'string' && isValidDateKey(q.start) ? q.start : monthStartKey,
+        typeof q.end === 'string' && isValidDateKey(q.end) ? q.end : todayKey
+    );
     const selectedDateKey = typeof q.date === 'string' && isValidDateKey(q.date) ? q.date : endDateKey;
     const quickRange: RevenueQuickRange | null = startDateKey === revenue30DaysStartKey && endDateKey === todayKey
         ? 'month'
