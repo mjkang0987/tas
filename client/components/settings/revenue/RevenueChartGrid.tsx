@@ -12,7 +12,7 @@ import {
     StyledTrendChartBox, StyledChartTooltip, StyledTrendChartFrame, StyledYAxis,
     REVENUE_TOOLTIP_WIDTH,
     StyledChartTooltipLabel, StyledChartTooltipValue, StyledYAxisLabel,
-    StyledTrendChartStage, StyledChartHorizontalGuide,
+    StyledTrendChartStage, StyledTrendScrollContent, StyledTrendChartTrack, StyledChartHorizontalGuide,
     StyledTrendColumn, StyledTrendColumnFill, StyledChartAxis,
     StyledBarChartList, StyledBarRow, StyledBarHeaderRow, StyledBarLabel,
     StyledBarLabelText, StyledBarValue, StyledBarTrack, StyledBarFill,
@@ -186,38 +186,42 @@ export const RevenueChartGrid = ({
                                     <StyledYAxisLabel className="middle">{formatPrice(Math.round(chartMax / 2))}</StyledYAxisLabel>
                                     <StyledYAxisLabel className="bottom">{formatPrice(0)}</StyledYAxisLabel>
                                 </StyledYAxis>
-                                <StyledTrendChartStage $count={chartPoints.length}>
-                                    <StyledChartHorizontalGuide $topRatio={0} />
-                                    <StyledChartHorizontalGuide $topRatio={0.5} />
-                                    <StyledChartHorizontalGuide $topRatio={1} />
-                                    {chartPoints.map((item) => {
-                                        const isActive = tooltip?.dateKey === item.dateKey;
-                                        return (
-                                            <StyledTrendColumn
-                                                key={item.dateKey}
-                                                type="button"
-                                                aria-label={`${item.dateKey} ${formatPrice(item.total)}`}
-                                                onMouseEnter={(e) => showTooltip(item, e.currentTarget)}
-                                                onMouseLeave={() => hideTooltip(item.dateKey)}
-                                                onFocus={(e) => showTooltip(item, e.currentTarget)}
-                                                onBlur={() => hideTooltip(item.dateKey)}
-                                                onClick={() => onChartDetailClick({kind: 'date', dateKey: item.dateKey})}
-                                                $active={isActive}
-                                            >
-                                                <StyledTrendColumnFill
-                                                    $heightRatio={item.total / chartMax}
-                                                    $active={isActive}
-                                                />
-                                            </StyledTrendColumn>
-                                        );
-                                    })}
+                                <StyledTrendChartStage>
+                                    <StyledTrendScrollContent>
+                                        <StyledTrendChartTrack $count={chartPoints.length}>
+                                            <StyledChartHorizontalGuide $topRatio={0} />
+                                            <StyledChartHorizontalGuide $topRatio={0.5} />
+                                            <StyledChartHorizontalGuide $topRatio={1} />
+                                            {chartPoints.map((item) => {
+                                                const isActive = tooltip?.dateKey === item.dateKey;
+                                                return (
+                                                    <StyledTrendColumn
+                                                        key={item.dateKey}
+                                                        type="button"
+                                                        aria-label={`${item.dateKey} ${formatPrice(item.total)}`}
+                                                        onMouseEnter={(e) => showTooltip(item, e.currentTarget)}
+                                                        onMouseLeave={() => hideTooltip(item.dateKey)}
+                                                        onFocus={(e) => showTooltip(item, e.currentTarget)}
+                                                        onBlur={() => hideTooltip(item.dateKey)}
+                                                        onClick={() => onChartDetailClick({kind: 'date', dateKey: item.dateKey})}
+                                                        $active={isActive}
+                                                    >
+                                                        <StyledTrendColumnFill
+                                                            $heightRatio={item.total / chartMax}
+                                                            $active={isActive}
+                                                        />
+                                                    </StyledTrendColumn>
+                                                );
+                                            })}
+                                        </StyledTrendChartTrack>
+                                        <StyledChartAxis>
+                                            <span>{fromDateKey.slice(5)}</span>
+                                            <span>{toDateKeyValue.slice(5)}</span>
+                                        </StyledChartAxis>
+                                    </StyledTrendScrollContent>
                                 </StyledTrendChartStage>
                             </StyledTrendChartFrame>
                         </StyledTrendChartBox>
-                        <StyledChartAxis>
-                            <span>{fromDateKey.slice(5)}</span>
-                            <span>{toDateKeyValue.slice(5)}</span>
-                        </StyledChartAxis>
                     </>
                 )}
             </StyledChartCard>

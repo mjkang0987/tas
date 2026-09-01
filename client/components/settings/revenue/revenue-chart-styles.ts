@@ -170,16 +170,35 @@ export const StyledYAxisLabel = styled.span`
     line-height: 1;
 `;
 
-export const StyledTrendChartStage = styled.div<{ $count: number }>`
+/* 막대가 최소 폭 아래로 눌리면 가로 스크롤로 넘어간다(기간이 길 때). 스크롤바가 그래프를
+   깎지 않도록 높이는 트랙이 갖고, 스테이지는 필요한 만큼만 늘어난다. */
+export const StyledTrendChartStage = styled.div`
+    position: relative;
+    border-radius: 10px;
+    overflow-x: auto;
+    overflow-y: hidden;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: thin;
+`;
+
+export const StyledTrendScrollContent = styled.div`
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    /* 좁으면 스테이지를 꽉 채우고, 넘치면 내용만큼 넓어져 스크롤된다. */
+    width: max-content;
+    min-width: 100%;
+`;
+
+export const StyledTrendChartTrack = styled.div<{ $count: number }>`
     position: relative;
     display: flex;
     align-items: flex-end;
-    /* 폭 상한이 걸린 구간에서도 막대 중심이 각 1/n 슬롯 가운데 — 툴팁 가로 위치(xRatio)와 맞는다. */
+    /* 막대 중심이 각 1/n 슬롯 가운데 — 폭 상한이 걸려도 툴팁·화살표와 어긋나지 않는다. */
     justify-content: space-around;
-    gap: ${(p) => p.$count > 120 ? '0' : p.$count > 45 ? '1px' : p.$count > 20 ? '2px' : '4px'};
+    /* 막대 최소 폭은 min-width 가 지킨다(넘치면 스크롤) — 간격은 밀도에 맞춰 좁히기만 한다. */
+    gap: ${(p) => p.$count > 45 ? '1px' : p.$count > 20 ? '2px' : '4px'};
     height: 190px;
-    border-radius: 10px;
-    overflow: hidden;
 `;
 
 export const StyledChartHorizontalGuide = styled.div<{ $topRatio: number }>`
@@ -197,7 +216,8 @@ export const StyledTrendColumn = styled.button<{ $active: boolean }>`
     display: flex;
     align-items: flex-end;
     flex: 1 1 0;
-    min-width: 0;
+    /* 이 아래로는 못 줄인다 — 대신 스테이지가 가로 스크롤된다(약 90일부터). */
+    min-width: 6px;
     /* 기간이 짧아도(오늘=1일) 막대가 차트 폭을 통째로 채우지 않게. */
     max-width: 48px;
     height: 100%;
@@ -218,13 +238,12 @@ export const StyledTrendColumnFill = styled.span<{ $heightRatio: number; $active
     background: ${(p) => p.$active ? TREND_BAR_HOVER : 'var(--brand-color)'};
 `;
 
+/* 스크롤 콘텐츠 안에 둔다 — 밖에 두면 90일 넘는 범위에서 보이는 막대와 라벨이 어긋난다. */
 export const StyledChartAxis = styled.div`
     display: flex;
     justify-content: space-between;
     font-size: var(--xsmall-font);
     color: var(--dark-gray-color2);
-    margin-top: -2px;
-    padding-left: 74px;
 `;
 
 /* ── Bar chart (assignee) ── */
