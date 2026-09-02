@@ -6,9 +6,11 @@ import styled from 'styled-components';
 import {useCalendarStore} from '../../store/calendarStore';
 import {formatTel} from '../../utils/customers';
 import {matchesChosung} from '../../features/customers/chosung';
+import {findMatchRange} from '../../features/customers/search-highlight';
 import {formControlStyle} from '../ui/FormControls';
 import {scrollHintStyle, scrollContentStyle} from '../calendar/overlays/ModalStyles';
 import {CloseIconButton} from '../ui/CloseIconButton';
+import {HighlightMatch} from '../ui/HighlightMatch';
 
 interface Props {
     onClose: () => void;
@@ -61,7 +63,7 @@ export const HeaderSearchLayer = ({onClose}: Props) => {
                         filtered.map((c) => (
                             <StyledResultItem key={c.id}
                                               onClick={() => handleSelect(c.id)}>
-                                <span>{c.name}</span>
+                                <span><HighlightMatch text={c.name} range={findMatchRange(c.name, trimmedQuery)} /></span>
                                 <StyledResultTel>{formatTel(c.tel)}</StyledResultTel>
                             </StyledResultItem>
                         ))
