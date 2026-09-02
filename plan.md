@@ -58,6 +58,51 @@ DB 스키마 변경 없음(순수 프론트 변경) — 마이그레이션 선�
 
 ---
 
+## 완료 — 검색 매치 하이라이트 + 메모 검색 시 메모 노출 (같은 브랜치, 대화 중 추가 요청)
+
+### 요구사항
+초성 검색 작업 도중 사용자가 이어서 요청: "하이라이트 추가해줘 검색에서 걸린부분" +
+"메모 검색도 가능한거면, 고객명 아래에 메모도 노출 할 수 있게 해줘."
+대상은 위와 같은 두 화면(고객명단·고객레이어).
+
+### 구현
+- `client/features/customers/search-highlight.ts` **(신규 순수 모듈)** — `findMatchRange(text, query,
+  {caseInsensitive})`. 일반 부분일치를 먼저 보고, 없으면 초성 부분일치(`chosung.ts`)를 본다 — 두 화면의
+  매칭 규칙(이름 OR 초성)과 정확히 같은 순서라 실제 매칭과 하이라이트가 어긋나지 않는다.
+- `client/components/ui/HighlightMatch.tsx` **(신규 컴포넌트)** — 매치 구간을 `<mark>`로 감싼다.
+  **신규 사유(Front-End Standards)**: 기존에 검색 결과 하이라이트를 표시하는 컴포넌트가 없었고,
+  사용처가 고객명단·고객레이어 두 곳이라 인라인 반복 대신 공용 컴포넌트로 뺐다.
+- `pages/address.tsx` — `filteredCustomers`를 만들 때 메모 매치 태그도 **한 번에** 산출해
+  `matchedTagsByCustomer`로 함께 낸다(고객별 매치 근거를 행마다 다시 계산하지 않게).
+- `components/address/{AddressContent,AddressCustomerRow,AddressCustomerSummary}.tsx` — `searchTerm`·
+  `matchedTagsByCustomer`를 내려받아 이름에 하이라이트, 메모로 걸린 경우 접힌 요약 행에 그 메모 태그를
+  노출(기존 `ColorTag` 재사용). 색 배지 자체가 매치 근거라 태그 글자 안에는 다시 마킹을 얹지 않는다.
+- `components/layout/HeaderSearchLayer.tsx` — 결과 행 이름에 하이라이트만 추가(이 레이어는 원래
+  메모를 검색 대상으로 하지 않아 메모 노출은 대상 아님).
+
+### 코드리뷰에서 고친 것
+- **필터와 별개로 행이 메모 매치 predicate를 다시 구현하고 있었다.** 처음엔 `AddressCustomerRow`가
+  `useMemo`로 자체적으로 매치 태그를 계산했는데, `address.tsx`의 필터가 이미 같은 판정을 한다.
+  같은 규칙을 두 곳에 심으면 나중에 한쪽만 고쳐 어긋나는 사고가 난다 → 필터 계산 지점 한 곳
+  (`matchedTagsByCustomer`)에서 산출해 행은 조회만 하도록 옮겼다.
+- 정확성 리뷰에서 지적된 것: `caseInsensitive` 옵션에서 `toLowerCase()`가 일부 로케일 문자(터키어 İ 등)
+  에서 글자 수를 바꿔 인덱스가 밀릴 수 있는 이론적 결함 — 한글/영문 고객명 위주인 이 앱에서 실사용
+  영향이 없어 **스킵**(근거를 남김).
+
+### 범위 밖
+`Footer.tsx` 죽은 코드는 위 초성 검색 작업에서 이미 발견·제안했고 그대로 유지.
+
+### 검증
+- `pnpm test` — 172건 통과(신규 7건, `search-highlight.test.ts`). 소스를 일부러 깨뜨려(첫 매치를 항상
+  -1로 고정) 3건이 실제로 실패하는 것을 확인한 뒤 원복.
+- `pnpm build`·`pnpm lint`(80건, 베이스라인과 동일, 신규 0) 통과.
+- **실제 구동**(헤드리스 Chromium, 리팩토링 전후 두 번): `/address`에서 "민수" → `<mark>민수</mark>`,
+  "ㄱㅁㅅ" → 이름 전체 하이라이트, "VIP"(메모) 검색 → 행에 `VIP` 태그 노출(1건), "김민수"(이름 매치)
+  검색 시엔 메모 배지 미노출(정상 — 매치 근거가 이름이라 메모 조건 불충족), 검색어 비우면 `<mark>` 0개.
+  헤더 검색 레이어도 "ㅇㅈㅇ" → 이지은 이름 전체 하이라이트 확인.
+
+---
+
 ## 검증 완료(머지 대기) — 삭제된 온라인 예약도 고객 링크에서는 조회되게 (`claude/deleted-reservation-visibility-ec70wk`)
 
 > ⚠️ **머지 전에 마이그레이션 `0022_deleted_booking` 을 Supabase(direct 5432)에 먼저 적용할 것.**
