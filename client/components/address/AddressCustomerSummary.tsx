@@ -66,10 +66,12 @@ export function AddressCustomerSummary({customer, stats, serviceColorMap, checke
             </StyledInlineRow>
             {matchedTags && matchedTags.length > 0 && (
                 <StyledMatchedMemoRow>
-                    {matchedTags.map((tag) => (
+                    {matchedTags.map((tag, index) => (
                         // 색 배지 자체가 "이 메모 때문에 걸렸다"는 근거라 글자 안에 다시
                         // 마킹을 얹지 않는다(배지 배경 위 노란 마킹은 대비가 나빠진다).
-                        <StyledMatchedMemoTag key={tag.text} $color={tag.color} $shape="soft">
+                        // key에 index를 섞는 이유: addTag는 중복 텍스트를 막지만 병합·서버 데이터는
+                        // 그 보장이 없어 tag.text만으로는 중복 key가 날 수 있다.
+                        <StyledMatchedMemoTag key={`${tag.text}-${index}`} $color={tag.color} $shape="soft">
                             {tag.text}
                         </StyledMatchedMemoTag>
                     ))}

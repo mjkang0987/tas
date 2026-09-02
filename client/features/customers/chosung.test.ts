@@ -18,6 +18,14 @@ describe('getChosung', () => {
     it('한글과 비한글이 섞이면 한글만 초성으로 바뀐다', () => {
         expect(getChosung('김민수2호점')).toBe('ㄱㅁㅅ2ㅎㅈ');
     });
+
+    it('빈 문자열은 빈 문자열', () => {
+        expect(getChosung('')).toBe('');
+    });
+
+    it('서러게이트 페어(이모지)는 한 글자로 그대로 통과한다', () => {
+        expect(getChosung('🙂김민수')).toBe('🙂ㄱㅁㅅ');
+    });
 });
 
 describe('isChosungQuery', () => {

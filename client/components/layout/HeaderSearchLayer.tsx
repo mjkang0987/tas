@@ -25,9 +25,12 @@ export const HeaderSearchLayer = ({onClose}: Props) => {
     const modalRoot = document.getElementById('modal-root');
 
     const customers = Object.values(customerMap).sort((a, b) => a.name.localeCompare(b.name, 'ko'));
+    // 게이트(trim 여부)와 실제 일치 판정이 다른 문자열을 보면 트림만으로 갈리는 결과가 생긴다
+    // (예: 끝에 공백이 남은 모바일 IME 입력 — 게이트는 통과하는데 `.includes(query)`는 전멸).
+    // 세 조건 모두 trimmedQuery 하나로 통일한다.
     const trimmedQuery = query.trim();
     const filtered = trimmedQuery
-        ? customers.filter((c) => c.name.includes(query) || matchesChosung(c.name, trimmedQuery) || c.tel.includes(query))
+        ? customers.filter((c) => c.name.includes(trimmedQuery) || matchesChosung(c.name, trimmedQuery) || c.tel.includes(trimmedQuery))
         : customers;
 
     useEffect(() => {
