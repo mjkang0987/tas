@@ -5,6 +5,7 @@ import styled from 'styled-components';
 
 import {useCalendarStore} from '../../store/calendarStore';
 import {formatTel} from '../../utils/customers';
+import {matchesChosung} from '../../features/customers/chosung';
 import {formControlStyle} from '../ui/FormControls';
 import {scrollHintStyle, scrollContentStyle} from '../calendar/overlays/ModalStyles';
 import {CloseIconButton} from '../ui/CloseIconButton';
@@ -22,8 +23,9 @@ export const HeaderSearchLayer = ({onClose}: Props) => {
     const modalRoot = document.getElementById('modal-root');
 
     const customers = Object.values(customerMap).sort((a, b) => a.name.localeCompare(b.name, 'ko'));
-    const filtered = query.trim()
-        ? customers.filter((c) => c.name.includes(query) || c.tel.includes(query))
+    const trimmedQuery = query.trim();
+    const filtered = trimmedQuery
+        ? customers.filter((c) => c.name.includes(query) || matchesChosung(c.name, trimmedQuery) || c.tel.includes(query))
         : customers;
 
     useEffect(() => {
