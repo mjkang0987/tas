@@ -5,6 +5,35 @@
 
 ---
 
+## 진행 중 — 고객 검색에 초성 검색 추가 (`claude/customer-search-initial-consonant-lli2i9`)
+
+### 요구사항
+사용자 요청: "고객검색 초성검색 추가해줘. 고객명단 + 고객레이어 둘 다." 대상은 둘.
+- **고객명단** (`/address`, `pages/address.tsx`의 `filteredCustomers`)
+- **고객레이어** (헤더 돋보기로 여는 검색 모달, `components/layout/HeaderSearchLayer.tsx`)
+
+둘 다 지금은 이름 완전/부분 문자열 일치만 지원한다 — "김민수"는 걸리지만 초성 "ㄱㅁㅅ"로는 못 찾는다.
+
+### 구현 방침
+- `client/features/customers/chosung.ts` **(신규 순수 모듈)** — `getChosung`(한글 음절 → 초성 변환,
+  비한글 문자는 그대로 통과) · `isChosungQuery`(입력이 초성 자모로만 구성됐는지) ·
+  `matchesChosung`(초성 질의를 이름의 초성열에 부분일치). 순수 함수라 단위 테스트 필수(`chosung.test.ts`).
+- `pages/address.tsx` `filteredCustomers` — 기존 `c.name.toLowerCase().includes(term)` 뒤에
+  `matchesChosung(c.name, term)` OR로 추가. 연락처·메모태그 매칭은 그대로(초성 대상 아님).
+- `components/layout/HeaderSearchLayer.tsx` — 기존 `c.name.includes(query)` 뒤에
+  `matchesChosung(c.name, query.trim())` OR로 추가.
+- **두 파일의 기존 대소문자·트림 규칙은 그대로 둔다** — 이미 서로 다르다(주소록은 소문자화 비교,
+  레이어는 원문 그대로). 이번 변경은 초성 매칭 능력만 얹고 그 차이를 통일하지 않는다.
+
+### 범위 밖
+`components/customers/CustomerAutocomplete.tsx`(예약 생성·회원권 발급 자동완성)는 요청 범위에 없어 손대지 않는다.
+
+### 영향 파일
+`client/features/customers/chosung.ts`(신규), `client/features/customers/chosung.test.ts`(신규),
+`client/pages/address.tsx`, `client/components/layout/HeaderSearchLayer.tsx`.
+
+---
+
 ## 검증 완료(머지 대기) — 삭제된 온라인 예약도 고객 링크에서는 조회되게 (`claude/deleted-reservation-visibility-ec70wk`)
 
 > ⚠️ **머지 전에 마이그레이션 `0022_deleted_booking` 을 Supabase(direct 5432)에 먼저 적용할 것.**
