@@ -22,6 +22,10 @@ type AddressCustomerRowProps = {
     customer: Customer;
     customerReservations: Reservation[];
     customerTags: CustomerMemoTag[];
+    /** 트림된 실제 필터 검색어 — 요약 행의 이름 하이라이트에 쓴다 */
+    searchTerm: string;
+    /** 검색어로 매치된 메모 태그(호출부가 필터 계산 시 함께 산출) — 매치 근거 노출용 */
+    matchedTags: CustomerMemoTag[];
     isEditing: boolean;
     stats?: CustomerStats;
     tagColors: string[];
@@ -47,6 +51,8 @@ export function AddressCustomerRow({
     customer,
     customerReservations,
     customerTags,
+    searchTerm,
+    matchedTags,
     isEditing,
     stats,
     tagColors,
@@ -80,6 +86,8 @@ export function AddressCustomerRow({
                 onCustomerClick={onCustomerClick}
                 onToggle={() => setOpen((prev) => !prev)}
                 open={open}
+                searchTerm={searchTerm}
+                matchedTags={matchedTags}
             />
             {open && (
                 <StyledExpandedContent>
