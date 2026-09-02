@@ -5,32 +5,56 @@
 
 ---
 
-## 진행 중 — 고객 검색에 초성 검색 추가 (`claude/customer-search-initial-consonant-lli2i9`)
+## 완료 — 고객 검색에 초성 검색 추가 (`claude/customer-search-initial-consonant-lli2i9`)
 
 ### 요구사항
 사용자 요청: "고객검색 초성검색 추가해줘. 고객명단 + 고객레이어 둘 다." 대상은 둘.
 - **고객명단** (`/address`, `pages/address.tsx`의 `filteredCustomers`)
 - **고객레이어** (헤더 돋보기로 여는 검색 모달, `components/layout/HeaderSearchLayer.tsx`)
 
-둘 다 지금은 이름 완전/부분 문자열 일치만 지원한다 — "김민수"는 걸리지만 초성 "ㄱㅁㅅ"로는 못 찾는다.
+둘 다 이름 완전/부분 문자열 일치만 지원했다 — "김민수"는 걸리지만 초성 "ㄱㅁㅅ"로는 못 찾았다.
 
-### 구현 방침
+### 구현
 - `client/features/customers/chosung.ts` **(신규 순수 모듈)** — `getChosung`(한글 음절 → 초성 변환,
   비한글 문자는 그대로 통과) · `isChosungQuery`(입력이 초성 자모로만 구성됐는지) ·
-  `matchesChosung`(초성 질의를 이름의 초성열에 부분일치). 순수 함수라 단위 테스트 필수(`chosung.test.ts`).
+  `matchesChosung`(초성 질의를 이름의 초성열에 부분일치, 초성 질의가 아니면 항상 false).
 - `pages/address.tsx` `filteredCustomers` — 기존 `c.name.toLowerCase().includes(term)` 뒤에
   `matchesChosung(c.name, term)` OR로 추가. 연락처·메모태그 매칭은 그대로(초성 대상 아님).
 - `components/layout/HeaderSearchLayer.tsx` — 기존 `c.name.includes(query)` 뒤에
   `matchesChosung(c.name, query.trim())` OR로 추가.
-- **두 파일의 기존 대소문자·트림 규칙은 그대로 둔다** — 이미 서로 다르다(주소록은 소문자화 비교,
-  레이어는 원문 그대로). 이번 변경은 초성 매칭 능력만 얹고 그 차이를 통일하지 않는다.
+- **두 파일의 기존 대소문자·트림 규칙은 그대로 뒀다** — 이미 서로 달랐다(주소록은 소문자화 비교,
+  레이어는 원문 그대로). 초성 매칭 능력만 얹고 그 차이는 통일하지 않았다.
+- 매칭 규칙은 **연속 부분일치**다 — "ㄱㅅ"는 "김민수"(초성열 `ㄱㅁㅅ`)에 안 걸린다(중간 `ㅁ`을 건너뛰지 않음).
+  카카오톡 등 널리 쓰는 초성검색과 같은 규칙이라 그대로 채택.
 
 ### 범위 밖
-`components/customers/CustomerAutocomplete.tsx`(예약 생성·회원권 발급 자동완성)는 요청 범위에 없어 손대지 않는다.
+- `components/customers/CustomerAutocomplete.tsx`(예약 생성·회원권 발급 자동완성) 등 이름/전화
+  필터가 인라인으로 있는 곳이 이미 6곳 더 있다(`Footer.tsx`·`MembershipManageSection.tsx`·
+  `PointManageSection.tsx`·`useReservationCreateForm.ts` 등). 요청 범위(명단+레이어 둘)에 없어 손대지 않았다.
+- **`components/layout/Footer.tsx`의 `SearchLayer`는 `HeaderSearchLayer.tsx`와 거의 동일한
+  고객검색 모달을 갖고 있지만, `Footer` 컴포넌트 자체가 저장소 어디서도 import되지 않는 죽은
+  코드다**(`pages/`·`components/layout/LayoutComponent.tsx` 전수 확인, 대체제는 `MobileTabBar.tsx`로 보임).
+  도달 불가능해 이번 기능 대상이 아니라 손대지 않았다 — 별도 정리 과제로 제안.
 
-### 영향 파일
-`client/features/customers/chosung.ts`(신규), `client/features/customers/chosung.test.ts`(신규),
-`client/pages/address.tsx`, `client/components/layout/HeaderSearchLayer.tsx`.
+### 코드리뷰 · `/simplify`
+- 횡단 규칙 위반 없음(날짜 컬럼·`include`·`legacyId`·정책문서·`font-size` 전부 무관 변경).
+- **같은 패턴 전수 점검**에서 위 `Footer.tsx` 죽은 코드를 발견(범위 밖 절 참고).
+- `/simplify` 4관점(재사용·단순화·효율·깊이) 병렬 리뷰: 재사용·효율·깊이는 "없음". 단순화만
+  두 호출부의 매칭 predicate를 `matchesCustomerName` 류로 묶자고 제안했으나, **깊이 리뷰가 같은
+  자리를 보고 정반대 결론**(저장소 관행상 이런 인라인 predicate가 이미 6곳 더 있고 한 번도 공용화된
+  적이 없음)을 냈고, 두 호출부는 애초에 대소문자·트림 규칙이 다르다는 위 설계 판단과도 부딪혀 **스킵**했다.
+
+### 검증
+- `pnpm test` — 165건 통과(기존 152 + 신규 13). 신규 테스트는 소스를 일부러 깨뜨려(초성 인덱스를
+  0으로 고정) 4건이 실제로 실패하는 것을 확인한 뒤 원복 — 회귀를 잡는 테스트임을 확인.
+- `pnpm build`(prisma generate + next build) 통과. `pnpm lint` — 80건(26 errors·54 warnings)으로
+  `origin/main` 베이스라인과 **바이트 단위 동일**(신규 지적 0건).
+- **실제 구동**: `next dev` + 헤드리스 Chromium(게스트 로컬DB에 고객 4명 시드: 김민수·김진수·이지은·박서준).
+  - `/address` 검색창: "ㄱㅁㅅ" → 김민수만(김진수 제외, 정상) / "김민수" 완전검색 정상 / "ㄱㅅ" → 0건(정상, 연속 부분일치 규칙).
+  - 헤더 돋보기 → 고객 검색 레이어: "ㅇㅈㅇ" → 이지은만 / "ㅂㅅㅈ" → 박서준만.
+
+### 배포
+DB 스키마 변경 없음(순수 프론트 변경) — 마이그레이션 선적용 불필요, 코드 배포만으로 반영된다.
 
 ---
 
