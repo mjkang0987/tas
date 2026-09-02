@@ -6,6 +6,7 @@ import styled from 'styled-components';
 
 import type {Customer} from '../utils/customers';
 import {toCustomerMap} from '../utils/customers';
+import {matchesChosung} from '../features/customers/chosung';
 import type {Reservation, ReservationHistoryEntry} from '../utils/reservations';
 import {groupByDate} from '../utils/reservations';
 import {buildAssigneeColorMap, buildAssigneeNameMap} from '../utils/assignees';
@@ -204,6 +205,7 @@ const Address: NextPage<AddressProps> = ({customers, reservations, history, stor
 
         return sortedCustomerList.filter((c) =>
             c.name.toLowerCase().includes(term) ||
+            matchesChosung(c.name, term) ||
             c.tel.includes(telTerm) ||
             (c.memoTags ?? []).some((t) => t.text.toLowerCase().includes(term))
         );
