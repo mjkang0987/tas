@@ -4,9 +4,12 @@ import styled from 'styled-components';
 
 import {ServiceChipList, StyledServiceText} from '../ui/ServiceChip';
 import {ReservationStatusBadge} from '../ui/ReservationStatusBadge';
-import type {Customer} from '../../utils/customers';
+import {ColorTag} from '../ui/ColorTag';
+import {HighlightMatch} from '../ui/HighlightMatch';
+import type {Customer, CustomerMemoTag} from '../../utils/customers';
 import {formatTel} from '../../utils/customers';
 import {formatPrice} from '../../utils/services';
+import {findMatchRange} from '../../features/customers/search-highlight';
 
 type CustomerStats = {
     recentService: string;
@@ -25,9 +28,15 @@ type AddressCustomerSummaryProps = {
     onCustomerClick?: (customerId: number) => void;
     onToggle?: () => void;
     open?: boolean;
+    /** 트림된 실제 필터 검색어(없으면 하이라이트 없음) */
+    searchTerm?: string;
+    /** 이 검색어로 매치된 메모 태그 — 접힌 행에서 매치 근거로 노출한다 */
+    matchedTags?: CustomerMemoTag[];
 };
 
-export function AddressCustomerSummary({customer, stats, serviceColorMap, checked, onCheck, onCustomerClick, onToggle, open}: AddressCustomerSummaryProps) {
+export function AddressCustomerSummary({customer, stats, serviceColorMap, checked, onCheck, onCustomerClick, onToggle, open, searchTerm, matchedTags}: AddressCustomerSummaryProps) {
+    const nameMatchRange = searchTerm ? findMatchRange(customer.name, searchTerm, {caseInsensitive: true}) : null;
+
     return (
         <StyledSummaryRow
             onClick={onToggle}
@@ -47,14 +56,27 @@ export function AddressCustomerSummary({customer, stats, serviceColorMap, checke
                 )}
                 {onCustomerClick ? (
                     <StyledNameButton type="button" onClick={(e) => { e.stopPropagation(); onCustomerClick(customer.id); }}>
-                        {customer.name}
+                        <HighlightMatch text={customer.name} range={nameMatchRange} />
                     </StyledNameButton>
                 ) : (
-                    <StyledName>{customer.name}</StyledName>
+                    <StyledName><HighlightMatch text={customer.name} range={nameMatchRange} /></StyledName>
                 )}
                 <StyledTel><StyledTelLink href={`tel:${customer.tel}`} onClick={(e) => e.stopPropagation()}>{formatTel(customer.tel)}</StyledTelLink></StyledTel>
                 <StyledArrow $open={open} />
             </StyledInlineRow>
+            {matchedTags && matchedTags.length > 0 && (
+                <StyledMatchedMemoRow>
+                    {matchedTags.map((tag, index) => (
+                        // 색 배지 자체가 "이 메모 때문에 걸렸다"는 근거라 글자 안에 다시
+                        // 마킹을 얹지 않는다(배지 배경 위 노란 마킹은 대비가 나빠진다).
+                        // key에 index를 섞는 이유: addTag는 중복 텍스트를 막지만 병합·서버 데이터는
+                        // 그 보장이 없어 tag.text만으로는 중복 key가 날 수 있다.
+                        <StyledMatchedMemoTag key={`${tag.text}-${index}`} $color={tag.color} $shape="soft">
+                            {tag.text}
+                        </StyledMatchedMemoTag>
+                    ))}
+                </StyledMatchedMemoRow>
+            )}
             <StyledRecentService>
                 <StyledRecentServiceLabel>최근 서비스</StyledRecentServiceLabel>
                 {stats?.recentService && stats.recentService !== '-'
@@ -122,6 +144,19 @@ const StyledArrow = styled.span<{ $open?: boolean }>`
     border-left: 5px solid var(--dark-gray-color);
     transform: translateY(-50%) ${(p) => p.$open ? 'rotate(90deg)' : 'rotate(0deg)'};
     transition: transform 0.15s ease;
+`;
+
+const StyledMatchedMemoRow = styled.div`
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    width: 100%;
+    margin-top: -2px;
+`;
+
+const StyledMatchedMemoTag = styled(ColorTag)`
+    font-size: var(--tiny-font);
+    padding: 1px 6px;
 `;
 
 const StyledSummaryRow = styled.div`

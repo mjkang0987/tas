@@ -6,6 +6,7 @@ import styled from 'styled-components';
 
 import type {Customer} from '../utils/customers';
 import {toCustomerMap} from '../utils/customers';
+import {matchesChosung} from '../features/customers/chosung';
 import type {Reservation, ReservationHistoryEntry} from '../utils/reservations';
 import {groupByDate} from '../utils/reservations';
 import {buildAssigneeColorMap, buildAssigneeNameMap} from '../utils/assignees';
@@ -196,17 +197,28 @@ const Address: NextPage<AddressProps> = ({customers, reservations, history, stor
         });
     }, [customerList]);
 
-    const filteredCustomers = useMemo(() => {
-        if (!searchTerm.trim()) return sortedCustomerList;
+    // 검색어로 걸린 메모 태그도 함께 낸다 — 필터 판정과 같은 자리에서 한 번만 계산해,
+    // 행(AddressCustomerRow)이 같은 매칭 규칙을 다시 구현하지 않게 한다.
+    const {filteredCustomers, matchedTagsByCustomer} = useMemo(() => {
+        if (!searchTerm.trim()) {
+            return {filteredCustomers: sortedCustomerList, matchedTagsByCustomer: {} as Record<number, NonNullable<Customer['memoTags']>>};
+        }
 
         const term = searchTerm.trim().toLowerCase();
         const telTerm = term.replace(/-/g, '');
+        const tagsByCustomer: Record<number, NonNullable<Customer['memoTags']>> = {};
 
-        return sortedCustomerList.filter((c) =>
-            c.name.toLowerCase().includes(term) ||
-            c.tel.includes(telTerm) ||
-            (c.memoTags ?? []).some((t) => t.text.toLowerCase().includes(term))
-        );
+        const filtered = sortedCustomerList.filter((c) => {
+            const matchedTags = (c.memoTags ?? []).filter((t) => t.text.toLowerCase().includes(term));
+            if (matchedTags.length > 0) tagsByCustomer[c.id] = matchedTags;
+
+            return c.name.toLowerCase().includes(term) ||
+                matchesChosung(c.name, term) ||
+                c.tel.includes(telTerm) ||
+                matchedTags.length > 0;
+        });
+
+        return {filteredCustomers: filtered, matchedTagsByCustomer: tagsByCustomer};
     }, [sortedCustomerList, searchTerm]);
 
     useEffect(() => {
@@ -313,6 +325,8 @@ const Address: NextPage<AddressProps> = ({customers, reservations, history, stor
                 today={today}
                 customerStats={customerStats}
                 searchInput={searchInput}
+                searchTerm={searchTerm.trim()}
+                matchedTagsByCustomer={matchedTagsByCustomer}
                 onSearchChange={handleSearchChange}
                 onTagInputChange={setTagInput}
                 onSelectColor={setSelectedColor}

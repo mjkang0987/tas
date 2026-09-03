@@ -5,9 +5,12 @@ import styled from 'styled-components';
 
 import {useCalendarStore} from '../../store/calendarStore';
 import {formatTel} from '../../utils/customers';
+import {matchesChosung} from '../../features/customers/chosung';
+import {findMatchRange} from '../../features/customers/search-highlight';
 import {formControlStyle} from '../ui/FormControls';
 import {scrollHintStyle, scrollContentStyle} from '../calendar/overlays/ModalStyles';
 import {CloseIconButton} from '../ui/CloseIconButton';
+import {HighlightMatch} from '../ui/HighlightMatch';
 
 interface Props {
     onClose: () => void;
@@ -22,8 +25,12 @@ export const HeaderSearchLayer = ({onClose}: Props) => {
     const modalRoot = document.getElementById('modal-root');
 
     const customers = Object.values(customerMap).sort((a, b) => a.name.localeCompare(b.name, 'ko'));
-    const filtered = query.trim()
-        ? customers.filter((c) => c.name.includes(query) || c.tel.includes(query))
+    // 게이트(trim 여부)와 실제 일치 판정이 다른 문자열을 보면 트림만으로 갈리는 결과가 생긴다
+    // (예: 끝에 공백이 남은 모바일 IME 입력 — 게이트는 통과하는데 `.includes(query)`는 전멸).
+    // 세 조건 모두 trimmedQuery 하나로 통일한다.
+    const trimmedQuery = query.trim();
+    const filtered = trimmedQuery
+        ? customers.filter((c) => c.name.includes(trimmedQuery) || matchesChosung(c.name, trimmedQuery) || c.tel.includes(trimmedQuery))
         : customers;
 
     useEffect(() => {
@@ -59,7 +66,7 @@ export const HeaderSearchLayer = ({onClose}: Props) => {
                         filtered.map((c) => (
                             <StyledResultItem key={c.id}
                                               onClick={() => handleSelect(c.id)}>
-                                <span>{c.name}</span>
+                                <span><HighlightMatch text={c.name} range={findMatchRange(c.name, trimmedQuery)} /></span>
                                 <StyledResultTel>{formatTel(c.tel)}</StyledResultTel>
                             </StyledResultItem>
                         ))
