@@ -2,7 +2,7 @@ import React, {useCallback, useState} from 'react';
 
 import styled from 'styled-components';
 
-import type {Customer} from '../../utils/customers';
+import type {Customer, CustomerMemoTag} from '../../utils/customers';
 import type {Reservation} from '../../utils/reservations';
 import {
     selectManualMergeTarget,
@@ -37,6 +37,10 @@ type AddressContentProps = {
     today: string;
     customerStats: Record<number, CustomerStats>;
     searchInput: string;
+    /** 트림된 실제 필터 검색어(디바운스 반영) — 결과 행 이름 하이라이트에 쓴다 */
+    searchTerm: string;
+    /** 검색어로 매치된 고객별 메모 태그(필터 계산 시 함께 산출) — 매치 근거 노출용 */
+    matchedTagsByCustomer: Record<number, CustomerMemoTag[]>;
     onSearchChange: (value: string) => void;
     onTagInputChange: (value: string) => void;
     onSelectColor: (color: string) => void;
@@ -63,6 +67,8 @@ export function AddressContent({
     today,
     customerStats,
     searchInput,
+    searchTerm,
+    matchedTagsByCustomer,
     onSearchChange,
     onTagInputChange,
     onSelectColor,
@@ -172,6 +178,8 @@ export function AddressContent({
                                 customer={customer}
                                 customerReservations={customerReservations}
                                 customerTags={customerTags}
+                                searchTerm={searchTerm}
+                                matchedTags={matchedTagsByCustomer[customer.id] ?? []}
                                 isEditing={isEditing}
                                 stats={stats}
                                 tagColors={tagColors}
