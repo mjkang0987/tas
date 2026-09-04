@@ -8,3 +8,4 @@ allowBuilds:
 # 보안 패치용 override — 88eaaf9(의존성 취약점 정리)에서 이전.
 overrides:
   '@hono/node-server': '>=1.19.13' # prisma dev 도구 경유
+  fast-uri: 3.1.7 # ajv 경유. SSRF/host confusion 다건(GHSA-f65p-4m7j-42xc 등) 패치
