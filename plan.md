@@ -5,6 +5,32 @@
 
 ---
 
+## 완료 — fast-uri SSRF/host-confusion 취약점 패치 (#223, PR #224)
+
+### 배경
+Dependabot이 `fast-uri` 관련 high 등급 SSRF/host-confusion 알림을 6건 열었다(8월 host-confusion 건 +
+어제 SSRF 건 포함). 두 lockfile(`pnpm-lock.yaml`, `client/pnpm-lock.yaml`) 모두 `ajv@8.20.0` 경유
+transitive dependency로 `fast-uri@3.1.2`를 물고 있었고, 이 버전대가 GHSA-f65p-4m7j-42xc·
+GHSA-jqff-g426-hqxp·GHSA-fph4-wmhf-6fwf·GHSA-7p8r-x3mc-p8w7·GHSA-v2hh-gcrm-f6hx·GHSA-4c8g-83qw-93j6
+전부에 해당했다.
+
+### 구현
+- 루트/`client` 양쪽 `pnpm-workspace.yaml` `overrides`에 `fast-uri: 3.1.7` 추가(기존
+  `@hono/node-server` 보안 override와 동일 패턴).
+- `pnpm install --lockfile-only`로 양쪽 lockfile 갱신. diff는 `fast-uri` 버전·integrity 두 줄뿐,
+  다른 패키지 변동 없음(확인 완료).
+- `client/package.json` 버전 0.56.1 → 0.56.2(patch).
+
+### 검증
+- 양쪽 `pnpm install` 정상 완료, supply-chain 정책(`minimumReleaseAge`) 통과.
+- `client`: `npm run build` 성공(Next.js 전체 라우트). 루트는 별도 build 스크립트 없음.
+- PR #224 CI(`static-analysis`) 통과 확인 후 지시자 승인받아 `main` 머지.
+
+### 배포
+DB 스키마 변경 없음, lockfile/의존성 버전만 — 코드 배포(Cloud Build)만으로 반영된다.
+
+---
+
 ## 완료 — 고객 검색에 초성 검색 추가 (`claude/customer-search-initial-consonant-lli2i9`)
 
 ### 요구사항
