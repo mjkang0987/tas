@@ -17,6 +17,7 @@ overrides:
   react: 19.2.7
   react-dom: 19.2.7
   '@hono/node-server': '>=1.19.13' # prisma dev 도구 경유
+  fast-uri: 3.1.7 # ajv 경유. SSRF/host confusion 다건(GHSA-f65p-4m7j-42xc 등) 패치
   # eslint 도구 경유 sourceMappingURL 파일읽기 패치. 상한 <8로 막아
   # 갓 배포된 babel 8 메이저(minimumReleaseAge 위반)로 점프하지 않게 함.
   '@babel/core': '>=7.29.6 <8'
