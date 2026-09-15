@@ -207,9 +207,14 @@ export default function LayoutComponent({children, isLanding = false}: NodeType 
                 {currValue.full === null && <Icon iconType="loading"/>}
                 <Header/>
                 {currValue.full !== null && <>
-                    <StyledMain>
-                        {children}
-                    </StyledMain>
+                    {/* 탭바는 Main 영역 안에 떠 있는다 — 반투명 뒤로 콘텐츠가 비치고,
+                        아래 광고 배너는 흐름에 남아 가려지지 않는다. */}
+                    <StyledMainArea>
+                        <StyledMain>
+                            {children}
+                        </StyledMain>
+                        <MobileTabBar/>
+                    </StyledMainArea>
                     <StyledFooterAd>
                         <AdBanner adSlot={process.env.NEXT_PUBLIC_ADSENSE_FOOTER_SLOT ?? ''} adFormat="horizontal" />
                     </StyledFooterAd>
@@ -220,7 +225,6 @@ export default function LayoutComponent({children, isLanding = false}: NodeType 
                                            onSave={addReservation}/>
                     )}
                 </>}
-                <MobileTabBar/>
             </StyledContent>
         </StyledWrapper>
     );
@@ -256,6 +260,16 @@ const StyledContent = styled.div<{ $asideOpen: boolean }>`
     }
 `;
 
+// MobileTabBar의 포지셔닝 기준. 이 영역이 광고 배너 위에서 끝나므로
+// 탭바가 콘텐츠 위에만 뜨고 광고는 가리지 않는다.
+// min-height: 0 — flex 자식의 기본 min-height:auto가 내부 스크롤을 막는다.
+const StyledMainArea = styled.div`
+    position: relative;
+    flex: 1;
+    min-height: 0;
+    display: flex;
+`;
+
 const StyledMain = styled.main`
     flex: 1;
     overflow: auto;
@@ -265,11 +279,18 @@ const StyledMain = styled.main`
     background:
         radial-gradient(circle at top left, rgba(45, 127, 249, 0.12), transparent 32%),
         linear-gradient(180deg, #f8fbff 0%, #ffffff 52%);
+
+    /* 떠 있는 탭바에 마지막 항목이 영구히 가리지 않도록 스크롤 끝에 자리를 만든다. */
+    @media (max-width: 640px) {
+        padding-bottom: var(--mobile-tabbar-space);
+    }
 `;
 
 const StyledFooterAd = styled.div`
     flex-shrink: 0;
     padding: 6px 12px;
+    /* 탭바가 위로 올라가면서 이제 이 배너가 화면 맨 아래다 — safe-area를 여기서 받는다. */
+    padding-bottom: max(env(safe-area-inset-bottom, 0px), 6px);
     border-top: 1px solid var(--light-gray-color);
     background-color: var(--white-color);
 `;
