@@ -61,18 +61,36 @@ export const MobileTabBar = () => {
     );
 };
 
-// 데스크톱에선 숨기고 모바일(≤640px)에서만 하단 고정 탭바로 노출.
-// LayoutComponent의 StyledContent 플렉스 자식이라 Main(내부 스크롤) 아래에 자연히 붙는다.
+// 데스크톱에선 숨기고 모바일(≤640px)에서만 노출.
+// LayoutComponent의 StyledMainArea(포지셔닝 기준) 안에서 콘텐츠 위에 떠 있는다.
+// 그 영역이 광고 배너 위에서 끝나므로, 아래 bottom 값은 광고 높이를 알 필요가 없다.
+// 광고보다 위에 두는 이유 — 반투명 뒤로 예약 카드가 비쳐야 유리 느낌이 산다.
+// 광고 위에 띄우면 흰 배경만 비치고, 광고를 가려 조회가능성 문제도 생긴다.
 const StyledTabBar = styled.nav`
     display: none;
 
     @media (max-width: 640px) {
-        flex-shrink: 0;
+        position: absolute;
+        bottom: 10px;
+        left: 12px;
+        right: 12px;
         display: flex;
         align-items: stretch;
-        background-color: var(--white-color);
-        border-top: 1px solid var(--light-gray-color);
+        /* 선택 알약이 탭바 테두리에 닿지 않게 하는 안쪽 여백. */
+        padding: 4px;
+        border-radius: var(--radius-pill);
+        /* 지원 여부와 무관하게 글자가 읽히도록 불투명에 가까운 값에서 시작한다. */
+        background-color: var(--glass-bg-opaque);
+        border: 1px solid var(--glass-border);
+        box-shadow: var(--shadow-md);
+        overflow: hidden;
         z-index: 40;
+
+        @supports (backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px)) {
+            background-color: var(--glass-bg);
+            -webkit-backdrop-filter: var(--glass-backdrop);
+            backdrop-filter: var(--glass-backdrop);
+        }
     }
 `;
 
@@ -83,10 +101,15 @@ const StyledTab = styled(Link)<{ $active: boolean }>`
     align-items: center;
     justify-content: center;
     gap: 3px;
-    /* 상하 여백을 탭바가 아니라 링크가 갖는다 — 여백까지 탭 영역. 상:하 = 2:3, 하단은 홈 인디케이터(safe-area)까지 */
-    padding-top: 10px;
-    padding-bottom: max(env(safe-area-inset-bottom, 0px), 15px);
+    /* 상하 여백을 탭바가 아니라 링크가 갖는다 — 여백까지 탭 영역.
+       탭바가 화면 가장자리에서 떨어져 떠 있으므로 safe-area는 여기서 받지 않는다
+       (이제 맨 아래에 놓이는 광고 배너가 받는다). */
+    padding-top: 8px;
+    padding-bottom: 8px;
     text-decoration: none;
+    /* 선택 알약이 탭바의 둥근 모서리를 넘지 않게 한다. */
+    border-radius: var(--radius-pill);
+    background-color: ${(props) => props.$active ? 'var(--brand-color-bg)' : 'transparent'};
     color: ${(props) => props.$active ? 'var(--brand-color)' : 'var(--dark-gray-color2)'};
 
     svg {
