@@ -97,6 +97,18 @@ export const GlobalStyle = createGlobalStyle`
 
         --sticky-backdrop: blur(.8px) saturate(180%);
 
+        /* 떠 있는 표면(모바일 하단 탭바) — 뒤 콘텐츠가 비치는 정도의 블러.
+           위 --sticky-backdrop(.8px)은 헤더가 살짝 흐려 보이는 용도라 여기엔 부족하다. */
+        --glass-backdrop: blur(20px) saturate(180%);
+        --glass-bg: rgba(255, 255, 255, .72);
+        /* backdrop-filter 미지원 브라우저 폴백 — 블러가 없으면 글자가 배경과 섞인다. */
+        --glass-bg-opaque: rgba(255, 255, 255, .96);
+        --glass-border: rgba(255, 255, 255, .6);
+        --radius-pill: 999px;
+        /* 떠 있는 탭바가 차지하는 시각 높이(아이콘+라벨+상하 여백+아래 띄운 거리).
+           스크롤 콘텐츠가 이만큼 아래 여백을 둬야 마지막 항목이 가리지 않는다. */
+        --mobile-tabbar-space: 72px;
+
         --bar-top: 56px;
 
         --aside-width: 200px;
