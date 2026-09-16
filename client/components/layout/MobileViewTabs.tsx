@@ -84,11 +84,10 @@ const StyledSegment = styled.div`
         padding: 3px;
         box-sizing: border-box;
         background-color: var(--gray-color2);
-        /* 앱의 세그먼트 컨트롤(SwiftUI .pickerStyle(.segmented))과 같은 캡슐.
-           같은 위치·같은 역할인데 한쪽만 각져 보이던 것을 맞춘다.
-           값은 저장소 관례대로 리터럴 — 같은 999px 가 이미 28곳에 있다.
-           (주석에 백틱을 쓰면 이 템플릿 리터럴이 거기서 끊긴다.) */
-        border-radius: 999px;
+        /* 앱의 세그먼트 컨트롤과 모서리를 맞춘다 — 같은 위치·역할인데 한쪽만 각져 보였다.
+           (앱은 .pickerStyle(.segmented) 단독이라 실제 모양은 실행 중인 OS 가 정한다.
+            2026-09 iOS 26 시뮬레이터 대조 기준.) */
+        border-radius: var(--chip-radius);
     }
 `;
 
@@ -99,7 +98,7 @@ const StyledSegmentTab = styled(Link)<{ $active: boolean }>`
     justify-content: center;
     padding: 7px 0;
     /* 트랙이 캡슐이므로 선택 표시도 캡슐이어야 안쪽 여백(3px)과 나란히 맞는다. */
-    border-radius: 999px;
+    border-radius: var(--chip-radius);
     font-size: var(--small-font);
     font-weight: 700;
     text-decoration: none;
