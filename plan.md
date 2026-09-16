@@ -5,6 +5,47 @@
 
 ---
 
+## 진행 중 — 모바일 주별 보기: 칼럼 폭 확보 + 가로 스크롤 (#234)
+
+### 배경
+모바일 주 뷰는 7칼럼을 화면 폭에 욱여넣어 하루가 약 47px 였다. 세 글자 이름부터 말줄임되고
+겹침 묶음의 `2건예약`이 두 줄로 접혔다. 칸을 화면에 맞추는 대신 **읽히는 폭을 먼저 주고
+가로로 스크롤**한다.
+
+### 구현
+- `globalStyle.ts` — 모바일 `:root` 에 `--week-col: 64px`. 카드가 쓰는 글자 폭은 이 값 − 17px
+  (좌우 여백 8 + 안쪽 패딩 4 + 테두리 5).
+- `Calendar.tsx` — 주 뷰 + 모바일 한정으로 `overflow-x: auto`,
+  `grid-template-columns: var(--timeline-col) max-content`(1fr 은 컨테이너를 넘지 못해
+  스크롤이 생기지 않는다), `> ul` 을 `repeat(7, var(--week-col))`.
+  시간축(`> div`)은 `position: sticky; left: 0` + `z-index: 14`(요일 헤더 13 위) + 흰 배경.
+- `pages/index.tsx` — `StyledSection` 에 `min-width: 0`.
+
+### 왜 min-width: 0 이 필요했나 (막혔던 지점)
+`overflow-x: auto` 만 줬을 때 grid 가 스크롤되지 않고 **자기 폭을 492px 로 늘렸다.**
+flex 아이템 기본값 `min-width: auto` 가 내용보다 작아지길 거부해, 캘린더 섹션이 같이 늘어나고
+스크롤은 상위 `main` 이 가져갔다. 그러면 sticky 시간축은 제 컨테이닝 블록(492px)이
+스크롤포트(375px)보다 넓어 **왼쪽 경계에 닿지 못하고 그대로 흘러갔다**(실측: `left: -117px`).
+`min-width: 0` 으로 섹션을 375px 에 묶으니 grid 가 제 안에서 스크롤하고 sticky 가 먹는다.
+
+### 검증 (실측)
+- grid 가 스크롤: 375px 창 / 492px 내용, `main` 은 넘치지 않음
+- **시간축 고정**: 117px 스크롤 후에도 `left: 0`
+- 요일 헤더는 칼럼과 함께 이동(44 → −73) — 정렬 유지
+- 일 뷰 무변경(`min-width:0` 전후 모두 섹션 375px, `main` 넘침 없음 — 회귀 아님)
+- 월 뷰 무변경, 데스크톱 주 뷰 무변경(`overflow-x: hidden`, 시간축 `static`, 칼럼 1fr)
+
+### 제스처
+모바일에서 예약 드래그는 이미 꺼져 있다(`Buttons.tsx` 의 `.drag-handle` 이
+`@media (max-width: 640px)` 에서 `display: none`, 배경 탭 생성은 `isTouchDevice` 로 차단).
+가로 스크롤과 충돌하지 않는다.
+
+### 알게 된 기존 문제(이번 범위 밖)
+일 뷰는 모바일에서 내용이 412px 인데 컨테이너가 375px 라 37px 이 잘린다. 이번 변경 전부터
+그랬다(`min-width` 를 되돌려도 동일).
+
+---
+
 ## 완료 — fast-uri SSRF/host-confusion 취약점 패치 (#223, PR #224)
 
 ### 배경
