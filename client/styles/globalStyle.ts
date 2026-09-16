@@ -163,6 +163,9 @@ export const GlobalStyle = createGlobalStyle`
     @media (max-width: 640px) {
         :root {
             --timeline-col: 44px;
+            /* 주 뷰 하루 칸 폭. 7등분(한 칸 47px)이면 세 글자 이름부터 말줄임돼,
+               읽히는 폭을 먼저 주고 가로로 스크롤한다. */
+            --week-col: 64px;
             --modal-button-height: 30px;
             --modal-button-padding-x: 10px;
             --modal-button-radius: 7px;

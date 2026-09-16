@@ -224,6 +224,9 @@ const StyledSection = styled.section <{ $isVisible: boolean }>`
   display: flex;
   flex-direction: column;
   height: 100%;
+  /* flex 기본값 min-width:auto 면 주 뷰가 넓어질 때 이 섹션이 끌려 늘어나고
+     스크롤을 main 이 가져가, 캘린더 안의 sticky 시간축이 흘러가 버린다. */
+  min-width: 0;
   border-left: solid var(--light-gray-color) ${props => props.$isVisible ? `1px` : 0};
 `;
 

@@ -5,6 +5,91 @@
 
 ---
 
+## 진행 중 — 모바일 주별 보기: 칼럼 폭 확보 + 가로 스크롤 (#234)
+
+### 배경
+모바일 주 뷰는 7칼럼을 화면 폭에 욱여넣어 하루가 약 47px 였다. 세 글자 이름부터 말줄임되고
+겹침 묶음의 `2건예약`이 두 줄로 접혔다. 칸을 화면에 맞추는 대신 **읽히는 폭을 먼저 주고
+가로로 스크롤**한다.
+
+### 구현
+- `globalStyle.ts` — 모바일 `:root` 에 `--week-col: 64px`.
+- `Calendar.tsx` — 주 뷰 + 모바일 한정으로 `overflow-x: auto`,
+  `grid-template-columns: var(--timeline-col) calc(var(--week-col) * 7)`
+  (1fr 은 컨테이너를 넘지 못해 스크롤이 안 생긴다. 폭이 확정돼 있으므로 `max-content` 로
+  브라우저에 재측정시키지 않고 계산식으로 못박는다), `> ul` 을 `repeat(7, var(--week-col))`.
+  시간축(`> div`)은 `position: sticky; left: 0` + `z-index: 14`(요일 헤더 13 위).
+- `pages/index.tsx` — `StyledSection` 에 `min-width: 0`.
+- `Week.tsx` — 열 때 오늘 칸을 가운데로: `scrollIntoView({block:'nearest', inline:'center'})`.
+
+### 왜 min-width: 0 이 필요했나 (막혔던 지점)
+`overflow-x: auto` 만 줬을 때 grid 가 스크롤되지 않고 **자기 폭을 492px 로 늘렸다.**
+flex 아이템 기본값 `min-width: auto` 가 내용보다 작아지길 거부해, 캘린더 섹션이 같이 늘어나고
+스크롤은 상위 `main` 이 가져갔다. 그러면 sticky 시간축은 제 컨테이닝 블록(492px)이
+스크롤포트(375px)보다 넓어 **왼쪽 경계에 닿지 못하고 그대로 흘러갔다**(실측: `left: -117px`).
+`min-width: 0` 으로 섹션을 375px 에 묶으니 grid 가 제 안에서 스크롤하고 sticky 가 먹는다.
+
+### 검증 (실측)
+- grid 가 스크롤: 375px 창 / 492px 내용, `main` 은 넘치지 않음
+- **시간축 고정**: 117px 스크롤 후에도 `left: 0`
+- 요일 헤더는 칼럼과 함께 이동(44 → −73) — 정렬 유지
+- 일 뷰 무변경(`min-width:0` 전후 모두 섹션 375px, `main` 넘침 없음 — 회귀 아님)
+- 월 뷰 무변경, 데스크톱 주 뷰 무변경(`overflow-x: hidden`, 시간축 `static`, 칼럼 1fr)
+
+### 제스처 (게이트가 둘이라 정확히 적어둔다)
+- **예약 이동 드래그** — `.drag-handle`(`TimelineReservationCard`, a11y "예약 이동",
+  `onTouchStart={onTouchDragStart}`)이 `Buttons.tsx` 의 `@media (max-width: 640px)` 에서
+  `display: none`. **폭 기준**이라 새 가로 스크롤(같은 640px 기준)과 정확히 같은 구간에서 꺼진다.
+- **배경 드래그·탭으로 예약 생성** — `Timeline.tsx` 의 `isTouchDevice`(`pointer: coarse`)로 차단.
+  **입력수단 기준**이라 폭 기준과 갈린다. 좁은 데스크톱 창(<640px, fine pointer)에서는
+  가로 스크롤이 켜진 채 드래그-생성도 살아 있다 — 다만 마우스 드래그는 스크롤 제스처가
+  아니라 충돌하지 않는다.
+
+### 리팩토링 (검증 > 리팩토링 > 검증 사이클)
+4각도 리뷰(재사용·단순화·효율·고도)에서 나온 지적 반영:
+- **오늘로 스크롤 18줄 → 1줄.** 조상을 훑으며 `getComputedStyle(el).overflowX === 'auto'` 로
+  스크롤 컨테이너를 찾던 루프를 `scrollIntoView({block:'nearest', inline:'center'})` 로 바꿨다.
+  그 루프는 데스크톱·3일 뷰에서 `StyledDaysWrap` 을 지나쳐 **앱 전역 `StyledMain` 을 잡고 있었고**,
+  `scrollWidth <= clientWidth` 가드 덕에 우연히 무해했을 뿐이다.
+  `block:'nearest'` 가 세로를 건드리지 않는 것은 실측으로 확인했다 — 현재시각 바가
+  자기 `scroll-margin-top` 과 같은 72px 에 그대로 있고 오늘 칸은 정중앙(offset 0).
+- **deps `[dates]` → `[]` (실제 버그 수정).** `setTargetFromDate` 가 매번 새 `target` 객체를
+  만들어 `WeekWrap` 의 `useMemo([target, type])` 가 같은 주에서도 새 배열을 냈다. 그래서
+  미니 달력으로 같은 주의 다른 날을 고르면 가로 스크롤이 오늘로 되돌아가 **방금 고른 날이
+  화면 밖으로 밀렸다.** 뷰를 열 때 한 번만 돌게 고쳤다.
+- `max-content` → `calc(var(--week-col) * 7)` — 폭이 확정돼 있는데 브라우저에 intrinsic
+  패스를 한 번 더 돌게 할 이유가 없다.
+- 주석 축약 — 신규 26줄 중 20줄이 주석이었다. 설계 근거는 여기(plan.md)에 두고 코드엔 한 줄씩만.
+
+### 넘긴 지적 (근거)
+- **`min-width: 0` 을 `StyledMain > *` 로 올리기** — `settings`·`address`·`inquiry`·`menu`
+  네 페이지의 같은 잠재 결함을 한 번에 닫는다는 지적은 맞다. 다만 검증하지 않은 4개 페이지의
+  레이아웃을 건드리게 되어 이 이슈 범위를 넘는다. 별도 건으로 남긴다.
+- **`ViewType.Week` 분기 대신 `minmax(--day-col-min, 1fr)`** — 뷰 이름이 아니라 치수로
+  조건을 쓰자는 지적은 타당하나, 3일·일 뷰 동작을 다시 구동 검증해야 한다. 지금 형태는 실측으로
+  확인된 상태라 유지한다.
+- **`backdrop-filter` 가 매 프레임 비싸다** — 맞지만 기존 sticky 날짜 헤더 7개가 이미 같은
+  처리를 쓰고 있어 이 변경이 새로 들인 부담이 아니다. 대안으로 제시된 `rgba(...,.85)` 는
+  "흰 배경 삭제" 요청과 정면으로 어긋난다.
+- **`.drag-handle` 이 리사이즈 핸들이라는 지적은 사실이 아니다** — a11y 텍스트가 "예약 이동"
+  이고 `onTouchStart={onTouchDragStart}` 가 붙은 **이동** 핸들이다. 다만 배경 드래그-생성의
+  게이트가 폭이 아니라 `pointer: coarse` 라는 구분은 맞아서 아래에 정확히 적었다.
+
+### 이어서 반영한 두 가지 (같은 브랜치)
+- **시간축 흰 배경 제거** — 불투명 흰색이 캘린더 바탕을 시간축에서만 끊어놨다.
+  완전 투명으로 두니 이번엔 스크롤돼 지나가는 날짜 숫자가 시각 뒤로 비쳐 겹쳐 읽혔다
+  (`10:00` 옆에 13일의 `3`). 저장소가 이미 쓰는 sticky 처리
+  (`Days`·`Week` 날짜 번호의 `rgba(255,255,255,.1)` + `--sticky-backdrop`)로 맞췄다 —
+  바탕은 비치고 뒤 글자는 흐려진다.
+- **오늘 칸으로 가로 스크롤** (`Week.tsx`) — 그대로 두면 늘 일요일부터 열려, 주 후반이면
+  오늘을 보려고 매번 밀어야 했다. 오늘 칸을 가운데로 놓는다.
+  `scrollIntoView` 를 쓰지 않는다 — 세로도 함께 움직여, 같은 시점에 현재시각으로 스크롤하는
+  `Timeline` 의 효과와 싸운다. `scrollLeft` 만 건드린다.
+  스크롤이 없는 폭(데스크톱)에서는 조기 반환한다.
+
+### 알게 된 기존 문제(이번 범위 밖)
+일 뷰는 모바일에서 내용이 412px 인데 컨테이너가 375px 라 37px 이 잘린다. 이번 변경 전부터
+그랬다(`min-width` 를 되돌려도 동일).
 ## 진행 중 — 모바일 하단 탭바를 알약 스타일로 (#226)
 
 ### 배경
