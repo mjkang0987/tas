@@ -18,7 +18,8 @@ interface Props {
     $active?: boolean | undefined;
     /** 카드 높이에 맞춘 표시 단계 — 'full'(두 줄) | 'compact'(한 줄) | 'name'(이름만). */
     $detail?: 'full' | 'compact' | 'name' | undefined;
-    /** 겹친 예약을 나눠 놓을 때의 칸. 없으면 가로 전체를 쓴다. */
+    /** 겹친 예약을 나눠 놓을 때의 칸(캘린더 `TimelineLane` 과 같은 모양 — 일반 ui 층이라
+     *  도메인 타입을 끌어오지 않고 구조만 맞춘다). 없으면 가로 전체를 쓴다. */
     $lane?: { index: number; count: number } | undefined;
     'aria-label'?: string | undefined;
 }
@@ -26,7 +27,7 @@ interface Props {
 // 카드의 좌우 여백. 절대배치에서 left·width·right 가 모두 지정되면 LTR 은 right 를
 // 무시하므로(CSS 2.1 §10.3.7), 실효 여백은 left 3px + 같은 크기의 오른쪽 3px = 6px 다.
 const CARD_INSET_LEFT = 3;
-const CARD_INSET = 6;
+const CARD_INSET = CARD_INSET_LEFT * 2;
 const LANE_GAP = 3;
 
 const laneWidth = (lane: Props['$lane']) => (

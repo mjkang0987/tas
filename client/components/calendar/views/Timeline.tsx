@@ -88,10 +88,9 @@ export const Timeline = ({
     const blockOffset = type === ViewType.Day ? 55 : 25;
     // 좁은 화면에서만 겹침을 나눠 낸다. CSS 로는 판단할 수 없다 — 접을지 말지가
     // 스타일이 아니라 buildTimelineEntries 의 JS 분기이기 때문.
-    // 주 뷰는 하루가 7칼럼 중 하나라 나누면 읽을 수 없어 일 뷰에서만 쓴다. 주 뷰에서는
-    // Timeline 이 7개라, 결과를 쓰지 않는 구독이 7개 붙지 않도록 아예 켜지 않는다.
-    const isNarrow = useMediaQuery('(max-width: 640px)', type === ViewType.Day);
-    const splitUpTo = isNarrow ? 2 : 0;
+    // 주 뷰는 하루가 7칼럼 중 하나라 나누면 읽을 수 없어 일 뷰에서만 쓴다.
+    const isNarrow = useMediaQuery('(max-width: 640px)');
+    const splitUpTo = isNarrow && type === ViewType.Day ? 2 : 0;
     const timelineEntries = useMemo(
         () => buildTimelineEntries(reservations, {splitUpTo}),
         [reservations, splitUpTo]
