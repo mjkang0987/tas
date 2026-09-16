@@ -30,27 +30,16 @@ export const Week = ({
     const currentMonth = curr!.month;
 
     // 모바일 주 뷰는 칸이 화면보다 넓어 가로로 스크롤한다(Calendar.tsx). 그대로 두면 늘
-    // 일요일부터 열려, 주 후반이면 오늘을 보려고 매번 손으로 밀어야 한다. 오늘 칸을 가운데로 놓는다.
+    // 일요일부터 열려, 주 후반이면 오늘을 보려고 매번 밀어야 한다. 열 때 오늘 칸을 가운데로 놓는다.
     //
-    // scrollIntoView 를 쓰지 않는다 — 세로도 함께 움직여, 같은 시점에 현재시각으로
-    // 스크롤하는 Timeline 의 효과와 싸운다. scrollLeft 만 건드린다.
+    // deps 가 비어 있는 건 의도다 — 뷰를 열 때 한 번만. dates 를 넣으면 같은 주 안에서
+    // 다른 날을 고를 때마다 스크롤이 오늘로 되돌아가 방금 고른 날이 화면 밖으로 밀린다.
     const todayRef = useRef<HTMLLIElement | null>(null);
     useEffect(() => {
-        const todayColumn = todayRef.current;
-        if (!todayColumn) return;
-
-        let container: HTMLElement | null = todayColumn.parentElement;
-        while (container && getComputedStyle(container).overflowX !== 'auto') {
-            container = container.parentElement;
-        }
-        // 데스크톱은 7칸이 화면에 다 들어가 스크롤이 없다 — 건드릴 것도 없다.
-        if (!container || container.scrollWidth <= container.clientWidth) return;
-
-        const containerLeft = container.getBoundingClientRect().left;
-        const columnRect = todayColumn.getBoundingClientRect();
-        container.scrollLeft += (columnRect.left - containerLeft)
-            - (container.clientWidth - columnRect.width) / 2;
-    }, [dates]);
+        // block: 'nearest' — 세로는 건드리지 않는다. 같은 시점에 Timeline 이 현재시각으로
+        // 세로 스크롤하는데, 여기서 세로까지 움직이면 서로 밀어낸다.
+        todayRef.current?.scrollIntoView({block: 'nearest', inline: 'center'});
+    }, []);
 
     return (<>
             {dates.map((normalizedDate) => {
