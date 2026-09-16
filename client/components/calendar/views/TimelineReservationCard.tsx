@@ -10,7 +10,7 @@ import type {Reservation} from '../../../utils/reservations';
 import {hasCompletedPayment} from '../../../utils/reservations';
 import type {DragPreview} from './timelineDrag';
 import type {TimelineLane} from './timelineEntries';
-import {cardDetailForHeight} from '../../../features/reservations/timeline-scale';
+import {cardDetailForHeight, type CardDetail} from '../../../features/reservations/timeline-scale';
 
 // 상태 접미사 — 어느 표시 단계에서도 같은 문구를 쓴다.
 function statusSuffix(reservation: Reservation): string {
@@ -34,6 +34,8 @@ type TimelineReservationCardProps = {
     suppressClick: boolean;
     /** 겹친 예약을 나눠 놓을 때의 칸. 없으면 지금까지처럼 가로 전체를 쓴다. */
     lane?: TimelineLane;
+    /** 높이로 정한 단계 대신 강제할 표시 단계. 칸이 좁을 때 호출부가 'name' 을 준다. */
+    detail?: CardDetail;
     onClick: (event: React.MouseEvent) => void;
     onMouseDragStart?: (event: React.MouseEvent<HTMLElement>) => void;
     onTouchDragStart?: (event: React.TouchEvent<HTMLElement>) => void;
@@ -52,6 +54,7 @@ export function TimelineReservationCard({
     hideOriginalBlock,
     suppressClick,
     lane,
+    detail: forcedDetail,
     onClick,
     onMouseDragStart,
     onTouchDragStart,
@@ -59,7 +62,11 @@ export function TimelineReservationCard({
     const isCancelled = reservation.status === 'cancelled' || reservation.status === 'noshow' || reservation.status === 'completed';
     // 짧은 예약은 두 줄이 안 들어간다. 높이에 맞춰 서비스 → 한 줄 → 이름만으로 줄인다.
     // (매장 단위가 아니라 이 카드의 높이로 정한다 — 예약별로 소요시간을 줄인 건도 있다.)
-    const detail = cardDetailForHeight(blockHeight);
+    // 호출부가 단계를 강제하면 그걸 쓴다 — 좁은 칸은 카드가 높아도 넣을 가로 폭이 없다.
+    const detail = forcedDetail ?? cardDetailForHeight(blockHeight);
+    // 강제된 'name' 만 배지·상태까지 뺀다. 높이가 낮아 자연히 'name' 이 된 카드는
+    // 지금까지처럼 둘 다 단다(데스크톱 무변경).
+    const minimal = forcedDetail === 'name';
 
     return (
         <ButtonReserve
@@ -109,11 +116,11 @@ export function TimelineReservationCard({
             </>) : (
                 // 한 줄에 담는다. 넘치면 말줄임 — 무엇인지는 왼쪽 색 막대가 이미 말해준다.
                 <span className="oneline">
-                    {isNewCustomer && <NewCustomerBadge>N</NewCustomerBadge>}
+                    {isNewCustomer && !minimal && <NewCustomerBadge>N</NewCustomerBadge>}
                     <span className="oneline-text">
                         {customerName || '고객'}
                         {detail === 'compact' && reservation.service ? ` · ${reservation.service}` : ''}
-                        {statusSuffix(reservation)}
+                        {minimal ? '' : statusSuffix(reservation)}
                     </span>
                 </span>
             )}

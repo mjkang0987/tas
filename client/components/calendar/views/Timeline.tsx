@@ -33,7 +33,7 @@ import {buildTimelineEntries} from './timelineEntries';
 import {useTimelineDrag} from './useTimelineDrag';
 import {useMediaQuery} from '../../../hooks/useMediaQuery';
 import {useTimelineScale} from '../../../hooks/useTimelineScale';
-import {cardDetailForHeight, cardHeightFor} from '../../../features/reservations/timeline-scale';
+import {cardHeightFor} from '../../../features/reservations/timeline-scale';
 
 export const Timeline = ({
                              fullYear,
@@ -86,11 +86,11 @@ export const Timeline = ({
     // 카드/현재시간 바/클러스터의 세로 위치 오프셋. 축 눈금선(행 높이 50px의 중앙=+25)에 맞춤.
     // ⚠️ timelineInteractions.ts의 동일 상수와 반드시 일치시킬 것(클릭 역변환이 같은 좌표계).
     const blockOffset = type === ViewType.Day ? 55 : 25;
-    // 좁은 화면에서만 겹침을 나눠 낸다. CSS 로는 판단할 수 없다 — 접을지 말지가
-    // 스타일이 아니라 buildTimelineEntries 의 JS 분기이기 때문.
-    // 주 뷰는 하루가 7칼럼 중 하나라 나누면 읽을 수 없어 일 뷰에서만 쓴다.
+    // 좁은 화면 대응. CSS 로는 못 한다 — 접을지 말지가 buildTimelineEntries 의 JS 분기다.
+    // 일 뷰는 겹침을 두 칸으로 나누고, 주 뷰는 한 칸이 약 47px 라 카드를 이름만으로 줄인다.
     const isNarrow = useMediaQuery('(max-width: 640px)');
     const splitUpTo = isNarrow && type === ViewType.Day ? 2 : 0;
+    const narrowColumn = isNarrow && type === ViewType.Week;
     const timelineEntries = useMemo(
         () => buildTimelineEntries(reservations, {splitUpTo}),
         [reservations, splitUpTo]
@@ -250,6 +250,7 @@ export const Timeline = ({
                         blockHeight={blockHeight}
                         assigneeColorMap={assigneeColorMap}
                         assigneeNameById={assigneeNameById}
+                        hideAssignees={narrowColumn}
                         onToggle={() => setOpenClusterState({dateKey, cluster})}
                     />
                 );
@@ -286,6 +287,7 @@ export const Timeline = ({
                     hideOriginalBlock={hideOriginalBlock}
                     suppressClick={suppressCreateClick}
                     lane={entry.lane}
+                    detail={narrowColumn ? 'name' : undefined}
                     onClick={() => openReservationDetail(r)}
                     onMouseDragStart={(e) => startMouseDrag(e, r, durationMinutes, blockTop, blockHeight)}
                     onTouchDragStart={(e) => startTouchDrag(e, r, durationMinutes, blockTop, blockHeight)}

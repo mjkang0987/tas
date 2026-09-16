@@ -215,6 +215,10 @@ const StyledReserveButton = styled.button <Props>`
         text-overflow: ellipsis;
         white-space: nowrap;
         min-width: 0;
+        /* 두 줄 표시(.highlight)와 같은 취소선. 한 줄 카드는 상태 접미사가 잘리거나
+           빠질 수 있어, 글자 폭을 쓰지 않는 이 신호가 취소·노쇼의 유일한 표식이 된다.
+           색·투명도만으로는 살아 있는 예약과 구분되지 않는다. */
+        text-decoration: ${props => props.$cancelled ? 'line-through' : 'none'};
     }
 
     @media (hover: hover) and (pointer: fine) {
