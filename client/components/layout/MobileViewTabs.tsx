@@ -84,7 +84,11 @@ const StyledSegment = styled.div`
         padding: 3px;
         box-sizing: border-box;
         background-color: var(--gray-color2);
-        border-radius: var(--radius-lg);
+        /* 앱의 세그먼트 컨트롤(SwiftUI .pickerStyle(.segmented))과 같은 캡슐.
+           같은 위치·같은 역할인데 한쪽만 각져 보이던 것을 맞춘다.
+           값은 저장소 관례대로 리터럴 — 같은 999px 가 이미 28곳에 있다.
+           (주석에 백틱을 쓰면 이 템플릿 리터럴이 거기서 끊긴다.) */
+        border-radius: 999px;
     }
 `;
 
@@ -94,7 +98,8 @@ const StyledSegmentTab = styled(Link)<{ $active: boolean }>`
     align-items: center;
     justify-content: center;
     padding: 7px 0;
-    border-radius: var(--radius-md);
+    /* 트랙이 캡슐이므로 선택 표시도 캡슐이어야 안쪽 여백(3px)과 나란히 맞는다. */
+    border-radius: 999px;
     font-size: var(--small-font);
     font-weight: 700;
     text-decoration: none;
