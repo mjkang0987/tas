@@ -11,6 +11,11 @@ type TimelineClusterProps = {
     blockHeight: number;
     assigneeColorMap: Record<number, string>;
     assigneeNameById: (assigneeId?: number) => string;
+    /**
+     * 담당자 배지를 그리지 않는다. 한 칸이 약 47px 인 모바일 주 뷰용 —
+     * 이름표가 칸을 넘겨 "2건예약" 까지 세로로 쪼갠다. 담당자 색은 예약을 펼쳐 보면 드러난다.
+     */
+    hideAssignees?: boolean;
     onToggle: () => void;
 };
 
@@ -20,6 +25,7 @@ export function TimelineCluster({
     blockHeight,
     assigneeColorMap,
     assigneeNameById,
+    hideAssignees = false,
     onToggle,
 }: TimelineClusterProps) {
     const assigneeBadges = Array.from(new Map(cluster.reservations.map((reservation) => [
@@ -46,7 +52,7 @@ export function TimelineCluster({
                 }}
             >
                 <StyledOverlapCount>{cluster.reservations.length}건예약</StyledOverlapCount>
-                {assigneeBadges.map((badge, index) => (
+                {!hideAssignees && assigneeBadges.map((badge, index) => (
                     <AssigneeLabel key={`${cluster.id}-${index}`} color={badge.color} name={badge.name} />
                 ))}
             </StyledOverlapButton>

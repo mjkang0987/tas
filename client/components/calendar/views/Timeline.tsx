@@ -90,6 +90,9 @@ export const Timeline = ({
     const [isNarrow, setIsNarrow] = useState(false);
     // 주 뷰는 하루가 7칼럼 중 하나라 나누면 읽을 수 없다 — 일 뷰에서만 나눈다.
     const splitUpTo = isNarrow && type === ViewType.Day ? 2 : 0;
+    // 같은 이유로 주 뷰 카드는 고객명만 남긴다. 한 칸이 약 47px 라
+    // 시술명·상태까지 넣으면 "남성커트 (결제완료) N 최민준" 이 네 줄로 접힌다.
+    const nameOnlyCards = isNarrow && type === ViewType.Week;
     const timelineEntries = useMemo(
         () => buildTimelineEntries(reservations, {splitUpTo}),
         [reservations, splitUpTo]
@@ -281,6 +284,7 @@ export const Timeline = ({
                         blockHeight={blockHeight}
                         assigneeColorMap={assigneeColorMap}
                         assigneeNameById={assigneeNameById}
+                        hideAssignees={nameOnlyCards}
                         onToggle={() => setOpenClusterState({dateKey, cluster})}
                     />
                 );
@@ -317,6 +321,7 @@ export const Timeline = ({
                     hideOriginalBlock={hideOriginalBlock}
                     suppressClick={suppressCreateClick}
                     lane={entry.lane}
+                    nameOnly={nameOnlyCards}
                     onClick={() => openReservationDetail(r)}
                     onMouseDragStart={(e) => startMouseDrag(e, r, durationMinutes, blockTop, blockHeight)}
                     onTouchDragStart={(e) => startTouchDrag(e, r, durationMinutes, blockTop, blockHeight)}
