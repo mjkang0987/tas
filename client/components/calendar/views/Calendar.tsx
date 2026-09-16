@@ -72,13 +72,17 @@ const StyledDaysWrap = styled.div <DaysType>`
     grid-template-columns: var(--timeline-col) max-content;
 
     /* 시간축은 가로로 흘려보내지 않는다 — 흘러가면 몇 시 예약인지 읽을 수 없다.
-       요일 헤더(z-index 13)보다 위에 둬야 스크롤 중에 덮이지 않고,
-       배경이 없으면 지나가는 예약 블록이 숫자 뒤로 비친다. */
+       요일 헤더(z-index 13)보다 위에 둬야 스크롤 중에 덮이지 않는다.
+
+       불투명 흰색으로 덮지 않는다 — 캘린더 바탕이 시간축에서만 끊겨 보인다.
+       대신 sticky 헤더들(Days·Week 의 날짜 번호)이 쓰는 것과 같은 처리를 쓴다.
+       완전 투명으로 두면 지나가는 날짜 숫자가 시각 뒤로 비쳐 겹쳐 읽힌다. */
     > div {
       position: sticky;
       left: 0;
       z-index: 14;
-      background-color: var(--white-color);
+      background: rgba(255, 255, 255, .1);
+      backdrop-filter: var(--sticky-backdrop);
     }
 
     > ul {
