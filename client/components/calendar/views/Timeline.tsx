@@ -31,6 +31,7 @@ import {TimelineDragGhost, TimelineReservationCard} from './TimelineReservationC
 import type {PendingMove} from './timelineDrag';
 import {buildTimelineEntries} from './timelineEntries';
 import {useTimelineDrag} from './useTimelineDrag';
+import {useMediaQuery} from '../../../hooks/useMediaQuery';
 import {useTimelineScale} from '../../../hooks/useTimelineScale';
 import {cardDetailForHeight, cardHeightFor} from '../../../features/reservations/timeline-scale';
 
@@ -86,10 +87,11 @@ export const Timeline = ({
     // ⚠️ timelineInteractions.ts의 동일 상수와 반드시 일치시킬 것(클릭 역변환이 같은 좌표계).
     const blockOffset = type === ViewType.Day ? 55 : 25;
     // 좁은 화면에서만 겹침을 나눠 낸다. CSS 로는 판단할 수 없다 — 접을지 말지가
-    // 스타일이 아니라 buildTimelineEntries 의 JS 분기이기 때문. (아래 effect 가 구독)
-    const [isNarrow, setIsNarrow] = useState(false);
-    // 주 뷰는 하루가 7칼럼 중 하나라 나누면 읽을 수 없다 — 일 뷰에서만 나눈다.
-    const splitUpTo = isNarrow && type === ViewType.Day ? 2 : 0;
+    // 스타일이 아니라 buildTimelineEntries 의 JS 분기이기 때문.
+    // 주 뷰는 하루가 7칼럼 중 하나라 나누면 읽을 수 없어 일 뷰에서만 쓴다. 주 뷰에서는
+    // Timeline 이 7개라, 결과를 쓰지 않는 구독이 7개 붙지 않도록 아예 켜지 않는다.
+    const isNarrow = useMediaQuery('(max-width: 640px)', type === ViewType.Day);
+    const splitUpTo = isNarrow ? 2 : 0;
     const timelineEntries = useMemo(
         () => buildTimelineEntries(reservations, {splitUpTo}),
         [reservations, splitUpTo]
@@ -159,7 +161,7 @@ export const Timeline = ({
             observer.disconnect();
         };
     }, [isToday]);
-    const [isTouchDevice, setIsTouchDevice] = useState(false);
+    const isTouchDevice = useMediaQuery('(pointer: coarse)');
     const [openClusterState, setOpenClusterState] = useState<{ dateKey: string; cluster: TimelineClusterData } | null>(null);
     const pendingClusterReservationRef = useRef<Reservation | null>(null);
     const [confirmedOffDayMoveState, setConfirmedOffDayMoveState] = useState<{ dateKey: string; move: PendingMove } | null>(null);
@@ -195,38 +197,6 @@ export const Timeline = ({
             openReservationDetail(reservation);
         }
     }, [openCluster, openReservationDetail]);
-
-    useEffect(() => {
-        if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return;
-
-        const mediaQuery = window.matchMedia('(pointer: coarse)');
-        const update = () => setIsTouchDevice(mediaQuery.matches);
-        update();
-
-        if (typeof mediaQuery.addEventListener === 'function') {
-            mediaQuery.addEventListener('change', update);
-            return () => mediaQuery.removeEventListener('change', update);
-        }
-
-        mediaQuery.addListener(update);
-        return () => mediaQuery.removeListener(update);
-    }, []);
-
-    useEffect(() => {
-        if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return;
-
-        const mediaQuery = window.matchMedia('(max-width: 640px)');
-        const update = () => setIsNarrow(mediaQuery.matches);
-        update();
-
-        if (typeof mediaQuery.addEventListener === 'function') {
-            mediaQuery.addEventListener('change', update);
-            return () => mediaQuery.removeEventListener('change', update);
-        }
-
-        mediaQuery.addListener(update);
-        return () => mediaQuery.removeListener(update);
-    }, []);
 
     const setMousePositionHandler = (e: React.MouseEvent<HTMLElement>) => {
         if (isTouchDevice) return;
