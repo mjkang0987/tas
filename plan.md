@@ -13,13 +13,14 @@
 가로로 스크롤**한다.
 
 ### 구현
-- `globalStyle.ts` — 모바일 `:root` 에 `--week-col: 64px`. 카드가 쓰는 글자 폭은 이 값 − 17px
-  (좌우 여백 8 + 안쪽 패딩 4 + 테두리 5).
+- `globalStyle.ts` — 모바일 `:root` 에 `--week-col: 64px`.
 - `Calendar.tsx` — 주 뷰 + 모바일 한정으로 `overflow-x: auto`,
-  `grid-template-columns: var(--timeline-col) max-content`(1fr 은 컨테이너를 넘지 못해
-  스크롤이 생기지 않는다), `> ul` 을 `repeat(7, var(--week-col))`.
-  시간축(`> div`)은 `position: sticky; left: 0` + `z-index: 14`(요일 헤더 13 위) + 흰 배경.
+  `grid-template-columns: var(--timeline-col) calc(var(--week-col) * 7)`
+  (1fr 은 컨테이너를 넘지 못해 스크롤이 안 생긴다. 폭이 확정돼 있으므로 `max-content` 로
+  브라우저에 재측정시키지 않고 계산식으로 못박는다), `> ul` 을 `repeat(7, var(--week-col))`.
+  시간축(`> div`)은 `position: sticky; left: 0` + `z-index: 14`(요일 헤더 13 위).
 - `pages/index.tsx` — `StyledSection` 에 `min-width: 0`.
+- `Week.tsx` — 열 때 오늘 칸을 가운데로: `scrollIntoView({block:'nearest', inline:'center'})`.
 
 ### 왜 min-width: 0 이 필요했나 (막혔던 지점)
 `overflow-x: auto` 만 줬을 때 grid 가 스크롤되지 않고 **자기 폭을 492px 로 늘렸다.**
@@ -35,10 +36,44 @@ flex 아이템 기본값 `min-width: auto` 가 내용보다 작아지길 거부�
 - 일 뷰 무변경(`min-width:0` 전후 모두 섹션 375px, `main` 넘침 없음 — 회귀 아님)
 - 월 뷰 무변경, 데스크톱 주 뷰 무변경(`overflow-x: hidden`, 시간축 `static`, 칼럼 1fr)
 
-### 제스처
-모바일에서 예약 드래그는 이미 꺼져 있다(`Buttons.tsx` 의 `.drag-handle` 이
-`@media (max-width: 640px)` 에서 `display: none`, 배경 탭 생성은 `isTouchDevice` 로 차단).
-가로 스크롤과 충돌하지 않는다.
+### 제스처 (게이트가 둘이라 정확히 적어둔다)
+- **예약 이동 드래그** — `.drag-handle`(`TimelineReservationCard`, a11y "예약 이동",
+  `onTouchStart={onTouchDragStart}`)이 `Buttons.tsx` 의 `@media (max-width: 640px)` 에서
+  `display: none`. **폭 기준**이라 새 가로 스크롤(같은 640px 기준)과 정확히 같은 구간에서 꺼진다.
+- **배경 드래그·탭으로 예약 생성** — `Timeline.tsx` 의 `isTouchDevice`(`pointer: coarse`)로 차단.
+  **입력수단 기준**이라 폭 기준과 갈린다. 좁은 데스크톱 창(<640px, fine pointer)에서는
+  가로 스크롤이 켜진 채 드래그-생성도 살아 있다 — 다만 마우스 드래그는 스크롤 제스처가
+  아니라 충돌하지 않는다.
+
+### 리팩토링 (검증 > 리팩토링 > 검증 사이클)
+4각도 리뷰(재사용·단순화·효율·고도)에서 나온 지적 반영:
+- **오늘로 스크롤 18줄 → 1줄.** 조상을 훑으며 `getComputedStyle(el).overflowX === 'auto'` 로
+  스크롤 컨테이너를 찾던 루프를 `scrollIntoView({block:'nearest', inline:'center'})` 로 바꿨다.
+  그 루프는 데스크톱·3일 뷰에서 `StyledDaysWrap` 을 지나쳐 **앱 전역 `StyledMain` 을 잡고 있었고**,
+  `scrollWidth <= clientWidth` 가드 덕에 우연히 무해했을 뿐이다.
+  `block:'nearest'` 가 세로를 건드리지 않는 것은 실측으로 확인했다 — 현재시각 바가
+  자기 `scroll-margin-top` 과 같은 72px 에 그대로 있고 오늘 칸은 정중앙(offset 0).
+- **deps `[dates]` → `[]` (실제 버그 수정).** `setTargetFromDate` 가 매번 새 `target` 객체를
+  만들어 `WeekWrap` 의 `useMemo([target, type])` 가 같은 주에서도 새 배열을 냈다. 그래서
+  미니 달력으로 같은 주의 다른 날을 고르면 가로 스크롤이 오늘로 되돌아가 **방금 고른 날이
+  화면 밖으로 밀렸다.** 뷰를 열 때 한 번만 돌게 고쳤다.
+- `max-content` → `calc(var(--week-col) * 7)` — 폭이 확정돼 있는데 브라우저에 intrinsic
+  패스를 한 번 더 돌게 할 이유가 없다.
+- 주석 축약 — 신규 26줄 중 20줄이 주석이었다. 설계 근거는 여기(plan.md)에 두고 코드엔 한 줄씩만.
+
+### 넘긴 지적 (근거)
+- **`min-width: 0` 을 `StyledMain > *` 로 올리기** — `settings`·`address`·`inquiry`·`menu`
+  네 페이지의 같은 잠재 결함을 한 번에 닫는다는 지적은 맞다. 다만 검증하지 않은 4개 페이지의
+  레이아웃을 건드리게 되어 이 이슈 범위를 넘는다. 별도 건으로 남긴다.
+- **`ViewType.Week` 분기 대신 `minmax(--day-col-min, 1fr)`** — 뷰 이름이 아니라 치수로
+  조건을 쓰자는 지적은 타당하나, 3일·일 뷰 동작을 다시 구동 검증해야 한다. 지금 형태는 실측으로
+  확인된 상태라 유지한다.
+- **`backdrop-filter` 가 매 프레임 비싸다** — 맞지만 기존 sticky 날짜 헤더 7개가 이미 같은
+  처리를 쓰고 있어 이 변경이 새로 들인 부담이 아니다. 대안으로 제시된 `rgba(...,.85)` 는
+  "흰 배경 삭제" 요청과 정면으로 어긋난다.
+- **`.drag-handle` 이 리사이즈 핸들이라는 지적은 사실이 아니다** — a11y 텍스트가 "예약 이동"
+  이고 `onTouchStart={onTouchDragStart}` 가 붙은 **이동** 핸들이다. 다만 배경 드래그-생성의
+  게이트가 폭이 아니라 `pointer: coarse` 라는 구분은 맞아서 아래에 정확히 적었다.
 
 ### 이어서 반영한 두 가지 (같은 브랜치)
 - **시간축 흰 배경 제거** — 불투명 흰색이 캘린더 바탕을 시간축에서만 끊어놨다.
