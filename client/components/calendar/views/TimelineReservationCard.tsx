@@ -45,22 +45,6 @@ type TimelineReservationCardProps = {
     onTouchDragStart?: (event: React.TouchEvent<HTMLElement>) => void;
 };
 
-// StyledReserveButton 이 좌우로 잡아둔 여백(left 3px + right 5px)과 칸 사이 간격.
-// 인라인 style 로 덮어쓰므로 클래스 규칙(left/right/width)보다 우선한다.
-const LANE_INSET = 8;
-const LANE_GAP = 3;
-
-/** 칸 번호를 가로 위치·폭으로 바꾼다. 폭은 퍼센트라 타임라인 폭이 변해도 따라간다. */
-function laneStyle(lane?: TimelineLane): React.CSSProperties | undefined {
-    if (!lane || lane.count <= 1) return undefined;
-    const width = `calc((100% - ${LANE_INSET + LANE_GAP * (lane.count - 1)}px) / ${lane.count})`;
-    return {
-        left: `calc(3px + (${width} + ${LANE_GAP}px) * ${lane.index})`,
-        right: 'auto',
-        width,
-    };
-}
-
 export function TimelineReservationCard({
     reservation,
     preview,
@@ -85,11 +69,6 @@ export function TimelineReservationCard({
     // 높이가 정하는 표시 단계. nameOnly 면 높이와 무관하게 가장 짧은 단계로 내린다 —
     // 좁은 칸에서는 카드가 높아도 넣을 가로 폭이 없다.
     const detail = nameOnly ? 'name' : cardDetailForHeight(blockHeight);
-    // 드래그 중엔 칸을 풀어 원래 폭으로 돌린다 — 끌고 가는 곳의 겹침은 아직 계산되지 않았다.
-    const style = {
-        ...(preview ? undefined : laneStyle(lane)),
-        ...(hideOriginalBlock ? {visibility: 'hidden' as const} : undefined),
-    };
 
     return (
         <ButtonReserve
@@ -97,7 +76,9 @@ export function TimelineReservationCard({
             data-timeline-interactive="true"
             // 드래그 중엔 hover 확장을 끈다 — 끌고 있는 카드가 커서 아래에서 커졌다 작아지면 조준이 흔들린다.
             data-dragging={preview ? 'true' : undefined}
-            style={Object.keys(style).length > 0 ? style : undefined}
+            style={hideOriginalBlock ? {visibility: 'hidden'} : undefined}
+            // 드래그 중엔 칸을 풀어 원래 폭으로 — 끌고 가는 곳의 겹침은 아직 계산되지 않았다.
+            $lane={preview ? undefined : lane}
             $position="absolute"
             $top={preview?.top ?? blockTop}
             $height={blockHeight}

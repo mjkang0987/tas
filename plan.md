@@ -59,19 +59,39 @@ CSS로 숨길 수 있지만, `compact`는 `고객명 · 시술명 (상태)`가 *
 
 ### 구현
 - `timelineEntries.ts` — `splitUpTo` 옵션(기본 0 = 기존 동작). 이하로 겹친 묶음은 접지 않고
-  `lane({index,count})`을 붙인 `single`들로 낸다. 배치는 앱과 같은 **그리디 칸 재사용**이라
-  서로 안 겹치는 예약까지 칸을 늘리지 않는다.
-- `Timeline.tsx` — `matchMedia('(max-width: 640px)')` 구독(저장소 기존 패턴, 같은 파일의
-  `pointer: coarse` 구독과 동일 형태). 일 뷰 + 좁은 화면일 때만 `splitUpTo: 2`.
-- `TimelineReservationCard.tsx` — `lane`이 있으면 인라인 style로 `left`/`width`를 덮는다
-  (styled-components의 `left:3px/right:5px/width:calc(100%-6px)`보다 인라인이 우선).
-  **드래그 중에는 칸을 푼다** — 끌고 가는 곳의 겹침은 아직 계산되지 않았다.
+  `lane({index,count})`을 붙인 `single`들로 낸다. 묶음은 겹침으로 이어져 있으므로 칸 수 = 묶음 크기.
+- `Timeline.tsx` — `useMediaQuery('(max-width: 640px)')`. 일 뷰 + 좁은 화면일 때만 `splitUpTo: 2`.
+- `Buttons.tsx` — `StyledReserveButton` 이 `$lane` transient prop 으로 `left`/`width` 를 계산한다.
+  그 컴포넌트는 `$top`/`$height`/`$color` 를 이미 같은 방식으로 받으므로 좌표계를 두 층에서
+  관리할 이유가 없다. `TimelineReservationCard` 는 `$lane` 을 넘기기만 하고,
+  **드래그 중에는 칸을 푼다**(끌고 가는 곳의 겹침은 아직 계산되지 않았다).
 
 ### 검증 (실제 구동 + 기하 측정)
-- 모바일 2건: 좌 3px / 사이 3px / 우 5px, 각 160px. 문서 가로 넘침 없음. 시술 칩·N·이름 모두 읽힘
+- 모바일 2건: 좌 3px / 사이 3px / 우 3px, 각 161px — 전폭 카드(좌우 3px)와 끝선 일치.
+  문서 가로 넘침 없음. 시술 칩·N·이름 모두 읽힘
 - 모바일 3건(임시 데이터 주입): `3건예약` 묶음으로 접힘 — 확인 후 데이터 원복
 - 데스크톱 1024px: `2건예약` 묶음 유지, 분할 카드 0개
-- 단위 테스트 5개 추가(`timelineEntries.test.ts`)
+- 단위 테스트 6개(`timelineEntries.test.ts`)
+
+### 리팩토링 (2차 패스까지)
+- **2px 어긋남 수정.** `LANE_INSET` 을 8(= left 3 + right 5)로 잡았는데, 절대배치에서
+  left·width·right 가 모두 지정되면 LTR 은 `right` 를 무시한다(CSS 2.1 §10.3.7).
+  실효 여백은 3/3 = 6px 이라 분할 카드 오른쪽 끝이 전폭 카드보다 2px 짧았다.
+  lane 기하를 `StyledReserveButton` 으로 내리면서 함께 해소.
+- **도달 불가 코드 제거.** `assignLanes` 의 그리디 칸 재사용 분기는 `splitUpTo=2` 에서
+  실행될 수 없다 — 묶음 편입 조건(`start2 < end1`)이 재사용 조건(`end1 <= start2`)의 부정이다.
+  무작위 14.5만 건으로 확인했고 테스트 5개 중 이 분기를 지나는 것도 없었다.
+  `splitUpTo` 를 3 이상으로 올릴 때 되살리라는 근거를 `ponytail:` 주석으로 남겼다.
+- **중복 구독 제거.** `Timeline` 안에 14줄짜리 동일 `matchMedia` 구독이 두 벌 있어
+  `hooks/useMediaQuery.ts` 로 뺐다. 2차 패스에서 `enabled` 인자는 다시 걷어냈다 —
+  true→false 전환 시 `matches` 가 stale 로 남는 잠복 버그가 있었고, 아끼는 리스너 6개는
+  같은 파일이 `pointer: coarse` 로 이미 7개를 만들고 있어 명분이 없었다.
+
+### 넘긴 지적
+- `Timeline.tsx` 의 `reservations` 가 매 렌더 새 배열이라 하류 `useMemo` 가 사실상 메모하지
+  않는다 — **이 PR 이전부터 그랬다.** 드래그 중 초당 60~120회 재계산이라 값어치는 크지만 별도 건.
+- hover 확장(`(hover: hover) and (pointer: fine)`)이 좁은 데스크톱 창에서 분할 카드와 동시에
+  걸릴 수 있다. 실제 폰(`pointer: coarse`)은 무관하고, 기존 hover 동작을 건드리게 되어 범위 밖.
 
 ### 리스크
 `splitUpTo` 기본값이 0이라 이 옵션을 넘기지 않는 모든 호출부는 기존 동작 그대로다(무회귀).
