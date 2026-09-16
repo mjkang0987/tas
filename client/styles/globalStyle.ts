@@ -159,9 +159,8 @@ export const GlobalStyle = createGlobalStyle`
     @media (max-width: 640px) {
         :root {
             --timeline-col: 44px;
-            /* 주 뷰 하루 칸의 고정 폭. 화면을 7등분하면 한 칸이 47px 라 세 글자 이름부터
-               말줄임됐다. 이름이 말줄임 없이 들어가는 폭을 먼저 주고 가로로 스크롤한다.
-               (카드가 쓰는 글자 폭 = 이 값 - 17px: 좌우 여백 8 + 안쪽 패딩 4 + 테두리 5) */
+            /* 주 뷰 하루 칸 폭. 7등분(한 칸 47px)이면 세 글자 이름부터 말줄임돼,
+               읽히는 폭을 먼저 주고 가로로 스크롤한다. */
             --week-col: 64px;
             --modal-button-height: 30px;
             --modal-button-padding-x: 10px;

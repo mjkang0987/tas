@@ -68,19 +68,17 @@ const StyledDaysWrap = styled.div <DaysType>`
      드래그는 모바일에서 이미 꺼져 있어(Buttons.tsx 의 .drag-handle) 제스처가 겹치지 않는다. */
   @media (max-width: 640px) {
     overflow-x: auto;
-    /* 1fr 은 컨테이너를 넘지 못해 스크롤이 생기지 않는다. 내용 폭을 그대로 쓴다. */
-    grid-template-columns: var(--timeline-col) max-content;
+    /* 1fr 은 컨테이너를 넘지 못해 스크롤이 생기지 않는다. 폭이 이미 확정돼 있으므로
+       max-content(브라우저가 재측정)가 아니라 계산식으로 못박는다. */
+    grid-template-columns: var(--timeline-col) calc(var(--week-col) * 7);
 
-    /* 시간축은 가로로 흘려보내지 않는다 — 흘러가면 몇 시 예약인지 읽을 수 없다.
-       요일 헤더(z-index 13)보다 위에 둬야 스크롤 중에 덮이지 않는다.
-
-       불투명 흰색으로 덮지 않는다 — 캘린더 바탕이 시간축에서만 끊겨 보인다.
-       대신 sticky 헤더들(Days·Week 의 날짜 번호)이 쓰는 것과 같은 처리를 쓴다.
-       완전 투명으로 두면 지나가는 날짜 숫자가 시각 뒤로 비쳐 겹쳐 읽힌다. */
+    /* 시간축을 왼쪽에 붙들어 둔다. 흘러가면 몇 시 예약인지 읽을 수 없다.
+       배경·블러는 Days·Week 날짜 번호가 쓰는 sticky 처리와 같다 — 불투명 흰색은
+       바탕을 끊고, 완전 투명은 지나가는 날짜 숫자를 시각 뒤로 비친다. */
     > div {
       position: sticky;
       left: 0;
-      z-index: 14;
+      z-index: 14; /* 요일 헤더 13 위 */
       background: rgba(255, 255, 255, .1);
       backdrop-filter: var(--sticky-backdrop);
     }

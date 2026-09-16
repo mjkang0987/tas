@@ -224,10 +224,8 @@ const StyledSection = styled.section <{ $isVisible: boolean }>`
   display: flex;
   flex-direction: column;
   height: 100%;
-  /* flex 아이템 기본값 min-width:auto 는 내용보다 작아지길 거부한다. 그대로 두면
-     주 뷰가 가로로 넓어질 때 이 섹션이 같이 늘어나 main 이 스크롤하고, 정작
-     타임라인 안의 sticky 시간축은 제 컨테이닝 블록 왼쪽 끝에 닿지 못해 흘러가 버린다.
-     0 으로 내려 캘린더가 제 안에서 가로 스크롤하게 한다. */
+  /* flex 기본값 min-width:auto 면 주 뷰가 넓어질 때 이 섹션이 끌려 늘어나고
+     스크롤을 main 이 가져가, 캘린더 안의 sticky 시간축이 흘러가 버린다. */
   min-width: 0;
   border-left: solid var(--light-gray-color) ${props => props.$isVisible ? `1px` : 0};
 `;
