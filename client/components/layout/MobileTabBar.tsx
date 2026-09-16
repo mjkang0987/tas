@@ -70,27 +70,19 @@ const StyledTabBar = styled.nav`
     display: none;
 
     @media (max-width: 640px) {
-        position: absolute;
-        bottom: 10px;
-        left: 12px;
-        right: 12px;
+        flex-shrink: 0;
         display: flex;
         align-items: stretch;
-        /* 선택 알약이 탭바 테두리에 닿지 않게 하는 안쪽 여백. */
+        /* 흐름 자식으로 두고 여백으로 띄운다. 콘텐츠 위에 겹치지 않으므로
+           스크롤이 없는 화면(월 캘린더는 overflow:hidden 이다)에서도 무엇을 가리지 않는다. */
+        margin: 0 12px max(env(safe-area-inset-bottom, 0px), 10px);
         padding: 4px;
-        border-radius: var(--radius-pill);
-        /* 지원 여부와 무관하게 글자가 읽히도록 불투명에 가까운 값에서 시작한다. */
-        background-color: var(--glass-bg-opaque);
-        border: 1px solid var(--glass-border);
+        box-sizing: border-box;
+        border-radius: var(--chip-radius);
+        background-color: var(--glass-bg);
+        border: 1px solid var(--white-color-60);
         box-shadow: var(--shadow-md);
-        overflow: hidden;
         z-index: 40;
-
-        @supports (backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px)) {
-            background-color: var(--glass-bg);
-            -webkit-backdrop-filter: var(--glass-backdrop);
-            backdrop-filter: var(--glass-backdrop);
-        }
     }
 `;
 
@@ -108,7 +100,7 @@ const StyledTab = styled(Link)<{ $active: boolean }>`
     padding-bottom: 8px;
     text-decoration: none;
     /* 선택 알약이 탭바의 둥근 모서리를 넘지 않게 한다. */
-    border-radius: var(--radius-pill);
+    border-radius: var(--chip-radius);
     background-color: ${(props) => props.$active ? 'var(--brand-color-bg)' : 'transparent'};
     color: ${(props) => props.$active ? 'var(--brand-color)' : 'var(--dark-gray-color2)'};
 
