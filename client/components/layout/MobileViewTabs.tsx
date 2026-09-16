@@ -84,7 +84,10 @@ const StyledSegment = styled.div`
         padding: 3px;
         box-sizing: border-box;
         background-color: var(--gray-color2);
-        border-radius: var(--radius-lg);
+        /* 앱의 세그먼트 컨트롤과 모서리를 맞춘다 — 같은 위치·역할인데 한쪽만 각져 보였다.
+           (앱은 .pickerStyle(.segmented) 단독이라 실제 모양은 실행 중인 OS 가 정한다.
+            2026-09 iOS 26 시뮬레이터 대조 기준.) */
+        border-radius: var(--chip-radius);
     }
 `;
 
@@ -94,7 +97,8 @@ const StyledSegmentTab = styled(Link)<{ $active: boolean }>`
     align-items: center;
     justify-content: center;
     padding: 7px 0;
-    border-radius: var(--radius-md);
+    /* 트랙이 캡슐이므로 선택 표시도 캡슐이어야 안쪽 여백(3px)과 나란히 맞는다. */
+    border-radius: var(--chip-radius);
     font-size: var(--small-font);
     font-weight: 700;
     text-decoration: none;

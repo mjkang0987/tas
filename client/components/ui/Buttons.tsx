@@ -18,8 +18,29 @@ interface Props {
     $active?: boolean | undefined;
     /** 카드 높이에 맞춘 표시 단계 — 'full'(두 줄) | 'compact'(한 줄) | 'name'(이름만). */
     $detail?: 'full' | 'compact' | 'name' | undefined;
+    /** 겹친 예약을 나눠 놓을 때의 칸(캘린더 `TimelineLane` 과 같은 모양 — 일반 ui 층이라
+     *  도메인 타입을 끌어오지 않고 구조만 맞춘다). 없으면 가로 전체를 쓴다. */
+    $lane?: { index: number; count: number } | undefined;
     'aria-label'?: string | undefined;
 }
+
+// 카드의 좌우 여백. 절대배치에서 left·width·right 가 모두 지정되면 LTR 은 right 를
+// 무시하므로(CSS 2.1 §10.3.7), 실효 여백은 left 3px + 같은 크기의 오른쪽 3px = 6px 다.
+const CARD_INSET_LEFT = 3;
+const CARD_INSET = CARD_INSET_LEFT * 2;
+const LANE_GAP = 3;
+
+const laneWidth = (lane: Props['$lane']) => (
+    lane && lane.count > 1
+        ? `calc((100% - ${CARD_INSET + LANE_GAP * (lane.count - 1)}px) / ${lane.count})`
+        : `calc(100% - ${CARD_INSET}px)`
+);
+
+const laneLeft = (lane: Props['$lane']) => (
+    lane && lane.count > 1 && lane.index > 0
+        ? `calc(${CARD_INSET_LEFT}px + (${laneWidth(lane)} + ${LANE_GAP}px) * ${lane.index})`
+        : `${CARD_INSET_LEFT}px`
+);
 
 const StyledSquareButton = styled.button <Props>`
     display: inline-flex;
@@ -72,9 +93,8 @@ export const ButtonCircle: React.FC<Props> = ({children, ...props}) => {
 const StyledReserveButton = styled.button <Props>`
     position: ${props => props.$position ? props.$position: ''};
     top: ${props => props.$top}px;
-    left: 3px;
-    right: 5px;
-    width: calc(100% - 6px);
+    left: ${props => laneLeft(props.$lane)};
+    width: ${props => laneWidth(props.$lane)};
     height: ${props => props.$height}px;
     max-height: ${props => props.$height}px;
     background-color: ${props => props.$requested ? 'rgba(168, 132, 23, 0.10)' : `${props.$color}12`};
@@ -195,6 +215,10 @@ const StyledReserveButton = styled.button <Props>`
         text-overflow: ellipsis;
         white-space: nowrap;
         min-width: 0;
+        /* 두 줄 표시(.highlight)와 같은 취소선. 한 줄 카드는 상태 접미사가 잘리거나
+           빠질 수 있어, 글자 폭을 쓰지 않는 이 신호가 취소·노쇼의 유일한 표식이 된다.
+           색·투명도만으로는 살아 있는 예약과 구분되지 않는다. */
+        text-decoration: ${props => props.$cancelled ? 'line-through' : 'none'};
     }
 
     @media (hover: hover) and (pointer: fine) {

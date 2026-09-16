@@ -97,6 +97,10 @@ export const GlobalStyle = createGlobalStyle`
 
         --sticky-backdrop: blur(.8px) saturate(180%);
 
+        /* 떠 보이는 표면(모바일 하단 탭바). 알약 반경은 기존 --chip-radius,
+           테두리는 기존 --white-color-60 을 쓴다 — 같은 값의 토큰을 새로 만들지 않는다. */
+        --glass-bg: rgba(255, 255, 255, .72);
+
         --bar-top: 56px;
 
         --aside-width: 200px;

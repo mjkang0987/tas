@@ -265,6 +265,7 @@ const StyledMain = styled.main`
     background:
         radial-gradient(circle at top left, rgba(45, 127, 249, 0.12), transparent 32%),
         linear-gradient(180deg, #f8fbff 0%, #ffffff 52%);
+
 `;
 
 const StyledFooterAd = styled.div`

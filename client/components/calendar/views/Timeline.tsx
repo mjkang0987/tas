@@ -31,8 +31,9 @@ import {TimelineDragGhost, TimelineReservationCard} from './TimelineReservationC
 import type {PendingMove} from './timelineDrag';
 import {buildTimelineEntries} from './timelineEntries';
 import {useTimelineDrag} from './useTimelineDrag';
+import {useMediaQuery} from '../../../hooks/useMediaQuery';
 import {useTimelineScale} from '../../../hooks/useTimelineScale';
-import {cardDetailForHeight, cardHeightFor} from '../../../features/reservations/timeline-scale';
+import {cardHeightFor} from '../../../features/reservations/timeline-scale';
 
 export const Timeline = ({
                              fullYear,
@@ -85,7 +86,15 @@ export const Timeline = ({
     // 카드/현재시간 바/클러스터의 세로 위치 오프셋. 축 눈금선(행 높이 50px의 중앙=+25)에 맞춤.
     // ⚠️ timelineInteractions.ts의 동일 상수와 반드시 일치시킬 것(클릭 역변환이 같은 좌표계).
     const blockOffset = type === ViewType.Day ? 55 : 25;
-    const timelineEntries = useMemo(() => buildTimelineEntries(reservations), [reservations]);
+    // 좁은 화면 대응. CSS 로는 못 한다 — 접을지 말지가 buildTimelineEntries 의 JS 분기다.
+    // 일 뷰는 겹침을 두 칸으로 나누고, 주 뷰는 한 칸이 약 47px 라 카드를 이름만으로 줄인다.
+    const isNarrow = useMediaQuery('(max-width: 640px)');
+    const splitUpTo = isNarrow && type === ViewType.Day ? 2 : 0;
+    const narrowColumn = isNarrow && type === ViewType.Week;
+    const timelineEntries = useMemo(
+        () => buildTimelineEntries(reservations, {splitUpTo}),
+        [reservations, splitUpTo]
+    );
 
     // 현재시간 바: 렌더 1회 계산 + CSS 애니메이션에 의존하면 백그라운드 탭 스로틀·절전 이후
     // 애니메이션이 실제 경과만큼 진행되지 않아 바가 과거 시각에 멈춘다.
@@ -151,7 +160,7 @@ export const Timeline = ({
             observer.disconnect();
         };
     }, [isToday]);
-    const [isTouchDevice, setIsTouchDevice] = useState(false);
+    const isTouchDevice = useMediaQuery('(pointer: coarse)');
     const [openClusterState, setOpenClusterState] = useState<{ dateKey: string; cluster: TimelineClusterData } | null>(null);
     const pendingClusterReservationRef = useRef<Reservation | null>(null);
     const [confirmedOffDayMoveState, setConfirmedOffDayMoveState] = useState<{ dateKey: string; move: PendingMove } | null>(null);
@@ -187,22 +196,6 @@ export const Timeline = ({
             openReservationDetail(reservation);
         }
     }, [openCluster, openReservationDetail]);
-
-    useEffect(() => {
-        if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return;
-
-        const mediaQuery = window.matchMedia('(pointer: coarse)');
-        const update = () => setIsTouchDevice(mediaQuery.matches);
-        update();
-
-        if (typeof mediaQuery.addEventListener === 'function') {
-            mediaQuery.addEventListener('change', update);
-            return () => mediaQuery.removeEventListener('change', update);
-        }
-
-        mediaQuery.addListener(update);
-        return () => mediaQuery.removeListener(update);
-    }, []);
 
     const setMousePositionHandler = (e: React.MouseEvent<HTMLElement>) => {
         if (isTouchDevice) return;
@@ -257,6 +250,7 @@ export const Timeline = ({
                         blockHeight={blockHeight}
                         assigneeColorMap={assigneeColorMap}
                         assigneeNameById={assigneeNameById}
+                        hideAssignees={narrowColumn}
                         onToggle={() => setOpenClusterState({dateKey, cluster})}
                     />
                 );
@@ -292,6 +286,8 @@ export const Timeline = ({
                     serviceColorMap={serviceColorMap}
                     hideOriginalBlock={hideOriginalBlock}
                     suppressClick={suppressCreateClick}
+                    lane={entry.lane}
+                    detail={narrowColumn ? 'name' : undefined}
                     onClick={() => openReservationDetail(r)}
                     onMouseDragStart={(e) => startMouseDrag(e, r, durationMinutes, blockTop, blockHeight)}
                     onTouchDragStart={(e) => startTouchDrag(e, r, durationMinutes, blockTop, blockHeight)}
