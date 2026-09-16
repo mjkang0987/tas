@@ -9,6 +9,7 @@ import type {Customer} from '../../../utils/customers';
 import type {Reservation} from '../../../utils/reservations';
 import {hasCompletedPayment} from '../../../utils/reservations';
 import type {DragPreview} from './timelineDrag';
+import type {TimelineLane} from './timelineEntries';
 import {cardDetailForHeight} from '../../../features/reservations/timeline-scale';
 
 // 상태 접미사 — 어느 표시 단계에서도 같은 문구를 쓴다.
@@ -31,6 +32,8 @@ type TimelineReservationCardProps = {
     serviceColorMap: Record<string, string>;
     hideOriginalBlock: boolean;
     suppressClick: boolean;
+    /** 겹친 예약을 나눠 놓을 때의 칸. 없으면 지금까지처럼 가로 전체를 쓴다. */
+    lane?: TimelineLane;
     onClick: (event: React.MouseEvent) => void;
     onMouseDragStart?: (event: React.MouseEvent<HTMLElement>) => void;
     onTouchDragStart?: (event: React.TouchEvent<HTMLElement>) => void;
@@ -48,6 +51,7 @@ export function TimelineReservationCard({
     serviceColorMap,
     hideOriginalBlock,
     suppressClick,
+    lane,
     onClick,
     onMouseDragStart,
     onTouchDragStart,
@@ -64,6 +68,8 @@ export function TimelineReservationCard({
             // 드래그 중엔 hover 확장을 끈다 — 끌고 있는 카드가 커서 아래에서 커졌다 작아지면 조준이 흔들린다.
             data-dragging={preview ? 'true' : undefined}
             style={hideOriginalBlock ? {visibility: 'hidden'} : undefined}
+            // 드래그 중엔 칸을 풀어 원래 폭으로 — 끌고 가는 곳의 겹침은 아직 계산되지 않았다.
+            $lane={preview ? undefined : lane}
             $position="absolute"
             $top={preview?.top ?? blockTop}
             $height={blockHeight}
