@@ -85,7 +85,15 @@ export const Timeline = ({
     // 카드/현재시간 바/클러스터의 세로 위치 오프셋. 축 눈금선(행 높이 50px의 중앙=+25)에 맞춤.
     // ⚠️ timelineInteractions.ts의 동일 상수와 반드시 일치시킬 것(클릭 역변환이 같은 좌표계).
     const blockOffset = type === ViewType.Day ? 55 : 25;
-    const timelineEntries = useMemo(() => buildTimelineEntries(reservations), [reservations]);
+    // 좁은 화면에서만 겹침을 나눠 낸다. CSS 로는 판단할 수 없다 — 접을지 말지가
+    // 스타일이 아니라 buildTimelineEntries 의 JS 분기이기 때문. (아래 effect 가 구독)
+    const [isNarrow, setIsNarrow] = useState(false);
+    // 주 뷰는 하루가 7칼럼 중 하나라 나누면 읽을 수 없다 — 일 뷰에서만 나눈다.
+    const splitUpTo = isNarrow && type === ViewType.Day ? 2 : 0;
+    const timelineEntries = useMemo(
+        () => buildTimelineEntries(reservations, {splitUpTo}),
+        [reservations, splitUpTo]
+    );
 
     // 현재시간 바: 렌더 1회 계산 + CSS 애니메이션에 의존하면 백그라운드 탭 스로틀·절전 이후
     // 애니메이션이 실제 경과만큼 진행되지 않아 바가 과거 시각에 멈춘다.
@@ -204,6 +212,22 @@ export const Timeline = ({
         return () => mediaQuery.removeListener(update);
     }, []);
 
+    useEffect(() => {
+        if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return;
+
+        const mediaQuery = window.matchMedia('(max-width: 640px)');
+        const update = () => setIsNarrow(mediaQuery.matches);
+        update();
+
+        if (typeof mediaQuery.addEventListener === 'function') {
+            mediaQuery.addEventListener('change', update);
+            return () => mediaQuery.removeEventListener('change', update);
+        }
+
+        mediaQuery.addListener(update);
+        return () => mediaQuery.removeListener(update);
+    }, []);
+
     const setMousePositionHandler = (e: React.MouseEvent<HTMLElement>) => {
         if (isTouchDevice) return;
         const target = e.target as HTMLElement | null;
@@ -292,6 +316,7 @@ export const Timeline = ({
                     serviceColorMap={serviceColorMap}
                     hideOriginalBlock={hideOriginalBlock}
                     suppressClick={suppressCreateClick}
+                    lane={entry.lane}
                     onClick={() => openReservationDetail(r)}
                     onMouseDragStart={(e) => startMouseDrag(e, r, durationMinutes, blockTop, blockHeight)}
                     onTouchDragStart={(e) => startTouchDrag(e, r, durationMinutes, blockTop, blockHeight)}
