@@ -11,10 +11,7 @@ type TimelineClusterProps = {
     blockHeight: number;
     assigneeColorMap: Record<number, string>;
     assigneeNameById: (assigneeId?: number) => string;
-    /**
-     * 담당자 배지를 그리지 않는다. 한 칸이 약 47px 인 모바일 주 뷰용 —
-     * 이름표가 칸을 넘겨 "2건예약" 까지 세로로 쪼갠다. 담당자 색은 예약을 펼쳐 보면 드러난다.
-     */
+    /** 담당자 배지를 뺀다 — 칸이 좁아 이름표가 "N건예약" 까지 밀어낼 때. */
     hideAssignees?: boolean;
     onToggle: () => void;
 };
