@@ -540,10 +540,23 @@ export const StyledSimilarList = styled.ul`
 
 export const StyledSimilarRow = styled.li`
     display: flex;
-    align-items: center;
-    gap: var(--gap-sm);
+    flex-direction: column;
+    gap: 2px;
     font-size: var(--small-font);
     color: var(--dark-gray-color);
+`;
+
+export const StyledSimilarHead = styled.div`
+    display: flex;
+    align-items: center;
+    gap: var(--gap-sm);
+`;
+
+/* 이름·번호만으로는 어느 쪽이 실제로 쓰이는 레코드인지 알 수 없다.
+   예약 건수·최근 방문·적립금이 그 판단의 근거다. */
+export const StyledSimilarMeta = styled.p`
+    font-size: var(--tiny-font);
+    color: var(--dark-gray-color2);
 `;
 
 export const StyledSimilarName = styled.span`

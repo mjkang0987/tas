@@ -19,6 +19,7 @@ import {buildAssigneeColorMap, buildAssigneeNameMap} from '../../../utils/assign
 import {buildServiceColorMap, formatPrice} from '../../../utils/services';
 import {formatTel, normalizeTel, toCustomerMap} from '../../../utils/customers';
 import {findSimilarCustomers} from '../../../features/customers/similar';
+import {summarizeCustomerReservations} from '../../../features/customers/merge-suggestion';
 import {shouldUseLocalDb} from '../../../lib/local-db';
 import type {Customer as CustomerType} from '../../../utils/customers';
 import {useCalendarStore} from '../../../store/calendarStore';
@@ -55,6 +56,8 @@ import {
     StyledSimilarTitle,
     StyledSimilarList,
     StyledSimilarRow,
+    StyledSimilarHead,
+    StyledSimilarMeta,
     StyledSimilarName,
     StyledSimilarTel,
     StyledSimilarReason,
@@ -131,6 +134,12 @@ export const CustomerDetail = ({customer, reservationMap, onClose, onReservation
             })
             : []
     ), [isEditing, customerMap, customer.id, editForm.name, editForm.tel]);
+
+    // 후보마다 예약을 따로 훑지 않는다 — 예약 맵을 한 번만 지나며 건수·최근 예약을 낸다.
+    const similarSummary = useMemo(
+        () => summarizeCustomerReservations(similarCustomers.map((m) => m.customer.id), reservationMap),
+        [similarCustomers, reservationMap],
+    );
     const setReservationMap = useCalendarStore((s) => s.setReservationMap);
     const {data: session} = useSession();
     const isOwner = session?.user?.role === 'owner';
@@ -420,16 +429,24 @@ export const CustomerDetail = ({customer, reservationMap, onClose, onReservation
                             <StyledSimilarSection aria-live="polite" hidden={similarCustomers.length === 0}>
                                 <StyledSimilarTitle>비슷한 고객</StyledSimilarTitle>
                                 <StyledSimilarList>
-                                    {similarCustomers.map(({customer: c, matchedBy}) => (
-                                        <StyledSimilarRow key={c.id}>
-                                            <StyledSimilarName>{c.name}</StyledSimilarName>
-                                            <StyledSimilarTel>{formatTel(c.tel)}</StyledSimilarTel>
-                                            <StyledSimilarReason>
-                                                {matchedBy.tel && matchedBy.name ? '이름·번호'
-                                                    : matchedBy.tel ? '번호' : '이름'}
-                                            </StyledSimilarReason>
-                                        </StyledSimilarRow>
-                                    ))}
+                                    {similarCustomers.map(({customer: c, matchedBy}) => {
+                                        const {count, last} = similarSummary[c.id] ?? {count: 0, last: null};
+                                        return (
+                                            <StyledSimilarRow key={c.id}>
+                                                <StyledSimilarHead>
+                                                    <StyledSimilarName>{c.name}</StyledSimilarName>
+                                                    <StyledSimilarTel>{c.tel ? formatTel(c.tel) : '연락처 없음'}</StyledSimilarTel>
+                                                    <StyledSimilarReason>
+                                                        {matchedBy.tel && matchedBy.name ? '이름·번호'
+                                                            : matchedBy.tel ? '번호' : '이름'}
+                                                    </StyledSimilarReason>
+                                                </StyledSimilarHead>
+                                                <StyledSimilarMeta>
+                                                    {`예약 ${count}건 · 최근 ${last ? last.date.replace(/-/g, '.') : '없음'} · 적립금 ${formatPrice(c.points ?? 0)}`}
+                                                </StyledSimilarMeta>
+                                            </StyledSimilarRow>
+                                        );
+                                    })}
                                 </StyledSimilarList>
                             </StyledSimilarSection>
                             {dupWarning && (
