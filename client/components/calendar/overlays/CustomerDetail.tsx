@@ -417,23 +417,21 @@ export const CustomerDetail = ({customer, reservationMap, onClose, onReservation
                                 />
                             </StyledEditFieldLabel>
                             <StyledPointInfo>적립금 {formatPrice(customer.points ?? 0)}</StyledPointInfo>
-                            {similarCustomers.length > 0 && (
-                                <StyledSimilarSection aria-live="polite">
-                                    <StyledSimilarTitle>비슷한 고객</StyledSimilarTitle>
-                                    <StyledSimilarList>
-                                        {similarCustomers.map(({customer: c, matchedBy}) => (
-                                            <StyledSimilarRow key={c.id}>
-                                                <StyledSimilarName>{c.name}</StyledSimilarName>
-                                                <StyledSimilarTel>{formatTel(c.tel)}</StyledSimilarTel>
-                                                <StyledSimilarReason>
-                                                    {matchedBy.tel && matchedBy.name ? '이름·번호'
-                                                        : matchedBy.tel ? '번호' : '이름'}
-                                                </StyledSimilarReason>
-                                            </StyledSimilarRow>
-                                        ))}
-                                    </StyledSimilarList>
-                                </StyledSimilarSection>
-                            )}
+                            <StyledSimilarSection aria-live="polite" hidden={similarCustomers.length === 0}>
+                                <StyledSimilarTitle>비슷한 고객</StyledSimilarTitle>
+                                <StyledSimilarList>
+                                    {similarCustomers.map(({customer: c, matchedBy}) => (
+                                        <StyledSimilarRow key={c.id}>
+                                            <StyledSimilarName>{c.name}</StyledSimilarName>
+                                            <StyledSimilarTel>{formatTel(c.tel)}</StyledSimilarTel>
+                                            <StyledSimilarReason>
+                                                {matchedBy.tel && matchedBy.name ? '이름·번호'
+                                                    : matchedBy.tel ? '번호' : '이름'}
+                                            </StyledSimilarReason>
+                                        </StyledSimilarRow>
+                                    ))}
+                                </StyledSimilarList>
+                            </StyledSimilarSection>
                             {dupWarning && (
                                 <StyledDupWarning role="alert">
                                     <StyledDupWarningText>
