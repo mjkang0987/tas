@@ -18,6 +18,7 @@ import {
 import {buildAssigneeColorMap, buildAssigneeNameMap} from '../../../utils/assignees';
 import {buildServiceColorMap, formatPrice} from '../../../utils/services';
 import {formatTel, normalizeTel, toCustomerMap} from '../../../utils/customers';
+import {findSimilarCustomers} from '../../../features/customers/similar';
 import {shouldUseLocalDb} from '../../../lib/local-db';
 import type {Customer as CustomerType} from '../../../utils/customers';
 import {useCalendarStore} from '../../../store/calendarStore';
@@ -50,6 +51,13 @@ import {
     StyledEditFieldLabelText,
     StyledEditFieldInput,
     StyledPointInfo,
+    StyledSimilarSection,
+    StyledSimilarTitle,
+    StyledSimilarList,
+    StyledSimilarRow,
+    StyledSimilarName,
+    StyledSimilarTel,
+    StyledSimilarReason,
     StyledDupWarning,
     StyledDupWarningText,
     StyledDupWarningActions,
@@ -110,6 +118,19 @@ export const CustomerDetail = ({customer, reservationMap, onClose, onReservation
     const deleteCustomer = useCalendarStore((s) => s.deleteCustomer);
     const setCustomerMap = useCalendarStore((s) => s.setCustomerMap);
     const customerMap = useCalendarStore((s) => s.customerMap);
+
+    // 수정 중에만 계산한다. 저장 시 중복 경고(dupWarning)는 번호 완전 일치만 보므로,
+    // 입력 도중에 이름·번호 부분 일치로 같은 사람을 먼저 알아채라고 두는 것이다.
+    const similarCustomers = useMemo(() => (
+        isEditing
+            ? findSimilarCustomers({
+                customers: Object.values(customerMap),
+                excludeId: customer.id,
+                name: editForm.name,
+                tel: editForm.tel,
+            })
+            : []
+    ), [isEditing, customerMap, customer.id, editForm.name, editForm.tel]);
     const setReservationMap = useCalendarStore((s) => s.setReservationMap);
     const {data: session} = useSession();
     const isOwner = session?.user?.role === 'owner';
@@ -396,6 +417,23 @@ export const CustomerDetail = ({customer, reservationMap, onClose, onReservation
                                 />
                             </StyledEditFieldLabel>
                             <StyledPointInfo>적립금 {formatPrice(customer.points ?? 0)}</StyledPointInfo>
+                            {similarCustomers.length > 0 && (
+                                <StyledSimilarSection aria-live="polite">
+                                    <StyledSimilarTitle>비슷한 고객</StyledSimilarTitle>
+                                    <StyledSimilarList>
+                                        {similarCustomers.map(({customer: c, matchedBy}) => (
+                                            <StyledSimilarRow key={c.id}>
+                                                <StyledSimilarName>{c.name}</StyledSimilarName>
+                                                <StyledSimilarTel>{formatTel(c.tel)}</StyledSimilarTel>
+                                                <StyledSimilarReason>
+                                                    {matchedBy.tel && matchedBy.name ? '이름·번호'
+                                                        : matchedBy.tel ? '번호' : '이름'}
+                                                </StyledSimilarReason>
+                                            </StyledSimilarRow>
+                                        ))}
+                                    </StyledSimilarList>
+                                </StyledSimilarSection>
+                            )}
                             {dupWarning && (
                                 <StyledDupWarning role="alert">
                                     <StyledDupWarningText>

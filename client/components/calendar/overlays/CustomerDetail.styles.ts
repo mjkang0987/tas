@@ -508,3 +508,53 @@ export const StyledUnmergeFooter = styled.div`
     border-top: 1px solid rgba(148, 163, 184, 0.16);
 `;
 
+/* 수정 중 하단에 뜨는 "비슷한 고객" — 저장 전에 같은 사람을 알아채라고 두는 자리다.
+   저장 시 중복 경고(StyledDupWarning)가 경고 톤인 것과 달리 여기는 정보 톤을 쓴다. */
+export const StyledSimilarSection = styled.section`
+    display: flex;
+    flex-direction: column;
+    gap: var(--gap-xs);
+    padding: var(--gap-md);
+    border: 1px solid var(--info-border);
+    border-radius: var(--radius-md);
+    background-color: var(--info-bg);
+`;
+
+export const StyledSimilarTitle = styled.h3`
+    font-size: var(--small-font);
+    font-weight: 700;
+    color: var(--info-color);
+`;
+
+export const StyledSimilarList = styled.ul`
+    display: flex;
+    flex-direction: column;
+    gap: var(--gap-xs);
+`;
+
+export const StyledSimilarRow = styled.li`
+    display: flex;
+    align-items: center;
+    gap: var(--gap-sm);
+    font-size: var(--small-font);
+    color: var(--dark-gray-color);
+`;
+
+export const StyledSimilarName = styled.span`
+    font-weight: 600;
+`;
+
+export const StyledSimilarTel = styled.span`
+    color: var(--dark-gray-color2);
+`;
+
+/* 무엇이 걸렸는지 — 번호가 같으면 대개 같은 사람이고, 이름만이면 동명이인일 수 있다. */
+export const StyledSimilarReason = styled.span`
+    margin-left: auto;
+    padding: 1px var(--gap-sm);
+    border-radius: var(--chip-radius);
+    background-color: var(--white-color);
+    color: var(--info-color);
+    font-size: var(--tiny-font);
+    font-weight: 700;
+`;
