@@ -555,17 +555,32 @@ export const StyledSimilarList = styled.ul`
     gap: var(--gap-sm);
 `;
 
-/* 후보 하나당 흰 카드. 줄 간격만으로는 어디서 한 사람이 끝나는지 읽히지 않는다 —
-   이름줄과 메타줄이 붙어 있어 옆 후보의 메타줄과 구분이 안 됐다. */
 export const StyledSimilarRow = styled.li`
     display: flex;
+`;
+
+/* 후보 하나당 카드. 줄 간격만으로는 어디서 한 사람이 끝나는지 읽히지 않는다 —
+   이름줄과 메타줄이 붙어 있어 옆 후보의 메타줄과 구분이 안 됐다.
+   고를 수 있을 때는 버튼으로 동작한다(전역 스타일이 hover·active 를 이미 준다).
+   게스트 모드는 병합 API 가 없어 고를 수 없고, 그때는 알림 카드로만 둔다. */
+export const StyledSimilarButton = styled.button<{ $selectable: boolean }>`
+    flex: 1;
+    display: flex;
     flex-direction: column;
+    align-items: flex-start;
     gap: var(--gap-xs);
     padding: var(--gap-sm) var(--gap-md);
+    border: none;
     border-radius: var(--radius-md);
     background-color: var(--info-bg);
     font-size: var(--small-font);
     color: var(--dark-gray-color);
+    text-align: left;
+    cursor: ${props => props.$selectable ? 'pointer' : 'default'};
+
+    &:disabled {
+        opacity: 1;
+    }
 `;
 
 export const StyledSimilarHead = styled.div`
