@@ -519,10 +519,10 @@ export const StyledSimilarSection = styled.section`
 
     display: flex;
     flex-direction: column;
-    gap: var(--gap-xs);
-    padding: var(--gap-md);
+    gap: var(--gap-md);
+    padding: var(--gap-lg);
     border: 1px solid var(--info-border);
-    border-radius: var(--radius-md);
+    border-radius: var(--radius-lg);
     background-color: var(--info-bg);
 `;
 
@@ -535,13 +535,18 @@ export const StyledSimilarTitle = styled.h3`
 export const StyledSimilarList = styled.ul`
     display: flex;
     flex-direction: column;
-    gap: var(--gap-xs);
+    gap: var(--gap-sm);
 `;
 
+/* 후보 하나당 흰 카드. 줄 간격만으로는 어디서 한 사람이 끝나는지 읽히지 않는다 —
+   이름줄과 메타줄이 붙어 있어 옆 후보의 메타줄과 구분이 안 됐다. */
 export const StyledSimilarRow = styled.li`
     display: flex;
     flex-direction: column;
-    gap: 2px;
+    gap: var(--gap-xs);
+    padding: var(--gap-sm) var(--gap-md);
+    border-radius: var(--radius-md);
+    background-color: var(--white-color);
     font-size: var(--small-font);
     color: var(--dark-gray-color);
 `;
@@ -552,28 +557,31 @@ export const StyledSimilarHead = styled.div`
     gap: var(--gap-sm);
 `;
 
-/* 이름·번호만으로는 어느 쪽이 실제로 쓰이는 레코드인지 알 수 없다.
-   예약 건수·최근 방문·적립금이 그 판단의 근거다. */
-export const StyledSimilarMeta = styled.p`
-    font-size: var(--tiny-font);
-    color: var(--dark-gray-color2);
-`;
-
 export const StyledSimilarName = styled.span`
-    font-weight: 600;
+    font-weight: 700;
+    color: var(--black-color);
 `;
 
 export const StyledSimilarTel = styled.span`
     color: var(--dark-gray-color2);
 `;
 
+/* 이름·번호만으로는 어느 쪽이 실제로 쓰이는 레코드인지 알 수 없다.
+   예약 건수·최근 방문·적립금이 그 판단의 근거다. */
+export const StyledSimilarMeta = styled.p`
+    font-size: var(--xsmall-font);
+    color: var(--dark-gray-color2);
+`;
+
 /* 무엇이 걸렸는지 — 번호가 같으면 대개 같은 사람이고, 이름만이면 동명이인일 수 있다. */
 export const StyledSimilarReason = styled.span`
+    flex-shrink: 0;
     margin-left: auto;
-    padding: 1px var(--gap-sm);
+    padding: var(--chip-padding);
     border-radius: var(--chip-radius);
-    background-color: var(--white-color);
+    background-color: var(--info-bg);
     color: var(--info-color);
     font-size: var(--tiny-font);
     font-weight: 700;
+    line-height: 1;
 `;
