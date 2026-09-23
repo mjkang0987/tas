@@ -519,14 +519,16 @@ export const StyledSimilarSection = styled.section`
 
     display: flex;
     flex-direction: column;
-    gap: var(--gap-md);
-    padding: var(--gap-lg);
+    gap: var(--gap-sm);
+    padding: var(--gap-md) var(--gap-lg) var(--gap-lg);
     border: 1px solid var(--info-border);
     border-radius: var(--radius-lg);
     background-color: var(--info-bg);
 `;
 
 export const StyledSimilarTitle = styled.h3`
+    /* 전역 리셋(globalStyle.ts)의 margin:0 목록에 h3 가 빠져 있어 UA 기본 여백이 그대로 먹는다. */
+    margin: 0;
     font-size: var(--small-font);
     font-weight: 700;
     color: var(--info-color);
@@ -573,15 +575,3 @@ export const StyledSimilarMeta = styled.p`
     color: var(--dark-gray-color2);
 `;
 
-/* 무엇이 걸렸는지 — 번호가 같으면 대개 같은 사람이고, 이름만이면 동명이인일 수 있다. */
-export const StyledSimilarReason = styled.span`
-    flex-shrink: 0;
-    margin-left: auto;
-    padding: var(--chip-padding);
-    border-radius: var(--chip-radius);
-    background-color: var(--info-bg);
-    color: var(--info-color);
-    font-size: var(--tiny-font);
-    font-weight: 700;
-    line-height: 1;
-`;

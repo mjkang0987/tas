@@ -60,7 +60,6 @@ import {
     StyledSimilarMeta,
     StyledSimilarName,
     StyledSimilarTel,
-    StyledSimilarReason,
     StyledDupWarning,
     StyledDupWarningText,
     StyledDupWarningActions,
@@ -429,17 +428,13 @@ export const CustomerDetail = ({customer, reservationMap, onClose, onReservation
                             <StyledSimilarSection aria-live="polite" hidden={similarCustomers.length === 0}>
                                 <StyledSimilarTitle>비슷한 고객</StyledSimilarTitle>
                                 <StyledSimilarList>
-                                    {similarCustomers.map(({customer: c, matchedBy}) => {
+                                    {similarCustomers.map(({customer: c}) => {
                                         const {count, last} = similarSummary[c.id] ?? {count: 0, last: null};
                                         return (
                                             <StyledSimilarRow key={c.id}>
                                                 <StyledSimilarHead>
                                                     <StyledSimilarName>{c.name}</StyledSimilarName>
                                                     <StyledSimilarTel>{c.tel ? formatTel(c.tel) : '연락처 없음'}</StyledSimilarTel>
-                                                    <StyledSimilarReason>
-                                                        {matchedBy.tel && matchedBy.name ? '이름·번호'
-                                                            : matchedBy.tel ? '번호' : '이름'}
-                                                    </StyledSimilarReason>
                                                 </StyledSimilarHead>
                                                 <StyledSimilarMeta>
                                                     {`예약 ${count}건 · 최근 ${last ? last.date.replace(/-/g, '.') : '없음'} · 적립금 ${formatPrice(c.points ?? 0)}`}
