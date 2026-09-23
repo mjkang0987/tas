@@ -52,6 +52,7 @@ import {
     StyledEditFieldLabelText,
     StyledEditFieldInput,
     StyledPointInfo,
+    StyledSimilarAnchor,
     StyledSimilarSection,
     StyledSimilarTitle,
     StyledSimilarList,
@@ -415,35 +416,39 @@ export const CustomerDetail = ({customer, reservationMap, onClose, onReservation
                                     onChange={(e) => handleFieldChange('name', e.target.value)}
                                 />
                             </StyledEditFieldLabel>
-                            <StyledEditFieldLabel htmlFor="customer-edit-tel">
-                                <StyledEditFieldLabelText>연락처</StyledEditFieldLabelText>
-                                <StyledEditFieldInput
-                                    id="customer-edit-tel"
-                                    type="text"
-                                    value={editForm.tel}
-                                    onChange={(e) => handleFieldChange('tel', e.target.value)}
-                                />
-                            </StyledEditFieldLabel>
+                            {/* 추천은 연락처 칸에 걸어 띄운다 — 이름·번호 둘 다로 찾지만
+                                더 강한 신호가 번호이고, 아래로 펼칠 자리가 여기뿐이다. */}
+                            <StyledSimilarAnchor>
+                                <StyledEditFieldLabel htmlFor="customer-edit-tel">
+                                    <StyledEditFieldLabelText>연락처</StyledEditFieldLabelText>
+                                    <StyledEditFieldInput
+                                        id="customer-edit-tel"
+                                        type="text"
+                                        value={editForm.tel}
+                                        onChange={(e) => handleFieldChange('tel', e.target.value)}
+                                    />
+                                </StyledEditFieldLabel>
+                                <StyledSimilarSection aria-live="polite" hidden={similarCustomers.length === 0}>
+                                    <StyledSimilarTitle>비슷한 고객</StyledSimilarTitle>
+                                    <StyledSimilarList>
+                                        {similarCustomers.map(({customer: c}) => {
+                                            const {count, last} = similarSummary[c.id] ?? {count: 0, last: null};
+                                            return (
+                                                <StyledSimilarRow key={c.id}>
+                                                    <StyledSimilarHead>
+                                                        <StyledSimilarName>{c.name}</StyledSimilarName>
+                                                        <StyledSimilarTel>{c.tel ? formatTel(c.tel) : '연락처 없음'}</StyledSimilarTel>
+                                                    </StyledSimilarHead>
+                                                    <StyledSimilarMeta>
+                                                        {`예약 ${count}건 · 최근 ${last ? last.date.replace(/-/g, '.') : '없음'} · 적립금 ${formatPrice(c.points ?? 0)}`}
+                                                    </StyledSimilarMeta>
+                                                </StyledSimilarRow>
+                                            );
+                                        })}
+                                    </StyledSimilarList>
+                                </StyledSimilarSection>
+                            </StyledSimilarAnchor>
                             <StyledPointInfo>적립금 {formatPrice(customer.points ?? 0)}</StyledPointInfo>
-                            <StyledSimilarSection aria-live="polite" hidden={similarCustomers.length === 0}>
-                                <StyledSimilarTitle>비슷한 고객</StyledSimilarTitle>
-                                <StyledSimilarList>
-                                    {similarCustomers.map(({customer: c}) => {
-                                        const {count, last} = similarSummary[c.id] ?? {count: 0, last: null};
-                                        return (
-                                            <StyledSimilarRow key={c.id}>
-                                                <StyledSimilarHead>
-                                                    <StyledSimilarName>{c.name}</StyledSimilarName>
-                                                    <StyledSimilarTel>{c.tel ? formatTel(c.tel) : '연락처 없음'}</StyledSimilarTel>
-                                                </StyledSimilarHead>
-                                                <StyledSimilarMeta>
-                                                    {`예약 ${count}건 · 최근 ${last ? last.date.replace(/-/g, '.') : '없음'} · 적립금 ${formatPrice(c.points ?? 0)}`}
-                                                </StyledSimilarMeta>
-                                            </StyledSimilarRow>
-                                        );
-                                    })}
-                                </StyledSimilarList>
-                            </StyledSimilarSection>
                             {dupWarning && (
                                 <StyledDupWarning role="alert">
                                     <StyledDupWarningText>

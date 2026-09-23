@@ -510,6 +510,11 @@ export const StyledUnmergeFooter = styled.div`
 
 /* 수정 중 하단에 뜨는 "비슷한 고객" — 저장 전에 같은 사람을 알아채라고 두는 자리다.
    저장 시 중복 경고(StyledDupWarning)가 경고 톤인 것과 달리 여기는 정보 톤을 쓴다. */
+/* 추천 레이어의 기준점. 연락처 입력칸을 감싸 그 아래로 띄운다. */
+export const StyledSimilarAnchor = styled.div`
+    position: relative;
+`;
+
 export const StyledSimilarSection = styled.section`
     /* 라이브 리전은 항상 DOM 에 있어야 내용 변화가 읽힌다(ToastContainer 와 같은 규약).
        비었을 때는 hidden 으로 감춘다 — display:flex 가 UA 의 [hidden] 을 덮으므로 다시 눌러준다. */
@@ -517,13 +522,23 @@ export const StyledSimilarSection = styled.section`
         display: none;
     }
 
+    /* 흐름에서 빼 입력칸 아래로 띄운다 — 아래 내용을 밀어내지 않고,
+       입력칸 자신은 가리지 않는다. 딤 배경은 두지 않는다(타이핑이 끊긴다). */
+    position: absolute;
+    top: calc(100% + var(--gap-xs));
+    left: 0;
+    right: 0;
+    z-index: 3;
+
     display: flex;
     flex-direction: column;
     gap: var(--gap-sm);
     padding: var(--gap-md) var(--gap-lg) var(--gap-lg);
     border: 1px solid var(--info-border);
     border-radius: var(--radius-lg);
-    background-color: var(--info-bg);
+    /* 떠 있으므로 뒤 내용이 비치면 안 된다 — 반투명 --info-bg 대신 불투명 흰 바탕. */
+    background-color: var(--white-color);
+    box-shadow: var(--shadow-md);
 `;
 
 export const StyledSimilarTitle = styled.h3`
@@ -548,7 +563,7 @@ export const StyledSimilarRow = styled.li`
     gap: var(--gap-xs);
     padding: var(--gap-sm) var(--gap-md);
     border-radius: var(--radius-md);
-    background-color: var(--white-color);
+    background-color: var(--info-bg);
     font-size: var(--small-font);
     color: var(--dark-gray-color);
 `;
