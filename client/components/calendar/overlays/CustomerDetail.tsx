@@ -18,6 +18,8 @@ import {
 import {buildAssigneeColorMap, buildAssigneeNameMap} from '../../../utils/assignees';
 import {buildServiceColorMap, formatPrice} from '../../../utils/services';
 import {formatTel, normalizeTel, toCustomerMap} from '../../../utils/customers';
+import {findSimilarCustomers} from '../../../features/customers/similar';
+import {summarizeCustomerReservations} from '../../../features/customers/merge-suggestion';
 import {shouldUseLocalDb} from '../../../lib/local-db';
 import type {Customer as CustomerType} from '../../../utils/customers';
 import {useCalendarStore} from '../../../store/calendarStore';
@@ -50,6 +52,16 @@ import {
     StyledEditFieldLabelText,
     StyledEditFieldInput,
     StyledPointInfo,
+    StyledSimilarAnchor,
+    StyledSimilarSection,
+    StyledSimilarTitle,
+    StyledSimilarList,
+    StyledSimilarRow,
+    StyledSimilarButton,
+    StyledSimilarHead,
+    StyledSimilarMeta,
+    StyledSimilarName,
+    StyledSimilarTel,
     StyledDupWarning,
     StyledDupWarningText,
     StyledDupWarningActions,
@@ -103,6 +115,8 @@ export const CustomerDetail = ({customer, reservationMap, onClose, onReservation
     // 수정 저장 시 같은 번호를 쓰는 다른 고객이 있으면 여기 담아 경고·병합 유도.
     const [dupWarning, setDupWarning] = useState<{match: Customer; name: string; tel: string} | null>(null);
     const [isMergingDup, setIsMergingDup] = useState(false);
+    // 추천 레이어에서 고른 고객. 병합은 되돌리기가 있어도 레코드를 정리하므로 반드시 확인을 받는다.
+    const [similarMergeTarget, setSimilarMergeTarget] = useState<Customer | null>(null);
     const serviceCatalog = useCalendarStore((s) => s.serviceCatalog);
     const categoryBaseColorMap = useCalendarStore((s) => s.categoryBaseColorMap);
     const assignees = useCalendarStore((s) => s.assignees);
@@ -110,6 +124,29 @@ export const CustomerDetail = ({customer, reservationMap, onClose, onReservation
     const deleteCustomer = useCalendarStore((s) => s.deleteCustomer);
     const setCustomerMap = useCalendarStore((s) => s.setCustomerMap);
     const customerMap = useCalendarStore((s) => s.customerMap);
+
+    // 수정 중에만 계산한다. 저장 시 중복 경고(dupWarning)는 번호 완전 일치만 보므로,
+    // 입력 도중에 이름·번호 부분 일치로 같은 사람을 먼저 알아채라고 두는 것이다.
+    const similarCustomers = useMemo(() => (
+        isEditing
+            ? findSimilarCustomers({
+                customers: Object.values(customerMap),
+                excludeId: customer.id,
+                name: editForm.name,
+                tel: editForm.tel,
+            })
+            : []
+    ), [isEditing, customerMap, customer.id, editForm.name, editForm.tel]);
+
+    // 병합 API 는 서버가 필요하다. 게스트 모드에서는 고를 수 없고 알림 역할만 한다
+    // (저장 시 중복 경고의 병합 버튼도 같은 게이트를 쓴다).
+    const canMergeSimilar = !shouldUseLocalDb();
+
+    // 후보마다 예약을 따로 훑지 않는다 — 예약 맵을 한 번만 지나며 건수·최근 예약을 낸다.
+    const similarSummary = useMemo(
+        () => summarizeCustomerReservations(similarCustomers.map((m) => m.customer.id), reservationMap),
+        [similarCustomers, reservationMap],
+    );
     const setReservationMap = useCalendarStore((s) => s.setReservationMap);
     const {data: session} = useSession();
     const isOwner = session?.user?.role === 'owner';
@@ -289,17 +326,18 @@ export const CustomerDetail = ({customer, reservationMap, onClose, onReservation
         commitEdit(nextName, nextTel);
     };
 
-    // "같은 분이에요" → 편집 중 고객을 기존 번호 보유 고객으로 병합.
-    // target = 기존 번호 보유 고객, source = 현재(편집 중) 고객. 예약·포인트·메모 이전 후
+    // "같은 분이에요" → 편집 중 고객을 다른 고객으로 병합.
+    // target = 남길 고객, source = 현재(편집 중) 고객. 예약·포인트·메모 이전 후
     // source 삭제(분리로 복원 가능). 현재 레이어의 고객은 사라지므로 병합 후 닫는다.
-    const handleMergeDuplicate = async () => {
-        if (!dupWarning || isMergingDup) return;
+    // 저장 시 중복 경고와 추천 레이어가 같은 경로를 쓴다 — 들어온 곳만 다르다.
+    const mergeIntoCustomer = async (targetId: number) => {
+        if (isMergingDup) return;
         setIsMergingDup(true);
         try {
             const res = await fetch('/api/customers/merge', {
                 method: 'POST',
                 headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({sourceIds: [customer.id], targetId: dupWarning.match.id}),
+                body: JSON.stringify({sourceIds: [customer.id], targetId}),
             });
 
             if (!res.ok) {
@@ -324,6 +362,7 @@ export const CustomerDetail = ({customer, reservationMap, onClose, onReservation
 
             toast('병합 완료', 'success');
             setDupWarning(null);
+            setSimilarMergeTarget(null);
             onClose();
         } catch {
             toast('병합 중 네트워크 오류가 발생했습니다.', 'error');
@@ -386,15 +425,43 @@ export const CustomerDetail = ({customer, reservationMap, onClose, onReservation
                                     onChange={(e) => handleFieldChange('name', e.target.value)}
                                 />
                             </StyledEditFieldLabel>
-                            <StyledEditFieldLabel htmlFor="customer-edit-tel">
-                                <StyledEditFieldLabelText>연락처</StyledEditFieldLabelText>
-                                <StyledEditFieldInput
-                                    id="customer-edit-tel"
-                                    type="text"
-                                    value={editForm.tel}
-                                    onChange={(e) => handleFieldChange('tel', e.target.value)}
-                                />
-                            </StyledEditFieldLabel>
+                            {/* 추천은 연락처 칸에 걸어 띄운다 — 이름·번호 둘 다로 찾지만
+                                더 강한 신호가 번호이고, 아래로 펼칠 자리가 여기뿐이다. */}
+                            <StyledSimilarAnchor>
+                                <StyledEditFieldLabel htmlFor="customer-edit-tel">
+                                    <StyledEditFieldLabelText>연락처</StyledEditFieldLabelText>
+                                    <StyledEditFieldInput
+                                        id="customer-edit-tel"
+                                        type="text"
+                                        value={editForm.tel}
+                                        onChange={(e) => handleFieldChange('tel', e.target.value)}
+                                    />
+                                </StyledEditFieldLabel>
+                                <StyledSimilarSection aria-live="polite" hidden={similarCustomers.length === 0}>
+                                    <StyledSimilarTitle>비슷한 고객</StyledSimilarTitle>
+                                    <StyledSimilarList>
+                                        {similarCustomers.map(({customer: c}) => {
+                                            const {count, last} = similarSummary[c.id] ?? {count: 0, last: null};
+                                            return (
+                                                <StyledSimilarRow key={c.id}>
+                                                    <StyledSimilarButton type="button"
+                                                                         disabled={canMergeSimilar ? isMergingDup : true}
+                                                                         $selectable={canMergeSimilar}
+                                                                         onClick={() => setSimilarMergeTarget(c)}>
+                                                        <StyledSimilarHead>
+                                                            <StyledSimilarName>{c.name}</StyledSimilarName>
+                                                            <StyledSimilarTel>{c.tel ? formatTel(c.tel) : '연락처 없음'}</StyledSimilarTel>
+                                                        </StyledSimilarHead>
+                                                        <StyledSimilarMeta>
+                                                            {`예약 ${count}건 · 최근 ${last ? last.date.replace(/-/g, '.') : '없음'} · 적립금 ${formatPrice(c.points ?? 0)}`}
+                                                        </StyledSimilarMeta>
+                                                    </StyledSimilarButton>
+                                                </StyledSimilarRow>
+                                            );
+                                        })}
+                                    </StyledSimilarList>
+                                </StyledSimilarSection>
+                            </StyledSimilarAnchor>
                             <StyledPointInfo>적립금 {formatPrice(customer.points ?? 0)}</StyledPointInfo>
                             {dupWarning && (
                                 <StyledDupWarning role="alert">
@@ -406,7 +473,7 @@ export const CustomerDetail = ({customer, reservationMap, onClose, onReservation
                                             <StyledDupWarningButton type="button"
                                                                     $variant="merge"
                                                                     disabled={isMergingDup}
-                                                                    onClick={handleMergeDuplicate}>
+                                                                    onClick={() => mergeIntoCustomer(dupWarning.match.id)}>
                                                 {isMergingDup ? '병합 중…' : `${dupWarning.match.name} 고객과 병합`}
                                             </StyledDupWarningButton>
                                         )}
@@ -510,6 +577,17 @@ export const CustomerDetail = ({customer, reservationMap, onClose, onReservation
                            onClose();
                        }}
                        onClose={() => setIsDeleteConfirm(false)} />
+    )}
+    {similarMergeTarget && (
+        <ConfirmDialog title="고객 병합"
+                       message={`${customer.name} 고객과 ${similarMergeTarget.name} 고객이 같은 분인가요?\n`
+                           + `${customer.name} 고객의 예약·적립금·메모가 ${similarMergeTarget.name} 고객으로 옮겨지고 이 레코드는 정리됩니다. 분리로 되돌릴 수 있습니다.\n`
+                           + '저장하지 않은 수정 내용은 반영되지 않습니다.'}
+                       confirmLabel={isMergingDup ? '병합 중…' : '병합'}
+                       confirmVariant="warning"
+                       confirmDisabled={isMergingDup}
+                       onConfirm={() => mergeIntoCustomer(similarMergeTarget.id)}
+                       onClose={() => setSimilarMergeTarget(null)} />
     )}
     </>, modalRoot);
 };

@@ -508,3 +508,100 @@ export const StyledUnmergeFooter = styled.div`
     border-top: 1px solid rgba(148, 163, 184, 0.16);
 `;
 
+/* 수정 중 하단에 뜨는 "비슷한 고객" — 저장 전에 같은 사람을 알아채라고 두는 자리다.
+   저장 시 중복 경고(StyledDupWarning)가 경고 톤인 것과 달리 여기는 정보 톤을 쓴다. */
+/* 추천 레이어의 기준점. 연락처 입력칸을 감싸 그 아래로 띄운다. */
+export const StyledSimilarAnchor = styled.div`
+    position: relative;
+`;
+
+export const StyledSimilarSection = styled.section`
+    /* 라이브 리전은 항상 DOM 에 있어야 내용 변화가 읽힌다(ToastContainer 와 같은 규약).
+       비었을 때는 hidden 으로 감춘다 — display:flex 가 UA 의 [hidden] 을 덮으므로 다시 눌러준다. */
+    &[hidden] {
+        display: none;
+    }
+
+    /* 흐름에서 빼 입력칸 아래로 띄운다 — 아래 내용을 밀어내지 않고,
+       입력칸 자신은 가리지 않는다. 딤 배경은 두지 않는다(타이핑이 끊긴다). */
+    position: absolute;
+    top: calc(100% + var(--gap-xs));
+    left: 0;
+    right: 0;
+    z-index: 3;
+
+    display: flex;
+    flex-direction: column;
+    gap: var(--gap-sm);
+    padding: var(--gap-md) var(--gap-lg) var(--gap-lg);
+    border: 1px solid var(--info-border);
+    border-radius: var(--radius-lg);
+    /* 떠 있으므로 뒤 내용이 비치면 안 된다 — 반투명 --info-bg 대신 불투명 흰 바탕. */
+    background-color: var(--white-color);
+    box-shadow: var(--shadow-md);
+`;
+
+export const StyledSimilarTitle = styled.h3`
+    /* 전역 리셋(globalStyle.ts)의 margin:0 목록에 h3 가 빠져 있어 UA 기본 여백이 그대로 먹는다. */
+    margin: 0;
+    font-size: var(--small-font);
+    font-weight: 700;
+    color: var(--info-color);
+`;
+
+export const StyledSimilarList = styled.ul`
+    display: flex;
+    flex-direction: column;
+    gap: var(--gap-sm);
+`;
+
+export const StyledSimilarRow = styled.li`
+    display: flex;
+`;
+
+/* 후보 하나당 카드. 줄 간격만으로는 어디서 한 사람이 끝나는지 읽히지 않는다 —
+   이름줄과 메타줄이 붙어 있어 옆 후보의 메타줄과 구분이 안 됐다.
+   고를 수 있을 때는 버튼으로 동작한다(전역 스타일이 hover·active 를 이미 준다).
+   게스트 모드는 병합 API 가 없어 고를 수 없고, 그때는 알림 카드로만 둔다. */
+export const StyledSimilarButton = styled.button<{ $selectable: boolean }>`
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--gap-xs);
+    padding: var(--gap-sm) var(--gap-md);
+    border: none;
+    border-radius: var(--radius-md);
+    background-color: var(--info-bg);
+    font-size: var(--small-font);
+    color: var(--dark-gray-color);
+    text-align: left;
+    cursor: ${props => props.$selectable ? 'pointer' : 'default'};
+
+    &:disabled {
+        opacity: 1;
+    }
+`;
+
+export const StyledSimilarHead = styled.div`
+    display: flex;
+    align-items: center;
+    gap: var(--gap-sm);
+`;
+
+export const StyledSimilarName = styled.span`
+    font-weight: 700;
+    color: var(--black-color);
+`;
+
+export const StyledSimilarTel = styled.span`
+    color: var(--dark-gray-color2);
+`;
+
+/* 이름·번호만으로는 어느 쪽이 실제로 쓰이는 레코드인지 알 수 없다.
+   예약 건수·최근 방문·적립금이 그 판단의 근거다. */
+export const StyledSimilarMeta = styled.p`
+    font-size: var(--xsmall-font);
+    color: var(--dark-gray-color2);
+`;
+
