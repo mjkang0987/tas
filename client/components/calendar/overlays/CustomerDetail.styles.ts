@@ -605,3 +605,22 @@ export const StyledSimilarMeta = styled.p`
     color: var(--dark-gray-color2);
 `;
 
+
+/* 번호가 빈 고객(네이버예약 유입)에게만 뜨는 바로가기. 평소 폼에는 없다.
+   새 탭으로 여는 이유 — 돌아왔을 때 입력하던 폼이 그대로 있어야 바로 붙여넣는다. */
+export const StyledNaverBookingLink = styled.a`
+    display: inline-flex;
+    align-items: center;
+    align-self: flex-start;
+    gap: var(--gap-xs);
+    padding: var(--gap-sm) var(--gap-md);
+    border: 1px solid var(--naver-color);
+    border-radius: var(--radius-md);
+    color: var(--naver-color);
+    font-size: var(--small-font);
+    font-weight: 600;
+
+    &::after {
+        content: '↗';
+    }
+`;
