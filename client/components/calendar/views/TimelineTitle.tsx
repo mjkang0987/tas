@@ -95,7 +95,9 @@ const StyledNum = styled.span<{$height: number}>`
     height: ${props => props.$height}px;
     padding: 0 10px;
     font-size: var(--tiny-font);
-    color: var(--gray-color);
+    /* --gray-color(#dbdbdb)는 거의 흰 배경 위에서 대비가 1.33:1 이라 10px 글자가 보이지 않았다.
+       WCAG AA(작은 글자 4.5:1)를 넘기려면 여기까지 내려야 한다 — 이 값은 7.5:1. */
+    color: var(--dark-gray-color);
 
     .compact {
         display: none;

@@ -22,7 +22,9 @@ export const Calendar = () => {
     return (
         <>
             {(type !== ViewType.Year) && <>
-                <StyledDaysWrap type={type}>
+                {/* key 로 뷰 종류마다 새 노드를 만든다. 주 뷰에서 가로로 스크롤한 위치가 그대로 남으면
+                    일·3일 뷰는 overflow-x: hidden 이라 되돌릴 수단 없이 시간축이 화면 밖으로 밀린다. */}
+                <StyledDaysWrap key={type ?? 'none'} type={type}>
                     {type !== ViewType.Month && <TimelineTitle/>}
                     {type !== ViewType.Day && <Days/>}
                     {type === ViewType.Day && <Day/>}
