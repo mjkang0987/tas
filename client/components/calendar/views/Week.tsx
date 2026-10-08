@@ -106,4 +106,11 @@ const StyledNumWrap = styled.span`
     background: rgba(255, 255, 255, .1);
     backdrop-filter: var(--sticky-backdrop);
     z-index: 13;
+
+    /* 모바일 주 뷰는 가로로도 스크롤된다. 반투명이면 밑으로 지나간 예약 카드가
+       그대로 비쳐 "카드 윗 보더가 잘렸다"처럼 읽힌다. 거기선 불투명하게 덮는다. */
+    @media (max-width: 640px) {
+        background: var(--bg-subtle-96);
+        backdrop-filter: none;
+    }
 `;

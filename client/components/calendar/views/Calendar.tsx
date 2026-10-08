@@ -73,14 +73,27 @@ const StyledDaysWrap = styled.div <DaysType>`
     grid-template-columns: var(--timeline-col) calc(var(--week-col) * 7);
 
     /* 시간축을 왼쪽에 붙들어 둔다. 흘러가면 몇 시 예약인지 읽을 수 없다.
-       배경·블러는 Days·Week 날짜 번호가 쓰는 sticky 처리와 같다 — 불투명 흰색은
-       바탕을 끊고, 완전 투명은 지나가는 날짜 숫자를 시각 뒤로 비친다. */
+       세로로만 스크롤할 때 쓰던 반투명(+backdrop-filter)을 여기선 쓰지 않는다 —
+       가로로도 흐르면 지나가는 칼럼이 시각 뒤로 비쳐 겹쳐 읽히고, 그보다
+       sticky + backdrop-filter + 스크롤 컨테이너 조합이 월 -> 주 전환 직후
+       빈 합성 레이어로 남아 시간축이 통째로 안 그려지는 일이 있었다. */
     > div {
       position: sticky;
       left: 0;
       z-index: 14; /* 요일 헤더 13 위 */
-      background: rgba(255, 255, 255, .1);
-      backdrop-filter: var(--sticky-backdrop);
+      background: var(--bg-subtle-96);
+    }
+
+    /* 1행 왼쪽 모서리. 시간축은 2행만 차지해 여기가 비고, 가로로 스크롤된
+       요일·날짜가 그 틈으로 비친다. 스프레드시트의 고정 모서리와 같은 자리다. */
+    &::before {
+      content: '';
+      grid-row: 1 / 2;
+      grid-column: 1 / 2;
+      position: sticky;
+      left: 0;
+      z-index: 15; /* 날짜 헤더 13·시간축 14 위 */
+      background: var(--bg-subtle-96);
     }
 
     > ul {
