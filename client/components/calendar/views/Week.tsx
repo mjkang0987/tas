@@ -105,5 +105,8 @@ const StyledNumWrap = styled.span`
     width: 100%;
     /* 요일 헤더와 같은 바탕 — 두 줄이 한 머리줄로 읽혀야 한다. */
     background: var(--white-color);
+    /* 머리줄 밑으로 카드가 지나간다. 선 대신 옅은 그림자로 경계를 줘야
+       카드가 "잘린" 게 아니라 "들어간" 것으로 읽힌다. */
+    box-shadow: 0 2px 4px rgba(15, 23, 42, .06);
     z-index: 13;
 `;
