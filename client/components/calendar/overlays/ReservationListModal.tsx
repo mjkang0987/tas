@@ -38,7 +38,11 @@ const STATUS_LABELS: Record<string, string> = {
     requested: '신청',
 };
 
-export const ReservationListModal = () => {
+/**
+ * @param inline 레이어로 띄우지 않고 **달력 아래 문서 흐름에** 그대로 붙인다.
+ *   덮는 것이 없어 달력이 그대로 보이고, 페이지와 함께 스크롤된다.
+ */
+export const ReservationListModal = ({inline = false}: {inline?: boolean}) => {
     const reservationMap = useCalendarStore((s) => s.reservationMap);
     const customerMap = useCalendarStore((s) => s.customerMap);
     const filter = useCalendarStore((s) => s.reservationListFilter);
@@ -52,7 +56,8 @@ export const ReservationListModal = () => {
     const modalRoot = document.getElementById('modal-root');
     const {layerId, layerDataId} = useLayerInstanceId('reservation-list');
     const handleClose = () => setReservationListFilter(null);
-    const dialogRef = useDialogAccessibility<HTMLDivElement>(handleClose);
+    // 흐름에 붙을 때는 모달이 아니다 — 포커스를 가두지 않는다(Esc 로 닫는 것만 남는다).
+    const dialogRef = useDialogAccessibility<HTMLDivElement>(handleClose, {trapFocus: !inline});
     const serviceColorMap = useMemo(
         () => buildServiceColorMap(serviceCatalog, categoryBaseColorMap),
         [serviceCatalog, categoryBaseColorMap]
@@ -139,15 +144,11 @@ export const ReservationListModal = () => {
         openReservationDetail(r);
     };
 
-    if (!modalRoot) return null;
+    if (!inline && !modalRoot) return null;
 
-    return createPortal(<StyledListOverlay onClick={handleClose}
-                                           role="dialog"
-                                           aria-modal="true"
-                                           aria-label="예약 목록"
-                                           id={layerId}
-                                           data-layer-id={layerDataId}>
+    const body = (
         <StyledListModal ref={dialogRef}
+                         $inline={inline}
                          tabIndex={-1}
                          onClick={(e) => e.stopPropagation()}>
             <StyledHeader>
@@ -205,16 +206,46 @@ export const ReservationListModal = () => {
                                     onClick={handleClose}>닫기</StyledActionButton>
             </StyledFooter>
         </StyledListModal>
-    </StyledListOverlay>, modalRoot);
+    );
+
+    if (inline) {
+        return <StyledInlineRegion aria-label="예약 목록">{body}</StyledInlineRegion>;
+    }
+
+    return createPortal(<StyledListOverlay onClick={handleClose}
+                                           role="dialog"
+                                           aria-modal="true"
+                                           aria-label="예약 목록"
+                                           id={layerId}
+                                           data-layer-id={layerDataId}>
+        {body}
+    </StyledListOverlay>, modalRoot!);
 };
 
 const StyledListOverlay = styled(StyledOverlay)`
     z-index: ${OVERLAY_Z_INDEX.base};
 `;
 
-const StyledListModal = styled(StyledDetail)`
+const StyledListModal = styled(StyledDetail)<{ $inline: boolean }>`
     max-width: 560px;
     width: 100%;
+
+    ${(props) => props.$inline && `
+    /* 흐름에 붙으므로 떠 있는 표면의 장식을 걷는다 — 그림자·둥근 모서리·높이 제한 없이
+       달력 아래 이어지는 한 덩어리로 보이게 한다. */
+    max-width: none;
+    max-height: none;
+    border-radius: 0;
+    border-left: none;
+    border-right: none;
+    box-shadow: none;
+    `}
+`;
+
+/* 달력 바로 아래 자리. section 이라 랜드마크로 읽히고, 모달이 아니라 포커스도 가두지 않는다. */
+const StyledInlineRegion = styled.section`
+    flex-shrink: 0;
+    border-top: 1px solid var(--light-gray-color);
 `;
 
 const StyledListBody = styled(StyledBody)``;

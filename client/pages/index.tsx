@@ -6,6 +6,8 @@ import styled from 'styled-components';
 
 import {useCalendarStore} from '../store/calendarStore';
 
+import {useMediaQuery} from '../hooks/useMediaQuery';
+
 import {computeTargetDerived} from '../utils/calendarDerived';
 
 import {groupByDate, Reservation, ReservationHistoryEntry} from '../utils/reservations';
@@ -142,6 +144,8 @@ const Home: NextPage<HomeProps> = (props) => {
         };
     }, [startTour]);
 
+    const isNarrow = useMediaQuery('(max-width: 640px)');
+
     const closeTour = () => {
         if (typeof window !== 'undefined') localStorage.setItem(TOUR_DONE_KEY, '1');
         setTourOpen(false);
@@ -153,10 +157,12 @@ const Home: NextPage<HomeProps> = (props) => {
 
     return (<>
             <SeoHead title="예약·고객 관리 시스템" />
-            <StyledSection $isVisible={aside.isVisible}>
+            <StyledSection $isVisible={aside.isVisible} $listOpen={isNarrow && !!reservationListFilter}>
                 {curr && <Calendar/>}
+                {/* 좁은 화면에서는 레이어로 덮지 않고 달력 아래에 이어 붙인다 — 달력이 그대로 보인다. */}
+                {isNarrow && reservationListFilter && <ReservationListModal inline/>}
             </StyledSection>
-            {reservationListFilter && <ReservationListModal/>}
+            {!isNarrow && reservationListFilter && <ReservationListModal/>}
             {selectedReservations.map((reservation, index) => (
                 <ReservationDetail key={`${reservation.id}-${index}`}
                                    reservation={reservation}
@@ -219,11 +225,16 @@ const HomePage: NextPage<HomeProps> = (props) => (props.landing ? <Landing/> : <
 
 export default HomePage;
 
-const StyledSection = styled.section <{ $isVisible: boolean }>`
+const StyledSection = styled.section <{ $isVisible: boolean; $listOpen: boolean }>`
   flex: 1;
   display: flex;
   flex-direction: column;
   height: 100%;
+  /* 목록이 달력 아래 붙으면 달력(MonthWrap 은 flex:1)이 자리를 내주며 눌린다.
+     달력 높이는 그대로 두고 넘치는 만큼 이 섹션이 스크롤하게 한다. */
+  ${props => props.$listOpen && `
+  overflow-y: auto;
+  `}
   /* flex 기본값 min-width:auto 면 주 뷰가 넓어질 때 이 섹션이 끌려 늘어나고
      스크롤을 main 이 가져가, 캘린더 안의 sticky 시간축이 흘러가 버린다. */
   min-width: 0;
