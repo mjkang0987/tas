@@ -47,6 +47,15 @@ const StyledMonthWrap = styled.ul`
      min-height 로 바닥을 깐다. 혼자 있을 때는 높이가 같아 보이는 모습이 그대로다. */
   flex: 1 0 auto;
   min-height: 100%;
+
+  /* 모바일은 칸에 이름 한 줄만 들어가므로 화면을 꽉 채울 이유가 없다.
+     칸 높이를 내용에 맞춰 줄이고(한 줄 기준 46px), 남는 자리는 아래 목록이 쓴다. */
+  @media (max-width: 640px) {
+    flex: 0 0 auto;
+    min-height: 0;
+    height: auto;
+    grid-auto-rows: minmax(46px, auto);
+  }
   display: grid;
   grid-template-columns: repeat(7, 1fr);
   grid-auto-rows: 1fr;

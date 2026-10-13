@@ -4,6 +4,8 @@ import styled from 'styled-components';
 
 import {useCalendarStore} from '../../../store/calendarStore';
 
+import {useMediaQuery} from '../../../hooks/useMediaQuery';
+
 import {computeTargetDerived} from '../../../utils/calendarDerived';
 
 import {
@@ -17,7 +19,6 @@ import {storeClosedCss} from './storeClosedCss';
 
 import {Num} from './Num';
 import {ButtonAdd} from '../../ui/Buttons';
-import {ReservationList} from './ReservationList';
 
 interface MonthType {
     monthDates: number[];
@@ -38,6 +39,12 @@ export const Month = ({
     const setReservationListFilter = useCalendarStore((s) => s.setReservationListFilter);
     const setCreateReservationInitial = useCalendarStore((s) => s.setCreateReservationInitial);
     const storeSettings = useCalendarStore((s) => s.storeSettings);
+    const customerMap = useCalendarStore((s) => s.customerMap);
+    const openReservationDetail = useCalendarStore((s) => s.openReservationDetail);
+    // 칸에 이름을 몇 개까지 둘지. 넘으면 숫자 하나로 접고 내용은 목록이 받는다.
+    // 데스크톱은 칸이 넓어 더 담는다.
+    const isNarrow = useMediaQuery('(max-width: 640px)');
+    const maxNames = isNarrow ? MOBILE_MAX_NAMES : DESKTOP_MAX_NAMES;
 
     const fullYear = curr!.fullYear;
 
@@ -48,7 +55,6 @@ export const Month = ({
             const dateReservations = (reservationMap[dateKey] || []).filter((reservation) => (
                 calendarAssigneeId == null || (calendarAssigneeId === 0 ? !reservation.assigneeId : reservation.assigneeId === calendarAssigneeId)
             ));
-            const hasReservations = dateReservations.length > 0;
             const isAdjacentMonth = type === 'prev' || type === 'next';
             const isTodayDate = isTodayValue(
                 today,
@@ -72,25 +78,67 @@ export const Month = ({
                     <ButtonAdd onClick={() => setCreateReservationInitial({date: toDateKey(fullYear, currMonth, val), startTime: '10:00'})}
                                aria-label={`${normalizedDate.getMonth() + 1}월 ${normalizedDate.getDate()}일 예약 추가`}/>
                 </StyledDateHeader>
-                {hasReservations && (
-                    <ReservationList reservations={dateReservations}
-                                     variant="date"
-                                     onViewAll={() => setReservationListFilter({type: 'date', dateKey})}
-                                     hideViewAll/>
-                )}
                 {dateReservations.length > 0 && (
-                    <StyledViewAllButton type="button"
-                                         onClick={(e) => {
-                                             e.stopPropagation();
-                                             setReservationListFilter({type: 'date', dateKey});
-                                         }}>
-                        전체 ({dateReservations.length})
-                    </StyledViewAllButton>
+                    dateReservations.length <= maxNames
+                        ? [...dateReservations]
+                            .sort((a, b) => a.startTime.localeCompare(b.startTime))
+                            .map((reservation) => (
+                                <StyledSingleName key={reservation.id}
+                                                  type="button"
+                                                  onClick={(e) => {
+                                                      e.stopPropagation();
+                                                      setCreateReservationInitial(null);
+                                                      openReservationDetail(reservation);
+                                                  }}>
+                                    {customerMap[reservation.customerId]?.name ?? '-'}
+                                </StyledSingleName>
+                            ))
+                        : (
+                            <StyledCountButton type="button"
+                                               aria-label={`${normalizedDate.getMonth() + 1}월 ${normalizedDate.getDate()}일 예약 ${dateReservations.length}건 보기`}
+                                               onClick={(e) => {
+                                                   e.stopPropagation();
+                                                   setReservationListFilter({type: 'date', dateKey});
+                                               }}>
+                                {dateReservations.length}
+                            </StyledCountButton>
+                        )
                 )}
             </StyledDate>);
         })}
     </>);
 };
+
+/** 칸에 이름을 그대로 둘 수 있는 최대 건수. 넘으면 숫자로 접는다. */
+const MOBILE_MAX_NAMES = 1;
+const DESKTOP_MAX_NAMES = 3;
+
+/* 이름 한 줄 — 누르면 그 예약 상세로 바로 간다(목록을 거칠 이유가 없다). */
+const StyledSingleName = styled.button`
+    padding: 0 2px;
+    border: none;
+    background: none;
+    color: var(--black-color);
+    font-size: var(--tiny-font);
+    text-align: center;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+`;
+
+/* 담을 수 있는 수를 넘겼을 때 — 숫자만. 내용은 목록(모바일은 달력 아래, 데스크톱은 모달)이 받는다. */
+const StyledCountButton = styled.button`
+    align-self: center;
+    min-width: 18px;
+    padding: 0 5px;
+    border: none;
+    border-radius: var(--chip-radius);
+    background-color: var(--brand-color-bg);
+    color: var(--brand-color);
+    font-size: var(--tiny-font);
+    font-weight: 700;
+    line-height: 18px;
+`;
 
 const StyledDateHeader = styled.div`
     display: flex;
@@ -120,22 +168,4 @@ const StyledDate = styled.li<{ type: string, $closedKind: StoreClosedKind | null
     ${props => (props.type === 'prev' || props.type === 'next') && `
     .faded { color: var(--gray-color); }
   `}
-`;
-
-const StyledViewAllButton = styled.button`
-    margin-top: auto;
-    padding: 2px 0;
-    flex-shrink: 0;
-    border: 1px solid var(--light-gray-color);
-    border-radius: 3px;
-    background-color: var(--white-color);
-    font-size: var(--tiny-font);
-    font-weight: 600;
-    color: var(--dark-gray-color);
-
-    @media (hover: hover) and (pointer: fine) {
-        &:hover {
-        background-color: var(--light-gray-color);
-    }
-    }
 `;
