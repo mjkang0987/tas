@@ -18,6 +18,7 @@ import {getStoreClosedKind, STORE_CLOSED_LABEL, type StoreClosedKind} from '../.
 import {storeClosedCss} from './storeClosedCss';
 
 import {Num} from './Num';
+import {ButtonAdd} from '../../ui/Buttons';
 import {ReservationList} from './ReservationList';
 
 interface MonthType {
@@ -38,6 +39,7 @@ export const Month = ({
     const calendarAssigneeId = useCalendarStore((s) => s.calendarAssigneeId);
     const setReservationListFilter = useCalendarStore((s) => s.setReservationListFilter);
     const reservationListFilter = useCalendarStore((s) => s.reservationListFilter);
+    const setCreateReservationInitial = useCalendarStore((s) => s.setCreateReservationInitial);
     const storeSettings = useCalendarStore((s) => s.storeSettings);
     // 칸에 이름을 몇 개까지 둘지. 넘으면 숫자 하나로 접고 내용은 목록이 받는다.
     // 데스크톱은 칸이 넓어 더 담는다.
@@ -77,6 +79,12 @@ export const Month = ({
                          isSelected={isActive}
                          compact={isAdjacentMonth}
                          className={isAdjacentMonth ? 'faded' : undefined}>{dateLabel}</Num>
+                    {/* 헤더의 ＋예약 은 언제나 '오늘'로 열려, 다른 날을 보고 있을 때 쓸 수 없다. */}
+                    <StyledDateAdd onClick={(e) => {
+                                       e.stopPropagation();
+                                       setCreateReservationInitial({date: dateKey, startTime: '10:00'});
+                                   }}
+                                   aria-label={`${normalizedDate.getMonth() + 1}월 ${normalizedDate.getDate()}일 예약 추가`}/>
                 </StyledDateHeader>
                 {dateReservations.length > 0 && (
                     dateReservations.length > maxNames
@@ -119,10 +127,24 @@ const StyledCountButton = styled.button`
     font-weight: 600;
 `;
 
+/* 데스크톱 전용. 모바일 칸은 48x40px 뿐이라(날짜 원 26 + 버튼 18 = 44) 둘을 넣으면
+   날짜가 가운데에서 밀리고 36개의 ＋ 가 격자를 뒤덮는다. 거기서는 칸을 눌러 목록을 열고
+   거기서 더하는 흐름을 쓴다. 데스크톱은 칸이 132px 라 모서리에 띄워도 날짜가 가운데 그대로다. */
+const StyledDateAdd = styled(ButtonAdd)`
+    position: absolute;
+    top: 1px;
+    right: 1px;
+    z-index: 1;
+
+    @media (max-width: 640px) {
+        display: none;
+    }
+`;
+
 const StyledDateHeader = styled.div`
     display: flex;
     align-items: center;
-    /* 예약추가 버튼을 뺀 뒤로 날짜 하나만 남았다. space-between 이면 왼쪽에 붙는다. */
+    /* 추가 버튼은 흐름 밖(데스크톱)이거나 없다(모바일) — 날짜만 남으므로 가운데. */
     justify-content: center;
 `;
 
@@ -138,6 +160,7 @@ const StyledDate = styled.li<{ type: string, $active: boolean, $closedKind: Stor
     `}
     display: flex;
     flex-direction: column;
+    position: relative; /* 예약추가 버튼을 모서리에 띄운다 */
     padding: 2px;
     text-align: center;
     overflow-y: auto;

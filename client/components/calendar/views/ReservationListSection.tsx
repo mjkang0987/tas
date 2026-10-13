@@ -19,6 +19,7 @@ import {
     StyledBodyInner,
 } from '../overlays/ModalStyles';
 import {ReservationInfoCard} from '../../ui/ReservationInfoCard';
+import {ButtonAdd} from '../../ui/Buttons';
 
 import type {Reservation} from '../../../utils/reservations';
 import {hasCompletedPayment} from '../../../utils/reservations';
@@ -40,6 +41,7 @@ export const ReservationListSection = () => {
     const filter = useCalendarStore((s) => s.reservationListFilter);
     const openReservationDetail = useCalendarStore((s) => s.openReservationDetail);
     const openCustomerDetail = useCalendarStore((s) => s.openCustomerDetail);
+    const setCreateReservationInitial = useCalendarStore((s) => s.setCreateReservationInitial);
     const serviceCatalog = useCalendarStore((s) => s.serviceCatalog);
     const categoryBaseColorMap = useCalendarStore((s) => s.categoryBaseColorMap);
     const assignees = useCalendarStore((s) => s.assignees);
@@ -144,8 +146,13 @@ export const ReservationListSection = () => {
         <StyledListPanel>
             <StyledListHeader>
                 <StyledHeaderTitle>{title}</StyledHeaderTitle>
-                {reservations.length > 0 && (
-                    <StyledHeaderSummary>{reservations.length}건 · {formatPrice(total)}</StyledHeaderSummary>
+                {/* 0건일 때도 자리를 지킨다 — 빠지면 아래 추가 버튼이 제목 옆으로 붙는다. */}
+                <StyledHeaderSummary>{reservations.length}건 · {formatPrice(total)}</StyledHeaderSummary>
+                {/* 이 머리줄은 이미 날짜를 들고 있다. 헤더의 ＋예약 은 언제나 '오늘'로 열려
+                    고른 날짜에 넣을 수 없다(모바일 칸에는 버튼을 둘 자리가 없다). */}
+                {filter?.type === 'date' && (
+                    <StyledHeaderAdd onClick={() => setCreateReservationInitial({date: filter.dateKey, startTime: '10:00'})}
+                                     aria-label={`${title} 예약 추가`}/>
                 )}
             </StyledListHeader>
             <StyledListBody>
@@ -211,6 +218,11 @@ const StyledHeaderSummary = styled.span`
     margin-left: auto;
     color: var(--dark-gray-color2);
     font-size: var(--small-font);
+`;
+
+const StyledHeaderAdd = styled(ButtonAdd)`
+    margin-left: 6px;
+    color: var(--brand-color);
 `;
 
 const StyledListSection = styled.section`
