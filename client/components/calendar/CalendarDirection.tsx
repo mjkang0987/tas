@@ -155,12 +155,15 @@ const StyledDirectionButton = styled.button`
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  /* 테두리 없이 아이콘만. 32px 은 손가락이 닿는 최소 크기라 폭만 유지한다. */
+  /* 오늘 버튼과 같은 테두리·높이. 테두리는 버튼이 그린다 —
+     예전엔 아이콘 SVG 안의 rect 가 그려서 모양을 버튼이 정하지 못했다. */
   width: 32px;
   height: 32px;
   padding: 0;
-  border: 0;
-  background: transparent;
+  border: 1px solid var(--border-color);
+  border-radius: var(--chip-radius);
+  background-color: var(--white-color);
+  box-shadow: var(--shadow-sm);
   line-height: 0;
 
   svg {

@@ -57,10 +57,12 @@ export const StyledHeader = styled.header<{ $stack?: boolean }>`
     background-color: var(--white-color);
     border-bottom: solid 1px var(--light-gray-color);
 
-    /* 달력 화면에서는 이 선이 요일 줄 바로 위에 붙어 머리줄처럼 보인다. 거기선 걷는다.
-       다른 화면은 헤더와 본문을 가르는 유일한 선이라 그대로 둔다. */
+    /* 모바일 달력 화면에서는 이 선이 요일 줄 바로 위에 붙어 머리줄처럼 보인다. 거기서만 걷는다.
+       데스크톱과 다른 화면은 헤더와 본문을 가르는 선이라 그대로 둔다. */
     ${props => props.$stack && `
-    border-bottom: none;
+    @media (max-width: 640px) {
+        border-bottom: none;
+    }
     `}
     flex-shrink: 0;
     @media (max-width: 640px) {
