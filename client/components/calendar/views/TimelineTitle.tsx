@@ -61,7 +61,7 @@ export const TimelineTitle = () => {
 const StyledTimelineTitle = styled.div`
     flex-shrink: 0;
     width: var(--timeline-col);
-    border-right: 1px solid var(--light-gray-color);
+    border-right: 1px solid var(--calendar-grid-line);
     box-sizing: border-box;
 `;
 
@@ -83,7 +83,7 @@ const StyledTime = styled.li<{$height: number}>`
         left: calc(100% - 6px);
         width: 100vw;
         height: 1px;
-        background-color: var(--light-gray-color);
+        background-color: var(--calendar-grid-line);
     }
 `;
 

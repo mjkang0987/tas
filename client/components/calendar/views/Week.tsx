@@ -87,7 +87,7 @@ const StyledWeek = styled.li`
         top: 0;
         width: 1px;
         height: 100%;
-        background-color: var(--light-gray-color);
+        background-color: var(--calendar-grid-line);
     }
 
     &:nth-child(7) {
@@ -104,6 +104,6 @@ const StyledNumWrap = styled.span`
     top: 21px;
     width: 100%;
     /* 요일 헤더와 같은 바탕 — 두 줄이 한 머리줄로 읽혀야 한다. */
-    background: var(--gray-color2);
+    background: var(--white-color);
     z-index: 13;
 `;
