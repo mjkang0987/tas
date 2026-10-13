@@ -15,8 +15,6 @@ import {
     StyledDetail,
     StyledHeader,
     StyledHeaderTitle,
-    StyledHeaderTitleGroup,
-    StyledHeaderTitleGroupText,
     StyledBody,
     StyledBodyInner,
     useDialogAccessibility,
@@ -141,10 +139,7 @@ export const ReservationListSection = () => {
         <StyledListSection aria-label="예약 목록">
         <StyledListPanel ref={dialogRef} tabIndex={-1}>
             <StyledHeader>
-                <StyledHeaderTitleGroup>
-                    <StyledHeaderTitle>{title} 예약 ({reservations.length})</StyledHeaderTitle>
-                    <StyledHeaderTitleGroupText>예약을 누르면 상세 레이어가 열리고, 고객명은 바로 고객 상세로 이동합니다.</StyledHeaderTitleGroupText>
-                </StyledHeaderTitleGroup>
+                <StyledHeaderTitle>{title} 예약 ({reservations.length})</StyledHeaderTitle>
             </StyledHeader>
             <StyledListBody>
                 <StyledListBodyInner>
