@@ -126,7 +126,7 @@ const StyledYear = styled.ul`
     @media (max-width: 640px) {
         flex: 0 0 auto;
         height: auto;
-        grid-template-rows: repeat(3, minmax(64px, auto));
+        grid-template-rows: repeat(3, minmax(56px, auto));
     }
     gap: 5px;
     padding: 5px;

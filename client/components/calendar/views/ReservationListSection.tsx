@@ -155,7 +155,11 @@ export const ReservationListSection = () => {
                     ) : (
                         grouped.map((group) => (
                             <StyledDateGroup key={group.date}>
-                                <StyledDateTitle>{group.date} ({group.items.length})</StyledDateTitle>
+                                {/* 날짜 목록은 그룹이 하나뿐이고, 바로 위 헤더가 이미 "10월 13일 · N건" 이다.
+                                    좁은 모바일에서 같은 날짜를 두 번 적느라 32px 을 버릴 이유가 없다. */}
+                                {filter?.type !== 'date' && (
+                                    <StyledDateTitle>{group.date} ({group.items.length})</StyledDateTitle>
+                                )}
                                 <StyledList>
                                     {group.items.map((r) => {
                                         const customer = customerMap[r.customerId];
@@ -243,7 +247,8 @@ const StyledListPanel = styled(StyledDetail)`
 const StyledListBody = styled(StyledBody)``;
 
 const StyledListBodyInner = styled(StyledBodyInner)`
-    padding: 6px 8px 18px;
+    /* 아래 여백은 8px — 바로 밑이 광고 배너라 더 비워도 빈 자리로만 보인다. */
+    padding: 6px 8px 8px;
 `;
 
 const StyledEmpty = styled(StyledEmptyBase)`
@@ -263,6 +268,15 @@ const StyledDateGroup = styled.div`
 
     &:not(:first-child) {
         margin-top: 14px;
+    }
+
+    /* 연 뷰 목록은 그룹이 여럿이라 이 여백이 누적된다 — 좁은 화면에서만 좁힌다. */
+    @media (max-width: 640px) {
+        gap: 4px;
+
+        &:not(:first-child) {
+            margin-top: 8px;
+        }
     }
 
     &:last-child {
