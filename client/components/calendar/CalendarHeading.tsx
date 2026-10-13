@@ -132,7 +132,9 @@ const StyledDateWrap = styled.span`
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  padding: 3px 8px 3px 12px;
+  /* 오늘·좌우·전체보기와 같은 32px 로 맞춘다. */
+  height: 32px;
+  padding: 0 8px 0 12px;
   border-radius: 999px;
   background-color: var(--gray-color2);
   cursor: pointer;

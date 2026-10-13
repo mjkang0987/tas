@@ -135,7 +135,9 @@ export const StyledMobileAddPill = styled.button`
         gap: 3px;
         flex-shrink: 0;
         margin-left: auto;
-        padding: 7px 13px 7px 9px;
+        /* 같은 줄의 다른 조작부와 같은 32px. */
+        height: 32px;
+        padding: 0 13px 0 9px;
         border: none;
         border-radius: 999px;
         background-color: var(--brand-color);
