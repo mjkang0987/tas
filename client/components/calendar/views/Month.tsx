@@ -74,6 +74,7 @@ export const Month = ({
                     <Num onClick={() => setReservationListFilter({type: 'date', dateKey})}
                          aria-label={`${normalizedDate.getMonth() + 1}월 ${normalizedDate.getDate()}일 예약 ${dateReservations.length}건 보기`}
                          isToday={isTodayDate}
+                         isSelected={isActive}
                          compact={isAdjacentMonth}
                          className={isAdjacentMonth ? 'faded' : undefined}>{dateLabel}</Num>
                 </StyledDateHeader>
@@ -106,18 +107,16 @@ const MOBILE_MAX_NAMES = 1;
 const DESKTOP_MAX_NAMES = 3;
 
 
-/* 담을 수 있는 수를 넘겼을 때 — 숫자만. 내용은 목록(모바일은 달력 아래, 데스크톱은 모달)이 받는다. */
+/* 담을 수 있는 수를 넘겼을 때 — 건수만. iOS monthDayCell 은 칩이 아니라
+   accent 색 평문 숫자다(caption2 semibold). 같은 모양으로 둔다. */
 const StyledCountButton = styled.button`
     align-self: center;
-    min-width: 18px;
-    padding: 0 5px;
+    padding: 0;
     border: none;
-    border-radius: var(--chip-radius);
-    background-color: var(--brand-color-bg);
+    background: none;
     color: var(--brand-color);
     font-size: var(--tiny-font);
-    font-weight: 700;
-    line-height: 18px;
+    font-weight: 600;
 `;
 
 const StyledDateHeader = styled.div`
@@ -128,10 +127,9 @@ const StyledDateHeader = styled.div`
 
 const StyledDate = styled.li<{ type: string, $active: boolean, $closedKind: StoreClosedKind | null }>`
     ${props => storeClosedCss(props.$closedKind)}
-    /* 목록이 열린 날짜. 칸 안에 카드가 들어가므로 iOS 처럼 꽉 채우지 않고 테두리+옅은 바탕으로 짚는다. */
+    /* 선택 표시는 날짜 원(Num)이 맡는다 — iOS 와 같다. 칸은 바탕만 옅게 깐다. */
     ${props => props.$active && `
     background-color: var(--brand-color-bg);
-    box-shadow: inset 0 0 0 2px var(--brand-color);
     `}
     display: flex;
     flex-direction: column;
@@ -141,6 +139,11 @@ const StyledDate = styled.li<{ type: string, $active: boolean, $closedKind: Stor
     overscroll-behavior: auto;
     border-right: 1px solid var(--light-gray-color);
     border-top: 1px solid var(--light-gray-color);
+
+    /* iOS 월 뷰는 격자선 없이 칸 사이 간격(4pt)으로만 나눈다. 모바일에서 그에 맞춘다. */
+    @media (max-width: 640px) {
+        border: none;
+    }
 
     &:nth-child(7n) {
         border-right: none;

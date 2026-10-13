@@ -55,6 +55,8 @@ const StyledMonthWrap = styled.ul`
     min-height: 0;
     height: auto;
     grid-auto-rows: minmax(46px, auto);
+    gap: 4px;
+    padding: 0 12px;
   }
   display: grid;
   grid-template-columns: repeat(7, 1fr);
