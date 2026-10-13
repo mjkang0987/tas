@@ -1,6 +1,8 @@
 import {create} from 'zustand';
 
 import type {Reservation, ReservationMap, ReservationHistoryEntry, ReservationStatus} from '../utils/reservations';
+import {toDateKey} from '../utils/reservations';
+import {ViewType} from '../utils/constants';
 import {hasCompletedPayment} from '../utils/reservations';
 import type {Customer, CustomerMap} from '../utils/customers';
 import type {PointHistoryEntry} from '../utils/customers';
@@ -251,6 +253,18 @@ function syncChangedCustomers(prev: CustomerMap, next: CustomerMap): void {
     if (changed.length > 0) syncCustomerSettings(changed);
 }
 
+/** 월·년 뷰에 들어갔을 때 기본으로 열어 둘 목록 — 오늘 / 이번 달. 그 밖의 뷰는 목록이 없다. */
+function defaultListFilter(viewType: string | null, today: FullType): CalendarState['reservationListFilter'] {
+    if (!today) return null;
+    if (viewType === ViewType.Month) {
+        return {type: 'date', dateKey: toDateKey(today.getFullYear(), today.getMonth(), today.getDate())};
+    }
+    if (viewType === ViewType.Year) {
+        return {type: 'month', year: today.getFullYear(), month: today.getMonth()};
+    }
+    return null;
+}
+
 export const useCalendarStore = create<CalendarState>((set) => ({
     today: null,
     target: {
@@ -294,7 +308,12 @@ export const useCalendarStore = create<CalendarState>((set) => ({
     storeSettings: DEFAULT_STORE_SETTINGS,
     syncNotifications: [],
 
-    setToday: (today) => set({today}),
+    setToday: (today) => set((state) => (
+        // 첫 진입에서는 today 가 setView 보다 늦게 들어온다. 그때 기본 목록을 다시 잡아준다.
+        state.reservationListFilter
+            ? {today}
+            : {today, reservationListFilter: defaultListFilter(state.view.type, today)}
+    )),
 
     setTarget: (partial) =>
         set((state) => ({
@@ -326,11 +345,11 @@ export const useCalendarStore = create<CalendarState>((set) => ({
     setView: (v) =>
         set((state) => {
             const view = typeof v === 'function' ? v(state.view) : v;
-            // 뷰가 바뀌면 열려 있던 예약 목록은 버린다. 그 목록은 월·년 뷰에서 고른
-            // 날짜/달에 매여 있어, 주·일 뷰로 넘어가면 엉뚱한 기간이 남아 뜬다.
-            return view.type === state.view.type
-                ? {view}
-                : {view, reservationListFilter: null};
+            if (view.type === state.view.type) return {view};
+
+            // 뷰가 바뀌면 목록을 다시 잡는다. 월·년은 들어가자마자 오늘(이번 달)이 열려 있어야 하고,
+            // 주·일은 목록 개념이 없다 — 그대로 두면 월에서 고른 날짜가 따라와 엉뚱한 기간이 뜬다.
+            return {view, reservationListFilter: defaultListFilter(view.type, state.today)};
         }),
 
     setRouterSlice: (v) =>

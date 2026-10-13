@@ -15,7 +15,7 @@ import {useCalendarStore} from '../../../store/calendarStore';
 
 import {setRouter} from '../../../utils/router';
 
-import {isCompletedReservationTarget, resolvePrice} from '../../../utils/revenue';
+import {getMonthlyRevenue} from '../../../utils/revenue';
 import {formatPrice} from '../../../utils/services';
 
 import {Num} from './Num';
@@ -50,12 +50,12 @@ export const Year = () => {
         return grouped;
     }, [reservationMap, fullYear, calendarAssigneeId]);
 
-    // 매출은 **예약완료 기준**(utils/revenue 의 isCompletedReservationTarget) — 매출 화면과 같은 정의를 쓴다.
-    // 건수는 그 달 전체다(iOS aggregate 와 같다).
-    const monthlyRevenue = useMemo(() => monthlyReservations.map((list) => list.reduce(
-        (sum, r) => sum + (isCompletedReservationTarget(r, calendarAssigneeId ?? null) ? resolvePrice(r.service, r.price) : 0),
-        0,
-    )), [monthlyReservations, calendarAssigneeId]);
+    // 매출은 매출 화면이 쓰는 집계를 그대로 쓴다 — getMonthlyRevenue 의 기본 모드가 '예약완료'다.
+    // 직접 더하면 같은 '매출'이 화면마다 다른 숫자를 가리키게 된다.
+    const monthlyRevenue = useMemo(
+        () => months.map((m) => getMonthlyRevenue(reservationMap, fullYear, m, calendarAssigneeId ?? null).total),
+        [months, reservationMap, fullYear, calendarAssigneeId],
+    );
 
     return (<StyledYear>
         {today && months.map((m) =>
