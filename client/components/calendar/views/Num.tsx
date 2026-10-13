@@ -31,7 +31,9 @@ const StyledNum = styled.button <{ $isToday?: boolean; $compact?: boolean }>`
   color: var(--black-color);
 
   ${props => props.$isToday && `
-    background-color: var(--blue-color);
+    /* 오늘 표시는 키컬러로. iOS 가 Color.accentColor(#6526D9)를 쓰는 자리와 같다
+       (CalendarView.swift 의 monthDayCell). --blue-color 는 양쪽이 어긋나 있던 값이다. */
+    background-color: var(--brand-color);
     color: var(--white-color);
   `}
   @media (hover: hover) and (pointer: fine) {

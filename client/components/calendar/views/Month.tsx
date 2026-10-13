@@ -18,7 +18,6 @@ import {getStoreClosedKind, STORE_CLOSED_LABEL, type StoreClosedKind} from '../.
 import {storeClosedCss} from './storeClosedCss';
 
 import {Num} from './Num';
-import {ButtonAdd} from '../../ui/Buttons';
 import {ReservationList} from './ReservationList';
 
 interface MonthType {
@@ -38,7 +37,6 @@ export const Month = ({
     const reservationMap = useCalendarStore((s) => s.reservationMap);
     const calendarAssigneeId = useCalendarStore((s) => s.calendarAssigneeId);
     const setReservationListFilter = useCalendarStore((s) => s.setReservationListFilter);
-    const setCreateReservationInitial = useCalendarStore((s) => s.setCreateReservationInitial);
     const storeSettings = useCalendarStore((s) => s.storeSettings);
     // 칸에 이름을 몇 개까지 둘지. 넘으면 숫자 하나로 접고 내용은 목록이 받는다.
     // 데스크톱은 칸이 넓어 더 담는다.
@@ -74,8 +72,6 @@ export const Month = ({
                          isToday={isTodayDate}
                          compact={isAdjacentMonth}
                          className={isAdjacentMonth ? 'faded' : undefined}>{dateLabel}</Num>
-                    <ButtonAdd onClick={() => setCreateReservationInitial({date: toDateKey(fullYear, currMonth, val), startTime: '10:00'})}
-                               aria-label={`${normalizedDate.getMonth() + 1}월 ${normalizedDate.getDate()}일 예약 추가`}/>
                 </StyledDateHeader>
                 {dateReservations.length > 0 && (
                     dateReservations.length > maxNames
