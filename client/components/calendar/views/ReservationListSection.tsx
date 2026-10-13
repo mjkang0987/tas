@@ -188,12 +188,16 @@ export const ReservationListSection = () => {
 
 /* 달력 바로 아래 자리. 랜드마크로 읽히고, 모달이 아니라 포커스도 가두지 않는다. */
 const StyledListSection = styled.section`
-    flex-shrink: 0;
+    /* 남은 세로 자리를 채우고, 스크롤은 제 안(StyledListBody)에서만 일어난다.
+       min-height: 0 이 없으면 flex 자식이 내용만큼 늘어나 페이지가 밀린다. */
+    flex: 1;
+    min-height: 0;
+    display: flex;
     border-top: 1px solid var(--light-gray-color);
 
     /* 데스크톱은 달력 오른쪽 기둥. 제 안에서 스크롤해 달력을 밀지 않는다. */
     @media (min-width: 641px) {
-        display: flex;
+        flex: 0 0 auto;
         width: 340px;
         height: 100%;
         border-top: none;
@@ -202,6 +206,8 @@ const StyledListSection = styled.section`
 `;
 
 const StyledListPanel = styled(StyledDetail)`
+    flex: 1;
+    min-height: 0;
     /* 흐름에 붙으므로 떠 있는 표면의 장식(그림자·둥근 모서리·높이 제한)을 걷는다. */
     width: 100%;
     max-width: none;

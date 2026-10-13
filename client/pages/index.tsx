@@ -227,6 +227,12 @@ const StyledCalendarPane = styled.div`
   flex-direction: column;
   min-width: 0;
   height: 100%;
+
+  /* 모바일 달력은 내용 높이만 쓰고 고정된다. 남는 세로 자리는 아래 목록이 가져간다. */
+  @media (max-width: 640px) {
+    flex: 0 0 auto;
+    height: auto;
+  }
 `;
 
 const StyledSection = styled.section <{ $isVisible: boolean; $listOpen: boolean }>`
@@ -234,15 +240,13 @@ const StyledSection = styled.section <{ $isVisible: boolean; $listOpen: boolean 
   display: flex;
   flex-direction: column;
   height: 100%;
-  /* 목록이 달력 아래 붙으면 달력(MonthWrap 은 flex:1)이 자리를 내주며 눌린다.
-     달력 높이는 그대로 두고 넘치는 만큼 이 섹션이 스크롤하게 한다. */
+  /* 페이지는 스크롤하지 않는다 — 달력은 제자리에 고정되고, 넘치는 것은 목록이 제 안에서 민다. */
   ${props => props.$listOpen && `
-  overflow-y: auto;
+  overflow: hidden;
 
   /* 데스크톱은 달력이 화면을 채우므로 아래가 아니라 오른쪽에 나란히 둔다. */
   @media (min-width: 641px) {
     flex-direction: row;
-    overflow-y: hidden;
   }
   `}
   /* flex 기본값 min-width:auto 면 주 뷰가 넓어질 때 이 섹션이 끌려 늘어나고
