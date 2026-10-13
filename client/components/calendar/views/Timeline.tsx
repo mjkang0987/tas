@@ -85,7 +85,7 @@ export const Timeline = ({
     );
     // 카드/현재시간 바/클러스터의 세로 위치 오프셋. 축 눈금선(행 높이 50px의 중앙=+25)에 맞춤.
     // ⚠️ timelineInteractions.ts의 동일 상수와 반드시 일치시킬 것(클릭 역변환이 같은 좌표계).
-    const blockOffset = type === ViewType.Day ? 55 : 25;
+    const blockOffset = blockOffsetOf(type);
     // 좁은 화면 대응. CSS 로는 못 한다 — 접을지 말지가 buildTimelineEntries 의 JS 분기다.
     // 일 뷰는 겹침을 두 칸으로 나누고, 주 뷰는 한 칸이 약 47px 라 카드를 이름만으로 줄인다.
     const isNarrow = useMediaQuery('(max-width: 640px)');
@@ -354,6 +354,10 @@ export const Timeline = ({
         ) : null}
     </StyledTimelineWrap>);
 };
+/** 카드·정시선의 공통 세로 오프셋. 시간축 라벨이 행(50px) 중앙에 그려지므로 주 뷰는 +25,
+ *  일 뷰는 머리줄이 더 높아 +55. 둘이 어긋나면 카드가 시작시간과 안 맞아 보인다. */
+const blockOffsetOf = (type: string) => (type === ViewType.Day ? 55 : 25);
+
 const StyledTimelineWrap = styled.div<{
     $type: string,
     $hourHeight: number,
@@ -369,7 +373,9 @@ const StyledTimelineWrap = styled.div<{
         transparent 1px,
         transparent ${props => props.$hourHeight}px
     );
-    background-position: 0 ${props => props.$type === ViewType.Day ? TIMELINE_DAY_TOP : TIMELINE_TOP}px;
+    /* 선은 패딩이 아니라 카드와 같은 오프셋에 둔다 — 패딩값(30/40)으로 그리면
+       정시 선이 카드 윗변보다 아래로 내려가 카드가 제 시작시간보다 커 보인다. */
+    background-position: 0 ${props => blockOffsetOf(props.$type)}px;
     flex: 1;
     display: flex;
     flex-direction: column;
