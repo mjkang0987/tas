@@ -59,7 +59,9 @@ export function RevenueReservationList({
                         isNewCustomer={isNewCustomerVisit(customer?.firstVisitDate, reservation.date)}
                         onClick={onSelectReservation}
                         onCustomerClick={onSelectCustomer}
-                        showDate={variant === 'default'}
+                        // 일자별 묶음(default)은 머리줄에 날짜가 이미 있어 카드 안에 또 적지 않는다.
+                        // 기간 전체를 한 목록으로 보는 compact(지표 모달)만 날짜를 남긴다.
+                        showDate={variant === 'compact'}
                         showPrice
                         showStatus
                         timeMode="range"

@@ -1,4 +1,4 @@
-import styled from 'styled-components';
+import styled, {css} from 'styled-components';
 import type {KeyboardEvent} from 'react';
 
 import type {Reservation} from '../../utils/reservations';
@@ -101,7 +101,10 @@ export function ReservationInfoCard({
             )}
             {compactDate && (
                 <StyledCompactDate>
-                    {showDate ? `${reservation.date} ` : ''}{timeText}
+                    {/* 날짜 · 시작 · 종료를 각 줄에. 한 줄로 이어 쓰면 좁은 칸에서 접힌다. */}
+                    {showDate && <StyledCompactDateLabel>{reservation.date}</StyledCompactDateLabel>}
+                    {timeMode !== 'none' && <span>{reservation.startTime}</span>}
+                    {timeMode === 'range' && <span>{reservation.endTime}</span>}
                 </StyledCompactDate>
             )}
             {!compactDate && showDate && (
@@ -222,17 +225,22 @@ const StyledLeft = styled.strong`
     font-weight: normal;
 `;
 
+/** 카드의 시간 글자 — 기본·compact 변형이 함께 쓴다. */
+const timeTypography = css`
+    font-size: var(--small-font);
+    font-weight: 700;
+    color: #0f172a;
+`;
+
 const StyledTime = styled.span`
     display: flex;
     flex-direction: column;
     line-height: 1.25;
+    ${timeTypography};
     flex-shrink: 0;
     /* 두 줄로 쪼개면서 한 줄에 "10:00" 다섯 글자만 남았다. 76px 은 한 줄짜리
        "10:00~11:30" 기준이던 폭이라 그만큼이 빈 자리로 남는다. */
     width: 42px;
-    font-size: var(--small-font);
-    font-weight: 700;
-    color: #0f172a;
 
     @media (max-width: 640px) {
         width: auto;
@@ -248,7 +256,18 @@ const StyledBody = styled.div`
 `;
 
 const StyledCompactDate = styled.div`
+    display: flex;
+    flex-direction: column;
+    line-height: 1.25;
+    flex-shrink: 0;
+    /* 시간 글자는 기본 변형과 같은 규칙을 쓴다 — 같은 카드가 화면마다 달라 보이면 안 된다. */
+    ${timeTypography};
+`;
+
+/* 날짜만 보조 톤. 시간보다 덜 중요한 정보다. */
+const StyledCompactDateLabel = styled.span`
     font-size: var(--xsmall-font);
+    font-weight: 400;
     color: var(--dark-gray-color2);
 `;
 const StyledDate = styled.div`
