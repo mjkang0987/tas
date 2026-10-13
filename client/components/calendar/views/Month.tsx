@@ -127,9 +127,13 @@ const StyledDateHeader = styled.div`
 
 const StyledDate = styled.li<{ type: string, $active: boolean, $closedKind: StoreClosedKind | null }>`
     ${props => storeClosedCss(props.$closedKind)}
-    /* 선택 표시는 날짜 원(Num)이 맡는다 — iOS 와 같다. 칸은 바탕만 옅게 깐다. */
+    /* 선택 표시는 날짜 원(Num)이 맡는다 — iOS 와 같다.
+       모바일은 칸 바탕을 깔지 않는다(원 하나로 충분하고 격자선도 없어 더 깨끗하다).
+       칸이 넓어 원이 멀리 떨어져 보이는 데스크톱에서만 옅은 바탕을 남긴다. */
     ${props => props.$active && `
-    background-color: var(--brand-color-bg);
+    @media (min-width: 641px) {
+        background-color: var(--brand-color-bg);
+    }
     `}
     display: flex;
     flex-direction: column;
