@@ -127,27 +127,25 @@ const StyledCountButton = styled.button`
     font-weight: 600;
 `;
 
-/* 데스크톱은 칸이 넓어 모서리에 띄운다 — 흐름 밖이라 날짜가 가운데 그대로다.
-   모바일 칸은 48x40px 뿐이라(원 26 + 버튼 18 = 44) 둘을 겹치지 않게 놓는 방법이
-   가로로 나란히 두는 것밖에 없다. 거기서는 흐름에 남겨 양끝으로 민다. */
+/* 데스크톱 전용. 모바일 칸은 48x40px 뿐이라(날짜 원 26 + 버튼 18 = 44) 둘을 넣으면
+   날짜가 가운데에서 밀리고 36개의 ＋ 가 격자를 뒤덮는다. 거기서는 칸을 눌러 목록을 열고
+   거기서 더하는 흐름을 쓴다. 데스크톱은 칸이 132px 라 모서리에 띄워도 날짜가 가운데 그대로다. */
 const StyledDateAdd = styled(ButtonAdd)`
-    @media (min-width: 641px) {
-        position: absolute;
-        top: 1px;
-        right: 1px;
-        z-index: 1;
+    position: absolute;
+    top: 1px;
+    right: 1px;
+    z-index: 1;
+
+    @media (max-width: 640px) {
+        display: none;
     }
 `;
 
 const StyledDateHeader = styled.div`
     display: flex;
     align-items: center;
-    /* 데스크톱은 추가 버튼이 흐름 밖이라 날짜만 남는다 — 가운데. */
+    /* 추가 버튼은 흐름 밖(데스크톱)이거나 없다(모바일) — 날짜만 남으므로 가운데. */
     justify-content: center;
-
-    @media (max-width: 640px) {
-        justify-content: space-between;
-    }
 `;
 
 const StyledDate = styled.li<{ type: string, $active: boolean, $closedKind: StoreClosedKind | null }>`
