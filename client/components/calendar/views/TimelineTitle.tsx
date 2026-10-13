@@ -21,16 +21,18 @@ export const TimelineTitle = () => {
     // iOS gutter 와 같은 눈금 — 정시만, 24시간제 두 자리. 오전/오후·분은 떨어뜨린다.
     // (영업시간 범위만 그리므로 13·14 로 충분히 읽힌다.) 칸은 그대로 매장 단위로 나눈다.
     const setTimes = () => {
-        const result: { key: string; label: string }[] = [];
+        const result: { key: string; label: string; half: boolean }[] = [];
         const slotsPerHour = 60 / scale.unit;
 
         for (let i = 0; i < (end - start + 1); i++) {
             const num = start + i;
 
             for (let slot = 0; slot < slotsPerHour; slot++) {
+                const minute = slot * scale.unit;
                 result.push({
-                    key: `${num}-${slot * scale.unit}`,
+                    key: `${num}-${minute}`,
                     label: slot === 0 ? String(num).padStart(2, '0') : '',
+                    half: minute === 30,
                 });
             }
         }
@@ -40,7 +42,7 @@ export const TimelineTitle = () => {
 
     return (<StyledTimelineTitle>
             <StyledTimes>
-                {setTimes().map((t) => <StyledTime key={`time_${t.key}`}>
+                {setTimes().map((t) => <StyledTime key={`time_${t.key}`} $half={t.half}>
                     <StyledNum $height={scale.hourHeight / (60 / scale.unit)}>{t.label}</StyledNum>
                 </StyledTime>)}
             </StyledTimes>
@@ -61,13 +63,26 @@ const StyledTimes = styled.ul`
     margin: 30px 0 60px;
 `;
 
-const StyledTime = styled.li`
+const StyledTime = styled.li<{$half: boolean}>`
     display: flex;
     justify-content: center;
     position: relative;
 
     /* 정시 가로선은 타임라인(StyledTimelineWrap)이 그린다 — 여기서 그리면
-       시간축의 z-index 가 카드 위로 올라가 카드 윗변을 덮는다. */
+       시간축의 z-index 가 카드 위로 올라가 카드 윗변을 덮는다.
+       30분은 숫자 대신 축 안에서 끝나는 짧은 눈금으로만 표시한다(가로로 번지지 않으므로 안전). */
+    ${props => props.$half && `
+        &:after {
+            content: "";
+            position: absolute;
+            right: 0;
+            top: 50%;
+            width: 6px;
+            height: 1px;
+            background-color: var(--dark-gray-color2);
+            opacity: .35;
+        }
+    `}
 `;
 
 const StyledNum = styled.span<{$height: number}>`
