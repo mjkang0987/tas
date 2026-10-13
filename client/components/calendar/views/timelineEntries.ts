@@ -56,13 +56,21 @@ export function buildTimelineEntries(
                 }
             });
         } else {
-            // 적게 겹친 묶음은 접지 않고 좌우로 나눠 둘 다 보이게 한다.
-            // 묶음은 겹침으로 이어져 있으므로 칸 수 = 묶음 크기다.
-            // ponytail: splitUpTo 를 3 이상으로 올리면 그리디 칸 재사용(끝난 칸을 뒤 예약이
-            // 물려받기, 앱 DayTimelineView.positioned)을 되살릴 것 — 사슬 겹침 3건이
-            // 2칸으로 충분한데 3칸으로 쪼개져 폭이 1/3 이 된다.
-            const count = current.length;
-            current.forEach((reservation, index) => {
+            // 접지 않는 묶음은 좌우로 나눠 전부 보이게 한다. 칸은 **끝난 것부터 물려준다** —
+            // 묶음 크기만큼 쪼개면 10-11, 10:30-11:30, 11-12 처럼 사슬로 이어진 3건이
+            // 2칸이면 되는데 3칸이 되어 폭이 1/3 로 줄고, 주 뷰에서는 그 날 칸이 3배로 넓어진다.
+            // 앱 TimelineLayout.place() 와 같은 그리디 규칙이다.
+            const laneEnds: number[] = [];
+            const placed = current.map((reservation) => {
+                const start = toMinutes(reservation.startTime);
+                let index = laneEnds.findIndex((end) => start >= end);
+                if (index === -1) index = laneEnds.length;
+                laneEnds[index] = toMinutes(reservation.endTime);
+                return {reservation, index};
+            });
+
+            const count = laneEnds.length;
+            placed.forEach(({reservation, index}) => {
                 entries.push(count > 1
                     ? {kind: 'single', reservation, lane: {index, count}}
                     : {kind: 'single', reservation});

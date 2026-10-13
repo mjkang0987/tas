@@ -43,7 +43,9 @@ export const Calendar = () => {
             const lanes = maxLanesOfDay(list);
             // 모바일은 읽히는 폭(--week-col)을 못박고 넘치면 가로로 스크롤한다.
             // 데스크톱은 화면에 다 들어가므로 비율(fr)로 나눠 겹친 날만 넓어지게 한다.
-            return isNarrow ? `calc(var(--week-col) * ${lanes})` : `${lanes}fr`;
+            // minmax(0, ...) 인 이유: 맨 fr 은 바닥이 min-content 라 한 날이 크게 넓어지면
+            // 나머지가 더 못 줄고 격자가 통째로 넘친다 — 데스크톱은 overflow-x 가 없어 잘린다.
+            return isNarrow ? `calc(var(--week-col) * ${lanes})` : `minmax(0, ${lanes}fr)`;
         }).join(' ');
     }, [isNarrow, type, target, reservationMap, calendarAssigneeId]);
 

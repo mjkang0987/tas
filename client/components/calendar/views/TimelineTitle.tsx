@@ -42,8 +42,13 @@ export const TimelineTitle = () => {
 
     return (<StyledTimelineTitle>
             <StyledTimes>
-                {setTimes().map((t) => <StyledTime key={`time_${t.key}`} $half={t.half}>
-                    <StyledNum $height={scale.hourHeight / (60 / scale.unit)}>{t.label}</StyledNum>
+                {setTimes().map((t) => <StyledTime key={`time_${t.key}`}
+                                                   $half={t.half}
+                                                   // 눈금만 있는 칸은 읽을 것이 없다. 빈 항목으로 읽히지 않게 숨긴다.
+                                                   aria-hidden={t.label ? undefined : true}>
+                    {/* 보이는 글자는 두 자리뿐이라 "10" 으로 읽힌다 — 몇 시인지 소리로도 알 수 있어야 한다. */}
+                    <StyledNum $height={scale.hourHeight / (60 / scale.unit)}
+                               aria-label={t.label ? `${t.label}시` : undefined}>{t.label}</StyledNum>
                 </StyledTime>)}
             </StyledTimes>
         </StyledTimelineTitle>

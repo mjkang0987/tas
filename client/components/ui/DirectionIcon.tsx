@@ -1,7 +1,8 @@
-export const DirectionIcon = ({direction}: {direction: 'left' | 'right'}) => (
+/** size: 뷰박스는 32 고정이라 비율은 그대로다. 호출부가 CSS 태그 선택자로 svg 를 집지 않도록 prop 으로 받는다. */
+export const DirectionIcon = ({direction, size = 32}: {direction: 'left' | 'right'; size?: number}) => (
     <svg
-        width="32"
-        height="32"
+        width={size}
+        height={size}
         viewBox="0 0 32 32"
         fill="none"
         xmlns="http://www.w3.org/2000/svg"

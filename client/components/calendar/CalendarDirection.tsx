@@ -128,11 +128,11 @@ export const CalendarDirection = () => {
                 <ButtonText a11y={false}>오늘</ButtonText>
             </StyledTodayButton>}
             <StyledDirectionButton type="button" onClick={() => controller({direction: 'prev'})}>
-                <DirectionIcon direction="left"/>
+                <DirectionIcon direction="left" size={18}/>
                 {type && <ButtonText a11y={true}>이전{A11Y_DIRECTION[type]}</ButtonText>}
             </StyledDirectionButton>
             <StyledDirectionButton type="button" onClick={() => controller({direction: 'next'})}>
-                <DirectionIcon direction="right"/>
+                <DirectionIcon direction="right" size={18}/>
                 {type && <ButtonText a11y={true}>다음{A11Y_DIRECTION[type]}</ButtonText>}
             </StyledDirectionButton>
         </StyledButtonWrap>
