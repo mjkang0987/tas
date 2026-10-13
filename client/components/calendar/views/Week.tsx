@@ -103,14 +103,7 @@ const StyledNumWrap = styled.span`
     position: sticky;
     top: 21px;
     width: 100%;
-    background: rgba(255, 255, 255, .1);
-    backdrop-filter: var(--sticky-backdrop);
+    /* 요일 헤더와 같은 이유로 흰색(= 페이지 바탕). 투명이면 지나가는 카드가 비친다. */
+    background: var(--white-color);
     z-index: 13;
-
-    /* 모바일 주 뷰는 가로로도 스크롤된다. 반투명이면 밑으로 지나간 예약 카드가
-       그대로 비쳐 "카드 윗 보더가 잘렸다"처럼 읽힌다. 거기선 불투명하게 덮는다. */
-    @media (max-width: 640px) {
-        background: var(--bg-subtle-96);
-        backdrop-filter: none;
-    }
 `;

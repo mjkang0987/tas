@@ -6,8 +6,6 @@ import styled from 'styled-components';
 
 import {useCalendarStore} from '../store/calendarStore';
 
-import {useMediaQuery} from '../hooks/useMediaQuery';
-
 import {computeTargetDerived} from '../utils/calendarDerived';
 
 import {groupByDate, Reservation, ReservationHistoryEntry} from '../utils/reservations';
@@ -18,7 +16,7 @@ import {Calendar} from '../components/calendar/views/Calendar';
 
 import {ReservationDetail} from '../components/calendar/overlays/ReservationDetail';
 
-import {ReservationListModal} from '../components/calendar/overlays/ReservationListModal';
+import {ReservationListSection} from '../components/calendar/views/ReservationListSection';
 
 import {CustomerDetail} from '../components/calendar/overlays/CustomerDetail';
 
@@ -144,8 +142,6 @@ const Home: NextPage<HomeProps> = (props) => {
         };
     }, [startTour]);
 
-    const isNarrow = useMediaQuery('(max-width: 640px)');
-
     const closeTour = () => {
         if (typeof window !== 'undefined') localStorage.setItem(TOUR_DONE_KEY, '1');
         setTourOpen(false);
@@ -157,12 +153,11 @@ const Home: NextPage<HomeProps> = (props) => {
 
     return (<>
             <SeoHead title="예약·고객 관리 시스템" />
-            <StyledSection $isVisible={aside.isVisible} $listOpen={isNarrow && !!reservationListFilter}>
+            <StyledSection $isVisible={aside.isVisible} $listOpen={!!reservationListFilter}>
                 {curr && <Calendar/>}
-                {/* 좁은 화면에서는 레이어로 덮지 않고 달력 아래에 이어 붙인다 — 달력이 그대로 보인다. */}
-                {isNarrow && reservationListFilter && <ReservationListModal inline/>}
+                {/* 레이어가 아니라 달력 아래 영역이다. 덮지 않으므로 달력이 그대로 보인다. */}
+                {reservationListFilter && <ReservationListSection/>}
             </StyledSection>
-            {!isNarrow && reservationListFilter && <ReservationListModal/>}
             {selectedReservations.map((reservation, index) => (
                 <ReservationDetail key={`${reservation.id}-${index}`}
                                    reservation={reservation}

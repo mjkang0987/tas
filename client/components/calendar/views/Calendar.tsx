@@ -83,7 +83,7 @@ const StyledDaysWrap = styled.div <DaysType>`
       position: sticky;
       left: 0;
       z-index: 14; /* 요일 헤더 13 위 */
-      background: var(--bg-subtle-96);
+      background: var(--white-color);
     }
 
     /* 1행 왼쪽 모서리. 시간축은 2행만 차지해 여기가 비고, 가로로 스크롤된
@@ -95,7 +95,7 @@ const StyledDaysWrap = styled.div <DaysType>`
       position: sticky;
       left: 0;
       z-index: 15; /* 날짜 헤더 13·시간축 14 위 */
-      background: var(--bg-subtle-96);
+      background: var(--white-color);
     }
 
     > ul {

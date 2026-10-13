@@ -1,7 +1,5 @@
 import {useMemo} from 'react';
 
-import {createPortal} from 'react-dom';
-
 import styled from 'styled-components';
 
 import {useCalendarStore} from '../../../store/calendarStore';
@@ -13,8 +11,6 @@ import {buildServiceColorMap} from '../../../utils/services';
 import {EMPTY_TEXT, StyledEmpty as StyledEmptyBase} from '../../settings/settings-styles';
 import {
     OVERLAY_Z_INDEX,
-    StyledActionButton,
-    StyledFooter,
     StyledOverlay,
     StyledDetail,
     StyledHeader,
@@ -24,9 +20,7 @@ import {
     StyledBody,
     StyledBodyInner,
     useDialogAccessibility,
-    useLayerInstanceId,
-} from './ModalStyles';
-import {CloseIconButton} from '../../ui/CloseIconButton';
+} from '../overlays/ModalStyles';
 import {ReservationInfoCard} from '../../ui/ReservationInfoCard';
 
 import type {Reservation} from '../../../utils/reservations';
@@ -39,10 +33,11 @@ const STATUS_LABELS: Record<string, string> = {
 };
 
 /**
- * @param inline 레이어로 띄우지 않고 **달력 아래 문서 흐름에** 그대로 붙인다.
- *   덮는 것이 없어 달력이 그대로 보이고, 페이지와 함께 스크롤된다.
+ * 월·년 뷰에서 고른 날짜/달의 예약 목록. **레이어가 아니라 달력 아래 영역이다** —
+ * 덮는 것이 없어 달력이 그대로 보이고 페이지와 함께 스크롤된다.
+ * 닫기 버튼이 없다. 다른 날짜를 고르면 그 날짜로 바뀌고, 뷰를 옮기면 스토어가 비운다(setView).
  */
-export const ReservationListModal = ({inline = false}: {inline?: boolean}) => {
+export const ReservationListSection = () => {
     const reservationMap = useCalendarStore((s) => s.reservationMap);
     const customerMap = useCalendarStore((s) => s.customerMap);
     const filter = useCalendarStore((s) => s.reservationListFilter);
@@ -53,11 +48,9 @@ export const ReservationListModal = ({inline = false}: {inline?: boolean}) => {
     const categoryBaseColorMap = useCalendarStore((s) => s.categoryBaseColorMap);
     const assignees = useCalendarStore((s) => s.assignees);
     const calendarAssigneeId = useCalendarStore((s) => s.calendarAssigneeId);
-    const modalRoot = document.getElementById('modal-root');
-    const {layerId, layerDataId} = useLayerInstanceId('reservation-list');
     const handleClose = () => setReservationListFilter(null);
-    // 흐름에 붙을 때는 모달이 아니다 — 포커스를 가두지 않는다(Esc 로 닫는 것만 남는다).
-    const dialogRef = useDialogAccessibility<HTMLDivElement>(handleClose, {trapFocus: !inline});
+    // 영역이라 포커스를 가두지 않는다. Esc 로 비우는 것만 남긴다.
+    const dialogRef = useDialogAccessibility<HTMLDivElement>(handleClose, {trapFocus: false});
     const serviceColorMap = useMemo(
         () => buildServiceColorMap(serviceCatalog, categoryBaseColorMap),
         [serviceCatalog, categoryBaseColorMap]
@@ -144,19 +137,14 @@ export const ReservationListModal = ({inline = false}: {inline?: boolean}) => {
         openReservationDetail(r);
     };
 
-    if (!inline && !modalRoot) return null;
-
-    const body = (
-        <StyledListModal ref={dialogRef}
-                         $inline={inline}
-                         tabIndex={-1}
-                         onClick={(e) => e.stopPropagation()}>
+    return (
+        <StyledListSection aria-label="예약 목록">
+        <StyledListPanel ref={dialogRef} tabIndex={-1}>
             <StyledHeader>
                 <StyledHeaderTitleGroup>
                     <StyledHeaderTitle>{title} 예약 ({reservations.length})</StyledHeaderTitle>
                     <StyledHeaderTitleGroupText>예약을 누르면 상세 레이어가 열리고, 고객명은 바로 고객 상세로 이동합니다.</StyledHeaderTitleGroupText>
                 </StyledHeaderTitleGroup>
-                <CloseIconButton onClick={handleClose} />
             </StyledHeader>
             <StyledListBody>
                 <StyledListBodyInner>
@@ -198,54 +186,26 @@ export const ReservationListModal = ({inline = false}: {inline?: boolean}) => {
                     )}
                 </StyledListBodyInner>
             </StyledListBody>
-            <StyledFooter>
-                <StyledFooterSummary>
-                    <span>총 {reservations.length}건</span>
-                </StyledFooterSummary>
-                <StyledActionButton type="button"
-                                    onClick={handleClose}>닫기</StyledActionButton>
-            </StyledFooter>
-        </StyledListModal>
+        </StyledListPanel>
+        </StyledListSection>
     );
-
-    if (inline) {
-        return <StyledInlineRegion aria-label="예약 목록">{body}</StyledInlineRegion>;
-    }
-
-    return createPortal(<StyledListOverlay onClick={handleClose}
-                                           role="dialog"
-                                           aria-modal="true"
-                                           aria-label="예약 목록"
-                                           id={layerId}
-                                           data-layer-id={layerDataId}>
-        {body}
-    </StyledListOverlay>, modalRoot!);
 };
 
-const StyledListOverlay = styled(StyledOverlay)`
-    z-index: ${OVERLAY_Z_INDEX.base};
+/* 달력 바로 아래 자리. 랜드마크로 읽히고, 모달이 아니라 포커스도 가두지 않는다. */
+const StyledListSection = styled.section`
+    flex-shrink: 0;
+    border-top: 1px solid var(--light-gray-color);
 `;
 
-const StyledListModal = styled(StyledDetail)<{ $inline: boolean }>`
-    max-width: 560px;
+const StyledListPanel = styled(StyledDetail)`
+    /* 흐름에 붙으므로 떠 있는 표면의 장식(그림자·둥근 모서리·높이 제한)을 걷는다. */
     width: 100%;
-
-    ${(props) => props.$inline && `
-    /* 흐름에 붙으므로 떠 있는 표면의 장식을 걷는다 — 그림자·둥근 모서리·높이 제한 없이
-       달력 아래 이어지는 한 덩어리로 보이게 한다. */
     max-width: none;
     max-height: none;
     border-radius: 0;
     border-left: none;
     border-right: none;
     box-shadow: none;
-    `}
-`;
-
-/* 달력 바로 아래 자리. section 이라 랜드마크로 읽히고, 모달이 아니라 포커스도 가두지 않는다. */
-const StyledInlineRegion = styled.section`
-    flex-shrink: 0;
-    border-top: 1px solid var(--light-gray-color);
 `;
 
 const StyledListBody = styled(StyledBody)``;
@@ -297,10 +257,3 @@ const StyledDateTitle = styled.div`
 `;
 
 const StyledItem = styled.li``;
-
-const StyledFooterSummary = styled.div`
-    margin-right: auto;
-    font-size: var(--small-font);
-    font-weight: 600;
-    color: var(--dark-gray-color2);
-`;

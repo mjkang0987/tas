@@ -60,15 +60,9 @@ const StyledDays = styled.ul <DaysType>`
   position: sticky;
   top: 0;
   grid-row: 1 / 2;
-  background: rgba(255, 255, 255, .1);
-  backdrop-filter: var(--sticky-backdrop);
-
-  /* 모바일 주 뷰는 가로로도 스크롤된다. 반투명이면 밑으로 지나간 예약 카드가
-     그대로 비쳐 "카드 윗 보더가 잘렸다"처럼 읽힌다. 거기선 불투명하게 덮는다. */
-  @media (max-width: 640px) {
-    background: var(--bg-subtle-96);
-    backdrop-filter: none;
-  }
+  /* 페이지 바탕과 같은 흰색 — 눈에는 배경이 없지만, 밑으로 스크롤돼 지나가는 예약은 가린다.
+     투명하게 두면 카드가 비쳐 "윗 보더가 잘린" 것처럼 읽힌다. */
+  background: var(--white-color);
 
   li {
     border: none;

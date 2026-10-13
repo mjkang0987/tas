@@ -324,9 +324,14 @@ export const useCalendarStore = create<CalendarState>((set) => ({
         }),
 
     setView: (v) =>
-        set((state) => ({
-            view: typeof v === 'function' ? v(state.view) : v
-        })),
+        set((state) => {
+            const view = typeof v === 'function' ? v(state.view) : v;
+            // 뷰가 바뀌면 열려 있던 예약 목록은 버린다. 그 목록은 월·년 뷰에서 고른
+            // 날짜/달에 매여 있어, 주·일 뷰로 넘어가면 엉뚱한 기간이 남아 뜬다.
+            return view.type === state.view.type
+                ? {view}
+                : {view, reservationListFilter: null};
+        }),
 
     setRouterSlice: (v) =>
         set((state) => ({
