@@ -8,8 +8,7 @@ import type {Reservation, ReservationMap} from './reservations';
 import type {CustomerMap} from './customers';
 import type {Assignee} from './assignees';
 import type {RevenueFilterMode} from './revenue';
-import {isRevenueReservationTarget} from './revenue';
-import {parseServiceString, sumPrice} from './services';
+import {isRevenueReservationTarget, resolvePrice} from './revenue';
 import {getStoreLabels} from '../features/store-settings/labels';
 import {useCalendarStore} from '../store/calendarStore';
 
@@ -22,11 +21,6 @@ const STATUS_LABELS: Record<string, string> = {
     noshow: '노쇼',
     requested: '신청',
 };
-
-function resolvePrice(service: string, price?: number): number {
-    if (price != null) return price;
-    return sumPrice(parseServiceString(service));
-}
 
 function formatPayment(reservation: Reservation): string {
     if (Array.isArray(reservation.paymentEntries) && reservation.paymentEntries.length > 0) {

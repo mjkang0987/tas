@@ -37,12 +37,6 @@ function getReservationState(reservation: Reservation, today?: string) {
     return {type: 'booked', label: '예약'};
 }
 
-function getTimeText(reservation: Reservation, timeMode: 'start' | 'range' | 'none') {
-    if (timeMode === 'none') return '';
-    if (timeMode === 'start') return reservation.startTime;
-    return `${reservation.startTime}~${reservation.endTime}`;
-}
-
 export function ReservationInfoCard({
     reservation,
     serviceColorMap,
@@ -65,7 +59,6 @@ export function ReservationInfoCard({
     const clickable = !!onClick;
     const isInactive = reservation.status === 'cancelled' || reservation.status === 'noshow';
     const state = getReservationState(reservation, today);
-    const timeText = getTimeText(reservation, timeMode);
     const handleActivate = () => {
         if (onClick) {
             onClick(reservation);

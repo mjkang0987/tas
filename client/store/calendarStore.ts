@@ -265,6 +265,18 @@ function defaultListFilter(viewType: string | null, today: FullType): CalendarSt
     return null;
 }
 
+/** 달력이 보고 있는 범위를 벗어난 목록은 닫는다 — 11월 달력 아래 10월 13일 목록이
+ *  떠 있으면 어느 칸의 목록인지 짚을 수 없다(달력에 선택 표시도 남지 않는다). */
+function filterWithinTarget(
+    filter: CalendarState['reservationListFilter'],
+    target: Date,
+): CalendarState['reservationListFilter'] {
+    if (!filter) return null;
+    if (filter.type === 'month') return filter.year === target.getFullYear() ? filter : null;
+    const targetMonth = toDateKey(target.getFullYear(), target.getMonth(), 1).slice(0, 7);
+    return filter.dateKey.startsWith(targetMonth) ? filter : null;
+}
+
 export const useCalendarStore = create<CalendarState>((set) => ({
     today: null,
     target: {
@@ -308,11 +320,13 @@ export const useCalendarStore = create<CalendarState>((set) => ({
     storeSettings: DEFAULT_STORE_SETTINGS,
     syncNotifications: [],
 
+    // 첫 진입에서만 기본 목록을 잡는다 — 그때 today 가 setView 보다 늦게 들어온다.
+    // setToday 는 라우트가 바뀔 때마다 불리므로(LayoutComponent), 매번 잡으면
+    // 사용자가 닫은 목록이 달을 옮길 때마다 되살아난다.
     setToday: (today) => set((state) => (
-        // 첫 진입에서는 today 가 setView 보다 늦게 들어온다. 그때 기본 목록을 다시 잡아준다.
-        state.reservationListFilter
+        state.today
             ? {today}
-            : {today, reservationListFilter: defaultListFilter(state.view.type, today)}
+            : {today, reservationListFilter: state.reservationListFilter ?? defaultListFilter(state.view.type, today)}
     )),
 
     setTarget: (partial) =>
@@ -322,15 +336,16 @@ export const useCalendarStore = create<CalendarState>((set) => ({
 
     setTargetFromDate: (value) => {
         const target = new Date(value);
-        set({
+        set((state) => ({
             target: {
                 full    : target,
                 fullYear: target.getFullYear(),
                 month   : target.getMonth(),
                 date    : target.getDate(),
                 day     : target.getDay()
-            }
-        });
+            },
+            reservationListFilter: filterWithinTarget(state.reservationListFilter, target)
+        }));
     },
 
     setAside: (v) =>

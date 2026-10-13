@@ -91,6 +91,9 @@ export function useDialogAccessibility<T extends HTMLElement>(
         const handleKeyDown = (event: KeyboardEvent) => {
             if (event.key === 'Escape') {
                 event.preventDefault();
+                // 여기서 멈춘다 — 비모달 목록이 document 에 같은 리스너를 걸고 있어,
+                // 올려 보내면 모달을 닫는 Esc 한 번에 뒤에 있던 목록까지 함께 닫힌다.
+                event.stopPropagation();
                 onCloseRef.current();
                 return;
             }
