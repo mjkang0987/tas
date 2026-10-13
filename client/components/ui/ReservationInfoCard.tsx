@@ -8,7 +8,6 @@ import {AssigneeLabel} from './AssigneeLabel';
 import {ReservationStatusBadge} from './ReservationStatusBadge';
 import {NewCustomerBadge} from './NewCustomerBadge';
 import {ServiceChipList} from './ServiceChip';
-import {useStoreLabels} from '../../hooks/useStoreLabels';
 
 type ReservationInfoCardProps = {
     reservation: Reservation;
@@ -63,7 +62,6 @@ export function ReservationInfoCard({
     accentBar = true,
     className,
 }: ReservationInfoCardProps) {
-    const labels = useStoreLabels();
     const clickable = !!onClick;
     const isInactive = reservation.status === 'cancelled' || reservation.status === 'noshow';
     const state = getReservationState(reservation, today);
@@ -141,7 +139,8 @@ export function ReservationInfoCard({
                 />
                 <StyledMetaLine>
                     <StyledAssigneeMeta>
-                        <span>{labels.assignee}</span>
+                        {/* "담당자" 라벨은 두지 않는다 — 색 배지와 이름만으로 뜻이 분명하고,
+                            좁은 카드에서 그 두 글자가 이름을 밀어낸다. */}
                         <AssigneeLabel color={assigneeColor} name={assigneeName} />
                     </StyledAssigneeMeta>
                 </StyledMetaLine>
