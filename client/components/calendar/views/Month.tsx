@@ -40,8 +40,6 @@ export const Month = ({
     const setReservationListFilter = useCalendarStore((s) => s.setReservationListFilter);
     const setCreateReservationInitial = useCalendarStore((s) => s.setCreateReservationInitial);
     const storeSettings = useCalendarStore((s) => s.storeSettings);
-    const customerMap = useCalendarStore((s) => s.customerMap);
-    const openReservationDetail = useCalendarStore((s) => s.openReservationDetail);
     // 칸에 이름을 몇 개까지 둘지. 넘으면 숫자 하나로 접고 내용은 목록이 받는다.
     // 데스크톱은 칸이 넓어 더 담는다.
     const isNarrow = useMediaQuery('(max-width: 640px)');
@@ -91,27 +89,12 @@ export const Month = ({
                                 {dateReservations.length}
                             </StyledCountButton>
                         )
-                        : isNarrow
-                            // 모바일 칸은 카드를 담을 높이가 없다. 이름 한 줄만 둔다.
-                            ? [...dateReservations]
-                                .sort((a, b) => a.startTime.localeCompare(b.startTime))
-                                .map((reservation) => (
-                                    <StyledSingleName key={reservation.id}
-                                                      type="button"
-                                                      onClick={(e) => {
-                                                          e.stopPropagation();
-                                                          setCreateReservationInitial(null);
-                                                          openReservationDetail(reservation);
-                                                      }}>
-                                        {customerMap[reservation.customerId]?.name ?? '-'}
-                                    </StyledSingleName>
-                                ))
-                            : (
-                                <ReservationList reservations={dateReservations}
-                                                 variant="date"
-                                                 onViewAll={() => setReservationListFilter({type: 'date', dateKey})}
-                                                 hideViewAll/>
-                            )
+                        : (
+                            <ReservationList reservations={dateReservations}
+                                             variant="date"
+                                             onViewAll={() => setReservationListFilter({type: 'date', dateKey})}
+                                             hideViewAll/>
+                        )
                 )}
             </StyledDate>);
         })}
@@ -122,18 +105,6 @@ export const Month = ({
 const MOBILE_MAX_NAMES = 1;
 const DESKTOP_MAX_NAMES = 3;
 
-/* 모바일 전용 이름 한 줄 — 누르면 그 예약 상세로 바로 간다. 데스크톱은 기존 카드를 그대로 쓴다. */
-const StyledSingleName = styled.button`
-    padding: 0 2px;
-    border: none;
-    background: none;
-    color: var(--black-color);
-    font-size: var(--tiny-font);
-    text-align: center;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-`;
 
 /* 담을 수 있는 수를 넘겼을 때 — 숫자만. 내용은 목록(모바일은 달력 아래, 데스크톱은 모달)이 받는다. */
 const StyledCountButton = styled.button`
