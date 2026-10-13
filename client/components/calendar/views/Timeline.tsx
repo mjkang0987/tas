@@ -92,7 +92,7 @@ export const Timeline = ({
     // 주 뷰는 접지 않는다 — 칸이 겹친 수만큼 넓어지고(Calendar 의 weekColumns) 가로 스크롤이 폭을 흡수한다.
     // 일 뷰는 폭이 화면에 묶여 있어 3건부터 접는다.
     const splitUpTo = type === ViewType.Week
-        ? (isNarrow ? Number.MAX_SAFE_INTEGER : 0)
+        ? Number.MAX_SAFE_INTEGER
         : (isNarrow && type === ViewType.Day ? 2 : 0);
     const narrowColumn = isNarrow && type === ViewType.Week;
     const timelineEntries = useMemo(

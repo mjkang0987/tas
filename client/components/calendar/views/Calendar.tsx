@@ -32,7 +32,7 @@ export const Calendar = () => {
     // 겹친 예약을 접지 않고 좌우로 나눠 보여주려면 그날 칸이 그만큼 넓어야 한다.
     // 날짜마다 필요한 칸 수를 재서 칼럼 폭 배열을 만든다(iOS WeekTimelineView 와 같은 규칙).
     const weekColumns = useMemo(() => {
-        if (!isNarrow || type !== ViewType.Week) return null;
+        if (type !== ViewType.Week) return null;
 
         return getRangeDates(target.full, type).map((date) => {
             const list = (reservationMap[toDateKey(date.getFullYear(), date.getMonth(), date.getDate())] ?? [])
@@ -40,7 +40,10 @@ export const Calendar = () => {
                     calendarAssigneeId == null
                     || (calendarAssigneeId === 0 ? !reservation.assigneeId : reservation.assigneeId === calendarAssigneeId)
                 ));
-            return `calc(var(--week-col) * ${maxLanesOfDay(list)})`;
+            const lanes = maxLanesOfDay(list);
+            // 모바일은 읽히는 폭(--week-col)을 못박고 넘치면 가로로 스크롤한다.
+            // 데스크톱은 화면에 다 들어가므로 비율(fr)로 나눠 겹친 날만 넓어지게 한다.
+            return isNarrow ? `calc(var(--week-col) * ${lanes})` : `${lanes}fr`;
         }).join(' ');
     }, [isNarrow, type, target, reservationMap, calendarAssigneeId]);
 
@@ -86,7 +89,8 @@ const StyledDaysWrap = styled.div <DaysType & {$weekColumns: string | null}>`
   `}
 
   > ul {
-  grid-template-columns: repeat(${props => props.type === ViewType.Three ? 3 : 7}, 1fr);
+  /* 주 뷰는 날짜마다 폭이 다르다 — 겹친 수만큼 넓어진다(weekColumns). */
+  grid-template-columns: ${props => props.$weekColumns ?? `repeat(${props.type === ViewType.Three ? 3 : 7}, 1fr)`};
   }
 
   ${props => props.type === ViewType.Week && `

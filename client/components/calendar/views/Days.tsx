@@ -63,6 +63,8 @@ const StyledDays = styled.ul <DaysType>`
   /* 페이지 바탕과 같은 흰색 — 눈에는 배경이 없지만, 밑으로 스크롤돼 지나가는 예약은 가린다.
      투명하게 두면 카드가 비쳐 "윗 보더가 잘린" 것처럼 읽힌다. */
   background: var(--white-color);
+  /* 경계선이 있어야 카드가 "잘린" 게 아니라 머리줄 밑으로 "들어간" 것으로 읽힌다. */
+  border-bottom: 1px solid var(--light-gray-color);
 
   li {
     border: none;
