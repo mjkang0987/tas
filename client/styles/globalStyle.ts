@@ -67,7 +67,9 @@ export const GlobalStyle = createGlobalStyle`
         --naver-color: #2DB400;
         --naver-color-dark: #269900;
 
-        --new-customer-bg: #ffd651;
+        /* 신규 고객 배지 — iOS Badges.swift 의 NewCustomerBadge 와 같은 값(#00A896, 바탕 15%). */
+        --new-customer-color: #00A896;
+        --new-customer-bg: rgba(0, 168, 150, .15);
         --unassigned-color: #8E8E93;
 
         --notification-unread-bg: #f0f8ff;

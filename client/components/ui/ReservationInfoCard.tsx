@@ -111,7 +111,7 @@ export function ReservationInfoCard({
             <StyledBody>
                 {customerName && (
                     <StyledCustomerMeta>
-                        {isNewCustomer && <NewCustomerBadge>N</NewCustomerBadge>}
+                        {isNewCustomer && <NewCustomerBadge>신규</NewCustomerBadge>}
                         {onCustomerClick ? (
                             <StyledCustomerButton
                                 className={isInactive ? 'strike' : undefined}

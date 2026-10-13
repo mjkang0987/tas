@@ -109,14 +109,14 @@ export function TimelineReservationCard({
                 {preview && <span className="sub">{preview.date} {preview.startTime}~{preview.endTime}</span>}
                 {customerName && (
                     <span className="detail">
-                        {isNewCustomer && <NewCustomerBadge>N</NewCustomerBadge>}
+                        {isNewCustomer && <NewCustomerBadge>신규</NewCustomerBadge>}
                         <span>{customerName}</span>
                     </span>
                 )}
             </>) : (
                 // 한 줄에 담는다. 넘치면 말줄임 — 무엇인지는 왼쪽 색 막대가 이미 말해준다.
                 <span className="oneline">
-                    {isNewCustomer && !minimal && <NewCustomerBadge>N</NewCustomerBadge>}
+                    {isNewCustomer && !minimal && <NewCustomerBadge>신규</NewCustomerBadge>}
                     <span className="oneline-text">
                         {customerName || '고객'}
                         {detail === 'compact' && reservation.service ? ` · ${reservation.service}` : ''}
@@ -169,7 +169,7 @@ export function TimelineDragGhost({
             <span className="sub">{preview.date} {preview.startTime}~{preview.endTime}</span>
             {customerName && (
                 <span className="detail">
-                    {isNewCustomer && <NewCustomerBadge>N</NewCustomerBadge>}
+                    {isNewCustomer && <NewCustomerBadge>신규</NewCustomerBadge>}
                     <span>{customerName}</span>
                 </span>
             )}

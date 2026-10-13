@@ -67,7 +67,7 @@ export const ReservationList = ({
                             </StyledServiceName>
                             <StyledCustomerMeta $variant={variant}>
                                 {isNewCustomerVisit(customer?.firstVisitDate, r.date) &&
-                                    <NewCustomerBadge>N</NewCustomerBadge>}
+                                    <NewCustomerBadge>신규</NewCustomerBadge>}
                                 <StyledCustomerName className={isInactive ? 'strike' : undefined}>{customer?.name ?? ''}</StyledCustomerName>
                             </StyledCustomerMeta>
                         </StyledItem>
