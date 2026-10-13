@@ -76,15 +76,8 @@ const StyledTime = styled.li<{$height: number}>`
     justify-content: center;
     position: relative;
 
-    &:after {
-        content: "";
-        position: absolute;
-        top: 50%;
-        left: calc(100% - 6px);
-        width: 100vw;
-        height: 1px;
-        background-color: var(--calendar-grid-line);
-    }
+    /* 정시 가로선은 타임라인(StyledTimelineWrap)이 그린다 — 여기서 그리면
+       시간축의 z-index 가 카드 위로 올라가 카드 윗변을 덮는다. */
 `;
 
 const StyledNum = styled.span<{$height: number}>`

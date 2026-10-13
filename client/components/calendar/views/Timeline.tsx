@@ -229,6 +229,7 @@ export const Timeline = ({
     return (<StyledTimelineWrap ref={timelineRef}
                                 data-timeline-date={dateKey}
                                 $type={type}
+                                $hourHeight={scale.hourHeight}
                                 $closedKind={closedKind}>
         {closedKind && <span className="a11y">{STORE_CLOSED_LABEL[closedKind]}</span>}
         {!isTouchDevice && (
@@ -355,9 +356,20 @@ export const Timeline = ({
 };
 const StyledTimelineWrap = styled.div<{
     $type: string,
+    $hourHeight: number,
     $closedKind: StoreClosedKind | null
 }>`
     ${props => storeClosedCss(props.$closedKind)}
+    /* 정시 가로선을 타임라인이 직접 그린다. 시간축(z-index 14)이 그리면 그 선이
+       예약 카드(z-index 1) 윗변을 덮어 "상단 보더가 잘린" 것처럼 보인다. */
+    background-image: repeating-linear-gradient(
+        to bottom,
+        var(--calendar-grid-line) 0,
+        var(--calendar-grid-line) 1px,
+        transparent 1px,
+        transparent ${props => props.$hourHeight}px
+    );
+    background-position: 0 ${props => props.$type === ViewType.Day ? TIMELINE_DAY_TOP : TIMELINE_TOP}px;
     flex: 1;
     display: flex;
     flex-direction: column;
