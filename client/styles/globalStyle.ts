@@ -95,7 +95,8 @@ export const GlobalStyle = createGlobalStyle`
         --shadow-sm: 0 1px 4px rgba(0, 0, 0, .08);
         --shadow-md: 0 4px 16px rgba(0, 0, 0, .12);
         --cancelled-color: hsl(220, 9%, 62%);
-        --timeline-col: 80px;
+        /* 눈금은 정시 두 자리뿐이다(TimelineTitle) — 모바일과 같은 폭으로 둔다. */
+        --timeline-col: 44px;
 
         --dot-size: 10px;
 
@@ -166,7 +167,6 @@ export const GlobalStyle = createGlobalStyle`
 
     @media (max-width: 640px) {
         :root {
-            --timeline-col: 44px;
             /* 주 뷰 하루 칸 폭. 7등분(한 칸 47px)이면 세 글자 이름부터 말줄임돼,
                읽히는 폭을 먼저 주고 가로로 스크롤한다. */
             --week-col: 64px;

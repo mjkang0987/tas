@@ -11,8 +11,6 @@ export const TimelineTitle = () => {
     const storeSettings = useCalendarStore((s) => s.storeSettings);
     // 눈금 간격 = 매장 단위. 블록과 같은 배율을 써야 축과 카드가 맞는다.
     const scale = useTimelineScale();
-    // 5·10분 단위에서 모든 칸에 라벨을 달면 축이 숫자로 뒤덮인다 → 라벨은 30분마다, 칸만 단위대로 나눈다.
-    const labelEvery = Math.max(1, Math.round(30 / scale.unit));
 
     // Timeline과 동일한 파생 규칙으로 좌측 시간축 라벨 범위를 맞춘다(축↔블록 정렬 유지).
     const {start, end} = useMemo(
@@ -20,24 +18,19 @@ export const TimelineTitle = () => {
         [view.type, storeSettings.businessHours]
     );
 
+    // iOS gutter 와 같은 눈금 — 정시만, 24시간제 두 자리. 오전/오후·분은 떨어뜨린다.
+    // (영업시간 범위만 그리므로 13·14 로 충분히 읽힌다.) 칸은 그대로 매장 단위로 나눈다.
     const setTimes = () => {
-        const result: { key: string; full: string; compact: string }[] = [];
+        const result: { key: string; label: string }[] = [];
         const slotsPerHour = 60 / scale.unit;
 
         for (let i = 0; i < (end - start + 1); i++) {
             const num = start + i;
-            const isMorning = num < 12 ? '오전' : '오후';
-            const isHalf = num > 12 ? num - 12 : num;
-            const isSingle = String(isHalf + 1).length < 2 ? 0 : '';
-            const hour = isHalf === 0 ? 12 : isHalf;
 
             for (let slot = 0; slot < slotsPerHour; slot++) {
-                const minute = slot * scale.unit;
-                const labeled = slot % labelEvery === 0;
                 result.push({
-                    key: `${num}-${minute}`,
-                    full: labeled ? `${isMorning} ${isSingle}${isHalf}:${String(minute).padStart(2, '0')}` : '',
-                    compact: labeled ? `${hour}:${String(minute).padStart(2, '0')}` : '',
+                    key: `${num}-${slot * scale.unit}`,
+                    label: slot === 0 ? String(num).padStart(2, '0') : '',
                 });
             }
         }
@@ -47,11 +40,8 @@ export const TimelineTitle = () => {
 
     return (<StyledTimelineTitle>
             <StyledTimes>
-                {setTimes().map((t) => <StyledTime key={`time_${t.key}`} $height={scale.hourHeight / (60 / scale.unit)}>
-                    <StyledNum $height={scale.hourHeight / (60 / scale.unit)}>
-                        <span className="full">{t.full}</span>
-                        <span className="compact">{t.compact}</span>
-                    </StyledNum>
+                {setTimes().map((t) => <StyledTime key={`time_${t.key}`}>
+                    <StyledNum $height={scale.hourHeight / (60 / scale.unit)}>{t.label}</StyledNum>
                 </StyledTime>)}
             </StyledTimes>
         </StyledTimelineTitle>
@@ -71,7 +61,7 @@ const StyledTimes = styled.ul`
     margin: 30px 0 60px;
 `;
 
-const StyledTime = styled.li<{$height: number}>`
+const StyledTime = styled.li`
     display: flex;
     justify-content: center;
     position: relative;
@@ -82,28 +72,16 @@ const StyledTime = styled.li<{$height: number}>`
 
 const StyledNum = styled.span<{$height: number}>`
     display: flex;
-    justify-content: center;
+    /* iOS gutter 와 같이 선 쪽으로 붙인다(trailing). */
+    justify-content: flex-end;
     align-items: center;
     width: 100%;
     height: ${props => props.$height}px;
-    padding: 0 10px;
+    padding: 0 6px 0 0;
     font-size: var(--tiny-font);
+    /* 숫자 폭을 고정해 눈금이 세로로 흔들리지 않게 — iOS monospacedDigit. */
+    font-variant-numeric: tabular-nums;
     /* --gray-color(#dbdbdb)는 거의 흰 배경 위에서 대비가 1.33:1 이라 10px 글자가 보이지 않았다.
        WCAG AA(작은 글자 4.5:1)를 넘기려면 여기까지 내려야 한다 — 이 값은 7.5:1. */
     color: var(--dark-gray-color);
-
-    .compact {
-        display: none;
-    }
-
-    @media (max-width: 640px) {
-        padding: 0 4px;
-        .full {
-            display: none;
-        }
-
-        .compact {
-            display: block;
-        }
-    }
 `;
