@@ -37,6 +37,7 @@ export const Month = ({
     const reservationMap = useCalendarStore((s) => s.reservationMap);
     const calendarAssigneeId = useCalendarStore((s) => s.calendarAssigneeId);
     const setReservationListFilter = useCalendarStore((s) => s.setReservationListFilter);
+    const reservationListFilter = useCalendarStore((s) => s.reservationListFilter);
     const storeSettings = useCalendarStore((s) => s.storeSettings);
     // 칸에 이름을 몇 개까지 둘지. 넘으면 숫자 하나로 접고 내용은 목록이 받는다.
     // 데스크톱은 칸이 넓어 더 담는다.
@@ -61,9 +62,12 @@ export const Month = ({
             );
             const dateLabel = isAdjacentMonth ? `${normalizedDate.getMonth() + 1}/${val}` : String(val);
             const closedKind = getStoreClosedKind(storeSettings, dateKey);
+            // 아래(또는 모달) 목록이 열려 있는 날짜. 어느 칸을 보고 있는지 달력에서 짚어준다.
+            const isActive = reservationListFilter?.type === 'date' && reservationListFilter.dateKey === dateKey;
 
             return (<StyledDate key={`month_${val + index}`}
                                 type={type}
+                                $active={isActive}
                                 $closedKind={closedKind}>
                 {closedKind && <span className="a11y">{STORE_CLOSED_LABEL[closedKind]}</span>}
                 <StyledDateHeader>
@@ -122,8 +126,13 @@ const StyledDateHeader = styled.div`
     justify-content: space-between;
 `;
 
-const StyledDate = styled.li<{ type: string, $closedKind: StoreClosedKind | null }>`
+const StyledDate = styled.li<{ type: string, $active: boolean, $closedKind: StoreClosedKind | null }>`
     ${props => storeClosedCss(props.$closedKind)}
+    /* 목록이 열린 날짜. 칸 안에 카드가 들어가므로 iOS 처럼 꽉 채우지 않고 테두리+옅은 바탕으로 짚는다. */
+    ${props => props.$active && `
+    background-color: var(--brand-color-bg);
+    box-shadow: inset 0 0 0 2px var(--brand-color);
+    `}
     display: flex;
     flex-direction: column;
     padding: 2px;
