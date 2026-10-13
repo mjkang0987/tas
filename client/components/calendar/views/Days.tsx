@@ -83,10 +83,5 @@ const StyledDay = styled.li`
   padding: 4px 0 2px;
   font-size: var(--small-font);
   color: var(--black-color);
-  border-right: 1px solid var(--light-gray-color);
   box-sizing: border-box;
-
-  &:nth-child(7) {
-    border-right: none;
-  }
 `;
