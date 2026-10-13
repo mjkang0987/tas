@@ -242,8 +242,10 @@ const StyledTime = styled.span`
 const StyledBody = styled.div`
     flex: 1;
     min-width: 0;
+    /* 담당자를 시술칩 다음 줄에 둔다. 한 줄에 흘리면 시술이 많을 때 담당자가 칩 사이에 끼인다. */
     display: flex;
-    flex-wrap: wrap;
+    flex-direction: column;
+    align-items: flex-start;
     gap: 2px;
 `;
 
