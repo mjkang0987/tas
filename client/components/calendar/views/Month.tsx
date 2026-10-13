@@ -122,7 +122,8 @@ const StyledCountButton = styled.button`
 const StyledDateHeader = styled.div`
     display: flex;
     align-items: center;
-    justify-content: space-between;
+    /* 예약추가 버튼을 뺀 뒤로 날짜 하나만 남았다. space-between 이면 왼쪽에 붙는다. */
+    justify-content: center;
 `;
 
 const StyledDate = styled.li<{ type: string, $active: boolean, $closedKind: StoreClosedKind | null }>`

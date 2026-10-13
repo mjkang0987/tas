@@ -180,6 +180,8 @@ export const StyledAssigneeFilter = styled.select`
        덕분에 어디서도 네이티브 화살표가 남지 않아 아래 SVG 화살표만 보인다. */
     appearance: none;
     appearance: base-select;
+    /* 오늘·좌우 버튼과 같은 알약 모양. */
+    border-radius: var(--chip-radius);
     display: inline-flex;
     align-items: center;
     gap: 6px;

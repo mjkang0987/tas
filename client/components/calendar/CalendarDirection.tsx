@@ -115,7 +115,7 @@ export const CalendarDirection = () => {
     };
 
     return (<StyledButtonWrap>
-            {today && <ButtonSquare onClick={() => {
+            {today && <StyledTodayButton onClick={() => {
                 setUpdateCurr(today);
                 setRouter({
                     type,
@@ -126,7 +126,7 @@ export const CalendarDirection = () => {
                 });
             }}>
                 <ButtonText a11y={false}>오늘</ButtonText>
-            </ButtonSquare>}
+            </StyledTodayButton>}
             <StyledDirectionButton type="button" onClick={() => controller({direction: 'prev'})}>
                 <DirectionIcon direction="left"/>
                 {type && <ButtonText a11y={true}>이전{A11Y_DIRECTION[type]}</ButtonText>}
@@ -145,12 +145,22 @@ const StyledButtonWrap = styled.span`
   gap: 4px;
 `;
 
+/* + 예약 버튼과 같은 알약 모양. 보조 동작이라 채우지 않고 테두리만 쓴다. */
+const StyledTodayButton = styled(ButtonSquare)`
+  padding: 0 12px;
+  border-radius: var(--chip-radius);
+`;
+
 const StyledDirectionButton = styled.button`
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  width: 32px;
+  height: 32px;
   padding: 0;
-  border: 0;
-  background: transparent;
+  border: 1px solid var(--border-color);
+  border-radius: var(--chip-radius);
+  background-color: var(--white-color);
+  box-shadow: var(--shadow-sm);
   line-height: 0;
 `;
