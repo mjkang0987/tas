@@ -227,7 +227,9 @@ const StyledTime = styled.span`
     flex-direction: column;
     line-height: 1.25;
     flex-shrink: 0;
-    width: 76px;
+    /* 두 줄로 쪼개면서 한 줄에 "10:00" 다섯 글자만 남았다. 76px 은 한 줄짜리
+       "10:00~11:30" 기준이던 폭이라 그만큼이 빈 자리로 남는다. */
+    width: 42px;
     font-size: var(--small-font);
     font-weight: 700;
     color: #0f172a;
