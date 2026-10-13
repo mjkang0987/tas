@@ -8,8 +8,8 @@ export const NewCustomerBadge = styled.span`
     height: 14px;
     padding: 0 4px;
     box-sizing: border-box;
-    border-radius: 999px;
-    color: var(--black-color);
+    border-radius: var(--radius-sm);
+    color: var(--new-customer-color);
     background: var(--new-customer-bg);
     font-size: var(--tiny-font);
     font-weight: 700;

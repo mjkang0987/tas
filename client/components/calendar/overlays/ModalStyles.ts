@@ -82,6 +82,9 @@ export function useDialogAccessibility<T extends HTMLElement>(onClose: () => voi
         const handleKeyDown = (event: KeyboardEvent) => {
             if (event.key === 'Escape') {
                 event.preventDefault();
+                // 여기서 멈춘다 — 레이어가 겹쳐 있으면(상세 위 히스토리 등) 바깥 레이어도
+                // 같은 리스너를 걸고 있어, 올려 보내면 Esc 한 번에 여러 겹이 함께 닫힌다.
+                event.stopPropagation();
                 onCloseRef.current();
                 return;
             }

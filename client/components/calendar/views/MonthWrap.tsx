@@ -42,7 +42,22 @@ export const MonthWrap = () => {
 };
 
 const StyledMonthWrap = styled.ul`
-  flex: 1;
+  /* 아래에 예약 목록이 붙어도 달력이 자리를 내주며 눌리지 않게.
+     flex: 1 은 basis 0 이라 형제가 생기면 0 까지 쪼그라든다 — basis 를 auto 로 두고
+     min-height 로 바닥을 깐다. 혼자 있을 때는 높이가 같아 보이는 모습이 그대로다. */
+  flex: 1 0 auto;
+  min-height: 100%;
+
+  /* 모바일은 칸에 이름 한 줄만 들어가므로 화면을 꽉 채울 이유가 없다.
+     칸 높이를 내용에 맞춰 줄이고(한 줄 기준 46px), 남는 자리는 아래 목록이 쓴다. */
+  @media (max-width: 640px) {
+    flex: 0 0 auto;
+    min-height: 0;
+    height: auto;
+    grid-auto-rows: minmax(46px, auto);
+    gap: 4px;
+    padding: 0 12px;
+  }
   display: grid;
   grid-template-columns: repeat(7, 1fr);
   grid-auto-rows: 1fr;

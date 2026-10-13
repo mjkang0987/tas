@@ -115,7 +115,7 @@ export const CalendarDirection = () => {
     };
 
     return (<StyledButtonWrap>
-            {today && <ButtonSquare onClick={() => {
+            {today && <StyledTodayButton onClick={() => {
                 setUpdateCurr(today);
                 setRouter({
                     type,
@@ -126,13 +126,13 @@ export const CalendarDirection = () => {
                 });
             }}>
                 <ButtonText a11y={false}>오늘</ButtonText>
-            </ButtonSquare>}
+            </StyledTodayButton>}
             <StyledDirectionButton type="button" onClick={() => controller({direction: 'prev'})}>
-                <DirectionIcon direction="left"/>
+                <DirectionIcon direction="left" size={18}/>
                 {type && <ButtonText a11y={true}>이전{A11Y_DIRECTION[type]}</ButtonText>}
             </StyledDirectionButton>
             <StyledDirectionButton type="button" onClick={() => controller({direction: 'next'})}>
-                <DirectionIcon direction="right"/>
+                <DirectionIcon direction="right" size={18}/>
                 {type && <ButtonText a11y={true}>다음{A11Y_DIRECTION[type]}</ButtonText>}
             </StyledDirectionButton>
         </StyledButtonWrap>
@@ -145,12 +145,33 @@ const StyledButtonWrap = styled.span`
   gap: 4px;
 `;
 
+/* + 예약 버튼과 같은 알약 모양. 보조 동작이라 채우지 않고 테두리만 쓴다. */
+const StyledTodayButton = styled(ButtonSquare)`
+  /* 일 뷰 제목(2026 / 10 / 13)이 길어 이 버튼이 눌리면 "오 / 늘" 로 쪼개졌다. */
+  flex-shrink: 0;
+  white-space: nowrap;
+  padding: 0 12px;
+  border-radius: var(--chip-radius);
+`;
+
 const StyledDirectionButton = styled.button`
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  /* 오늘 버튼과 같은 테두리·높이. 테두리는 버튼이 그린다 —
+     예전엔 아이콘 SVG 안의 rect 가 그려서 모양을 버튼이 정하지 못했다. */
+  flex-shrink: 0;
+  width: 32px;
+  height: 32px;
   padding: 0;
-  border: 0;
-  background: transparent;
+  border: 1px solid var(--border-color);
+  border-radius: var(--chip-radius);
+  background-color: var(--white-color);
+  box-shadow: var(--shadow-sm);
   line-height: 0;
+
+  svg {
+    width: 18px;
+    height: 18px;
+  }
 `;

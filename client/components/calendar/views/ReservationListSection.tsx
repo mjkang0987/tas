@@ -1,7 +1,5 @@
 import {useMemo} from 'react';
 
-import {createPortal} from 'react-dom';
-
 import styled from 'styled-components';
 
 import {useCalendarStore} from '../../../store/calendarStore';
@@ -11,22 +9,15 @@ import {buildAssigneeColorMap, buildAssigneeNameMap} from '../../../utils/assign
 import {buildServiceColorMap} from '../../../utils/services';
 
 import {EMPTY_TEXT, StyledEmpty as StyledEmptyBase} from '../../settings/settings-styles';
+import {getDailyRevenue, getMonthlyRevenue} from '../../../utils/revenue';
+import {formatPrice} from '../../../utils/services';
 import {
-    OVERLAY_Z_INDEX,
-    StyledActionButton,
-    StyledFooter,
-    StyledOverlay,
     StyledDetail,
     StyledHeader,
     StyledHeaderTitle,
-    StyledHeaderTitleGroup,
-    StyledHeaderTitleGroupText,
     StyledBody,
     StyledBodyInner,
-    useDialogAccessibility,
-    useLayerInstanceId,
-} from './ModalStyles';
-import {CloseIconButton} from '../../ui/CloseIconButton';
+} from '../overlays/ModalStyles';
 import {ReservationInfoCard} from '../../ui/ReservationInfoCard';
 
 import type {Reservation} from '../../../utils/reservations';
@@ -38,21 +29,21 @@ const STATUS_LABELS: Record<string, string> = {
     requested: '신청',
 };
 
-export const ReservationListModal = () => {
+/**
+ * 월·년 뷰에서 고른 날짜/달의 예약 목록. **레이어가 아니라 달력 아래 영역이다** —
+ * 덮는 것이 없어 달력이 그대로 보이고 페이지와 함께 스크롤된다.
+ * 닫기 버튼이 없다. 다른 날짜를 고르면 그 날짜로 바뀌고, 뷰를 옮기면 스토어가 비운다(setView).
+ */
+export const ReservationListSection = () => {
     const reservationMap = useCalendarStore((s) => s.reservationMap);
     const customerMap = useCalendarStore((s) => s.customerMap);
     const filter = useCalendarStore((s) => s.reservationListFilter);
-    const setReservationListFilter = useCalendarStore((s) => s.setReservationListFilter);
     const openReservationDetail = useCalendarStore((s) => s.openReservationDetail);
     const openCustomerDetail = useCalendarStore((s) => s.openCustomerDetail);
     const serviceCatalog = useCalendarStore((s) => s.serviceCatalog);
     const categoryBaseColorMap = useCalendarStore((s) => s.categoryBaseColorMap);
     const assignees = useCalendarStore((s) => s.assignees);
     const calendarAssigneeId = useCalendarStore((s) => s.calendarAssigneeId);
-    const modalRoot = document.getElementById('modal-root');
-    const {layerId, layerDataId} = useLayerInstanceId('reservation-list');
-    const handleClose = () => setReservationListFilter(null);
-    const dialogRef = useDialogAccessibility<HTMLDivElement>(handleClose);
     const serviceColorMap = useMemo(
         () => buildServiceColorMap(serviceCatalog, categoryBaseColorMap),
         [serviceCatalog, categoryBaseColorMap]
@@ -79,7 +70,8 @@ export const ReservationListModal = () => {
             list = (reservationMap[filter.dateKey] || [])
                 .slice()
                 .sort((a, b) => a.startTime.localeCompare(b.startTime));
-            modalTitle = filter.dateKey;
+            const [, mm, dd] = filter.dateKey.split('-').map(Number);
+            modalTitle = `${mm}월 ${dd}일`;
         } else {
             const pad = (n: number) => String(n + 1).padStart(2, '0');
             const prefix = `${filter.year}-${pad(filter.month)}`;
@@ -120,6 +112,14 @@ export const ReservationListModal = () => {
         return {title: modalTitle, reservations: list, grouped: groups};
     }, [filter, reservationMap, calendarAssigneeId, assignees]);
 
+    // 합계는 연 뷰와 같은 기준(취소·노쇼 제외)으로 낸다. iOS daySummary 와도 같다.
+    const total = useMemo(() => {
+        if (!filter) return 0;
+        return filter.type === 'date'
+            ? getDailyRevenue(reservationMap, filter.dateKey, calendarAssigneeId ?? null, 'booked').total
+            : getMonthlyRevenue(reservationMap, filter.year, filter.month, calendarAssigneeId ?? null, 'booked').total;
+    }, [filter, reservationMap, calendarAssigneeId]);
+
     const getStatusType = (r: Reservation) => {
         if (r.status === 'cancelled') return 'cancelled';
         if (r.status === 'noshow') return 'noshow';
@@ -139,28 +139,19 @@ export const ReservationListModal = () => {
         openReservationDetail(r);
     };
 
-    if (!modalRoot) return null;
-
-    return createPortal(<StyledListOverlay onClick={handleClose}
-                                           role="dialog"
-                                           aria-modal="true"
-                                           aria-label="예약 목록"
-                                           id={layerId}
-                                           data-layer-id={layerDataId}>
-        <StyledListModal ref={dialogRef}
-                         tabIndex={-1}
-                         onClick={(e) => e.stopPropagation()}>
-            <StyledHeader>
-                <StyledHeaderTitleGroup>
-                    <StyledHeaderTitle>{title} 예약 ({reservations.length})</StyledHeaderTitle>
-                    <StyledHeaderTitleGroupText>예약을 누르면 상세 레이어가 열리고, 고객명은 바로 고객 상세로 이동합니다.</StyledHeaderTitleGroupText>
-                </StyledHeaderTitleGroup>
-                <CloseIconButton onClick={handleClose} />
-            </StyledHeader>
+    return (
+        <StyledListSection aria-label="예약 목록">
+        <StyledListPanel>
+            <StyledListHeader>
+                <StyledHeaderTitle>{title}</StyledHeaderTitle>
+                {reservations.length > 0 && (
+                    <StyledHeaderSummary>{reservations.length}건 · {formatPrice(total)}</StyledHeaderSummary>
+                )}
+            </StyledListHeader>
             <StyledListBody>
                 <StyledListBodyInner>
                     {reservations.length === 0 ? (
-                        <StyledEmpty>{EMPTY_TEXT}</StyledEmpty>
+                        <StyledEmpty>{title} 예약이 없습니다.</StyledEmpty>
                     ) : (
                         grouped.map((group) => (
                             <StyledDateGroup key={group.date}>
@@ -197,24 +188,56 @@ export const ReservationListModal = () => {
                     )}
                 </StyledListBodyInner>
             </StyledListBody>
-            <StyledFooter>
-                <StyledFooterSummary>
-                    <span>총 {reservations.length}건</span>
-                </StyledFooterSummary>
-                <StyledActionButton type="button"
-                                    onClick={handleClose}>닫기</StyledActionButton>
-            </StyledFooter>
-        </StyledListModal>
-    </StyledListOverlay>, modalRoot);
+        </StyledListPanel>
+        </StyledListSection>
+    );
 };
 
-const StyledListOverlay = styled(StyledOverlay)`
-    z-index: ${OVERLAY_Z_INDEX.base};
+/* 달력 바로 아래 자리. 랜드마크로 읽히고, 모달이 아니라 포커스도 가두지 않는다. */
+/* 헤더 바 — iOS selectedDayList 의 머리줄(secondarySystemBackground, 가로 16 세로 6). */
+const StyledListHeader = styled(StyledHeader)`
+    align-items: center;
+    padding: 6px 16px;
+    border-bottom: none;
+    background-color: var(--gray-color2);
 `;
 
-const StyledListModal = styled(StyledDetail)`
-    max-width: 560px;
+/* 오른쪽 요약 — iOS 는 caption/secondary 로 "N건 · 금액"을 둔다. */
+const StyledHeaderSummary = styled.span`
+    margin-left: auto;
+    color: var(--dark-gray-color2);
+    font-size: var(--small-font);
+`;
+
+const StyledListSection = styled.section`
+    /* 남은 세로 자리를 채우고, 스크롤은 제 안(StyledListBody)에서만 일어난다.
+       min-height: 0 이 없으면 flex 자식이 내용만큼 늘어나 페이지가 밀린다. */
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    border-top: 1px solid var(--light-gray-color);
+
+    /* 데스크톱은 달력 오른쪽 기둥. 제 안에서 스크롤해 달력을 밀지 않는다. */
+    @media (min-width: 641px) {
+        flex: 0 0 auto;
+        width: 340px;
+        height: 100%;
+        border-top: none;
+        border-left: 1px solid var(--light-gray-color);
+    }
+`;
+
+const StyledListPanel = styled(StyledDetail)`
+    flex: 1;
+    min-height: 0;
+    /* 흐름에 붙으므로 떠 있는 표면의 장식(그림자·둥근 모서리·높이 제한)을 걷는다. */
     width: 100%;
+    max-width: none;
+    max-height: none;
+    border-radius: 0;
+    /* 바깥 StyledListSection 이 경계를 긋는다(모바일 위, 데스크톱 왼쪽). 패널은 테두리를 두지 않는다. */
+    border: none;
+    box-shadow: none;
 `;
 
 const StyledListBody = styled(StyledBody)``;
@@ -266,10 +289,3 @@ const StyledDateTitle = styled.div`
 `;
 
 const StyledItem = styled.li``;
-
-const StyledFooterSummary = styled.div`
-    margin-right: auto;
-    font-size: var(--small-font);
-    font-weight: 600;
-    color: var(--dark-gray-color2);
-`;

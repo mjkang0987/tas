@@ -51,10 +51,27 @@ describe('buildTimelineEntries', () => {
         expect(buildTimelineEntries([])).toEqual([]);
     });
 
-    it('splitUpTo 를 올리면 그 수까지 나눈다 — 칸 수는 묶음 크기', () => {
+    it('사슬로 이어진 겹침은 끝난 칸을 물려받는다 — 3건이 2칸', () => {
+        // 10-11 과 10:30-11:30 은 겹치지만, 11-12 는 첫 건이 끝난 뒤라 그 칸을 다시 쓴다.
+        // 묶음 크기대로 3칸을 주면 폭이 1/3 로 줄고 주 뷰에서는 그 날 칸이 3배가 된다.
         const entries = buildTimelineEntries([
             makeReservation(1, '10:00', '11:00'),
             makeReservation(2, '10:30', '11:30'),
+            makeReservation(3, '11:00', '12:00'),
+        ], {splitUpTo: 3});
+
+        const lanes = entries.map((entry) => entry.kind === 'single' ? entry.lane : 'cluster');
+        expect(lanes).toEqual([
+            {index: 0, count: 2},
+            {index: 1, count: 2},
+            {index: 0, count: 2},
+        ]);
+    });
+
+    it('진짜로 동시에 겹치면 그만큼 칸을 늘린다 — 3중 겹침은 3칸', () => {
+        const entries = buildTimelineEntries([
+            makeReservation(1, '10:00', '12:00'),
+            makeReservation(2, '10:30', '12:00'),
             makeReservation(3, '11:00', '12:00'),
         ], {splitUpTo: 3});
 

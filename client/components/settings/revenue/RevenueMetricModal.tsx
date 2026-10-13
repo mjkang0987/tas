@@ -126,7 +126,7 @@ export const RevenueMetricModal = ({
                                     >
                                         <StyledCustomerRowHeader>
                                             <StyledCustomerName>
-                                                {metricLayerKey === 'new' && <NewCustomerBadge>N</NewCustomerBadge>}
+                                                {metricLayerKey === 'new' && <NewCustomerBadge>신규</NewCustomerBadge>}
                                                 <StyledCustomerTitle>{item.customer.name}</StyledCustomerTitle>
                                                 {metricLayerKey === 'returning' && item.prevVisitDate && (
                                                     <StyledVisitGapBadge>{formatVisitGap(item.visitDate, item.prevVisitDate)}</StyledVisitGapBadge>

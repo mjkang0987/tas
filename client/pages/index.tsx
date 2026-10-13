@@ -16,7 +16,7 @@ import {Calendar} from '../components/calendar/views/Calendar';
 
 import {ReservationDetail} from '../components/calendar/overlays/ReservationDetail';
 
-import {ReservationListModal} from '../components/calendar/overlays/ReservationListModal';
+import {ReservationListSection} from '../components/calendar/views/ReservationListSection';
 
 import {CustomerDetail} from '../components/calendar/overlays/CustomerDetail';
 
@@ -153,10 +153,12 @@ const Home: NextPage<HomeProps> = (props) => {
 
     return (<>
             <SeoHead title="예약·고객 관리 시스템" />
-            <StyledSection $isVisible={aside.isVisible}>
-                {curr && <Calendar/>}
+            <StyledSection $isVisible={aside.isVisible} $listOpen={!!reservationListFilter}>
+                <StyledCalendarPane $listOpen={!!reservationListFilter}>{curr && <Calendar/>}</StyledCalendarPane>
+                {/* 레이어가 아니다. 모바일은 달력 아래, 데스크톱은 오른쪽에 둔다 —
+                    데스크톱 달력은 화면을 꽉 채워서 아래에 두면 목록이 화면 밖으로 밀린다. */}
+                {reservationListFilter && <ReservationListSection/>}
             </StyledSection>
-            {reservationListFilter && <ReservationListModal/>}
             {selectedReservations.map((reservation, index) => (
                 <ReservationDetail key={`${reservation.id}-${index}`}
                                    reservation={reservation}
@@ -219,11 +221,38 @@ const HomePage: NextPage<HomeProps> = (props) => (props.landing ? <Landing/> : <
 
 export default HomePage;
 
-const StyledSection = styled.section <{ $isVisible: boolean }>`
+const StyledCalendarPane = styled.div<{ $listOpen: boolean }>`
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  height: 100%;
+
+  /* 목록이 열린 월·연 뷰에서만 달력이 내용 높이를 쓴다. 남는 세로 자리는 목록이 가져간다.
+     일·주 뷰까지 높이를 풀면 타임라인이 제 안에서 스크롤하지 않게 되고,
+     그러면 시간축·요일 머리줄의 sticky 가 걸릴 스크롤 컨테이너가 사라진다. */
+  ${props => props.$listOpen && `
+  @media (max-width: 640px) {
+    flex: 0 0 auto;
+    height: auto;
+  }
+  `}
+`;
+
+const StyledSection = styled.section <{ $isVisible: boolean; $listOpen: boolean }>`
   flex: 1;
   display: flex;
   flex-direction: column;
   height: 100%;
+  /* 페이지는 스크롤하지 않는다 — 달력은 제자리에 고정되고, 넘치는 것은 목록이 제 안에서 민다. */
+  ${props => props.$listOpen && `
+  overflow: hidden;
+
+  /* 데스크톱은 달력이 화면을 채우므로 아래가 아니라 오른쪽에 나란히 둔다. */
+  @media (min-width: 641px) {
+    flex-direction: row;
+  }
+  `}
   /* flex 기본값 min-width:auto 면 주 뷰가 넓어질 때 이 섹션이 끌려 늘어나고
      스크롤을 main 이 가져가, 캘린더 안의 sticky 시간축이 흘러가 버린다. */
   min-width: 0;
