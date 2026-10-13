@@ -89,11 +89,9 @@ export const Timeline = ({
     // 좁은 화면 대응. CSS 로는 못 한다 — 접을지 말지가 buildTimelineEntries 의 JS 분기다.
     // 일 뷰는 겹침을 두 칸으로 나누고, 주 뷰는 한 칸이 약 47px 라 카드를 이름만으로 줄인다.
     const isNarrow = useMediaQuery('(max-width: 640px)');
-    // 주 뷰는 접지 않는다 — 칸이 겹친 수만큼 넓어지고(Calendar 의 weekColumns) 가로 스크롤이 폭을 흡수한다.
-    // 일 뷰는 폭이 화면에 묶여 있어 3건부터 접는다.
-    const splitUpTo = type === ViewType.Week
-        ? Number.MAX_SAFE_INTEGER
-        : (isNarrow && type === ViewType.Day ? 2 : 0);
+    // 어느 뷰에서도 N건예약 으로 접지 않는다. 겹친 만큼 좌우로 나눠 전부 보여준다.
+    // 주 뷰는 칸이 겹친 수만큼 넓어지고(Calendar 의 weekColumns), 일·3일은 제 폭 안에서 나뉜다.
+    const splitUpTo = Number.MAX_SAFE_INTEGER;
     const narrowColumn = isNarrow && type === ViewType.Week;
     const timelineEntries = useMemo(
         () => buildTimelineEntries(reservations, {splitUpTo}),

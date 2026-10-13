@@ -62,9 +62,9 @@ const StyledDays = styled.ul <DaysType>`
   grid-row: 1 / 2;
   /* 페이지 바탕과 같은 흰색 — 눈에는 배경이 없지만, 밑으로 스크롤돼 지나가는 예약은 가린다.
      투명하게 두면 카드가 비쳐 "윗 보더가 잘린" 것처럼 읽힌다. */
-  background: var(--white-color);
-  /* 경계선이 있어야 카드가 "잘린" 게 아니라 머리줄 밑으로 "들어간" 것으로 읽힌다. */
-  border-bottom: 1px solid var(--light-gray-color);
+  /* 옅은 바탕으로 머리줄임을 보인다. 선 하나만 긋는 것보다 밑으로 지나가는 카드와
+     경계가 분명하다(예약 목록 머리줄과 같은 처리). */
+  background: var(--gray-color2);
 
   li {
     border: none;

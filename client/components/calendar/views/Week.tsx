@@ -103,7 +103,7 @@ const StyledNumWrap = styled.span`
     position: sticky;
     top: 21px;
     width: 100%;
-    /* 요일 헤더와 같은 이유로 흰색(= 페이지 바탕). 투명이면 지나가는 카드가 비친다. */
-    background: var(--white-color);
+    /* 요일 헤더와 같은 바탕 — 두 줄이 한 머리줄로 읽혀야 한다. */
+    background: var(--gray-color2);
     z-index: 13;
 `;
