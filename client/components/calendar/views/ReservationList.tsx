@@ -67,7 +67,7 @@ export const ReservationList = ({
                             </StyledServiceName>
                             <StyledCustomerMeta $variant={variant}>
                                 {isNewCustomerVisit(customer?.firstVisitDate, r.date) &&
-                                    <NewCustomerBadge>N</NewCustomerBadge>}
+                                    <NewCustomerBadge>신규</NewCustomerBadge>}
                                 <StyledCustomerName className={isInactive ? 'strike' : undefined}>{customer?.name ?? ''}</StyledCustomerName>
                             </StyledCustomerMeta>
                         </StyledItem>
@@ -167,7 +167,12 @@ const StyledServiceName = styled.span<{ $variant: 'date' | 'month' }>`
     flex-wrap: wrap;
     gap: var(--gap-xs);
     min-width: 0;
-    ${(p) => compactChipOnMobile(p.$variant, 'display: none;')}
+
+    /* 모바일에서는 시술칩을 빼고 날짜(또는 시각) + 고객명만 남긴다.
+       월 셀(date)은 폭이 55px뿐이고, 연 뷰 월 칸(month)도 카드가 세 줄로 접힌다. */
+    @media (max-width: 640px) {
+        display: none;
+    }
 `;
 
 

@@ -52,18 +52,17 @@ const StyledDays = styled.ul <DaysType>`
     display: grid;
     justify-content: center;
     width: 100%;
-    background: rgba(255, 255, 255, .1); /* 살짝만 흰색 */
-    backdrop-filter: var(--sticky-backdrop);
     z-index: 13;
-    
+
+    /* 바탕은 sticky 로 뜨는 뷰(일·주·3일)에서만 깐다 — 밑으로 스크롤돼 지나가는 예약을
+       가려야 해서다. 월 뷰 헤더는 고정도 아니고 가릴 것도 없어 바탕을 두지 않는다. */
     ${props => (props.type !== ViewType.Month) && `
   position: sticky;
   top: 0;
   grid-row: 1 / 2;
-      
-  li {
-    border: none;
-  }
+  /* 흰 바탕 — 페이지와 같은 색이라 눈에는 배경이 없지만, 밑으로 스크롤돼 지나가는
+     카드는 가린다. 투명하게 두면 카드가 비쳐 "윗 보더가 잘린" 것처럼 읽힌다. */
+  background: var(--white-color);
   `
     }
 `;
@@ -74,10 +73,5 @@ const StyledDay = styled.li`
   padding: 4px 0 2px;
   font-size: var(--small-font);
   color: var(--black-color);
-  border-right: 1px solid var(--light-gray-color);
   box-sizing: border-box;
-
-  &:nth-child(7) {
-    border-right: none;
-  }
 `;

@@ -21,7 +21,7 @@ import {getStoreClosedKind, STORE_CLOSED_LABEL, type StoreClosedKind} from '../.
 import {storeClosedCss} from './storeClosedCss';
 
 import type {Reservation} from '../../../utils/reservations';
-import {isOnlineReservation, toDateKey} from '../../../utils/reservations';
+import {toDateKey} from '../../../utils/reservations';
 import {TimelineCluster} from './TimelineCluster';
 import {TimelineClusterLayer, type TimelineClusterData} from './TimelineClusterLayer';
 import {
@@ -67,11 +67,11 @@ export const Timeline = ({
     const closedKind = getStoreClosedKind(storeSettings, dateKey);
     // 시간축·블록·드래그·클릭생성이 공유하는 배율. 한 곳만 다른 값을 쓰면 화면이 예약 시각을 거짓말한다.
     const scale = useTimelineScale();
-    // 타임라인(일별/주별/3일)에서는 취소된 예약을 숨긴다(블록·건수 부풀림 방지).
-    // 단, 고객 예약 페이지 경유(온라인) 취소 건은 기록 추적을 위해 취소 상태로 남긴다.
+    // 취소된 예약도 그대로 보여준다. 전에는 블록이 겹쳐 좁아지는 것을 막으려 숨겼는데,
+    // 이제 겹친 수만큼 칸이 넓어지므로(Calendar 의 weekColumns) 숨길 이유가 없다.
+    // 취소·노쇼는 흐리게 + 취소선으로 구분한다(TimelineReservationCard).
     const reservations = (reservationMap[dateKey] || []).filter((reservation) => (
-        (calendarAssigneeId == null || (calendarAssigneeId === 0 ? !reservation.assigneeId : reservation.assigneeId === calendarAssigneeId))
-        && (reservation.status !== 'cancelled' || isOnlineReservation(reservation))
+        calendarAssigneeId == null || (calendarAssigneeId === 0 ? !reservation.assigneeId : reservation.assigneeId === calendarAssigneeId)
     ));
     const serviceColorMap = useMemo(
         () => buildServiceColorMap(serviceCatalog, categoryBaseColorMap),
@@ -85,11 +85,13 @@ export const Timeline = ({
     );
     // 카드/현재시간 바/클러스터의 세로 위치 오프셋. 축 눈금선(행 높이 50px의 중앙=+25)에 맞춤.
     // ⚠️ timelineInteractions.ts의 동일 상수와 반드시 일치시킬 것(클릭 역변환이 같은 좌표계).
-    const blockOffset = type === ViewType.Day ? 55 : 25;
+    const blockOffset = blockOffsetOf(type);
     // 좁은 화면 대응. CSS 로는 못 한다 — 접을지 말지가 buildTimelineEntries 의 JS 분기다.
     // 일 뷰는 겹침을 두 칸으로 나누고, 주 뷰는 한 칸이 약 47px 라 카드를 이름만으로 줄인다.
     const isNarrow = useMediaQuery('(max-width: 640px)');
-    const splitUpTo = isNarrow && type === ViewType.Day ? 2 : 0;
+    // 어느 뷰에서도 N건예약 으로 접지 않는다. 겹친 만큼 좌우로 나눠 전부 보여준다.
+    // 주 뷰는 칸이 겹친 수만큼 넓어지고(Calendar 의 weekColumns), 일·3일은 제 폭 안에서 나뉜다.
+    const splitUpTo = Number.MAX_SAFE_INTEGER;
     const narrowColumn = isNarrow && type === ViewType.Week;
     const timelineEntries = useMemo(
         () => buildTimelineEntries(reservations, {splitUpTo}),
@@ -227,6 +229,7 @@ export const Timeline = ({
     return (<StyledTimelineWrap ref={timelineRef}
                                 data-timeline-date={dateKey}
                                 $type={type}
+                                $hourHeight={scale.hourHeight}
                                 $closedKind={closedKind}>
         {closedKind && <span className="a11y">{STORE_CLOSED_LABEL[closedKind]}</span>}
         {!isTouchDevice && (
@@ -351,11 +354,28 @@ export const Timeline = ({
         ) : null}
     </StyledTimelineWrap>);
 };
+/** 카드·정시선의 공통 세로 오프셋. 시간축 라벨이 행(50px) 중앙에 그려지므로 주 뷰는 +25,
+ *  일 뷰는 머리줄이 더 높아 +55. 둘이 어긋나면 카드가 시작시간과 안 맞아 보인다. */
+const blockOffsetOf = (type: string) => (type === ViewType.Day ? 55 : 25);
+
 const StyledTimelineWrap = styled.div<{
     $type: string,
+    $hourHeight: number,
     $closedKind: StoreClosedKind | null
 }>`
     ${props => storeClosedCss(props.$closedKind)}
+    /* 정시 가로선을 타임라인이 직접 그린다. 시간축(z-index 14)이 그리면 그 선이
+       예약 카드(z-index 1) 윗변을 덮어 "상단 보더가 잘린" 것처럼 보인다. */
+    background-image: repeating-linear-gradient(
+        to bottom,
+        var(--calendar-grid-line) 0,
+        var(--calendar-grid-line) 1px,
+        transparent 1px,
+        transparent ${props => props.$hourHeight}px
+    );
+    /* 선은 패딩이 아니라 카드와 같은 오프셋에 둔다 — 패딩값(30/40)으로 그리면
+       정시 선이 카드 윗변보다 아래로 내려가 카드가 제 시작시간보다 커 보인다. */
+    background-position: 0 ${props => blockOffsetOf(props.$type)}px;
     flex: 1;
     display: flex;
     flex-direction: column;

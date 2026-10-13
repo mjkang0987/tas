@@ -56,6 +56,14 @@ export const StyledHeader = styled.header<{ $stack?: boolean }>`
     box-sizing: border-box;
     background-color: var(--white-color);
     border-bottom: solid 1px var(--light-gray-color);
+
+    /* 모바일 달력 화면에서는 이 선이 요일 줄 바로 위에 붙어 머리줄처럼 보인다. 거기서만 걷는다.
+       데스크톱과 다른 화면은 헤더와 본문을 가르는 선이라 그대로 둔다. */
+    ${props => props.$stack && `
+    @media (max-width: 640px) {
+        border-bottom: none;
+    }
+    `}
     flex-shrink: 0;
     @media (max-width: 640px) {
         /* 캘린더는 세로 스택(행 겹침 방지 — flex-wrap+flex:1 충돌 회피),
@@ -129,7 +137,9 @@ export const StyledMobileAddPill = styled.button`
         gap: 3px;
         flex-shrink: 0;
         margin-left: auto;
-        padding: 7px 13px 7px 9px;
+        /* 같은 줄의 다른 조작부와 같은 32px. */
+        height: 32px;
+        padding: 0 13px 0 9px;
         border: none;
         border-radius: 999px;
         background-color: var(--brand-color);
@@ -174,6 +184,8 @@ export const StyledAssigneeFilter = styled.select`
        덕분에 어디서도 네이티브 화살표가 남지 않아 아래 SVG 화살표만 보인다. */
     appearance: none;
     appearance: base-select;
+    /* 오늘·좌우 버튼과 같은 알약 모양. */
+    border-radius: var(--chip-radius);
     display: inline-flex;
     align-items: center;
     gap: 6px;

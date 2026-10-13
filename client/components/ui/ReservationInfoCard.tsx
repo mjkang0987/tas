@@ -1,4 +1,4 @@
-import styled from 'styled-components';
+import styled, {css} from 'styled-components';
 import type {KeyboardEvent} from 'react';
 
 import type {Reservation} from '../../utils/reservations';
@@ -8,7 +8,6 @@ import {AssigneeLabel} from './AssigneeLabel';
 import {ReservationStatusBadge} from './ReservationStatusBadge';
 import {NewCustomerBadge} from './NewCustomerBadge';
 import {ServiceChipList} from './ServiceChip';
-import {useStoreLabels} from '../../hooks/useStoreLabels';
 
 type ReservationInfoCardProps = {
     reservation: Reservation;
@@ -38,12 +37,6 @@ function getReservationState(reservation: Reservation, today?: string) {
     return {type: 'booked', label: '예약'};
 }
 
-function getTimeText(reservation: Reservation, timeMode: 'start' | 'range' | 'none') {
-    if (timeMode === 'none') return '';
-    if (timeMode === 'start') return reservation.startTime;
-    return `${reservation.startTime}~${reservation.endTime}`;
-}
-
 export function ReservationInfoCard({
     reservation,
     serviceColorMap,
@@ -63,11 +56,9 @@ export function ReservationInfoCard({
     accentBar = true,
     className,
 }: ReservationInfoCardProps) {
-    const labels = useStoreLabels();
     const clickable = !!onClick;
     const isInactive = reservation.status === 'cancelled' || reservation.status === 'noshow';
     const state = getReservationState(reservation, today);
-    const timeText = getTimeText(reservation, timeMode);
     const handleActivate = () => {
         if (onClick) {
             onClick(reservation);
@@ -94,11 +85,19 @@ export function ReservationInfoCard({
         >
             <StyledLeft>
             {!compactDate && timeMode !== 'none' && (
-                <StyledTime>{timeText}</StyledTime>
+                <StyledTime>
+                    {/* 시작·종료를 두 줄로 — 한 줄짜리 "10:00~11:30"은 좁은 칸에서 접힌다.
+                        줄바꿈 자체가 범위를 뜻하므로 물결표는 두지 않는다. */}
+                    <span>{reservation.startTime}</span>
+                    {timeMode === 'range' && <span>{reservation.endTime}</span>}
+                </StyledTime>
             )}
             {compactDate && (
                 <StyledCompactDate>
-                    {showDate ? `${reservation.date} ` : ''}{timeText}
+                    {/* 날짜 · 시작 · 종료를 각 줄에. 한 줄로 이어 쓰면 좁은 칸에서 접힌다. */}
+                    {showDate && <StyledCompactDateLabel>{reservation.date}</StyledCompactDateLabel>}
+                    {timeMode !== 'none' && <span>{reservation.startTime}</span>}
+                    {timeMode === 'range' && <span>{reservation.endTime}</span>}
                 </StyledCompactDate>
             )}
             {!compactDate && showDate && (
@@ -108,7 +107,7 @@ export function ReservationInfoCard({
             <StyledBody>
                 {customerName && (
                     <StyledCustomerMeta>
-                        {isNewCustomer && <NewCustomerBadge>N</NewCustomerBadge>}
+                        {isNewCustomer && <NewCustomerBadge>신규</NewCustomerBadge>}
                         {onCustomerClick ? (
                             <StyledCustomerButton
                                 className={isInactive ? 'strike' : undefined}
@@ -141,7 +140,8 @@ export function ReservationInfoCard({
                 />
                 <StyledMetaLine>
                     <StyledAssigneeMeta>
-                        <span>{labels.assignee}</span>
+                        {/* "담당자" 라벨은 두지 않는다 — 색 배지와 이름만으로 뜻이 분명하고,
+                            좁은 카드에서 그 두 글자가 이름을 밀어낸다. */}
                         <AssigneeLabel color={assigneeColor} name={assigneeName} />
                     </StyledAssigneeMeta>
                 </StyledMetaLine>
@@ -218,12 +218,22 @@ const StyledLeft = styled.strong`
     font-weight: normal;
 `;
 
-const StyledTime = styled.span`
-    flex-shrink: 0;
-    width: 76px;
+/** 카드의 시간 글자 — 기본·compact 변형이 함께 쓴다. */
+const timeTypography = css`
     font-size: var(--small-font);
     font-weight: 700;
     color: #0f172a;
+`;
+
+const StyledTime = styled.span`
+    display: flex;
+    flex-direction: column;
+    line-height: 1.25;
+    ${timeTypography};
+    flex-shrink: 0;
+    /* 두 줄로 쪼개면서 한 줄에 "10:00" 다섯 글자만 남았다. 76px 은 한 줄짜리
+       "10:00~11:30" 기준이던 폭이라 그만큼이 빈 자리로 남는다. */
+    width: 42px;
 
     @media (max-width: 640px) {
         width: auto;
@@ -239,7 +249,18 @@ const StyledBody = styled.div`
 `;
 
 const StyledCompactDate = styled.div`
+    display: flex;
+    flex-direction: column;
+    line-height: 1.25;
+    flex-shrink: 0;
+    /* 시간 글자는 기본 변형과 같은 규칙을 쓴다 — 같은 카드가 화면마다 달라 보이면 안 된다. */
+    ${timeTypography};
+`;
+
+/* 날짜만 보조 톤. 시간보다 덜 중요한 정보다. */
+const StyledCompactDateLabel = styled.span`
     font-size: var(--xsmall-font);
+    font-weight: 400;
     color: var(--dark-gray-color2);
 `;
 const StyledDate = styled.div`
@@ -252,6 +273,8 @@ const StyledServiceList = styled(ServiceChipList)`
 `;
 
 const StyledMetaLine = styled.div`
+    /* 담당자만 다음 줄로. 고객명·시술칩은 앞줄에 그대로 둔다. */
+    flex-basis: 100%;
     display: flex;
     flex-wrap: wrap;
     align-items: center;
@@ -318,15 +341,12 @@ const StyledCustomerButton = styled.span`
 `;
 
 const StyledTrailing = styled.div`
+    /* 상태를 가격 위에 세로로 쌓는다. 한 줄에 나란히 두면 좁은 카드에서 둘이 서로를 민다. */
     display: flex;
+    flex-direction: column;
     align-items: flex-end;
-    gap: 8px;
+    gap: 4px;
     margin-left: auto;
-
-    @media (max-width: 640px) {
-        width: 100%;
-        justify-content: space-between;
-    }
 `;
 
 

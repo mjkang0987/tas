@@ -132,8 +132,14 @@ const StyledDateWrap = styled.span`
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  padding: 3px 8px 3px 12px;
+  /* 오늘·좌우·전체보기와 같은 32px 로 맞춘다. */
+  height: 32px;
+  padding: 0 8px 0 12px;
   border-radius: 999px;
+
+  @media (max-width: 640px) {
+    padding: 0 6px 0 10px;
+  }
   background-color: var(--gray-color2);
   cursor: pointer;
 
@@ -160,6 +166,11 @@ const StyledDateElement = styled.span`
   display: inline-flex;
   font-size: var(--big-font);
 
+  /* 일 뷰 제목이 가장 길어 좁은 화면에서 옆 버튼을 밀어낸다. */
+  @media (max-width: 640px) {
+    font-size: var(--large-font);
+  }
+
   & + & {
     &:before {
       content: "/";
@@ -183,6 +194,12 @@ const StyledDateInput = styled.input`
   cursor: pointer;
   -webkit-appearance: none;
   appearance: none;
+
+  /* 전역 input:hover 가 opacity 를 .8 로 올려, 마우스를 올리면 덮어둔 네이티브 날짜
+     입력이 글자 위로 드러났다. 이 요소는 언제나 투명해야 한다. */
+  &:hover {
+    opacity: 0;
+  }
 
   &::-webkit-calendar-picker-indicator {
     position: absolute;

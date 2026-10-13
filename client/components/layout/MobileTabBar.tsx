@@ -92,12 +92,13 @@ const StyledTab = styled(Link)<{ $active: boolean }>`
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    gap: 3px;
+    gap: 2px;
     /* 상하 여백을 탭바가 아니라 링크가 갖는다 — 여백까지 탭 영역.
        탭바가 화면 가장자리에서 떨어져 떠 있으므로 safe-area는 여기서 받지 않는다
        (이제 맨 아래에 놓이는 광고 배너가 받는다). */
-    padding-top: 8px;
-    padding-bottom: 8px;
+    /* 6px — 탭 높이를 44px(터치 타깃 최소)에 맞춘다. 더 줄이면 그 밑으로 내려간다. */
+    padding-top: 6px;
+    padding-bottom: 6px;
     text-decoration: none;
     /* 선택 알약이 탭바의 둥근 모서리를 넘지 않게 한다. */
     border-radius: var(--chip-radius);
@@ -105,8 +106,8 @@ const StyledTab = styled(Link)<{ $active: boolean }>`
     color: ${(props) => props.$active ? 'var(--brand-color)' : 'var(--dark-gray-color2)'};
 
     svg {
-        width: 22px;
-        height: 22px;
+        width: 20px;
+        height: 20px;
         stroke-width: ${(props) => props.$active ? 2.1 : 1.8};
     }
 

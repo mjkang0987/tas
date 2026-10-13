@@ -167,7 +167,7 @@ export const NaverSyncNotification = ({
                                         </StyledItemText>
                                     )}
                                     <StyledAssigneeMeta>
-                                        <span>{labels.assignee}</span>
+                                        {/* 라벨 없이 색 배지와 이름만 — 예약 카드와 같은 규칙. */}
                                         <AssigneeLabel color={getAssigneeColor(n.assigneeName, assignees)}
                                                        name={n.assigneeName} />
                                     </StyledAssigneeMeta>

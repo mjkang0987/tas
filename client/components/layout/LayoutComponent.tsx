@@ -262,10 +262,7 @@ const StyledMain = styled.main`
     overscroll-behavior: auto;
     display: flex;
     height: 100%;
-    background:
-        radial-gradient(circle at top left, rgba(45, 127, 249, 0.12), transparent 32%),
-        linear-gradient(180deg, #f8fbff 0%, #ffffff 52%);
-
+    background-color: var(--white-color);
 `;
 
 const StyledFooterAd = styled.div`

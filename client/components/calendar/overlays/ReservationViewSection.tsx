@@ -116,7 +116,7 @@ export function ReservationViewSection({
                     <StyledTerm>고객명</StyledTerm>
                     <StyledDesc>
                         <StyledCustomerButton type="button" onClick={() => onCustomerClick(reservation.customerId)}>
-                            {isNewCustomer && <NewCustomerBadge>N</NewCustomerBadge>}
+                            {isNewCustomer && <NewCustomerBadge>신규</NewCustomerBadge>}
                             {customer?.name ?? '-'}
                         </StyledCustomerButton>
                     </StyledDesc>
