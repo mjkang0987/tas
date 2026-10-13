@@ -327,15 +327,12 @@ const StyledCustomerButton = styled.span`
 `;
 
 const StyledTrailing = styled.div`
+    /* 상태를 가격 위에 세로로 쌓는다. 한 줄에 나란히 두면 좁은 카드에서 둘이 서로를 민다. */
     display: flex;
+    flex-direction: column;
     align-items: flex-end;
-    gap: 8px;
+    gap: 4px;
     margin-left: auto;
-
-    @media (max-width: 640px) {
-        width: 100%;
-        justify-content: space-between;
-    }
 `;
 
 
