@@ -50,10 +50,11 @@ export const Year = () => {
         return grouped;
     }, [reservationMap, fullYear, calendarAssigneeId]);
 
-    // 매출은 매출 화면이 쓰는 집계를 그대로 쓴다 — getMonthlyRevenue 의 기본 모드가 '예약완료'다.
-    // 직접 더하면 같은 '매출'이 화면마다 다른 숫자를 가리키게 된다.
+    // 매출은 매출 화면과 같은 집계(getMonthlyRevenue)를 쓰되 'booked' 모드 —
+    // 취소·노쇼를 뺀 확정 예약 기준이다. 'completed'(시술 완료 처리된 건)로 잡으면
+    // 완료 처리를 쓰지 않는 운영에서 늘 0원이 된다. iOS 연 뷰도 같은 기준이다.
     const monthlyRevenue = useMemo(
-        () => months.map((m) => getMonthlyRevenue(reservationMap, fullYear, m, calendarAssigneeId ?? null).total),
+        () => months.map((m) => getMonthlyRevenue(reservationMap, fullYear, m, calendarAssigneeId ?? null, 'booked').total),
         [months, reservationMap, fullYear, calendarAssigneeId],
     );
 
