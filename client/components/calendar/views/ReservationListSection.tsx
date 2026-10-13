@@ -9,6 +9,8 @@ import {buildAssigneeColorMap, buildAssigneeNameMap} from '../../../utils/assign
 import {buildServiceColorMap} from '../../../utils/services';
 
 import {EMPTY_TEXT, StyledEmpty as StyledEmptyBase} from '../../settings/settings-styles';
+import {getDailyRevenue, getMonthlyRevenue} from '../../../utils/revenue';
+import {formatPrice} from '../../../utils/services';
 import {
     OVERLAY_Z_INDEX,
     StyledOverlay,
@@ -75,7 +77,8 @@ export const ReservationListSection = () => {
             list = (reservationMap[filter.dateKey] || [])
                 .slice()
                 .sort((a, b) => a.startTime.localeCompare(b.startTime));
-            modalTitle = filter.dateKey;
+            const [, mm, dd] = filter.dateKey.split('-').map(Number);
+            modalTitle = `${mm}월 ${dd}일`;
         } else {
             const pad = (n: number) => String(n + 1).padStart(2, '0');
             const prefix = `${filter.year}-${pad(filter.month)}`;
@@ -116,6 +119,14 @@ export const ReservationListSection = () => {
         return {title: modalTitle, reservations: list, grouped: groups};
     }, [filter, reservationMap, calendarAssigneeId, assignees]);
 
+    // 합계는 연 뷰와 같은 기준(취소·노쇼 제외)으로 낸다. iOS daySummary 와도 같다.
+    const total = useMemo(() => {
+        if (!filter) return 0;
+        return filter.type === 'date'
+            ? getDailyRevenue(reservationMap, filter.dateKey, calendarAssigneeId ?? null, 'booked').total
+            : getMonthlyRevenue(reservationMap, filter.year, filter.month, calendarAssigneeId ?? null, 'booked').total;
+    }, [filter, reservationMap, calendarAssigneeId]);
+
     const getStatusType = (r: Reservation) => {
         if (r.status === 'cancelled') return 'cancelled';
         if (r.status === 'noshow') return 'noshow';
@@ -138,13 +149,16 @@ export const ReservationListSection = () => {
     return (
         <StyledListSection aria-label="예약 목록">
         <StyledListPanel ref={dialogRef} tabIndex={-1}>
-            <StyledHeader>
-                <StyledHeaderTitle>{title} 예약 ({reservations.length})</StyledHeaderTitle>
-            </StyledHeader>
+            <StyledListHeader>
+                <StyledHeaderTitle>{title}</StyledHeaderTitle>
+                {reservations.length > 0 && (
+                    <StyledHeaderSummary>{reservations.length}건 · {formatPrice(total)}</StyledHeaderSummary>
+                )}
+            </StyledListHeader>
             <StyledListBody>
                 <StyledListBodyInner>
                     {reservations.length === 0 ? (
-                        <StyledEmpty>{EMPTY_TEXT}</StyledEmpty>
+                        <StyledEmpty>{title} 예약이 없습니다.</StyledEmpty>
                     ) : (
                         grouped.map((group) => (
                             <StyledDateGroup key={group.date}>
@@ -187,6 +201,21 @@ export const ReservationListSection = () => {
 };
 
 /* 달력 바로 아래 자리. 랜드마크로 읽히고, 모달이 아니라 포커스도 가두지 않는다. */
+/* 헤더 바 — iOS selectedDayList 의 머리줄(secondarySystemBackground, 가로 16 세로 6). */
+const StyledListHeader = styled(StyledHeader)`
+    align-items: center;
+    padding: 6px 16px;
+    border-bottom: none;
+    background-color: var(--gray-color2);
+`;
+
+/* 오른쪽 요약 — iOS 는 caption/secondary 로 "N건 · 금액"을 둔다. */
+const StyledHeaderSummary = styled.span`
+    margin-left: auto;
+    color: var(--dark-gray-color2);
+    font-size: var(--small-font);
+`;
+
 const StyledListSection = styled.section`
     /* 남은 세로 자리를 채우고, 스크롤은 제 안(StyledListBody)에서만 일어난다.
        min-height: 0 이 없으면 flex 자식이 내용만큼 늘어나 페이지가 밀린다. */
