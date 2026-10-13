@@ -155,12 +155,16 @@ const StyledDirectionButton = styled.button`
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  /* 테두리 없이 아이콘만. 32px 은 손가락이 닿는 최소 크기라 폭만 유지한다. */
   width: 32px;
   height: 32px;
   padding: 0;
-  border: 1px solid var(--border-color);
-  border-radius: var(--chip-radius);
-  background-color: var(--white-color);
-  box-shadow: var(--shadow-sm);
+  border: 0;
+  background: transparent;
   line-height: 0;
+
+  svg {
+    width: 18px;
+    height: 18px;
+  }
 `;
