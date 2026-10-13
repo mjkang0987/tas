@@ -19,6 +19,7 @@ import {storeClosedCss} from './storeClosedCss';
 
 import {Num} from './Num';
 import {ButtonAdd} from '../../ui/Buttons';
+import {ReservationList} from './ReservationList';
 
 interface MonthType {
     monthDates: number[];
@@ -79,21 +80,8 @@ export const Month = ({
                                aria-label={`${normalizedDate.getMonth() + 1}월 ${normalizedDate.getDate()}일 예약 추가`}/>
                 </StyledDateHeader>
                 {dateReservations.length > 0 && (
-                    dateReservations.length <= maxNames
-                        ? [...dateReservations]
-                            .sort((a, b) => a.startTime.localeCompare(b.startTime))
-                            .map((reservation) => (
-                                <StyledSingleName key={reservation.id}
-                                                  type="button"
-                                                  onClick={(e) => {
-                                                      e.stopPropagation();
-                                                      setCreateReservationInitial(null);
-                                                      openReservationDetail(reservation);
-                                                  }}>
-                                    {customerMap[reservation.customerId]?.name ?? '-'}
-                                </StyledSingleName>
-                            ))
-                        : (
+                    dateReservations.length > maxNames
+                        ? (
                             <StyledCountButton type="button"
                                                aria-label={`${normalizedDate.getMonth() + 1}월 ${normalizedDate.getDate()}일 예약 ${dateReservations.length}건 보기`}
                                                onClick={(e) => {
@@ -103,6 +91,27 @@ export const Month = ({
                                 {dateReservations.length}
                             </StyledCountButton>
                         )
+                        : isNarrow
+                            // 모바일 칸은 카드를 담을 높이가 없다. 이름 한 줄만 둔다.
+                            ? [...dateReservations]
+                                .sort((a, b) => a.startTime.localeCompare(b.startTime))
+                                .map((reservation) => (
+                                    <StyledSingleName key={reservation.id}
+                                                      type="button"
+                                                      onClick={(e) => {
+                                                          e.stopPropagation();
+                                                          setCreateReservationInitial(null);
+                                                          openReservationDetail(reservation);
+                                                      }}>
+                                        {customerMap[reservation.customerId]?.name ?? '-'}
+                                    </StyledSingleName>
+                                ))
+                            : (
+                                <ReservationList reservations={dateReservations}
+                                                 variant="date"
+                                                 onViewAll={() => setReservationListFilter({type: 'date', dateKey})}
+                                                 hideViewAll/>
+                            )
                 )}
             </StyledDate>);
         })}
@@ -113,7 +122,7 @@ export const Month = ({
 const MOBILE_MAX_NAMES = 1;
 const DESKTOP_MAX_NAMES = 3;
 
-/* 이름 한 줄 — 누르면 그 예약 상세로 바로 간다(목록을 거칠 이유가 없다). */
+/* 모바일 전용 이름 한 줄 — 누르면 그 예약 상세로 바로 간다. 데스크톱은 기존 카드를 그대로 쓴다. */
 const StyledSingleName = styled.button`
     padding: 0 2px;
     border: none;
