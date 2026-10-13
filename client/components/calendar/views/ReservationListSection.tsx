@@ -242,8 +242,8 @@ const StyledListPanel = styled(StyledDetail)`
     max-width: none;
     max-height: none;
     border-radius: 0;
-    border-left: none;
-    border-right: none;
+    /* 바깥 StyledListSection 이 경계를 긋는다(모바일 위, 데스크톱 왼쪽). 패널은 테두리를 두지 않는다. */
+    border: none;
     box-shadow: none;
 `;
 
