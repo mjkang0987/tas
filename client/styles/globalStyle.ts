@@ -91,7 +91,7 @@ export const GlobalStyle = createGlobalStyle`
 
         --border-color: hsl(0, 0%, 80%);
         /* 달력 눈금선·칼럼 구분선 — 내용보다 뒤로 물러나야 해서 테두리색보다 흐리다. */
-        --calendar-grid-line: hsl(0, 0%, 93%);
+        --calendar-grid-line: hsl(0, 0%, 96%);
         --shadow-sm: 0 1px 4px rgba(0, 0, 0, .08);
         --shadow-md: 0 4px 16px rgba(0, 0, 0, .12);
         --cancelled-color: hsl(220, 9%, 62%);
