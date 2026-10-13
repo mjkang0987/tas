@@ -190,6 +190,15 @@ export const ReservationListSection = () => {
 const StyledListSection = styled.section`
     flex-shrink: 0;
     border-top: 1px solid var(--light-gray-color);
+
+    /* 데스크톱은 달력 오른쪽 기둥. 제 안에서 스크롤해 달력을 밀지 않는다. */
+    @media (min-width: 641px) {
+        display: flex;
+        width: 340px;
+        height: 100%;
+        border-top: none;
+        border-left: 1px solid var(--light-gray-color);
+    }
 `;
 
 const StyledListPanel = styled(StyledDetail)`

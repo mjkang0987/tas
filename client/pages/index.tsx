@@ -154,8 +154,9 @@ const Home: NextPage<HomeProps> = (props) => {
     return (<>
             <SeoHead title="예약·고객 관리 시스템" />
             <StyledSection $isVisible={aside.isVisible} $listOpen={!!reservationListFilter}>
-                {curr && <Calendar/>}
-                {/* 레이어가 아니라 달력 아래 영역이다. 덮지 않으므로 달력이 그대로 보인다. */}
+                <StyledCalendarPane>{curr && <Calendar/>}</StyledCalendarPane>
+                {/* 레이어가 아니다. 모바일은 달력 아래, 데스크톱은 오른쪽에 둔다 —
+                    데스크톱 달력은 화면을 꽉 채워서 아래에 두면 목록이 화면 밖으로 밀린다. */}
                 {reservationListFilter && <ReservationListSection/>}
             </StyledSection>
             {selectedReservations.map((reservation, index) => (
@@ -220,6 +221,14 @@ const HomePage: NextPage<HomeProps> = (props) => (props.landing ? <Landing/> : <
 
 export default HomePage;
 
+const StyledCalendarPane = styled.div`
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  height: 100%;
+`;
+
 const StyledSection = styled.section <{ $isVisible: boolean; $listOpen: boolean }>`
   flex: 1;
   display: flex;
@@ -229,6 +238,12 @@ const StyledSection = styled.section <{ $isVisible: boolean; $listOpen: boolean 
      달력 높이는 그대로 두고 넘치는 만큼 이 섹션이 스크롤하게 한다. */
   ${props => props.$listOpen && `
   overflow-y: auto;
+
+  /* 데스크톱은 달력이 화면을 채우므로 아래가 아니라 오른쪽에 나란히 둔다. */
+  @media (min-width: 641px) {
+    flex-direction: row;
+    overflow-y: hidden;
+  }
   `}
   /* flex 기본값 min-width:auto 면 주 뷰가 넓어질 때 이 섹션이 끌려 늘어나고
      스크롤을 main 이 가져가, 캘린더 안의 sticky 시간축이 흘러가 버린다. */
