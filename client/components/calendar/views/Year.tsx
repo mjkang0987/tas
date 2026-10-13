@@ -15,10 +15,10 @@ import {useCalendarStore} from '../../../store/calendarStore';
 
 import {setRouter} from '../../../utils/router';
 
-import {useMediaQuery} from '../../../hooks/useMediaQuery';
+import {isCompletedReservationTarget, resolvePrice} from '../../../utils/revenue';
+import {formatPrice} from '../../../utils/services';
 
 import {Num} from './Num';
-import {ReservationList} from './ReservationList';
 
 export const Year = () => {
     const router = useRouter();
@@ -30,9 +30,6 @@ export const Year = () => {
     const calendarAssigneeId = useCalendarStore((s) => s.calendarAssigneeId);
     const setReservationListFilter = useCalendarStore((s) => s.setReservationListFilter);
     const reservationListFilter = useCalendarStore((s) => s.reservationListFilter);
-    // 월 뷰와 같은 규칙 — 칸에 담을 수 있으면 카드, 넘치면 숫자. 연 뷰 칸은 더 높아 상한이 크다.
-    const isNarrow = useMediaQuery('(max-width: 640px)');
-    const maxCards = isNarrow ? MOBILE_MAX_CARDS : DESKTOP_MAX_CARDS;
 
     const {fullYear} = currValue;
 
@@ -52,6 +49,13 @@ export const Year = () => {
 
         return grouped;
     }, [reservationMap, fullYear, calendarAssigneeId]);
+
+    // 매출은 **예약완료 기준**(utils/revenue 의 isCompletedReservationTarget) — 매출 화면과 같은 정의를 쓴다.
+    // 건수는 그 달 전체다(iOS aggregate 와 같다).
+    const monthlyRevenue = useMemo(() => monthlyReservations.map((list) => list.reduce(
+        (sum, r) => sum + (isCompletedReservationTarget(r, calendarAssigneeId ?? null) ? resolvePrice(r.service, r.price) : 0),
+        0,
+    )), [monthlyReservations, calendarAssigneeId]);
 
     return (<StyledYear>
         {today && months.map((m) =>
@@ -74,47 +78,55 @@ export const Year = () => {
                          isSelected={reservationListFilter?.type === 'month' && reservationListFilter.year === fullYear && reservationListFilter.month === m}>{m + 1}</Num>
                 </StyledMonthHeader>
                 {monthlyReservations[m].length > 0 && (
-                    monthlyReservations[m].length > maxCards
-                        ? (
-                            <StyledCountButton type="button"
-                                               aria-label={`${m + 1}월 예약 ${monthlyReservations[m].length}건 보기`}
-                                               onClick={() => setReservationListFilter({type: 'month', year: fullYear, month: m})}>
-                                {monthlyReservations[m].length}
-                            </StyledCountButton>
-                        )
-                        : (
-                            <ReservationList reservations={monthlyReservations[m]}
-                                             variant="month"
-                                             onViewAll={() => setReservationListFilter({type: 'month', year: fullYear, month: m})}
-                                             hideViewAll/>
-                        )
+                    <StyledMonthSummary type="button"
+                                        aria-label={`${m + 1}월 예약 ${monthlyReservations[m].length}건 보기`}
+                                        onClick={() => setReservationListFilter({type: 'month', year: fullYear, month: m})}>
+                        <StyledMonthCount>{monthlyReservations[m].length}건</StyledMonthCount>
+                        <StyledMonthRevenue>{formatPrice(monthlyRevenue[m])}</StyledMonthRevenue>
+                    </StyledMonthSummary>
                 )}
             </StyledMonth>
         )}
     </StyledYear>);
 };
 
-/** 칸에 카드를 그대로 둘 수 있는 최대 건수. 넘으면 숫자로 접는다(월 뷰와 같은 규칙). */
-const MOBILE_MAX_CARDS = 3;
-const DESKTOP_MAX_CARDS = 3;
-
-/* 월 뷰 StyledCountButton 과 같은 모양 — accent 평문 숫자. */
-const StyledCountButton = styled.button`
-    align-self: center;
+/* 월 칸 요약 — 건수 + 매출. iOS 연 뷰(monthlySummaries)와 같은 구성이다. */
+const StyledMonthSummary = styled.button`
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1px;
     padding: 0;
     border: none;
     background: none;
+`;
+
+const StyledMonthCount = styled.span`
     color: var(--brand-color);
     font-size: var(--tiny-font);
     font-weight: 600;
 `;
 
+const StyledMonthRevenue = styled.span`
+    color: var(--dark-gray-color2);
+    font-size: var(--tiny-font);
+`;
+
 const StyledYear = styled.ul`
     display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    grid-template-rows: repeat(4, 1fr);
+    /* 한 줄에 4개월씩 3줄. */
+    grid-template-columns: repeat(4, 1fr);
+    grid-template-rows: repeat(3, 1fr);
     width: 100%;
     height: 100%;
+
+    /* 모바일은 칸에 카드 몇 장뿐이라 화면을 꽉 채울 이유가 없다. 내용 높이로 줄여
+       위로 붙이고, 남는 자리는 아래 예약 목록이 쓴다(월 뷰 MonthWrap 과 같은 처리). */
+    @media (max-width: 640px) {
+        flex: 0 0 auto;
+        height: auto;
+        grid-template-rows: repeat(3, minmax(64px, auto));
+    }
     gap: 5px;
     padding: 5px;
     box-sizing: border-box;

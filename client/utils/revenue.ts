@@ -91,7 +91,7 @@ export interface OperationInsights {
 
 export type RevenueFilterMode = 'completed' | 'booked';
 
-function resolvePrice(service: string, price?: number): number {
+export function resolvePrice(service: string, price?: number): number {
     if (price != null) return price;
     return sumPrice(parseServiceString(service));
 }
