@@ -92,7 +92,12 @@ export function ReservationInfoCard({
         >
             <StyledLeft>
             {!compactDate && timeMode !== 'none' && (
-                <StyledTime>{timeText}</StyledTime>
+                <StyledTime>
+                    {/* 시작·종료를 두 줄로 — 한 줄짜리 "10:00~11:30"은 좁은 칸에서 접힌다.
+                        줄바꿈 자체가 범위를 뜻하므로 물결표는 두지 않는다. */}
+                    <span>{reservation.startTime}</span>
+                    {timeMode === 'range' && <span>{reservation.endTime}</span>}
+                </StyledTime>
             )}
             {compactDate && (
                 <StyledCompactDate>
@@ -218,6 +223,9 @@ const StyledLeft = styled.strong`
 `;
 
 const StyledTime = styled.span`
+    display: flex;
+    flex-direction: column;
+    line-height: 1.25;
     flex-shrink: 0;
     width: 76px;
     font-size: var(--small-font);
