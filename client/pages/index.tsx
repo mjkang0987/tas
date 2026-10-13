@@ -154,7 +154,7 @@ const Home: NextPage<HomeProps> = (props) => {
     return (<>
             <SeoHead title="예약·고객 관리 시스템" />
             <StyledSection $isVisible={aside.isVisible} $listOpen={!!reservationListFilter}>
-                <StyledCalendarPane>{curr && <Calendar/>}</StyledCalendarPane>
+                <StyledCalendarPane $listOpen={!!reservationListFilter}>{curr && <Calendar/>}</StyledCalendarPane>
                 {/* 레이어가 아니다. 모바일은 달력 아래, 데스크톱은 오른쪽에 둔다 —
                     데스크톱 달력은 화면을 꽉 채워서 아래에 두면 목록이 화면 밖으로 밀린다. */}
                 {reservationListFilter && <ReservationListSection/>}
@@ -221,18 +221,22 @@ const HomePage: NextPage<HomeProps> = (props) => (props.landing ? <Landing/> : <
 
 export default HomePage;
 
-const StyledCalendarPane = styled.div`
+const StyledCalendarPane = styled.div<{ $listOpen: boolean }>`
   flex: 1;
   display: flex;
   flex-direction: column;
   min-width: 0;
   height: 100%;
 
-  /* 모바일 달력은 내용 높이만 쓰고 고정된다. 남는 세로 자리는 아래 목록이 가져간다. */
+  /* 목록이 열린 월·연 뷰에서만 달력이 내용 높이를 쓴다. 남는 세로 자리는 목록이 가져간다.
+     일·주 뷰까지 높이를 풀면 타임라인이 제 안에서 스크롤하지 않게 되고,
+     그러면 시간축·요일 머리줄의 sticky 가 걸릴 스크롤 컨테이너가 사라진다. */
+  ${props => props.$listOpen && `
   @media (max-width: 640px) {
     flex: 0 0 auto;
     height: auto;
   }
+  `}
 `;
 
 const StyledSection = styled.section <{ $isVisible: boolean; $listOpen: boolean }>`
