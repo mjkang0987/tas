@@ -126,7 +126,7 @@ const StyledYear = styled.ul`
     @media (max-width: 640px) {
         flex: 0 0 auto;
         height: auto;
-        grid-template-rows: repeat(3, minmax(64px, auto));
+        grid-template-rows: repeat(3, minmax(56px, auto));
     }
     gap: 5px;
     padding: 5px;
@@ -136,7 +136,8 @@ const StyledYear = styled.ul`
 const StyledMonthHeader = styled.div`
     display: flex;
     align-items: center;
-    justify-content: space-between;
+    /* 예약추가 버튼을 걷고 숫자만 남았다 — space-between 이면 왼쪽으로 밀린다(월 뷰와 동일). */
+    justify-content: center;
     width: 100%;
     padding: 0 4px;
     box-sizing: border-box;
