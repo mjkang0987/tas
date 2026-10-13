@@ -59,7 +59,10 @@ export function TimelineReservationCard({
     onMouseDragStart,
     onTouchDragStart,
 }: TimelineReservationCardProps) {
-    const isCancelled = reservation.status === 'cancelled' || reservation.status === 'noshow' || reservation.status === 'completed';
+    // 완료는 취소가 아니다 — 흐리게 + 취소선은 취소·노쇼에만. (완료는 매출로도 잡히는 건이다.)
+    const isCancelled = reservation.status === 'cancelled' || reservation.status === 'noshow';
+    // 끝난 예약은 끌어 옮기지 않는다 — 완료도 여기 포함한다.
+    const isLocked = isCancelled || reservation.status === 'completed';
     // 짧은 예약은 두 줄이 안 들어간다. 높이에 맞춰 서비스 → 한 줄 → 이름만으로 줄인다.
     // (매장 단위가 아니라 이 카드의 높이로 정한다 — 예약별로 소요시간을 줄인 건도 있다.)
     // 호출부가 단계를 강제하면 그걸 쓴다 — 좁은 칸은 카드가 높아도 넣을 가로 폭이 없다.
@@ -89,7 +92,7 @@ export function TimelineReservationCard({
                 onClick(event);
             }}
         >
-            {!isCancelled && onMouseDragStart && onTouchDragStart && (
+            {!isLocked && onMouseDragStart && onTouchDragStart && (
                 <span
                     data-timeline-interactive="true"
                     className="drag-handle"
@@ -147,8 +150,8 @@ export function TimelineDragGhost({
     color,
     serviceColorMap,
 }: TimelineDragGhostProps) {
-    const isCancelled = reservation.status === 'cancelled' || reservation.status === 'noshow' || reservation.status === 'completed';
-
+    // 완료는 취소가 아니다 — 흐리게 + 취소선은 취소·노쇼에만. (완료는 매출로도 잡히는 건이다.)
+    const isCancelled = reservation.status === 'cancelled' || reservation.status === 'noshow';
 
     return (
         <StyledDragGhost

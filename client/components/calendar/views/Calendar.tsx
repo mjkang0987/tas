@@ -1,6 +1,12 @@
 import styled from 'styled-components';
 
+import {useMemo} from 'react';
+
 import {useCalendarStore} from '../../../store/calendarStore';
+import {useMediaQuery} from '../../../hooks/useMediaQuery';
+import {getRangeDates} from '../../../utils/weekDates';
+import {toDateKey} from '../../../utils/reservations';
+import {maxLanesOfDay} from '../../../features/reservations/weekLanes';
 
 import {ViewType} from '../../../utils/constants';
 
@@ -18,13 +24,32 @@ interface DaysType {
 export const Calendar = () => {
     const view = useCalendarStore((s) => s.view);
     const {type} = view;
+    const target = useCalendarStore((s) => s.target);
+    const reservationMap = useCalendarStore((s) => s.reservationMap);
+    const calendarAssigneeId = useCalendarStore((s) => s.calendarAssigneeId);
+    const isNarrow = useMediaQuery('(max-width: 640px)');
+
+    // 겹친 예약을 접지 않고 좌우로 나눠 보여주려면 그날 칸이 그만큼 넓어야 한다.
+    // 날짜마다 필요한 칸 수를 재서 칼럼 폭 배열을 만든다(iOS WeekTimelineView 와 같은 규칙).
+    const weekColumns = useMemo(() => {
+        if (!isNarrow || type !== ViewType.Week) return null;
+
+        return getRangeDates(target.full, type).map((date) => {
+            const list = (reservationMap[toDateKey(date.getFullYear(), date.getMonth(), date.getDate())] ?? [])
+                .filter((reservation) => (
+                    calendarAssigneeId == null
+                    || (calendarAssigneeId === 0 ? !reservation.assigneeId : reservation.assigneeId === calendarAssigneeId)
+                ));
+            return `calc(var(--week-col) * ${maxLanesOfDay(list)})`;
+        }).join(' ');
+    }, [isNarrow, type, target, reservationMap, calendarAssigneeId]);
 
     return (
         <>
             {(type !== ViewType.Year) && <>
                 {/* key 로 뷰 종류마다 새 노드를 만든다. 주 뷰에서 가로로 스크롤한 위치가 그대로 남으면
                     일·3일 뷰는 overflow-x: hidden 이라 되돌릴 수단 없이 시간축이 화면 밖으로 밀린다. */}
-                <StyledDaysWrap key={type ?? 'none'} type={type}>
+                <StyledDaysWrap key={type ?? 'none'} type={type} $weekColumns={weekColumns}>
                     {type !== ViewType.Month && <TimelineTitle/>}
                     {type !== ViewType.Day && <Days/>}
                     {type === ViewType.Day && <Day/>}
@@ -39,7 +64,7 @@ export const Calendar = () => {
     );
 };
 
-const StyledDaysWrap = styled.div <DaysType>`
+const StyledDaysWrap = styled.div <DaysType & {$weekColumns: string | null}>`
   display: grid;
   width: 100%;
 
@@ -72,7 +97,7 @@ const StyledDaysWrap = styled.div <DaysType>`
     overflow-x: auto;
     /* 1fr 은 컨테이너를 넘지 못해 스크롤이 생기지 않는다. 폭이 이미 확정돼 있으므로
        max-content(브라우저가 재측정)가 아니라 계산식으로 못박는다. */
-    grid-template-columns: var(--timeline-col) calc(var(--week-col) * 7);
+    grid-template-columns: var(--timeline-col) max-content;
 
     /* 시간축을 왼쪽에 붙들어 둔다. 흘러가면 몇 시 예약인지 읽을 수 없다.
        세로로만 스크롤할 때 쓰던 반투명(+backdrop-filter)을 여기선 쓰지 않는다 —
@@ -98,8 +123,9 @@ const StyledDaysWrap = styled.div <DaysType>`
       background: var(--white-color);
     }
 
+    /* 날짜마다 폭이 다르다 — 겹친 수만큼 넓어진다. 두 줄(요일 헤더·칼럼)이 같은 배열을 써야 어긋나지 않는다. */
     > ul {
-      grid-template-columns: repeat(7, var(--week-col));
+      grid-template-columns: ${props.$weekColumns ?? `repeat(7, var(--week-col))`};
     }
   }
   `}

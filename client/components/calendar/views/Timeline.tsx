@@ -21,7 +21,7 @@ import {getStoreClosedKind, STORE_CLOSED_LABEL, type StoreClosedKind} from '../.
 import {storeClosedCss} from './storeClosedCss';
 
 import type {Reservation} from '../../../utils/reservations';
-import {isOnlineReservation, toDateKey} from '../../../utils/reservations';
+import {toDateKey} from '../../../utils/reservations';
 import {TimelineCluster} from './TimelineCluster';
 import {TimelineClusterLayer, type TimelineClusterData} from './TimelineClusterLayer';
 import {
@@ -67,11 +67,11 @@ export const Timeline = ({
     const closedKind = getStoreClosedKind(storeSettings, dateKey);
     // 시간축·블록·드래그·클릭생성이 공유하는 배율. 한 곳만 다른 값을 쓰면 화면이 예약 시각을 거짓말한다.
     const scale = useTimelineScale();
-    // 타임라인(일별/주별/3일)에서는 취소된 예약을 숨긴다(블록·건수 부풀림 방지).
-    // 단, 고객 예약 페이지 경유(온라인) 취소 건은 기록 추적을 위해 취소 상태로 남긴다.
+    // 취소된 예약도 그대로 보여준다. 전에는 블록이 겹쳐 좁아지는 것을 막으려 숨겼는데,
+    // 이제 겹친 수만큼 칸이 넓어지므로(Calendar 의 weekColumns) 숨길 이유가 없다.
+    // 취소·노쇼는 흐리게 + 취소선으로 구분한다(TimelineReservationCard).
     const reservations = (reservationMap[dateKey] || []).filter((reservation) => (
-        (calendarAssigneeId == null || (calendarAssigneeId === 0 ? !reservation.assigneeId : reservation.assigneeId === calendarAssigneeId))
-        && (reservation.status !== 'cancelled' || isOnlineReservation(reservation))
+        calendarAssigneeId == null || (calendarAssigneeId === 0 ? !reservation.assigneeId : reservation.assigneeId === calendarAssigneeId)
     ));
     const serviceColorMap = useMemo(
         () => buildServiceColorMap(serviceCatalog, categoryBaseColorMap),
@@ -89,7 +89,11 @@ export const Timeline = ({
     // 좁은 화면 대응. CSS 로는 못 한다 — 접을지 말지가 buildTimelineEntries 의 JS 분기다.
     // 일 뷰는 겹침을 두 칸으로 나누고, 주 뷰는 한 칸이 약 47px 라 카드를 이름만으로 줄인다.
     const isNarrow = useMediaQuery('(max-width: 640px)');
-    const splitUpTo = isNarrow && type === ViewType.Day ? 2 : 0;
+    // 주 뷰는 접지 않는다 — 칸이 겹친 수만큼 넓어지고(Calendar 의 weekColumns) 가로 스크롤이 폭을 흡수한다.
+    // 일 뷰는 폭이 화면에 묶여 있어 3건부터 접는다.
+    const splitUpTo = type === ViewType.Week
+        ? (isNarrow ? Number.MAX_SAFE_INTEGER : 0)
+        : (isNarrow && type === ViewType.Day ? 2 : 0);
     const narrowColumn = isNarrow && type === ViewType.Week;
     const timelineEntries = useMemo(
         () => buildTimelineEntries(reservations, {splitUpTo}),
