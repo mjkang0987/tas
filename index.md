@@ -36,9 +36,10 @@
 5. **로컬 마이그레이션은 `pnpm prisma:migrate:local`** — `prisma migrate dev`를 그냥 돌리면 `prisma.config.ts`가 `DIRECT_URL`(운영)을 우선해 **운영 DB로 간다**. 래퍼(`client/scripts/migrate-local.sh`)는 대상이 localhost가 아니면 실행을 거부한다. → [환경 설정](#환경-설정)
 6. **Cloudflare `tas-proxy` Worker 의존** — 오리진의 `host`는 항상 `run.app`이라 **원본 호스트는 Worker가 넣는 `x-forwarded-host`로만 알 수 있다.** Worker가 빠지면 사이트 전체가 다운된다. → [미들웨어](#미들웨어-clientproxyts)
 7. **정책 문서는 모든 렌더 경로(레이어·풀페이지·인라인)가 `applyPolicyVars`를 통과해야 한다** — 빠지면 `{{storeName}}` 토큰이 고객에게 그대로 노출된다. → [^27]
-8. **타임라인 배율은 `useTimelineScale()` 한 곳에서만 얻는다** — 축·블록·드래그·클릭생성이 나눠 쓰는 값이라, 한 곳만 옛 상수(`TIMELINE_HOUR_HEIGHT`)를 쓰면 눈금과 카드가 어긋나 **화면이 예약 시각을 거짓말한다.** 배율은 서비스 최소 소요시간에서 자동 판정(5분 200px·10분 120px·15분 이상 100px). 좌표 역변환(포인터 Y → 시각)에선 **패딩을 빼지 않는다** — 카드가 `position:absolute`라 기준이 패딩 박스이고 `blockOffset`만 빼면 된다(드래그 경로에서만 `TIMELINE_DAY_TOP` 40px을 한 번 더 빼 24분 어긋났다). hover 확장은 **아래로만** — `height:auto`만 주면 30분 카드가 29px로 줄어 길이=시간이 깨지고 가운데 붙은 드래그 손잡이가 커서 밑에서 달아난다. → [주요 기능 흐름](#주요-기능-흐름-요약)
+8. **타임라인 배율은 `useTimelineScale()` 한 곳에서만 얻는다** — 축·블록·드래그·클릭생성이 나눠 쓰는 값이라, 한 곳만 옛 상수(`TIMELINE_HOUR_HEIGHT`)를 쓰면 눈금과 카드가 어긋나 **화면이 예약 시각을 거짓말한다.** 배율은 서비스 최소 소요시간에서 자동 판정(5분 200px·10분 120px·15분 이상 100px). 좌표 역변환(포인터 Y → 시각)에선 **패딩을 빼지 않는다** — 카드가 `position:absolute`라 기준이 패딩 박스이고 `blockOffset`만 빼면 된다(드래그 경로에서만 `TIMELINE_DAY_TOP` 40px을 한 번 더 빼 24분 어긋났다). hover 확장은 **아래로만** — `height:auto`만 주면 30분 카드가 29px로 줄어 길이=시간이 깨지고 가운데 붙은 드래그 손잡이가 커서 밑에서 달아난다. **정시 가로선은 시간축이 아니라 타임라인 배경(`StyledTimelineWrap`)이 긋는다** — 시간축(z-index 14)이 그으면 그 선이 카드(z-index 1) 윗변을 덮어 "카드 상단 보더가 잘린" 것처럼 보인다(배경색·그림자로 네 번 오진했다). 선 오프셋도 패딩값(`TIMELINE_TOP` 30·`TIMELINE_DAY_TOP` 40)이 아니라 카드와 같은 `blockOffsetOf`(주 25·일 55)를 쓴다 — 축 라벨이 50px 행의 **중앙**에 그려지므로 정시 위치는 패딩이 아니다. → [주요 기능 흐름](#주요-기능-흐름-요약)
 9. **고객 예약 페이지(`pages/book/**`)의 최상위 래퍼는 `flex-shrink: 0`** — `#__next` 가 `height:100%` 고정 flex 컬럼이라 기본값(1)이면 래퍼가 내용보다 작게 찌그러져 **긴 화면의 하단이 잘린다**(변경 요청 폼 버튼이 언어 바 뒤에 가려 있었다). → [^41]
-10. **`font-size`에 px 리터럴을 쓰지 않는다** — `styles/globalStyle.ts`의 토큰만 사용(유일한 예외: `components/policy/policyCss.ts`). → [디자인 토큰](#디자인-토큰--폰트)
+10. **비모달 표면은 전역(`document`·`window`) Esc 를 걸지 않는다** — 달력에 붙은 예약 목록이 `document` 에 Esc 를 걸자, 사용 안내 투어(`GuidedTour`, `window` 리스너)나 예약 상세를 닫는 Esc **한 번에 그 목록까지 함께 닫혔다.** 레이어의 Esc 는 `useDialogAccessibility` 가 자기 요소에서 받아 `stopPropagation` 한다(겹친 레이어가 한꺼번에 닫히지 않게).
+11. **`font-size`에 px 리터럴을 쓰지 않는다** — `styles/globalStyle.ts`의 토큰만 사용(유일한 예외: `components/policy/policyCss.ts`). → [디자인 토큰](#디자인-토큰--폰트)
 
 ---
 
@@ -134,7 +135,7 @@ hair_reservations/
 
 | 폴더 | 역할 | 주요 파일 |
 |------|------|----------|
-| `calendar/views/` | 캘린더 뷰 (일/주/월/년/타임라인) | `Calendar.tsx`, `Day.tsx`, `Week.tsx`, `Month.tsx`, `Timeline.tsx`(오늘이면 마운트 시 현재시각 바로 자동 스크롤 — 최초 1회만), `TimelineCluster.tsx`(중복예약 클러스터 — 담당자 배지 표시), `storeClosedCss.ts`(휴무 배경 틴트 — 월 셀·타임라인 공유)[^40] |
+| `calendar/views/` | 캘린더 뷰 (일/주/월/년/타임라인) | `Calendar.tsx`, `Day.tsx`, `Week.tsx`, `Month.tsx`, `Timeline.tsx`(오늘이면 마운트 시 현재시각 바로 자동 스크롤 — 최초 1회만. **겹침은 어느 뷰에서도 `N건예약` 으로 접지 않고** 칸을 나눠 전부 보여준다 — 칸은 끝난 것부터 물려주는 그리디 배정이라 사슬로 이어진 3건은 2칸이다(앱 `TimelineLayout.place()` 와 같은 규칙). 주 뷰는 그 칸 수만큼 날짜 칼럼이 넓어진다), `TimelineCluster.tsx`(중복예약 클러스터 — 담당자 배지 표시), `storeClosedCss.ts`(휴무 배경 틴트 — 월 셀·타임라인 공유)[^40], `ReservationListSection.tsx`(월·연 뷰 예약 목록 — **레이어가 아니라 달력에 붙은 영역**. 모바일은 달력 아래, 데스크톱은 오른쪽 340px 기둥. 달력이 보고 있는 범위를 벗어나면 스토어가 비운다) |
 | `calendar/overlays/` | 예약 생성·상세·수정 모달 | `ReservationCreate.tsx`(+`useReservationCreateForm.ts`/`ReservationCreateCustomerFields.tsx`), `ReservationDetail.tsx`(+`ReservationDetailSections`/`Header`/`FooterActions`/`PaymentLayer`/`ViewSection`, 순수 로직은 `reservationDetailUtils.ts`·타입은 `reservationDetailTypes.ts`), `CustomerDetail.tsx`(+`CustomerDetailSections.tsx`[^3a]), `ModalStyles.ts`(공통 모달 스타일·`OVERLAY_Z_INDEX`·접근성 훅), 컴포넌트별 `*.styles.ts` |
 | `calendar/service/` | 서비스 범례·필드 | `ServiceLegend.tsx`(시술 배지 디자인), `ServiceFields.tsx` |
 | `customers/` | 고객 공용 컴포넌트 | `CustomerAutocomplete.tsx`(고객명/연락처 검색 자동완성 — 예약 생성·회원권 발급 공용. 목록 순서는 받은 그대로 그리며 정렬은 호출부 책임 — 예약추가는 이름 가나다순) |
