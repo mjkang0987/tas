@@ -139,7 +139,6 @@ export const CustomerDetail = ({customer, reservationMap, onClose, onReservation
             : []
     ), [isEditing, customerMap, customer.id, editForm.name, editForm.tel]);
 
-
     // 병합 API 는 서버가 필요하다. 게스트 모드에서는 고를 수 없고 알림 역할만 한다
     // (저장 시 중복 경고의 병합 버튼도 같은 게이트를 쓴다).
     const canMergeSimilar = !shouldUseLocalDb();
