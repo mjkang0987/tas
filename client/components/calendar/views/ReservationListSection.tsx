@@ -12,14 +12,11 @@ import {EMPTY_TEXT, StyledEmpty as StyledEmptyBase} from '../../settings/setting
 import {getDailyRevenue, getMonthlyRevenue} from '../../../utils/revenue';
 import {formatPrice} from '../../../utils/services';
 import {
-    OVERLAY_Z_INDEX,
-    StyledOverlay,
     StyledDetail,
     StyledHeader,
     StyledHeaderTitle,
     StyledBody,
     StyledBodyInner,
-    useDialogAccessibility,
 } from '../overlays/ModalStyles';
 import {ReservationInfoCard} from '../../ui/ReservationInfoCard';
 
@@ -41,16 +38,12 @@ export const ReservationListSection = () => {
     const reservationMap = useCalendarStore((s) => s.reservationMap);
     const customerMap = useCalendarStore((s) => s.customerMap);
     const filter = useCalendarStore((s) => s.reservationListFilter);
-    const setReservationListFilter = useCalendarStore((s) => s.setReservationListFilter);
     const openReservationDetail = useCalendarStore((s) => s.openReservationDetail);
     const openCustomerDetail = useCalendarStore((s) => s.openCustomerDetail);
     const serviceCatalog = useCalendarStore((s) => s.serviceCatalog);
     const categoryBaseColorMap = useCalendarStore((s) => s.categoryBaseColorMap);
     const assignees = useCalendarStore((s) => s.assignees);
     const calendarAssigneeId = useCalendarStore((s) => s.calendarAssigneeId);
-    const handleClose = () => setReservationListFilter(null);
-    // 영역이라 포커스를 가두지 않는다. Esc 로 비우는 것만 남긴다.
-    const dialogRef = useDialogAccessibility<HTMLDivElement>(handleClose, {trapFocus: false});
     const serviceColorMap = useMemo(
         () => buildServiceColorMap(serviceCatalog, categoryBaseColorMap),
         [serviceCatalog, categoryBaseColorMap]
@@ -148,7 +141,7 @@ export const ReservationListSection = () => {
 
     return (
         <StyledListSection aria-label="예약 목록">
-        <StyledListPanel ref={dialogRef} tabIndex={-1}>
+        <StyledListPanel>
             <StyledListHeader>
                 <StyledHeaderTitle>{title}</StyledHeaderTitle>
                 {reservations.length > 0 && (

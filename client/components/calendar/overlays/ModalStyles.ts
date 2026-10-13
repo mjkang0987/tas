@@ -63,14 +63,7 @@ const FOCUSABLE_SELECTOR = [
     '[tabindex]:not([tabindex="-1"])',
 ].join(', ');
 
-/**
- * @param trapFocus 기본 true. **모달이 아닌** 표면(흐름에 붙는 목록 등)에서는 false 로 끈다 —
- *   포커스를 가두면 뒤 화면으로 Tab 이동이 막히고 열자마자 포커스를 빼앗는다. Esc 는 유지한다.
- */
-export function useDialogAccessibility<T extends HTMLElement>(
-    onClose: () => void,
-    {trapFocus = true}: {trapFocus?: boolean} = {},
-) {
+export function useDialogAccessibility<T extends HTMLElement>(onClose: () => void) {
     const dialogRef = useRef<T | null>(null);
     const onCloseRef = useRef(onClose);
 
@@ -82,23 +75,21 @@ export function useDialogAccessibility<T extends HTMLElement>(
         const dialog = dialogRef.current;
         if (!dialog) return;
 
-        if (trapFocus) {
-            const focusable = Array.from(dialog.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR));
-            const initialTarget = focusable[0] ?? dialog;
-            initialTarget.focus();
-        }
+        const focusable = Array.from(dialog.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR));
+        const initialTarget = focusable[0] ?? dialog;
+        initialTarget.focus();
 
         const handleKeyDown = (event: KeyboardEvent) => {
             if (event.key === 'Escape') {
                 event.preventDefault();
-                // 여기서 멈춘다 — 비모달 목록이 document 에 같은 리스너를 걸고 있어,
-                // 올려 보내면 모달을 닫는 Esc 한 번에 뒤에 있던 목록까지 함께 닫힌다.
+                // 여기서 멈춘다 — 레이어가 겹쳐 있으면(상세 위 히스토리 등) 바깥 레이어도
+                // 같은 리스너를 걸고 있어, 올려 보내면 Esc 한 번에 여러 겹이 함께 닫힌다.
                 event.stopPropagation();
                 onCloseRef.current();
                 return;
             }
 
-            if (!trapFocus || event.key !== 'Tab') return;
+            if (event.key !== 'Tab') return;
 
             const currentFocusable = Array.from(dialog.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR));
             if (currentFocusable.length === 0) {
@@ -125,14 +116,11 @@ export function useDialogAccessibility<T extends HTMLElement>(
             }
         };
 
-        // 비모달은 포커스가 밖에 있는 게 정상이라, 요소에 걸면 Esc 가 안 먹는다.
-        const target: HTMLElement | Document = trapFocus ? dialog : document;
-        const listener = handleKeyDown as EventListener;
-        target.addEventListener('keydown', listener);
+        dialog.addEventListener('keydown', handleKeyDown);
         return () => {
-            target.removeEventListener('keydown', listener);
+            dialog.removeEventListener('keydown', handleKeyDown);
         };
-    }, [trapFocus]);
+    }, []);
 
     return dialogRef;
 }
