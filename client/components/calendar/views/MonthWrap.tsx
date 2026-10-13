@@ -54,8 +54,9 @@ const StyledMonthWrap = styled.ul`
     flex: 0 0 auto;
     min-height: 0;
     height: auto;
-    grid-auto-rows: minmax(46px, auto);
-    gap: 4px;
+    /* 칸에 들어가는 건 날짜 원 + 이름 한 줄뿐이다. 바닥을 더 낮춰 그만큼을 아래 목록에 넘긴다. */
+    grid-auto-rows: minmax(40px, auto);
+    gap: 3px;
     padding: 0 12px;
   }
   display: grid;
