@@ -20,7 +20,6 @@ import {ReservationListSection} from '../components/calendar/views/ReservationLi
 
 import {CustomerDetail} from '../components/calendar/overlays/CustomerDetail';
 
-import {ServiceLegend} from '../components/calendar/service/ServiceLegend';
 
 import {getPageSession, loadPageData} from '../lib/page-data';
 import {SeoHead} from '../components/ui/SeoHead';
@@ -176,7 +175,6 @@ const Home: NextPage<HomeProps> = (props) => {
                                                  reservationMap={reservationMap}
                                                  onReservationClick={openReservationDetailFromCustomer}
                                                  onClose={() => setSelectedCustomerId(null)}/>}
-            <ServiceLegend/>
             <GuidedTour steps={MAIN_TOUR_STEPS} open={tourOpen} onClose={closeTour} onStepChange={handleTourStep}/>
         </>
     );
