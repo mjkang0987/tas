@@ -146,7 +146,7 @@ export function ReservationDetailFooterActions({
                                     onClick={onBackToEditing}>취소</StyledActionButton>
                 <StyledActionButton type="button"
                                     $primary
-                                    onClick={onConfirmSave}>확인</StyledActionButton>
+                                    onClick={onConfirmSave}>저장</StyledActionButton>
             </>
         );
     }
@@ -182,7 +182,7 @@ export function ReservationDetailFooterActions({
                                     onClick={onBackToView}>취소</StyledActionButton>
                 <StyledActionButton type="button"
                                     $primary
-                                    onClick={onConfirmSave}>확인</StyledActionButton>
+                                    onClick={onConfirmSave}>예약완료</StyledActionButton>
             </>
         );
     }
@@ -193,8 +193,8 @@ export function ReservationDetailFooterActions({
                 <StyledActionButton type="button"
                                     onClick={onBackToView}>취소</StyledActionButton>
                 <StyledActionButton type="button"
-                                    $primary
-                                    onClick={onNoshowReservation}>확인</StyledActionButton>
+                                    $danger
+                                    onClick={onNoshowReservation}>노쇼 처리</StyledActionButton>
             </>
         );
     }
