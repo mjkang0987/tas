@@ -7,12 +7,14 @@ import {useCalendarStore} from '../../../store/calendarStore';
 import {computeTargetDerived} from '../../../utils/calendarDerived';
 
 import {
+    DAYS,
     isTodayValue,
     ViewType,
 } from '../../../utils/constants';
 
 import {Timeline} from './Timeline';
-import {Num} from './Num';
+
+const WEEKDAY_KO = Object.keys(DAYS).map((key) => DAYS[key].ko);
 
 interface WeekDatesType {
     dates: Date[]
@@ -51,17 +53,20 @@ export const Week = ({
                     normalizedDate.getDate()
                 );
                 const dateNumber = normalizedDate.getDate();
-                const dateLabel = isAdjacentMonth ? `${normalizedDate.getMonth() + 1}/${dateNumber}` : String(dateNumber);
+                // iOS 와 같은 "10.14 수" — 요일 줄을 따로 두지 않으므로 요일까지 여기서 적는다.
+                const dateLabel = `${normalizedDate.getMonth() + 1}.${dateNumber} ${WEEKDAY_KO[normalizedDate.getDay()]}`;
 
                 return <StyledWeek key={`week_${normalizedDate.getFullYear()}-${normalizedDate.getMonth()}-${dateNumber}`}
                                    ref={isTodayDate ? todayRef : undefined}>
                     <StyledNumWrap>
-                        <Num onClick={() => {
-                            setCurr(normalizedDate);
-                            setView({type: ViewType.Day});
-                        }}
-                             isToday={isTodayDate}
-                             compact={isAdjacentMonth}>{dateLabel}</Num>
+                        <StyledDayHeading type="button"
+                                          onClick={() => {
+                                              setCurr(normalizedDate);
+                                              setView({type: ViewType.Day});
+                                          }}
+                                          aria-label={`${normalizedDate.getMonth() + 1}월 ${dateNumber}일 보기`}
+                                          $isToday={isTodayDate}
+                                          $faded={isAdjacentMonth}>{dateLabel}</StyledDayHeading>
                     </StyledNumWrap>
                     <Timeline fullYear={normalizedDate.getFullYear()}
                               month={normalizedDate.getMonth()}
@@ -72,6 +77,20 @@ export const Week = ({
         </>
     );
 };
+
+/* iOS 는 날짜를 원으로 칠하지 않고 "10.14 수" 를 키컬러 볼드로 쓴다. 같은 규칙.
+   칸 전체 폭을 눌리게 해 글자가 작아도 터치 타깃을 잃지 않는다. */
+const StyledDayHeading = styled.button<{ $isToday: boolean; $faded: boolean }>`
+    width: 100%;
+    min-height: 24px;
+    padding: 4px 2px;
+    border: none;
+    background: none;
+    font-size: var(--small-font);
+    font-weight: ${props => props.$isToday ? 700 : 500};
+    color: ${props => props.$isToday ? 'var(--brand-color)' : props.$faded ? 'var(--gray-color)' : 'var(--black-color)'};
+    white-space: nowrap;
+`;
 
 const StyledWeek = styled.li`
     display: flex;
@@ -101,7 +120,8 @@ const StyledNumWrap = styled.span`
     display: flex;
     justify-content: center;
     position: sticky;
-    top: 21px;
+    /* 요일 줄이 없어졌으므로 맨 위에 붙는다(전에는 그 21px 아래였다). */
+    top: 0;
     width: 100%;
     /* 요일 헤더와 같은 바탕 — 두 줄이 한 머리줄로 읽혀야 한다. */
     background: var(--white-color);
