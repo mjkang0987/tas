@@ -97,7 +97,8 @@ const StyledSegmentTab = styled(Link)<{ $active: boolean }>`
     display: flex;
     align-items: center;
     justify-content: center;
-    padding: 5px 0;
+    /* 6px — 탭 높이를 24px(WCAG 2.5.8 터치 타깃 최소)에 맞춘다. 5px 로 줄이면 23px 라 미달이다. */
+    padding: 6px 0;
     /* 트랙이 캡슐이므로 선택 표시도 캡슐이어야 안쪽 여백(3px)과 나란히 맞는다. */
     border-radius: var(--chip-radius);
     font-size: var(--tiny-font);

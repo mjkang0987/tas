@@ -217,6 +217,8 @@ const StyledListHeader = styled(StyledHeader)`
    레이어 제목이 아니라 달력에 붙은 영역의 머리줄이라 16px 은 과했다. */
 const StyledListTitle = styled(StyledHeaderTitle)`
     font-size: var(--tiny-font);
+    /* 모달 제목용 음수 자간(-0.02em)은 10px 에서 글자를 더 붙여 읽기 어렵게 만든다. */
+    letter-spacing: normal;
 `;
 
 /* 오른쪽 요약 — iOS 는 caption/secondary 로 "N건 · 금액"을 둔다. */
@@ -227,7 +229,12 @@ const StyledHeaderSummary = styled.span`
 `;
 
 const StyledHeaderAdd = styled(ButtonAdd)`
-    margin-left: 6px;
+    /* 글리프는 18px 그대로 두고 누를 자리만 24px 로 넓힌다(WCAG 2.5.8 최소치).
+       머리줄 높이는 건드리지 않게 세로는 음수 마진으로 흡수한다 — 버튼이 높이를 밀면
+       날짜 글자를 줄여 번 자리를 도로 뱉는다. */
+    width: 24px;
+    height: 24px;
+    margin: -3px 0 -3px 2px;
     color: var(--brand-color);
 `;
 
