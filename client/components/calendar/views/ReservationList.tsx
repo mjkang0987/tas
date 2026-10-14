@@ -12,17 +12,10 @@ import type {Reservation} from '../../../utils/reservations';
 
 interface ReservationListProps {
     reservations: Reservation[];
-    variant: 'date' | 'month';
-    onViewAll: () => void;
-    hideViewAll?: boolean;
 }
 
-export const ReservationList = ({
-                                    reservations: rawReservations,
-                                    variant,
-                                    onViewAll,
-                                    hideViewAll
-                                }: ReservationListProps) => {
+/** 월 칸 안의 예약 줄 — 시작시간 + 이름. 유일한 호출부가 Month 다. */
+export const ReservationList = ({reservations: rawReservations}: ReservationListProps) => {
     const reservations = useMemo(
         () => [...rawReservations].sort((a, b) => a.startTime.localeCompare(b.startTime)),
         [rawReservations]
@@ -34,7 +27,7 @@ export const ReservationList = ({
     const assigneeColorMap = useMemo(() => buildAssigneeColorMap(assignees), [assignees]);
 
     return (<>
-        <StyledList $variant={variant}>
+        <StyledList>
             {reservations.map((r) => {
                 const customer = customerMap[r.customerId];
                 const isInactive = r.status === 'cancelled' || r.status === 'noshow';
@@ -44,7 +37,6 @@ export const ReservationList = ({
                         <StyledItem type="button"
                                     $color={r.assigneeId ? (assigneeColorMap[r.assigneeId] ?? '#8E8E93') : '#8E8E93'}
                                     $inactive={isInactive}
-                                    $variant={variant}
                                     onClick={(e) => {
                                         e.stopPropagation();
                                         setCreateReservationInitial(null);
@@ -52,8 +44,8 @@ export const ReservationList = ({
                                     }}>
                             {/* 칸에는 시작시간 + 이름만. 시술은 왼쪽 색 막대가 담당자로 말하고,
                                 좁은 칸에서 칩까지 넣으면 이름이 밀려 누가 오는지를 잃는다. */}
-                            <StyledTimeMeta $variant={variant}>{variant === 'date' ? r.startTime : r.date.slice(5)}</StyledTimeMeta>
-                            <StyledCustomerMeta $variant={variant}>
+                            <StyledTimeMeta>{r.startTime}</StyledTimeMeta>
+                            <StyledCustomerMeta>
                                 {isNewCustomerVisit(customer?.firstVisitDate, r.date) &&
                                     <NewCustomerBadge>신규</NewCustomerBadge>}
                                 <StyledCustomerName className={isInactive ? 'strike' : undefined}>{customer?.name ?? ''}</StyledCustomerName>
@@ -63,41 +55,28 @@ export const ReservationList = ({
                 );
             })}
         </StyledList>
-        {!hideViewAll && (
-            <StyledViewAllButton type="button"
-                                 $variant={variant}
-                                 onClick={(e) => {
-                                     e.stopPropagation();
-                                     onViewAll();
-                                 }}>
-                {variant === 'date' ? '전체' : '전체보기'} ({reservations.length})
-            </StyledViewAllButton>
-        )}
     </>);
 };
 
-const StyledList = styled.ul<{ $variant: 'date' | 'month' }>`
+const StyledList = styled.ul`
     display: flex;
     flex-direction: column;
-    gap: ${(props) => props.$variant === 'date' ? '2px' : '3px'};
-    ${(props) => props.$variant === 'date' ? 'margin-top: 2px;' : ''}
-    padding: ${(props) => props.$variant === 'date' ? '0' : '0 2px'};
+    gap: 2px;
+    margin-top: 2px;
+    padding: 0;
     list-style: none;
     flex: 1;
     min-height: 0;
-    ${(props) => props.$variant === 'date' ? '' : 'width: 100%;'}
     overflow-y: auto;
     overscroll-behavior: auto;
     box-sizing: border-box;
 `;
 
-/* 모바일 월별 셀(variant=date)은 폭이 약 55px뿐이라 시간·서비스까지 넣으면 칩 하나가 3줄로 접힌다.
+/* 모바일 월 셀은 폭이 약 48px뿐이라 시간까지 넣으면 이름이 밀린다.
    담당자 색(왼쪽 굵은 테두리) + 고객명만 남겨 1줄로 눕히고, 나머지는 날짜 탭 → 예약 목록 레이어에서 본다. */
-const compactChipOnMobile = (variant: 'date' | 'month', css: string) => (
-    variant === 'date' ? `@media (max-width: 640px) { ${css} }` : ''
-);
+const onMobile = (css: string) => `@media (max-width: 640px) { ${css} }`;
 
-const StyledItem = styled.button<{ $color: string; $inactive?: boolean; $variant: 'date' | 'month' }>`
+const StyledItem = styled.button<{ $color: string; $inactive?: boolean }>`
     display: flex;
     flex-wrap: wrap;
     align-items: center;
@@ -112,7 +91,7 @@ const StyledItem = styled.button<{ $color: string; $inactive?: boolean; $variant
     font-size: var(--xsmall-font);
     text-align: left;
     /* 이름 한 자라도 더 넣으려고 좌우 패딩·색바·폰트를 깎는다. 확보 폭 약 37px → 41px, 10px 폰트로 4자까지. */
-    ${(p) => compactChipOnMobile(p.$variant, `
+    ${onMobile(`
         flex-wrap: nowrap;
         gap: 3px;
         padding: 2px 3px;
@@ -159,13 +138,13 @@ const StyledMeta = styled.span`
     }
 `;
 
-const StyledTimeMeta = styled(StyledMeta)<{ $variant: 'date' | 'month' }>`
-    ${(p) => compactChipOnMobile(p.$variant, 'display: none;')}
+const StyledTimeMeta = styled(StyledMeta)`
+    ${onMobile('display: none;')}
 `;
 
 /* 신규고객 배지는 배지+간격만 18px — 남은 글자 폭의 절반을 먹는다. 모바일 셀에선 접고 레이어에서 확인. */
-const StyledCustomerMeta = styled(StyledMeta)<{ $variant: 'date' | 'month' }>`
-    ${(p) => compactChipOnMobile(p.$variant, `
+const StyledCustomerMeta = styled(StyledMeta)`
+    ${onMobile(`
         flex-wrap: nowrap;
         min-width: 0;
 
@@ -173,21 +152,3 @@ const StyledCustomerMeta = styled(StyledMeta)<{ $variant: 'date' | 'month' }>`
     `)}
 `;
 
-const StyledViewAllButton = styled.button<{ $variant: 'date' | 'month' }>`
-    width: 100%;
-    margin: ${(props) => props.$variant === 'date' ? '2px 0 0' : '4px auto 2px'};
-    padding: ${(props) => props.$variant === 'date' ? '2px 0' : '3px 0'};
-    border: 1px solid var(--light-gray-color);
-    border-radius: 3px;
-    background-color: var(--white-color);
-    font-size: ${(props) => props.$variant === 'date' ? '9px' : '10px'};
-    font-weight: 600;
-    color: var(--dark-gray-color);
-    flex-shrink: 0;
-
-    @media (hover: hover) and (pointer: fine) {
-        &:hover {
-            background-color: var(--light-gray-color);
-        }
-    }
-`;

@@ -99,10 +99,7 @@ export const Month = ({
                             </StyledCountButton>
                         )
                         : (
-                            <ReservationList reservations={dateReservations}
-                                             variant="date"
-                                             onViewAll={() => setReservationListFilter({type: 'date', dateKey})}
-                                             hideViewAll/>
+                            <ReservationList reservations={dateReservations}/>
                         )
                 )}
             </StyledDate>);
