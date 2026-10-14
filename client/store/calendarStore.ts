@@ -253,20 +253,11 @@ function syncChangedCustomers(prev: CustomerMap, next: CustomerMap): void {
     if (changed.length > 0) syncCustomerSettings(changed);
 }
 
-/** 데스크톱 월 뷰는 목록이 달력 오른쪽 기둥이라 세로 자리가 넉넉하다 — 한 달치를 통째로
- *  열어 두고, 날짜를 누르면 그때 그 날로 좁힌다. 모바일은 달력 아래 좁은 영역이라 오늘만. */
-function prefersWholeMonth(): boolean {
-    if (typeof window === 'undefined') return false;
-    return window.matchMedia('(min-width: 641px)').matches;
-}
-
-/** 월·년 뷰에 들어갔을 때 기본으로 열어 둘 목록. 그 밖의 뷰는 목록이 없다. */
+/** 월·년 뷰에 들어갔을 때 기본으로 열어 둘 목록 — 오늘 / 이번 달. 그 밖의 뷰는 목록이 없다. */
 function defaultListFilter(viewType: string | null, today: FullType): CalendarState['reservationListFilter'] {
     if (!today) return null;
     if (viewType === ViewType.Month) {
-        return prefersWholeMonth()
-            ? {type: 'month', year: today.getFullYear(), month: today.getMonth()}
-            : {type: 'date', dateKey: toDateKey(today.getFullYear(), today.getMonth(), today.getDate())};
+        return {type: 'date', dateKey: toDateKey(today.getFullYear(), today.getMonth(), today.getDate())};
     }
     if (viewType === ViewType.Year) {
         return {type: 'month', year: today.getFullYear(), month: today.getMonth()};
@@ -279,26 +270,12 @@ function defaultListFilter(viewType: string | null, today: FullType): CalendarSt
 function filterWithinTarget(
     filter: CalendarState['reservationListFilter'],
     target: Date,
-    viewType: string | null,
 ): CalendarState['reservationListFilter'] {
     if (!filter) return null;
-    if (filter.type === 'month') {
-        // 월 뷰(데스크톱 기본)에서는 한 달치 목록이 보고 있는 달을 따라간다 — 달을 옮겼는데
-        // 지난 달 목록이 남으면 달력과 어긋나고, 닫아 버리면 매번 다시 열어야 한다.
-        if (viewType === ViewType.Month) {
-            return {type: 'month', year: target.getFullYear(), month: target.getMonth()};
-        }
-        // 연 뷰는 한 해 안의 어느 달을 고른 것이라 연도만 맞으면 둔다.
-        return filter.year === target.getFullYear() ? filter : null;
-    }
+    // 연 뷰는 한 해 안의 어느 달을 고른 것이라 연도만 맞으면 둔다.
+    if (filter.type === 'month') return filter.year === target.getFullYear() ? filter : null;
     const targetMonth = toDateKey(target.getFullYear(), target.getMonth(), 1).slice(0, 7);
-    if (filter.dateKey.startsWith(targetMonth)) return filter;
-    // 데스크톱 월 뷰의 목록은 늘 열려 있는 오른쪽 기둥이다. 고른 날짜가 달을 벗어나면
-    // 닫지 말고 그 달 전체로 되돌린다 — 닫으면 다시 보려고 날짜를 눌러야 한다.
-    // 모바일은 달력 아래 영역이라 그대로 닫는다(자리를 달력에 돌려준다).
-    return (viewType === ViewType.Month && prefersWholeMonth())
-        ? {type: 'month', year: target.getFullYear(), month: target.getMonth()}
-        : null;
+    return filter.dateKey.startsWith(targetMonth) ? filter : null;
 }
 
 export const useCalendarStore = create<CalendarState>((set) => ({
@@ -368,7 +345,7 @@ export const useCalendarStore = create<CalendarState>((set) => ({
                 date    : target.getDate(),
                 day     : target.getDay()
             },
-            reservationListFilter: filterWithinTarget(state.reservationListFilter, target, state.view.type)
+            reservationListFilter: filterWithinTarget(state.reservationListFilter, target)
         }));
     },
 
