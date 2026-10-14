@@ -93,10 +93,11 @@ export function ReservationDetailFooterActions({
             );
         }
 
+        // 채운 색은 주 동작 하나만: 미결제면 결제완료, 결제 후엔 예약완료. 나머지는 테두리 버튼.
         return (
             <>
                 <StyledActionButton type="button"
-                                    $primary
+                                    $primary={!paymentCompleted}
                                     onClick={onOpenPayment}>
                     {paymentCompleted ? '결제수단 변경' : '결제완료'}
                 </StyledActionButton>
@@ -112,11 +113,10 @@ export function ReservationDetailFooterActions({
                 )}
                 {!paymentCompleted && (
                     <StyledActionButton type="button"
-                                        $warning
+                                        $dangerOutline
                                         onClick={onOpenNoshow}>노쇼</StyledActionButton>
                 )}
                 <StyledActionButton type="button"
-                                    $primary
                                     onClick={onOpenEditing}>변경</StyledActionButton>
                 {canDelete && (
                     <StyledActionButton type="button"
