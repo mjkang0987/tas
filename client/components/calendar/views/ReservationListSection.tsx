@@ -145,7 +145,7 @@ export const ReservationListSection = () => {
         <StyledListSection aria-label="예약 목록">
         <StyledListPanel>
             <StyledListHeader>
-                <StyledHeaderTitle>{title}</StyledHeaderTitle>
+                <StyledListTitle>{title}</StyledListTitle>
                 {/* 0건일 때도 자리를 지킨다 — 빠지면 아래 추가 버튼이 제목 옆으로 붙는다. */}
                 <StyledHeaderSummary>{reservations.length}건 · {formatPrice(total)}</StyledHeaderSummary>
                 {/* 이 머리줄은 이미 날짜를 들고 있다. 헤더의 ＋예약 은 언제나 '오늘'로 열려
@@ -211,6 +211,12 @@ const StyledListHeader = styled(StyledHeader)`
     padding: 6px 16px;
     border-bottom: none;
     background-color: var(--gray-color2);
+`;
+
+/* 이 머리줄의 날짜만 줄인다 — StyledHeaderTitle 은 모달 30여 곳이 공유해 공통값을 못 건드린다.
+   레이어 제목이 아니라 달력에 붙은 영역의 머리줄이라 16px 은 과했다. */
+const StyledListTitle = styled(StyledHeaderTitle)`
+    font-size: var(--medium-font);
 `;
 
 /* 오른쪽 요약 — iOS 는 caption/secondary 로 "N건 · 금액"을 둔다. */
