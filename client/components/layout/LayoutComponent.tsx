@@ -27,6 +27,9 @@ import {MobileTabBar} from './MobileTabBar';
 import {Icon} from '../ui/Icons';
 import {ReservationCreate} from '../calendar/overlays/ReservationCreate';
 import {AdBanner} from '../ad/AdBanner';
+import {isAdVisible} from '../../lib/ads';
+
+const FOOTER_AD_SLOT = process.env.NEXT_PUBLIC_ADSENSE_FOOTER_SLOT ?? '';
 
 /**
  * `isLanding` — 루트(`/`)가 익명 방문자에게 소개 화면을 서버렌더한 경우.
@@ -210,9 +213,11 @@ export default function LayoutComponent({children, isLanding = false}: NodeType 
                     <StyledMain>
                         {children}
                     </StyledMain>
-                    <StyledFooterAd>
-                        <AdBanner adSlot={process.env.NEXT_PUBLIC_ADSENSE_FOOTER_SLOT ?? ''} adFormat="horizontal" />
-                    </StyledFooterAd>
+                    {isAdVisible(FOOTER_AD_SLOT) && (
+                        <StyledFooterAd>
+                            <AdBanner adSlot={FOOTER_AD_SLOT} adFormat="horizontal" />
+                        </StyledFooterAd>
+                    )}
                     {createReservationInitial && selectedReservations.length === 0 && (
                         <ReservationCreate initial={createReservationInitial}
                                            customerMap={customerMap}
