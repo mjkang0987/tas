@@ -63,18 +63,10 @@ export const Year = () => {
             <StyledMonth key={`${fullYear}_${m}`}
                          $active={reservationListFilter?.type === 'month' && reservationListFilter.year === fullYear && reservationListFilter.month === m}>
                 <StyledMonthHeader>
-                    <Num onClick={() => {
-                        const monthDate = new Date(fullYear, m, 1);
-                        setCurr(monthDate);
-                        setView({type: ViewType.Month});
-                        setRouter({
-                            type: ViewType.Month,
-                            year: monthDate.getFullYear(),
-                            month: monthDate.getMonth() + 1,
-                            date: 1,
-                            router,
-                        });
-                    }}
+                    {/* 숫자는 오른쪽 목록만 바꾼다 — 월 뷰와 같은 규칙이다.
+                        달력으로 넘어가는 건 아래 '자세히' 버튼이 맡는다. 한 칸에서 어디를
+                        누르느냐로 화면이 통째로 바뀌기도 하고 목록만 바뀌기도 하면 예측이 안 된다. */}
+                    <Num onClick={() => setReservationListFilter({type: 'month', year: fullYear, month: m})}
                          isToday={isTodayValue(today, +fullYear, m, today.getDate())}
                          isSelected={reservationListFilter?.type === 'month' && reservationListFilter.year === fullYear && reservationListFilter.month === m}>{m + 1}</Num>
                 </StyledMonthHeader>
@@ -86,10 +78,44 @@ export const Year = () => {
                         <StyledMonthRevenue>{formatPrice(monthlyRevenue[m])}</StyledMonthRevenue>
                     </StyledMonthSummary>
                 )}
+                <StyledMonthDetail type="button"
+                                   aria-label={`${m + 1}월 달력 보기`}
+                                   onClick={() => {
+                                       const monthDate = new Date(fullYear, m, 1);
+                                       setCurr(monthDate);
+                                       setView({type: ViewType.Month});
+                                       setRouter({
+                                           type: ViewType.Month,
+                                           year: monthDate.getFullYear(),
+                                           month: monthDate.getMonth() + 1,
+                                           date: 1,
+                                           router,
+                                       });
+                                   }}>자세히</StyledMonthDetail>
             </StyledMonth>
         )}
     </StyledYear>);
 };
+
+/* 그 달 달력으로 넘어가는 자리. 칸 아래에 붙여 숫자(목록 전환)와 역할을 가른다.
+   높이 24px 는 터치 타깃 최소치(WCAG 2.5.8)다. */
+const StyledMonthDetail = styled.button`
+    margin-top: auto;
+    padding: 4px 8px;
+    min-height: 24px;
+    border: none;
+    border-radius: var(--chip-radius);
+    background: none;
+    color: var(--dark-gray-color2);
+    font-size: var(--tiny-font);
+
+    @media (hover: hover) and (pointer: fine) {
+        &:hover {
+            background-color: var(--black-color-10);
+            color: var(--brand-color);
+        }
+    }
+`;
 
 /* 월 칸 요약 — 건수 + 매출. iOS 연 뷰(monthlySummaries)와 같은 구성이다. */
 const StyledMonthSummary = styled.button`
