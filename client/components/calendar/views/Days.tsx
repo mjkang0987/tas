@@ -54,6 +54,17 @@ const StyledDays = styled.ul <DaysType>`
     width: 100%;
     z-index: 13;
 
+    /* 월 뷰 모바일은 날짜 격자(MonthWrap)가 좌우 12px 안으로 들어가고 칸 사이를 3px 띄운다.
+       머리줄이 그걸 따라가지 않으면 칸 폭이 47.6 vs 53.6px 로 달라져, 가운데(수)만 맞고
+       양끝으로 갈수록 요일과 날짜가 어긋난다(일요일에서 9px). 같은 격자를 쓴다. */
+    ${props => (props.type === ViewType.Month) && `
+  @media (max-width: 640px) {
+    gap: 3px;
+    padding: 0 12px;
+    box-sizing: border-box;
+  }
+  `}
+
     /* 바탕은 sticky 로 뜨는 뷰(일·주·3일)에서만 깐다 — 밑으로 스크롤돼 지나가는 예약을
        가려야 해서다. 월 뷰 헤더는 고정도 아니고 가릴 것도 없어 바탕을 두지 않는다. */
     ${props => (props.type !== ViewType.Month) && `
