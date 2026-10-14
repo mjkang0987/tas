@@ -157,8 +157,8 @@ export function ReservationDetailFooterActions({
                 <StyledActionButton type="button"
                                     onClick={onBackToView}>취소</StyledActionButton>
                 <StyledActionButton type="button"
-                                    $primary
-                                    onClick={onCancelReservation}>확인</StyledActionButton>
+                                    $danger
+                                    onClick={onCancelReservation}>예약 취소</StyledActionButton>
             </>
         );
     }

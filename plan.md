@@ -5,6 +5,40 @@
 
 ---
 
+## 진행 — 레이어 팝업(모달) 디자인 정리 (`claude/vigilant-hopper-el6vnz`)
+
+### 배경
+디자인 검수(게스트 모드로 실제 렌더 — 데스크톱 1280 / 모바일 390)에서 나온 항목 8개를 한 번에 정리한다.
+1~3은 코드·`docs/design-spec.md`로 근거가 확인된 결함, 4~8은 렌더 화면을 보고 낸 디자인 판단(지시자 승인).
+
+### 구현 항목
+1. **예약 취소 확인 버튼 문구** — 「취소 / 확인(보라)」→「취소 / 예약 취소(빨강 `$danger`)」.
+   같은 파일의 삭제(「삭제」)·거절(「거절」) 확인과 같은 규칙. `ReservationDetailFooterActions.tsx`
+2. **예약 상세 헤더 제목** — 18px(`--big-font`)·위쪽 정렬 → `--modal-title-font`(16px)·세로 가운데.
+   공용 `StyledHeaderTitle`(29곳)과 일치. `ReservationDetailHeader.tsx`
+3. **폼 그룹 라벨(「서비스」)** — `StyledFieldRow > strong`(13px·500)을 `StyledForm label > strong`(12px·600)과 통일.
+   `ModalStyles.ts` (서비스 관리 폼도 같은 스타일 사용 → 함께 맞춰짐)
+4. **딤 강화** — `StyledOverlay` 배경 `rgba(15,23,42,.1)` → `.4`. 팝업 뒤 화면이 섞여 보이던 문제.
+5. **모달 여백** — 헤더 `4px 8px`, 본문 `8px 6px 30px` → 푸터(좌우 14px)와 좌우를 맞춤. 토큰(`globalStyle.ts`)만 변경.
+6. **모바일 바텀시트** — ≤640px 에서 `StyledOverlay`/`StyledDetail` 을 화면 아래 붙는 전체 폭 시트로.
+   하단 안전영역(`env(safe-area-inset-bottom)`) 포함. 하단 탭바(z 40)는 오버레이(z 100) 아래라 가리지 않음.
+7. **예약 상세 하단 버튼 위계** — 채운 색은 주 동작 하나(결제완료/예약완료)만. 변경은 기본(테두리),
+   노쇼는 위험 테두리(`$dangerOutline`), 취소는 기존 위험 테두리 유지.
+8. **결제 처리의 삭제 버튼** — 모바일에서 한 줄 전체 빨간 블록 → 금액 입력 옆 작은 버튼(결제종류는 윗줄 전체).
+
+### 영향 파일
+`client/styles/globalStyle.ts` · `client/components/calendar/overlays/{ModalStyles.ts,ReservationDetailHeader.tsx,ReservationDetailFooterActions.tsx,ReservationDetailPaymentLayer.tsx}` · `docs/design-spec.md`(토큰 값 갱신)
+
+### 리스크
+- 4~6은 공용 프리미티브라 `StyledOverlay`/`StyledDetail` 을 쓰는 모달 ~15종 전체에 반영된다. 렌더로 대표 화면을 확인한다.
+- 6은 확인창(`StyledConfirmModal`)도 시트가 된다(같은 `StyledDetail` 상속) — 의도된 일관성.
+
+### 검증
+- 변경 전/후 같은 시드·같은 동작으로 스크린샷을 찍어 비교(데스크톱·모바일).
+- lint + 타입체크(`/verify`).
+
+---
+
 ## 완료 — 모바일 주별 보기: 칼럼 폭 확보 + 가로 스크롤 (#234, PR #235)
 
 ### 배경
