@@ -6,9 +6,10 @@ import {useCalendarStore} from '../../store/calendarStore';
 import {ViewType} from '../../utils/constants';
 
 // 모바일 캘린더 상단 세그먼트 뷰 탭. aside의 뷰 전환(setChangeView/setAsPath) 로직을 그대로 재사용.
-// 3일(three) 뷰는 모바일 탭에서 제외(일·주·월·년 4종).
+// 일·3일·주·월·년 5종.
 const VIEW_TABS: Array<{ type: string; label: string }> = [
     {type: ViewType.Day, label: '일'},
+    {type: ViewType.Three, label: '3일'},
     {type: ViewType.Week, label: '주'},
     {type: ViewType.Month, label: '월'},
     {type: ViewType.Year, label: '년'},
