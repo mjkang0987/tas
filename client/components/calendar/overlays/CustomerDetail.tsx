@@ -52,6 +52,7 @@ import {
     StyledEditFieldLabelText,
     StyledEditFieldInput,
     StyledPointInfo,
+    StyledNaverBookingLink,
     StyledSimilarAnchor,
     StyledSimilarSection,
     StyledSimilarTitle,
@@ -176,6 +177,19 @@ export const CustomerDetail = ({customer, reservationMap, onClose, onReservation
         list.sort((a, b) => a.date.localeCompare(b.date) || a.startTime.localeCompare(b.startTime));
         return list;
     }, [reservationMap, customer.id]);
+
+    // 번호가 비어 있을 때만 네이버 예약으로 가는 길을 연다.
+    // 네이버예약 유입 고객은 동기화가 tel: '' 로 만들고(naver-booking-sync), 번호는 네이버
+    // 사이트에만 있다 — 메일 본문에는 개인정보가 오지 않아 파서로 채울 수가 없다.
+    // 그래서 예약 상세를 거쳐 링크를 찾아 들어가던 왕복을 여기서 한 번에 줄인다.
+    const naverBookingUrl = useMemo(() => {
+        if (!isEditing || normalizeTel(editForm.tel)) return null;
+        for (let i = customerReservations.length - 1; i >= 0; i -= 1) {
+            const url = customerReservations[i].naverBookingUrl;
+            if (url) return url;
+        }
+        return null;
+    }, [isEditing, editForm.tel, customerReservations]);
 
     const noshowCount = useMemo(() => customerReservations.filter((r) => r.status === 'noshow').length, [customerReservations]);
     const visibleList = customerReservations.slice(0, visibleCount);
@@ -462,6 +476,13 @@ export const CustomerDetail = ({customer, reservationMap, onClose, onReservation
                                     </StyledSimilarList>
                                 </StyledSimilarSection>
                             </StyledSimilarAnchor>
+                            {naverBookingUrl && (
+                                <StyledNaverBookingLink href={naverBookingUrl}
+                                                        target="_blank"
+                                                        rel="noopener noreferrer">
+                                    네이버 예약에서 번호 확인
+                                </StyledNaverBookingLink>
+                            )}
                             <StyledPointInfo>적립금 {formatPrice(customer.points ?? 0)}</StyledPointInfo>
                             {dupWarning && (
                                 <StyledDupWarning role="alert">
