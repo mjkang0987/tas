@@ -272,6 +272,7 @@ function filterWithinTarget(
     target: Date,
 ): CalendarState['reservationListFilter'] {
     if (!filter) return null;
+    // 연 뷰는 한 해 안의 어느 달을 고른 것이라 연도만 맞으면 둔다.
     if (filter.type === 'month') return filter.year === target.getFullYear() ? filter : null;
     const targetMonth = toDateKey(target.getFullYear(), target.getMonth(), 1).slice(0, 7);
     return filter.dateKey.startsWith(targetMonth) ? filter : null;

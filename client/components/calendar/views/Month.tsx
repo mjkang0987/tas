@@ -110,9 +110,11 @@ export const Month = ({
     </>);
 };
 
-/** 칸에 이름을 그대로 둘 수 있는 최대 건수. 넘으면 숫자로 접는다. */
+/** 칸에 이름을 그대로 둘 수 있는 최대 건수. 넘으면 숫자로 접는다(모바일만). */
 const MOBILE_MAX_NAMES = 1;
-const DESKTOP_MAX_NAMES = 3;
+/** 데스크톱 칸은 세로가 넉넉하고 넘치면 칸이 제 안에서 스크롤한다(StyledDate 의 overflow-y).
+ *  숫자로 접어 두면 몇 명인지는 알아도 누가 오는지를 모르고, 그걸 보려면 눌러야 한다. */
+const DESKTOP_MAX_NAMES = Number.MAX_SAFE_INTEGER;
 
 
 /* 담을 수 있는 수를 넘겼을 때 — 건수만. iOS monthDayCell 은 칩이 아니라
