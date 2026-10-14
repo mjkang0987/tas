@@ -267,7 +267,9 @@ const StyledMain = styled.main`
 
 const StyledFooterAd = styled.div`
     flex-shrink: 0;
-    padding: 6px 12px;
+    /* 화면 맨 아래 요소라 safe-area 를 여기서 받는다(탭바 주석이 말하는 그 자리다).
+       없으면 홈 인디케이터·사파리 하단 툴바 영역에 광고가 물린다. */
+    padding: 6px 12px calc(6px + env(safe-area-inset-bottom, 0px));
     border-top: 1px solid var(--light-gray-color);
     background-color: var(--white-color);
 `;
