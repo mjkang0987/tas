@@ -216,7 +216,7 @@ const StyledListHeader = styled(StyledHeader)`
 /* 이 머리줄의 날짜만 줄인다 — StyledHeaderTitle 은 모달 30여 곳이 공유해 공통값을 못 건드린다.
    레이어 제목이 아니라 달력에 붙은 영역의 머리줄이라 16px 은 과했다. */
 const StyledListTitle = styled(StyledHeaderTitle)`
-    font-size: var(--medium-font);
+    font-size: var(--tiny-font);
 `;
 
 /* 오른쪽 요약 — iOS 는 caption/secondary 로 "N건 · 금액"을 둔다. */
