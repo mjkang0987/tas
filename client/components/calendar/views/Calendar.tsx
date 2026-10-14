@@ -56,7 +56,9 @@ export const Calendar = () => {
                     일·3일 뷰는 overflow-x: hidden 이라 되돌릴 수단 없이 시간축이 화면 밖으로 밀린다. */}
                 <StyledDaysWrap key={type ?? 'none'} type={type} $weekColumns={weekColumns}>
                     {type !== ViewType.Month && <TimelineTitle/>}
-                    {type !== ViewType.Day && <Days/>}
+                    {/* 요일 줄은 월 뷰만 쓴다. 주·3일은 날짜 머리줄이 "10.14 수" 로 요일까지 안아
+                        두 줄(21+30px)을 한 줄로 줄인다(iOS DayColumnsTimelineView 와 같은 모양). */}
+                    {type === ViewType.Month && <Days/>}
                     {type === ViewType.Day && <Day/>}
                     {(type === ViewType.Week || type === ViewType.Three) && <WeekWrap type={type}/>}
                 </StyledDaysWrap>
