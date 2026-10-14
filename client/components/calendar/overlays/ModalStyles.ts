@@ -460,12 +460,34 @@ export const StyledFooter = styled.div`
     }
 `;
 
+/* 짧은 확인창은 모바일에서도 가운데 카드로 — 결정 순간이 눈에 띄도록 시트에서 제외한다.
+   기본(StyledOverlay/StyledDetail)의 모바일 && 보다 이기도록 &&& 로 덮는다. */
 export const StyledConfirmOverlay = styled(StyledOverlay)`
     z-index: ${OVERLAY_Z_INDEX.confirm};
+
+    @media (max-width: 640px) {
+        &&& {
+            align-items: center;
+            padding: var(--overlay-padding);
+        }
+    }
 `;
 
 export const StyledConfirmModal = styled(StyledDetail)`
     width: min(360px, 90vw);
+
+    @media (max-width: 640px) {
+        &&& {
+            width: min(360px, 90vw);
+            border-bottom: 1px solid var(--modal-border);
+            border-radius: var(--modal-radius-mobile);
+        }
+
+        /* 화면 끝에 붙지 않으므로 시트용 하단 안전영역 여백을 뺀다 */
+        && ${StyledFooter} {
+            padding-bottom: 14px;
+        }
+    }
 `;
 
 export const StyledChangeRow = styled.span`
