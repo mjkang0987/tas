@@ -141,6 +141,14 @@ export const StyledOverlay = styled.div`
     background: rgba(15, 23, 42, 0.4);
     backdrop-filter: blur(var(--overlay-backdrop-blur));
     box-sizing: border-box;
+
+    /* 모바일은 화면 아래에 붙는 시트 — && 로 확장 컴포넌트(z-index 등만 덮음)보다 우선 */
+    @media (max-width: 640px) {
+        && {
+            align-items: flex-end;
+            padding: 0;
+        }
+    }
 `;
 
 export const StyledDetail = styled.div<{ $width?: number | string }>`
@@ -156,12 +164,16 @@ export const StyledDetail = styled.div<{ $width?: number | string }>`
     box-shadow: var(--modal-shadow);
     overflow: hidden;
 
+    /* 바텀시트: 전체 폭 + 위쪽만 둥글게. && 로 확장 모달들의 width/max-width 지정보다 우선한다 */
     @media (max-width: 640px) {
-        width: 100%;
-        max-width: min(360px, 90vw);
-        max-height: 90vh;
-        max-height: 90dvh;
-        border-radius: var(--modal-radius-mobile);
+        && {
+            width: 100%;
+            max-width: none;
+            max-height: 90vh;
+            max-height: 90dvh;
+            border-bottom: 0;
+            border-radius: var(--modal-radius-mobile) var(--modal-radius-mobile) 0 0;
+        }
     }
 `;
 
@@ -439,6 +451,7 @@ export const StyledFooter = styled.div`
     @media (max-width: 640px) {
         flex-wrap: wrap;
         justify-content: flex-end;
+        padding-bottom: calc(14px + env(safe-area-inset-bottom)); /* 시트가 화면 끝에 붙으므로 홈 인디케이터 회피 */
 
         > button {
             flex: 0 0 auto;
