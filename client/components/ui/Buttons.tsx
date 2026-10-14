@@ -102,6 +102,13 @@ const StyledReserveButton = styled.button <Props>`
     border-left-width: 4px;
     border-style: ${props => props.$requested ? 'dashed' : 'solid'};
     border-left-color: ${props => props.$requested ? 'var(--caution-color)' : props.$color};
+    /* 취소·노쇼는 월 칸·목록 카드와 같은 빗금 + 회색으로 — 같은 상태를 세 화면이
+       다르게 그리면 색만 보고는 무엇인지 알 수 없다. (여기만 흐리게+회색필터였다.) */
+    ${props => props.$cancelled && `
+        border-color: var(--gray-color);
+        border-left-color: var(--gray-color);
+        background: repeating-linear-gradient(-45deg, rgba(0, 0, 0, 0.05) 0 6px, transparent 6px 12px), var(--gray-color2);
+    `}
     border-radius: var(--radius-sm);
     padding: 4px 6px;
     color: ${props => 'var(--dark-gray-color)'};
@@ -110,8 +117,9 @@ const StyledReserveButton = styled.button <Props>`
     cursor: pointer;
     box-sizing: border-box;
     z-index: 1;
-    opacity: ${props => props.$cancelled ? 0.5 : 1};
-    filter: ${props => props.$cancelled ? 'grayscale(.5)' : 'none'};
+    /* 빗금이 상태를 말하므로 흐리게·회색필터를 겹치지 않는다 — 겹치면 빗금까지 바래
+       무늬가 안 읽히고, 담당자 색이 남은 다른 카드와 톤이 어긋난다. */
+    color: ${props => props.$cancelled ? 'var(--dark-gray-color2)' : 'inherit'};
     transition: max-height 0.2s ease, box-shadow 0.2s ease;
     text-align: left;
     @media (max-width: 640px) {
