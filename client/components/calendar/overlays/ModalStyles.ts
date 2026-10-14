@@ -137,8 +137,8 @@ export const StyledOverlay = styled.div`
     align-items: center;
     justify-content: center;
     padding: var(--overlay-padding);
-    background: radial-gradient(circle at top, rgba(255, 255, 255, 0.14), transparent 38%),
-    rgba(15, 23, 42, 0.1);
+    /* .1 은 뒤 화면(예약 카드·탭바)이 팝업과 섞여 보였다 — 팝업을 확실히 앞으로 띄운다 */
+    background: rgba(15, 23, 42, 0.4);
     backdrop-filter: blur(var(--overlay-backdrop-blur));
     box-sizing: border-box;
 `;
