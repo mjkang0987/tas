@@ -7,8 +7,6 @@ import {useCalendarStore} from '../../../store/calendarStore';
 import {NewCustomerBadge} from '../../ui/NewCustomerBadge';
 import {isNewCustomerVisit} from '../../../utils/customers';
 import {buildAssigneeColorMap} from '../../../utils/assignees';
-import {buildServiceColorMap} from '../../../utils/services';
-import {ServiceChipList} from '../../ui/ServiceChip';
 
 import type {Reservation} from '../../../utils/reservations';
 
@@ -32,13 +30,7 @@ export const ReservationList = ({
     const customerMap = useCalendarStore((s) => s.customerMap);
     const openReservationDetail = useCalendarStore((s) => s.openReservationDetail);
     const setCreateReservationInitial = useCalendarStore((s) => s.setCreateReservationInitial);
-    const serviceCatalog = useCalendarStore((s) => s.serviceCatalog);
-    const categoryBaseColorMap = useCalendarStore((s) => s.categoryBaseColorMap);
     const assignees = useCalendarStore((s) => s.assignees);
-    const serviceColorMap = useMemo(
-        () => buildServiceColorMap(serviceCatalog, categoryBaseColorMap),
-        [serviceCatalog, categoryBaseColorMap]
-    );
     const assigneeColorMap = useMemo(() => buildAssigneeColorMap(assignees), [assignees]);
 
     return (<>
@@ -58,13 +50,9 @@ export const ReservationList = ({
                                         setCreateReservationInitial(null);
                                         openReservationDetail(r);
                                     }}>
+                            {/* 칸에는 시작시간 + 이름만. 시술은 왼쪽 색 막대가 담당자로 말하고,
+                                좁은 칸에서 칩까지 넣으면 이름이 밀려 누가 오는지를 잃는다. */}
                             <StyledTimeMeta $variant={variant}>{variant === 'date' ? r.startTime : r.date.slice(5)}</StyledTimeMeta>
-                            <StyledServiceName $variant={variant}>
-                                <ServiceChipList service={r.service}
-                                                 serviceColorMap={serviceColorMap}
-                                                 keyPrefix={r.id}
-                                                 textAs="strong" />
-                            </StyledServiceName>
                             <StyledCustomerMeta $variant={variant}>
                                 {isNewCustomerVisit(customer?.firstVisitDate, r.date) &&
                                     <NewCustomerBadge>신규</NewCustomerBadge>}
@@ -158,20 +146,6 @@ const StyledCustomerName = styled.span`
         text-decoration-color: var(--gray-color);
         text-decoration-thickness: 1.5px;
         color: var(--dark-gray-color2);
-    }
-`;
-
-const StyledServiceName = styled.span<{ $variant: 'date' | 'month' }>`
-    display: inline-flex;
-    align-items: center;
-    flex-wrap: wrap;
-    gap: var(--gap-xs);
-    min-width: 0;
-
-    /* 모바일에서는 시술칩을 빼고 날짜(또는 시각) + 고객명만 남긴다.
-       월 셀(date)은 폭이 55px뿐이고, 연 뷰 월 칸(month)도 카드가 세 줄로 접힌다. */
-    @media (max-width: 640px) {
-        display: none;
     }
 `;
 
