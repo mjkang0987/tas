@@ -27,6 +27,9 @@ import {MobileTabBar} from './MobileTabBar';
 import {Icon} from '../ui/Icons';
 import {ReservationCreate} from '../calendar/overlays/ReservationCreate';
 import {AdBanner} from '../ad/AdBanner';
+import {isAdVisible} from '../../lib/ads';
+
+const FOOTER_AD_SLOT = process.env.NEXT_PUBLIC_ADSENSE_FOOTER_SLOT ?? '';
 
 /**
  * `isLanding` — 루트(`/`)가 익명 방문자에게 소개 화면을 서버렌더한 경우.
@@ -210,9 +213,11 @@ export default function LayoutComponent({children, isLanding = false}: NodeType 
                     <StyledMain>
                         {children}
                     </StyledMain>
-                    <StyledFooterAd>
-                        <AdBanner adSlot={process.env.NEXT_PUBLIC_ADSENSE_FOOTER_SLOT ?? ''} adFormat="horizontal" />
-                    </StyledFooterAd>
+                    {isAdVisible(FOOTER_AD_SLOT) && (
+                        <StyledFooterAd>
+                            <AdBanner adSlot={FOOTER_AD_SLOT} adFormat="horizontal" />
+                        </StyledFooterAd>
+                    )}
                     {createReservationInitial && selectedReservations.length === 0 && (
                         <ReservationCreate initial={createReservationInitial}
                                            customerMap={customerMap}
@@ -267,7 +272,9 @@ const StyledMain = styled.main`
 
 const StyledFooterAd = styled.div`
     flex-shrink: 0;
-    padding: 6px 12px;
+    /* 화면 맨 아래 요소라 safe-area 를 여기서 받는다(탭바 주석이 말하는 그 자리다).
+       없으면 홈 인디케이터·사파리 하단 툴바 영역에 광고가 물린다. */
+    padding: 6px 12px calc(6px + env(safe-area-inset-bottom, 0px));
     border-top: 1px solid var(--light-gray-color);
     background-color: var(--white-color);
 `;
