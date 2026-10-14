@@ -1,4 +1,6 @@
 import styled from 'styled-components';
+
+import {StyledServiceText} from './ServiceChip';
 import React from 'react';
 
 interface Props {
@@ -108,6 +110,9 @@ const StyledReserveButton = styled.button <Props>`
         border-color: var(--gray-color);
         border-left-color: var(--gray-color);
         background: repeating-linear-gradient(-45deg, rgba(0, 0, 0, 0.05) 0 6px, transparent 6px 12px), var(--gray-color2);
+
+        /* 시술 칩도 함께 죽인다 — 칩만 색이 남으면 빗금 위에 떠 끝난 예약이 살아 보인다. */
+        ${StyledServiceText} { color: var(--dark-gray-color2); }
     `}
     border-radius: var(--radius-sm);
     padding: 4px 6px;
