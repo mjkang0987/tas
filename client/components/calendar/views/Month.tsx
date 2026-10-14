@@ -160,6 +160,9 @@ const StyledDate = styled.li<{ type: string, $active: boolean, $closedKind: Stor
     display: flex;
     flex-direction: column;
     position: relative; /* 예약추가 버튼을 모서리에 띄운다 */
+    /* 칸 폭을 기준으로 안쪽 카드가 반응한다 — 창 폭이 아니라 칸이 좁아지는 게 문제라
+       뷰포트 미디어쿼리로는 맞출 수 없다(칸 폭 = (창 - 사이드바 - 목록) / 7). */
+    container-type: inline-size;
     padding: 2px;
     text-align: center;
     overflow-y: auto;

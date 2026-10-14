@@ -145,8 +145,13 @@ const StyledTimeMeta = styled(StyledMeta)`
     ${onMobile('display: none;')}
 `;
 
-/* 신규고객 배지는 배지+간격만 18px — 남은 글자 폭의 절반을 먹는다. 모바일 셀에선 접고 레이어에서 확인. */
+/* 신규고객 배지는 배지+간격만 18px — 남은 글자 폭의 절반을 먹는다. 칸이 좁으면 접고 레이어에서 확인.
+   110px 선: 시간 32 + 간격 6 + 패딩 8 + 이름 세 글자 33 = 79px 에 배지 30px 을 더한 값이다. */
 const StyledCustomerMeta = styled(StyledMeta)`
+    @container (max-width: 110px) {
+        ${NewCustomerBadge} { display: none; }
+    }
+
     /* flex 자식의 기본 min-width:auto 를 풀어야 안쪽 이름이 말줄임된다 — 안 풀면 넘쳐 나간다. */
     flex-wrap: nowrap;
     min-width: 0;
