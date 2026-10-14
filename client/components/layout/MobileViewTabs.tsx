@@ -81,7 +81,7 @@ const StyledSegment = styled.div`
         gap: 2px;
         /* 헤더가 좌우 10px 대칭 패딩을 주므로 콘텐츠 폭을 그대로 채워 행과 정렬 */
         width: 100%;
-        margin: 2px 0 6px;
+        margin: 2px 0 4px;
         padding: 3px;
         box-sizing: border-box;
         background-color: var(--gray-color2);
@@ -97,10 +97,10 @@ const StyledSegmentTab = styled(Link)<{ $active: boolean }>`
     display: flex;
     align-items: center;
     justify-content: center;
-    padding: 7px 0;
+    padding: 5px 0;
     /* 트랙이 캡슐이므로 선택 표시도 캡슐이어야 안쪽 여백(3px)과 나란히 맞는다. */
     border-radius: var(--chip-radius);
-    font-size: var(--small-font);
+    font-size: var(--tiny-font);
     font-weight: 700;
     text-decoration: none;
     color: ${(props) => props.$active ? 'var(--brand-color)' : 'var(--dark-gray-color)'};

@@ -71,8 +71,9 @@ export const StyledHeader = styled.header<{ $stack?: boolean }>`
         flex-direction: ${(props) => props.$stack ? 'column' : 'row'};
         align-items: ${(props) => props.$stack ? 'stretch' : 'center'};
         gap: ${(props) => props.$stack ? '0' : '4px'};
-        /* 상단 여백 + 실기기 노치(safe-area) 대응, 좌우 대칭 10px(＋예약이 우측 끝에 붙지 않게) */
-        padding: max(env(safe-area-inset-top, 0px), 8px) 10px 2px;
+        /* 상단 여백 + 실기기 노치(safe-area) 대응, 좌우 대칭 10px(＋예약이 우측 끝에 붙지 않게).
+           노치 기기는 safe-area 가 이기므로 이 4px 는 safe-area 가 0인 환경에서만 보인다. */
+        padding: max(env(safe-area-inset-top, 0px), 4px) 10px 2px;
     }
 `;
 
