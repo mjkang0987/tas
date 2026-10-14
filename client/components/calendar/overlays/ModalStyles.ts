@@ -307,11 +307,11 @@ export const StyledFieldRow = styled.div`
     flex-direction: column;
     gap: 10px;
 
+    /* 그룹 라벨 — StyledForm 의 label > strong 과 같은 모양(같은 폼 안에서 라벨이 섞여 있다) */
     > span, > strong {
-        font-size: var(--medium-font);
+        font-size: var(--small-font);
         color: var(--dark-gray-color);
-        font-weight: 500;
-        padding-top: 4px;
+        font-weight: 600;
     }
 `;
 
