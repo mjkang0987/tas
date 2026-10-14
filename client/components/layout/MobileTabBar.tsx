@@ -97,8 +97,8 @@ const StyledTab = styled(Link)<{ $active: boolean }>`
        탭바가 화면 가장자리에서 떨어져 떠 있으므로 safe-area는 여기서 받지 않는다
        (이제 맨 아래에 놓이는 광고 배너가 받는다). */
     /* 아이콘·간격을 바꿀 때마다 여기로 맞춘다 — 탭 높이 44px(터치 타깃 최소)는 지켜야 한다. */
-    padding-top: 6px;
-    padding-bottom: 6px;
+    padding-top: 7px;
+    padding-bottom: 7px;
     text-decoration: none;
     /* 선택 알약이 탭바의 둥근 모서리를 넘지 않게 한다. */
     border-radius: var(--chip-radius);
@@ -106,9 +106,10 @@ const StyledTab = styled(Link)<{ $active: boolean }>`
     color: ${(props) => props.$active ? 'var(--brand-color)' : 'var(--dark-gray-color2)'};
 
     svg {
-        width: 18px;
-        height: 18px;
-        stroke-width: ${(props) => props.$active ? 2.1 : 1.8};
+        width: 16px;
+        height: 16px;
+        /* 박스를 줄인 만큼 선도 얇게 — 두께를 그대로 두면 작아진 아이콘이 되레 묵직해 보인다. */
+        stroke-width: ${(props) => props.$active ? 1.7 : 1.5};
     }
 
     &:active {
