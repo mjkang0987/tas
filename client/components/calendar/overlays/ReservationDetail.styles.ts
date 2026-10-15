@@ -1,17 +1,14 @@
 import styled from 'styled-components';
 
-import {OVERLAY_Z_INDEX, StyledDetail, StyledOverlay} from './ModalStyles';
+import {OVERLAY_Z_INDEX, StyledConfirmModal, StyledConfirmOverlay, StyledOverlay} from './ModalStyles';
 export const StyledReservationOverlay = styled(StyledOverlay)<{ $stacked: boolean }>`
     z-index: ${(props) => props.$stacked ? OVERLAY_Z_INDEX.confirm : OVERLAY_Z_INDEX.detail};
 `;
 
-export const StyledRestoreOverlay = styled(StyledOverlay)`
-    z-index: ${OVERLAY_Z_INDEX.confirm};
-`;
+// 예약 전환 확인 — 짧은 확인창이라 공용 확인창 부품(모바일에서도 가운데 카드)을 쓴다
+export const StyledRestoreOverlay = styled(StyledConfirmOverlay)``;
 
-export const StyledRestoreModal = styled(StyledDetail)`
-    width: min(360px, 90vw);
-`;
+export const StyledRestoreModal = styled(StyledConfirmModal)``;
 
 export const StyledRestoreBody = styled.div`
     padding: var(--modal-body-padding);
