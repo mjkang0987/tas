@@ -11,17 +11,11 @@ import type {DragPreview} from './timelineDrag';
 import type {TimelineLane} from './timelineEntries';
 import {cardDetailForHeight, type CardDetail} from '../../../features/reservations/timeline-scale';
 
-// 상태 접미사 — 어느 표시 단계에서도 같은 문구를 쓴다.
-//
-// 글자로 알리는 건 **달리 알릴 길이 없는 상태**뿐이다.
-// - 결제완료: 예약이 제대로 끝난 정상 종착점이다. 지난 예약 대부분에 같은 꼬리표가 달려
-//   읽을 것만 늘고, 정작 봐야 할 예외가 묻힌다.
-// - 취소·노쇼: 카드가 이미 빗금 + 무채색 + 취소선으로 말한다. 글자를 더하면 같은 말이 두 번이고,
-//   좁은 카드에서는 그 글자가 이름을 밀어낸다. (둘을 가르는 건 상세 레이어가 한다 — 앱 타임라인도 같다.)
-// - 확정대기: 아직 색·무늬로 드러내는 장치가 없어 글자가 유일한 신호다.
-function statusSuffix(reservation: Reservation): string {
-    return reservation.status === 'requested' ? ' (확정대기)' : '';
-}
+// 상태를 카드 **글자로** 알리지 않는다 — 글자는 이름·시술을 밀어내는데, 상태마다 제 장치가 있다.
+// - 결제완료: 예약이 제대로 끝난 정상 종착점이라 알릴 것이 없다(지난 예약 대부분에 같은 꼬리표가
+//   달려 읽을 것만 늘고, 정작 봐야 할 예외가 묻혔다).
+// - 취소·노쇼: 빗금 + 무채색 + 취소선. 취소는 한 방향, 노쇼는 교차 빗금으로 가른다.
+// - 확정대기: 딤 + 배지. 아직 사장님이 수락하지 않은 신청이라 "있지만 정해지지 않았다"로 읽혀야 한다.
 
 type TimelineReservationCardProps = {
     reservation: Reservation;
@@ -106,6 +100,12 @@ export function TimelineReservationCard({
                     <span className="a11y">예약 이동</span>
                 </span>
             )}
+            {reservation.status === 'requested' && (<>
+                {/* 아직 수락 전인 신청. 눌러서 상세에서 수락·거절해야 하므로 딤도 배지도
+                    클릭을 먹지 않는다(`pointer-events: none`). */}
+                <span className="pending-veil" aria-hidden="true" />
+                {detail !== 'name' && <span className="pending-badge">확정대기</span>}
+            </>)}
             {detail === 'full' ? (<>
                 {/* 앱 블록과 같은 차례 — 시작시간 / 고객명 / 시술.
                     누가 오는지가 무엇을 받는지보다 먼저 읽혀야 한다. */}
@@ -120,7 +120,6 @@ export function TimelineReservationCard({
                     <StyledTimelineServiceList service={reservation.service}
                                               serviceColorMap={serviceColorMap}
                                               keyPrefix={reservation.id} />
-                    {statusSuffix(reservation)}
                 </strong>
                 {preview && <span className="sub">{preview.date} {preview.startTime}~{preview.endTime}</span>}
             </>) : (
@@ -128,12 +127,12 @@ export function TimelineReservationCard({
                 <span className="oneline">
                     {isNewCustomer && !minimal && <NewCustomerBadge>신규</NewCustomerBadge>}
                     <span className="oneline-text">
-                        {/* 한 줄 단계에도 시작시간을 둔다 — 세 줄이 안 되는 카드라고
-                            시간을 잃으면 타임라인에서 눈금을 되짚어야 한다. */}
-                        {!minimal && <span className="start-time-inline">{reservation.startTime}</span>}
+                        {/* `compact` 까지만 시작시간을 둔다 — 세 줄이 안 되는 카드라고 시간을
+                            잃으면 눈금을 되짚어야 한다. 다만 `name` 단계는 이름 한 줄도 빠듯해
+                            (20px 미만) 시간이 폭을 반 먹는다. 그 단계는 이름만이라는 계약이다. */}
+                        {detail === 'compact' && <span className="start-time-inline">{reservation.startTime}</span>}
                         {customerName || '고객'}
                         {detail === 'compact' && reservation.service ? ` · ${reservation.service}` : ''}
-                        {minimal ? '' : statusSuffix(reservation)}
                     </span>
                 </span>
             )}
@@ -177,7 +176,6 @@ export function TimelineDragGhost({
                 <StyledTimelineServiceList service={reservation.service}
                                           serviceColorMap={serviceColorMap}
                                           keyPrefix={`ghost-${reservation.id}`} />
-                {statusSuffix(reservation)}
             </strong>
             <span className="sub">{preview.date} {preview.startTime}~{preview.endTime}</span>
             {customerName && (

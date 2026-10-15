@@ -173,6 +173,31 @@ const StyledReserveButton = styled.button <Props>`
         font-size: var(--tiny-font);
     }
 
+    /* 확정대기 — 카드는 그대로 두고 그 위를 덮는다. "있지만 아직 정해지지 않았다".
+       둘 다 클릭을 통과시킨다 — 눌러서 상세로 들어가 수락·거절해야 한다. */
+    .pending-veil {
+        position: absolute;
+        inset: 0;
+        border-radius: inherit;
+        background: rgba(255, 255, 255, 0.55);
+        pointer-events: none;
+    }
+
+    .pending-badge {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        padding: 1px 6px;
+        border-radius: 999px;
+        background-color: var(--caution-color);
+        color: var(--white-color);
+        font-size: var(--tiny-font);
+        font-weight: 600;
+        white-space: nowrap;
+        pointer-events: none;
+    }
+
     /* 고객명 줄 — 시작시간 아래, 시술 위. 제 줄을 가진다(앱 블록과 같은 차례). */
     .detail {
         display: block;
