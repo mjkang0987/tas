@@ -3,6 +3,7 @@ import type {NextApiRequest, NextApiResponse} from 'next';
 import {prisma} from '../../db/prisma';
 import {parseI18nText, toDateKey} from '../../db/mappers';
 import {DEFAULT_BOOKING_SETTINGS, parseBookableServiceNames} from '../../../client/features/store-settings/model';
+import {MAX_VISIBLE_NOTICES} from '../../../client/features/notices/model';
 
 // 공개(비로그인) 예약 매장 정보. 데이터 최소 노출 — 고객/예약 정보는 절대 반환하지 않는다.
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
@@ -58,12 +59,14 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const whitelist = parseBookableServiceNames(bookingSettings?.bookableServiceIdsJson);
     const visibleServices = whitelist ? services.filter((s) => whitelist.includes(s.name)) : services;
 
-    // 공지사항(공개 = visible만, 최신순). 테이블 미존재(마이그레이션 지연) 시 빈 목록으로 방어 → 페이지 무중단.
+    // 공지사항('노출' = visible만, 최신순 최대 MAX_VISIBLE_NOTICES개 — 한도 도입 전 초과분은 여기서 잘린다).
+    // 테이블 미존재(마이그레이션 지연) 시 빈 목록으로 방어 → 페이지 무중단.
     let notices: Array<{category: string; title: string; titleI18n: ReturnType<typeof parseI18nText>; body: string; bodyI18n: ReturnType<typeof parseI18nText>}> = [];
     try {
         const noticeRows = await prisma.storeNotice.findMany({
             where: {storeId: store.id, visible: true},
-            orderBy: [{pinned: 'desc'}, {createdAt: 'desc'}],
+            orderBy: {createdAt: 'desc'},
+            take: MAX_VISIBLE_NOTICES,
             select: {category: true, title: true, titleI18nJson: true, body: true, bodyI18nJson: true},
         });
         notices = noticeRows.map((n) => ({

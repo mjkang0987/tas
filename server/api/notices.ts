@@ -4,7 +4,7 @@ import {Prisma} from '../../client/prisma/generated/prisma/client';
 
 import {prisma} from '../db/prisma';
 import {parseI18nText} from '../db/mappers';
-import {MAX_PINNED_NOTICES} from '../../client/features/notices/model';
+import {MAX_VISIBLE_NOTICES} from '../../client/features/notices/model';
 import {getApiSession, requireRole} from '../auth/api-session';
 
 const CATEGORIES = ['notice', 'event', 'info'] as const;
@@ -48,7 +48,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
         const notices = await prisma.storeNotice.findMany({
             where: {storeId: session.storeId},
-            orderBy: [{pinned: 'desc'}, {createdAt: 'desc'}],
+            orderBy: {createdAt: 'desc'},
         });
         return res.status(200).json({notices: notices.map(shapeNotice)});
     }
@@ -71,8 +71,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             return res.status(400).json({error: 'Invalid category'});
         }
 
+        const visible = body.visible === undefined ? true : Boolean(body.visible);
+        if (visible && (await prisma.storeNotice.count({where: {storeId: session.storeId, visible: true}})) >= MAX_VISIBLE_NOTICES) {
+            return res.status(409).json({error: 'visible_limit'});
+        }
+        // pinned: 웹은 안 보낸다. iOS 앱 호환용으로만 받는다.
         const pinned = body.pinned === undefined ? false : Boolean(body.pinned);
-        if (pinned && (await prisma.storeNotice.count({where: {storeId: session.storeId, pinned: true}})) >= MAX_PINNED_NOTICES) {
+        if (pinned && (await prisma.storeNotice.count({where: {storeId: session.storeId, pinned: true}})) >= MAX_VISIBLE_NOTICES) {
             return res.status(409).json({error: 'pin_limit'});
         }
 
@@ -84,7 +89,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                 titleI18nJson: i18nInput(body.titleI18n),
                 body: body.body.trim(),
                 bodyI18nJson: i18nInput(body.bodyI18n),
-                visible: body.visible === undefined ? true : Boolean(body.visible),
+                visible,
                 pinned,
             },
         });
@@ -110,8 +115,17 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             return res.status(400).json({error: 'Invalid category'});
         }
 
+        // 노출 한도는 '숨김 → 노출'로 바꿀 때만 검사한다. iOS 앱은 수정 때마다 visible 을 보내고,
+        // 한도 도입 전부터 4개 이상 노출 중인 매장이 있을 수 있어 이미 노출된 공지의 수정까지 막으면 안 된다.
+        if (body.visible !== undefined && Boolean(body.visible)) {
+            const current = await prisma.storeNotice.findFirst({where: {id: body.id, storeId: session.storeId}, select: {visible: true}});
+            if (current && !current.visible
+                && (await prisma.storeNotice.count({where: {storeId: session.storeId, visible: true}})) >= MAX_VISIBLE_NOTICES) {
+                return res.status(409).json({error: 'visible_limit'});
+            }
+        }
         if (body.pinned !== undefined && Boolean(body.pinned)
-            && (await prisma.storeNotice.count({where: {storeId: session.storeId, pinned: true, id: {not: body.id}}})) >= MAX_PINNED_NOTICES) {
+            && (await prisma.storeNotice.count({where: {storeId: session.storeId, pinned: true, id: {not: body.id}}})) >= MAX_VISIBLE_NOTICES) {
             return res.status(409).json({error: 'pin_limit'});
         }
 
