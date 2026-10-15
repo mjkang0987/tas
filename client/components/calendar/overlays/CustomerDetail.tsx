@@ -4,6 +4,7 @@ import {createPortal} from 'react-dom';
 import {useSession} from 'next-auth/react';
 
 import {ConfirmDialog} from '../../ui/ConfirmDialog';
+import {CustomerMergeSuggestionModal} from '../../modals/CustomerMergeSuggestionModal';
 import type {Customer, CustomerMemoTag, PointHistoryEntry} from '../../../utils/customers';
 import type {Reservation, ReservationMap} from '../../../utils/reservations';
 import {groupByDate} from '../../../utils/reservations';
@@ -494,7 +495,7 @@ export const CustomerDetail = ({customer, reservationMap, onClose, onReservation
                                             <StyledDupWarningButton type="button"
                                                                     $variant="merge"
                                                                     disabled={isMergingDup}
-                                                                    onClick={() => mergeIntoCustomer(dupWarning.match.id)}>
+                                                                    onClick={() => setSimilarMergeTarget(dupWarning.match)}>
                                                 {isMergingDup ? '병합 중…' : `${dupWarning.match.name} 고객과 병합`}
                                             </StyledDupWarningButton>
                                         )}
@@ -600,15 +601,24 @@ export const CustomerDetail = ({customer, reservationMap, onClose, onReservation
                        onClose={() => setIsDeleteConfirm(false)} />
     )}
     {similarMergeTarget && (
-        <ConfirmDialog title="고객 병합"
-                       message={`${customer.name} 고객과 ${similarMergeTarget.name} 고객이 같은 분인가요?\n`
-                           + `${customer.name} 고객의 예약·적립금·메모가 ${similarMergeTarget.name} 고객으로 옮겨지고 이 레코드는 정리됩니다. 분리로 되돌릴 수 있습니다.\n`
-                           + '저장하지 않은 수정 내용은 반영되지 않습니다.'}
-                       confirmLabel={isMergingDup ? '병합 중…' : '병합'}
-                       confirmVariant="warning"
-                       confirmDisabled={isMergingDup}
-                       onConfirm={() => mergeIntoCustomer(similarMergeTarget.id)}
-                       onClose={() => setSimilarMergeTarget(null)} />
+        // 글자만 있는 확인 창은 누가 남고 누가 정리되는지 안 읽혔다 — 자동 제안과 같은 카드형 레이어로 보인다.
+        // 방향은 고정(지금 고객 → 비슷한 고객)이라 자동 제안 모드와 구조가 같다.
+        // 비슷한 고객 목록과 저장 시 번호 중복 경고, 두 입구가 모두 이 레이어를 거친다.
+        <CustomerMergeSuggestionModal selection={{
+                                          key: `similar-${customer.id}-${similarMergeTarget.id}`,
+                                          mode: 'suggestion',
+                                          maskedSource: customer,
+                                          targetChoices: [similarMergeTarget],
+                                          targetId: similarMergeTarget.id,
+                                      }}
+                                      reservationMap={reservationMap}
+                                      merging={isMergingDup}
+                                      onMerge={(targetId) => mergeIntoCustomer(targetId)}
+                                      onSkip={() => setSimilarMergeTarget(null)}
+                                      onDismiss={() => setSimilarMergeTarget(null)}
+                                      onReservationClick={onReservationClick}
+                                      overDetail
+                                      skipLabel="취소" />
     )}
     </>, modalRoot);
 };
