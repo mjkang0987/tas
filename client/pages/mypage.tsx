@@ -11,6 +11,7 @@ import {PageHero} from '../components/ui/PageHero';
 import {AccountDeleteModal} from '../components/account/AccountDeleteModal';
 import {GuestNotice} from '../components/ui/GuestNotice';
 import {CustomerDetail} from '../components/calendar/overlays/CustomerDetail';
+import {LayerErrorBoundary} from '../components/calendar/overlays/LayerErrorBoundary';
 import {ReservationDetail} from '../components/calendar/overlays/ReservationDetail';
 import {useCalendarStore} from '../store/calendarStore';
 import {auth} from '../auth';
@@ -316,17 +317,20 @@ const MyPage: NextPage<MyPageProps> = ({linkedProviders}) => {
                 <CsFooter />
             </StyledContainer>
             {selectedReservations.map((reservation, index) => (
-                <ReservationDetail key={`${reservation.id}-${index}`}
-                                   reservation={reservation}
-                                   customerMap={storeCustomerMap}
-                                   reservationMap={storeReservationMap}
-                                   history={storeHistory}
-                                   onClose={() => closeReservationDetail(index)}
-                                   onCustomerClick={openCustomerDetail}
-                                   onUpdate={updateReservation}
-                                   onCancel={cancelReservation}
-                                   onRestore={restoreReservation}
-                                   onDelete={deleteReservation}/>
+                <LayerErrorBoundary key={`${reservation.id}-${index}`}
+                                    title="예약 상세"
+                                    onClose={() => closeReservationDetail(index)}>
+                    <ReservationDetail reservation={reservation}
+                                       customerMap={storeCustomerMap}
+                                       reservationMap={storeReservationMap}
+                                       history={storeHistory}
+                                       onClose={() => closeReservationDetail(index)}
+                                       onCustomerClick={openCustomerDetail}
+                                       onUpdate={updateReservation}
+                                       onCancel={cancelReservation}
+                                       onRestore={restoreReservation}
+                                       onDelete={deleteReservation}/>
+                </LayerErrorBoundary>
             ))}
             {showDeleteModal && (
                 <AccountDeleteModal role={session?.user?.role}

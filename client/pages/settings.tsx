@@ -14,6 +14,7 @@ import type {Customer} from '../utils/customers';
 import {toCustomerMap} from '../utils/customers';
 import type {CustomerMap} from '../utils/customers';
 
+import {LayerErrorBoundary} from '../components/calendar/overlays/LayerErrorBoundary';
 import {ReservationDetail} from '../components/calendar/overlays/ReservationDetail';
 import {CustomerDetail} from '../components/calendar/overlays/CustomerDetail';
 import {AssigneeManageSection} from '../components/settings/AssigneeManageSection';
@@ -281,17 +282,20 @@ const Settings: NextPage<SettingsProps> = ({reservations, customers, history, st
                 <CsFooter />
             </StyledContent>
             {selectedReservations.map((reservation, index) => (
-                <ReservationDetail key={`${reservation.id}-${index}`}
-                                   reservation={reservation}
-                                   customerMap={storeCustomerMap}
-                                   reservationMap={storeReservationMap}
-                                   history={storeHistory}
-                                   onClose={() => closeReservationDetail(index)}
-                                   onCustomerClick={openCustomerDetail}
-                                   onUpdate={updateReservation}
-                                   onCancel={cancelReservation}
-                                   onRestore={restoreReservation}
-                                   onDelete={deleteReservation}/>
+                <LayerErrorBoundary key={`${reservation.id}-${index}`}
+                                    title="예약 상세"
+                                    onClose={() => closeReservationDetail(index)}>
+                    <ReservationDetail reservation={reservation}
+                                       customerMap={storeCustomerMap}
+                                       reservationMap={storeReservationMap}
+                                       history={storeHistory}
+                                       onClose={() => closeReservationDetail(index)}
+                                       onCustomerClick={openCustomerDetail}
+                                       onUpdate={updateReservation}
+                                       onCancel={cancelReservation}
+                                       onRestore={restoreReservation}
+                                       onDelete={deleteReservation}/>
+                </LayerErrorBoundary>
             ))}
             {selectedCustomerId !== null && storeCustomerMap[selectedCustomerId] && (
                 <CustomerDetail customer={storeCustomerMap[selectedCustomerId]}
