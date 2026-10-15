@@ -1,4 +1,4 @@
-import {useCallback, useEffect, useMemo, useState} from 'react';
+import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 
 import {createPortal} from 'react-dom';
 import {useSession} from 'next-auth/react';
@@ -64,10 +64,6 @@ import {
     StyledSimilarMeta,
     StyledSimilarName,
     StyledSimilarTel,
-    StyledDupWarning,
-    StyledDupWarningText,
-    StyledDupWarningActions,
-    StyledDupWarningButton,
     StyledReservationSection,
     StyledPointHistorySection,
     StyledPointHistoryTitle,
@@ -115,7 +111,13 @@ export const CustomerDetail = ({customer, reservationMap, onClose, onReservation
     const [isUnmergeConfirm, setIsUnmergeConfirm] = useState(false);
     const [isUnmerging, setIsUnmerging] = useState(false);
     // 수정 저장 시 같은 번호를 쓰는 다른 고객이 있으면 여기 담아 경고·병합 유도.
-    const [dupWarning, setDupWarning] = useState<{match: Customer; name: string; tel: string} | null>(null);
+    // "비슷한 고객"은 이름·연락처 칸에 포커스가 있는 동안만 띄운다(입력 자동완성처럼). 항상 떠 있으면 아래 내용을 가렸다.
+    const [isSimilarOpen, setIsSimilarOpen] = useState(false);
+    const similarRef = useRef<HTMLElement>(null);
+    // 포커스가 목록 안으로 옮겨가면(Tab) 닫지 않는다. 마우스는 목록의 onMouseDown 이 입력칸 포커스를 지킨다.
+    const closeSimilarOnBlur = (event: React.FocusEvent) => {
+        if (!similarRef.current?.contains(event.relatedTarget as Node | null)) setIsSimilarOpen(false);
+    };
     const [isMergingDup, setIsMergingDup] = useState(false);
     // 추천 레이어에서 고른 고객. 병합은 되돌리기가 있어도 레코드를 정리하므로 반드시 확인을 받는다.
     const [similarMergeTarget, setSimilarMergeTarget] = useState<Customer | null>(null);
@@ -127,7 +129,7 @@ export const CustomerDetail = ({customer, reservationMap, onClose, onReservation
     const setCustomerMap = useCalendarStore((s) => s.setCustomerMap);
     const customerMap = useCalendarStore((s) => s.customerMap);
 
-    // 수정 중에만 계산한다. 저장 시 중복 경고(dupWarning)는 번호 완전 일치만 보므로,
+    // 수정 중에만 계산한다. 번호가 완전히 같은 고객도 여기 맨 위에 나오므로 저장 시 따로 묻지 않는다,
     // 입력 도중에 이름·번호 부분 일치로 같은 사람을 먼저 알아채라고 두는 것이다.
     const similarCustomers = useMemo(() => (
         isEditing
@@ -257,7 +259,6 @@ export const CustomerDetail = ({customer, reservationMap, onClose, onReservation
     const handleFieldChange = (field: keyof Omit<CustomerEditForm, 'memoTags'>, value: string) => {
         setEditForm((prev) => ({...prev, [field]: value}));
         setEditError('');
-        setDupWarning(null);
     };
 
     const handleStartEdit = () => {
@@ -265,7 +266,6 @@ export const CustomerDetail = ({customer, reservationMap, onClose, onReservation
         setNewTagText('');
         setSelectedTagColor(MEMO_TAG_COLORS[0]);
         setEditError('');
-        setDupWarning(null);
         setIsEditing(true);
     };
 
@@ -274,7 +274,6 @@ export const CustomerDetail = ({customer, reservationMap, onClose, onReservation
         setNewTagText('');
         setSelectedTagColor(MEMO_TAG_COLORS[0]);
         setEditError('');
-        setDupWarning(null);
         setIsEditing(false);
     };
 
@@ -302,17 +301,6 @@ export const CustomerDetail = ({customer, reservationMap, onClose, onReservation
         setEditError('');
     };
 
-    const commitEdit = (nextName: string, nextTel: string) => {
-        updateCustomer(customer.id, {
-            name: nextName,
-            tel: nextTel,
-            memoTags: editForm.memoTags,
-        });
-        setEditError('');
-        setDupWarning(null);
-        setIsEditing(false);
-    };
-
     const handleSaveEdit = () => {
         const nextName = editForm.name.trim();
         const nextTel = normalizeTel(editForm.tel);
@@ -327,18 +315,15 @@ export const CustomerDetail = ({customer, reservationMap, onClose, onReservation
             return;
         }
 
-        // 같은 매장 내 다른 고객이 이미 이 번호를 쓰면 하드 차단 대신 경고·병합 유도.
-        // (가족 공유번호 등 정상 케이스가 있어 차단하지 않는다. 이름 중복은 검증 안 함.)
-        const telDup = Object.values(customerMap).find(
-            (c) => c.id !== customer.id && !!c.tel && normalizeTel(c.tel) === nextTel,
-        );
-        if (telDup) {
-            setEditError('');
-            setDupWarning({match: telDup, name: nextName, tel: nextTel});
-            return;
-        }
-
-        commitEdit(nextName, nextTel);
+        // 번호가 다른 고객과 같아도 묻지 않고 저장한다 — 입력 중 "비슷한 고객"에 이미 떴고,
+        // 고르지 않고 저장했다면 다른 분(가족 공유번호 등)이라는 판단이다. 필요하면 주소록에서 병합한다.
+        updateCustomer(customer.id, {
+            name: nextName,
+            tel: nextTel,
+            memoTags: editForm.memoTags,
+        });
+        setEditError('');
+        setIsEditing(false);
     };
 
     // "같은 분이에요" → 편집 중 고객을 다른 고객으로 병합.
@@ -376,8 +361,7 @@ export const CustomerDetail = ({customer, reservationMap, onClose, onReservation
             }
 
             toast('병합 완료', 'success');
-            setDupWarning(null);
-            setSimilarMergeTarget(null);
+                setSimilarMergeTarget(null);
             onClose();
         } catch {
             toast('병합 중 네트워크 오류가 발생했습니다.', 'error');
@@ -438,6 +422,8 @@ export const CustomerDetail = ({customer, reservationMap, onClose, onReservation
                                     type="text"
                                     value={editForm.name}
                                     onChange={(e) => handleFieldChange('name', e.target.value)}
+                                    onFocus={() => setIsSimilarOpen(true)}
+                                    onBlur={closeSimilarOnBlur}
                                 />
                             </StyledEditFieldLabel>
                             {/* 추천은 연락처 칸에 걸어 띄운다 — 이름·번호 둘 다로 찾지만
@@ -450,9 +436,15 @@ export const CustomerDetail = ({customer, reservationMap, onClose, onReservation
                                         type="text"
                                         value={editForm.tel}
                                         onChange={(e) => handleFieldChange('tel', e.target.value)}
+                                        onFocus={() => setIsSimilarOpen(true)}
+                                        onBlur={closeSimilarOnBlur}
                                     />
                                 </StyledEditFieldLabel>
-                                <StyledSimilarSection aria-live="polite" hidden={similarCustomers.length === 0}>
+                                <StyledSimilarSection ref={similarRef}
+                                                      aria-live="polite"
+                                                      hidden={!isSimilarOpen || similarCustomers.length === 0}
+                                                      onMouseDown={(e) => e.preventDefault()}
+                                                      onBlur={closeSimilarOnBlur}>
                                     <StyledSimilarTitle>비슷한 고객</StyledSimilarTitle>
                                     <StyledSimilarList>
                                         {similarCustomers.map(({customer: c}) => {
@@ -485,35 +477,6 @@ export const CustomerDetail = ({customer, reservationMap, onClose, onReservation
                                 </StyledNaverBookingLink>
                             )}
                             <StyledPointInfo>적립금 {formatPrice(customer.points ?? 0)}</StyledPointInfo>
-                            {dupWarning && (
-                                <StyledDupWarning role="alert">
-                                    <StyledDupWarningText>
-                                        이 번호는 이미 <strong>{dupWarning.match.name}</strong> 고객에게 등록되어 있습니다. 같은 분이면 병합하고, 다른 분(가족 공유번호 등)이면 그대로 저장하세요.
-                                    </StyledDupWarningText>
-                                    <StyledDupWarningActions>
-                                        {!shouldUseLocalDb() && (
-                                            <StyledDupWarningButton type="button"
-                                                                    $variant="merge"
-                                                                    disabled={isMergingDup}
-                                                                    onClick={() => setSimilarMergeTarget(dupWarning.match)}>
-                                                {isMergingDup ? '병합 중…' : `${dupWarning.match.name} 고객과 병합`}
-                                            </StyledDupWarningButton>
-                                        )}
-                                        <StyledDupWarningButton type="button"
-                                                                $variant="keep"
-                                                                disabled={isMergingDup}
-                                                                onClick={() => commitEdit(dupWarning.name, dupWarning.tel)}>
-                                            다른 분 — 그대로 저장
-                                        </StyledDupWarningButton>
-                                        <StyledDupWarningButton type="button"
-                                                                $variant="cancel"
-                                                                disabled={isMergingDup}
-                                                                onClick={() => setDupWarning(null)}>
-                                            취소
-                                        </StyledDupWarningButton>
-                                    </StyledDupWarningActions>
-                                </StyledDupWarning>
-                            )}
                         </StyledEditFields>
                     ) : (
                         <StyledInfoList>

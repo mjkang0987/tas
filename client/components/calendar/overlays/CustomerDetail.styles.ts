@@ -114,63 +114,6 @@ export const StyledPointInfo = styled.div`
     color: var(--brand-color);
 `;
 
-export const StyledDupWarning = styled.div`
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-    padding: 10px 12px;
-    border: 1px solid var(--warning-border-soft);
-    border-radius: var(--radius-lg);
-    background: var(--warning-bg-soft);
-`;
-
-export const StyledDupWarningText = styled.p`
-    margin: 0;
-    font-size: var(--small-font);
-    line-height: 1.5;
-    color: var(--warning-text);
-
-    strong {
-        font-weight: 700;
-    }
-`;
-
-export const StyledDupWarningActions = styled.div`
-    display: flex;
-    flex-wrap: wrap;
-    gap: 6px;
-`;
-
-export const StyledDupWarningButton = styled.button<{$variant: 'merge' | 'keep' | 'cancel'}>`
-    height: 30px;
-    padding: 0 12px;
-    border-radius: var(--radius-md);
-    font-size: var(--small-font);
-    font-weight: 600;
-    cursor: pointer;
-
-    ${({$variant}) => $variant === 'merge' && `
-        border: 1px solid var(--brand-color);
-        background: var(--brand-color);
-        color: var(--white-color);
-    `}
-    ${({$variant}) => $variant === 'keep' && `
-        border: 1px solid var(--light-gray-color);
-        background: var(--white-color);
-        color: var(--black-color);
-    `}
-    ${({$variant}) => $variant === 'cancel' && `
-        border: 1px solid transparent;
-        background: transparent;
-        color: var(--dark-gray-color2);
-    `}
-
-    &:disabled {
-        opacity: .5;
-        cursor: default;
-    }
-`;
-
 export const StyledNotesSection = styled.div`
     display: flex;
     flex-direction: column;
@@ -505,8 +448,7 @@ export const StyledUnmergeFooter = styled.div`
     border-top: 1px solid rgba(148, 163, 184, 0.16);
 `;
 
-/* 수정 중 하단에 뜨는 "비슷한 고객" — 저장 전에 같은 사람을 알아채라고 두는 자리다.
-   저장 시 중복 경고(StyledDupWarning)가 경고 톤인 것과 달리 여기는 정보 톤을 쓴다. */
+/* 수정 중 이름·연락처 칸에 포커스가 있을 때 뜨는 "비슷한 고객" — 저장 전에 같은 사람을 알아채라고 두는 자리다. */
 /* 추천 레이어의 기준점. 연락처 입력칸을 감싸 그 아래로 띄운다. */
 export const StyledSimilarAnchor = styled.div`
     position: relative;
