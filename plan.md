@@ -23,10 +23,24 @@ Cloud Build 트리거는 `^main$`뿐이라 release 브랜치 머지는 배포를
 | | 원 PR | 상태 |
 |---|---|---|
 | 문서 — 월 칸 카드 이름만 | #269 | ✅ release에 머지 |
-| 개발 도구 경유 취약점 정리 (`pnpm-workspace.yaml` 고정 핀 → 하한 + 메이저 스코프) | #201 | ⬜ 1순위 |
+| 개발 도구 경유 취약점 정리 (`pnpm-workspace.yaml` 고정 핀 → 하한 + 메이저 스코프) | #201 | 🟡 진행 |
 | 공지 '고정'/'노출' → '노출' 단일 개념 | #148 | ⬜ `/book/<slug>` 구동 확인 필요 |
 | legacyId 충돌 · 이름 직접 입력 시 고객 중복 생성 방지 | #130 | ⬜ **재현부터** — 안 나면 닫는다 |
 | 휴무 캘린더 표시 | #200 | 이미 `main`에 있음 → superseded로 닫기 (테스트는 `model.test.ts`가 대신함) |
+
+### #201 재작업 — 개발 도구 경유 취약점
+- **기준선(`client`, 2026-10-15 실측): 82건** (2 low · 37 moderate · 37 high · 6 critical). 옛 PR의 "45 → 19"는 8월 수치.
+- **범위 = 개발·빌드 도구 경로만**: eslint(`brace-expansion`·`js-yaml`·`@humanfs/node`),
+  prisma CLI(`deepmerge-ts`·`hono`·`@hono/node-server`·`mysql2`·`valibot`·`fast-uri`),
+  vitest, postcss 체인(`postcss`·`nanoid`·`source-map-js`·`browserslist`·`baseline-browser-mapping`).
+- **방식**: 직접 의존성은 같은 메이저 안의 최신 패치로(`prisma`·`@prisma/*` `^7.10.0`, `eslint` `9.39.5`,
+  vitest는 기존 범위 안에서 lock 갱신). 나머지는 `pnpm-workspace.yaml` override를
+  **고정 핀 → 하한 + 메이저 스코프**(`'pkg@N': '>=패치 <N+1'`)로. 스코프 없는 `@hono/node-server: '>=1.19.13'`도
+  상한이 없어 메이저를 조용히 넘으므로 같이 고친다. `deepmerge-ts`만 prisma가 아직 7.x를 물어 메이저(8) 강제.
+- **범위 밖(운영 런타임, 별건)**: `next`·`next-auth`·`@auth/core`(인증 경로)·`sharp`·`nodemailer`·`xlsx`(기존 수용 결정).
+  `braces` 3.0.3은 권고상 `>=3.0.4`이나 **npm에 패치본이 없다**(eslint-config-next → fast-glob 경유, dev 전용).
+  루트 `/pnpm-lock.yaml`(서버용 prisma·nodemailer, 24건)도 이번 범위 밖.
+- **검증**: `pnpm audit` 전/후 · 빌드 · `tsc --noEmit` · 테스트 · `prisma validate` · lint(main과 대조) · 프로덕션 빌드 구동.
 
 ### 리스크
 - 배포·롤백 단위가 묶음 전체다. 한 건이 문제면 전부 되돌린다.
