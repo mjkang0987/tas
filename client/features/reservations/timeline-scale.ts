@@ -16,12 +16,18 @@ export const DEFAULT_TIMELINE_UNIT: TimelineUnit = 30;
 export const MIN_CARD_HEIGHT = 16;
 
 // 카드 높이별로 넣을 수 있는 내용.
-// - full   : 서비스 + 고객명 (현행 두 줄)
-// - compact: 한 줄 — 고객명 · 서비스 (말줄임)
+// - full   : 시작시간 + 서비스 + 고객명 (세 줄)
+// - compact: 한 줄 — 시작시간 고객명 · 서비스 (말줄임)
 // - name   : 고객명만. 서비스는 왼쪽 색 막대가 이미 말해준다.
 export type CardDetail = 'full' | 'compact' | 'name';
 
-const FULL_MIN_HEIGHT = 36;
+// 세 줄(시작시간·고객명·시술)이 들어가는 높이. 브라우저에서 잰 값이다 —
+// 시작시간 14.5 + 고객명 12.5 + 시술 14 + 상하 패딩 8 = 49px.
+// **50으로 두는 이유**: 30분 예약 카드가 대부분의 매장에서 정확히 50px 이다(시간당 100px).
+// 가장 흔한 길이라 여기서 한 줄로 떨어지면 시술 칩을 통째로 잃는다 — 테스트가 이를 강제한다.
+// 두 줄 시절 36px 에서 올린 것이라 36~49px 카드는 `compact` 로 내려가는데,
+// 그 한 줄에도 시작시간을 넣으므로 시간은 어느 크기에서도 잃지 않는다.
+const FULL_MIN_HEIGHT = 50;
 const COMPACT_MIN_HEIGHT = 20;
 
 /**

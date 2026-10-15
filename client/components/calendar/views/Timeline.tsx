@@ -92,7 +92,8 @@ export const Timeline = ({
     // 어느 뷰에서도 N건예약 으로 접지 않는다. 겹친 만큼 좌우로 나눠 전부 보여준다.
     // 주 뷰는 칸이 겹친 수만큼 넓어지고(Calendar 의 weekColumns), 일·3일은 제 폭 안에서 나뉜다.
     const splitUpTo = Number.MAX_SAFE_INTEGER;
-    const narrowColumn = isNarrow && type === ViewType.Week;
+    // 3일도 주와 같이 이름만 — 칸을 셋으로 나누면 시술까지 넣을 가로 폭이 없다(앱도 같다).
+    const narrowColumn = isNarrow && (type === ViewType.Week || type === ViewType.Three);
     const timelineEntries = useMemo(
         () => buildTimelineEntries(reservations, {splitUpTo}),
         [reservations, splitUpTo]

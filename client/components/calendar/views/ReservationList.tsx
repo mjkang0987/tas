@@ -2,6 +2,8 @@ import {useMemo} from 'react';
 
 import styled from 'styled-components';
 
+import {inactiveHatch} from '../../../features/reservations/inactiveHatch';
+
 import {useCalendarStore} from '../../../store/calendarStore';
 
 import {NewCustomerBadge} from '../../ui/NewCustomerBadge';
@@ -37,6 +39,7 @@ export const ReservationList = ({reservations: rawReservations}: ReservationList
                         <StyledItem type="button"
                                     $color={r.assigneeId ? (assigneeColorMap[r.assigneeId] ?? '#8E8E93') : '#8E8E93'}
                                     $inactive={isInactive}
+                                    $noshow={r.status === 'noshow'}
                                     onClick={(e) => {
                                         e.stopPropagation();
                                         setCreateReservationInitial(null);
@@ -76,7 +79,7 @@ const StyledList = styled.ul`
    담당자 색(왼쪽 굵은 테두리) + 고객명만 남겨 1줄로 눕히고, 나머지는 날짜 탭 → 예약 목록 레이어에서 본다. */
 const onMobile = (css: string) => `@media (max-width: 640px) { ${css} }`;
 
-const StyledItem = styled.button<{ $color: string; $inactive?: boolean }>`
+const StyledItem = styled.button<{ $color: string; $inactive?: boolean; $noshow?: boolean }>`
     display: flex;
     /* 한 줄로 고정한다 — wrap 이면 이름이 시간 밑으로 떨어져 칸이 두 배로 높아진다.
        넘치는 이름은 줄바꿈이 아니라 말줄임으로 자른다(StyledCustomerName). */
@@ -102,7 +105,7 @@ const StyledItem = styled.button<{ $color: string; $inactive?: boolean }>`
     ${(p) => p.$inactive && `
         border-color: var(--gray-color);
         border-left-color: var(--gray-color);
-        background: repeating-linear-gradient(-45deg, rgba(0, 0, 0, 0.05) 0 6px, transparent 6px 12px), var(--gray-color2);
+        background: ${inactiveHatch(p.$noshow)}, var(--gray-color2);
     `};
 
     @media (hover: hover) and (pointer: fine) {

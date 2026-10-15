@@ -2,6 +2,7 @@ import styled from 'styled-components';
 
 import {StyledServiceText} from './ServiceChip';
 import React from 'react';
+import {inactiveHatch} from '../../features/reservations/inactiveHatch';
 
 interface Props {
     children: React.ReactNode | string;
@@ -16,7 +17,8 @@ interface Props {
     $height?: number | undefined;
     $color?: string | undefined;
     $cancelled?: boolean | undefined;
-    $requested?: boolean | undefined;
+    /** 노쇼만 교차 빗금 — 취소와 가르기 위해. `$cancelled` 와 함께 켠다. */
+    $noshow?: boolean | undefined;
     $active?: boolean | undefined;
     /** 카드 높이에 맞춘 표시 단계 — 'full'(두 줄) | 'compact'(한 줄) | 'name'(이름만). */
     $detail?: 'full' | 'compact' | 'name' | undefined;
@@ -99,23 +101,26 @@ const StyledReserveButton = styled.button <Props>`
     width: ${props => laneWidth(props.$lane)};
     height: ${props => props.$height}px;
     max-height: ${props => props.$height}px;
-    background-color: ${props => props.$requested ? 'rgba(168, 132, 23, 0.10)' : `${props.$color}12`};
+    background-color: ${props => `${props.$color}12`};
     border: 1px solid ${props => props.$color};
     border-left-width: 4px;
-    border-style: ${props => props.$requested ? 'dashed' : 'solid'};
-    border-left-color: ${props => props.$requested ? 'var(--caution-color)' : props.$color};
     /* 취소·노쇼는 월 칸·목록 카드와 같은 빗금 + 회색으로 — 같은 상태를 세 화면이
        다르게 그리면 색만 보고는 무엇인지 알 수 없다. (여기만 흐리게+회색필터였다.) */
     ${props => props.$cancelled && `
         border-color: var(--gray-color);
         border-left-color: var(--gray-color);
-        background: repeating-linear-gradient(-45deg, rgba(0, 0, 0, 0.05) 0 6px, transparent 6px 12px), var(--gray-color2);
+        /* 취소와 노쇼는 **색**으로 가른다 — 취소는 무채색, 노쇼는 붉은 기운(매출이 빈 자리라
+           눈에 걸려야 한다). 무늬를 교차로 바꾸는 방식도 써 봤으나 나란히 두지 않으면
+           구별이 어렵고 촘촘해져 글자를 가렸다. */
+        background: ${inactiveHatch(props.$noshow)}, var(--gray-color2);
 
         /* 시술 칩도 함께 죽인다 — 칩만 색이 남으면 빗금 위에 떠 끝난 예약이 살아 보인다. */
         ${StyledServiceText} { color: var(--dark-gray-color2); }
     `}
     border-radius: var(--radius-sm);
-    padding: 4px 6px;
+    /* 세로 2px — 세 줄(시작시간·고객명·시술)이 30분 예약 높이(50px)에 들어가야 한다.
+       4px 이면 4px 이 모자라 가장 흔한 길이의 카드가 모두 넘쳤다. */
+    padding: 2px 6px;
     color: ${props => 'var(--dark-gray-color)'};
     font-size: var(--xsmall-font);
     overflow: hidden;
@@ -128,14 +133,31 @@ const StyledReserveButton = styled.button <Props>`
     transition: max-height 0.2s ease, box-shadow 0.2s ease;
     text-align: left;
     @media (max-width: 640px) {
-        padding: 4px 2px;
+        padding: 2px 2px;
     }
 
     .highlight {
-        display: inline;
+        /* 제 줄을 가진다. inline 이면 라인박스 여백으로 줄 사이에 2px 이 더 붙어,
+           세 줄 카드가 30분 예약 높이(50px)를 넘긴다. */
+        display: block;
         font-weight: 600;
         font-size: var(--small-font);
         text-decoration: ${props => props.$cancelled ? 'line-through' : 'none'};
+    }
+
+    /* 시작시간 — 앱 블록과 같이 맨 윗줄에 따로. 숫자가 흔들리지 않게 고정폭. */
+    .start-time {
+        display: block;
+        font-weight: 600;
+        font-size: var(--small-font);
+        font-variant-numeric: tabular-nums;
+    }
+
+    /* 한 줄 카드의 시작시간 — 이름 앞에 붙는다. 취소선이 번지지 않게 따로 둔다. */
+    .start-time-inline {
+        margin-right: 4px;
+        font-weight: 600;
+        font-variant-numeric: tabular-nums;
     }
 
     .normal {
@@ -148,9 +170,19 @@ const StyledReserveButton = styled.button <Props>`
         font-size: var(--tiny-font);
     }
 
+    /* 확정대기 — 카드는 그대로 두고 그 위를 덮는다. "있지만 아직 정해지지 않았다".
+       둘 다 클릭을 통과시킨다 — 눌러서 상세로 들어가 수락·거절해야 한다. */
+    .pending-veil {
+        position: absolute;
+        inset: 0;
+        border-radius: inherit;
+        background: rgba(255, 255, 255, 0.72);
+        pointer-events: none;
+    }
+
+    /* 고객명 줄 — 시작시간 아래, 시술 위. 제 줄을 가진다(앱 블록과 같은 차례). */
     .detail {
-        display: inline;
-        margin-left: 4px;
+        display: block;
         font-size: var(--tiny-font);
     }
 
