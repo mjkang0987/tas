@@ -23,7 +23,7 @@ Cloud Build 트리거는 `^main$`뿐이라 release 브랜치 머지는 배포를
 | | 원 PR | 상태 |
 |---|---|---|
 | 문서 — 월 칸 카드 이름만 | #269 | ✅ release에 머지 |
-| 개발 도구 경유 취약점 정리 (`pnpm-workspace.yaml` 고정 핀 → 하한 + 메이저 스코프) | #201 | 🟡 진행 |
+| 개발 도구 경유 취약점 정리 (`pnpm-workspace.yaml` 고정 핀 → 하한 + 메이저 스코프) | #201 | 🟡 PR 리뷰 대기 (82 → 37) |
 | 공지 '고정'/'노출' → '노출' 단일 개념 | #148 | ⬜ `/book/<slug>` 구동 확인 필요 |
 | legacyId 충돌 · 이름 직접 입력 시 고객 중복 생성 방지 | #130 | ⬜ **재현부터** — 안 나면 닫는다 |
 | 휴무 캘린더 표시 | #200 | 이미 `main`에 있음 → superseded로 닫기 (테스트는 `model.test.ts`가 대신함) |
@@ -34,9 +34,19 @@ Cloud Build 트리거는 `^main$`뿐이라 release 브랜치 머지는 배포를
   prisma CLI(`deepmerge-ts`·`hono`·`@hono/node-server`·`mysql2`·`valibot`·`fast-uri`),
   vitest, postcss 체인(`postcss`·`nanoid`·`source-map-js`·`browserslist`·`baseline-browser-mapping`).
 - **방식**: 직접 의존성은 같은 메이저 안의 최신 패치로(`prisma`·`@prisma/*` `^7.10.0`, `eslint` `9.39.5`,
-  vitest는 기존 범위 안에서 lock 갱신). 나머지는 `pnpm-workspace.yaml` override를
-  **고정 핀 → 하한 + 메이저 스코프**(`'pkg@N': '>=패치 <N+1'`)로. 스코프 없는 `@hono/node-server: '>=1.19.13'`도
-  상한이 없어 메이저를 조용히 넘으므로 같이 고친다. `deepmerge-ts`만 prisma가 아직 7.x를 물어 메이저(8) 강제.
+  vitest는 기존 범위 안에서 lock 갱신). 고정 핀 override(`brace-expansion@1` 1.1.12·`postcss` 8.5.13·`fast-uri` 3.1.7)를 걷었다.
+- **override는 3개만 남았다** — 하나씩 빼서 audit을 다시 세 보니, 상위가 `^` 범위인 패키지는 lock 갱신만으로
+  패치본이 들어와 override가 필요 없었다(옛 PR이 제안한 brace-expansion·js-yaml·fast-uri 등). 남긴 것은
+  **상위가 정확한 버전을 고정한** 것뿐: `postcss@8`(next 16.2.10 → 8.4.31), `mysql2@3`(prisma → 3.15.3),
+  `deepmerge-ts@7`(@prisma/config → 7.1.5, 패치본이 8뿐이라 메이저 강제). 모두 '하한 + 메이저 상한' 형태.
+  prisma 7.10에서 hono 계열이 빠져 스코프 없던 `@hono/node-server: '>=1.19.13'`도 제거.
+- **결과(실측)**: `client` audit **82 → 37**. 남은 37 = next 17 · nodemailer 7 · next-auth 4 · sharp 3 · @auth/core 3 ·
+  xlsx 2 · braces 1. 런타임 패키지 버전 변화 없음(lock diff로 확인 — prisma 런타임 7.10 제외).
+- **검증**: `prisma validate` ✓ · `tsc --noEmit` ✓ · 테스트 202 ✓ · lint 에러 0 ✓ · `pnpm build` ✓ ·
+  standalone 서버(`node client/server.js`, 로컬 DB)로 `/login`·`/`·`/settings/store`·`/book/<slug>`·`/api/book/<slug>`·
+  `/api/auth/{session,providers,csrf}` 전부 200, 서버 로그 에러 0. peer 경고는 main과 동일.
+- **함정**: standalone 폴더엔 `client/.env`(**운영 Supabase**)만 복사되고 `.env.local`은 없다. 로컬에서 standalone을
+  그냥 띄우면 운영 DB에 붙는다 — `.env.local`을 환경변수로 먼저 주입해야 한다(Next는 이미 있는 env를 덮지 않는다).
 - **범위 밖(운영 런타임, 별건)**: `next`·`next-auth`·`@auth/core`(인증 경로)·`sharp`·`nodemailer`·`xlsx`(기존 수용 결정).
   `braces` 3.0.3은 권고상 `>=3.0.4`이나 **npm에 패치본이 없다**(eslint-config-next → fast-glob 경유, dev 전용).
   루트 `/pnpm-lock.yaml`(서버용 prisma·nodemailer, 24건)도 이번 범위 밖.
