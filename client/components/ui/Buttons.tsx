@@ -183,11 +183,13 @@ const StyledReserveButton = styled.button <Props>`
         pointer-events: none;
     }
 
+    /* 아래에 붙인다 — 가운데로 두면 좁은 칸에서 고객명 위에 그대로 앉아,
+       정작 "누가" 가 사라진다. */
     .pending-badge {
         position: absolute;
-        top: 50%;
+        bottom: 2px;
         left: 50%;
-        transform: translate(-50%, -50%);
+        transform: translateX(-50%);
         padding: 1px 6px;
         border-radius: 999px;
         background-color: var(--caution-color);

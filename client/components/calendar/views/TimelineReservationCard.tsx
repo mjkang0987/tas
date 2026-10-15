@@ -104,7 +104,9 @@ export function TimelineReservationCard({
                 {/* 아직 수락 전인 신청. 눌러서 상세에서 수락·거절해야 하므로 딤도 배지도
                     클릭을 먹지 않는다(`pointer-events: none`). */}
                 <span className="pending-veil" aria-hidden="true" />
-                {detail !== 'name' && <span className="pending-badge">확정대기</span>}
+                {/* 표시 단계가 아니라 **높이**로 정한다 — 좁은 칸(주·3일)은 이름만 쓰는 단계라도
+                    카드가 충분히 높으면 배지가 들어간다. 앱도 같은 기준(34pt). */}
+                {blockHeight >= 34 && <span className="pending-badge">확정대기</span>}
             </>)}
             {detail === 'full' ? (<>
                 {/* 앱 블록과 같은 차례 — 시작시간 / 고객명 / 시술.
