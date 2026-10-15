@@ -503,7 +503,7 @@ export const CustomerDetail = ({customer, reservationMap, onClose, onReservation
                             {dupWarning && (
                                 <StyledDupWarning role="alert">
                                     <StyledDupWarningText>
-                                        이 번호는 이미 <strong>{dupWarning.match.name}</strong> 고객에게 등록되어 있습니다. 같은 분이면 병합하고, 다른 분(가족 공유번호 등)이면 그대로 저장하세요.
+                                        이 번호는 이미 <strong>{dupWarning.match.name}</strong> 고객에게 등록되어 있습니다. 같은 분이면 병합하고, 다른 분(가족 공유번호 등)이면 다른 고객으로 저장하세요.
                                     </StyledDupWarningText>
                                     <StyledDupWarningActions>
                                         {!shouldUseLocalDb() && (
@@ -518,7 +518,7 @@ export const CustomerDetail = ({customer, reservationMap, onClose, onReservation
                                                                 $variant="keep"
                                                                 disabled={isMergingDup}
                                                                 onClick={() => commitEdit(dupWarning.name, dupWarning.tel)}>
-                                            다른 분 — 그대로 저장
+                                            다른 고객으로 저장
                                         </StyledDupWarningButton>
                                         <StyledDupWarningButton type="button"
                                                                 $variant="cancel"
