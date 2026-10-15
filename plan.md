@@ -162,6 +162,32 @@ Google Cloud Logging 도 검토했으나, **이미 쓰고 있는 ops 슬랙 채�
 ### 남은 것
 난독화 스택 문제는 이 범위 밖이다. 외부 리포팅 도입 시 소스맵과 함께 다룬다 —
 미용실 서비스라 **고객명·연락처가 에러 페이로드로 나가지 않게** 하는 게 전제다.
+## 완료 — lint 게이트를 켠다 (#260)
+
+### 배경
+CI 의 lint 단계에 `continue-on-error: true` 가 붙어 있어 **에러 26건이 쌓인 채로 모든 PR 이 그린**이었다.
+내용도 사소하지 않았다 — 23건이 React Compiler 가 "이 컴포넌트는 최적화 못 하겠다"고 포기한 자리
+(`set-state-in-effect` 16, `purity` 2, `refs` 1, `preserve-manual-memoization` 2)다.
+
+### 방침
+26건을 지금 다 고치는 게 아니라 **새 에러가 더는 들어오지 않게** 막는다.
+ESLint 9.39 의 bulk suppressions(`--suppress-all`)로 현재 위반을 `client/eslint-suppressions.json`
+(14개 파일, 26건)에 기준선으로 고정하고 `continue-on-error` 를 뗐다. 커스텀 스크립트는 쓰지 않았다.
+
+### `--pass-on-unpruned-suppressions` 를 붙인 이유 (실측)
+기본 동작으로 두면 **기존 에러를 고쳤을 때 lint 가 exit 2 로 실패**한다
+("There are suppressions left that do not occur anymore"). 실제로 재현해 확인했다.
+개선을 벌주는 실패 모드라 플래그로 막았다. 기준선을 줄이려면 `pnpm lint:prune`.
+
+- 트레이드오프: 기준선을 안 줄이고 두면, 고친 자리에 같은 규칙 위반이 다시 들어와도
+  옛 count 안쪽이라 조용히 넘어갈 수 있다. 가끔 prune 하면 된다.
+
+### 검증 (세 가지 다 실측)
+| 경우 | 기대 | 결과 |
+|---|---|---|
+| 현재 상태 | 통과 | ✅ exit 0 |
+| 새 에러 추가 | 막힘 | ✅ exit 1 |
+| 기존 에러 수정 | 통과 | ✅ exit 0 |
 
 ---
 
