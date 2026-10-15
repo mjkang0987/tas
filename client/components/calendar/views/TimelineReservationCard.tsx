@@ -4,6 +4,7 @@ import styled from 'styled-components';
 
 import {ButtonReserve} from '../../ui/Buttons';
 import {NewCustomerBadge} from '../../ui/NewCustomerBadge';
+import {LabelBadge} from '../../ui/LabelBadge';
 import {ServiceChipList} from '../../ui/ServiceChip';
 import type {Customer} from '../../../utils/customers';
 import type {Reservation} from '../../../utils/reservations';
@@ -83,7 +84,6 @@ export function TimelineReservationCard({
             $color={color}
             $cancelled={isCancelled}
             $noshow={reservation.status === 'noshow'}
-            $requested={reservation.status === 'requested'}
             onClick={(event: React.MouseEvent) => {
                 event.stopPropagation();
                 if (suppressClick) return;
@@ -105,8 +105,12 @@ export function TimelineReservationCard({
                     클릭을 먹지 않는다(`pointer-events: none`). */}
                 <span className="pending-veil" aria-hidden="true" />
                 {/* 표시 단계가 아니라 **높이**로 정한다 — 좁은 칸(주·3일)은 이름만 쓰는 단계라도
-                    카드가 충분히 높으면 배지가 들어간다. 앱도 같은 기준(34pt). */}
-                {blockHeight >= 34 && <span className="pending-badge">확정대기</span>}
+                    카드가 충분히 높으면 배지가 들어간다. 앱도 같은 기준(34pt).
+                    배지는 집에 있는 LabelBadge 를 쓴다 — 혼자 진한 배경 + 흰 글자로 만들었더니
+                    다른 배지(연한 배경 + 진한 글자)들 사이에서 겉돌았다. */}
+                {blockHeight >= 34 && (
+                    <StyledPendingBadge $tone="warning" $shape="pill" $size="sm">확정대기</StyledPendingBadge>
+                )}
             </>)}
             {detail === 'full' ? (<>
                 {/* 앱 블록과 같은 차례 — 시작시간 / 고객명 / 시술.
@@ -252,4 +256,15 @@ const StyledTimelineServiceList = styled(ServiceChipList)`
     @media (max-width: 640px) {
         gap: 4px;
     }
+`;
+
+/* 딤 위에 얹는다. 아래에 붙이는 건 가운데로 두면 좁은 칸에서 고객명을 덮기 때문이고,
+   클릭을 통과시키는 건 눌러서 상세로 들어가 수락·거절해야 하기 때문이다. */
+const StyledPendingBadge = styled(LabelBadge)`
+    position: absolute;
+    bottom: 2px;
+    left: 50%;
+    transform: translateX(-50%);
+    pointer-events: none;
+    white-space: nowrap;
 `;

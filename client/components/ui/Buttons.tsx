@@ -18,7 +18,6 @@ interface Props {
     $cancelled?: boolean | undefined;
     /** 노쇼만 교차 빗금 — 취소와 가르기 위해. `$cancelled` 와 함께 켠다. */
     $noshow?: boolean | undefined;
-    $requested?: boolean | undefined;
     $active?: boolean | undefined;
     /** 카드 높이에 맞춘 표시 단계 — 'full'(두 줄) | 'compact'(한 줄) | 'name'(이름만). */
     $detail?: 'full' | 'compact' | 'name' | undefined;
@@ -101,21 +100,18 @@ const StyledReserveButton = styled.button <Props>`
     width: ${props => laneWidth(props.$lane)};
     height: ${props => props.$height}px;
     max-height: ${props => props.$height}px;
-    background-color: ${props => props.$requested ? 'rgba(168, 132, 23, 0.10)' : `${props.$color}12`};
+    background-color: ${props => `${props.$color}12`};
     border: 1px solid ${props => props.$color};
     border-left-width: 4px;
-    border-style: ${props => props.$requested ? 'dashed' : 'solid'};
-    border-left-color: ${props => props.$requested ? 'var(--caution-color)' : props.$color};
     /* 취소·노쇼는 월 칸·목록 카드와 같은 빗금 + 회색으로 — 같은 상태를 세 화면이
        다르게 그리면 색만 보고는 무엇인지 알 수 없다. (여기만 흐리게+회색필터였다.) */
     ${props => props.$cancelled && `
         border-color: var(--gray-color);
         border-left-color: var(--gray-color);
-        /* 취소는 한 방향 빗금, 노쇼는 교차 빗금. 카드에서 상태 글자를 뺀 뒤로
-           둘을 가르는 건 이 무늬뿐이다 — 각도만 다르면 나란히 두지 않는 한 구별이 안 된다.
-           (노쇼가 더 촘촘한 쪽인 건 매출이 빈 자리라 눈에 걸려야 하기 때문이다.) */
-        background: repeating-linear-gradient(-45deg, rgba(0, 0, 0, 0.05) 0 6px, transparent 6px 12px)${props.$noshow ? `,
-                    repeating-linear-gradient(45deg, rgba(0, 0, 0, 0.05) 0 6px, transparent 6px 12px)` : ''}, var(--gray-color2);
+        /* 취소와 노쇼는 **색**으로 가른다 — 취소는 무채색, 노쇼는 붉은 기운(매출이 빈 자리라
+           눈에 걸려야 한다). 무늬를 교차로 바꾸는 방식도 써 봤으나 나란히 두지 않으면
+           구별이 어렵고 촘촘해져 글자를 가렸다. */
+        background: repeating-linear-gradient(-45deg, ${props.$noshow ? 'rgba(201, 58, 48, 0.18)' : 'rgba(0, 0, 0, 0.05)'} 0 6px, transparent 6px 12px), var(--gray-color2);
 
         /* 시술 칩도 함께 죽인다 — 칩만 색이 남으면 빗금 위에 떠 끝난 예약이 살아 보인다. */
         ${StyledServiceText} { color: var(--dark-gray-color2); }
@@ -180,23 +176,6 @@ const StyledReserveButton = styled.button <Props>`
         inset: 0;
         border-radius: inherit;
         background: rgba(255, 255, 255, 0.55);
-        pointer-events: none;
-    }
-
-    /* 아래에 붙인다 — 가운데로 두면 좁은 칸에서 고객명 위에 그대로 앉아,
-       정작 "누가" 가 사라진다. */
-    .pending-badge {
-        position: absolute;
-        bottom: 2px;
-        left: 50%;
-        transform: translateX(-50%);
-        padding: 1px 6px;
-        border-radius: 999px;
-        background-color: var(--caution-color);
-        color: var(--white-color);
-        font-size: var(--tiny-font);
-        font-weight: 600;
-        white-space: nowrap;
         pointer-events: none;
     }
 
