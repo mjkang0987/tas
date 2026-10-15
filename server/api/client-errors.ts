@@ -22,6 +22,13 @@ const COOLDOWN_MS = 10 * 60 * 1000;
 const MAX_KEYS = 200;
 const lastSentAt = new Map<string, number>();
 
+// 쿨다운은 `레이어|메시지` 단위라, 메시지를 매번 바꿔 보내면 그만큼 알림이 나간다.
+// 인증을 걸 수 없는 공개 엔드포인트이므로(비로그인 크래시도 받아야 한다) 창 단위
+// 총량에도 상한을 둔다. 넘으면 조용히 버린다 — 채널이 잠기는 것보다 낫다.
+const MAX_SENDS_PER_WINDOW = 20;
+let windowStartedAt = 0;
+let sentInWindow = 0;
+
 function clip(value: unknown, max: number): string {
     return typeof value === 'string' ? value.trim().slice(0, max) : '';
 }
@@ -48,9 +55,18 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     if (now - (lastSentAt.get(key) ?? 0) < COOLDOWN_MS) {
         return res.status(202).json({skipped: true});
     }
+    if (now - windowStartedAt >= COOLDOWN_MS) {
+        windowStartedAt = now;
+        sentInWindow = 0;
+    }
+    if (sentInWindow >= MAX_SENDS_PER_WINDOW) {
+        return res.status(202).json({skipped: true, reason: 'rate-limited'});
+    }
+
     // 키가 무한정 쌓이지 않게 한도를 넘으면 통째로 비운다(쿨다운이 한 번 풀릴 뿐이다).
     if (lastSentAt.size >= MAX_KEYS) lastSentAt.clear();
     lastSentAt.set(key, now);
+    sentInWindow += 1;
 
     const env = process.env.NODE_ENV === 'production' ? 'prod' : 'dev';
     await notifySlackOps(
