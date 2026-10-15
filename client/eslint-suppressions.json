@@ -1,0 +1,72 @@
+{
+  "app/not-found.tsx": {
+    "@next/next/no-html-link-for-pages": {
+      "count": 1
+    }
+  },
+  "components/calendar/overlays/ReservationDetail.tsx": {
+    "react-hooks/set-state-in-effect": {
+      "count": 1
+    }
+  },
+  "components/layout/Header.tsx": {
+    "react-hooks/preserve-manual-memoization": {
+      "count": 2
+    }
+  },
+  "components/layout/LayoutComponent.tsx": {
+    "react-hooks/refs": {
+      "count": 1
+    }
+  },
+  "components/layout/NaverSyncNotification.tsx": {
+    "react-hooks/purity": {
+      "count": 2
+    }
+  },
+  "components/layout/StoreSwitcher.tsx": {
+    "react-hooks/set-state-in-effect": {
+      "count": 1
+    }
+  },
+  "components/settings/PointManageSection.tsx": {
+    "react-hooks/set-state-in-effect": {
+      "count": 1
+    }
+  },
+  "components/settings/ServiceManageSection.tsx": {
+    "react/no-unescaped-entities": {
+      "count": 2
+    }
+  },
+  "components/settings/StoreManageSection.tsx": {
+    "react/no-unescaped-entities": {
+      "count": 2
+    }
+  },
+  "components/ui/GuidedTour.tsx": {
+    "react-hooks/set-state-in-effect": {
+      "count": 2
+    }
+  },
+  "components/ui/ToastContainer.tsx": {
+    "react-hooks/set-state-in-effect": {
+      "count": 1
+    }
+  },
+  "pages/_app.tsx": {
+    "react-hooks/set-state-in-effect": {
+      "count": 6
+    }
+  },
+  "pages/book/[slug].tsx": {
+    "react-hooks/set-state-in-effect": {
+      "count": 2
+    }
+  },
+  "pages/login.tsx": {
+    "react-hooks/set-state-in-effect": {
+      "count": 2
+    }
+  }
+}

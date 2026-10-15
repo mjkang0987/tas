@@ -46,9 +46,10 @@ jobs:
       - name: Install (client)
         run: pnpm install --frozen-lockfile
 
-      - name: Lint (advisory)
+      # 기존 위반은 client/eslint-suppressions.json 에 기준선으로 고정돼 있다.
+      # 여기서 막는 것은 "새로 들어오는" 위반이다. 기준선을 줄이려면 pnpm lint:prune.
+      - name: Lint
         run: pnpm lint
-        continue-on-error: true
 
       - name: Test (순수 함수 단위 테스트)
         run: pnpm test
