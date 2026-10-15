@@ -588,6 +588,7 @@ StorePointSettings (적립률, 충전규칙)
 |------|------|
 | `.env.local` | 환경변수 (DATABASE_URL, DIRECT_URL, AUTH_SECRET, OAuth 키, `SLACK_WEBHOOK_URL`(+`_DEV`)[biz 채널: 예약·문의], `SLACK_STORE_ID`[지정 매장만 biz 알림], `SLACK_WEBHOOK_URL_OPS`(+`_DEV`)[ops 채널: 서버 에러·동기화 실패 등 운영 알림]) |
 | 마이그레이션 | 운영: `prisma migrate deploy`는 DIRECT_URL(운영) 사용. **로컬은 `pnpm prisma:migrate:local`**(localhost 강제, `client/scripts/migrate-local.sh`) — 운영 실수 방지 |
+| 테스트 DB | `pnpm test:db:setup`(`client/scripts/setup-test-db.sh`) — `DATABASE_URL`·`DIRECT_URL` **둘 다** 로컬 `takeaseat_test`로 덮고 localhost가 아니면 거부(`DB_NAME`으로 이름 변경 가능). 2026-10 전에는 `DATABASE_URL`만 덮어 `migrate deploy`가 `.env`의 운영 `DIRECT_URL`로 갔다. `pnpm dev:test`도 두 변수를 같은 로컬 URL로 둔다 |
 | `next.config.mjs` | URL 리라이트(/day/\*/week/\* → /, /consent/\*, /policies/:slug → /api/policies/:slug), styled-components, Turbopack |
 | `client/proxy.ts` | NextAuth 미들웨어 (온보딩 리다이렉트) |
 | `client/prisma.config.ts` | Prisma 7 설정 (datasource URL, migration, seed) |
