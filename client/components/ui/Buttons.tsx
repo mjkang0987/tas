@@ -175,7 +175,7 @@ const StyledReserveButton = styled.button <Props>`
         position: absolute;
         inset: 0;
         border-radius: inherit;
-        background: rgba(255, 255, 255, 0.55);
+        background: rgba(255, 255, 255, 0.72);
         pointer-events: none;
     }
 
