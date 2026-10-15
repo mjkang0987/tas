@@ -41,6 +41,13 @@
 - 전/후 비교: 게스트로 열 수 있는 레이어 13종(데스크톱)·11종(모바일). 로그인 전용(멤버·SNS·네이버·매장 전환·회원 탈퇴·
   게스트 이관)은 렌더 확인 불가 — 모두 `StyledConfirmOverlay/Modal` 이라 로그아웃 확인창과 같은 모양으로 그려진다(코드 확인).
 
+- **서비스 다국어 이름 라벨**(English·日本語·中文)이 맨 `<span>` 이라 본문 기본 크기로 커 보였다 → `StyledI18nLabel`(12px·600).
+  추가·수정 두 폼 모두(`ServiceManageSection.tsx`). `LocalizedMessageField` 는 이미 스타일 라벨이라 해당 없음.
+- **헤더 「닫기」 글자 버튼** → 공용 `CloseIconButton`(×): 고객 추가(`CustomerAddModal`)·매장 전환(`StoreSwitcher`).
+  푸터의 「닫기」 액션 버튼(매출 상세 등)은 하단 버튼 규칙대로 두었다.
+- **고객 병합 레이어 확인** — 자동 제안(`useCustomerMergeSuggestion`)은 게스트에서 꺼져 있어, 렌더 확인용 사본에서만
+  게스트 가드를 끄고 `/api/customer-merge-skip` 을 빈 응답으로 가로채 띄웠다(저장소 코드 무변경). 수동 병합(고객 명단 체크 → 병합)은 그대로 확인.
+
 ### 코드리뷰에서 같은 클래스로 함께 고친 것
 - 예약 상세의 다른 확인 버튼도 「확인」→ 하는 일 이름: 수정 확인 「저장」, 완료 「예약완료」, 노쇼 「노쇼 처리」(빨강), 예약 전환 「예약전환」.
 - `--big-font` 로 제목을 키우던 모달 2곳(고객 병합 제안·네이버 중복 안내)도 `--modal-title-font`.
@@ -48,8 +55,6 @@
 ### 남은 것(이번 범위 밖 · 훑은 결과)
 - `ConfirmDialog` 기본 confirmLabel 이 「확인」 — `confirmLabel` 없이 쓰는 호출부가 여럿. 화면별 판단이 필요해 별도 작업.
 - 네이버 중복 모달(`NaverSyncConflictModal.tsx:341,370`)의 「확인」은 단계 진행 버튼이라 의미가 달라 두었다.
-- 서비스 추가 모달의 다국어 이름 라벨(English·日本語·中文)이 다른 라벨보다 크다 — 3번(라벨 통일)과 같은 클래스, `LocalizedMessageField`.
-- 고객 추가 모달만 헤더 닫기가 × 아이콘이 아니라 「닫기」 글자 버튼(`CustomerAddModal`).
 - 딤을 자체 지정하는 레이어: 예약 변경 이력(`ReservationHistoryLayer` .24)·헤더 검색(`HeaderSearchLayer` .45, 공용 오버레이 아님).
 
 ### 검증 결과
