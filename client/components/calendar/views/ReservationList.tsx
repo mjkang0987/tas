@@ -78,7 +78,9 @@ const onMobile = (css: string) => `@media (max-width: 640px) { ${css} }`;
 
 const StyledItem = styled.button<{ $color: string; $inactive?: boolean }>`
     display: flex;
-    flex-wrap: wrap;
+    /* 한 줄로 고정한다 — wrap 이면 이름이 시간 밑으로 떨어져 칸이 두 배로 높아진다.
+       넘치는 이름은 줄바꿈이 아니라 말줄임으로 자른다(StyledCustomerName). */
+    flex-wrap: nowrap;
     align-items: center;
     gap: 6px;
     width: 100%;
@@ -92,7 +94,6 @@ const StyledItem = styled.button<{ $color: string; $inactive?: boolean }>`
     text-align: left;
     /* 이름 한 자라도 더 넣으려고 좌우 패딩·색바·폰트를 깎는다. 확보 폭 약 37px → 41px, 10px 폰트로 4자까지. */
     ${onMobile(`
-        flex-wrap: nowrap;
         gap: 3px;
         padding: 2px 3px;
         border-left-width: 3px;
@@ -139,14 +140,23 @@ const StyledMeta = styled.span`
 `;
 
 const StyledTimeMeta = styled(StyledMeta)`
+    /* 시간은 줄이지 않는다 — 줄어들 자리는 이름이 낸다. */
+    flex-shrink: 0;
     ${onMobile('display: none;')}
 `;
 
-/* 신규고객 배지는 배지+간격만 18px — 남은 글자 폭의 절반을 먹는다. 모바일 셀에선 접고 레이어에서 확인. */
+/* 신규고객 배지는 배지+간격만 18px — 남은 글자 폭의 절반을 먹는다. 칸이 좁으면 접고 레이어에서 확인.
+   110px 선: 시간 32 + 간격 6 + 패딩 8 + 이름 세 글자 33 = 79px 에 배지 30px 을 더한 값이다. */
 const StyledCustomerMeta = styled(StyledMeta)`
+    @container (max-width: 110px) {
+        ${NewCustomerBadge} { display: none; }
+    }
+
+    /* flex 자식의 기본 min-width:auto 를 풀어야 안쪽 이름이 말줄임된다 — 안 풀면 넘쳐 나간다. */
+    flex-wrap: nowrap;
+    min-width: 0;
+
     ${onMobile(`
-        flex-wrap: nowrap;
-        min-width: 0;
 
         ${NewCustomerBadge} { display: none; }
     `)}

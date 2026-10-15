@@ -265,17 +265,20 @@ function defaultListFilter(viewType: string | null, today: FullType): CalendarSt
     return null;
 }
 
-/** 달력이 보고 있는 범위를 벗어난 목록은 닫는다 — 11월 달력 아래 10월 13일 목록이
- *  떠 있으면 어느 칸의 목록인지 짚을 수 없다(달력에 선택 표시도 남지 않는다). */
+/** 달력을 옮기면 목록도 따라간다 — 11월 달력 옆에 10월 13일 목록이 떠 있으면 어느 칸의
+ *  목록인지 짚을 수 없다. 그렇다고 **닫지는 않는다**: 목록은 월·연 뷰에서 늘 열려 있는 자리라
+ *  사라지면 데스크톱 레이아웃이 기둥(row) 에서 전폭(column) 으로 튀고, 한 번 비면 돌아오지 않는다. */
 function filterWithinTarget(
     filter: CalendarState['reservationListFilter'],
     target: Date,
 ): CalendarState['reservationListFilter'] {
     if (!filter) return null;
-    // 연 뷰는 한 해 안의 어느 달을 고른 것이라 연도만 맞으면 둔다.
-    if (filter.type === 'month') return filter.year === target.getFullYear() ? filter : null;
+    // 연 뷰: 고른 달은 그대로 두고 연도만 따라간다.
+    if (filter.type === 'month') return {type: 'month', year: target.getFullYear(), month: filter.month};
     const targetMonth = toDateKey(target.getFullYear(), target.getMonth(), 1).slice(0, 7);
-    return filter.dateKey.startsWith(targetMonth) ? filter : null;
+    if (filter.dateKey.startsWith(targetMonth)) return filter;
+    // 달을 벗어났으면 그 달의 1일로 — 옮긴 달의 시작이 가장 덜 놀랍다.
+    return {type: 'date', dateKey: toDateKey(target.getFullYear(), target.getMonth(), 1)};
 }
 
 export const useCalendarStore = create<CalendarState>((set) => ({

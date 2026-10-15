@@ -6,7 +6,7 @@ import type {Reservation, ReservationHistoryEntry, ReservationMap} from '../rese
 import type {ServiceItem} from '../services/model';
 import {CATEGORY_BASE_COLOR_MAP, SERVICE_CATALOG} from '../services/model';
 import type {StoreSettings} from '../store-settings/model';
-import {DEFAULT_STORE_SETTINGS} from '../store-settings/model';
+import {DEFAULT_STORE_SETTINGS, normalizeStoreSettings} from '../store-settings/model';
 
 const LOCAL_DB_KEY = 'takeaseat.local-db.v1';
 const LOCAL_DB_EVENT = 'takeaseat-local-db-updated';
@@ -170,7 +170,7 @@ export function loadLocalDbSnapshot(): LocalDbSnapshot {
             ...createDefaultLocalDbSnapshot(),
             ...parsed,
             categoryBaseColors: parsed.categoryBaseColors ?? CATEGORY_BASE_COLOR_MAP,
-            storeSettings: parsed.storeSettings ?? DEFAULT_STORE_SETTINGS,
+            storeSettings: normalizeStoreSettings(parsed.storeSettings),
             assignees: Array.isArray(parsed.assignees) ? parsed.assignees : DEFAULT_ASSIGNEES,
             services: Array.isArray(parsed.services) ? parsed.services : SERVICE_CATALOG,
             customers: Array.isArray(parsed.customers) ? parsed.customers : [],

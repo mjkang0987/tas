@@ -132,6 +132,18 @@ export function isValidBookingSlug(value: string): boolean {
     return BOOKING_SLUG_PATTERN.test(value);
 }
 
+/** 저장된 설정에 기본값을 깐다.
+ *  게스트 로컬 스냅샷은 필드가 통째로 빠진 옛 형태일 수 있다(`pointSettings` 가 없던 시절 등).
+ *  읽는 쪽마다 `?.` 로 막으면 한 군데만 빠져도 터지므로, 들어오는 길목에서 모양을 맞춘다. */
+export function normalizeStoreSettings(stored: Partial<StoreSettings> | null | undefined): StoreSettings {
+    return {
+        ...DEFAULT_STORE_SETTINGS,
+        ...stored,
+        businessHours: {...DEFAULT_STORE_SETTINGS.businessHours, ...stored?.businessHours},
+        pointSettings: {...DEFAULT_STORE_SETTINGS.pointSettings, ...stored?.pointSettings},
+    };
+}
+
 export const DEFAULT_STORE_SETTINGS: StoreSettings = {
     businessHours: {
         start: '10:00',

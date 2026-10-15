@@ -14,6 +14,7 @@ import {Customer, toCustomerMap} from '../utils/customers';
 
 import {Calendar} from '../components/calendar/views/Calendar';
 
+import {LayerErrorBoundary} from '../components/calendar/overlays/LayerErrorBoundary';
 import {ReservationDetail} from '../components/calendar/overlays/ReservationDetail';
 
 import {ReservationListSection} from '../components/calendar/views/ReservationListSection';
@@ -159,22 +160,29 @@ const Home: NextPage<HomeProps> = (props) => {
                 {reservationListFilter && <ReservationListSection/>}
             </StyledSection>
             {selectedReservations.map((reservation, index) => (
-                <ReservationDetail key={`${reservation.id}-${index}`}
-                                   reservation={reservation}
-                                   customerMap={customerMap}
-                                   reservationMap={reservationMap}
-                                   history={reservationHistory}
-                                   onClose={() => closeReservationDetail(index)}
-                                   onCustomerClick={openCustomerDetail}
-                                   onUpdate={updateReservation}
-                                   onCancel={cancelReservation}
-                                   onRestore={restoreReservation}
-                                   onDelete={deleteReservation}/>
+                <LayerErrorBoundary key={`${reservation.id}-${index}`}
+                                    title="예약 상세"
+                                    onClose={() => closeReservationDetail(index)}>
+                    <ReservationDetail reservation={reservation}
+                                       customerMap={customerMap}
+                                       reservationMap={reservationMap}
+                                       history={reservationHistory}
+                                       onClose={() => closeReservationDetail(index)}
+                                       onCustomerClick={openCustomerDetail}
+                                       onUpdate={updateReservation}
+                                       onCancel={cancelReservation}
+                                       onRestore={restoreReservation}
+                                       onDelete={deleteReservation}/>
+                </LayerErrorBoundary>
             ))}
-            {selectedCustomer && <CustomerDetail customer={selectedCustomer}
-                                                 reservationMap={reservationMap}
-                                                 onReservationClick={openReservationDetailFromCustomer}
-                                                 onClose={() => setSelectedCustomerId(null)}/>}
+            {selectedCustomer && (
+                <LayerErrorBoundary title="고객 상세" onClose={() => setSelectedCustomerId(null)}>
+                    <CustomerDetail customer={selectedCustomer}
+                                    reservationMap={reservationMap}
+                                    onReservationClick={openReservationDetailFromCustomer}
+                                    onClose={() => setSelectedCustomerId(null)}/>
+                </LayerErrorBoundary>
+            )}
             <GuidedTour steps={MAIN_TOUR_STEPS} open={tourOpen} onClose={closeTour} onStepChange={handleTourStep}/>
         </>
     );

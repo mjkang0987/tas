@@ -11,6 +11,9 @@ import {useCalendarStore} from '../../../store/calendarStore';
 
 import {computeTargetDerived} from '../../../utils/calendarDerived';
 
+import {STORE_CLOSED_LABEL} from '../../../features/store-settings/model';
+import {storeClosedCss} from './storeClosedCss';
+
 interface DaysType {
     type: string | null;
 }
@@ -37,13 +40,21 @@ export const Days = () => {
     const {day} = target;
     const view = useCalendarStore((s) => s.view);
     const {type} = view;
+    const storeSettings = useCalendarStore((s) => s.storeSettings);
+    // closedWeekdays 는 월요일=0 이고 이 머리줄은 일요일부터다. 칸 순서를 그 기준으로 옮긴다.
+    const closedWeekdays = storeSettings.closedWeekdays ?? [];
 
 
     return (<StyledDays type={type}>
-            {getDaysInRange(day, type).map((day: string) =>
-                <StyledDay key={DAYS[day].id}>
+            {getDaysInRange(day, type).map((day: string, index: number) => {
+                const isClosed = closedWeekdays.includes((index + 6) % 7);
+
+                return <StyledDay key={DAYS[day].id} $closed={isClosed}>
                     {DAYS[day].ko}
-                </StyledDay>)}
+                    {/* 색만으로는 스크린리더에 아무것도 전달되지 않는다(storeClosedCss 주석). */}
+                    {isClosed && <span className="a11y">{STORE_CLOSED_LABEL.weekday}</span>}
+                </StyledDay>;
+            })}
         </StyledDays>
     );
 };
@@ -78,7 +89,8 @@ const StyledDays = styled.ul <DaysType>`
     }
 `;
 
-const StyledDay = styled.li`
+const StyledDay = styled.li<{ $closed: boolean }>`
+  ${props => props.$closed && storeClosedCss('weekday')}
   flex: 1;
   text-align: center;
   padding: 4px 0 2px;

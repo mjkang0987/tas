@@ -303,6 +303,7 @@ NextAuth 5.0 설정. Google·Kakao·Naver OAuth 지원.
 | `naver-booking-sync.ts` | `/api/naver-booking-sync` | POST | owner | 네이버 예약 동기화[^9] |
 | `naver-booking-fix-assignee.ts` | `/api/naver-booking-fix-assignee` | POST | owner | naverBookingId로 Gmail 검색 → 담당자 매칭 수정[^10] |
 | `inquiry.ts` | `/api/inquiry` | POST | - | 문의 전송 (`server/api/mail/send-inquiry.ts`) |
+| `client-errors.ts` | `/api/client-errors` | POST | **공개(비로그인)** | 브라우저 렌더 크래시를 ops Slack 으로. 로그인 없이도 크래시는 나므로 인증을 걸 수 없다 — 본문 16kb(`config.api.bodyParser`, **라우트 파일에 직접** 둬야 한다)·필드 길이 상한·같은 `레이어\|메시지` 10분 쿨다운·창당 20건 총량 상한으로 보호. DB 저장 없음. 제품 안에 대시보드를 두지 않은 이유는 설정 화면이 매장 사장님 자리이고, 운영자용 화면을 두려면 역할 체계(현재 매장 단위 `owner/manager/staff` 뿐)부터 만들어야 하기 때문 |
 | `consent.ts` | `/api/consent` | POST | 로그인 | 약관 동의 기록 (`agreedTermsVersion`=`CURRENT_TERMS_VERSION`, `agreedTermsAt`) |
 | `backfill-point-relations.ts` | `/api/backfill-point-relations` | POST | - | 포인트 이력-예약 관계 백필 |
 | `backfill-reservation-prices.ts` | `/api/backfill-reservation-prices` | POST | - | 예약 가격 백필 |
