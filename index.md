@@ -455,7 +455,7 @@ Gmail (네이버 예약 메일)
 ```
 features/customers/merge-suggestion.ts (그룹 규칙 — 순수 모듈)
   → useCustomerMergeSuggestion.ts (감지·큐, 게스트 모드 제외)
-  → CustomerMergeSuggestionModal.tsx (제안 UI)
+  → CustomerMergeSuggestionModal.tsx (제안 UI — 고객명을 누르면 `openCustomerDetail`로 고객정보 레이어가 병합 레이어 위에 뜬다)
   → /api/customers/merge (병합 실행)
     └─ 트랜잭션: 예약·포인트·태그 이전 + 이력 기록 + 원본 삭제
   → /api/customers/unmerge (병합 해제 가능)
