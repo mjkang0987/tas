@@ -5,6 +5,7 @@ import styled from 'styled-components';
 import {useCalendarStore} from '../../store/calendarStore';
 import type {Customer} from '../../utils/customers';
 import {normalizeTel} from '../../utils/customers';
+import {CloseIconButton} from '../ui/CloseIconButton';
 import {
     StyledOverlay,
     StyledDetail,
@@ -64,7 +65,7 @@ export function CustomerAddModal({onClose}: { onClose: () => void }) {
             <StyledDetail onClick={(e) => e.stopPropagation()}>
                 <StyledHeader>
                     <StyledHeaderTitle>고객 추가</StyledHeaderTitle>
-                    <button type="button" onClick={onClose}>닫기</button>
+                    <CloseIconButton onClick={onClose}/>
                 </StyledHeader>
                 <StyledFormWrap>
                     <StyledForm>

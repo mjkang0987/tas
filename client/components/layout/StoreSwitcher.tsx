@@ -9,6 +9,7 @@ import styled from 'styled-components';
 import {StyledConfirmOverlay, StyledConfirmModal, StyledHeader, StyledHeaderTitle, StyledModalContent} from '../calendar/overlays/ModalStyles';
 import {actionButtonStyle} from '../settings/settings-styles';
 import {LabelBadge} from '../ui/LabelBadge';
+import {CloseIconButton} from '../ui/CloseIconButton';
 import {LoadingOverlay} from '../ui/LoadingOverlay';
 import {ROLE_LABELS} from '../../utils/labels';
 
@@ -76,7 +77,7 @@ export function StoreSwitcher({fallbackName, onNavigate}: StoreSwitcherProps) {
                     <StyledConfirmModal onClick={(e) => e.stopPropagation()}>
                         <StyledHeader>
                             <StyledHeaderTitle>매장 전환</StyledHeaderTitle>
-                            <button type="button" onClick={() => setOpen(false)}>닫기</button>
+                            <CloseIconButton onClick={() => setOpen(false)}/>
                         </StyledHeader>
                         <StyledModalContent>
                             <StyledStoreList>
