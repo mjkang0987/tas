@@ -5,6 +5,33 @@
 
 ---
 
+## 완료 — 고객 병합 레이어: 고객명 → 고객정보 레이어 링크
+
+### 요구
+고객 병합 레이어(`CustomerMergeSuggestionModal`)의 고객명이 글자로만 떠 있다. 눌러서 고객정보 레이어를 열 수 있게 한다
+(지시자 2026-10-16). 자동 제안(마스킹 고객·기준 고객)과 수동 병합 모두.
+
+### 구현
+- `StyledCustomerName`(span) → 네이티브 `<button type="button">`, `useCalendarStore.openCustomerDetail(id)` 호출
+  (다른 화면과 같은 진입점 — `ReservationListSection`·`HeaderSearchLayer`·포인트 탭).
+- 모양은 포인트 탭 `StyledCustomerNameButton`과 같게: 평소 그대로, hover 시 파란색. 포커스 링 유지.
+- 기준 고객 선택 행은 라디오 `<label>` 안에 이름이 있다 — 이름이 버튼이 되면 이름 클릭은 라디오가 아니라
+  고객정보를 연다(라벨 안 인터랙티브 요소는 라벨 활성화를 일으키지 않는다). 선택은 라디오로.
+- 고객정보 레이어가 병합 레이어 **위에** 뜨는지 확인(z-index).
+
+### 검증 (완료)
+- tsc ✓ · 테스트 202 ✓ · lint 에러 0 ✓
+- 임시 DB(`takeaseat_preview`)로 띄운 로컬 서버: 자동 제안 레이어에서 `김*희`·`김영희` 클릭 → 고객정보 레이어가 병합 레이어
+  **위에** 열림, 닫으면 병합 레이어 그대로.
+
+### 로컬 미리보기 방법 (재사용)
+- 로그인은 OAuth라 앱 내장 브라우저에서 못 한다(`dev.takeaseat.co.kr` 하위 리소스가 차단돼 화면도 안 뜬다). 대신
+  `localhost:3000`에 `DATABASE_URL`·`DIRECT_URL`=임시 DB, `AUTH_URL=http://localhost:3000`, `AUTH_TRUST_HOST=true`로 띄우고,
+  `.env.local`의 `AUTH_SECRET`으로 `next-auth/jwt` `encode`(salt `authjs.session-token`, 토큰에 `userId`)한 쿠키를 넣는다.
+  매장·권한은 jwt 콜백이 DB 멤버십에서 채운다.
+- ⚠️ `scripts/setup-test-db.sh`는 `DATABASE_URL`만 바꾸는데 `prisma.config.ts`는 `DIRECT_URL`(.env = **운영**)을 먼저 쓴다 —
+  그대로 돌리면 `migrate deploy`가 운영을 향한다. 임시 DB 마이그레이션은 두 변수를 모두 지정하고 대상을 출력해 확인한 뒤 한다.
+
 ## 완료 — 타임라인 카드에 시작시간 + 예약 상태 표기 정리 (웹·앱 동시)
 
 ### 한 일
