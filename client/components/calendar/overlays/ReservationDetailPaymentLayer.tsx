@@ -173,8 +173,9 @@ const StyledPaymentEntryRow = styled.div`
     grid-template-columns: auto minmax(0, 1fr) auto;
     gap: 4px;
 
+    /* 모바일: 결제종류는 윗줄 전체, 금액과 삭제는 아랫줄에 나란히 (삭제가 한 줄 전체 빨간 블록이 되지 않게) */
     @media (max-width: 640px) {
-        grid-template-columns: 1fr;
+        grid-template-columns: minmax(0, 1fr) auto;
     }
 `;
 
@@ -191,6 +192,10 @@ const paymentEntryFieldStyles = css`
 
 const StyledPaymentEntrySelect = styled.select`
     ${paymentEntryFieldStyles}
+
+    @media (max-width: 640px) {
+        grid-column: 1 / -1;
+    }
 `;
 
 const StyledPaymentEntryInput = styled.input`

@@ -808,7 +808,7 @@ export const ReservationDetail = ({
                     <StyledActionButton type="button" $primary onClick={() => {
                         setIsRestoringOpen(false);
                         onRestore(sourceReservation);
-                    }}>확인</StyledActionButton>
+                    }}>예약전환</StyledActionButton>
                 </StyledFooter>
             </StyledRestoreModal>
         </StyledRestoreOverlay>

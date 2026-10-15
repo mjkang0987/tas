@@ -8,7 +8,7 @@ export const StyledConfirmOverlay = styled(StyledOverlay)`
 `;
 
 export const StyledConflictTitle = styled.strong`
-    font-size: var(--big-font);
+    font-size: var(--modal-title-font);
 `;
 
 export const StyledCustomerValue = styled.span`

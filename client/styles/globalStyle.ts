@@ -124,9 +124,9 @@ export const GlobalStyle = createGlobalStyle`
         0 6px 18px rgba(15, 23, 42, 0.08);
 
         --modal-header-gap: 10px;
-        --modal-header-padding: 4px 8px;
+        --modal-header-padding: 8px 14px;
         --modal-header-border: rgba(148, 163, 184, 0.18);
-        --modal-body-padding: 8px 6px 30px;
+        --modal-body-padding: 12px 14px 24px;
         --modal-content-padding: 12px;
         --modal-footer-gap: 6px;
         --modal-footer-padding: 10px 14px 14px;

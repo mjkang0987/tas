@@ -288,7 +288,7 @@ const StyledMergeModal = styled(StyledDetail)`
 `;
 
 const StyledMergeTitle = styled.strong`
-    font-size: var(--big-font);
+    font-size: var(--modal-title-font);
 `;
 
 const StyledScrollArea = styled.div`

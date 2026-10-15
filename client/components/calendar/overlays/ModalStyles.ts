@@ -137,10 +137,18 @@ export const StyledOverlay = styled.div`
     align-items: center;
     justify-content: center;
     padding: var(--overlay-padding);
-    background: radial-gradient(circle at top, rgba(255, 255, 255, 0.14), transparent 38%),
-    rgba(15, 23, 42, 0.1);
+    /* .1 은 뒤 화면(예약 카드·탭바)이 팝업과 섞여 보였다 — 팝업을 확실히 앞으로 띄운다 */
+    background: rgba(15, 23, 42, 0.4);
     backdrop-filter: blur(var(--overlay-backdrop-blur));
     box-sizing: border-box;
+
+    /* 모바일은 화면 아래에 붙는 시트 — && 로 확장 컴포넌트(z-index 등만 덮음)보다 우선 */
+    @media (max-width: 640px) {
+        && {
+            align-items: flex-end;
+            padding: 0;
+        }
+    }
 `;
 
 export const StyledDetail = styled.div<{ $width?: number | string }>`
@@ -156,12 +164,17 @@ export const StyledDetail = styled.div<{ $width?: number | string }>`
     box-shadow: var(--modal-shadow);
     overflow: hidden;
 
+    /* 바텀시트: 전체 폭 + 위쪽만 둥글게. && 로 확장 모달들의 width/max-width 지정보다 우선한다.
+       모달이 아닌 확장(ReservationListSection 의 목록 패널)은 &&& 로 되돌려야 한다. */
     @media (max-width: 640px) {
-        width: 100%;
-        max-width: min(360px, 90vw);
-        max-height: 90vh;
-        max-height: 90dvh;
-        border-radius: var(--modal-radius-mobile);
+        && {
+            width: 100%;
+            max-width: none;
+            max-height: 90vh;
+            max-height: 90dvh;
+            border-bottom: 0;
+            border-radius: var(--modal-radius-mobile) var(--modal-radius-mobile) 0 0;
+        }
     }
 `;
 
@@ -307,11 +320,11 @@ export const StyledFieldRow = styled.div`
     flex-direction: column;
     gap: 10px;
 
+    /* 그룹 라벨 — StyledForm 의 label > strong 과 같은 모양(같은 폼 안에서 라벨이 섞여 있다) */
     > span, > strong {
-        font-size: var(--medium-font);
+        font-size: var(--small-font);
         color: var(--dark-gray-color);
-        font-weight: 500;
-        padding-top: 4px;
+        font-weight: 600;
     }
 `;
 
@@ -439,6 +452,7 @@ export const StyledFooter = styled.div`
     @media (max-width: 640px) {
         flex-wrap: wrap;
         justify-content: flex-end;
+        padding-bottom: calc(14px + env(safe-area-inset-bottom)); /* 시트가 화면 끝에 붙으므로 홈 인디케이터 회피 */
 
         > button {
             flex: 0 0 auto;
@@ -447,12 +461,34 @@ export const StyledFooter = styled.div`
     }
 `;
 
+/* 짧은 확인창은 모바일에서도 가운데 카드로 — 결정 순간이 눈에 띄도록 시트에서 제외한다.
+   기본(StyledOverlay/StyledDetail)의 모바일 && 보다 이기도록 &&& 로 덮는다. */
 export const StyledConfirmOverlay = styled(StyledOverlay)`
     z-index: ${OVERLAY_Z_INDEX.confirm};
+
+    @media (max-width: 640px) {
+        &&& {
+            align-items: center;
+            padding: var(--overlay-padding);
+        }
+    }
 `;
 
 export const StyledConfirmModal = styled(StyledDetail)`
     width: min(360px, 90vw);
+
+    @media (max-width: 640px) {
+        &&& {
+            width: min(360px, 90vw);
+            border-bottom: 1px solid var(--modal-border);
+            border-radius: var(--modal-radius-mobile);
+        }
+
+        /* 화면 끝에 붙지 않으므로 시트용 하단 안전영역 여백을 뺀다 */
+        && ${StyledFooter} {
+            padding-bottom: 14px;
+        }
+    }
 `;
 
 export const StyledChangeRow = styled.span`

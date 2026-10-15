@@ -2,7 +2,7 @@ import styled from 'styled-components';
 
 import {StyledEmpty} from '../../settings/settings-styles';
 
-import {OVERLAY_Z_INDEX, StyledDetail, StyledOverlay, scrollContentStyle, scrollHintStyle} from './ModalStyles';
+import {OVERLAY_Z_INDEX, StyledConfirmModal, StyledConfirmOverlay, StyledDetail, StyledOverlay, scrollContentStyle, scrollHintStyle} from './ModalStyles';
 import {CloseIconButton} from '../../ui/CloseIconButton';
 import {ColorTag} from '../../ui/ColorTag';
 export const StyledCustomerOverlay = styled(StyledOverlay)`
@@ -444,13 +444,10 @@ export const StyledMoreButton = styled.button`
     }
 `;
 
-export const StyledUnmergeOverlay = styled(StyledOverlay)`
-    z-index: ${OVERLAY_Z_INDEX.confirm};
-`;
+// 병합 분리 확인 — 짧은 확인창이라 공용 확인창 부품(모바일에서도 가운데 카드)을 쓴다
+export const StyledUnmergeOverlay = styled(StyledConfirmOverlay)``;
 
-export const StyledUnmergeModal = styled(StyledDetail)`
-    width: min(360px, 90vw);
-`;
+export const StyledUnmergeModal = styled(StyledConfirmModal)``;
 
 export const StyledUnmergeContent = styled.div`
     padding: 12px;

@@ -5,6 +5,73 @@
 
 ---
 
+## 검증 완료(PR 대기) — 레이어 팝업(모달) 디자인 정리 (`claude/vigilant-hopper-el6vnz`)
+
+### 배경
+디자인 검수(게스트 모드로 실제 렌더 — 데스크톱 1280 / 모바일 390)에서 나온 항목 8개를 한 번에 정리한다.
+1~3은 코드·`docs/design-spec.md`로 근거가 확인된 결함, 4~8은 렌더 화면을 보고 낸 디자인 판단(지시자 승인).
+
+### 구현 항목
+1. **예약 취소 확인 버튼 문구** — 「취소 / 확인(보라)」→「취소 / 예약 취소(빨강 `$danger`)」.
+   같은 파일의 삭제(「삭제」)·거절(「거절」) 확인과 같은 규칙. `ReservationDetailFooterActions.tsx`
+2. **예약 상세 헤더 제목** — 18px(`--big-font`)·위쪽 정렬 → `--modal-title-font`(16px)·세로 가운데.
+   공용 `StyledHeaderTitle`(29곳)과 일치. `ReservationDetailHeader.tsx`
+3. **폼 그룹 라벨(「서비스」)** — `StyledFieldRow > strong`(13px·500)을 `StyledForm label > strong`(12px·600)과 통일.
+   `ModalStyles.ts` (서비스 관리 폼도 같은 스타일 사용 → 함께 맞춰짐)
+4. **딤 강화** — `StyledOverlay` 배경 `rgba(15,23,42,.1)` → `.4`. 팝업 뒤 화면이 섞여 보이던 문제.
+5. **모달 여백** — 헤더 `4px 8px`, 본문 `8px 6px 30px` → 푸터(좌우 14px)와 좌우를 맞춤. 토큰(`globalStyle.ts`)만 변경.
+6. **모바일 바텀시트** — ≤640px 에서 `StyledOverlay`/`StyledDetail` 을 화면 아래 붙는 전체 폭 시트로.
+   하단 안전영역(`env(safe-area-inset-bottom)`) 포함. 하단 탭바(z 40)는 오버레이(z 100) 아래라 가리지 않음.
+7. **예약 상세 하단 버튼 위계** — 채운 색은 주 동작 하나(결제완료/예약완료)만. 변경은 기본(테두리),
+   노쇼는 위험 테두리(`$dangerOutline`), 취소는 기존 위험 테두리 유지.
+8. **결제 처리의 삭제 버튼** — 모바일에서 한 줄 전체 빨간 블록 → 금액 입력 옆 작은 버튼(결제종류는 윗줄 전체).
+
+### 영향 파일
+`client/styles/globalStyle.ts` · `client/components/calendar/overlays/{ModalStyles.ts,ReservationDetailHeader.tsx,ReservationDetailFooterActions.tsx,ReservationDetailPaymentLayer.tsx}` · `docs/design-spec.md`(토큰 값 갱신)
+
+### 리스크
+- 4~6은 공용 프리미티브라 `StyledOverlay`/`StyledDetail` 을 쓰는 모달 ~15종 전체에 반영된다. 렌더로 대표 화면을 확인한다.
+- 6은 확인창(`StyledConfirmModal`)도 시트가 된다(같은 `StyledDetail` 상속) — 의도된 일관성.
+
+### 이어서 반영 (지시자 결정)
+- **모바일 B안** — 바텀시트는 폼·상세 레이어만. 짧은 확인창(`StyledConfirmModal`/`StyledConfirmOverlay`, `ConfirmDialog` 15곳 포함)은
+  모바일에서도 가운데 카드. 기본 프리미티브의 `&&` 를 확인창에서 `&&&` 로 덮는다. 예약 상세 안의 취소·노쇼 확인은
+  별도 확인창이 아니라 상세 레이어의 모드 전환이라 시트로 남는다.
+- **서비스 색깔 안내표(`ServiceLegend`) 삭제** — 서비스 색은 모든 화면에서 시술 칩 글자와 함께 나와 중복이었다.
+- 전/후 비교: 게스트로 열 수 있는 레이어 13종(데스크톱)·11종(모바일). 로그인 전용(멤버·SNS·네이버·매장 전환·회원 탈퇴·
+  게스트 이관)은 렌더 확인 불가 — 모두 `StyledConfirmOverlay/Modal` 이라 로그아웃 확인창과 같은 모양으로 그려진다(코드 확인).
+
+- **서비스 다국어 이름 라벨**(English·日本語·中文)이 맨 `<span>` 이라 본문 기본 크기로 커 보였다 → `StyledI18nLabel`(12px·600).
+  추가·수정 두 폼 모두(`ServiceManageSection.tsx`). `LocalizedMessageField` 는 이미 스타일 라벨이라 해당 없음.
+- **헤더 「닫기」 글자 버튼** → 공용 `CloseIconButton`(×): 고객 추가(`CustomerAddModal`)·매장 전환(`StoreSwitcher`).
+  푸터의 「닫기」 액션 버튼(매출 상세 등)은 하단 버튼 규칙대로 두었다.
+- **고객 병합 레이어 확인** — 자동 제안(`useCustomerMergeSuggestion`)은 게스트에서 꺼져 있어, 렌더 확인용 사본에서만
+  게스트 가드를 끄고 `/api/customer-merge-skip` 을 빈 응답으로 가로채 띄웠다(저장소 코드 무변경). 수동 병합(고객 명단 체크 → 병합)은 그대로 확인.
+
+### 머지 전 코드리뷰·검증 3회차 (지시자 요청)
+- 1회차: **회귀 발견** — 캘린더 예약 목록 패널(`ReservationListSection` 의 `styled(StyledDetail)`, 모달 아님)에 모바일 시트 규칙이 새
+  위쪽 둥근 모서리(12px)·높이 제한(90dvh)이 생겼다. 계산된 스타일로 main(0px/none) → head(12px·759px) → 수정 후(0px/none) 확인. `&&&` 로 되돌림.
+- 2회차: 짧은 확인창 2개(예약 전환·병합 분리)가 `StyledDetail` 기반이라 모바일에서 시트가 되던 것(B안 위반) → 공용 확인창 부품으로. 화면으로 가운데 카드 확인.
+- 3회차: confirm z-index 를 쓰는 나머지(적립금 이력·충전 이력)는 목록이라 시트가 맞음 — 변경 없음. 디자인 명세에 확인창·비모달 재사용 규칙 추가.
+- 매 회차 `tsc` 통과 · `pnpm test` 194 통과.
+
+### 코드리뷰에서 같은 클래스로 함께 고친 것
+- 예약 상세의 다른 확인 버튼도 「확인」→ 하는 일 이름: 수정 확인 「저장」, 완료 「예약완료」, 노쇼 「노쇼 처리」(빨강), 예약 전환 「예약전환」.
+- `--big-font` 로 제목을 키우던 모달 2곳(고객 병합 제안·네이버 중복 안내)도 `--modal-title-font`.
+
+### 남은 것(이번 범위 밖 · 훑은 결과)
+- `ConfirmDialog` 기본 confirmLabel 이 「확인」 — `confirmLabel` 없이 쓰는 호출부가 여럿. 화면별 판단이 필요해 별도 작업.
+- 네이버 중복 모달(`NaverSyncConflictModal.tsx:341,370`)의 「확인」은 단계 진행 버튼이라 의미가 달라 두었다.
+- 딤을 자체 지정하는 레이어: 예약 변경 이력(`ReservationHistoryLayer` .24)·헤더 검색(`HeaderSearchLayer` .45, 공용 오버레이 아님).
+
+### 검증 결과
+- 변경 전/후 같은 시드·같은 동작으로 스크린샷 비교(데스크톱 1280·모바일 390, 5화면씩) — 의도대로 반영 확인.
+  「서비스」 라벨은 계산된 스타일로도 확인(다른 라벨과 동일 12px/600).
+- `pnpm test` 194 통과 · `pnpm build` 성공.
+- `pnpm lint` 실패(26 errors)는 전부 이번에 안 건드린 파일의 기존 문제. 변경 파일에는 기존 미사용 변수 경고만.
+
+---
+
 ## 완료 — 모바일 주별 보기: 칼럼 폭 확보 + 가로 스크롤 (#234, PR #235)
 
 ### 배경

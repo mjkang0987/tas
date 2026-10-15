@@ -58,6 +58,7 @@ import {
     StyledI18nBlock,
     StyledI18nTitle,
     StyledI18nHint,
+    StyledI18nLabel,
 } from './ServiceManageSection.styles';
 
 // en/ja/zh 입력 문자열 → nameI18n 객체(빈 값은 제외, 전부 비면 null). 저장·전송용.
@@ -151,15 +152,15 @@ const ServiceEditModal = ({item, serviceCatalog, onSave, onDelete, onClose}: Ser
                             <StyledI18nTitle>다국어 이름 (선택)</StyledI18nTitle>
                             <StyledI18nHint>고객 예약 페이지에서 해당 언어로 보일 이름입니다. 비우면 위 이름이 그대로 표시됩니다.</StyledI18nHint>
                             <label htmlFor="service-edit-name-en">
-                                <span>English</span>
+                                <StyledI18nLabel>English</StyledI18nLabel>
                                 <input id="service-edit-name-en" value={nameEn} onChange={(e) => setNameEn(e.target.value)} placeholder="English" />
                             </label>
                             <label htmlFor="service-edit-name-ja">
-                                <span>日本語</span>
+                                <StyledI18nLabel>日本語</StyledI18nLabel>
                                 <input id="service-edit-name-ja" value={nameJa} onChange={(e) => setNameJa(e.target.value)} placeholder="日本語" />
                             </label>
                             <label htmlFor="service-edit-name-zh">
-                                <span>中文</span>
+                                <StyledI18nLabel>中文</StyledI18nLabel>
                                 <input id="service-edit-name-zh" value={nameZh} onChange={(e) => setNameZh(e.target.value)} placeholder="中文" />
                             </label>
                         </StyledI18nBlock>
@@ -330,15 +331,15 @@ const ServiceAddModal = ({categories, serviceCatalog, onAdd, onClose}: ServiceAd
                             <StyledI18nTitle>다국어 이름 (선택)</StyledI18nTitle>
                             <StyledI18nHint>고객 예약 페이지에서 해당 언어로 보일 이름입니다. 비우면 위 이름이 그대로 표시됩니다.</StyledI18nHint>
                             <label htmlFor="service-add-name-en">
-                                <span>English</span>
+                                <StyledI18nLabel>English</StyledI18nLabel>
                                 <input id="service-add-name-en" value={nameEn} onChange={(e) => setNameEn(e.target.value)} placeholder="English" />
                             </label>
                             <label htmlFor="service-add-name-ja">
-                                <span>日本語</span>
+                                <StyledI18nLabel>日本語</StyledI18nLabel>
                                 <input id="service-add-name-ja" value={nameJa} onChange={(e) => setNameJa(e.target.value)} placeholder="日本語" />
                             </label>
                             <label htmlFor="service-add-name-zh">
-                                <span>中文</span>
+                                <StyledI18nLabel>中文</StyledI18nLabel>
                                 <input id="service-add-name-zh" value={nameZh} onChange={(e) => setNameZh(e.target.value)} placeholder="中文" />
                             </label>
                         </StyledI18nBlock>

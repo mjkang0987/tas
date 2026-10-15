@@ -351,3 +351,10 @@ export const StyledI18nHint = styled.p`
     line-height: 1.4;
     color: var(--dark-gray-color2);
 `;
+
+// 다국어 입력 라벨 — 모달 폼의 다른 라벨(12px·600)과 같은 모양. 맨 span 은 본문 기본 크기로 커 보였다.
+export const StyledI18nLabel = styled.span`
+    font-size: var(--small-font);
+    font-weight: 600;
+    color: var(--dark-gray-color);
+`;

@@ -37,12 +37,15 @@ const StyledReservationTitleGroup = styled.div`
     min-width: 0;
     flex: 1;
     overflow: hidden;
+    align-self: center; /* 헤더가 flex-start 라 공용 StyledHeaderTitle 처럼 닫기 버튼과 세로 가운데를 맞춘다 */
 `;
 
 const StyledReservationTitle = styled.strong`
     display: block;
     margin: 0;
-    font-size: var(--big-font);
+    font-size: var(--modal-title-font);
+    font-weight: 700;
+    letter-spacing: -0.02em;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;

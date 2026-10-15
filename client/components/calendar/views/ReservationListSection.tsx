@@ -267,6 +267,14 @@ const StyledListPanel = styled(StyledDetail)`
     /* 바깥 StyledListSection 이 경계를 긋는다(모바일 위, 데스크톱 왼쪽). 패널은 테두리를 두지 않는다. */
     border: none;
     box-shadow: none;
+
+    /* StyledDetail 의 모바일 바텀시트 규칙(&&)이 이 패널에도 닿는다 — 모달이 아니므로 &&& 로 되돌린다 */
+    @media (max-width: 640px) {
+        &&& {
+            max-height: none;
+            border-radius: 0;
+        }
+    }
 `;
 
 const StyledListBody = styled(StyledBody)``;
