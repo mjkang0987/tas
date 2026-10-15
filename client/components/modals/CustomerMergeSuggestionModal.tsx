@@ -37,6 +37,13 @@ interface Props {
     onSkip: () => void;
     onDismiss: () => void;
     onReservationClick?: (reservation: Reservation) => void;
+    /**
+     * 고객정보 레이어 위에서 열 때 — 그 레이어(childDetail)보다 위로 올리고 고객명 링크를 끈다.
+     * 링크로 여는 고객정보는 childDetail 층이라 이 레이어 아래에 깔리기 때문이다.
+     */
+    overDetail?: boolean;
+    /** 닫기 버튼 문구를 바꾼다 — 자동 제안이 아닌데 '건너뛰기'(다시 안 뜸)는 맞지 않다 */
+    skipLabel?: string;
 }
 
 /** 경로별 문구. 상단/하단 카드가 뜻하는 바가 달라 그대로 쓸 수 없다 */
@@ -66,6 +73,8 @@ export const CustomerMergeSuggestionModal = ({
     onSkip,
     onDismiss,
     onReservationClick,
+    overDetail = false,
+    skipLabel,
 }: Props) => {
     const noop = useCallback(() => {}, []);
     const dialogRef = useDialogAccessibility<HTMLDivElement>(noop);
@@ -131,6 +140,10 @@ export const CustomerMergeSuggestionModal = ({
         }
     };
 
+    const renderName = (customer: Customer) => (overDetail
+        ? <StyledCustomerName as="span">{customer.name}</StyledCustomerName>
+        : <StyledCustomerName type="button" onClick={() => openCustomerDetail(customer.id)}>{customer.name}</StyledCustomerName>);
+
     const renderCustomerDetail = (customer: Customer) => {
         const {count: resCount, last: lastRes} = reservationSummary[customer.id] ?? {count: 0, last: null};
         const hasTags = customer.memoTags && customer.memoTags.length > 0;
@@ -192,7 +205,7 @@ export const CustomerMergeSuggestionModal = ({
     };
 
     return createPortal(
-        <StyledMergeOverlay role="dialog" aria-modal="true"
+        <StyledMergeOverlay $overDetail={overDetail} role="dialog" aria-modal="true"
                             aria-label={mode === 'manual' ? '고객 병합' : '고객 병합 제안'}>
             <StyledMergeModal ref={dialogRef} tabIndex={-1} onClick={(e) => e.stopPropagation()}>
                 <StyledHeader>
@@ -211,7 +224,7 @@ export const CustomerMergeSuggestionModal = ({
                             {sources.map((source) => (
                                 <StyledCustomerItem key={source.id}>
                                     <StyledIdentityRow>
-                                        <StyledCustomerName type="button" onClick={() => openCustomerDetail(source.id)}>{source.name}</StyledCustomerName>
+                                        {renderName(source)}
                                         <StyledTel>{source.tel ? formatTel(source.tel) : '연락처 없음'}</StyledTel>
                                     </StyledIdentityRow>
                                     {renderCustomerDetail(source)}
@@ -249,7 +262,7 @@ export const CustomerMergeSuggestionModal = ({
                                                     onChange={() => setSelectedTargetId(customer.id)}
                                                 />
                                             )}
-                                            <StyledCustomerName type="button" onClick={() => openCustomerDetail(customer.id)}>{customer.name}</StyledCustomerName>
+                                            {renderName(customer)}
                                             {mode === 'manual' && (
                                                 <LabelBadge $tone={isTarget ? 'info' : 'danger'}>
                                                     {isTarget ? '기준' : '삭제'}
@@ -267,7 +280,7 @@ export const CustomerMergeSuggestionModal = ({
                 </StyledScrollArea>
                 <StyledFooter>
                     <StyledActionButton type="button" onClick={onSkip} disabled={merging}>
-                        {copy.skipLabel}
+                        {skipLabel ?? copy.skipLabel}
                     </StyledActionButton>
                     <StyledActionButton type="button" $primary onClick={handleMerge} disabled={merging || !canMerge}>
                         {merging ? '병합 중...' : '병합'}
@@ -279,8 +292,8 @@ export const CustomerMergeSuggestionModal = ({
     );
 };
 
-const StyledMergeOverlay = styled(StyledOverlay)`
-    z-index: ${OVERLAY_Z_INDEX.supporting};
+const StyledMergeOverlay = styled(StyledOverlay)<{$overDetail: boolean}>`
+    z-index: ${(p) => p.$overDetail ? OVERLAY_Z_INDEX.confirm : OVERLAY_Z_INDEX.supporting};
 `;
 
 const StyledMergeModal = styled(StyledDetail)`
