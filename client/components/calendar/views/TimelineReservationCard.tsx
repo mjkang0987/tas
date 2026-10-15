@@ -258,13 +258,13 @@ const StyledTimelineServiceList = styled(ServiceChipList)`
     }
 `;
 
-/* 딤 위에 얹는다. 아래에 붙이는 건 가운데로 두면 좁은 칸에서 고객명을 덮기 때문이고,
+/* 딤 위, 세로 가운데. 내용은 카드 위쪽부터 흐르므로 짧은 카드에서도 이름과 겹치지 않는다.
    클릭을 통과시키는 건 눌러서 상세로 들어가 수락·거절해야 하기 때문이다. */
 const StyledPendingBadge = styled(LabelBadge)`
     position: absolute;
-    bottom: 2px;
+    top: 50%;
     left: 50%;
-    transform: translateX(-50%);
+    transform: translate(-50%, -50%);
     pointer-events: none;
     white-space: nowrap;
 `;
