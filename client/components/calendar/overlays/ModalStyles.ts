@@ -164,7 +164,8 @@ export const StyledDetail = styled.div<{ $width?: number | string }>`
     box-shadow: var(--modal-shadow);
     overflow: hidden;
 
-    /* 바텀시트: 전체 폭 + 위쪽만 둥글게. && 로 확장 모달들의 width/max-width 지정보다 우선한다 */
+    /* 바텀시트: 전체 폭 + 위쪽만 둥글게. && 로 확장 모달들의 width/max-width 지정보다 우선한다.
+       모달이 아닌 확장(ReservationListSection 의 목록 패널)은 &&& 로 되돌려야 한다. */
     @media (max-width: 640px) {
         && {
             width: 100%;
