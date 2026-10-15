@@ -7,17 +7,20 @@ import {NewCustomerBadge} from '../../ui/NewCustomerBadge';
 import {ServiceChipList} from '../../ui/ServiceChip';
 import type {Customer} from '../../../utils/customers';
 import type {Reservation} from '../../../utils/reservations';
-import {hasCompletedPayment} from '../../../utils/reservations';
 import type {DragPreview} from './timelineDrag';
 import type {TimelineLane} from './timelineEntries';
 import {cardDetailForHeight, type CardDetail} from '../../../features/reservations/timeline-scale';
 
 // 상태 접미사 — 어느 표시 단계에서도 같은 문구를 쓴다.
+//
+// 글자로 알리는 건 **달리 알릴 길이 없는 상태**뿐이다.
+// - 결제완료: 예약이 제대로 끝난 정상 종착점이다. 지난 예약 대부분에 같은 꼬리표가 달려
+//   읽을 것만 늘고, 정작 봐야 할 예외가 묻힌다.
+// - 취소·노쇼: 카드가 이미 빗금 + 무채색 + 취소선으로 말한다. 글자를 더하면 같은 말이 두 번이고,
+//   좁은 카드에서는 그 글자가 이름을 밀어낸다. (둘을 가르는 건 상세 레이어가 한다 — 앱 타임라인도 같다.)
+// - 확정대기: 아직 색·무늬로 드러내는 장치가 없어 글자가 유일한 신호다.
 function statusSuffix(reservation: Reservation): string {
-    if (reservation.status === 'requested') return ' (확정대기)';
-    if (reservation.status === 'cancelled') return ' (취소)';
-    if (reservation.status === 'noshow') return ' (노쇼)';
-    return hasCompletedPayment(reservation) ? ' (결제완료)' : '';
+    return reservation.status === 'requested' ? ' (확정대기)' : '';
 }
 
 type TimelineReservationCardProps = {
@@ -85,6 +88,7 @@ export function TimelineReservationCard({
             $height={blockHeight}
             $color={color}
             $cancelled={isCancelled}
+            $noshow={reservation.status === 'noshow'}
             $requested={reservation.status === 'requested'}
             onClick={(event: React.MouseEvent) => {
                 event.stopPropagation();
@@ -103,6 +107,15 @@ export function TimelineReservationCard({
                 </span>
             )}
             {detail === 'full' ? (<>
+                {/* 앱 블록과 같은 차례 — 시작시간 / 고객명 / 시술.
+                    누가 오는지가 무엇을 받는지보다 먼저 읽혀야 한다. */}
+                <span className="start-time">{reservation.startTime}</span>
+                {customerName && (
+                    <span className="detail">
+                        {isNewCustomer && <NewCustomerBadge>신규</NewCustomerBadge>}
+                        <span>{customerName}</span>
+                    </span>
+                )}
                 <strong className="highlight">
                     <StyledTimelineServiceList service={reservation.service}
                                               serviceColorMap={serviceColorMap}
@@ -110,17 +123,14 @@ export function TimelineReservationCard({
                     {statusSuffix(reservation)}
                 </strong>
                 {preview && <span className="sub">{preview.date} {preview.startTime}~{preview.endTime}</span>}
-                {customerName && (
-                    <span className="detail">
-                        {isNewCustomer && <NewCustomerBadge>신규</NewCustomerBadge>}
-                        <span>{customerName}</span>
-                    </span>
-                )}
             </>) : (
                 // 한 줄에 담는다. 넘치면 말줄임 — 무엇인지는 왼쪽 색 막대가 이미 말해준다.
                 <span className="oneline">
                     {isNewCustomer && !minimal && <NewCustomerBadge>신규</NewCustomerBadge>}
                     <span className="oneline-text">
+                        {/* 한 줄 단계에도 시작시간을 둔다 — 세 줄이 안 되는 카드라고
+                            시간을 잃으면 타임라인에서 눈금을 되짚어야 한다. */}
+                        {!minimal && <span className="start-time-inline">{reservation.startTime}</span>}
                         {customerName || '고객'}
                         {detail === 'compact' && reservation.service ? ` · ${reservation.service}` : ''}
                         {minimal ? '' : statusSuffix(reservation)}
@@ -167,7 +177,7 @@ export function TimelineDragGhost({
                 <StyledTimelineServiceList service={reservation.service}
                                           serviceColorMap={serviceColorMap}
                                           keyPrefix={`ghost-${reservation.id}`} />
-                {reservation.status === 'requested' ? ' (확정대기)' : reservation.status === 'cancelled' ? ' (취소)' : reservation.status === 'noshow' ? ' (노쇼)' : hasCompletedPayment(reservation) ? ' (결제완료)' : ''}
+                {statusSuffix(reservation)}
             </strong>
             <span className="sub">{preview.date} {preview.startTime}~{preview.endTime}</span>
             {customerName && (

@@ -84,9 +84,10 @@ describe('cardHeightFor', () => {
 
 describe('cardDetailForHeight', () => {
     it('높이에 따라 내용을 줄인다', () => {
+        // 세 줄(시작시간·고객명·시술)에 필요한 높이는 49px — 브라우저 실측. 기준은 50px.
+        expect(cardDetailForHeight(60)).toBe('full');
         expect(cardDetailForHeight(50)).toBe('full');
-        expect(cardDetailForHeight(36)).toBe('full');
-        expect(cardDetailForHeight(35)).toBe('compact');
+        expect(cardDetailForHeight(49)).toBe('compact');
         expect(cardDetailForHeight(20)).toBe('compact');
         expect(cardDetailForHeight(19)).toBe('name');
     });

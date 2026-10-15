@@ -16,6 +16,8 @@ interface Props {
     $height?: number | undefined;
     $color?: string | undefined;
     $cancelled?: boolean | undefined;
+    /** 노쇼만 교차 빗금 — 취소와 가르기 위해. `$cancelled` 와 함께 켠다. */
+    $noshow?: boolean | undefined;
     $requested?: boolean | undefined;
     $active?: boolean | undefined;
     /** 카드 높이에 맞춘 표시 단계 — 'full'(두 줄) | 'compact'(한 줄) | 'name'(이름만). */
@@ -109,13 +111,19 @@ const StyledReserveButton = styled.button <Props>`
     ${props => props.$cancelled && `
         border-color: var(--gray-color);
         border-left-color: var(--gray-color);
-        background: repeating-linear-gradient(-45deg, rgba(0, 0, 0, 0.05) 0 6px, transparent 6px 12px), var(--gray-color2);
+        /* 취소는 한 방향 빗금, 노쇼는 교차 빗금. 카드에서 상태 글자를 뺀 뒤로
+           둘을 가르는 건 이 무늬뿐이다 — 각도만 다르면 나란히 두지 않는 한 구별이 안 된다.
+           (노쇼가 더 촘촘한 쪽인 건 매출이 빈 자리라 눈에 걸려야 하기 때문이다.) */
+        background: repeating-linear-gradient(-45deg, rgba(0, 0, 0, 0.05) 0 6px, transparent 6px 12px)${props.$noshow ? `,
+                    repeating-linear-gradient(45deg, rgba(0, 0, 0, 0.05) 0 6px, transparent 6px 12px)` : ''}, var(--gray-color2);
 
         /* 시술 칩도 함께 죽인다 — 칩만 색이 남으면 빗금 위에 떠 끝난 예약이 살아 보인다. */
         ${StyledServiceText} { color: var(--dark-gray-color2); }
     `}
     border-radius: var(--radius-sm);
-    padding: 4px 6px;
+    /* 세로 2px — 세 줄(시작시간·고객명·시술)이 30분 예약 높이(50px)에 들어가야 한다.
+       4px 이면 4px 이 모자라 가장 흔한 길이의 카드가 모두 넘쳤다. */
+    padding: 2px 6px;
     color: ${props => 'var(--dark-gray-color)'};
     font-size: var(--xsmall-font);
     overflow: hidden;
@@ -128,14 +136,31 @@ const StyledReserveButton = styled.button <Props>`
     transition: max-height 0.2s ease, box-shadow 0.2s ease;
     text-align: left;
     @media (max-width: 640px) {
-        padding: 4px 2px;
+        padding: 2px 2px;
     }
 
     .highlight {
-        display: inline;
+        /* 제 줄을 가진다. inline 이면 라인박스 여백으로 줄 사이에 2px 이 더 붙어,
+           세 줄 카드가 30분 예약 높이(50px)를 넘긴다. */
+        display: block;
         font-weight: 600;
         font-size: var(--small-font);
         text-decoration: ${props => props.$cancelled ? 'line-through' : 'none'};
+    }
+
+    /* 시작시간 — 앱 블록과 같이 맨 윗줄에 따로. 숫자가 흔들리지 않게 고정폭. */
+    .start-time {
+        display: block;
+        font-weight: 600;
+        font-size: var(--small-font);
+        font-variant-numeric: tabular-nums;
+    }
+
+    /* 한 줄 카드의 시작시간 — 이름 앞에 붙는다. 취소선이 번지지 않게 따로 둔다. */
+    .start-time-inline {
+        margin-right: 4px;
+        font-weight: 600;
+        font-variant-numeric: tabular-nums;
     }
 
     .normal {
@@ -148,9 +173,9 @@ const StyledReserveButton = styled.button <Props>`
         font-size: var(--tiny-font);
     }
 
+    /* 고객명 줄 — 시작시간 아래, 시술 위. 제 줄을 가진다(앱 블록과 같은 차례). */
     .detail {
-        display: inline;
-        margin-left: 4px;
+        display: block;
         font-size: var(--tiny-font);
     }
 
