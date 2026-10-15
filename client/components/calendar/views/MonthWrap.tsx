@@ -43,10 +43,14 @@ export const MonthWrap = () => {
 
 const StyledMonthWrap = styled.ul`
   /* 아래에 예약 목록이 붙어도 달력이 자리를 내주며 눌리지 않게.
-     flex: 1 은 basis 0 이라 형제가 생기면 0 까지 쪼그라든다 — basis 를 auto 로 두고
-     min-height 로 바닥을 깐다. 혼자 있을 때는 높이가 같아 보이는 모습이 그대로다. */
-  flex: 1 0 auto;
-  min-height: 100%;
+     flex: 1 은 basis 0 이라 형제가 생기면 0 까지 쪼그라든다 — basis 를 auto 로 둔다.
+     **바닥을 min-height: 100% 로 깔지 않는다.** 100% 는 부모 **전체** 높이인데,
+     부모(세로 flex)에는 요일 머리줄(일 월 화 …, 21px)이 이미 들어 있다. 그래서 격자가
+     머리줄만큼 아래로 넘쳤고, 상위 overflow: hidden 이 **마지막 줄을 21px 잘라내**
+     그 줄만 낮아 보였다(6주짜리 달에서 특히 눈에 띈다).
+     min-height: 0 + flex-shrink: 1 로 두면 머리줄을 뺀 **남는 자리**를 채운다. */
+  flex: 1 1 auto;
+  min-height: 0;
 
   /* 모바일은 칸에 이름 한 줄만 들어가므로 화면을 꽉 채울 이유가 없다.
      칸 높이를 내용에 맞춰 줄이고(한 줄 기준 46px), 남는 자리는 아래 목록이 쓴다. */
