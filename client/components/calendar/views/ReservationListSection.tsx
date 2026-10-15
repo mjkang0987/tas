@@ -249,7 +249,11 @@ const StyledListSection = styled.section`
     /* 데스크톱은 달력 오른쪽 기둥. 제 안에서 스크롤해 달력을 밀지 않는다. */
     @media (min-width: 641px) {
         flex: 0 0 auto;
-        width: 340px;
+        /* 폭은 달력에서 떼어오는 몫이다 — 고정 340px 이면 좁은 화면에서 달력 칸이
+           이름 한 글자도 못 담을 만큼 줄었다. 화면에 비례하되 위아래로 묶는다. */
+        width: 30%;
+        min-width: 200px;
+        max-width: 280px;
         height: 100%;
         border-top: none;
         border-left: 1px solid var(--light-gray-color);
