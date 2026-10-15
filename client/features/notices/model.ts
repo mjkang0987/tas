@@ -14,8 +14,8 @@ export interface StoreNotice {
     titleI18n?: NoticeI18n | null;
     body: string;
     bodyI18n?: NoticeI18n | null;
-    visible: boolean;
-    pinned: boolean;
+    visible: boolean; // '노출' — 고객 예약 페이지에 표시(최대 MAX_VISIBLE_NOTICES)
+    pinned: boolean; // 웹 미사용. iOS 앱이 아직 '상단 고정'으로 보내고 받아 API 호환용으로만 남김
     createdAt: string; // ISO
 }
 
@@ -26,8 +26,9 @@ export const NOTICE_CATEGORIES: {value: NoticeCategory; label: string}[] = [
     {value: 'info', label: '안내'},
 ];
 
-// 상단 고정 가능한 공지 최대 개수(서버 강제 + 오너 화면 안내 공유).
-export const MAX_PINNED_NOTICES = 3;
+// 노출(visible) 가능한 공지 최대 개수(서버 강제 + 오너 화면 안내 + 공개 API take 공유).
+// iOS 앱의 '상단 고정'(pinned) 한도도 같은 값을 쓴다.
+export const MAX_VISIBLE_NOTICES = 3;
 
 export function noticeCategoryLabel(category: string): string {
     return NOTICE_CATEGORIES.find((c) => c.value === category)?.label ?? '공지';
