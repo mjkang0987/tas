@@ -83,6 +83,7 @@ export const CustomerMergeSuggestionModal = ({
     const categoryBaseColorMap = useCalendarStore((s) => s.categoryBaseColorMap);
     const assignees = useCalendarStore((s) => s.assignees);
     const openReservationDetail = useCalendarStore((s) => s.openReservationDetail);
+    const openCustomerDetail = useCalendarStore((s) => s.openCustomerDetail);
 
     const serviceColorMap = useMemo(
         () => buildServiceColorMap(serviceCatalog, categoryBaseColorMap),
@@ -210,7 +211,7 @@ export const CustomerMergeSuggestionModal = ({
                             {sources.map((source) => (
                                 <StyledCustomerItem key={source.id}>
                                     <StyledIdentityRow>
-                                        <StyledCustomerName>{source.name}</StyledCustomerName>
+                                        <StyledCustomerName type="button" onClick={() => openCustomerDetail(source.id)}>{source.name}</StyledCustomerName>
                                         <StyledTel>{source.tel ? formatTel(source.tel) : '연락처 없음'}</StyledTel>
                                     </StyledIdentityRow>
                                     {renderCustomerDetail(source)}
@@ -248,7 +249,7 @@ export const CustomerMergeSuggestionModal = ({
                                                     onChange={() => setSelectedTargetId(customer.id)}
                                                 />
                                             )}
-                                            <StyledCustomerName>{customer.name}</StyledCustomerName>
+                                            <StyledCustomerName type="button" onClick={() => openCustomerDetail(customer.id)}>{customer.name}</StyledCustomerName>
                                             {mode === 'manual' && (
                                                 <LabelBadge $tone={isTarget ? 'info' : 'danger'}>
                                                     {isTarget ? '기준' : '삭제'}
@@ -374,10 +375,23 @@ const StyledRadio = styled.input`
     accent-color: var(--blue-color);
 `;
 
-const StyledCustomerName = styled.span`
+/* 누르면 고객정보 레이어를 연다(포인트 탭 고객명 버튼과 같은 모양). 라디오 라벨 안에 있어도
+   라벨 안의 버튼은 라벨 활성화를 일으키지 않으므로 이름 클릭은 선택이 아니라 고객정보다. */
+const StyledCustomerName = styled.button`
+    padding: 0;
+    border: none;
+    background: none;
     font-size: var(--font);
     font-weight: 700;
     color: #0f172a;
+    text-align: left;
+    cursor: pointer;
+
+    @media (hover: hover) and (pointer: fine) {
+        &:hover {
+            color: var(--blue-color);
+        }
+    }
 `;
 
 const StyledTel = styled.span`
