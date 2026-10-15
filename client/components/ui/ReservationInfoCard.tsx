@@ -8,6 +8,7 @@ import {AssigneeLabel} from './AssigneeLabel';
 import {ReservationStatusBadge} from './ReservationStatusBadge';
 import {NewCustomerBadge} from './NewCustomerBadge';
 import {ServiceChipList} from './ServiceChip';
+import {inactiveHatch} from '../../features/reservations/inactiveHatch';
 
 type ReservationInfoCardProps = {
     reservation: Reservation;
@@ -76,6 +77,7 @@ export function ReservationInfoCard({
         <StyledCard
             {...(clickable ? {as: 'button' as const, type: 'button' as const} : {})}
             className={[className, isInactive ? 'inactive' : ''].filter(Boolean).join(' ') || undefined}
+            $noshow={reservation.status === 'noshow'}
             $accentColor={accentColor ?? assigneeColor}
             $accentBar={accentBar}
             $clickable={clickable}
@@ -166,6 +168,8 @@ const StyledCard = styled.div<{
     $accentColor: string;
     $accentBar: boolean;
     $clickable: boolean;
+    /** 노쇼만 빗금을 붉게 — 취소와 가른다(`inactiveHatch`). */
+    $noshow?: boolean;
 }>`
     display: flex;
     align-items: flex-start;
@@ -196,7 +200,7 @@ const StyledCard = styled.div<{
         border-color: var(--gray-color);
         border-left-color: var(--gray-color);
         background:
-            repeating-linear-gradient(-45deg, rgba(0, 0, 0, 0.05) 0 6px, transparent 6px 12px),
+            ${(p) => inactiveHatch(p.$noshow)},
             var(--gray-color2);
     }
 
@@ -204,7 +208,7 @@ const StyledCard = styled.div<{
         &.inactive:hover {
             border-color: var(--gray-color);
             background:
-                repeating-linear-gradient(-45deg, rgba(0, 0, 0, 0.05) 0 6px, transparent 6px 12px),
+                ${(p) => inactiveHatch(p.$noshow)},
                 var(--gray-color2);
         }
     }

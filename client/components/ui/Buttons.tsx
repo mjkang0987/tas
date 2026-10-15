@@ -2,6 +2,7 @@ import styled from 'styled-components';
 
 import {StyledServiceText} from './ServiceChip';
 import React from 'react';
+import {inactiveHatch} from '../../features/reservations/inactiveHatch';
 
 interface Props {
     children: React.ReactNode | string;
@@ -111,7 +112,7 @@ const StyledReserveButton = styled.button <Props>`
         /* 취소와 노쇼는 **색**으로 가른다 — 취소는 무채색, 노쇼는 붉은 기운(매출이 빈 자리라
            눈에 걸려야 한다). 무늬를 교차로 바꾸는 방식도 써 봤으나 나란히 두지 않으면
            구별이 어렵고 촘촘해져 글자를 가렸다. */
-        background: repeating-linear-gradient(-45deg, ${props.$noshow ? 'rgba(201, 58, 48, 0.18)' : 'rgba(0, 0, 0, 0.05)'} 0 6px, transparent 6px 12px), var(--gray-color2);
+        background: ${inactiveHatch(props.$noshow)}, var(--gray-color2);
 
         /* 시술 칩도 함께 죽인다 — 칩만 색이 남으면 빗금 위에 떠 끝난 예약이 살아 보인다. */
         ${StyledServiceText} { color: var(--dark-gray-color2); }
