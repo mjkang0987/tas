@@ -1,6 +1,7 @@
 import {Component, type ErrorInfo, type ReactNode} from 'react';
 
 import {ConfirmDialog} from '../../ui/ConfirmDialog';
+import {reportClientError} from '../../../utils/reportClientError';
 
 interface LayerErrorBoundaryProps {
     children: ReactNode;
@@ -31,9 +32,12 @@ export class LayerErrorBoundary extends Component<LayerErrorBoundaryProps, Layer
     }
 
     componentDidCatch(error: Error, info: ErrorInfo) {
-        // 외부 리포팅은 아직 없다. 최소한 콘솔에는 어느 레이어였는지 남긴다 —
-        // 운영 번들은 스택이 난독화돼 있어 이 한 줄이 유일한 단서가 된다.
+        // 운영 번들은 스택이 난독화돼 있어 "어느 레이어였는지"가 유일한 단서가 된다.
         console.error(`[${this.props.title}] 레이어를 표시하지 못했습니다.`, error, info.componentStack);
+        // 사용자 브라우저에서 생기고 사라지지 않도록 ops 채널까지 올린다.
+        // componentStack 은 난독화된 컴포넌트 이름뿐이라 알림에서 읽히지 않는다.
+        // error.stack 은 최소한 터진 청크·오프셋을 가리켜 빌드와 대조할 수 있다.
+        reportClientError(this.props.title, error);
     }
 
     private handleRetry = () => {
