@@ -151,6 +151,9 @@
 - 딤: `StyledOverlay` 배경 `rgba(15, 23, 42, 0.4)` + 블러 `--overlay-backdrop-blur`.
 - **모바일(≤640px)은 바텀시트** — 화면 아래에 붙는 전체 폭, 위쪽만 `--modal-radius-mobile`, 푸터 하단에 `env(safe-area-inset-bottom)` 추가.
   확장 모달(`styled(StyledDetail)`)의 폭 지정보다 우선하도록 `&&` 로 적용한다.
+- **짧은 확인창은 모바일에서도 가운데 카드** — `StyledConfirmOverlay`/`StyledConfirmModal`(또는 `ConfirmDialog`)로 만든다(`&&&` 로 시트 규칙을 되돌림).
+  확인창을 `StyledDetail` 로 직접 만들면 모바일에서 시트가 된다.
+- 모달이 아닌 곳에서 `StyledDetail` 을 재사용하면(캘린더 예약 목록 패널) 모바일 시트 규칙을 `&&&` 로 되돌려야 한다.
 - 제목은 `--modal-title-font`(16px)·닫기 버튼과 세로 가운데. 화면별로 `--big-font` 를 쓰지 않는다.
 - 하단 버튼은 **채운 색(primary/danger) 하나만** — 주 동작 하나. 나머지는 테두리 버튼.
   확인 버튼은 「확인」이 아니라 하는 일을 이름으로 쓴다(예: 「예약 취소」·「삭제」·「거절」). 「취소」는 닫기 전용.
