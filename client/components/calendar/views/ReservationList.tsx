@@ -145,7 +145,13 @@ const StyledMeta = styled.span`
 const StyledTimeMeta = styled(StyledMeta)`
     /* 시간은 줄이지 않는다 — 줄어들 자리는 이름이 낸다. */
     flex-shrink: 0;
-    ${onMobile('display: none;')}
+
+    /* 1000px 이하에서는 접는다. 칸이 좁아지면 "10:00 이서연" 이 다 안 들어가
+       이름이 "이..." 로 잘리는데, 몇 시인지는 칸의 세로 위치와 상세가 이미 말한다.
+       누가 오는지가 먼저 읽혀야 한다. */
+    @media (max-width: 1000px) {
+        display: none;
+    }
 `;
 
 /* 신규고객 배지는 배지+간격만 18px — 남은 글자 폭의 절반을 먹는다. 칸이 좁으면 접고 레이어에서 확인.
