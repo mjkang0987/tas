@@ -2,6 +2,7 @@ import type {NextApiRequest, NextApiResponse} from 'next';
 
 import {prisma} from '../db/prisma';
 import {getApiSession, requireRole} from '../auth/api-session';
+import {dbPaymentMethodToFrontend} from '../db/mappers';
 
 // 0 이상 정수 또는 null(빈값/무제한)로 정규화
 function parseOptInt(value: unknown): number | null {
@@ -47,6 +48,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                 issuedAt: m.issuedAt.toISOString(),
                 expiresAt: m.expiresAt ? m.expiresAt.toISOString() : null,
                 status: m.status,
+                // 판매분이면 금액·결제수단(매출), 기존 등록이면 null.
+                salePrice: m.salePrice,
+                salePaymentMethod: m.salePaymentMethod ? dbPaymentMethodToFrontend(m.salePaymentMethod) : null,
             })),
         });
     }

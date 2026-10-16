@@ -1,7 +1,7 @@
-import type {BenefitCoupon} from '../customers/benefits';
+import type {BenefitCoupon, BenefitMembership} from '../customers/benefits';
 export type ReservationStatus = 'active' | 'completed' | 'cancelled' | 'noshow' | 'requested';
 export type ReservationChannel = '네이버예약' | '현장방문' | '전화예약' | '온라인예약';
-export type PaymentMethod = '현금' | '현금+현금영수증' | '카드' | '네이버페이' | '지역화폐' | '지역화폐+현금영수증' | '상품권' | '적립금' | '할인' | '네이버 예약금';
+export type PaymentMethod = '현금' | '현금+현금영수증' | '카드' | '네이버페이' | '지역화폐' | '지역화폐+현금영수증' | '상품권' | '적립금' | '할인' | '네이버 예약금' | '회원권';
 
 export interface PaymentEntry {
     method: PaymentMethod;
@@ -9,10 +9,14 @@ export interface PaymentEntry {
 }
 
 /**
- * 매출(받은 돈)에 넣지 않는 결제수단 — 할인(쿠폰 포함)과 적립금(매장이 돌려준 돈)으로 낸 만큼은 받은 돈이 아니다.
+ * 매출(받은 돈)에 넣지 않는 결제수단 — 할인(쿠폰 포함)·적립금·회원권으로 낸 만큼은 이 예약에서 받은 돈이 아니다.
+ * (적립금 충전·회원권 판매는 그때 매출로 따로 잡힌다 — `features/sales`)
  * 매출 합계·결제 합계·적립 자동 계산이 모두 이 목록을 기준으로 뺀다.
  */
-export const NON_REVENUE_PAYMENT_METHODS: readonly PaymentMethod[] = ['할인', '적립금'];
+export const NON_REVENUE_PAYMENT_METHODS: readonly PaymentMethod[] = ['할인', '적립금', '회원권'];
+
+/** 실제로 돈을 받는 결제수단 — 적립금 충전·회원권 판매처럼 '받은 돈'을 고를 때 쓴다(적립금·할인·회원권·네이버 예약금 제외) */
+export const RECEIVED_PAYMENT_METHODS: readonly PaymentMethod[] = ['현금', '현금+현금영수증', '카드', '네이버페이', '지역화폐', '지역화폐+현금영수증', '상품권'];
 
 export function isRevenuePaymentMethod(method: PaymentMethod): boolean {
     return !NON_REVENUE_PAYMENT_METHODS.includes(method);
@@ -47,6 +51,8 @@ export interface Reservation {
     channel?: ReservationChannel;
     /** 이 예약 결제에 쓴 쿠폰(서버 기록). 결제 레이어가 보이고, 바꾸면 되돌린다 */
     usedCoupon?: BenefitCoupon;
+    /** 이 예약 결제에 쓴 회원권(서버 기록) */
+    usedMembership?: BenefitMembership;
 }
 
 export type ReservationMap = Record<string, Reservation[]>;

@@ -5,7 +5,8 @@ import styled, {css} from 'styled-components';
 import type {PaymentMethod} from '../../../utils/reservations';
 import {formatPrice} from '../../../utils/services';
 import {computeCouponDiscount, describeCouponDiscount} from '../../../features/coupons/model';
-import type {BenefitCoupon} from '../../../features/customers/benefits';
+import type {BenefitCoupon, BenefitMembership} from '../../../features/customers/benefits';
+import {describeBenefitMembership} from '../../../features/customers/benefits';
 import {StyledBody, StyledBodyInner} from './ModalStyles';
 import type {PaymentEntryDraft, PointAwardDraft} from './reservationDetailTypes';
 
@@ -26,6 +27,10 @@ type ReservationDetailPaymentLayerProps = {
     couponOptions: BenefitCoupon[];
     selectedCouponId: string;
     onSelectCoupon: (couponId: string) => void;
+    /** 이 고객이 쓸 수 있는 회원권(+이 예약에 이미 쓴 회원권). 비어 있으면 회원권 칸을 숨긴다 */
+    membershipOptions: BenefitMembership[];
+    selectedMembershipId: string;
+    onSelectMembership: (membershipId: string) => void;
     onRemoveEntry: (index: number) => void;
     onAddEntry: () => void;
     onNavigateToPoints: () => void;
@@ -43,6 +48,9 @@ export function ReservationDetailPaymentLayer({
     couponOptions,
     selectedCouponId,
     onSelectCoupon,
+    membershipOptions,
+    selectedMembershipId,
+    onSelectMembership,
     onChangeEntryMethod,
     onChangeEntryAmount,
     onTogglePointAward,
@@ -92,6 +100,23 @@ export function ReservationDetailPaymentLayer({
                             </StyledPaymentEntrySelect>
                         </StyledCouponField>
                     )}
+                    {membershipOptions.length > 0 && (
+                        <StyledCouponField htmlFor="payment-membership">
+                            <span>회원권 (1회 차감 · 판매 때 매출로 잡혀 여기선 매출 제외)</span>
+                            <StyledPaymentEntrySelect
+                                id="payment-membership"
+                                value={selectedMembershipId}
+                                onChange={(e) => onSelectMembership(e.target.value)}
+                            >
+                                <option value="">회원권 사용 안 함</option>
+                                {membershipOptions.map((membership) => (
+                                    <option key={membership.id} value={membership.id}>
+                                        {membership.name} · {describeBenefitMembership(membership)}
+                                    </option>
+                                ))}
+                            </StyledPaymentEntrySelect>
+                        </StyledCouponField>
+                    )}
                     <StyledPaymentEntryList>
                         {paymentEntries.map((entry, index) => (
                             <StyledPaymentEntryRow key={`payment-entry-${index}`}>
@@ -99,11 +124,15 @@ export function ReservationDetailPaymentLayer({
                                     id={`payment-entry-${index}-method`}
                                     value={entry.method}
                                     // 쿠폰 줄은 종류·금액을 쿠폰이 정한다 — 바꾸려면 위 쿠폰 칸에서.
-                                    disabled={!!entry.couponId}
-                                    aria-label={entry.couponId ? '쿠폰 할인' : undefined}
+                                    disabled={!!entry.couponId || !!entry.membershipId}
+                                    aria-label={entry.couponId ? '쿠폰 할인' : entry.membershipId ? '회원권 결제' : undefined}
                                     onChange={(e) => onChangeEntryMethod(index, e.target.value as PaymentMethod | '')}
                                 >
                                     <option value="">결제종류</option>
+                                    {/* '회원권'은 회원권 칸에서만 생긴다 — 그 줄에서만 보이게(직접 고르면 차감 없이 매출만 빠진다) */}
+                                    {entry.method && !paymentMethodOptions.includes(entry.method) && (
+                                        <option value={entry.method}>{entry.method}</option>
+                                    )}
                                     {paymentMethodOptions.map((option) => (
                                         <option key={option} value={option}>{option}</option>
                                     ))}

@@ -121,16 +121,17 @@ export const PointSettingsTab = ({pointSettingsDraft, setPointSettingsDraft, isE
             <StyledPolicyCard>
                 <StyledRechargeHeader>
                     <StyledRechargeTitle>충전 기준</StyledRechargeTitle>
+                    {/* 이 카드엔 [수정]이 따로 없어, 위 카드 [수정]을 안 누르면 버튼이 막혀 "안 눌린다"였다 — 누르면 바로 수정 모드로. */}
                     <StyledAddRuleButton
                         type="button"
-                        disabled={!isEditingPolicy}
-                        onClick={() => setPointSettingsDraft((prev) => ({
-                            ...prev,
-                            rechargeRules: [
-                                ...prev.rechargeRules,
-                                {baseAmount: 0, bonusAmount: 0},
-                            ],
-                        }))}
+                        onClick={() => {
+                            const base = isEditingPolicy ? pointSettingsDraft : storeSettings.pointSettings;
+                            setPointSettingsDraft({
+                                ...base,
+                                rechargeRules: [...base.rechargeRules, {baseAmount: 0, bonusAmount: 0}],
+                            });
+                            setIsEditingPolicy(true);
+                        }}
                     >
                         기준 추가
                     </StyledAddRuleButton>
