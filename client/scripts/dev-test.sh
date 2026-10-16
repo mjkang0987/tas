@@ -15,6 +15,8 @@ if [ -f "$PROJECT_DIR/.env.local" ]; then
 fi
 
 export DATABASE_URL="postgresql://${DB_USER:-n230418003}@localhost:5432/takeaseat_test"
+# .env 에서 읽힌 운영 DIRECT_URL 이 남지 않게 같은 로컬 URL 로 덮는다.
+export DIRECT_URL="$DATABASE_URL"
 export TEST_DB=1
 
 DEV_HOSTNAME="${DEV_HOSTNAME:-dev.takeaseat.co.kr}"

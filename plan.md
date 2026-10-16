@@ -350,6 +350,26 @@ Cloud Build 트리거는 `^main$`뿐이라 release 브랜치 머지는 배포를
 
 ---
 
+## 검증 완료(PR 대기) — `setup-test-db.sh`가 운영 DB로 마이그레이션하던 문제 (`fix/setup-test-db-direct-url`)
+
+### 문제
+`client/scripts/setup-test-db.sh`는 `DATABASE_URL`만 테스트 DB로 바꾸는데, `prisma.config.ts`는
+`DIRECT_URL ?? DATABASE_URL`을 쓰고 `dotenv/config`로 `.env`를 읽는다. `.env`의 `DIRECT_URL`은 **운영 Supabase(direct 5432)**라
+`prisma migrate deploy`가 **운영**을 향한다. 시드(`seed.mjs`)는 `DATABASE_URL`(PrismaPg)이라 테스트 DB로 가서 둘이 갈라지기까지 한다.
+
+### 구현
+- `setup-test-db.sh`: `DIRECT_URL`도 `DATABASE_URL`과 같은 로컬 URL로 export(dotenv는 이미 있는 env를 덮지 않는다).
+  `migrate-local.sh`와 같은 host 가드(대상 host 출력, `localhost`/`127.0.0.1` 아니면 중단)를 migrate 전에 둔다.
+  검증용으로 `DB_NAME`을 env로 덮을 수 있게 한다(기본 `takeaseat_test`).
+- `dev-test.sh`: `next dev`만 돌리고 런타임은 `DIRECT_URL`을 안 읽어 지금은 안전. 그래도 `.env`를 source해 운영 `DIRECT_URL`이
+  남으므로 같은 로컬 URL로 덮어 둔다(한 줄).
+
+### 검증
+- ✓ `DB_NAME=takeaseat_tmpcheck`: `Datasource "db": ... database "takeaseat_tmpcheck" ... at "localhost:5432"`, 22개 마이그레이션 적용·시드 성공,
+  재실행 시 `No pending migrations`. 확인 후 임시 DB 삭제.
+- ✓ `DB_USER='x@db.example.supabase.co'` → 가드가 거부(exit 1). 가드는 `createdb`보다 앞에 둬 아무것도 실행되기 전에 막는다.
+- 기존 `takeaseat_test`는 마이그레이션 이력이 낡아(옛 이름 2개) 건드리지 않는다 — 리셋은 사용자 확인 후.
+
 ## 완료 — 타임라인 카드에 시작시간 + 예약 상태 표기 정리 (웹·앱 동시)
 
 ### 한 일
