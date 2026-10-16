@@ -3,6 +3,7 @@ import type {NextApiRequest, NextApiResponse} from 'next';
 import {Prisma} from '../../client/prisma/generated/prisma/client';
 
 import {prisma} from '../db/prisma';
+import {createWithFreeLegacyId, isUniqueConflict, nextCustomerLegacyId} from '../db/legacy-id';
 import {getApiSession, requireRole} from '../auth/api-session';
 import {dbCustomerToFrontend} from '../db/mappers';
 import {notifySlackOpsError} from '../notify/slack';
@@ -42,15 +43,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             return res.status(400).json({error: 'Invalid customer payload'});
         }
 
-        // 삭제(익명 처리)된 고객은 되살리지 않는다 — 오래된 화면이 실명을 다시 써 넣는 것을 막는다.
-        const existing = await prisma.customer.findUnique({
-            where: {storeId_legacyId: {storeId: session.storeId, legacyId: customer.id}},
-            select: {deletedAt: true},
-        });
-        if (existing?.deletedAt) {
-            return res.status(409).json({error: 'Customer deleted'});
-        }
-
         const data = {
             name: customer.name,
             tel: normalizeTel(customer.tel),
@@ -58,13 +50,32 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             firstVisitDate: customer.firstVisitDate ? new Date(`${customer.firstVisitDate}T00:00:00`) : null,
         };
 
-        await prisma.customer.upsert({
+        // 생성 전용 — 같은 번호의 다른 고객을 **덮어쓰지 않는다**(예전 upsert 는 화면과 서버 번호가 겹치면 남의 고객을 바꿨다).
+        const existing = await prisma.customer.findUnique({
             where: {storeId_legacyId: {storeId: session.storeId, legacyId: customer.id}},
-            update: data,
-            create: {storeId: session.storeId, legacyId: customer.id, ...data},
+            select: {name: true, tel: true, deletedAt: true},
         });
+        // 같은 요청의 재시도(이미 같은 사람으로 저장됨)는 그대로 성공.
+        if (existing && !existing.deletedAt && existing.name === data.name && existing.tel === data.tel) {
+            return res.status(201).json({ok: true, id: customer.id});
+        }
 
-        return res.status(201).json({ok: true, id: customer.id});
+        try {
+            const created = await createWithFreeLegacyId(
+                customer.id,
+                !existing,
+                () => nextCustomerLegacyId(session.storeId),
+                (legacyId) => prisma.customer.create({
+                    data: {storeId: session.storeId, legacyId, ...data},
+                    select: {legacyId: true},
+                }),
+            );
+            // 번호가 바뀌었을 수 있다 — 화면은 이 번호로 고객을 옮긴다.
+            return res.status(201).json({ok: true, id: created.legacyId});
+        } catch (err) {
+            if (isUniqueConflict(err)) return res.status(409).json({error: 'Customer id conflict'});
+            throw err;
+        }
     }
 
     if (req.method === 'PUT') {

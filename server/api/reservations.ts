@@ -1,6 +1,7 @@
 import type {NextApiRequest, NextApiResponse} from 'next';
 
 import {prisma} from '../db/prisma';
+import {createWithFreeLegacyId, nextReservationLegacyId} from '../db/legacy-id';
 import {getApiSession, requireRole} from '../auth/api-session';
 import {
     dbReservationToFrontend,
@@ -72,10 +73,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             amount: e.amount,
         }));
 
-        const created = await prisma.reservation.create({
+        // 번호는 서버가 최종으로 정한다 — 화면이 보낸 번호가 네이버 동기화·온라인 예약이 먼저 쓴 번호면
+        // 예전엔 P2002 로 500 이 나 예약이 사라졌다. 겹치면 DB 최대+1 로 다시 만들고 실제 번호를 응답한다.
+        const created = await createWithFreeLegacyId(reservation.id, true, () => nextReservationLegacyId(session.storeId), (legacyId) => prisma.reservation.create({
             data: {
                 storeId: session.storeId,
-                legacyId: reservation.id,
+                legacyId,
                 customerId,
                 assigneeId,
                 date: new Date(`${reservation.date}T00:00:00`),
@@ -93,7 +96,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                     : undefined,
             },
             select: reservationSelect,
-        });
+        }));
 
         await notifySlackForStore(session.storeId,
             `🗓️ *새 예약*\n• 날짜: ${reservation.date}`
