@@ -529,7 +529,7 @@ export const CustomerDetail = ({customer, reservationMap, onClose, onReservation
                                 <>
                                     <StyledInfoTerm>회원권</StyledInfoTerm>
                                     <StyledInfoDesc>
-                                        {benefits.memberships.map((m) => <StyledBenefitLine key={m.id}>{describeBenefitMembership(m)}</StyledBenefitLine>)}
+                                        {benefits.memberships.map((m) => <StyledBenefitLine key={m.id} title={describeBenefitMembership(m)}>{describeBenefitMembership(m)}</StyledBenefitLine>)}
                                     </StyledInfoDesc>
                                 </>
                             )}
@@ -537,7 +537,7 @@ export const CustomerDetail = ({customer, reservationMap, onClose, onReservation
                                 <>
                                     <StyledInfoTerm>쿠폰</StyledInfoTerm>
                                     <StyledInfoDesc>
-                                        {benefits.coupons.map((c) => <StyledBenefitLine key={c.id}>{describeBenefitCoupon(c)}</StyledBenefitLine>)}
+                                        {benefits.coupons.map((c) => <StyledBenefitLine key={c.id} title={describeBenefitCoupon(c)}>{describeBenefitCoupon(c)}</StyledBenefitLine>)}
                                     </StyledInfoDesc>
                                 </>
                             )}

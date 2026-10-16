@@ -151,7 +151,7 @@ export function ReservationViewSection({
                         <>
                             <StyledTerm>회원권</StyledTerm>
                             <StyledDesc>
-                                {benefits.memberships.map((m) => <StyledBenefitLine key={m.id}>{describeBenefitMembership(m)}</StyledBenefitLine>)}
+                                {benefits.memberships.map((m) => <StyledBenefitLine key={m.id} title={describeBenefitMembership(m)}>{describeBenefitMembership(m)}</StyledBenefitLine>)}
                             </StyledDesc>
                         </>
                     )}
@@ -159,7 +159,7 @@ export function ReservationViewSection({
                         <>
                             <StyledTerm>쿠폰</StyledTerm>
                             <StyledDesc>
-                                {benefits.coupons.map((c) => <StyledBenefitLine key={c.id}>{describeBenefitCoupon(c)}</StyledBenefitLine>)}
+                                {benefits.coupons.map((c) => <StyledBenefitLine key={c.id} title={describeBenefitCoupon(c)}>{describeBenefitCoupon(c)}</StyledBenefitLine>)}
                             </StyledDesc>
                         </>
                     )}
@@ -199,7 +199,7 @@ const StyledDetailBodyInner = styled(StyledBodyInner)``;
 
 const StyledDetailList = styled.dl`
     display: grid;
-    grid-template-columns: 60px 1fr;
+    grid-template-columns: 60px minmax(0, 1fr); /* 긴 값(회원권·쿠폰 한 줄)이 말줄임되도록 열이 내용만큼 늘지 않게 */
     gap: 8px 12px;
     margin: 0;
 `;
@@ -345,7 +345,10 @@ const StyledHistoryButton = styled.button`
     }
 `;
 
-/* 회원권·쿠폰은 여러 개일 수 있어 한 줄에 하나씩 */
+/* 회원권·쿠폰 — 항목 하나는 한 줄(넘치면 말줄임, 전체 문구는 title) */
 const StyledBenefitLine = styled.span`
     display: block;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
 `;

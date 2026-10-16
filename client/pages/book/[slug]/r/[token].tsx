@@ -279,7 +279,7 @@ export default function ReservationManagePage({bookBase}: ReservationManagePageP
                                 <StyledBenefitRow>
                                     <span>{benefitText.membership}</span>
                                     <StyledBenefitValues>
-                                        {benefits.memberships.map((m) => <span key={m.id}>{benefitMembershipL(m, lang)}</span>)}
+                                        {benefits.memberships.map((m) => <StyledBenefitItem key={m.id} title={benefitMembershipL(m, lang)}>{benefitMembershipL(m, lang)}</StyledBenefitItem>)}
                                     </StyledBenefitValues>
                                 </StyledBenefitRow>
                             )}
@@ -287,7 +287,7 @@ export default function ReservationManagePage({bookBase}: ReservationManagePageP
                                 <StyledBenefitRow>
                                     <span>{benefitText.coupon}</span>
                                     <StyledBenefitValues>
-                                        {benefits.coupons.map((c) => <span key={c.id}>{benefitCouponL(c, lang)}</span>)}
+                                        {benefits.coupons.map((c) => <StyledBenefitItem key={c.id} title={benefitCouponL(c, lang)}>{benefitCouponL(c, lang)}</StyledBenefitItem>)}
                                     </StyledBenefitValues>
                                 </StyledBenefitRow>
                             )}
@@ -550,7 +550,13 @@ const StyledBenefitValues = styled(StyledSummaryValue)`
     gap: 4px;
     min-width: 0;
     text-align: left;
-    overflow-wrap: anywhere;
+`;
+
+/* 항목 하나는 한 줄 — 좁은 화면에서 넘치면 말줄임, 전체 문구는 title 로 */
+const StyledBenefitItem = styled.span`
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
 `;
 
 const StyledActions = styled.div`

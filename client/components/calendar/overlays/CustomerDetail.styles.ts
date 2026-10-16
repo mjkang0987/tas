@@ -52,7 +52,7 @@ export const StyledInfo = styled.div`
 
 export const StyledInfoList = styled.dl`
     display: grid;
-    grid-template-columns: 60px 1fr;
+    grid-template-columns: 60px minmax(0, 1fr); /* 긴 값(회원권·쿠폰 한 줄)이 말줄임되도록 열이 내용만큼 늘지 않게 */
     gap: 4px 12px;
     margin: 0;
 `;
@@ -622,7 +622,10 @@ export const StyledNaverBookingLink = styled.a`
     }
 `;
 
-/* 정보 목록의 회원권·쿠폰 — 여러 개일 수 있어 한 줄에 하나씩 */
+/* 정보 목록의 회원권·쿠폰 — 항목 하나는 한 줄(넘치면 말줄임, 전체 문구는 title) */
 export const StyledBenefitLine = styled.span`
     display: block;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
 `;
