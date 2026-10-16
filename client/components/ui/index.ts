@@ -6,6 +6,7 @@ export {ColorPickerButton} from './ColorPickerButton';
 export {ColorTag} from './ColorTag';
 export {AssigneeLabel} from './AssigneeLabel';
 export {Dot} from './Dot';
+export {Emphasis} from './Emphasis';
 export {FieldError} from './FieldError';
 export {formControlStyle} from './FormControls';
 export {LabelBadge} from './LabelBadge';

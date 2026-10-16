@@ -23,8 +23,8 @@ interface ConfirmDialogProps {
     title: string;
     /** 헤더 제목 아래 보조 설명 */
     description?: string;
-    /** 단순 본문 텍스트 (줄바꿈 \n 지원) */
-    message?: string;
+    /** 본문 (줄바꿈 \n 지원). 꼭 읽혀야 하는 문구는 `Emphasis`로 감싼다 */
+    message?: ReactNode;
     /** 풍부한 본문 (dl 등). message 대신/함께 사용 */
     children?: ReactNode;
     confirmLabel?: string;
