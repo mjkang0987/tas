@@ -6,7 +6,7 @@ import {ViewType} from '../utils/constants';
 import {hasCompletedPayment} from '../utils/reservations';
 import type {Customer, CustomerMap} from '../utils/customers';
 import type {PointHistoryEntry} from '../utils/customers';
-import {appendPointHistories, syncCustomerFirstVisitDates} from '../utils/customers';
+import {anonymizeCustomer, anonymizeCustomerReservation, appendPointHistories, syncCustomerFirstVisitDates} from '../utils/customers';
 import type {ServiceItem} from '../utils/services';
 import {CATEGORY_BASE_COLOR_MAP} from '../utils/services';
 import type {DaySchedule, Assignee, AssigneeStatus} from '../utils/assignees';
@@ -443,14 +443,18 @@ export const useCalendarStore = create<CalendarState>((set) => ({
 
     deleteCustomer: (customerId) => {
         set((state) => {
-            const nextCustomerMap = {...state.customerMap};
-            delete nextCustomerMap[customerId];
-            // 서버 cascade와 일치하도록 그 고객의 예약도 로컬에서 제거
+            const target = state.customerMap[customerId];
+            if (!target) return {};
+            // 서버와 같은 익명 처리 — 고객은 "삭제된 고객"으로 남기고(맵에서 빼면 새 고객 번호가 재사용된다),
+            // 예약(시술 내역·매출)은 남기되 메모·네이버 링크만 비운다.
             const nextReservationMap: ReservationMap = {};
             for (const [date, list] of Object.entries(state.reservationMap)) {
-                nextReservationMap[date] = list.filter((r) => r.customerId !== customerId);
+                nextReservationMap[date] = list.map((r) => (r.customerId === customerId ? anonymizeCustomerReservation(r) : r));
             }
-            return {customerMap: nextCustomerMap, reservationMap: nextReservationMap};
+            return {
+                customerMap: {...state.customerMap, [customerId]: anonymizeCustomer(target)},
+                reservationMap: nextReservationMap,
+            };
         });
         deleteCustomerOnServer(customerId);
     },

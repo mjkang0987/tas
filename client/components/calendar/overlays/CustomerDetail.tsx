@@ -20,7 +20,7 @@ import {
 
 import {buildAssigneeColorMap, buildAssigneeNameMap} from '../../../utils/assignees';
 import {buildServiceColorMap, formatPrice} from '../../../utils/services';
-import {formatTel, normalizeTel, toCustomerMap} from '../../../utils/customers';
+import {DELETED_CUSTOMER_NAME, formatTel, isSelectableCustomer, normalizeTel, toCustomerMap} from '../../../utils/customers';
 import {findSimilarCustomers} from '../../../features/customers/similar';
 import {summarizeCustomerReservations} from '../../../features/customers/merge-suggestion';
 import {shouldUseLocalDb} from '../../../lib/local-db';
@@ -137,7 +137,7 @@ export const CustomerDetail = ({customer, reservationMap, onClose, onReservation
     const similarCustomers = useMemo(() => (
         isEditing
             ? findSimilarCustomers({
-                customers: Object.values(customerMap),
+                customers: Object.values(customerMap).filter(isSelectableCustomer),
                 excludeId: customer.id,
                 name: editForm.name,
                 tel: editForm.tel,
@@ -436,7 +436,8 @@ export const CustomerDetail = ({customer, reservationMap, onClose, onReservation
                                                       $primary
                                                       onClick={handleSaveEdit}>저장</StyledHeaderActionButton>
                         </>
-                    ) : (
+                    ) : customer.deleted ? null : (
+                        // 삭제(익명 처리)된 고객은 시술 내역 보기만 — 수정·삭제·분리할 대상이 없다.
                         <>
                             {mergeHistories.length > 0 && (
                                 <StyledHeaderActionButton type="button"
@@ -596,8 +597,8 @@ export const CustomerDetail = ({customer, reservationMap, onClose, onReservation
     {isDeleteConfirm && (
         <ConfirmDialog title="고객 삭제"
                        message={customerReservations.length > 0
-                           ? <><Emphasis>{customer.name}</Emphasis> 고객을 삭제하면 <Emphasis>예약 {customerReservations.length}건과 적립금·메모</Emphasis>도 함께 영구 삭제됩니다. <Emphasis $tone="danger">되돌릴 수 없습니다.</Emphasis></>
-                           : <><Emphasis>{customer.name}</Emphasis> 고객을 영구 삭제합니다. <Emphasis $tone="danger">되돌릴 수 없습니다.</Emphasis></>}
+                           ? <><Emphasis>{customer.name}</Emphasis> 고객의 <Emphasis>이름·연락처·메모·적립금</Emphasis>이 삭제되고 &lsquo;{DELETED_CUSTOMER_NAME}&rsquo;으로 표시됩니다. 시술 내역(예약 {customerReservations.length}건)은 매출 기록으로 남습니다. <Emphasis $tone="danger">되돌릴 수 없습니다.</Emphasis></>
+                           : <><Emphasis>{customer.name}</Emphasis> 고객의 <Emphasis>이름·연락처·메모·적립금</Emphasis>이 삭제됩니다. <Emphasis $tone="danger">되돌릴 수 없습니다.</Emphasis></>}
                        confirmLabel="삭제"
                        confirmVariant="danger"
                        onConfirm={() => {

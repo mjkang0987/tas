@@ -1,4 +1,5 @@
 import type {Customer} from '../utils/customers';
+import {anonymizeCustomer, anonymizeCustomerReservation} from '../utils/customers';
 import type {Assignee} from '../utils/assignees';
 import type {ServiceItem} from '../utils/services';
 import type {StoreSettings} from '../utils/storeSettings';
@@ -153,13 +154,13 @@ export function persistNewCustomer(customer: Customer, allCustomers: Customer[])
         '고객 등록에 실패했습니다. 새로고침 후 다시 시도해 주세요.').then(() => undefined);
 }
 
-// 고객 영구 삭제. 서버에선 그 고객의 예약·적립금·메모가 cascade로 함께 삭제된다.
+// 고객 삭제 = 익명 처리. 이름·연락처·메모·적립금은 지우고 예약(시술 내역·매출)은 남긴다(서버 DELETE 와 같은 규칙).
 export function deleteCustomerOnServer(customerId: number): Promise<void> {
     if (shouldUseLocalDb()) {
         updateLocalDbSnapshot((current) => ({
             ...current,
-            customers: current.customers.filter((c) => c.id !== customerId),
-            reservations: current.reservations.filter((r) => r.customerId !== customerId),
+            customers: current.customers.map((c) => (c.id === customerId ? anonymizeCustomer(c) : c)),
+            reservations: current.reservations.map((r) => (r.customerId === customerId ? anonymizeCustomerReservation(r) : r)),
         }));
         return Promise.resolve();
     }
