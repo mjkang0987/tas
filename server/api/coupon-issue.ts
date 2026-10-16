@@ -38,8 +38,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         if (product.code) {
             return res.status(400).json({error: '코드형 쿠폰은 직접 발급 대상이 아닙니다.'});
         }
-        // 가드: 상품이 '고객당 1장'이면 미사용(active) 보유분이 있을 때 재발급 불가.
+        // 가드: 상품이 '고객당 1장'이면 미사용(active)·만료 전 보유분이 있을 때 재발급 불가.
         // (사용/만료/취소된 건 제외 — 다 쓰고 나면 다시 받을 수 있다.)
+        // 만료를 status 로 바꾸는 작업이 없어 active 인 채 만료일이 지난 쿠폰이 남는다 → 만료일로도 거른다.
         if (product.oncePerCustomer) {
             const held = await prisma.customerCoupon.count({
                 where: {
@@ -47,6 +48,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                     customerId: customer.id,
                     productId: product.id,
                     status: 'active',
+                    OR: [{expiresAt: null}, {expiresAt: {gt: new Date()}}],
                 },
             });
             if (held > 0) {
