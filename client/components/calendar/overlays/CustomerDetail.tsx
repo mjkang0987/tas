@@ -597,8 +597,8 @@ export const CustomerDetail = ({customer, reservationMap, onClose, onReservation
     {isDeleteConfirm && (
         <ConfirmDialog title="고객 삭제"
                        message={customerReservations.length > 0
-                           ? <><Emphasis>{customer.name}</Emphasis> 고객의 <Emphasis>이름·연락처·메모·적립금</Emphasis>이 삭제되고 &lsquo;{DELETED_CUSTOMER_NAME}&rsquo;으로 표시됩니다. 시술 내역(예약 {customerReservations.length}건)은 매출 기록으로 남습니다. <Emphasis $tone="danger">되돌릴 수 없습니다.</Emphasis></>
-                           : <><Emphasis>{customer.name}</Emphasis> 고객의 <Emphasis>이름·연락처·메모·적립금</Emphasis>이 삭제됩니다. <Emphasis $tone="danger">되돌릴 수 없습니다.</Emphasis></>}
+                           ? <><Emphasis>{customer.name}</Emphasis> 고객의 <Emphasis>이름·연락처·메모·적립금</Emphasis>이 삭제됩니다.{'\n'}고객명은 <Emphasis>{DELETED_CUSTOMER_NAME}</Emphasis>으로 표시되고, 시술 내역(예약 {customerReservations.length}건)은 매출 기록으로 남습니다.{'\n'}<Emphasis $tone="danger">되돌릴 수 없습니다. 삭제하시겠습니까?</Emphasis></>
+                           : <><Emphasis>{customer.name}</Emphasis> 고객의 <Emphasis>이름·연락처·메모·적립금</Emphasis>이 삭제됩니다.{'\n'}<Emphasis $tone="danger">되돌릴 수 없습니다. 삭제하시겠습니까?</Emphasis></>}
                        confirmLabel="삭제"
                        confirmVariant="danger"
                        onConfirm={() => {
