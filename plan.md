@@ -5,6 +5,38 @@
 
 ---
 
+## 진행 — 고객의 회원권·쿠폰을 예약·고객 화면에 표시 (`claude/customer-benefits-view`, `claude/coupon-issue-ui` 위)
+
+### 요구 (지시자 2026-10-16)
+1. 매장: **예약 상세**와 **고객정보** 레이어에 그 고객이 쓸 수 있는 회원권·쿠폰을 보인다.
+2. 고객: 예약 관리 링크(`/book/[slug]/r/[token]`) 페이지에 **본인** 회원권·쿠폰을 보인다.
+
+### 구현
+- 서버 공용 조회 `server/db/customer-benefits.ts` `loadCustomerBenefits(storeId, customerId, now)`:
+  쓸 수 있는 것만 — 회원권 `active`·남은 횟수 있음(무제한 포함)·만료 전, 쿠폰 `active`·만료 전.
+  매장 기능 토글(`useMembershipSystem`·`useCouponSystem`)이 꺼져 있으면 그 종류는 빈 배열.
+- 매장: `GET /api/customer-benefits?customerId=<프론트 id>`(staff). 훅 `useCustomerBenefits(customerId)` — 게스트·토글 둘 다 꺼짐이면 요청 안 함.
+  고객정보 정보 목록·예약 상세 정보 목록의 **적립금 다음 줄**에 "회원권"·"쿠폰" 행(없으면 행 생략).
+- 고객: `GET /api/book/reservation/[token]` 응답에 `benefits` 추가. 토큰이 곧 본인 확인이라 본인 것만 낸다.
+  삭제된 예약 흔적 응답은 고객 연결이 없어 `benefits: null`. 요약 표 아래 "내 회원권·쿠폰" 블록, 4개 언어 문구.
+  (이름+연락처 조회 목록에는 넣지 않는다 — 목록은 예약 링크만, 상세는 링크 안에서)
+- 표시 문구 순수 함수: `features/customers/benefits.ts` — 회원권 "펌 5회권 · 남은 3/5회 · ~2026-12-31", 쿠폰 "첫 방문 · 5,000원 할인 · ~…" (+테스트).
+
+### 영향 파일
+`server/db/customer-benefits.ts`(신규), `server/api/customer-benefits.ts`+`client/pages/api/customer-benefits.ts`(신규),
+`server/api/book/reservation/[token].ts`, `server/api/book/booking-helpers.ts`(select 에 customerId),
+`client/features/customers/benefits.ts`(+test), `client/hooks/useCustomerBenefits.ts`,
+`CustomerDetail.tsx`, `ReservationViewSection.tsx`, `client/pages/book/[slug]/r/[token].tsx`, `client/features/booking/i18n.ts`.
+
+### 검증
+- tsc · 테스트 216(신규 benefits 3·benefits-i18n 4) · 순수 모듈 게이트 · lint 신규 경고 0.
+- 임시 DB(`takeaseat_preview`)에 회원권 2(1개 소진)·쿠폰 3(1개 만료) 넣고 고객 페이지 확인:
+  API `benefits`에 쓸 수 있는 회원권 1·쿠폰 2만, 만료일 한국 날짜(2026-11-30T15:00Z → ~2026-12-01).
+  처음엔 긴 줄 때문에 휴대폰에서 카드가 넘침 → 라벨 위·항목 아래로 바꿔 375px에서 가로 넘침 없음.
+- **미확인**: 매장 쪽 예약 상세·고객정보 행(로그인 세션 필요), 다른 언어 화면(문구는 단위 테스트).
+
+---
+
 ## 진행 — 쿠폰 고객 발급 화면 (`claude/coupon-issue-ui`)
 
 ### 배경
