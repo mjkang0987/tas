@@ -7,9 +7,7 @@ import {useSession} from 'next-auth/react';
 import {ConfirmDialog} from '../../ui/ConfirmDialog';
 import {Emphasis} from '../../ui/Emphasis';
 import {CustomerMergeSuggestionModal} from '../../modals/CustomerMergeSuggestionModal';
-import type {Customer, CustomerBalance, CustomerMemoTag, PointHistoryEntry} from '../../../utils/customers';
-import type {MembershipsPayload} from '../../../features/memberships/model';
-import type {CouponsPayload} from '../../../features/coupons/model';
+import type {Customer, CustomerMemoTag, PointHistoryEntry} from '../../../utils/customers';
 import type {Reservation, ReservationMap} from '../../../utils/reservations';
 import {groupByDate} from '../../../utils/reservations';
 
@@ -22,7 +20,7 @@ import {
 
 import {buildAssigneeColorMap, buildAssigneeNameMap} from '../../../utils/assignees';
 import {buildServiceColorMap, formatPrice} from '../../../utils/services';
-import {DELETED_CUSTOMER_NAME, formatTel, getSelectableCustomers, normalizeTel, summarizeCustomerBalance, toCustomerMap} from '../../../utils/customers';
+import {DELETED_CUSTOMER_NAME, formatTel, getSelectableCustomers, normalizeTel, toCustomerMap} from '../../../utils/customers';
 import {findSimilarCustomers} from '../../../features/customers/similar';
 import {summarizeCustomerReservations} from '../../../features/customers/merge-suggestion';
 import {shouldUseLocalDb} from '../../../lib/local-db';
@@ -172,25 +170,8 @@ export const CustomerDetail = ({customer, reservationMap, onClose, onReservation
     const {data: session} = useSession();
     const isOwner = session?.user?.role === 'owner';
     const [isDeleteConfirm, setIsDeleteConfirm] = useState(false);
-    // 삭제하면 더는 쓸 수 없게 되는 잔액(적립금·회원권·쿠폰) — 삭제 창에서 경고한다(막지는 않음).
-    // 회원권·쿠폰은 서버 전용이라 게스트는 적립금만 본다. 목록을 못 받으면 적립금만으로 경고한다.
-    const [deleteBalance, setDeleteBalance] = useState<CustomerBalance | null>(null);
-    useEffect(() => {
-        if (!isDeleteConfirm) return;
-        let cancelled = false;
-        const load = async () => {
-            if (shouldUseLocalDb()) return summarizeCustomerBalance(customer, [], [], new Date());
-            const [membershipRes, couponRes] = await Promise.all([fetch('/api/memberships'), fetch('/api/coupons')]);
-            const memberships = membershipRes.ok ? (await membershipRes.json() as MembershipsPayload).memberships : [];
-            const coupons = couponRes.ok ? (await couponRes.json() as CouponsPayload).coupons : [];
-            return summarizeCustomerBalance(customer, memberships, coupons, new Date());
-        };
-        load()
-            .catch(() => summarizeCustomerBalance(customer, [], [], new Date()))
-            .then((balance) => { if (!cancelled) setDeleteBalance(balance); });
-        return () => { cancelled = true; };
-    }, [isDeleteConfirm, customer]);
-    // 이 고객이 쓸 수 있는 회원권·쿠폰(정보 목록에 표시).
+    // 이 고객이 쓸 수 있는 회원권·쿠폰 — 정보 목록에 표시하고, 삭제 창에선 "삭제되는 정보"로 보인다.
+    // (게스트는 회원권·쿠폰이 없어 null → 삭제 창엔 적립금만)
     const benefits = useCustomerBenefits(customer.id);
     const toast = useToastStore((s) => s.show);
     const modalRoot = document.getElementById('modal-root');
@@ -449,9 +430,9 @@ export const CustomerDetail = ({customer, reservationMap, onClose, onReservation
     );
 
     // 삭제 창 하단 목록 — 남는 것(예약)과 더는 쓸 수 없게 되는 것(적립금·회원권·쿠폰)을 한눈에.
-    const deletePoints = deleteBalance?.points ?? 0;
-    const deleteMemberships = deleteBalance?.memberships ?? [];
-    const deleteCoupons = deleteBalance?.coupons ?? [];
+    const deletePoints = Math.max(customer.points ?? 0, 0);
+    const deleteMemberships = benefits?.memberships.map((m) => m.name) ?? [];
+    const deleteCoupons = benefits?.coupons.map((c) => c.name) ?? [];
     const hasDeleteSummary = customerReservations.length > 0 || deletePoints > 0
         || deleteMemberships.length > 0 || deleteCoupons.length > 0;
     // 이름은 3개까지만 보이고 나머지는 "외 N장" — 많아도 창이 길어져 스크롤이 생기지 않게. 개수는 항목 이름에 있다.
@@ -672,7 +653,7 @@ export const CustomerDetail = ({customer, reservationMap, onClose, onReservation
                            setIsDeleteConfirm(false);
                            onClose();
                        }}
-                       onClose={() => { setIsDeleteConfirm(false); setDeleteBalance(null); }}>
+                       onClose={() => setIsDeleteConfirm(false)}>
             {hasDeleteSummary && (
                 <StyledDeleteSummary>
                     {customerReservations.length > 0 && (

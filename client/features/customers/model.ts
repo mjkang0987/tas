@@ -1,6 +1,4 @@
 import type {Reservation, ReservationMap} from '../reservations/model';
-import type {CustomerMembership} from '../memberships/model';
-import type {CustomerCoupon} from '../coupons/model';
 
 export type PointHistoryType = 'manual_add' | 'manual_subtract' | 'recharge' | 'payment_use' | 'payment_earn' | 'payment_adjust';
 
@@ -57,32 +55,6 @@ export function isSelectableCustomer(customer: Customer): boolean {
 /** 고르는 목록에 낼 고객 배열(삭제 고객 제외). 목록을 새로 만들 때는 `Object.values(customerMap)` 대신 이걸 쓴다 */
 export function getSelectableCustomers(customerMap: CustomerMap): Customer[] {
     return Object.values(customerMap).filter(isSelectableCustomer);
-}
-
-/** 고객을 삭제하면 더는 쓸 수 없게 되는 잔액 — 삭제 창 목록용(회원권·쿠폰은 이름) */
-export interface CustomerBalance {
-    points: number;
-    memberships: string[];
-    coupons: string[];
-}
-
-/**
- * 남은 적립금, 사용 가능한 회원권(남은 횟수 있음·무제한, 만료 전), 미사용·만료 전 쿠폰의 이름.
- * now 는 만료 판정 기준(테스트에서 고정하려고 받는다).
- */
-export function summarizeCustomerBalance(
-    customer: Customer,
-    memberships: CustomerMembership[],
-    coupons: CustomerCoupon[],
-    now: Date,
-): CustomerBalance {
-    const notExpired = (expiresAt: string | null) => !expiresAt || new Date(expiresAt) > now;
-    return {
-        points: Math.max(customer.points ?? 0, 0),
-        memberships: memberships.filter((m) => m.customerId === customer.id && m.status === 'active'
-            && (m.remainingCount === null || m.remainingCount > 0) && notExpired(m.expiresAt)).map((m) => m.name),
-        coupons: coupons.filter((c) => c.customerId === customer.id && c.status === 'active' && notExpired(c.expiresAt)).map((c) => c.name),
-    };
 }
 
 /**
