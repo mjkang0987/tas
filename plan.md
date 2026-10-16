@@ -7,6 +7,12 @@
 
 ## 진행 — 묶음 배포 `release/2026-10-batch` (묵은 PR 정리)
 
+> **2026-10-16 갱신** — 묵은 PR 정리분에 이번 작업(#272·#273·#275·#276·#277·#278·#279)까지 합쳐 **v0.61.0 하나로 배포**한다(지시자).
+> 합치면서 충돌 3곳 해결(plan.md, `MembershipManageSection` 고객 목록 → 공용 훅이 삭제 고객 제외, `CustomerDetail` 삭제 요약+회원권·쿠폰 표시 둘 다 유지).
+> 코드리뷰 3회차: ① 삭제 시 회원권·쿠폰 취소 처리, 쿠폰 되돌리기 만료·고객당 1장 규칙, 삭제 요약을 고객별 조회로 통일 ②
+> 삭제 고객 쿠폰·회원권 사용·복원 거부, 쿠폰 되돌리기 한 트랜잭션(Serializable), 삭제 창이 토글 무관 전부 표시·받는 동안 잠금 ③ 삭제 창 재오픈 시 옛 결과 비움.
+> 매 회차 tsc·테스트·순수 모듈 게이트·lint 에러 0·프로덕션 빌드·`next start` 구동 확인. #130 은 제외(재현 확인 후).
+
 ### 배경
 승인을 못 받고 잊힌 PR들이 `main`보다 348~492 커밋 뒤처져 전부 충돌한다. 지시자 요청으로
 **이번만** 묶어서 배포한다(평소 규칙은 건별 `main` 배포 — `CLAUDE.md`는 그대로 둔다).
@@ -118,7 +124,7 @@ Cloud Build 트리거는 `^main$`뿐이라 release 브랜치 머지는 배포를
 앞서 모바일 중단점을 일괄 치환으로 옮기려다 무관한 중단점(매출 차트 900px, 담당자 800px)까지
 쓸어가 롤백했다(#266). 이번엔 지정한 곳만 고쳤다.
 
-## 진행 — 고객 병합 시 회원권·쿠폰 소실 수정 (`claude/merge-keep-coupons`)
+## 완료(배포 대기, v0.61.0 묶음 #270) — 고객 병합 시 회원권·쿠폰 소실 수정 (`claude/merge-keep-coupons`, #276)
 
 ### 배경
 병합은 합쳐지는 고객(source) 행을 지운다(`customers-merge.ts`). 회원권(`CustomerMembership`)·쿠폰(`CustomerCoupon`)은
@@ -136,7 +142,7 @@ Cloud Build 트리거는 `^main$`뿐이라 release 브랜치 머지는 배포를
 
 ---
 
-## 완료(배포 전) — 고객 삭제를 하드 삭제 → 익명 처리로 (`claude/customer-delete-anonymize`)
+## 완료(배포 대기, v0.61.0 묶음 #270) — 고객 삭제를 하드 삭제 → 익명 처리로 (`claude/customer-delete-anonymize`, #278)
 
 ### 배경
 `DELETE /api/customers`가 `Customer` 행을 실제로 지우면서 cascade로 **예약·결제 내역이 같이 사라져 과거 매출이 소급해 빠졌다**
@@ -208,7 +214,7 @@ Cloud Build 트리거는 `^main$`뿐이라 release 브랜치 머지는 배포를
 1. **Supabase에 마이그레이션 수동 선적용**(`ADD COLUMN IF NOT EXISTS`, 가산) → 2. 코드 배포.
 2. iOS도 고객 목록에서 숨김 필요 — 별도 PR.
 
-## 진행 — 글자만 있는 레이어 점검 (지시자와 하나씩 띄워 보며 결정)
+## 완료(배포 대기, v0.61.0 묶음 #270) — 글자만 있는 레이어 점검 (지시자와 하나씩 띄워 보며 결정)
 
 ### 1. 고객정보 수정 → 병합 확인 ✅
 - 글자만 있던 `ConfirmDialog`("고객 병합")가 누가 남고 누가 정리되는지 안 읽혔다 →
@@ -275,7 +281,7 @@ Cloud Build 트리거는 `^main$`뿐이라 release 브랜치 머지는 배포를
   그대로 돌리면 `migrate deploy`가 운영을 향한다. 임시 DB 마이그레이션은 두 변수를 모두 지정하고 대상을 출력해 확인한 뒤 한다.
 
 
-## 진행 — 고객의 회원권·쿠폰을 예약·고객 화면에 표시 (`claude/customer-benefits-view`, `claude/coupon-issue-ui` 위)
+## 완료(배포 대기, v0.61.0 묶음 #270) — 고객의 회원권·쿠폰을 예약·고객 화면에 표시 (`claude/customer-benefits-view`, #279)
 
 ### 요구 (지시자 2026-10-16)
 1. 매장: **예약 상세**와 **고객정보** 레이어에 그 고객이 쓸 수 있는 회원권·쿠폰을 보인다.
@@ -307,7 +313,7 @@ Cloud Build 트리거는 `^main$`뿐이라 release 브랜치 머지는 배포를
 
 ---
 
-## 진행 — 쿠폰 고객 발급 화면 (`claude/coupon-issue-ui`)
+## 완료(배포 대기, v0.61.0 묶음 #270) — 쿠폰 고객 발급 화면 (`claude/coupon-issue-ui`, #277)
 
 ### 배경
 쿠폰은 상품 CRUD 화면만 있고 **고객에게 발급하는 화면이 없다.** 발급 API(`/api/coupon-issue` POST 발급·DELETE 취소, #156)는
@@ -350,7 +356,7 @@ Cloud Build 트리거는 `^main$`뿐이라 release 브랜치 머지는 배포를
 
 ---
 
-## 검증 완료(PR 대기) — `setup-test-db.sh`가 운영 DB로 마이그레이션하던 문제 (`fix/setup-test-db-direct-url`)
+## 완료(배포 대기, v0.61.0 묶음 #270) — `setup-test-db.sh`가 운영 DB로 마이그레이션하던 문제 (`fix/setup-test-db-direct-url`, #275)
 
 ### 문제
 `client/scripts/setup-test-db.sh`는 `DATABASE_URL`만 테스트 DB로 바꾸는데, `prisma.config.ts`는
