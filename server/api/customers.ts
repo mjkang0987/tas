@@ -242,6 +242,15 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                     decisionReason: null,
                 },
             }),
+            // 남은 회원권·쿠폰은 "삭제되는 정보"로 안내했다 — 기록(돈 받고 준 이력)은 남기고 더는 쓸 수 없게 취소한다.
+            prisma.customerMembership.updateMany({
+                where: {customerId: customer.id, status: 'active'},
+                data: {status: 'cancelled'},
+            }),
+            prisma.customerCoupon.updateMany({
+                where: {customerId: customer.id, status: 'active'},
+                data: {status: 'cancelled'},
+            }),
             prisma.customer.update({
                 where: {id: customer.id},
                 data: {
