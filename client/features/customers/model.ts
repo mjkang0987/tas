@@ -189,3 +189,10 @@ export function appendPointHistories(
     };
 }
 
+/** 바뀐 고객만 받아 전체 목록에 반영(같은 번호는 교체, 없으면 추가). 게스트 저장소에 일부 고객만 넘겨도 나머지를 지우지 않게 */
+export function mergeCustomersById(current: Customer[], updates: Customer[]): Customer[] {
+    const byId = new Map(updates.map((c) => [c.id, c]));
+    const merged = current.map((c) => byId.get(c.id) ?? c);
+    const existing = new Set(current.map((c) => c.id));
+    return [...merged, ...updates.filter((c) => !existing.has(c.id))];
+}

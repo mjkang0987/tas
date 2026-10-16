@@ -1,5 +1,5 @@
 import type {Customer} from '../utils/customers';
-import {anonymizeCustomer, anonymizeCustomerReservation} from '../utils/customers';
+import {anonymizeCustomer, anonymizeCustomerReservation, mergeCustomersById} from '../utils/customers';
 import type {Assignee} from '../utils/assignees';
 import type {ServiceItem} from '../utils/services';
 import type {StoreSettings} from '../utils/storeSettings';
@@ -137,7 +137,8 @@ export function syncAssigneeSettings(assignees: Assignee[]): void {
 // 서버 저장이 끝나면 resolve. 신규 고객을 만든 직후 예약을 POST해야 하는 경우,
 // 호출 측에서 await 해 고객이 서버에 먼저 존재하도록 보장한다.
 export function syncCustomerSettings(customers: Customer[]): Promise<void> {
-    return syncToServer('/api/customers', {customers}, (c) => ({...c, customers}),
+    // 호출 측은 바뀐 고객만 넘긴다(적립금 충전 한 명 등) — 게스트 저장소의 다른 고객을 지우지 않게 합친다.
+    return syncToServer('/api/customers', {customers}, (c) => ({...c, customers: mergeCustomersById(c.customers, customers)}),
         '고객 정보 저장에 실패했습니다. 새로고침 후 다시 시도해 주세요.');
 }
 
