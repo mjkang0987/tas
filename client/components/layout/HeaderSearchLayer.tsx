@@ -4,7 +4,7 @@ import {createPortal} from 'react-dom';
 import styled from 'styled-components';
 
 import {useCalendarStore} from '../../store/calendarStore';
-import {formatTel, isSelectableCustomer, sortCustomersByName} from '../../utils/customers';
+import {formatTel, getSelectableCustomers, sortCustomersByName} from '../../utils/customers';
 import {matchesChosung} from '../../features/customers/chosung';
 import {findMatchRange} from '../../features/customers/search-highlight';
 import {formControlStyle} from '../ui/FormControls';
@@ -25,7 +25,7 @@ export const HeaderSearchLayer = ({onClose}: Props) => {
     const modalRoot = document.getElementById('modal-root');
 
     // 삭제(익명 처리)된 고객은 검색에서 뺀다(예약 표시용으로만 남는다).
-    const customers = sortCustomersByName(Object.values(customerMap).filter(isSelectableCustomer));
+    const customers = sortCustomersByName(getSelectableCustomers(customerMap));
     // 게이트(trim 여부)와 실제 일치 판정이 다른 문자열을 보면 트림만으로 갈리는 결과가 생긴다
     // (예: 끝에 공백이 남은 모바일 IME 입력 — 게이트는 통과하는데 `.includes(query)`는 전멸).
     // 세 조건 모두 trimmedQuery 하나로 통일한다.

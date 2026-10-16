@@ -9,7 +9,7 @@ import type {MergeSelection} from '../features/customers/merge-suggestion';
 import {useCalendarStore} from '../store/calendarStore';
 import {useToastStore} from '../store/toastStore';
 import {shouldUseLocalDb} from '../lib/local-db';
-import {isSelectableCustomer, toCustomerMap} from '../utils/customers';
+import {getSelectableCustomers, toCustomerMap} from '../utils/customers';
 import type {Customer} from '../utils/customers';
 import type {Reservation} from '../utils/reservations';
 import {groupByDate} from '../utils/reservations';
@@ -61,7 +61,7 @@ function detectDuplicates(
     skipped: Set<string>,
 ): MergeSelection[] {
     // 삭제(익명 처리)된 고객은 제안에 넣지 않는다 — 서버도 병합을 거부한다.
-    const groups = detectMergeGroups(Object.values(customerMap).filter(isSelectableCustomer));
+    const groups = detectMergeGroups(getSelectableCustomers(customerMap));
     if (groups.length === 0) return [];
 
     const suggestions: MergeSelection[] = [];
