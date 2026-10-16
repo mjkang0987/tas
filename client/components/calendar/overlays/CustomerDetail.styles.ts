@@ -622,10 +622,27 @@ export const StyledNaverBookingLink = styled.a`
     }
 `;
 
-/* 정보 목록의 회원권·쿠폰 — 항목 하나는 한 줄(넘치면 말줄임, 전체 문구는 title) */
+/* 회원권·쿠폰 항목 하나 = 박스 하나: 이름(굵게) + 아래 할인·만료(작게). 무엇인지 알아야 쓰므로 자르지 않는다 */
 export const StyledBenefitLine = styled.span`
-    display: block;
-    overflow: hidden;
-    white-space: nowrap;
-    text-overflow: ellipsis;
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+    padding: 8px 10px;
+    border: 1px solid var(--light-gray-color);
+    border-radius: var(--radius-md);
+    background: var(--gray-color2);
+    overflow-wrap: anywhere;
+
+    & + & {
+        margin-top: 6px;
+    }
+`;
+
+export const StyledBenefitName = styled.strong`
+    font-weight: 600;
+`;
+
+export const StyledBenefitDetail = styled.span`
+    font-size: var(--small-font);
+    color: var(--dark-gray-color2);
 `;

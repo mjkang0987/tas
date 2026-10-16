@@ -80,6 +80,8 @@ import {
     StyledReservationTitle,
     StyledMoreButton,
     StyledBenefitLine,
+    StyledBenefitName,
+    StyledBenefitDetail,
 } from './CustomerDetail.styles';
 
 const PAGE_SIZE = 5;
@@ -529,7 +531,7 @@ export const CustomerDetail = ({customer, reservationMap, onClose, onReservation
                                 <>
                                     <StyledInfoTerm>회원권</StyledInfoTerm>
                                     <StyledInfoDesc>
-                                        {benefits.memberships.map((m) => <StyledBenefitLine key={m.id} title={describeBenefitMembership(m)}>{describeBenefitMembership(m)}</StyledBenefitLine>)}
+                                        {benefits.memberships.map((m) => <StyledBenefitLine key={m.id}><StyledBenefitName>{m.name}</StyledBenefitName><StyledBenefitDetail>{describeBenefitMembership(m)}</StyledBenefitDetail></StyledBenefitLine>)}
                                     </StyledInfoDesc>
                                 </>
                             )}
@@ -537,7 +539,7 @@ export const CustomerDetail = ({customer, reservationMap, onClose, onReservation
                                 <>
                                     <StyledInfoTerm>쿠폰</StyledInfoTerm>
                                     <StyledInfoDesc>
-                                        {benefits.coupons.map((c) => <StyledBenefitLine key={c.id} title={describeBenefitCoupon(c)}>{describeBenefitCoupon(c)}</StyledBenefitLine>)}
+                                        {benefits.coupons.map((c) => <StyledBenefitLine key={c.id}><StyledBenefitName>{c.name}</StyledBenefitName><StyledBenefitDetail>{describeBenefitCoupon(c)}</StyledBenefitDetail></StyledBenefitLine>)}
                                     </StyledInfoDesc>
                                 </>
                             )}

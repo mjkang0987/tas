@@ -151,7 +151,7 @@ export function ReservationViewSection({
                         <>
                             <StyledTerm>회원권</StyledTerm>
                             <StyledDesc>
-                                {benefits.memberships.map((m) => <StyledBenefitLine key={m.id} title={describeBenefitMembership(m)}>{describeBenefitMembership(m)}</StyledBenefitLine>)}
+                                {benefits.memberships.map((m) => <StyledBenefitLine key={m.id}><StyledBenefitName>{m.name}</StyledBenefitName><StyledBenefitDetail>{describeBenefitMembership(m)}</StyledBenefitDetail></StyledBenefitLine>)}
                             </StyledDesc>
                         </>
                     )}
@@ -159,7 +159,7 @@ export function ReservationViewSection({
                         <>
                             <StyledTerm>쿠폰</StyledTerm>
                             <StyledDesc>
-                                {benefits.coupons.map((c) => <StyledBenefitLine key={c.id} title={describeBenefitCoupon(c)}>{describeBenefitCoupon(c)}</StyledBenefitLine>)}
+                                {benefits.coupons.map((c) => <StyledBenefitLine key={c.id}><StyledBenefitName>{c.name}</StyledBenefitName><StyledBenefitDetail>{describeBenefitCoupon(c)}</StyledBenefitDetail></StyledBenefitLine>)}
                             </StyledDesc>
                         </>
                     )}
@@ -345,10 +345,27 @@ const StyledHistoryButton = styled.button`
     }
 `;
 
-/* 회원권·쿠폰 — 항목 하나는 한 줄(넘치면 말줄임, 전체 문구는 title) */
+/* 회원권·쿠폰 항목 하나 = 박스 하나: 이름(굵게) + 아래 할인·만료(작게). 무엇인지 알아야 쓰므로 자르지 않는다 */
 const StyledBenefitLine = styled.span`
-    display: block;
-    overflow: hidden;
-    white-space: nowrap;
-    text-overflow: ellipsis;
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+    padding: 8px 10px;
+    border: 1px solid var(--light-gray-color);
+    border-radius: var(--radius-md);
+    background: var(--gray-color2);
+    overflow-wrap: anywhere;
+
+    & + & {
+        margin-top: 6px;
+    }
+`;
+
+const StyledBenefitName = styled.strong`
+    font-weight: 600;
+`;
+
+const StyledBenefitDetail = styled.span`
+    font-size: var(--small-font);
+    color: var(--dark-gray-color2);
 `;

@@ -279,7 +279,12 @@ export default function ReservationManagePage({bookBase}: ReservationManagePageP
                                 <StyledBenefitRow>
                                     <span>{benefitText.membership}</span>
                                     <StyledBenefitValues>
-                                        {benefits.memberships.map((m) => <StyledBenefitItem key={m.id} title={benefitMembershipL(m, lang)}>{benefitMembershipL(m, lang)}</StyledBenefitItem>)}
+                                        {benefits.memberships.map((m) => (
+                                            <StyledBenefitItem key={m.id}>
+                                                <span>{m.name}</span>
+                                                <StyledBenefitDetail>{benefitMembershipL(m, lang)}</StyledBenefitDetail>
+                                            </StyledBenefitItem>
+                                        ))}
                                     </StyledBenefitValues>
                                 </StyledBenefitRow>
                             )}
@@ -287,7 +292,12 @@ export default function ReservationManagePage({bookBase}: ReservationManagePageP
                                 <StyledBenefitRow>
                                     <span>{benefitText.coupon}</span>
                                     <StyledBenefitValues>
-                                        {benefits.coupons.map((c) => <StyledBenefitItem key={c.id} title={benefitCouponL(c, lang)}>{benefitCouponL(c, lang)}</StyledBenefitItem>)}
+                                        {benefits.coupons.map((c) => (
+                                            <StyledBenefitItem key={c.id}>
+                                                <span>{c.name}</span>
+                                                <StyledBenefitDetail>{benefitCouponL(c, lang)}</StyledBenefitDetail>
+                                            </StyledBenefitItem>
+                                        ))}
                                     </StyledBenefitValues>
                                 </StyledBenefitRow>
                             )}
@@ -547,16 +557,27 @@ const StyledBenefitRow = styled(StyledSummaryRow)`
 const StyledBenefitValues = styled(StyledSummaryValue)`
     display: flex;
     flex-direction: column;
-    gap: 4px;
+    gap: 8px;
     min-width: 0;
     text-align: left;
 `;
 
-/* 항목 하나는 한 줄 — 좁은 화면에서 넘치면 말줄임, 전체 문구는 title 로 */
+/* 항목 하나 = 박스 하나: 이름(굵게) + 아래 할인·만료(작게). 무엇인지 알아야 쓰므로 자르지 않고 줄바꿈한다 */
 const StyledBenefitItem = styled.span`
-    overflow: hidden;
-    white-space: nowrap;
-    text-overflow: ellipsis;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    padding: 10px 12px;
+    border: 1px solid var(--light-gray-color);
+    border-radius: var(--radius-md);
+    background: var(--white-color);
+    overflow-wrap: anywhere;
+`;
+
+const StyledBenefitDetail = styled.span`
+    font-size: var(--small-font);
+    font-weight: 400;
+    color: var(--dark-gray-color2, #667);
 `;
 
 const StyledActions = styled.div`
