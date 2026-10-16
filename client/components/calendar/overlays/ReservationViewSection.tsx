@@ -13,6 +13,8 @@ import type {Reservation} from '../../../utils/reservations';
 import {formatPrice} from '../../../utils/services';
 import {ReservationStatusBadge} from '../../ui/ReservationStatusBadge';
 import {useStoreLabels} from '../../../hooks/useStoreLabels';
+import {useCustomerBenefits} from '../../../hooks/useCustomerBenefits';
+import {describeBenefitCoupon, describeBenefitMembership} from '../../../features/customers/benefits';
 import {StyledBody, StyledBodyInner} from './ModalStyles';
 
 interface ReservationViewSectionProps {
@@ -46,6 +48,7 @@ export function ReservationViewSection({
 }: ReservationViewSectionProps) {
     const labels = useStoreLabels();
     const customer = customerMap[reservation.customerId];
+    const benefits = useCustomerBenefits(customer?.id);
     const isCancelled = reservation.status === 'cancelled';
     const isCompleted = reservation.status === 'completed';
     const isNoshow = reservation.status === 'noshow';
@@ -144,6 +147,22 @@ export function ReservationViewSection({
                     )}
                     <StyledTerm>적립금</StyledTerm>
                     <StyledDesc>{formatPrice(customer?.points ?? 0)}</StyledDesc>
+                    {benefits && benefits.memberships.length > 0 && (
+                        <>
+                            <StyledTerm>회원권</StyledTerm>
+                            <StyledDesc>
+                                {benefits.memberships.map((m) => <StyledBenefitLine key={m.id}>{describeBenefitMembership(m)}</StyledBenefitLine>)}
+                            </StyledDesc>
+                        </>
+                    )}
+                    {benefits && benefits.coupons.length > 0 && (
+                        <>
+                            <StyledTerm>쿠폰</StyledTerm>
+                            <StyledDesc>
+                                {benefits.coupons.map((c) => <StyledBenefitLine key={c.id}>{describeBenefitCoupon(c)}</StyledBenefitLine>)}
+                            </StyledDesc>
+                        </>
+                    )}
                     <StyledTerm>{labels.assignee}</StyledTerm>
                     <StyledDesc>
                         <AssigneeLabel color={displayAssigneeColor} name={displayAssigneeName} />
@@ -324,4 +343,9 @@ const StyledHistoryButton = styled.button`
         background-color: var(--black-color-10);
     }
     }
+`;
+
+/* 회원권·쿠폰은 여러 개일 수 있어 한 줄에 하나씩 */
+const StyledBenefitLine = styled.span`
+    display: block;
 `;

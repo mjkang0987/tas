@@ -621,3 +621,8 @@ export const StyledNaverBookingLink = styled.a`
         content: '↗';
     }
 `;
+
+/* 정보 목록의 회원권·쿠폰 — 여러 개일 수 있어 한 줄에 하나씩 */
+export const StyledBenefitLine = styled.span`
+    display: block;
+`;
