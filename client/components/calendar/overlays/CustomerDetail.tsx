@@ -613,7 +613,7 @@ export const CustomerDetail = ({customer, reservationMap, onClose, onReservation
     {dupWarning && renderMergeLayer(dupWarning.match, () => setDupWarning(null), {
         heading: {
             title: '이미 등록된 번호입니다',
-            description: `${dupWarning.match.name} 고객과 같은 번호입니다. 같은 분이면 병합하고, 다른 분(가족 공유번호 등)이면 다른 고객으로 저장하세요.`,
+            description: `${dupWarning.match.name} 고객과 같은 번호입니다. 다른 분(가족 공유번호 등)이면 다른 고객으로 저장하세요.`,
         },
         secondaryAction: {label: '다른 고객으로 저장', onClick: () => commitEdit(dupWarning.name, dupWarning.tel)},
     })}
