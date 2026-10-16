@@ -140,20 +140,20 @@ export function benefitTextL(lang: BookLang) {
     return BENEFIT_TEXT[lang];
 }
 
-/** 회원권 한 줄 — 이름 · 남은 횟수 · 만료일 */
+/** 회원권 상세(이름은 따로) — 남은 횟수 · 만료일 */
 export function benefitMembershipL(m: BenefitMembership, lang: BookLang): string {
     const t = BENEFIT_TEXT[lang];
     const count = m.totalCount != null ? t.left(m.remainingCount ?? 0, m.totalCount) : t.unlimited;
-    return `${m.name} · ${count} · ${m.expiresAt ? t.until(toLocalDateKey(m.expiresAt)) : t.noExpiry}`;
+    return `${count} · ${m.expiresAt ? t.until(toLocalDateKey(m.expiresAt)) : t.noExpiry}`;
 }
 
-/** 쿠폰 한 줄 — 이름 · 할인 · 만료일 */
+/** 쿠폰 상세(이름은 따로) — 할인 · 만료일 */
 export function benefitCouponL(c: BenefitCoupon, lang: BookLang): string {
     const t = BENEFIT_TEXT[lang];
     const discount = c.discountType === 'amount'
         ? t.amountOff(formatPriceL(c.discountValue, lang))
         : `${t.rateOff(c.discountValue)}${c.maxDiscount != null ? t.upTo(formatPriceL(c.maxDiscount, lang)) : ''}`;
-    return `${c.name} · ${discount} · ${c.expiresAt ? t.until(toLocalDateKey(c.expiresAt)) : t.noExpiry}`;
+    return `${discount} · ${c.expiresAt ? t.until(toLocalDateKey(c.expiresAt)) : t.noExpiry}`;
 }
 
 // 요일 짧은 라벨(0=월…6=일).

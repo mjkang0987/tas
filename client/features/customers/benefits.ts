@@ -30,13 +30,13 @@ export interface CustomerBenefits {
 
 const expiryText = (expiresAt: string | null) => (expiresAt ? `~${toLocalDateKey(expiresAt)}` : '무기한');
 
-/** 매장 화면용 한 줄 — "펌 5회권 · 남은 3/5회 · ~2026-12-31" */
+/** 매장 화면용 회원권 상세(이름은 따로 굵게) — "남은 3/5회 · ~2026-12-31" */
 export function describeBenefitMembership(m: BenefitMembership): string {
     const count = m.totalCount != null ? `남은 ${m.remainingCount ?? 0}/${m.totalCount}회` : '무제한';
-    return `${m.name} · ${count} · ${expiryText(m.expiresAt)}`;
+    return `${count} · ${expiryText(m.expiresAt)}`;
 }
 
-/** 매장 화면용 한 줄 — "첫 방문 · 5,000원 할인 · 무기한" */
+/** 매장 화면용 쿠폰 상세(이름은 따로 굵게) — "5,000원 할인 · 무기한" */
 export function describeBenefitCoupon(c: BenefitCoupon): string {
-    return `${c.name} · ${describeCouponDiscount(c)} · ${expiryText(c.expiresAt)}`;
+    return `${describeCouponDiscount(c)} · ${expiryText(c.expiresAt)}`;
 }
