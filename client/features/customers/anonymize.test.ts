@@ -84,10 +84,10 @@ describe('summarizeCustomerBalance', () => {
         status: 'active', ...over,
     });
 
-    it('적립금·사용 가능한 회원권·미사용 쿠폰을 센다', () => {
+    it('적립금과 사용 가능한 회원권·미사용 쿠폰의 이름을 낸다', () => {
         expect(summarizeCustomerBalance(customer, [
             membership({}),
-            membership({remainingCount: null}), // 무제한
+            membership({name: '두피케어 무제한', remainingCount: null}), // 무제한
             membership({remainingCount: 0}), // 다 씀
             membership({status: 'cancelled'}),
             membership({expiresAt: '2026-10-01T00:00:00.000Z'}), // 만료
@@ -96,10 +96,10 @@ describe('summarizeCustomerBalance', () => {
             coupon({}),
             coupon({status: 'used'}),
             coupon({expiresAt: '2026-10-15T00:00:00.000Z'}),
-        ], now)).toEqual({points: 500, memberships: 2, coupons: 1});
+        ], now)).toEqual({points: 500, memberships: ['펌 5회', '두피케어 무제한'], coupons: ['10% 할인']});
     });
 
     it('아무것도 없으면 모두 0', () => {
-        expect(summarizeCustomerBalance({...customer, points: 0}, [], [], now)).toEqual({points: 0, memberships: 0, coupons: 0});
+        expect(summarizeCustomerBalance({...customer, points: 0}, [], [], now)).toEqual({points: 0, memberships: [], coupons: []});
     });
 });
