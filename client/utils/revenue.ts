@@ -1,4 +1,5 @@
 import type {PaymentMethod, Reservation, ReservationChannel, ReservationMap} from './reservations';
+import {getReservationRevenue, isRevenuePaymentMethod} from './reservations';
 import {parseServiceString, sumPrice} from './services';
 
 interface RevenueItem {
@@ -96,6 +97,11 @@ export function resolvePrice(service: string, price?: number): number {
     return sumPrice(parseServiceString(service));
 }
 
+/** 예약의 매출 — 서비스 금액에서 할인·적립금으로 낸 만큼 뺀 값(받은 돈 기준). 매출 합계는 모두 이걸 쓴다 */
+export function resolveRevenue(reservation: Reservation): number {
+    return getReservationRevenue(resolvePrice(reservation.service, reservation.price), reservation.paymentEntries);
+}
+
 function matchAssignee(assigneeId: number | null | undefined, targetAssigneeId: number | null): boolean {
     if (targetAssigneeId == null) return true;
     return assigneeId === targetAssigneeId;
@@ -138,15 +144,16 @@ export function isPaidReservationTarget(reservation: Reservation, assigneeId: nu
 
 function resolvePaymentEntries(reservation: Reservation): RevenuePaymentEntry[] {
     if (Array.isArray(reservation.paymentEntries) && reservation.paymentEntries.length > 0) {
+        // 할인·적립금은 받은 돈이 아니라 결제 합계·결제수단 분포에서 뺀다.
         return reservation.paymentEntries
-            .filter((entry) => entry.amount > 0)
+            .filter((entry) => entry.amount > 0 && isRevenuePaymentMethod(entry.method))
             .map((entry) => ({method: entry.method, total: entry.amount}));
     }
 
     if (reservation.paymentCompleted && reservation.paymentMethod) {
         return [{
             method: reservation.paymentMethod,
-            total: resolvePrice(reservation.service, reservation.price),
+            total: resolveRevenue(reservation),
         }];
     }
 
@@ -165,7 +172,7 @@ export function getDailyRevenue(
     const items: RevenueItem[] = active.map((r) => ({
         reservationId: r.id,
         service: r.service,
-        price: resolvePrice(r.service, r.price),
+        price: resolveRevenue(r),
         startTime: r.startTime,
     }));
 
@@ -241,7 +248,7 @@ export function getRevenueInsights(
     while (cursor <= to) {
         const dateKey = `${cursor.getFullYear()}-${String(cursor.getMonth() + 1).padStart(2, '0')}-${String(cursor.getDate()).padStart(2, '0')}`;
         const reservations = (reservationMap[dateKey] ?? []).filter((reservation) => isRevenueReservationTarget(reservation, assigneeId, filterMode));
-        const dayTotal = reservations.reduce((sum, reservation) => sum + resolvePrice(reservation.service, reservation.price), 0);
+        const dayTotal = reservations.reduce((sum, reservation) => sum + resolveRevenue(reservation), 0);
 
         series.push({
             dateKey,
@@ -250,7 +257,7 @@ export function getRevenueInsights(
         });
 
         for (const reservation of reservations) {
-            const resolvedPrice = resolvePrice(reservation.service, reservation.price);
+            const resolvedPrice = resolveRevenue(reservation);
             const entryKey = reservation.assigneeId ?? null;
             customerIdsInRange.add(reservation.customerId);
             const existingAssignee = assigneeTotals.get(entryKey);
