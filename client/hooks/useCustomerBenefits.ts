@@ -26,7 +26,8 @@ export function useCustomerBenefits(customerId: number | undefined, options?: {a
             .then((benefits) => {
                 if (!cancelled) setLoaded({key, benefits});
             });
-        return () => { cancelled = true; };
+        // 닫았다 다시 열면 이전 결과를 바로 쓰지 않게 비운다 — 삭제 창이 옛 목록·풀린 버튼으로 잠깐 뜨지 않게.
+        return () => { cancelled = true; setLoaded(null); };
     }, [enabled, customerId, all, key]);
 
     const current = loaded?.key === key ? loaded : null;
