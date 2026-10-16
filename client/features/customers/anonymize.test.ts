@@ -4,10 +4,14 @@ import {
     anonymizeCustomer,
     anonymizeCustomerReservation,
     DELETED_CUSTOMER_NAME,
+    getSelectableCustomers,
     isSelectableCustomer,
+    summarizeCustomerBalance,
 } from './model';
 import type {Customer} from './model';
 import type {Reservation} from '../reservations/model';
+import type {CustomerMembership} from '../memberships/model';
+import type {CustomerCoupon} from '../coupons/model';
 
 const customer: Customer = {
     id: 7,
@@ -58,5 +62,44 @@ describe('anonymizeCustomerReservation', () => {
         expect(result.naverBookingId).toBe('N1');
         expect(result.price).toBe(100000);
         expect(result.date).toBe('2026-10-13');
+    });
+});
+
+describe('getSelectableCustomers', () => {
+    it('삭제된 고객을 뺀 배열을 돌려준다', () => {
+        const map = {7: customer, 8: anonymizeCustomer({...customer, id: 8})};
+        expect(getSelectableCustomers(map).map((c) => c.id)).toEqual([7]);
+    });
+});
+
+describe('summarizeCustomerBalance', () => {
+    const now = new Date('2026-10-16T00:00:00.000Z');
+    const membership = (over: Partial<CustomerMembership>): CustomerMembership => ({
+        id: 'm', customerId: 7, productId: null, name: '펌 5회', totalCount: 5, remainingCount: 3,
+        issuedAt: '2026-01-01T00:00:00.000Z', expiresAt: null, status: 'active', ...over,
+    });
+    const coupon = (over: Partial<CustomerCoupon>): CustomerCoupon => ({
+        id: 'c', customerId: 7, productId: null, name: '10% 할인', discountType: 'rate', discountValue: 10,
+        maxDiscount: null, minOrderAmount: null, issuedAt: '2026-01-01T00:00:00.000Z', expiresAt: null, usedAt: null,
+        status: 'active', ...over,
+    });
+
+    it('적립금·사용 가능한 회원권·미사용 쿠폰을 센다', () => {
+        expect(summarizeCustomerBalance(customer, [
+            membership({}),
+            membership({remainingCount: null}), // 무제한
+            membership({remainingCount: 0}), // 다 씀
+            membership({status: 'cancelled'}),
+            membership({expiresAt: '2026-10-01T00:00:00.000Z'}), // 만료
+            membership({customerId: 8}), // 다른 고객
+        ], [
+            coupon({}),
+            coupon({status: 'used'}),
+            coupon({expiresAt: '2026-10-15T00:00:00.000Z'}),
+        ], now)).toEqual({points: 500, memberships: 2, coupons: 1});
+    });
+
+    it('아무것도 없으면 모두 0', () => {
+        expect(summarizeCustomerBalance({...customer, points: 0}, [], [], now)).toEqual({points: 0, memberships: 0, coupons: 0});
     });
 });
