@@ -450,10 +450,12 @@ function AppContent({Component, pageProps}: AppContentProps) {
             {showGuestEntry && (
                 <ConfirmDialog
                     title="이전 데이터 불러오기"
-                    message="게스트모드 데이터가 있습니다. 이전 데이터를 불러오시겠습니까?"
+                    message={'게스트모드 데이터가 있습니다.\n이전 데이터를 불러오시겠습니까?'}
                     confirmLabel="예"
                     cancelLabel="아니오"
                     showCloseButton={false}
+                    centered
+                    icon="download"
                     layerKey="guest-entry"
                     onConfirm={() => {
                         markGuestEntryResolved();
