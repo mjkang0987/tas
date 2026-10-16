@@ -4,7 +4,7 @@ import styled from 'styled-components';
 
 import {useCalendarStore} from '../../store/calendarStore';
 import type {PointHistoryEntry} from '../../utils/customers';
-import {isSelectableCustomer} from '../../utils/customers';
+import {isSelectableCustomer, sortCustomersByName} from '../../utils/customers';
 import type {Reservation} from '../../utils/reservations';
 import {formatPrice} from '../../utils/services';
 import {PageHero} from '../ui/PageHero';
@@ -31,7 +31,7 @@ export const PointManageSection = () => {
     const [activeTab, setActiveTab] = useState<PointManageTab>('history');
 
     const customers = useMemo(
-        () => Object.values(customerMap).filter(isSelectableCustomer).sort((a, b) => a.name.localeCompare(b.name, 'ko')),
+        () => sortCustomersByName(Object.values(customerMap).filter(isSelectableCustomer)),
         [customerMap]
     );
 
