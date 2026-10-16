@@ -1,4 +1,5 @@
 import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
+import type {ComponentProps} from 'react';
 
 import {createPortal} from 'react-dom';
 import {useSession} from 'next-auth/react';
@@ -64,10 +65,6 @@ import {
     StyledSimilarMeta,
     StyledSimilarName,
     StyledSimilarTel,
-    StyledDupWarning,
-    StyledDupWarningText,
-    StyledDupWarningActions,
-    StyledDupWarningButton,
     StyledReservationSection,
     StyledPointHistorySection,
     StyledPointHistoryTitle,
@@ -393,6 +390,29 @@ export const CustomerDetail = ({customer, reservationMap, onClose, onReservation
         }
     };
 
+    const renderMergeLayer = (
+        target: Customer,
+        close: () => void,
+        extra?: Pick<ComponentProps<typeof CustomerMergeSuggestionModal>, 'heading' | 'secondaryAction'>,
+    ) => (
+        <CustomerMergeSuggestionModal selection={{
+                                          key: `merge-${customer.id}-${target.id}`,
+                                          mode: 'suggestion',
+                                          maskedSource: customer,
+                                          targetChoices: [target],
+                                          targetId: target.id,
+                                      }}
+                                      reservationMap={reservationMap}
+                                      merging={isMergingDup}
+                                      onMerge={(targetId) => mergeIntoCustomer(targetId)}
+                                      onSkip={close}
+                                      onDismiss={close}
+                                      onReservationClick={onReservationClick}
+                                      overDetail
+                                      skipLabel="취소"
+                                      {...extra} />
+    );
+
     if (!modalRoot) return null;
 
     return createPortal(<><StyledCustomerOverlay onClick={onClose}
@@ -500,35 +520,6 @@ export const CustomerDetail = ({customer, reservationMap, onClose, onReservation
                                 </StyledNaverBookingLink>
                             )}
                             <StyledPointInfo>적립금 {formatPrice(customer.points ?? 0)}</StyledPointInfo>
-                            {dupWarning && (
-                                <StyledDupWarning role="alert">
-                                    <StyledDupWarningText>
-                                        이 번호는 이미 <strong>{dupWarning.match.name}</strong> 고객에게 등록되어 있습니다. 같은 분이면 병합하고, 다른 분(가족 공유번호 등)이면 다른 고객으로 저장하세요.
-                                    </StyledDupWarningText>
-                                    <StyledDupWarningActions>
-                                        {!shouldUseLocalDb() && (
-                                            <StyledDupWarningButton type="button"
-                                                                    $variant="merge"
-                                                                    disabled={isMergingDup}
-                                                                    onClick={() => setSimilarMergeTarget(dupWarning.match)}>
-                                                {isMergingDup ? '병합 중…' : `${dupWarning.match.name} 고객과 병합`}
-                                            </StyledDupWarningButton>
-                                        )}
-                                        <StyledDupWarningButton type="button"
-                                                                $variant="keep"
-                                                                disabled={isMergingDup}
-                                                                onClick={() => commitEdit(dupWarning.name, dupWarning.tel)}>
-                                            다른 고객으로 저장
-                                        </StyledDupWarningButton>
-                                        <StyledDupWarningButton type="button"
-                                                                $variant="cancel"
-                                                                disabled={isMergingDup}
-                                                                onClick={() => setDupWarning(null)}>
-                                            취소
-                                        </StyledDupWarningButton>
-                                    </StyledDupWarningActions>
-                                </StyledDupWarning>
-                            )}
                         </StyledEditFields>
                     ) : (
                         <StyledInfoList>
@@ -615,25 +606,16 @@ export const CustomerDetail = ({customer, reservationMap, onClose, onReservation
                        }}
                        onClose={() => setIsDeleteConfirm(false)} />
     )}
-    {similarMergeTarget && (
-        // 글자만 있는 확인 창은 누가 남고 누가 정리되는지 안 읽혔다 — 자동 제안과 같은 카드형 레이어로 보인다.
-        // 방향은 고정(지금 고객 → 비슷한 고객)이라 자동 제안 모드와 구조가 같다.
-        // 비슷한 고객 목록과 저장 시 번호 중복 경고, 두 입구가 모두 이 레이어를 거친다.
-        <CustomerMergeSuggestionModal selection={{
-                                          key: `similar-${customer.id}-${similarMergeTarget.id}`,
-                                          mode: 'suggestion',
-                                          maskedSource: customer,
-                                          targetChoices: [similarMergeTarget],
-                                          targetId: similarMergeTarget.id,
-                                      }}
-                                      reservationMap={reservationMap}
-                                      merging={isMergingDup}
-                                      onMerge={(targetId) => mergeIntoCustomer(targetId)}
-                                      onSkip={() => setSimilarMergeTarget(null)}
-                                      onDismiss={() => setSimilarMergeTarget(null)}
-                                      onReservationClick={onReservationClick}
-                                      overDetail
-                                      skipLabel="취소" />
-    )}
+    {/* 글자만 있던 확인 창은 누가 남고 누가 정리되는지 안 읽혔다 — 자동 제안과 같은 카드형 레이어로 보인다.
+        방향은 고정(지금 고객 → 다른 고객)이라 자동 제안 모드와 구조가 같다. 입구는 둘:
+        입력 중 "비슷한 고객" 클릭, 저장 시 번호 중복(레이어로 막아야 뒤의 저장을 다시 눌러도 헛돌지 않는다). */}
+    {similarMergeTarget && renderMergeLayer(similarMergeTarget, () => setSimilarMergeTarget(null))}
+    {dupWarning && renderMergeLayer(dupWarning.match, () => setDupWarning(null), {
+        heading: {
+            title: '이미 등록된 번호입니다',
+            description: `${dupWarning.match.name} 고객과 같은 번호입니다. 같은 분이면 병합하고, 다른 분(가족 공유번호 등)이면 다른 고객으로 저장하세요.`,
+        },
+        secondaryAction: {label: '다른 고객으로 저장', onClick: () => commitEdit(dupWarning.name, dupWarning.tel)},
+    })}
     </>, modalRoot);
 };
