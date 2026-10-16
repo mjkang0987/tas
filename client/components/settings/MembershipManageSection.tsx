@@ -9,11 +9,11 @@ import {cardSurfaceStyle, StyledEditBtn, StyledDeleteBtn, StyledSaveBtn, StyledC
 import {useToastStore} from '../../store/toastStore';
 import {shouldUseLocalDb} from '../../lib/local-db';
 import {formatPrice} from '../../utils/services';
-import {toLocalDateKey} from '../../utils/reservations';
 import {CustomerAutocomplete} from '../customers/CustomerAutocomplete';
 import {useIssueCustomerPicker} from '../customers/useIssueCustomerPicker';
 import {useSingleFlight} from '../../hooks/useSingleFlight';
 import type {MembershipProduct, CustomerMembership} from '../../features/memberships/model';
+import {describeBenefitMembership} from '../../features/customers/benefits';
 
 type Tab = 'products' | 'issue';
 
@@ -41,12 +41,6 @@ function describeProduct(p: Pick<MembershipProduct, 'totalCount' | 'validDays'>)
     parts.push(p.totalCount != null ? `${p.totalCount}회` : '무제한');
     parts.push(p.validDays != null ? `${p.validDays}일` : '무기한');
     return parts.join(' · ');
-}
-
-function describeBalance(m: CustomerMembership): string {
-    const count = m.totalCount != null ? `${m.remainingCount ?? 0}/${m.totalCount}회` : '무제한';
-    const expiry = m.expiresAt ? ` · ~${toLocalDateKey(m.expiresAt)}` : '';
-    return `${count}${expiry}`;
 }
 
 export const MembershipManageSection = () => {
@@ -317,7 +311,7 @@ export const MembershipManageSection = () => {
                                 </StyledFieldGrid>
                                 <FieldError variant="inline">{issueError}</FieldError>
                                 <StyledActionRow>
-                                    <StyledSaveBtn type="button" disabled={flight.busy} onClick={handleIssue}>{flight.busy ? '처리 중…' : '발급'}</StyledSaveBtn>
+                                    <StyledSaveBtn type="button" disabled={flight.busy} onClick={handleIssue}>발급</StyledSaveBtn>
                                 </StyledActionRow>
                             </StyledFormCard>
 
@@ -329,7 +323,7 @@ export const MembershipManageSection = () => {
                                         <StyledItem key={m.id}>
                                             <StyledItemMain>
                                                 <StyledItemName>{issueCustomer.customerName(m.customerId)} · {m.name}</StyledItemName>
-                                                <StyledItemMeta>{describeBalance(m)} · {MEMBERSHIP_STATUS_LABEL[m.status]}</StyledItemMeta>
+                                                <StyledItemMeta>{describeBenefitMembership(m)} · {MEMBERSHIP_STATUS_LABEL[m.status]}</StyledItemMeta>
                                             </StyledItemMain>
                                             {m.status !== 'cancelled' && (
                                                 <StyledItemActions>

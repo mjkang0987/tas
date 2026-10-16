@@ -409,7 +409,7 @@ export const CouponManageSection = () => {
                                 )}
                                 <FieldError variant="inline">{issueError}</FieldError>
                                 <StyledActionRow>
-                                    <StyledSaveBtn type="button" disabled={flight.busy} onClick={handleIssue}>{flight.busy ? '처리 중…' : '발급'}</StyledSaveBtn>
+                                    <StyledSaveBtn type="button" disabled={flight.busy} onClick={handleIssue}>발급</StyledSaveBtn>
                                 </StyledActionRow>
                             </StyledFormCard>
 
