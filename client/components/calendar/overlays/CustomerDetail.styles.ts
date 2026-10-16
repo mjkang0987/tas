@@ -52,7 +52,7 @@ export const StyledInfo = styled.div`
 
 export const StyledInfoList = styled.dl`
     display: grid;
-    grid-template-columns: 60px 1fr;
+    grid-template-columns: 60px minmax(0, 1fr); /* 긴 값(회원권·쿠폰 한 줄)이 말줄임되도록 열이 내용만큼 늘지 않게 */
     gap: 4px 12px;
     margin: 0;
 `;
@@ -623,4 +623,29 @@ export const StyledDeleteSummaryValue = styled.dd`
     font-weight: 600;
     text-align: right;
     word-break: keep-all;
+`;
+
+/* 회원권·쿠폰 항목 하나 = 박스 하나: 이름(굵게) + 아래 할인·만료(작게). 무엇인지 알아야 쓰므로 자르지 않는다 */
+export const StyledBenefitLine = styled.span`
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+    padding: 8px 10px;
+    border: 1px solid var(--light-gray-color);
+    border-radius: var(--radius-md);
+    background: var(--gray-color2);
+    overflow-wrap: anywhere;
+
+    & + & {
+        margin-top: 6px;
+    }
+`;
+
+export const StyledBenefitName = styled.strong`
+    font-weight: 600;
+`;
+
+export const StyledBenefitDetail = styled.span`
+    font-size: var(--small-font);
+    color: var(--dark-gray-color2);
 `;

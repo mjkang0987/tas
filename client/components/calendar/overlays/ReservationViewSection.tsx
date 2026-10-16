@@ -13,6 +13,8 @@ import type {Reservation} from '../../../utils/reservations';
 import {formatPrice} from '../../../utils/services';
 import {ReservationStatusBadge} from '../../ui/ReservationStatusBadge';
 import {useStoreLabels} from '../../../hooks/useStoreLabels';
+import {useCustomerBenefits} from '../../../hooks/useCustomerBenefits';
+import {describeBenefitCoupon, describeBenefitMembership} from '../../../features/customers/benefits';
 import {StyledBody, StyledBodyInner} from './ModalStyles';
 
 interface ReservationViewSectionProps {
@@ -46,6 +48,7 @@ export function ReservationViewSection({
 }: ReservationViewSectionProps) {
     const labels = useStoreLabels();
     const customer = customerMap[reservation.customerId];
+    const benefits = useCustomerBenefits(customer?.id);
     const isCancelled = reservation.status === 'cancelled';
     const isCompleted = reservation.status === 'completed';
     const isNoshow = reservation.status === 'noshow';
@@ -144,6 +147,22 @@ export function ReservationViewSection({
                     )}
                     <StyledTerm>적립금</StyledTerm>
                     <StyledDesc>{formatPrice(customer?.points ?? 0)}</StyledDesc>
+                    {benefits && benefits.memberships.length > 0 && (
+                        <>
+                            <StyledTerm>회원권</StyledTerm>
+                            <StyledDesc>
+                                {benefits.memberships.map((m) => <StyledBenefitLine key={m.id}><StyledBenefitName>{m.name}</StyledBenefitName><StyledBenefitDetail>{describeBenefitMembership(m)}</StyledBenefitDetail></StyledBenefitLine>)}
+                            </StyledDesc>
+                        </>
+                    )}
+                    {benefits && benefits.coupons.length > 0 && (
+                        <>
+                            <StyledTerm>쿠폰</StyledTerm>
+                            <StyledDesc>
+                                {benefits.coupons.map((c) => <StyledBenefitLine key={c.id}><StyledBenefitName>{c.name}</StyledBenefitName><StyledBenefitDetail>{describeBenefitCoupon(c)}</StyledBenefitDetail></StyledBenefitLine>)}
+                            </StyledDesc>
+                        </>
+                    )}
                     <StyledTerm>{labels.assignee}</StyledTerm>
                     <StyledDesc>
                         <AssigneeLabel color={displayAssigneeColor} name={displayAssigneeName} />
@@ -180,7 +199,7 @@ const StyledDetailBodyInner = styled(StyledBodyInner)``;
 
 const StyledDetailList = styled.dl`
     display: grid;
-    grid-template-columns: 60px 1fr;
+    grid-template-columns: 60px minmax(0, 1fr); /* 긴 값(회원권·쿠폰 한 줄)이 말줄임되도록 열이 내용만큼 늘지 않게 */
     gap: 8px 12px;
     margin: 0;
 `;
@@ -324,4 +343,29 @@ const StyledHistoryButton = styled.button`
         background-color: var(--black-color-10);
     }
     }
+`;
+
+/* 회원권·쿠폰 항목 하나 = 박스 하나: 이름(굵게) + 아래 할인·만료(작게). 무엇인지 알아야 쓰므로 자르지 않는다 */
+const StyledBenefitLine = styled.span`
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+    padding: 8px 10px;
+    border: 1px solid var(--light-gray-color);
+    border-radius: var(--radius-md);
+    background: var(--gray-color2);
+    overflow-wrap: anywhere;
+
+    & + & {
+        margin-top: 6px;
+    }
+`;
+
+const StyledBenefitName = styled.strong`
+    font-weight: 600;
+`;
+
+const StyledBenefitDetail = styled.span`
+    font-size: var(--small-font);
+    color: var(--dark-gray-color2);
 `;

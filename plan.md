@@ -274,6 +274,82 @@ Cloud Build 트리거는 `^main$`뿐이라 release 브랜치 머지는 배포를
 - ⚠️ `scripts/setup-test-db.sh`는 `DATABASE_URL`만 바꾸는데 `prisma.config.ts`는 `DIRECT_URL`(.env = **운영**)을 먼저 쓴다 —
   그대로 돌리면 `migrate deploy`가 운영을 향한다. 임시 DB 마이그레이션은 두 변수를 모두 지정하고 대상을 출력해 확인한 뒤 한다.
 
+
+## 진행 — 고객의 회원권·쿠폰을 예약·고객 화면에 표시 (`claude/customer-benefits-view`, `claude/coupon-issue-ui` 위)
+
+### 요구 (지시자 2026-10-16)
+1. 매장: **예약 상세**와 **고객정보** 레이어에 그 고객이 쓸 수 있는 회원권·쿠폰을 보인다.
+2. 고객: 예약 관리 링크(`/book/[slug]/r/[token]`) 페이지에 **본인** 회원권·쿠폰을 보인다.
+
+### 구현
+- 서버 공용 조회 `server/db/customer-benefits.ts` `loadCustomerBenefits(storeId, customerId, now)`:
+  쓸 수 있는 것만 — 회원권 `active`·남은 횟수 있음(무제한 포함)·만료 전, 쿠폰 `active`·만료 전.
+  매장 기능 토글(`useMembershipSystem`·`useCouponSystem`)이 꺼져 있으면 그 종류는 빈 배열.
+- 매장: `GET /api/customer-benefits?customerId=<프론트 id>`(staff). 훅 `useCustomerBenefits(customerId)` — 게스트·토글 둘 다 꺼짐이면 요청 안 함.
+  고객정보 정보 목록·예약 상세 정보 목록의 **적립금 다음 줄**에 "회원권"·"쿠폰" 행(없으면 행 생략).
+- 고객: `GET /api/book/reservation/[token]` 응답에 `benefits` 추가. 토큰이 곧 본인 확인이라 본인 것만 낸다.
+  삭제된 예약 흔적 응답은 고객 연결이 없어 `benefits: null`. 요약 표 아래 "내 회원권·쿠폰" 블록, 4개 언어 문구.
+  (이름+연락처 조회 목록에는 넣지 않는다 — 목록은 예약 링크만, 상세는 링크 안에서)
+- 표시 문구 순수 함수: `features/customers/benefits.ts` — 회원권 "펌 5회권 · 남은 3/5회 · ~2026-12-31", 쿠폰 "첫 방문 · 5,000원 할인 · ~…" (+테스트).
+
+### 영향 파일
+`server/db/customer-benefits.ts`(신규), `server/api/customer-benefits.ts`+`client/pages/api/customer-benefits.ts`(신규),
+`server/api/book/reservation/[token].ts`, `server/api/book/booking-helpers.ts`(select 에 customerId),
+`client/features/customers/benefits.ts`(+test), `client/hooks/useCustomerBenefits.ts`,
+`CustomerDetail.tsx`, `ReservationViewSection.tsx`, `client/pages/book/[slug]/r/[token].tsx`, `client/features/booking/i18n.ts`.
+
+### 검증
+- tsc · 테스트 216(신규 benefits 3·benefits-i18n 4) · 순수 모듈 게이트 · lint 신규 경고 0.
+- 임시 DB(`takeaseat_preview`)에 회원권 2(1개 소진)·쿠폰 3(1개 만료) 넣고 고객 페이지 확인:
+  API `benefits`에 쓸 수 있는 회원권 1·쿠폰 2만, 만료일 한국 날짜(2026-11-30T15:00Z → ~2026-12-01).
+  처음엔 긴 줄 때문에 휴대폰에서 카드가 넘침 → 라벨 위·항목 아래로 바꿔 375px에서 가로 넘침 없음.
+- **미확인**: 매장 쪽 예약 상세·고객정보 행(로그인 세션 필요), 다른 언어 화면(문구는 단위 테스트).
+
+---
+
+## 진행 — 쿠폰 고객 발급 화면 (`claude/coupon-issue-ui`)
+
+### 배경
+쿠폰은 상품 CRUD 화면만 있고 **고객에게 발급하는 화면이 없다.** 발급 API(`/api/coupon-issue` POST 발급·DELETE 취소, #156)는
+2026-07-27에 만들어졌지만 화면 연결이 빠졌다. `index.md`는 `CouponManageSection`에 "직접 발급은 구현"이라 적혀 있으나
+**구현된 건 API뿐**(문서·코드 불일치 — 이 작업으로 해소). 지시자 요청(2026-10-16): 쿠폰 발급 만들기.
+
+### 범위
+- 포함: 쿠폰 관리에 **상품 / 발급** 탭(회원권 관리와 같은 구조). 발급 폼(고객 검색 + 쿠폰 선택 → 발급), 발급 내역(고객·쿠폰·할인·만료·상태), 미사용 쿠폰 **취소**.
+- 제외(후속): 쿠폰 **사용 처리**(지금 `used`로 바꾸는 곳이 없음), 코드형 발급(고객이 코드 입력), 결제 자동 차감(`PaymentMethod.coupon`).
+- 발급 대상 상품: 활성 + **코드 없는 상품만**(API가 코드형 직접 발급을 거부). 없으면 안내 문구.
+
+### 구현
+- 회원권 발급의 고객 검색 상태(검색어·선택·제안 열림·blur 타이머)를 훅으로 추출해 두 화면이 공유: `components/customers/useIssueCustomerPicker.ts`.
+  (컴포넌트가 아니라 훅 — 기존 `CustomerAutocomplete`를 그대로 쓴다)
+- 탭 버튼 스타일(`StyledTabRow`·`StyledTabButton`)을 `settings-styles.ts`로 옮겨 공유.
+- `CouponManageSection`: `tab` 상태, `/api/coupons` GET 의 `coupons`(이미 내려옴)를 받아 발급 내역 표시, POST/DELETE `/api/coupon-issue`.
+  서버 에러 메시지(고객당 1장 등)를 그대로 토스트.
+- 순수 함수(할인 설명·발급 가능 상품 필터)는 `features/coupons/model.ts` + 테스트.
+
+### 영향 파일
+`CouponManageSection.tsx`, `MembershipManageSection.tsx`(훅·탭 스타일 공유), `settings-styles.ts`, `components/customers/useIssueCustomerPicker.ts`(신규 훅),
+`features/coupons/model.ts`(+test), `index.md`.
+
+### 예상 결과
+쿠폰 관리 → 발급 탭에서 고객에게 쿠폰을 발급·취소할 수 있고, 고객 삭제 창(별도 브랜치)의 쿠폰 칸이 실제로 쓰인다.
+
+### 범위 추가 (지시자 2026-10-16 — 점검에서 찾은 문제 모두 수정)
+- 만료된 '고객당 1장' 쿠폰이 재발급을 영원히 막음 → 서버 보유 확인에 "만료 전" 조건.
+- 쿠폰 **사용 처리**: `/api/coupon-use`(POST `{couponId, action: 'use'|'restore'}`) + 발급 내역 [사용]/[복원] 버튼. 조건부 updateMany 로 원자적.
+- 발급·사용·취소 버튼 **처리 중 막기**(쿠폰·회원권). 서버 count→create 경합은 남는다(고객당 1장 유니크 제약 없음) — 버튼 잠금으로 실사용 경로는 막힘.
+- 만료일 표시가 UTC 날짜라 하루 이르게 보임 → `toLocalDateKey(iso)`(브라우저 로컬=한국 시간)로. 회원권도.
+- 발급 내역 페이징: 20건씩 **더 보기**(쿠폰·회원권). 목록은 API가 한 번에 내려 주는 걸 화면에서 나눈다 — shortcut, 수천 건 단위가 되면 API 페이징.
+- 별도 브랜치: 고객 병합 시 쿠폰·회원권 소실(병합 API·마이그레이션) / 삭제 고객 발급 거부(익명화 브랜치).
+
+### 진행 기록
+- 구현 완료: 발급 탭·취소·내역, 공용 훅·탭 스타일, `describeCouponDiscount`·`isDirectIssuable`·`couponDisplayStatus`(+테스트 5).
+- tsc · 쿠폰 테스트 5 · lint 통과. **화면 구동 확인은 로그인 세션 필요**(쿠폰은 로그인 전용) — 미확인.
+- ⚠️ 고객 삭제 익명화 브랜치(`claude/customer-delete-anonymize`)와 합칠 때 `MembershipManageSection`의 고객 목록 줄이 충돌한다.
+  그 브랜치는 삭제 고객을 빼는 `getSelectableCustomers`를 쓰므로, 합칠 때 **`useIssueCustomerPicker`에서 삭제 고객을 빼야 한다.**
+
+---
+
 ## 완료 — 타임라인 카드에 시작시간 + 예약 상태 표기 정리 (웹·앱 동시)
 
 ### 한 일

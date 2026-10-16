@@ -26,6 +26,8 @@ import {DELETED_CUSTOMER_NAME, formatTel, getSelectableCustomers, normalizeTel, 
 import {findSimilarCustomers} from '../../../features/customers/similar';
 import {summarizeCustomerReservations} from '../../../features/customers/merge-suggestion';
 import {shouldUseLocalDb} from '../../../lib/local-db';
+import {useCustomerBenefits} from '../../../hooks/useCustomerBenefits';
+import {describeBenefitCoupon, describeBenefitMembership} from '../../../features/customers/benefits';
 import type {Customer as CustomerType} from '../../../utils/customers';
 import {useCalendarStore} from '../../../store/calendarStore';
 import {useToastStore} from '../../../store/toastStore';
@@ -85,6 +87,9 @@ import {
     StyledDeleteSummaryRow,
     StyledDeleteSummaryTerm,
     StyledDeleteSummaryValue,
+    StyledBenefitLine,
+    StyledBenefitName,
+    StyledBenefitDetail,
 } from './CustomerDetail.styles';
 
 const PAGE_SIZE = 5;
@@ -185,6 +190,8 @@ export const CustomerDetail = ({customer, reservationMap, onClose, onReservation
             .then((balance) => { if (!cancelled) setDeleteBalance(balance); });
         return () => { cancelled = true; };
     }, [isDeleteConfirm, customer]);
+    // 이 고객이 쓸 수 있는 회원권·쿠폰(정보 목록에 표시).
+    const benefits = useCustomerBenefits(customer.id);
     const toast = useToastStore((s) => s.show);
     const modalRoot = document.getElementById('modal-root');
     const {layerId, layerDataId} = useLayerInstanceId('customer-detail');
@@ -568,6 +575,22 @@ export const CustomerDetail = ({customer, reservationMap, onClose, onReservation
                             <StyledInfoDesc><StyledTelLink href={`tel:${customer.tel}`}>{formatTel(customer.tel)}</StyledTelLink></StyledInfoDesc>
                             <StyledInfoTerm>적립금</StyledInfoTerm>
                             <StyledInfoDesc>{formatPrice(customer.points ?? 0)}</StyledInfoDesc>
+                            {benefits && benefits.memberships.length > 0 && (
+                                <>
+                                    <StyledInfoTerm>회원권</StyledInfoTerm>
+                                    <StyledInfoDesc>
+                                        {benefits.memberships.map((m) => <StyledBenefitLine key={m.id}><StyledBenefitName>{m.name}</StyledBenefitName><StyledBenefitDetail>{describeBenefitMembership(m)}</StyledBenefitDetail></StyledBenefitLine>)}
+                                    </StyledInfoDesc>
+                                </>
+                            )}
+                            {benefits && benefits.coupons.length > 0 && (
+                                <>
+                                    <StyledInfoTerm>쿠폰</StyledInfoTerm>
+                                    <StyledInfoDesc>
+                                        {benefits.coupons.map((c) => <StyledBenefitLine key={c.id}><StyledBenefitName>{c.name}</StyledBenefitName><StyledBenefitDetail>{describeBenefitCoupon(c)}</StyledBenefitDetail></StyledBenefitLine>)}
+                                    </StyledInfoDesc>
+                                </>
+                            )}
                             <StyledInfoTerm>노쇼</StyledInfoTerm>
                             <StyledInfoDesc><StyledNoshowCount $hasNoshow={noshowCount > 0}>{noshowCount}회</StyledNoshowCount></StyledInfoDesc>
                         </StyledInfoList>

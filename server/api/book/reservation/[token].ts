@@ -7,6 +7,7 @@ import {
 } from '../booking-helpers';
 import {prisma} from '../../../db/prisma';
 import {toDateKey} from '../../../db/mappers';
+import {loadCustomerBenefits} from '../../../db/customer-benefits';
 
 // 공개(비로그인) 예약 조회. 관리 링크 토큰으로만 접근하며, 고객 본인 예약의 최소 정보만 반환한다.
 // 다른 고객·매장 데이터는 절대 노출하지 않는다(토큰이 곧 접근 권한).
@@ -34,6 +35,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             : {text: settings.cancelText ?? null, i18n: settings.cancelI18n ?? null};
     }
 
+    // 본인 회원권·쿠폰. 토큰이 곧 본인 확인이라 이 예약 고객의 것만 낸다(이름·연락처·다른 고객 정보는 안 낸다).
+    const benefits = reservation.customer
+        ? await loadCustomerBenefits({...reservation.store, id: reservation.storeId}, reservation.customer.id, new Date())
+        : null;
+
     return res.status(200).json({
         status: reservation.status,
         date: toDateKey(reservation.date),
@@ -54,6 +60,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         canRequest: reservation.status === 'active',
         canCancel: reservation.status === 'active' || reservation.status === 'requested',
         statusMessage,
+        benefits,
     });
 }
 
@@ -90,5 +97,7 @@ async function respondDeleted(token: string, res: NextApiResponse) {
         canRequest: false,
         canCancel: false,
         statusMessage: {text: settings.cancelText ?? null, i18n: settings.cancelI18n ?? null},
+        // 흔적에는 고객 연결이 없다.
+        benefits: null,
     });
 }

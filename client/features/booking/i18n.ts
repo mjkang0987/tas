@@ -4,6 +4,8 @@
 
 import {CATEGORY_LABELS, getPrimaryIndustry, type ShopCategory, type StoreLabels} from '../store-settings/labels';
 import type {BookLang} from './routing';
+import type {BenefitCoupon, BenefitMembership} from '../customers/benefits';
+import {toLocalDateKey} from '../reservations/model';
 
 // 언어 코드·공개 경로 생성은 미들웨어(Edge)도 쓰므로 routing.ts에 있다.
 // 기존 소비자가 계속 i18n.ts 하나만 import 하도록 여기서 재export한다.
@@ -93,6 +95,65 @@ export function formatDurationL(minutes: number, lang: BookLang): string {
 export function formatPriceL(price: number, lang: BookLang): string {
     const n = price.toLocaleString();
     return lang === 'ko' ? `${n}원` : `₩${n}`;
+}
+
+// 고객 예약 관리 페이지의 "내 회원권·쿠폰" 블록. 회원권·쿠폰 이름은 오너가 입력한 그대로(번역 없음).
+const BENEFIT_TEXT: Record<BookLang, {
+    title: string;
+    membership: string;
+    coupon: string;
+    left: (remaining: number, total: number) => string;
+    unlimited: string;
+    until: (date: string) => string;
+    noExpiry: string;
+    amountOff: (price: string) => string;
+    rateOff: (rate: number) => string;
+    upTo: (price: string) => string;
+}> = {
+    ko: {
+        title: '내 회원권·쿠폰', membership: '회원권', coupon: '쿠폰',
+        left: (r, t) => `남은 ${r}/${t}회`, unlimited: '무제한',
+        until: (d) => `~${d}`, noExpiry: '무기한',
+        amountOff: (p) => `${p} 할인`, rateOff: (v) => `${v}% 할인`, upTo: (p) => ` (최대 ${p})`,
+    },
+    en: {
+        title: 'My memberships & coupons', membership: 'Membership', coupon: 'Coupon',
+        left: (r, t) => `${r}/${t} left`, unlimited: 'Unlimited',
+        until: (d) => `until ${d}`, noExpiry: 'No expiry',
+        amountOff: (p) => `${p} off`, rateOff: (v) => `${v}% off`, upTo: (p) => ` (up to ${p})`,
+    },
+    zh: {
+        title: '我的会员卡·优惠券', membership: '会员卡', coupon: '优惠券',
+        left: (r, t) => `剩余 ${r}/${t}次`, unlimited: '不限次数',
+        until: (d) => `有效期至 ${d}`, noExpiry: '长期有效',
+        amountOff: (p) => `减${p}`, rateOff: (v) => `优惠${v}%`, upTo: (p) => `（最多减${p}）`,
+    },
+    ja: {
+        title: '会員券・クーポン', membership: '会員券', coupon: 'クーポン',
+        left: (r, t) => `残り${r}/${t}回`, unlimited: '回数無制限',
+        until: (d) => `${d}まで`, noExpiry: '無期限',
+        amountOff: (p) => `${p}引き`, rateOff: (v) => `${v}%オフ`, upTo: (p) => `（最大${p}）`,
+    },
+};
+
+export function benefitTextL(lang: BookLang) {
+    return BENEFIT_TEXT[lang];
+}
+
+/** 회원권 상세(이름은 따로) — 남은 횟수 · 만료일 */
+export function benefitMembershipL(m: BenefitMembership, lang: BookLang): string {
+    const t = BENEFIT_TEXT[lang];
+    const count = m.totalCount != null ? t.left(m.remainingCount ?? 0, m.totalCount) : t.unlimited;
+    return `${count} · ${m.expiresAt ? t.until(toLocalDateKey(m.expiresAt)) : t.noExpiry}`;
+}
+
+/** 쿠폰 상세(이름은 따로) — 할인 · 만료일 */
+export function benefitCouponL(c: BenefitCoupon, lang: BookLang): string {
+    const t = BENEFIT_TEXT[lang];
+    const discount = c.discountType === 'amount'
+        ? t.amountOff(formatPriceL(c.discountValue, lang))
+        : `${t.rateOff(c.discountValue)}${c.maxDiscount != null ? t.upTo(formatPriceL(c.maxDiscount, lang)) : ''}`;
+    return `${discount} · ${c.expiresAt ? t.until(toLocalDateKey(c.expiresAt)) : t.noExpiry}`;
 }
 
 // 요일 짧은 라벨(0=월…6=일).
