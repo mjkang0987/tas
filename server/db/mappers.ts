@@ -217,6 +217,10 @@ type DbReservationRow = {
     }>;
     customer: { legacyId: number | null };
     assignee: { legacyId: number | null } | null;
+    couponsUsed?: Array<{
+        id: string; name: string; discountType: string; discountValue: number;
+        maxDiscount: number | null; minOrderAmount: number | null; expiresAt: Date | null;
+    }>;
 };
 
 export function dbReservationToFrontend(row: DbReservationRow): Reservation {
@@ -241,6 +245,11 @@ export function dbReservationToFrontend(row: DbReservationRow): Reservation {
         ...(row.naverBookingUrl != null && {naverBookingUrl: row.naverBookingUrl}),
         ...(row.naverDeposit != null && {naverDeposit: row.naverDeposit}),
         channel: dbChannelToFrontend(row.channel),
+        ...(row.couponsUsed?.[0] && {usedCoupon: {
+            ...row.couponsUsed[0],
+            discountType: row.couponsUsed[0].discountType === 'rate' ? 'rate' as const : 'amount' as const,
+            expiresAt: row.couponsUsed[0].expiresAt?.toISOString() ?? null,
+        }}),
     };
 }
 
