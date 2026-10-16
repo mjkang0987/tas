@@ -91,13 +91,15 @@ export const ConfirmDialog = ({
                 // 삭제·되돌릴 수 없는 동작: 헤더 줄 없이 가운데 아이콘 → 질문형 제목 → 설명 → 같은 너비 버튼 두 개.
                 // 아이콘은 색만이 아니라 모양으로도 위험을 알린다(WCAG 1.4.1).
                 <StyledAlertModal ref={dialogRef} tabIndex={-1} onClick={(e) => e.stopPropagation()}>
-                    <StyledAlertBody>
-                        <StyledAlertIcon><ConfirmIconGlyph icon={icon} /></StyledAlertIcon>
-                        <StyledAlertTitle>{title}</StyledAlertTitle>
-                        {description && <StyledAlertText>{description}</StyledAlertText>}
-                        {message && <StyledAlertText>{message}</StyledAlertText>}
-                    </StyledAlertBody>
-                    {children}
+                    <StyledAlertScroll>
+                        <StyledAlertBody>
+                            <StyledAlertIcon><ConfirmIconGlyph icon={icon} /></StyledAlertIcon>
+                            <StyledAlertTitle>{title}</StyledAlertTitle>
+                            {description && <StyledAlertText>{description}</StyledAlertText>}
+                            {message && <StyledAlertText>{message}</StyledAlertText>}
+                        </StyledAlertBody>
+                        {children}
+                    </StyledAlertScroll>
                     <StyledAlertFooter>
                         {!hideCancel && (
                             <StyledActionButton type="button" onClick={onClose}>{cancelLabel}</StyledActionButton>
@@ -169,6 +171,13 @@ const StyledAlertModal = styled(StyledConfirmModal)`
             width: min(360px, calc(100vw - 16px));
         }
     }
+`;
+
+// 내용이 창 최대 높이(80~90vh)를 넘으면 이 안에서만 스크롤한다 — 창은 overflow: hidden 이라 없으면 버튼이 잘린다.
+const StyledAlertScroll = styled.div`
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-y: auto;
 `;
 
 const StyledAlertBody = styled.div`
