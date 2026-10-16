@@ -3,13 +3,18 @@ import {useCallback, useEffect, useMemo, useState} from 'react';
 import styled from 'styled-components';
 
 import {PageHero} from '../ui/PageHero';
-import {formControlStyle} from '../ui/FormControls';
+import {formControlStyle, StyledFieldSelect} from '../ui/FormControls';
 import {FieldError} from '../ui/FieldError';
-import {cardSurfaceStyle, StyledEditBtn, StyledDeleteBtn, StyledSaveBtn, StyledCancelBtn, StyledEmpty, EMPTY_TEXT, StyledSettingsCardTitle, StyledHeaderActions} from './settings-styles';
+import {cardSurfaceStyle, StyledEditBtn, StyledDeleteBtn, StyledSaveBtn, StyledCancelBtn, StyledEmpty, EMPTY_TEXT, StyledSettingsCardTitle, StyledHeaderActions, StyledTabRow, StyledTabButton} from './settings-styles';
 import {useToastStore} from '../../store/toastStore';
 import {shouldUseLocalDb} from '../../lib/local-db';
 import {formatPrice} from '../../utils/services';
-import type {CouponProduct, CouponDiscountType} from '../../features/coupons/model';
+import {toLocalDateKey} from '../../utils/reservations';
+import {CustomerAutocomplete} from '../customers/CustomerAutocomplete';
+import {useIssueCustomerPicker} from '../customers/useIssueCustomerPicker';
+import {useSingleFlight} from '../../hooks/useSingleFlight';
+import {COUPON_STATUS_LABEL, couponDisplayStatus, describeCouponDiscount, isDirectIssuable} from '../../features/coupons/model';
+import type {CouponProduct, CouponDiscountType, CouponsPayload, CustomerCoupon} from '../../features/coupons/model';
 
 interface DraftForm {
     name: string;
@@ -21,6 +26,9 @@ interface DraftForm {
     code: string;
     oncePerCustomer: boolean;
 }
+
+// 발급 내역은 이만큼씩 더 보기로 늘린다.
+const ISSUED_PAGE_SIZE = 20;
 
 const EMPTY_DRAFT: DraftForm = {
     name: '', discountType: 'amount', discountValue: '', maxDiscount: '', minOrderAmount: '', validDays: '', code: '',
@@ -48,8 +56,18 @@ export const CouponManageSection = () => {
     const toast = useToastStore((s) => s.show);
     const isLocal = shouldUseLocalDb();
 
+    const [tab, setTab] = useState<'products' | 'issue'>('products');
     const [products, setProducts] = useState<CouponProduct[]>([]);
+    const [coupons, setCoupons] = useState<CustomerCoupon[]>([]);
     const [loading, setLoading] = useState(!isLocal);
+
+    // 발급 폼
+    const [issueProductId, setIssueProductId] = useState('');
+    const [issueError, setIssueError] = useState('');
+    const issueCustomer = useIssueCustomerPicker(() => setIssueError(''));
+    // 발급·사용·되돌리기·취소 중에는 다른 요청을 막는다(연타로 두 번 발급되는 것 방지).
+    const flight = useSingleFlight();
+    const [visibleCount, setVisibleCount] = useState(ISSUED_PAGE_SIZE);
 
     const [isAdding, setIsAdding] = useState(false);
     const [editingId, setEditingId] = useState<string | null>(null);
@@ -62,8 +80,9 @@ export const CouponManageSection = () => {
         try {
             const res = await fetch('/api/coupons');
             if (!res.ok) throw new Error();
-            const data = await res.json() as {products: CouponProduct[]};
+            const data = await res.json() as CouponsPayload;
             setProducts(data.products ?? []);
+            setCoupons(data.coupons ?? []);
         } catch {
             toast('쿠폰 정보를 불러오지 못했습니다.', 'error');
         } finally {
@@ -76,6 +95,7 @@ export const CouponManageSection = () => {
     }, [fetchData]);
 
     const activeProducts = useMemo(() => products.filter((p) => p.status === 'active'), [products]);
+    const issuableProducts = useMemo(() => products.filter(isDirectIssuable), [products]);
 
     const resetForm = () => {
         setDraft(EMPTY_DRAFT);
@@ -164,6 +184,71 @@ export const CouponManageSection = () => {
         }
     };
 
+    // ── 발급 ──
+    const handleIssue = () => flight.run(async () => {
+        if (!issueCustomer.customerId) {
+            setIssueError('고객을 선택해 주세요.');
+            return;
+        }
+        if (!issueProductId) {
+            setIssueError('쿠폰을 선택해 주세요.');
+            return;
+        }
+        try {
+            const res = await fetch('/api/coupon-issue', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({customerId: issueCustomer.customerId, productId: issueProductId}),
+            });
+            if (!res.ok) {
+                // 고객당 1장·보관 상품 등 서버가 거절 사유를 준다 — 그대로 보여준다.
+                const err = await res.json().catch(() => null) as {error?: string} | null;
+                setIssueError(err?.error ?? '발급에 실패했습니다.');
+                return;
+            }
+            toast('쿠폰을 발급했습니다.');
+            issueCustomer.reset();
+            setIssueProductId('');
+            setIssueError('');
+            await fetchData();
+        } catch {
+            toast('발급에 실패했습니다.', 'error');
+        }
+    });
+
+    const handleCancelCoupon = (c: CustomerCoupon) => flight.run(async () => {
+        try {
+            const res = await fetch('/api/coupon-issue', {
+                method: 'DELETE',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({id: c.id}),
+            });
+            if (!res.ok) throw new Error();
+            toast('쿠폰 발급을 취소했습니다.', 'info');
+            await fetchData();
+        } catch {
+            toast('취소에 실패했습니다.', 'error');
+        }
+    });
+
+    const handleUseCoupon = (c: CustomerCoupon, action: 'use' | 'restore') => flight.run(async () => {
+        try {
+            const res = await fetch('/api/coupon-use', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({couponId: c.id, action}),
+            });
+            if (!res.ok) {
+                const err = await res.json().catch(() => null) as {error?: string} | null;
+                throw new Error(err?.error || '');
+            }
+            toast(action === 'use' ? '쿠폰을 사용 처리했습니다.' : '쿠폰 사용을 되돌렸습니다.');
+            await fetchData();
+        } catch (err) {
+            toast(err instanceof Error && err.message ? err.message : '처리에 실패했습니다.', 'error');
+        }
+    });
+
     const couponForm = (
         <StyledFormCard>
             <StyledFormHeader>
@@ -241,56 +326,133 @@ export const CouponManageSection = () => {
             <PageHero
                 eyebrow="COUPON"
                 title="쿠폰 관리"
-                subtitle="정액·정률 할인 쿠폰을 등록합니다. 발급·결제 차감은 추후 지원됩니다."
+                subtitle="정액·정률 할인 쿠폰을 등록하고 고객에게 발급·사용 처리합니다. 결제 자동 차감은 추후 지원됩니다."
             />
 
             {isLocal ? (
                 <StyledEmpty>쿠폰은 로그인 후 이용할 수 있습니다.</StyledEmpty>
             ) : (
                 <>
-                    <StyledToolbar>
-                        {/* 폼이 열려 있어도 항상 노출. 수정 중에 누르면 편집을 접고 빈 추가 폼으로 전환한다. */}
-                        <StyledEditBtn type="button"
-                                       onClick={() => {
-                                           setIsAdding(true);
-                                           setEditingId(null);
-                                           setDraft(EMPTY_DRAFT);
-                                           setError('');
-                                       }}>쿠폰 추가</StyledEditBtn>
-                    </StyledToolbar>
+                    <StyledTabRow>
+                        <StyledTabButton type="button" $active={tab === 'products'} onClick={() => setTab('products')}>상품</StyledTabButton>
+                        <StyledTabButton type="button" $active={tab === 'issue'} onClick={() => setTab('issue')}>발급</StyledTabButton>
+                    </StyledTabRow>
 
-                    {isAdding && couponForm}
+                    {tab === 'products' && (
+                        <>
+                            <StyledToolbar>
+                                {/* 폼이 열려 있어도 항상 노출. 수정 중에 누르면 편집을 접고 빈 추가 폼으로 전환한다. */}
+                                <StyledEditBtn type="button"
+                                               onClick={() => {
+                                                   setIsAdding(true);
+                                                   setEditingId(null);
+                                                   setDraft(EMPTY_DRAFT);
+                                                   setError('');
+                                               }}>쿠폰 추가</StyledEditBtn>
+                            </StyledToolbar>
 
-                    {loading || activeProducts.length === 0 ? (
-                        <StyledEmpty>{EMPTY_TEXT}</StyledEmpty>
-                    ) : (
-                        <StyledList>
-                            {activeProducts.map((p) => (
-                                editingId === p.id ? (
-                                    <div key={p.id}>{couponForm}</div>
-                                ) : (
-                                <StyledItem key={p.id}>
-                                    <StyledItemHead>
-                                        <StyledItemName>{p.name}</StyledItemName>
-                                        {editingId === null && !isAdding && (
-                                            <StyledItemActions>
-                                                <StyledEditBtn type="button" onClick={() => startEdit(p)}>수정</StyledEditBtn>
-                                                <StyledDeleteBtn type="button" onClick={() => handleArchiveProduct(p)}>삭제</StyledDeleteBtn>
-                                            </StyledItemActions>
-                                        )}
-                                    </StyledItemHead>
-                                    <StyledSpecGrid>
-                                        {productSpecs(p).map((spec) => (
-                                            <StyledSpec key={spec.label}>
-                                                <StyledSpecLabel>{spec.label}</StyledSpecLabel>
-                                                <StyledSpecValue>{spec.value}</StyledSpecValue>
-                                            </StyledSpec>
-                                        ))}
-                                    </StyledSpecGrid>
-                                </StyledItem>
-                                )
-                            ))}
-                        </StyledList>
+                            {isAdding && couponForm}
+
+                            {loading || activeProducts.length === 0 ? (
+                                <StyledEmpty>{EMPTY_TEXT}</StyledEmpty>
+                            ) : (
+                                <StyledList>
+                                    {activeProducts.map((p) => (
+                                        editingId === p.id ? (
+                                            <div key={p.id}>{couponForm}</div>
+                                        ) : (
+                                        <StyledItem key={p.id}>
+                                            <StyledItemHead>
+                                                <StyledItemName>{p.name}</StyledItemName>
+                                                {editingId === null && !isAdding && (
+                                                    <StyledItemActions>
+                                                        <StyledEditBtn type="button" onClick={() => startEdit(p)}>수정</StyledEditBtn>
+                                                        <StyledDeleteBtn type="button" onClick={() => handleArchiveProduct(p)}>삭제</StyledDeleteBtn>
+                                                    </StyledItemActions>
+                                                )}
+                                            </StyledItemHead>
+                                            <StyledSpecGrid>
+                                                {productSpecs(p).map((spec) => (
+                                                    <StyledSpec key={spec.label}>
+                                                        <StyledSpecLabel>{spec.label}</StyledSpecLabel>
+                                                        <StyledSpecValue>{spec.value}</StyledSpecValue>
+                                                    </StyledSpec>
+                                                ))}
+                                            </StyledSpecGrid>
+                                        </StyledItem>
+                                        )
+                                    ))}
+                                </StyledList>
+                            )}
+                        </>
+                    )}
+
+                    {tab === 'issue' && (
+                        <>
+                            <StyledFormCard>
+                                <StyledSettingsCardTitle>쿠폰 발급</StyledSettingsCardTitle>
+                                <StyledFieldGrid>
+                                    <CustomerAutocomplete id="ci-customer" {...issueCustomer.autocompleteProps} />
+                                    <StyledField htmlFor="ci-product">
+                                        <span>쿠폰</span>
+                                        <StyledSelect id="ci-product" value={issueProductId}
+                                                      onChange={(e) => {setIssueProductId(e.target.value); setIssueError('');}}>
+                                            <option value="">쿠폰 선택</option>
+                                            {issuableProducts.map((p) => (
+                                                <option key={p.id} value={p.id}>{p.name} ({describeCouponDiscount(p)})</option>
+                                            ))}
+                                        </StyledSelect>
+                                    </StyledField>
+                                </StyledFieldGrid>
+                                {!loading && issuableProducts.length === 0 && (
+                                    <StyledHint>발급할 수 있는 쿠폰이 없습니다. 상품 탭에서 코드 없이 쿠폰을 추가해 주세요(코드형은 직접 발급 대상이 아닙니다).</StyledHint>
+                                )}
+                                <FieldError variant="inline">{issueError}</FieldError>
+                                <StyledActionRow>
+                                    <StyledSaveBtn type="button" disabled={flight.busy} onClick={handleIssue}>발급</StyledSaveBtn>
+                                </StyledActionRow>
+                            </StyledFormCard>
+
+                            {loading || coupons.length === 0 ? (
+                                <StyledEmpty>{EMPTY_TEXT}</StyledEmpty>
+                            ) : (
+                                <StyledList>
+                                    {coupons.slice(0, visibleCount).map((c) => {
+                                        const status = couponDisplayStatus(c, new Date());
+                                        return (
+                                            <StyledItem key={c.id}>
+                                                <StyledItemHead>
+                                                    <StyledIssuedMain>
+                                                        <StyledItemName>{issueCustomer.customerName(c.customerId)} · {c.name}</StyledItemName>
+                                                        <StyledIssuedMeta>
+                                                            {describeCouponDiscount(c)} · {c.expiresAt ? `~${toLocalDateKey(c.expiresAt)}` : '무기한'} · {COUPON_STATUS_LABEL[status]}
+                                                        </StyledIssuedMeta>
+                                                    </StyledIssuedMain>
+                                                    {(status === 'active' || status === 'used') && (
+                                                        <StyledItemActions>
+                                                            {status === 'active' && (
+                                                                <StyledEditBtn type="button" disabled={flight.busy} onClick={() => handleUseCoupon(c, 'use')}>사용</StyledEditBtn>
+                                                            )}
+                                                            {status === 'used' && (
+                                                                <StyledEditBtn type="button" disabled={flight.busy} onClick={() => handleUseCoupon(c, 'restore')}>되돌리기</StyledEditBtn>
+                                                            )}
+                                                            {status === 'active' && (
+                                                                <StyledDeleteBtn type="button" disabled={flight.busy} onClick={() => handleCancelCoupon(c)}>취소</StyledDeleteBtn>
+                                                            )}
+                                                        </StyledItemActions>
+                                                    )}
+                                                </StyledItemHead>
+                                            </StyledItem>
+                                        );
+                                    })}
+                                </StyledList>
+                            )}
+                            {!loading && coupons.length > visibleCount && (
+                                <StyledEditBtn type="button" onClick={() => setVisibleCount((n) => n + ISSUED_PAGE_SIZE)}>
+                                    더 보기 ({visibleCount}/{coupons.length})
+                                </StyledEditBtn>
+                            )}
+                        </>
                     )}
                 </>
             )}
@@ -440,4 +602,30 @@ const StyledSpecValue = styled.dd`
     min-width: 0;
     font-size: var(--medium-font);
     color: var(--black-color);
+`;
+
+const StyledSelect = styled(StyledFieldSelect)``;
+
+const StyledHint = styled.p`
+    margin: 0;
+    font-size: var(--small-font);
+    color: var(--dark-gray-color2);
+`;
+
+const StyledActionRow = styled.div`
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+`;
+
+const StyledIssuedMain = styled.div`
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    min-width: 0;
+`;
+
+const StyledIssuedMeta = styled.span`
+    font-size: var(--small-font);
+    color: var(--dark-gray-color2);
 `;

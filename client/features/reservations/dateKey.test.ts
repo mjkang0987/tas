@@ -13,7 +13,7 @@ process.env.TZ = 'Asia/Seoul';
 import {describe, expect, it} from 'vitest';
 
 import {toDateKey as toDateKeyFromDate} from '../../../server/db/mappers';
-import {toDateKey as toDateKeyFromParts} from './model';
+import {toDateKey as toDateKeyFromParts, toLocalDateKey} from './model';
 
 // 오너가 입력한 달력일을 DB에 저장할 때 쓰는 형태
 function store(dateStr: string): Date {
@@ -72,5 +72,16 @@ describe('toDateKey(year, month, date) — 클라이언트 조립 경로', () =>
         for (const [y, m, d] of [[2026, 0, 1], [2026, 6, 31], [2026, 11, 31]] as const) {
             expect(toDateKeyFromParts(y, m, d)).toBe(toDateKeyFromDate(new Date(y, m, d)));
         }
+    });
+});
+
+describe('toLocalDateKey(iso) — 만료일 등 순간값 표시', () => {
+    it('한국 시간 오전(UTC 전날)도 한국 날짜로 낸다', () => {
+        // 2026-11-15 08:30 KST = 2026-11-14T23:30Z — slice(0, 10)이면 11-14로 하루 이르게 보였다
+        expect(toLocalDateKey('2026-11-14T23:30:00.000Z')).toBe('2026-11-15');
+    });
+
+    it('한국 시간 오후는 같은 날', () => {
+        expect(toLocalDateKey('2026-11-15T05:00:00.000Z')).toBe('2026-11-15');
     });
 });

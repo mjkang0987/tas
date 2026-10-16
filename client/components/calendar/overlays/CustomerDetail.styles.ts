@@ -52,7 +52,7 @@ export const StyledInfo = styled.div`
 
 export const StyledInfoList = styled.dl`
     display: grid;
-    grid-template-columns: 60px 1fr;
+    grid-template-columns: 60px minmax(0, 1fr); /* 긴 값(회원권·쿠폰 한 줄)이 말줄임되도록 열이 내용만큼 늘지 않게 */
     gap: 4px 12px;
     margin: 0;
 `;
@@ -112,63 +112,6 @@ export const StyledPointInfo = styled.div`
     font-size: var(--small-font);
     font-weight: 700;
     color: var(--brand-color);
-`;
-
-export const StyledDupWarning = styled.div`
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-    padding: 10px 12px;
-    border: 1px solid var(--warning-border-soft);
-    border-radius: var(--radius-lg);
-    background: var(--warning-bg-soft);
-`;
-
-export const StyledDupWarningText = styled.p`
-    margin: 0;
-    font-size: var(--small-font);
-    line-height: 1.5;
-    color: var(--warning-text);
-
-    strong {
-        font-weight: 700;
-    }
-`;
-
-export const StyledDupWarningActions = styled.div`
-    display: flex;
-    flex-wrap: wrap;
-    gap: 6px;
-`;
-
-export const StyledDupWarningButton = styled.button<{$variant: 'merge' | 'keep' | 'cancel'}>`
-    height: 30px;
-    padding: 0 12px;
-    border-radius: var(--radius-md);
-    font-size: var(--small-font);
-    font-weight: 600;
-    cursor: pointer;
-
-    ${({$variant}) => $variant === 'merge' && `
-        border: 1px solid var(--brand-color);
-        background: var(--brand-color);
-        color: var(--white-color);
-    `}
-    ${({$variant}) => $variant === 'keep' && `
-        border: 1px solid var(--light-gray-color);
-        background: var(--white-color);
-        color: var(--black-color);
-    `}
-    ${({$variant}) => $variant === 'cancel' && `
-        border: 1px solid transparent;
-        background: transparent;
-        color: var(--dark-gray-color2);
-    `}
-
-    &:disabled {
-        opacity: .5;
-        cursor: default;
-    }
 `;
 
 export const StyledNotesSection = styled.div`
@@ -505,8 +448,8 @@ export const StyledUnmergeFooter = styled.div`
     border-top: 1px solid rgba(148, 163, 184, 0.16);
 `;
 
-/* 수정 중 하단에 뜨는 "비슷한 고객" — 저장 전에 같은 사람을 알아채라고 두는 자리다.
-   저장 시 중복 경고(StyledDupWarning)가 경고 톤인 것과 달리 여기는 정보 톤을 쓴다. */
+/* 수정 중 이름·연락처 칸에 포커스가 있을 때 뜨는 "비슷한 고객" — 저장 전에 같은 사람을 알아채라고 두는 자리다.
+   저장 시 번호 중복은 레이어(병합 레이어)로 따로 묻는다. */
 /* 추천 레이어의 기준점. 연락처 입력칸을 감싸 그 아래로 띄운다. */
 export const StyledSimilarAnchor = styled.div`
     position: relative;
@@ -620,4 +563,89 @@ export const StyledNaverBookingLink = styled.a`
     &::after {
         content: '↗';
     }
+`;
+
+/* 고객 삭제 창 하단 요약 — 남는 정보(예약)와 삭제되는 정보(적립금·회원권·쿠폰)를 따로 묶은 카드 두 개.
+   삭제되는 쪽은 빨간 테두리·배경으로 구분한다. 가운데 정렬 창 안이라 왼쪽 정렬. */
+export const StyledDeleteSummary = styled.div`
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin: 16px 16px 0;
+    text-align: left;
+`;
+
+export const StyledDeleteSummaryGroup = styled.section<{$danger?: boolean}>`
+    overflow: hidden;
+    border: 1px solid ${(p) => p.$danger ? 'var(--danger-border)' : 'var(--light-gray-color)'};
+    border-radius: var(--radius-md);
+`;
+
+export const StyledDeleteSummaryTitle = styled.h3<{$danger?: boolean}>`
+    margin: 0;
+    padding: 7px 12px;
+    background: ${(p) => p.$danger ? 'var(--danger-bg)' : 'var(--gray-color2)'};
+    font-size: var(--small-font);
+    font-weight: 700;
+    color: ${(p) => p.$danger ? 'var(--danger-color)' : 'var(--dark-gray-color)'};
+`;
+
+export const StyledDeleteSummaryList = styled.dl`
+    margin: 0;
+    font-size: var(--medium-font);
+    line-height: 1.5;
+`;
+
+/* dt·dd 한 쌍. 줄 사이는 가는 선으로 나눈다 */
+export const StyledDeleteSummaryRow = styled.div`
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 8px 12px;
+
+    & + & {
+        border-top: 1px solid var(--gray-color2);
+    }
+`;
+
+export const StyledDeleteSummaryTerm = styled.dt`
+    flex-shrink: 0;
+    color: var(--dark-gray-color2);
+`;
+
+/* 값이 여러 개(회원권·쿠폰 이름)면 한 줄에 하나씩 */
+export const StyledDeleteSummaryValue = styled.dd`
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    margin: 0;
+    color: var(--black-color);
+    font-weight: 600;
+    text-align: right;
+    word-break: keep-all;
+`;
+
+/* 회원권·쿠폰 항목 하나 = 박스 하나: 이름(굵게) + 아래 할인·만료(작게). 무엇인지 알아야 쓰므로 자르지 않는다 */
+export const StyledBenefitLine = styled.span`
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+    padding: 8px 10px;
+    border: 1px solid var(--light-gray-color);
+    border-radius: var(--radius-md);
+    background: var(--gray-color2);
+    overflow-wrap: anywhere;
+
+    & + & {
+        margin-top: 6px;
+    }
+`;
+
+export const StyledBenefitName = styled.strong`
+    font-weight: 600;
+`;
+
+export const StyledBenefitDetail = styled.span`
+    font-size: var(--small-font);
+    color: var(--dark-gray-color2);
 `;

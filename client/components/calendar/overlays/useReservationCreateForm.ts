@@ -5,7 +5,7 @@ import {useCalendarStore} from '../../../store/calendarStore';
 import type {Reservation, ReservationChannel} from '../../../utils/reservations';
 import {findOverlap} from '../../../utils/reservations';
 import type {Customer, CustomerMap} from '../../../utils/customers';
-import {normalizeTel, sortCustomersByName} from '../../../utils/customers';
+import {isSelectableCustomer, normalizeTel, sortCustomersByName} from '../../../utils/customers';
 import type {Assignee} from '../../../utils/assignees';
 import {getAssigneeAvailabilityState, splitAssigneesByStatus} from '../../../utils/assignees';
 import {buildCatalogMap, calcEndTime, joinServiceNames, sumDurationMinutes, sumPrice} from '../../../utils/services';
@@ -81,11 +81,13 @@ export function useReservationCreateForm({
     const [error, setError] = useState<ReservationFieldError | null>(null);
 
     // customers가 이미 정렬돼 있어 걸러낸 결과도 순서를 유지한다.
-    const filteredCustomers = useMemo(() => (
-        customerQuery.trim()
-            ? customers.filter((customer) => customer.name.includes(customerQuery) || customer.tel.includes(customerQuery))
-            : customers
-    ), [customers, customerQuery]);
+    // 삭제(익명 처리)된 고객은 추천에서 뺀다. nextCustomerId 는 위에서 전체(삭제 포함) 기준이라 번호가 재사용되지 않는다.
+    const filteredCustomers = useMemo(() => {
+        const selectable = customers.filter(isSelectableCustomer);
+        return customerQuery.trim()
+            ? selectable.filter((customer) => customer.name.includes(customerQuery) || customer.tel.includes(customerQuery))
+            : selectable;
+    }, [customers, customerQuery]);
 
     const totalDuration = sumDurationMinutes(selectedServices, catalogMap);
     const totalPrice = sumPrice(selectedServices, catalogMap);

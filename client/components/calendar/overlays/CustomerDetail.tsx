@@ -1,9 +1,12 @@
-import {useCallback, useEffect, useMemo, useState} from 'react';
+import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
+import type {ComponentProps} from 'react';
 
 import {createPortal} from 'react-dom';
 import {useSession} from 'next-auth/react';
 
 import {ConfirmDialog} from '../../ui/ConfirmDialog';
+import {Emphasis} from '../../ui/Emphasis';
+import {CustomerMergeSuggestionModal} from '../../modals/CustomerMergeSuggestionModal';
 import type {Customer, CustomerMemoTag, PointHistoryEntry} from '../../../utils/customers';
 import type {Reservation, ReservationMap} from '../../../utils/reservations';
 import {groupByDate} from '../../../utils/reservations';
@@ -17,10 +20,12 @@ import {
 
 import {buildAssigneeColorMap, buildAssigneeNameMap} from '../../../utils/assignees';
 import {buildServiceColorMap, formatPrice} from '../../../utils/services';
-import {formatTel, normalizeTel, toCustomerMap} from '../../../utils/customers';
+import {DELETED_CUSTOMER_NAME, formatTel, getSelectableCustomers, normalizeTel, toCustomerMap} from '../../../utils/customers';
 import {findSimilarCustomers} from '../../../features/customers/similar';
 import {summarizeCustomerReservations} from '../../../features/customers/merge-suggestion';
 import {shouldUseLocalDb} from '../../../lib/local-db';
+import {useCustomerBenefits} from '../../../hooks/useCustomerBenefits';
+import {describeBenefitCoupon, describeBenefitMembership} from '../../../features/customers/benefits';
 import type {Customer as CustomerType} from '../../../utils/customers';
 import {useCalendarStore} from '../../../store/calendarStore';
 import {useToastStore} from '../../../store/toastStore';
@@ -63,10 +68,6 @@ import {
     StyledSimilarMeta,
     StyledSimilarName,
     StyledSimilarTel,
-    StyledDupWarning,
-    StyledDupWarningText,
-    StyledDupWarningActions,
-    StyledDupWarningButton,
     StyledReservationSection,
     StyledPointHistorySection,
     StyledPointHistoryTitle,
@@ -77,6 +78,16 @@ import {
     StyledReservationScroll,
     StyledReservationTitle,
     StyledMoreButton,
+    StyledDeleteSummary,
+    StyledDeleteSummaryGroup,
+    StyledDeleteSummaryTitle,
+    StyledDeleteSummaryList,
+    StyledDeleteSummaryRow,
+    StyledDeleteSummaryTerm,
+    StyledDeleteSummaryValue,
+    StyledBenefitLine,
+    StyledBenefitName,
+    StyledBenefitDetail,
 } from './CustomerDetail.styles';
 
 const PAGE_SIZE = 5;
@@ -115,6 +126,13 @@ export const CustomerDetail = ({customer, reservationMap, onClose, onReservation
     const [isUnmerging, setIsUnmerging] = useState(false);
     // 수정 저장 시 같은 번호를 쓰는 다른 고객이 있으면 여기 담아 경고·병합 유도.
     const [dupWarning, setDupWarning] = useState<{match: Customer; name: string; tel: string} | null>(null);
+    // "비슷한 고객"은 이름·연락처 칸에 포커스가 있는 동안만 띄운다(입력 자동완성처럼). 항상 떠 있으면 아래 내용을 가렸다.
+    const [isSimilarOpen, setIsSimilarOpen] = useState(false);
+    const similarRef = useRef<HTMLElement>(null);
+    // 포커스가 목록 안으로 옮겨가면(Tab) 닫지 않는다. 마우스는 목록의 onMouseDown 이 입력칸 포커스를 지킨다.
+    const closeSimilarOnBlur = (event: React.FocusEvent) => {
+        if (!similarRef.current?.contains(event.relatedTarget as Node | null)) setIsSimilarOpen(false);
+    };
     const [isMergingDup, setIsMergingDup] = useState(false);
     // 추천 레이어에서 고른 고객. 병합은 되돌리기가 있어도 레코드를 정리하므로 반드시 확인을 받는다.
     const [similarMergeTarget, setSimilarMergeTarget] = useState<Customer | null>(null);
@@ -131,7 +149,7 @@ export const CustomerDetail = ({customer, reservationMap, onClose, onReservation
     const similarCustomers = useMemo(() => (
         isEditing
             ? findSimilarCustomers({
-                customers: Object.values(customerMap),
+                customers: getSelectableCustomers(customerMap),
                 excludeId: customer.id,
                 name: editForm.name,
                 tel: editForm.tel,
@@ -152,6 +170,11 @@ export const CustomerDetail = ({customer, reservationMap, onClose, onReservation
     const {data: session} = useSession();
     const isOwner = session?.user?.role === 'owner';
     const [isDeleteConfirm, setIsDeleteConfirm] = useState(false);
+    // 이 고객이 쓸 수 있는 회원권·쿠폰(정보 목록에 표시).
+    const {benefits} = useCustomerBenefits(customer.id);
+    // 삭제 창의 "삭제되는 정보" — 삭제하면 기능 토글과 상관없이 전부 취소되므로 전부 받는다. 받는 동안 삭제 버튼을 막는다.
+    // (게스트는 회원권·쿠폰이 없어 요청하지 않음 → 적립금만)
+    const {benefits: deleteBenefits, loading: deleteBenefitsLoading} = useCustomerBenefits(isDeleteConfirm ? customer.id : undefined, {all: true});
     const toast = useToastStore((s) => s.show);
     const modalRoot = document.getElementById('modal-root');
     const {layerId, layerDataId} = useLayerInstanceId('customer-detail');
@@ -385,6 +408,41 @@ export const CustomerDetail = ({customer, reservationMap, onClose, onReservation
         }
     };
 
+    const renderMergeLayer = (
+        target: Customer,
+        close: () => void,
+        extra?: Pick<ComponentProps<typeof CustomerMergeSuggestionModal>, 'heading' | 'secondaryAction'>,
+    ) => (
+        <CustomerMergeSuggestionModal selection={{
+                                          key: `merge-${customer.id}-${target.id}`,
+                                          mode: 'suggestion',
+                                          maskedSource: customer,
+                                          targetChoices: [target],
+                                          targetId: target.id,
+                                      }}
+                                      reservationMap={reservationMap}
+                                      merging={isMergingDup}
+                                      onMerge={canMergeSimilar ? (targetId) => mergeIntoCustomer(targetId) : undefined}
+                                      onSkip={close}
+                                      onDismiss={close}
+                                      onReservationClick={onReservationClick}
+                                      overDetail
+                                      skipLabel="취소"
+                                      {...extra} />
+    );
+
+    // 삭제 창 하단 목록 — 남는 것(예약)과 더는 쓸 수 없게 되는 것(적립금·회원권·쿠폰)을 한눈에.
+    const deletePoints = Math.max(customer.points ?? 0, 0);
+    const deleteMemberships = deleteBenefits?.memberships.map((m) => m.name) ?? [];
+    const deleteCoupons = deleteBenefits?.coupons.map((c) => c.name) ?? [];
+    const hasDeleteSummary = customerReservations.length > 0 || deletePoints > 0
+        || deleteMemberships.length > 0 || deleteCoupons.length > 0;
+    // 이름은 3개까지만 보이고 나머지는 "외 N장" — 많아도 창이 길어져 스크롤이 생기지 않게. 개수는 항목 이름에 있다.
+    const renderSummaryNames = (names: string[], unit: string) => <>
+        {names.slice(0, 3).map((name, index) => <span key={index}>{name}</span>)}
+        {names.length > 3 && <span>외 {names.length - 3}{unit}</span>}
+    </>;
+
     if (!modalRoot) return null;
 
     return createPortal(<><StyledCustomerOverlay onClick={onClose}
@@ -407,7 +465,8 @@ export const CustomerDetail = ({customer, reservationMap, onClose, onReservation
                                                       $primary
                                                       onClick={handleSaveEdit}>저장</StyledHeaderActionButton>
                         </>
-                    ) : (
+                    ) : customer.deleted ? null : (
+                        // 삭제(익명 처리)된 고객은 시술 내역 보기만 — 수정·삭제·분리할 대상이 없다.
                         <>
                             {mergeHistories.length > 0 && (
                                 <StyledHeaderActionButton type="button"
@@ -437,6 +496,8 @@ export const CustomerDetail = ({customer, reservationMap, onClose, onReservation
                                     type="text"
                                     value={editForm.name}
                                     onChange={(e) => handleFieldChange('name', e.target.value)}
+                                    onFocus={() => setIsSimilarOpen(true)}
+                                    onBlur={closeSimilarOnBlur}
                                 />
                             </StyledEditFieldLabel>
                             {/* 추천은 연락처 칸에 걸어 띄운다 — 이름·번호 둘 다로 찾지만
@@ -449,9 +510,15 @@ export const CustomerDetail = ({customer, reservationMap, onClose, onReservation
                                         type="text"
                                         value={editForm.tel}
                                         onChange={(e) => handleFieldChange('tel', e.target.value)}
+                                        onFocus={() => setIsSimilarOpen(true)}
+                                        onBlur={closeSimilarOnBlur}
                                     />
                                 </StyledEditFieldLabel>
-                                <StyledSimilarSection aria-live="polite" hidden={similarCustomers.length === 0}>
+                                <StyledSimilarSection ref={similarRef}
+                                                      aria-live="polite"
+                                                      hidden={!isSimilarOpen || similarCustomers.length === 0}
+                                                      onMouseDown={(e) => e.preventDefault()}
+                                                      onBlur={closeSimilarOnBlur}>
                                     <StyledSimilarTitle>비슷한 고객</StyledSimilarTitle>
                                     <StyledSimilarList>
                                         {similarCustomers.map(({customer: c}) => {
@@ -484,35 +551,6 @@ export const CustomerDetail = ({customer, reservationMap, onClose, onReservation
                                 </StyledNaverBookingLink>
                             )}
                             <StyledPointInfo>적립금 {formatPrice(customer.points ?? 0)}</StyledPointInfo>
-                            {dupWarning && (
-                                <StyledDupWarning role="alert">
-                                    <StyledDupWarningText>
-                                        이 번호는 이미 <strong>{dupWarning.match.name}</strong> 고객에게 등록되어 있습니다. 같은 분이면 병합하고, 다른 분(가족 공유번호 등)이면 그대로 저장하세요.
-                                    </StyledDupWarningText>
-                                    <StyledDupWarningActions>
-                                        {!shouldUseLocalDb() && (
-                                            <StyledDupWarningButton type="button"
-                                                                    $variant="merge"
-                                                                    disabled={isMergingDup}
-                                                                    onClick={() => mergeIntoCustomer(dupWarning.match.id)}>
-                                                {isMergingDup ? '병합 중…' : `${dupWarning.match.name} 고객과 병합`}
-                                            </StyledDupWarningButton>
-                                        )}
-                                        <StyledDupWarningButton type="button"
-                                                                $variant="keep"
-                                                                disabled={isMergingDup}
-                                                                onClick={() => commitEdit(dupWarning.name, dupWarning.tel)}>
-                                            다른 분 — 그대로 저장
-                                        </StyledDupWarningButton>
-                                        <StyledDupWarningButton type="button"
-                                                                $variant="cancel"
-                                                                disabled={isMergingDup}
-                                                                onClick={() => setDupWarning(null)}>
-                                            취소
-                                        </StyledDupWarningButton>
-                                    </StyledDupWarningActions>
-                                </StyledDupWarning>
-                            )}
                         </StyledEditFields>
                     ) : (
                         <StyledInfoList>
@@ -520,6 +558,22 @@ export const CustomerDetail = ({customer, reservationMap, onClose, onReservation
                             <StyledInfoDesc><StyledTelLink href={`tel:${customer.tel}`}>{formatTel(customer.tel)}</StyledTelLink></StyledInfoDesc>
                             <StyledInfoTerm>적립금</StyledInfoTerm>
                             <StyledInfoDesc>{formatPrice(customer.points ?? 0)}</StyledInfoDesc>
+                            {benefits && benefits.memberships.length > 0 && (
+                                <>
+                                    <StyledInfoTerm>회원권</StyledInfoTerm>
+                                    <StyledInfoDesc>
+                                        {benefits.memberships.map((m) => <StyledBenefitLine key={m.id}><StyledBenefitName>{m.name}</StyledBenefitName><StyledBenefitDetail>{describeBenefitMembership(m)}</StyledBenefitDetail></StyledBenefitLine>)}
+                                    </StyledInfoDesc>
+                                </>
+                            )}
+                            {benefits && benefits.coupons.length > 0 && (
+                                <>
+                                    <StyledInfoTerm>쿠폰</StyledInfoTerm>
+                                    <StyledInfoDesc>
+                                        {benefits.coupons.map((c) => <StyledBenefitLine key={c.id}><StyledBenefitName>{c.name}</StyledBenefitName><StyledBenefitDetail>{describeBenefitCoupon(c)}</StyledBenefitDetail></StyledBenefitLine>)}
+                                    </StyledInfoDesc>
+                                </>
+                            )}
                             <StyledInfoTerm>노쇼</StyledInfoTerm>
                             <StyledInfoDesc><StyledNoshowCount $hasNoshow={noshowCount > 0}>{noshowCount}회</StyledNoshowCount></StyledInfoDesc>
                         </StyledInfoList>
@@ -586,29 +640,79 @@ export const CustomerDetail = ({customer, reservationMap, onClose, onReservation
                               onClose={() => setIsUnmergeConfirm(false)} />
     )}
     {isDeleteConfirm && (
-        <ConfirmDialog title="고객 삭제"
-                       message={customerReservations.length > 0
-                           ? `${customer.name} 고객을 삭제하면 예약 ${customerReservations.length}건과 적립금·메모도 함께 영구 삭제됩니다. 되돌릴 수 없습니다.`
-                           : `${customer.name} 고객을 영구 삭제합니다. 되돌릴 수 없습니다.`}
+        <ConfirmDialog title={`${customer.name} 고객을 삭제할까요?`}
+                       icon="trash"
+                       message={<>
+                           {customerReservations.length > 0
+                               ? <><Emphasis>이름·연락처·메모</Emphasis>가 삭제되고, 고객명은 <Emphasis>{DELETED_CUSTOMER_NAME}</Emphasis>으로 표시됩니다.{'\n'}</>
+                               : <><Emphasis>이름·연락처·메모</Emphasis>가 삭제됩니다.{'\n'}</>}
+                           <Emphasis $tone="danger">되돌릴 수 없습니다. 삭제하시겠습니까?</Emphasis>
+                       </>}
                        confirmLabel="삭제"
                        confirmVariant="danger"
+                       confirmDisabled={deleteBenefitsLoading}
                        onConfirm={() => {
                            deleteCustomer(customer.id);
                            setIsDeleteConfirm(false);
                            onClose();
                        }}
-                       onClose={() => setIsDeleteConfirm(false)} />
+                       onClose={() => setIsDeleteConfirm(false)}>
+            {hasDeleteSummary && (
+                <StyledDeleteSummary>
+                    {customerReservations.length > 0 && (
+                        <StyledDeleteSummaryGroup>
+                            <StyledDeleteSummaryTitle>남는 정보</StyledDeleteSummaryTitle>
+                            <StyledDeleteSummaryList>
+                                <StyledDeleteSummaryRow>
+                                    <StyledDeleteSummaryTerm>예약 내역</StyledDeleteSummaryTerm>
+                                    <StyledDeleteSummaryValue>{customerReservations.length}건</StyledDeleteSummaryValue>
+                                </StyledDeleteSummaryRow>
+                            </StyledDeleteSummaryList>
+                        </StyledDeleteSummaryGroup>
+                    )}
+                    {(deletePoints > 0 || deleteMemberships.length > 0 || deleteCoupons.length > 0) && (
+                        <StyledDeleteSummaryGroup $danger>
+                            <StyledDeleteSummaryTitle $danger>삭제되는 정보</StyledDeleteSummaryTitle>
+                            <StyledDeleteSummaryList>
+                                {deletePoints > 0 && (
+                                    <StyledDeleteSummaryRow>
+                                        <StyledDeleteSummaryTerm>적립금</StyledDeleteSummaryTerm>
+                                        <StyledDeleteSummaryValue>{formatPrice(deletePoints)}</StyledDeleteSummaryValue>
+                                    </StyledDeleteSummaryRow>
+                                )}
+                                {deleteMemberships.length > 0 && (
+                                    <StyledDeleteSummaryRow>
+                                        <StyledDeleteSummaryTerm>회원권 {deleteMemberships.length}개</StyledDeleteSummaryTerm>
+                                        <StyledDeleteSummaryValue>
+                                            {renderSummaryNames(deleteMemberships, '개')}
+                                        </StyledDeleteSummaryValue>
+                                    </StyledDeleteSummaryRow>
+                                )}
+                                {deleteCoupons.length > 0 && (
+                                    <StyledDeleteSummaryRow>
+                                        <StyledDeleteSummaryTerm>쿠폰 {deleteCoupons.length}장</StyledDeleteSummaryTerm>
+                                        <StyledDeleteSummaryValue>
+                                            {renderSummaryNames(deleteCoupons, '장')}
+                                        </StyledDeleteSummaryValue>
+                                    </StyledDeleteSummaryRow>
+                                )}
+                            </StyledDeleteSummaryList>
+                        </StyledDeleteSummaryGroup>
+                    )}
+                </StyledDeleteSummary>
+            )}
+        </ConfirmDialog>
     )}
-    {similarMergeTarget && (
-        <ConfirmDialog title="고객 병합"
-                       message={`${customer.name} 고객과 ${similarMergeTarget.name} 고객이 같은 분인가요?\n`
-                           + `${customer.name} 고객의 예약·적립금·메모가 ${similarMergeTarget.name} 고객으로 옮겨지고 이 레코드는 정리됩니다. 분리로 되돌릴 수 있습니다.\n`
-                           + '저장하지 않은 수정 내용은 반영되지 않습니다.'}
-                       confirmLabel={isMergingDup ? '병합 중…' : '병합'}
-                       confirmVariant="warning"
-                       confirmDisabled={isMergingDup}
-                       onConfirm={() => mergeIntoCustomer(similarMergeTarget.id)}
-                       onClose={() => setSimilarMergeTarget(null)} />
-    )}
+    {/* 글자만 있던 확인 창은 누가 남고 누가 정리되는지 안 읽혔다 — 자동 제안과 같은 카드형 레이어로 보인다.
+        방향은 고정(지금 고객 → 다른 고객)이라 자동 제안 모드와 구조가 같다. 입구는 둘:
+        입력 중 "비슷한 고객" 클릭, 저장 시 번호 중복(레이어로 막아야 뒤의 저장을 다시 눌러도 헛돌지 않는다). */}
+    {similarMergeTarget && renderMergeLayer(similarMergeTarget, () => setSimilarMergeTarget(null))}
+    {dupWarning && renderMergeLayer(dupWarning.match, () => setDupWarning(null), {
+        heading: {
+            title: '이미 등록된 번호입니다',
+            description: `${dupWarning.match.name} 고객과 같은 번호입니다. 다른 분(가족 공유번호 등)이면 다른 고객으로 저장하세요.`,
+        },
+        secondaryAction: {label: '다른 고객으로 저장', onClick: () => commitEdit(dupWarning.name, dupWarning.tel)},
+    })}
     </>, modalRoot);
 };

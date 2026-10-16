@@ -5,6 +5,377 @@
 
 ---
 
+## 진행 — 묶음 배포 `release/2026-10-batch` (묵은 PR 정리)
+
+> **2026-10-16 갱신** — 묵은 PR 정리분에 이번 작업(#272·#273·#275·#276·#277·#278·#279)까지 합쳐 **v0.61.0 하나로 배포**한다(지시자).
+> 합치면서 충돌 3곳 해결(plan.md, `MembershipManageSection` 고객 목록 → 공용 훅이 삭제 고객 제외, `CustomerDetail` 삭제 요약+회원권·쿠폰 표시 둘 다 유지).
+> 코드리뷰 3회차: ① 삭제 시 회원권·쿠폰 취소 처리, 쿠폰 되돌리기 만료·고객당 1장 규칙, 삭제 요약을 고객별 조회로 통일 ②
+> 삭제 고객 쿠폰·회원권 사용·복원 거부, 쿠폰 되돌리기 한 트랜잭션(Serializable), 삭제 창이 토글 무관 전부 표시·받는 동안 잠금 ③ 삭제 창 재오픈 시 옛 결과 비움.
+> 매 회차 tsc·테스트·순수 모듈 게이트·lint 에러 0·프로덕션 빌드·`next start` 구동 확인. #130 은 제외(재현 확인 후).
+
+### 배경
+승인을 못 받고 잊힌 PR들이 `main`보다 348~492 커밋 뒤처져 전부 충돌한다. 지시자 요청으로
+**이번만** 묶어서 배포한다(평소 규칙은 건별 `main` 배포 — `CLAUDE.md`는 그대로 둔다).
+Cloud Build 트리거는 `^main$`뿐이라 release 브랜치 머지는 배포를 띄우지 않는다.
+
+### 방식
+- release 브랜치는 `origin/main`에서 땄다. 각 작업은 **`origin/main`에서 새 브랜치**를 따서
+  옛 PR의 **의도만** 다시 적용하고, PR base는 release 브랜치로 한다.
+  옛 브랜치를 rebase/merge 하지 않는다 — `package.json` 버전·lint 스크립트 등이 퇴행한다.
+- 마지막에 release → `main` PR 하나. `main` + 묶음 전체 조합으로 재검증 후 **지시자 승인 시** 머지(배포 1회).
+  `client/package.json` 버전은 그 PR에서 한 번만 올린다.
+
+### 항목
+| | 원 PR | 상태 |
+|---|---|---|
+| 문서 — 월 칸 카드 이름만 | #269 | ✅ release에 머지 |
+| 개발 도구 경유 취약점 정리 (`pnpm-workspace.yaml` 고정 핀 → 하한 + 메이저 스코프) | #201 | ✅ #271 release에 머지 (82 → 37) |
+| 공지 '공개'·'상단 고정' → '노출' 체크 하나 (최대 3개) | #148 대체 | 🟡 진행 — 옛 PR은 닫음(아래) |
+| legacyId 충돌 · 이름 직접 입력 시 고객 중복 생성 방지 | #130 | ⬜ **재현부터** — 안 나면 닫는다 |
+| 휴무 캘린더 표시 | #200 | 이미 `main`에 있음 → superseded로 닫기 (테스트는 `model.test.ts`가 대신함) |
+
+### #201 재작업 — 개발 도구 경유 취약점
+- **기준선(`client`, 2026-10-15 실측): 82건** (2 low · 37 moderate · 37 high · 6 critical). 옛 PR의 "45 → 19"는 8월 수치.
+- **범위 = 개발·빌드 도구 경로만**: eslint(`brace-expansion`·`js-yaml`·`@humanfs/node`),
+  prisma CLI(`deepmerge-ts`·`hono`·`@hono/node-server`·`mysql2`·`valibot`·`fast-uri`),
+  vitest, postcss 체인(`postcss`·`nanoid`·`source-map-js`·`browserslist`·`baseline-browser-mapping`).
+- **방식**: 직접 의존성은 같은 메이저 안의 최신 패치로(`prisma`·`@prisma/*` `^7.10.0`, `eslint` `9.39.5`,
+  vitest는 기존 범위 안에서 lock 갱신). 고정 핀 override(`brace-expansion@1` 1.1.12·`postcss` 8.5.13·`fast-uri` 3.1.7)를 걷었다.
+- **override는 3개만 남았다** — 하나씩 빼서 audit을 다시 세 보니, 상위가 `^` 범위인 패키지는 lock 갱신만으로
+  패치본이 들어와 override가 필요 없었다(옛 PR이 제안한 brace-expansion·js-yaml·fast-uri 등). 남긴 것은
+  **상위가 정확한 버전을 고정한** 것뿐: `postcss@8`(next 16.2.10 → 8.4.31), `mysql2@3`(prisma → 3.15.3),
+  `deepmerge-ts@7`(@prisma/config → 7.1.5, 패치본이 8뿐이라 메이저 강제). 모두 '하한 + 메이저 상한' 형태.
+  prisma 7.10에서 hono 계열이 빠져 스코프 없던 `@hono/node-server: '>=1.19.13'`도 제거.
+- **결과(실측)**: `client` audit **82 → 37**. 남은 37 = next 17 · nodemailer 7 · next-auth 4 · sharp 3 · @auth/core 3 ·
+  xlsx 2 · braces 1. 런타임 패키지 버전 변화 없음(lock diff로 확인 — prisma 런타임 7.10 제외).
+- **검증**: `prisma validate` ✓ · `tsc --noEmit` ✓ · 테스트 202 ✓ · lint 에러 0 ✓ · `pnpm build` ✓ ·
+  standalone 서버(`node client/server.js`, 로컬 DB)로 `/login`·`/`·`/settings/store`·`/book/<slug>`·`/api/book/<slug>`·
+  `/api/auth/{session,providers,csrf}` 전부 200, 서버 로그 에러 0. peer 경고는 main과 동일.
+- **함정**: standalone 폴더엔 `client/.env`(**운영 Supabase**)만 복사되고 `.env.local`은 없다. 로컬에서 standalone을
+  그냥 띄우면 운영 DB에 붙는다 — `.env.local`을 환경변수로 먼저 주입해야 한다(Next는 이미 있는 env를 덮지 않는다).
+- **범위 밖(운영 런타임, 별건)**: `next`·`next-auth`·`@auth/core`(인증 경로)·`sharp`·`nodemailer`·`xlsx`(기존 수용 결정).
+  `braces` 3.0.3은 권고상 `>=3.0.4`이나 **npm에 패치본이 없다**(eslint-config-next → fast-glob 경유, dev 전용).
+  루트 `/pnpm-lock.yaml`(서버용 prisma·nodemailer, 24건)도 이번 범위 밖.
+- **검증**: `pnpm audit` 전/후 · 빌드 · `tsc --noEmit` · 테스트 · `prisma validate` · lint(main과 대조) · 프로덕션 빌드 구동.
+
+### 공지 '노출' 단일 체크 (#148 대체)
+- **요구**: 공지 작성 화면의 체크박스 둘('공개'·'상단 고정')을 **'노출' 하나**로. 체크한 공지만 고객 예약 페이지에 보인다. **최대 3개.**
+- **옛 #148과 다른 점 — `pinned`가 아니라 `visible`에 건다.** 옛 PR은 '노출'=`pinned`라, 배포 순간
+  `visible=true, pinned=false`인 기존 공지(기본값)가 전부 고객 페이지에서 사라진다. `visible`에 걸면 지금 보이는 공지가
+  그대로 보이고 데이터 이관(수동 SQL)이 필요 없다. 스키마 변경 없음.
+- **한도 3은 '꺼짐 → 켜짐' 전환 때만 검사**(POST는 visible로 만들 때, PUT은 기존 행이 숨김일 때). 이미 4개 이상 공개 중인
+  매장(레거시)의 기존 공지 수정을 막지 않기 위해서다. 공개 API는 `take: 3`(최신순)이라 레거시 초과분은 고객에게 안 보인다.
+  409 코드는 `visible_limit`.
+- **`pinned`**: 웹은 더 이상 쓰지 않는다(정렬·배지 제거). 단 iOS 앱이 아직 `pinned`를 보내고 응답에서 non-optional로
+  디코드하므로 **API 응답·수신·기존 pin 한도 검사는 그대로 둔다**(앱 호환). 컬럼도 유지.
+- **영향 파일**: `server/api/book/[slug].ts`(where visible + take 3, 정렬 최신순), `server/api/notices.ts`(한도 검사·목록 정렬),
+  `client/components/settings/NoticeManageSection.tsx`(체크 하나·배지), `client/features/notices/model.ts`(상수 이름),
+  `index.md` [^25].
+- **iOS**(`tas-ios` `NoticeFormView`)는 별건 — 앱의 '공개' 토글은 계속 맞게 동작하고 '상단 고정'은 웹 기준으로 효과가 없어진다.
+- **검증**: tsc · 테스트 · 빌드 · 로컬 DB로 `/settings/notice` 조작(체크 3개 상한·레거시 4개 수정) + `/book/<slug>` 노출 확인.
+
+### 리스크
+- 배포·롤백 단위가 묶음 전체다. 한 건이 문제면 전부 되돌린다.
+- 스키마 변경이 끼면 마이그레이션 수동 선적용 순서를 지켜야 한다(#148·#130 확인 전).
+
+---
+
+## 완료 — 월 칸 카드는 이름만, 우측 예약목록 폭은 유동으로 (#267, PR #268, v0.60.3)
+
+### 한 일
+- **월 칸 카드에서 시작시간을 뺐다.** 칸 폭이 68~163px이라 시간을 넣으면 어느 폭에서든
+  이름이 `이...`로 잘린다. iOS 월 칸도 `날짜 + 건수/금액`뿐이고 예약 카드가 없다 —
+  몇 시인지는 오른쪽 예약목록과 상세가 말한다. 시간은 버튼 `aria-label`로 남겨
+  스크린리더는 계속 듣는다.
+- **우측 예약목록을 `고정 340px → 30% / 200~280px`.** 월·연 뷰가 같은 컴포넌트를 쓴다.
+- 신규 배지 임계값 `110px → 78px` — 110은 `시간 32 + 간격 6 + …`로 계산된 값이라,
+  시간이 빠지면 자리가 남는데도 배지가 숨는다.
+
+### 리뷰에서 잡은 것 — 기준 축이 틀렸다
+처음엔 `@media (max-width: 1000px)`로 좁을 때만 접었다. **창 폭은 칸 폭이 아니다**
+(`칸 폭 = (창 − 사이드바 − 목록) / 7`). 실측:
+
+| 창 | 사이드바 | 칸 폭 | 시간 | 이름 잘림 |
+|---|---|---|---|---|
+| 1000 | 접힘 | 100px | 숨김 | 0/14 |
+| 1200 | **펼침** | **100px** | **노출** | — |
+| 1010 | **펼침** | **79px** | **노출** | **13/14** |
+
+같은 100px 칸인데 창 폭이 다르다고 반대로 동작했다. `Month.tsx`에 *"창 폭이 아니라
+칸이 좁아지는 게 문제라 뷰포트 미디어쿼리로는 맞출 수 없다"*고 **이미 적혀 있었고**
+그 아래 `container-type: inline-size`까지 깔려 있었는데 안 읽고 창 폭으로 갔다.
+
+컨테이너 쿼리로 한 번 고쳤다가, 결국 **조건 자체를 걷어냈다** — 어느 폭에서도 시간이
+들어갈 자리가 없으니 가를 이유가 없었다. 19줄 삭제 / 6줄 추가.
+
+> 교훈: 칸 폭에 반응하는 규칙은 `@container`. 그리고 임계값을 둘지 고민하기 전에
+> **모든 구간에서 같은 답이 나오는지** 먼저 본다 — 그러면 조건이 통째로 사라진다.
+
+### 검증 (잘림 0 · 가로넘침 0)
+| 창 / 사이드바 | 칸 폭 | 이름 | 신규 배지 | 우측 패널 |
+|---|---|---|---|---|
+| 700 / 접힘 | 68px | 온전 | 숨김 | 206px |
+| 1010 / **펼침** | 79px | 온전 | 숨김 | 243px |
+| 1440 / 접힘 | 163px | 온전 | 노출 | 280px (상한) |
+
+연 뷰도 직접 띄워 확인. 빌드 · `tsc --noEmit` · 테스트 202 · lint 에러 0 · CI 그린.
+
+### 메모
+앞서 모바일 중단점을 일괄 치환으로 옮기려다 무관한 중단점(매출 차트 900px, 담당자 800px)까지
+쓸어가 롤백했다(#266). 이번엔 지정한 곳만 고쳤다.
+
+## 완료(배포 대기, v0.61.0 묶음 #270) — 고객 병합 시 회원권·쿠폰 소실 수정 (`claude/merge-keep-coupons`, #276)
+
+### 배경
+병합은 합쳐지는 고객(source) 행을 지운다(`customers-merge.ts`). 회원권(`CustomerMembership`)·쿠폰(`CustomerCoupon`)은
+고객 FK 가 `onDelete: Cascade`라 **source 가 가진 회원권·쿠폰이 경고 없이 사라지고, 분리해도 돌아오지 않았다.**
+예약·적립금 이력은 옮기는데 이 둘만 빠져 있었다. 쿠폰 발급 화면(`claude/coupon-issue-ui`) 점검 중 발견, 지시자 지시로 수정(2026-10-16).
+
+### 구현
+- 병합: source 를 지우기 전에 회원권·쿠폰을 target 으로 `updateMany`. target 이 같은 상품을 이미 가져도 둘 다 남긴다(돈 받고 준 것).
+- 분리: 옮긴 id 를 병합 이력 `sourceCustomerJson`에 `movedMembershipIds`·`movedCouponIds`로 담고, 분리 때 source 로 되돌린다.
+  전용 컬럼 대신 스냅샷 JSON 에 둬서 **마이그레이션 없음**. 이 수정 전 이력엔 필드가 없어 빈 배열로 본다(이미 사라진 건 복구 불가).
+- 영향 파일: `server/api/customers-merge.ts`, `server/api/customers-unmerge.ts`.
+
+### 리스크
+- 이 수정 전에 병합으로 이미 사라진 회원권·쿠폰은 되살릴 수 없다(백업 없음).
+
+---
+
+## 완료(배포 대기, v0.61.0 묶음 #270) — 고객 삭제를 하드 삭제 → 익명 처리로 (`claude/customer-delete-anonymize`, #278)
+
+### 배경
+`DELETE /api/customers`가 `Customer` 행을 실제로 지우면서 cascade로 **예약·결제 내역이 같이 사라져 과거 매출이 소급해 빠졌다**
+(매출 화면은 예약에서 계산 — `RevenueSection` `getRangeRevenue(reservationMap)`). 선불 회원권·쿠폰도 함께 지워졌다.
+개인정보는 지워야 하므로(매장 고객 방침 제4·9조, DPA 제9조 — 삭제 요청 시 지체 없이·복구 불가 파기)
+**개인정보·메모는 지우고 시술 내역만 남기는 익명 처리**로 바꾼다(지시자 결정 2026-10-16).
+익명 처리가 법상 "파기"로 충분한지는 법률 검토 대상 — 미확인.
+
+### 남긴다
+- 예약(날짜·시간·서비스·담당자·금액·상태·결제 내역) → 매출 유지.
+- 회원권·쿠폰 — 돈을 받은 거래 기록이고 고객이 익명화되면 그 자체로 개인정보가 아니다.
+- `Reservation.naverBookingId` — 지우면 다음 네이버 동기화가 같은 예약을 새 고객으로 다시 가져와 개인정보가 되살아난다.
+
+### 지운다 / 비운다
+- `Customer`: name → "삭제된 고객", tel → "", firstVisitDate → null, points → 0, **`deletedAt` = now()** (신규 컬럼).
+- 고객 메모 태그, 적립금 이력 삭제.
+- 그 고객 예약의 `memo`·`naverBookingUrl`·`publicToken`(고객 관리 링크)·`pendingPayloadJson`(변경 요청에 이름·연락처)·`decisionReason` 비움.
+- 예약 변경 이력(`ReservationHistory`, 전후 스냅샷에 메모 등) 삭제.
+- 병합 이력(`CustomerMergeHistory`, 이름·연락처 스냅샷) 삭제 → 이 고객은 분리 불가.
+- 병합 건너뛰기·삭제 예약 흔적은 기존대로 삭제.
+
+### 숨긴다
+- 고객 목록·검색·자동완성·병합 제안·비슷한 고객 등 **고르는 목록**에서 제외. 예약 카드 등 id로 찾아 보여주는 곳은 "삭제된 고객"으로 표시.
+- 이름만으로 구분하면 진짜 동명 고객과 섞이므로 `deletedAt`으로 판정.
+
+### 검증 (임시 DB `takeaseat_preview`)
+- tsc · 테스트 206(신규 `features/customers/anonymize.test.ts` 4) · 순수 모듈 게이트 · lint 신규 경고 0.
+- 김영희(예약 8건·195,000원·적립금 12,000·메모 태그 1·예약 메모 2·변경 이력 8) 삭제 →
+  이름 "삭제된 고객"·연락처/첫방문/적립금 비움·`deletedAt` 기록, **예약 8건·195,000원 유지**, 예약 메모·링크 0, 태그·적립 이력·변경 이력 0.
+- 고객명단·병합 제안에서 빠짐, 3월 캘린더에 "삭제된 고객"으로 표시, 고객정보는 수정·삭제 버튼 없이 시술 내역만.
+- 함정: 개발 서버가 **스키마 바꾸기 전 Prisma 클라이언트를 메모리에 들고 있으면** `Unknown field deletedAt`로 500 — `prisma generate` 후 서버 재시작.
+
+### 코드리뷰 반영 (2026-10-16)
+- 수정: 게스트 모드 번호 중복 레이어에 병합 버튼이 떠서 누르면 401 — `onMerge` 없으면 버튼 숨김(게스트에서 확인: 취소·다른 고객으로 저장만).
+- 수정: 네이버 동기화가 링크 없는 기존 예약에 `naverBookingUrl`을 채워 넣어 **삭제된 고객의 링크가 되살아났다** — 삭제 고객 예약은 건너뜀.
+- 지시자 결정(2026-10-16) → 아래 "후속" 작업으로 진행:
+  1. 잔액이 있으면 삭제 창에서 **경고**(차단은 안 함).
+  2. 삭제된 고객의 지난 예약은 **결제·변경 막기**.
+  3. 삭제 고객 필터를 **공용 함수로** 모은다.
+  4. `schema.prisma` 무관 정렬 변경(공백만, 약 140줄)은 그대로 둔다 — 되돌리면 또 140줄 churn.
+
+### 후속 — 잔액 경고 · 결제 막기 · 공용 함수
+- **요구**
+  - (1) 고객 삭제 창: 남은 적립금(>0원)·사용 가능한 회원권·미사용 쿠폰이 있으면 "삭제하면 더 이상 쓸 수 없다"고 경고. 삭제는 막지 않는다.
+  - (2) 삭제된 고객의 예약 상세: 결제완료/결제수단 변경·변경(수정) 버튼을 숨긴다. 예약완료·취소·노쇼·삭제는 그대로(매출 금액이 바뀌지 않음).
+  - (3) `getSelectableCustomers(customerMap)` 하나로 "삭제 고객 뺀 고객 배열"을 얻는다.
+- **구현**
+  - 순수 함수 `summarizeCustomerBalance(customer, memberships, coupons)` → `{points, memberships, coupons}` (`features/customers/model.ts`, 테스트 추가).
+    회원권은 `status==='active'`이고 남은 횟수가 있거나(null=무제한) 만료 전인 것, 쿠폰은 `status==='active'`.
+  - `CustomerDetail` 삭제 창을 열 때 서버 모드에서만 `/api/memberships`·`/api/coupons`를 받아 이 고객 것만 센다(게스트는 적립금만). 받는 동안 경고 줄은 생략.
+  - `ReservationDetailFooterActions`에 `isCustomerDeleted` — view 모드 기본 분기에서 결제·변경 버튼 숨김.
+  - `getSelectableCustomers` — HeaderSearch·Membership·Point·CustomerDetail(비슷한 고객)·useCustomerMergeSuggestion이 사용.
+    맵이 아니라 배열을 거르는 곳(address 목록, useReservationCreateForm의 정렬된 배열)은 `isSelectableCustomer` 필터 유지.
+- **영향 파일**: `features/customers/model.ts`(+test), `CustomerDetail.tsx`, `ReservationDetail.tsx`, `ReservationDetailFooterActions.tsx`, 위 목록 호출부.
+- **예상 결과**: 잔액 있는 고객 삭제 시 경고 문구, 삭제 고객 예약에서 결제 버튼 없음, 필터 누락 위험 감소.
+- **검증**: tsc · 테스트 209(신규 `getSelectableCustomers` 1·`summarizeCustomerBalance` 2) · 순수 모듈 게이트 · lint 신규 경고 0.
+  게스트 모드 화면: 삭제 고객 예약 상세 = 취소·노쇼만, 일반 고객 = 결제완료·취소·노쇼·변경.
+  잔액 경고 문구는 고객 삭제가 오너 전용이라 로그인 세션 없이 화면 확인 못 함(로직은 단위 테스트).
+- **지시자 피드백 반영**: 경고 문장 대신 창 하단에 **"남는 정보"(예약 내역 N건) / "삭제되는 정보"(적립금·회원권 N개·쿠폰 N장)** 카드 두 개.
+  회원권·쿠폰은 이름을 3개까지, 나머지는 "외 N개/장". 본문은 "이름·연락처·메모가 삭제되고, 고객명은 삭제된 고객으로 표시됩니다." + 빨간 줄만.
+  `summarizeCustomerBalance`는 개수 대신 이름 배열을 낸다.
+- 가운데 정렬 확인 창이 최대 높이(80~90vh)를 넘으면 `overflow: hidden`에 **버튼이 잘렸다** → 본문만 스크롤(`StyledAlertScroll`), 버튼 고정.
+  쿠폰 14장 예시(임시 코드, 커밋 안 함)로 확인 — 3개 제한 후 휴대폰(375px)에서 스크롤 없음.
+- 참고: 쿠폰은 지금 **고객에게 발급하는 화면이 없어**(API만 있음) 실제로는 쿠폰 칸이 나오지 않는다 → 별도 브랜치에서 쿠폰 발급 화면 작업.
+- 회원권·쿠폰 발급 API가 삭제된 고객도 받아 주던 것 → `deletedAt`이면 400(화면 목록에서 빠진 것과 서버를 맞춤).
+
+### 배포 순서 (⚠️ 스키마 변경)
+- ✅ **0023 운영 Supabase 적용 완료**(지시자, 2026-10-16). 컬럼만 추가돼 지금 운영 코드에는 영향 없음 — 이제 코드 배포 가능.
+1. **Supabase에 마이그레이션 수동 선적용**(`ADD COLUMN IF NOT EXISTS`, 가산) → 2. 코드 배포.
+2. iOS도 고객 목록에서 숨김 필요 — 별도 PR.
+
+## 완료(배포 대기, v0.61.0 묶음 #270) — 글자만 있는 레이어 점검 (지시자와 하나씩 띄워 보며 결정)
+
+### 1. 고객정보 수정 → 병합 확인 ✅
+- 글자만 있던 `ConfirmDialog`("고객 병합")가 누가 남고 누가 정리되는지 안 읽혔다 →
+  **자동 제안과 같은 카드형 `CustomerMergeSuggestionModal`**로 교체(방향 고정: 지금 고객 → 비슷한 고객, suggestion 모드).
+- 입구 두 곳 모두 이 레이어를 거친다: 입력 중 "비슷한 고객" 클릭, **저장 시 번호 중복 경고의 [○○ 고객과 병합]**
+  (전엔 확인 없이 바로 병합했다).
+- 고객정보 레이어(childDetail 130) 위에서 열리므로 `overDetail` — 레이어를 confirm(140)으로 올리고 고객명 링크를 끈다
+  (링크로 여는 고객정보는 130이라 아래에 깔린다). 버튼은 `skipLabel="취소"`.
+- "저장하지 않은 수정 내용은 반영되지 않습니다" 문구는 뺐다 — 정리될 고객의 수정분은 남을 자리가 없고,
+  안내 박스가 이미 "기준 고객의 이름·연락처가 유지"된다고 말한다(지시자 판단).
+- **저장 시 번호 중복은 레이어로 묻는다**(인라인 노란 박스 → 병합 레이어). 노란 박스는 한 번 지웠다 되돌렸고,
+  떠 있는 동안 상단 [저장]을 다시 누르면 같은 검사가 같은 박스를 다시 띄울 뿐이라 헛돌았다 → 레이어로 화면을 막는다(지시자 결정).
+  제목 "이미 등록된 번호입니다", 버튼 [취소] [다른 고객으로 저장] [병합] (`heading`·`secondaryAction` 옵션).
+  버튼 문구는 "다른 분 — 그대로 저장" → "다른 고객으로 저장"(지시자 선택).
+  미결: 번호를 안 바꿔도 저장마다 묻는다(가족 공유번호 고객을 고칠 때마다).
+  버튼 동작(지시자 확인): [다른 고객으로 저장] 입력 그대로 저장·같은 번호의 별개 고객으로 둘 다 남음 /
+  [병합] 지금 고객의 예약·적립금·메모가 상대에게 옮겨지고 지금 고객은 정리(이름·번호는 상대 것, 분리로 복원) /
+  [취소]·[×] 레이어만 닫고 수정 화면 유지.
+- 공용 `CloseIconButton`에 `flex-shrink: 0` — 헤더 설명이 길면 닫기 버튼이 가로로 눌려 17px까지 줄었다(21곳 공통).
+- **"비슷한 고객"은 이름·연락처 칸에 포커스가 있을 때만** 뜬다(입력 자동완성처럼). 목록 `onMouseDown` preventDefault로
+  클릭하는 순간 입력칸 포커스가 빠져 목록이 먼저 사라지는 것을 막고, Tab으로 목록에 들어가면 `relatedTarget`으로 유지한다.
+
+### 레이어 점검 결과 (2026-10-16 완료)
+- 공통(`ConfirmDialog`): danger 또는 `centered`면 가운데 정렬 레이아웃(아이콘 → 질문형 제목 → 본문 → 같은 너비 버튼).
+  아이콘은 브랜드 컬러 원 배경 32px 고정, 안 글리프만 조절(`warning`=원+느낌표, `trash` 1.2배, `logout`, `download`).
+  좁은 화면에서 좌우 8px만 남김(오버레이 패딩에 눌리지 않게 `flex-shrink: 0`), 버튼 위 여백 22px.
+- 2 고객 삭제: "기존 예약(N건)은 매출 기록으로 남습니다." + 빨간 "되돌릴 수 없습니다. 삭제하시겠습니까?"
+- 3 담당자 퇴직: 아이콘 "!" · 4 담당자 영구 삭제: 제목 "{이름} 삭제할까요?", 버튼 "삭제"(목록 버튼 "영구 삭제"는 유지)
+- 5 게스트 로그아웃: 이전 커밋에서 완료
+- 6 네이버예약 연동 해제: "자동으로 동기화되지 않습니다." 굵게(빨강 없음 — 삭제가 아니고 재연동 가능)
+- 7·8 이전 데이터 불러오기(login·`_app`): `centered` + 다운로드 아이콘, 줄바꿈.
+  미결: "아니오"는 새 온보딩 완료 시 기존 게스트 데이터를 폐기하는데 문구에 안내가 없다.
+- 9 약관 동의 안 함: 제목 "약관에 동의해야 이용할 수 있어요", 본문 "동의하지 않으면 (로그아웃되고) **로그인 화면으로 돌아갑니다.**"
+- 10 온보딩 건너뛰기: `centered`, "**서비스·담당자**는 나중에 설정에서\n추가할 수 있어요."
+- 11 이미 설정된 매장: **삭제** — `1558af3`에서 409 처리가 "세션 갱신 후 홈으로"로 바뀐 뒤 여는 곳이 없던 죽은 코드
+- 12 레이어 표시 오류: `centered`만(화면 미확인 — 로그인 세션 필요)
+- 13 중복예약 해결 내역: 유지 — 질문이 아닌 정보 표라 가운데 정렬이 맞지 않음(화면 미확인)
+
+## 완료 — 고객 병합 레이어: 고객명 → 고객정보 레이어 링크
+
+### 요구
+고객 병합 레이어(`CustomerMergeSuggestionModal`)의 고객명이 글자로만 떠 있다. 눌러서 고객정보 레이어를 열 수 있게 한다
+(지시자 2026-10-16). 자동 제안(마스킹 고객·기준 고객)과 수동 병합 모두.
+
+### 구현
+- `StyledCustomerName`(span) → 네이티브 `<button type="button">`, `useCalendarStore.openCustomerDetail(id)` 호출
+  (다른 화면과 같은 진입점 — `ReservationListSection`·`HeaderSearchLayer`·포인트 탭).
+- 모양은 포인트 탭 `StyledCustomerNameButton`과 같게: 평소 그대로, hover 시 파란색. 포커스 링 유지.
+- 기준 고객 선택 행은 라디오 `<label>` 안에 이름이 있다 — 이름이 버튼이 되면 이름 클릭은 라디오가 아니라
+  고객정보를 연다(라벨 안 인터랙티브 요소는 라벨 활성화를 일으키지 않는다). 선택은 라디오로.
+- 고객정보 레이어가 병합 레이어 **위에** 뜨는지 확인(z-index).
+
+### 검증 (완료)
+- tsc ✓ · 테스트 202 ✓ · lint 에러 0 ✓
+- 임시 DB(`takeaseat_preview`)로 띄운 로컬 서버: 자동 제안 레이어에서 `김*희`·`김영희` 클릭 → 고객정보 레이어가 병합 레이어
+  **위에** 열림, 닫으면 병합 레이어 그대로.
+
+### 로컬 미리보기 방법 (재사용)
+- 로그인은 OAuth라 앱 내장 브라우저에서 못 한다(`dev.takeaseat.co.kr` 하위 리소스가 차단돼 화면도 안 뜬다). 대신
+  `localhost:3000`에 `DATABASE_URL`·`DIRECT_URL`=임시 DB, `AUTH_URL=http://localhost:3000`, `AUTH_TRUST_HOST=true`로 띄우고,
+  `.env.local`의 `AUTH_SECRET`으로 `next-auth/jwt` `encode`(salt `authjs.session-token`, 토큰에 `userId`)한 쿠키를 넣는다.
+  매장·권한은 jwt 콜백이 DB 멤버십에서 채운다.
+- ⚠️ `scripts/setup-test-db.sh`는 `DATABASE_URL`만 바꾸는데 `prisma.config.ts`는 `DIRECT_URL`(.env = **운영**)을 먼저 쓴다 —
+  그대로 돌리면 `migrate deploy`가 운영을 향한다. 임시 DB 마이그레이션은 두 변수를 모두 지정하고 대상을 출력해 확인한 뒤 한다.
+
+
+## 완료(배포 대기, v0.61.0 묶음 #270) — 고객의 회원권·쿠폰을 예약·고객 화면에 표시 (`claude/customer-benefits-view`, #279)
+
+### 요구 (지시자 2026-10-16)
+1. 매장: **예약 상세**와 **고객정보** 레이어에 그 고객이 쓸 수 있는 회원권·쿠폰을 보인다.
+2. 고객: 예약 관리 링크(`/book/[slug]/r/[token]`) 페이지에 **본인** 회원권·쿠폰을 보인다.
+
+### 구현
+- 서버 공용 조회 `server/db/customer-benefits.ts` `loadCustomerBenefits(storeId, customerId, now)`:
+  쓸 수 있는 것만 — 회원권 `active`·남은 횟수 있음(무제한 포함)·만료 전, 쿠폰 `active`·만료 전.
+  매장 기능 토글(`useMembershipSystem`·`useCouponSystem`)이 꺼져 있으면 그 종류는 빈 배열.
+- 매장: `GET /api/customer-benefits?customerId=<프론트 id>`(staff). 훅 `useCustomerBenefits(customerId)` — 게스트·토글 둘 다 꺼짐이면 요청 안 함.
+  고객정보 정보 목록·예약 상세 정보 목록의 **적립금 다음 줄**에 "회원권"·"쿠폰" 행(없으면 행 생략).
+- 고객: `GET /api/book/reservation/[token]` 응답에 `benefits` 추가. 토큰이 곧 본인 확인이라 본인 것만 낸다.
+  삭제된 예약 흔적 응답은 고객 연결이 없어 `benefits: null`. 요약 표 아래 "내 회원권·쿠폰" 블록, 4개 언어 문구.
+  (이름+연락처 조회 목록에는 넣지 않는다 — 목록은 예약 링크만, 상세는 링크 안에서)
+- 표시 문구 순수 함수: `features/customers/benefits.ts` — 회원권 "펌 5회권 · 남은 3/5회 · ~2026-12-31", 쿠폰 "첫 방문 · 5,000원 할인 · ~…" (+테스트).
+
+### 영향 파일
+`server/db/customer-benefits.ts`(신규), `server/api/customer-benefits.ts`+`client/pages/api/customer-benefits.ts`(신규),
+`server/api/book/reservation/[token].ts`, `server/api/book/booking-helpers.ts`(select 에 customerId),
+`client/features/customers/benefits.ts`(+test), `client/hooks/useCustomerBenefits.ts`,
+`CustomerDetail.tsx`, `ReservationViewSection.tsx`, `client/pages/book/[slug]/r/[token].tsx`, `client/features/booking/i18n.ts`.
+
+### 검증
+- tsc · 테스트 216(신규 benefits 3·benefits-i18n 4) · 순수 모듈 게이트 · lint 신규 경고 0.
+- 임시 DB(`takeaseat_preview`)에 회원권 2(1개 소진)·쿠폰 3(1개 만료) 넣고 고객 페이지 확인:
+  API `benefits`에 쓸 수 있는 회원권 1·쿠폰 2만, 만료일 한국 날짜(2026-11-30T15:00Z → ~2026-12-01).
+  처음엔 긴 줄 때문에 휴대폰에서 카드가 넘침 → 라벨 위·항목 아래로 바꿔 375px에서 가로 넘침 없음.
+- **미확인**: 매장 쪽 예약 상세·고객정보 행(로그인 세션 필요), 다른 언어 화면(문구는 단위 테스트).
+
+---
+
+## 완료(배포 대기, v0.61.0 묶음 #270) — 쿠폰 고객 발급 화면 (`claude/coupon-issue-ui`, #277)
+
+### 배경
+쿠폰은 상품 CRUD 화면만 있고 **고객에게 발급하는 화면이 없다.** 발급 API(`/api/coupon-issue` POST 발급·DELETE 취소, #156)는
+2026-07-27에 만들어졌지만 화면 연결이 빠졌다. `index.md`는 `CouponManageSection`에 "직접 발급은 구현"이라 적혀 있으나
+**구현된 건 API뿐**(문서·코드 불일치 — 이 작업으로 해소). 지시자 요청(2026-10-16): 쿠폰 발급 만들기.
+
+### 범위
+- 포함: 쿠폰 관리에 **상품 / 발급** 탭(회원권 관리와 같은 구조). 발급 폼(고객 검색 + 쿠폰 선택 → 발급), 발급 내역(고객·쿠폰·할인·만료·상태), 미사용 쿠폰 **취소**.
+- 제외(후속): 쿠폰 **사용 처리**(지금 `used`로 바꾸는 곳이 없음), 코드형 발급(고객이 코드 입력), 결제 자동 차감(`PaymentMethod.coupon`).
+- 발급 대상 상품: 활성 + **코드 없는 상품만**(API가 코드형 직접 발급을 거부). 없으면 안내 문구.
+
+### 구현
+- 회원권 발급의 고객 검색 상태(검색어·선택·제안 열림·blur 타이머)를 훅으로 추출해 두 화면이 공유: `components/customers/useIssueCustomerPicker.ts`.
+  (컴포넌트가 아니라 훅 — 기존 `CustomerAutocomplete`를 그대로 쓴다)
+- 탭 버튼 스타일(`StyledTabRow`·`StyledTabButton`)을 `settings-styles.ts`로 옮겨 공유.
+- `CouponManageSection`: `tab` 상태, `/api/coupons` GET 의 `coupons`(이미 내려옴)를 받아 발급 내역 표시, POST/DELETE `/api/coupon-issue`.
+  서버 에러 메시지(고객당 1장 등)를 그대로 토스트.
+- 순수 함수(할인 설명·발급 가능 상품 필터)는 `features/coupons/model.ts` + 테스트.
+
+### 영향 파일
+`CouponManageSection.tsx`, `MembershipManageSection.tsx`(훅·탭 스타일 공유), `settings-styles.ts`, `components/customers/useIssueCustomerPicker.ts`(신규 훅),
+`features/coupons/model.ts`(+test), `index.md`.
+
+### 예상 결과
+쿠폰 관리 → 발급 탭에서 고객에게 쿠폰을 발급·취소할 수 있고, 고객 삭제 창(별도 브랜치)의 쿠폰 칸이 실제로 쓰인다.
+
+### 범위 추가 (지시자 2026-10-16 — 점검에서 찾은 문제 모두 수정)
+- 만료된 '고객당 1장' 쿠폰이 재발급을 영원히 막음 → 서버 보유 확인에 "만료 전" 조건.
+- 쿠폰 **사용 처리**: `/api/coupon-use`(POST `{couponId, action: 'use'|'restore'}`) + 발급 내역 [사용]/[복원] 버튼. 조건부 updateMany 로 원자적.
+- 발급·사용·취소 버튼 **처리 중 막기**(쿠폰·회원권). 서버 count→create 경합은 남는다(고객당 1장 유니크 제약 없음) — 버튼 잠금으로 실사용 경로는 막힘.
+- 만료일 표시가 UTC 날짜라 하루 이르게 보임 → `toLocalDateKey(iso)`(브라우저 로컬=한국 시간)로. 회원권도.
+- 발급 내역 페이징: 20건씩 **더 보기**(쿠폰·회원권). 목록은 API가 한 번에 내려 주는 걸 화면에서 나눈다 — shortcut, 수천 건 단위가 되면 API 페이징.
+- 별도 브랜치: 고객 병합 시 쿠폰·회원권 소실(병합 API·마이그레이션) / 삭제 고객 발급 거부(익명화 브랜치).
+
+### 진행 기록
+- 구현 완료: 발급 탭·취소·내역, 공용 훅·탭 스타일, `describeCouponDiscount`·`isDirectIssuable`·`couponDisplayStatus`(+테스트 5).
+- tsc · 쿠폰 테스트 5 · lint 통과. **화면 구동 확인은 로그인 세션 필요**(쿠폰은 로그인 전용) — 미확인.
+- ⚠️ 고객 삭제 익명화 브랜치(`claude/customer-delete-anonymize`)와 합칠 때 `MembershipManageSection`의 고객 목록 줄이 충돌한다.
+  그 브랜치는 삭제 고객을 빼는 `getSelectableCustomers`를 쓰므로, 합칠 때 **`useIssueCustomerPicker`에서 삭제 고객을 빼야 한다.**
+
+---
+
+## 완료(배포 대기, v0.61.0 묶음 #270) — `setup-test-db.sh`가 운영 DB로 마이그레이션하던 문제 (`fix/setup-test-db-direct-url`, #275)
+
+### 문제
+`client/scripts/setup-test-db.sh`는 `DATABASE_URL`만 테스트 DB로 바꾸는데, `prisma.config.ts`는
+`DIRECT_URL ?? DATABASE_URL`을 쓰고 `dotenv/config`로 `.env`를 읽는다. `.env`의 `DIRECT_URL`은 **운영 Supabase(direct 5432)**라
+`prisma migrate deploy`가 **운영**을 향한다. 시드(`seed.mjs`)는 `DATABASE_URL`(PrismaPg)이라 테스트 DB로 가서 둘이 갈라지기까지 한다.
+
+### 구현
+- `setup-test-db.sh`: `DIRECT_URL`도 `DATABASE_URL`과 같은 로컬 URL로 export(dotenv는 이미 있는 env를 덮지 않는다).
+  `migrate-local.sh`와 같은 host 가드(대상 host 출력, `localhost`/`127.0.0.1` 아니면 중단)를 migrate 전에 둔다.
+  검증용으로 `DB_NAME`을 env로 덮을 수 있게 한다(기본 `takeaseat_test`).
+- `dev-test.sh`: `next dev`만 돌리고 런타임은 `DIRECT_URL`을 안 읽어 지금은 안전. 그래도 `.env`를 source해 운영 `DIRECT_URL`이
+  남으므로 같은 로컬 URL로 덮어 둔다(한 줄).
+
+### 검증
+- ✓ `DB_NAME=takeaseat_tmpcheck`: `Datasource "db": ... database "takeaseat_tmpcheck" ... at "localhost:5432"`, 22개 마이그레이션 적용·시드 성공,
+  재실행 시 `No pending migrations`. 확인 후 임시 DB 삭제.
+- ✓ `DB_USER='x@db.example.supabase.co'` → 가드가 거부(exit 1). 가드는 `createdb`보다 앞에 둬 아무것도 실행되기 전에 막는다.
+- 기존 `takeaseat_test`는 마이그레이션 이력이 낡아(옛 이름 2개) 건드리지 않는다 — 리셋은 사용자 확인 후.
+
 ## 완료 — 타임라인 카드에 시작시간 + 예약 상태 표기 정리 (웹·앱 동시)
 
 ### 한 일

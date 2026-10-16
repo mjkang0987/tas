@@ -1144,12 +1144,12 @@ const StyledError = styled.p`
 `;
 
 const StyledNextBtn = styled.button`
-    height: 50px;
+    height: 40px;
     border: none;
     border-radius: var(--radius-md);
     background: var(--brand-color);
     color: var(--white-color);
-    font-size: var(--big-font);
+    font-size: var(--medium-font);
     font-weight: 700;
     cursor: pointer;
     &:disabled { opacity: 0.45; cursor: not-allowed; }

@@ -729,6 +729,7 @@ export const ReservationDetail = ({
                         isCompleted={isCompleted}
                         paymentCompleted={paymentCompleted}
                         isNaverBooking={isNaverBooking}
+                        isCustomerDeleted={!!customer?.deleted}
                         onConfirmBooking={() => openWithReason('approving')}
                         onApproveReservation={() => decideBooking('approve')}
                         onRejectBooking={() => openWithReason('rejecting')}

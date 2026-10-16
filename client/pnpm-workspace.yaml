@@ -9,15 +9,19 @@ allowBuilds:
 # pnpm 11+ 설정 위치 (package.json의 pnpm 필드는 더 이상 읽지 않음)
 # 보안 패치용 override 모음 — 88eaaf9(의존성 취약점 정리)에서 이전.
 overrides:
-  # ReDoS(CVE-2025-5889) 패치. 단일 버전(5.0.6) 강제는 1.x API(module.exports=함수)를
-  # 기대하는 minimatch@3.x 를 깨뜨리므로(=expand is not a function) 1.x 만 패치본으로 핀.
-  # minimatch@10.x 는 brace-expansion@^5.0.2 → 5.0.6(패치본) 으로 자연 해석되어 override 불필요.
-  'brace-expansion@1': 1.1.12
-  postcss: 8.5.13
+  # 규칙 (#201):
+  # - override 는 **상위가 버전을 정확히 고정해서** 패치본을 못 받는 경우에만 둔다. 상위가 `^` 범위면
+  #   `pnpm update <pkg>`로 lock 만 올리면 된다(brace-expansion·js-yaml·fast-uri 등은 그렇게 풀었다).
+  # - 고정 핀이 아니라 '하한 + 메이저 상한'으로 건다 — 1.1.12·8.5.13·3.1.7 고정 핀이 이후 보안 패치를 막았다.
+  # - 키에는 메이저 스코프(@N)를 붙인다 — 스코프 없이 걸면 구버전 메이저를 요구하는 의존성까지
+  #   조용히 끌어올려 깨뜨린다(예: brace-expansion 단일 버전 강제 → minimatch@3 `expand is not a function`).
+  'postcss@8': '>=8.5.23 <9' # next 16.2.10 이 8.4.31 고정. previous source map 경로탐색 패치
+  'mysql2@3': '>=3.23.1 <4' # prisma 7.10 이 3.15.3 고정 (dev 도구)
+  # 재귀 병합 스택 고갈(GHSA-ggr8-5vv4-36mx). @prisma/config 7.10 이 7.1.5 고정이고 패치본은 8 뿐이라
+  # 메이저를 강제한다 — prisma generate/validate 로 호환 확인.
+  'deepmerge-ts@7': '>=8.0.2 <9'
   react: 19.2.7
   react-dom: 19.2.7
-  '@hono/node-server': '>=1.19.13' # prisma dev 도구 경유
-  fast-uri: 3.1.7 # ajv 경유. SSRF/host confusion 다건(GHSA-f65p-4m7j-42xc 등) 패치
   # eslint 도구 경유 sourceMappingURL 파일읽기 패치. 상한 <8로 막아
   # 갓 배포된 babel 8 메이저(minimumReleaseAge 위반)로 점프하지 않게 함.
   '@babel/core': '>=7.29.6 <8'

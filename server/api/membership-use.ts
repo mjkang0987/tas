@@ -23,8 +23,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         const result = await prisma.$transaction(async (tx) => {
             const m = await tx.customerMembership.findFirst({
                 where: {id: membershipId, storeId: session.storeId},
+                include: {customer: {select: {deletedAt: true}}},
             });
             if (!m) return {error: 'not_found' as const};
+            // 삭제(익명 처리)된 고객의 회원권은 차감·복원하지 않는다(복원으로 되살아나지 않게).
+            if (m.customer.deletedAt) return {error: 'deleted' as const};
             if (m.totalCount == null || m.remainingCount == null) {
                 return {error: 'unlimited' as const}; // 무제한(횟수 없음)은 차감 대상 아님
             }
@@ -61,6 +64,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                 not_found: [404, '회원권을 찾을 수 없습니다.'],
                 unlimited: [400, '무제한 회원권은 차감할 수 없습니다.'],
                 cancelled: [400, '취소된 회원권입니다.'],
+                deleted: [400, '삭제된 고객의 회원권입니다.'],
                 empty: [400, '남은 횟수가 없습니다.'],
                 full: [400, '이미 최대 횟수입니다.'],
             };

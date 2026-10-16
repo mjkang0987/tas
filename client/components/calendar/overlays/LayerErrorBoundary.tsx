@@ -55,6 +55,7 @@ export class LayerErrorBoundary extends Component<LayerErrorBoundaryProps, Layer
                            confirmLabel="다시 시도"
                            cancelLabel="닫기"
                            ariaLabel={`${title} 표시 실패`}
+                           centered
                            layerKey="layer-error"
                            onConfirm={this.handleRetry}
                            onClose={onClose}/>

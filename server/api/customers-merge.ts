@@ -34,6 +34,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     if (sources.length !== sourceIds.length || !target) {
         return res.status(404).json({error: 'Customer not found'});
     }
+    // 삭제(익명 처리)된 고객은 합치지 않는다 — 시술 내역만 남은 행이라 같은 사람인지 판단할 근거가 없다.
+    if (target.deletedAt || sources.some((c) => c.deletedAt)) {
+        return res.status(400).json({error: 'Deleted customer cannot be merged'});
+    }
 
     const result = await prisma.$transaction(async (tx) => {
         const mergeHistoryIds: string[] = [];
@@ -51,6 +55,15 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                 where: {customerId: source.id},
                 select: {id: true},
             });
+            // 회원권·쿠폰은 고객이 지워지면 cascade 로 함께 사라진다 — 아래에서 source 를 지우기 전에 반드시 옮긴다.
+            const movedMemberships = await tx.customerMembership.findMany({
+                where: {customerId: source.id},
+                select: {id: true},
+            });
+            const movedCoupons = await tx.customerCoupon.findMany({
+                where: {customerId: source.id},
+                select: {id: true},
+            });
 
             // 1. 예약 이전
             await tx.reservation.updateMany({
@@ -60,6 +73,16 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
             // 2. 포인트 이력 이전
             await tx.customerPointHistory.updateMany({
+                where: {customerId: source.id},
+                data: {customerId: target.id},
+            });
+
+            // 2-1. 회원권·쿠폰 이전 (target 이 같은 상품을 이미 가지고 있어도 둘 다 남긴다 — 돈 받고 준 것이라 합치거나 버리지 않는다)
+            await tx.customerMembership.updateMany({
+                where: {customerId: source.id},
+                data: {customerId: target.id},
+            });
+            await tx.customerCoupon.updateMany({
                 where: {customerId: source.id},
                 data: {customerId: target.id},
             });
@@ -98,6 +121,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                         points: source.points,
                         firstVisitDate: source.firstVisitDate,
                         memoTags: source.memoTags.map((t) => ({text: t.text, color: t.color})),
+                        // 분리 때 되돌릴 회원권·쿠폰. 전용 컬럼 대신 스냅샷에 둔다(마이그레이션 불필요, 예전 이력엔 없음 = 빈 배열).
+                        movedMembershipIds: movedMemberships.map((m) => m.id),
+                        movedCouponIds: movedCoupons.map((c) => c.id),
                     },
                     targetCustomerJson: {
                         id: target.id,

@@ -17,6 +17,7 @@ import type {ServiceItem} from '../../utils/services';
 import {SeoHead} from '../../components/ui/SeoHead';
 import {AdBanner} from '../../components/ad/AdBanner';
 import {ConfirmDialog} from '../../components/ui/ConfirmDialog';
+import {Emphasis} from '../../components/ui/Emphasis';
 import type {OnboardingStep, ExtShopType, LocalAssignee} from '../../components/onboarding/onboarding-types';
 import {DEFAULT_ASSIGNEE_ID_START, STEP_LABELS} from '../../components/onboarding/onboarding-types';
 import {StyledNavRow, StyledSkipBtn, StyledNextBtn, StyledHighlight} from '../../components/onboarding/onboarding-step-styles';
@@ -68,7 +69,6 @@ const OnboardingPage: NextPage = () => {
     ]);
 
     const [finalError, setFinalError] = useState('');
-    const [showSetupLayer, setShowSetupLayer] = useState(false);
     const [showSkipConfirm, setShowSkipConfirm] = useState(false);
 
     const realShopTypes = shopTypes.filter((t): t is ShopType => t !== 'etc');
@@ -346,23 +346,12 @@ const OnboardingPage: NextPage = () => {
             {showSkipConfirm && (
                 <ConfirmDialog
                     title="설정을 건너뛸까요?"
-                    message={'기본 설정 없이 바로 시작합니다.\n서비스·담당자는 나중에 설정에서 추가할 수 있어요.'}
+                    message={<>기본 설정 없이 바로 시작합니다.{'\n'}<Emphasis>서비스·담당자</Emphasis>는 나중에 설정에서{'\n'}추가할 수 있어요.</>}
                     confirmLabel="건너뛰고 시작"
+                    centered
                     layerKey="onboarding-skip-confirm"
                     onConfirm={handleConfirmSkip}
                     onClose={() => setShowSkipConfirm(false)}
-                />
-            )}
-
-            {showSetupLayer && (
-                <ConfirmDialog
-                    title="이미 설정된 매장"
-                    message={'이미 담당자·서비스가 등록된 매장입니다.\n온보딩을 다시 진행할 수 없습니다.'}
-                    confirmLabel="홈으로"
-                    hideCancel
-                    layerKey="onboarding-setup-exists"
-                    onConfirm={async () => { await update(); router.replace('/'); }}
-                    onClose={async () => { await update(); router.replace('/'); }}
                 />
             )}
         </StyledPage>

@@ -3,6 +3,7 @@ import {useState} from 'react';
 import {useCalendarStore} from '../../store/calendarStore';
 import {PageHero} from '../ui/PageHero';
 import {ConfirmDialog} from '../ui/ConfirmDialog';
+import {Emphasis} from '../ui/Emphasis';
 import type {Assignee, AssigneeStatus} from '../../utils/assignees';
 import {WEEKDAY_LABELS, getAssigneeColor, getAssigneeStatus, splitAssigneesByStatus, sortAssignees, summarizeSchedule} from '../../utils/assignees';
 import {Dot} from '../ui/Dot';
@@ -493,8 +494,9 @@ export const AssigneeManageSection = () => {
             </StyledServiceFooter>
             {confirmTarget && (
                 <ConfirmDialog
-                    title="확인"
-                    message={`"${confirmTarget.name}" ${labels.assignee}를 퇴직 처리하시겠습니까?`}
+                    title={`${confirmTarget.name} 퇴직 처리할까요?`}
+                    message={<><Emphasis>새 예약에서 고를 수 없게</Emphasis> 되고 근무시간 설정이 숨겨집니다.{'\n'}기존 예약은 그대로 남고, 나중에 다시 재직으로 바꿀 수 있습니다.</>}
+                    confirmLabel="퇴직"
                     confirmVariant="danger"
                     layerKey="assignee-confirm"
                     onConfirm={handleConfirmDelete}
@@ -503,15 +505,14 @@ export const AssigneeManageSection = () => {
             )}
             {permanentTarget && (
                 <ConfirmDialog
-                    title="영구 삭제"
-                    message={
-                        `"${permanentTarget.name}" ${labels.assignee}를 영구 삭제하시겠습니까?\n`
-                        + (permanentTargetReservationCount > 0
-                            ? `이 ${labels.assignee}의 예약 ${permanentTargetReservationCount}건은 '미지정'으로 남고, `
-                            : '')
-                        + `${labels.assignee} 정보와 근무 일정은 완전히 삭제됩니다. 되돌릴 수 없습니다.`
-                    }
-                    confirmLabel="영구 삭제"
+                    title={`${permanentTarget.name} 삭제할까요?`}
+                    icon="trash"
+                    message={<>
+                        {permanentTargetReservationCount > 0 && <>이 {labels.assignee}의 예약 {permanentTargetReservationCount}건은 <Emphasis>미지정</Emphasis>으로 남고, </>}
+                        <Emphasis>{labels.assignee} 정보와 근무 일정</Emphasis>은 완전히 삭제됩니다.{'\n'}
+                        <Emphasis $tone="danger">되돌릴 수 없습니다.</Emphasis>
+                    </>}
+                    confirmLabel="삭제"
                     confirmVariant="danger"
                     layerKey="assignee-permanent-confirm"
                     onConfirm={handleConfirmPermanentDelete}

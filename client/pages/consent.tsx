@@ -8,6 +8,7 @@ import styled from 'styled-components';
 
 import {AdBanner} from '../components/ad/AdBanner';
 import {ConfirmDialog} from '../components/ui/ConfirmDialog';
+import {Emphasis} from '../components/ui/Emphasis';
 import {ConsentDpaLayer} from '../components/modals/ConsentDpaLayer';
 import {PolicyViewLayer} from '../components/policy/PolicyViewLayer';
 import type {PolicySlug} from '../content/policies';
@@ -233,12 +234,8 @@ export default function ConsentPage() {
 
             {showDeclineConfirm && (
                 <ConfirmDialog
-                    title="약관 동의 안 함"
-                    message={
-                        isGuest
-                            ? '약관에 동의하지 않으면 서비스를 이용할 수 없습니다.'
-                            : '약관에 동의하지 않으면 서비스를 이용할 수 없습니다.\n로그아웃하시겠습니까?'
-                    }
+                    title="약관에 동의해야 이용할 수 있어요"
+                    message={<>동의하지 않으면 {isGuest ? '' : '로그아웃되고 '}<Emphasis>로그인 화면으로 돌아갑니다.</Emphasis></>}
                     confirmLabel={isGuest ? '나가기' : '로그아웃'}
                     confirmVariant="danger"
                     layerKey="consent-decline"

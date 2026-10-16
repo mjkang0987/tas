@@ -134,3 +134,18 @@ export const StyledServiceFooter = styled.div`
     padding: 12px 0;
     border-top: 1px solid var(--light-gray-color);
 `;
+
+// 설정 화면 상단 탭(상품 / 발급 등) — 회원권·쿠폰 관리 공용
+export const StyledTabRow = styled.div`
+    display: flex;
+    gap: 8px;
+`;
+
+export const StyledTabButton = styled.button<{ $active: boolean }>`
+    ${actionButtonStyle};
+    min-width: 72px;
+    border: 1px solid ${(props) => props.$active ? 'var(--blue-color)' : 'var(--light-gray-color)'};
+    background: ${(props) => props.$active ? 'var(--info-bg)' : 'var(--white-color)'};
+    color: ${(props) => props.$active ? 'var(--blue-color)' : 'var(--dark-gray-color)'};
+    font-weight: ${(props) => props.$active ? 700 : 500};
+`;

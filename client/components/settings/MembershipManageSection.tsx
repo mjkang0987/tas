@@ -1,19 +1,24 @@
-import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
+import {useCallback, useEffect, useMemo, useState} from 'react';
 
 import styled from 'styled-components';
 
 import {PageHero} from '../ui/PageHero';
 import {formControlStyle, StyledFieldSelect} from '../ui/FormControls';
 import {FieldError} from '../ui/FieldError';
-import {cardSurfaceStyle, actionButtonStyle, StyledEditBtn, StyledDeleteBtn, StyledSaveBtn, StyledCancelBtn, StyledEmpty, StyledSettingsCardTitle, EMPTY_TEXT} from './settings-styles';
+import {cardSurfaceStyle, StyledEditBtn, StyledDeleteBtn, StyledSaveBtn, StyledCancelBtn, StyledEmpty, StyledSettingsCardTitle, EMPTY_TEXT, StyledTabRow, StyledTabButton} from './settings-styles';
 import {useToastStore} from '../../store/toastStore';
-import {useCalendarStore} from '../../store/calendarStore';
 import {shouldUseLocalDb} from '../../lib/local-db';
 import {formatPrice} from '../../utils/services';
 import {CustomerAutocomplete} from '../customers/CustomerAutocomplete';
+import {useIssueCustomerPicker} from '../customers/useIssueCustomerPicker';
+import {useSingleFlight} from '../../hooks/useSingleFlight';
 import type {MembershipProduct, CustomerMembership} from '../../features/memberships/model';
+import {describeBenefitMembership} from '../../features/customers/benefits';
 
 type Tab = 'products' | 'issue';
+
+// 발급 내역은 이만큼씩 더 보기로 늘린다.
+const ISSUED_PAGE_SIZE = 20;
 
 interface DraftForm {
     name: string;
@@ -38,15 +43,8 @@ function describeProduct(p: Pick<MembershipProduct, 'totalCount' | 'validDays'>)
     return parts.join(' · ');
 }
 
-function describeBalance(m: CustomerMembership): string {
-    const count = m.totalCount != null ? `${m.remainingCount ?? 0}/${m.totalCount}회` : '무제한';
-    const expiry = m.expiresAt ? ` · ~${m.expiresAt.slice(0, 10)}` : '';
-    return `${count}${expiry}`;
-}
-
 export const MembershipManageSection = () => {
     const toast = useToastStore((s) => s.show);
-    const customerMap = useCalendarStore((s) => s.customerMap);
     const isLocal = shouldUseLocalDb();
 
     const [tab, setTab] = useState<Tab>('products');
@@ -61,12 +59,12 @@ export const MembershipManageSection = () => {
     const [error, setError] = useState('');
 
     // 발급 폼
-    const [issueCustomerId, setIssueCustomerId] = useState('');
-    const [issueCustomerQuery, setIssueCustomerQuery] = useState('');
-    const [showCustomerSuggestions, setShowCustomerSuggestions] = useState(false);
     const [issueProductId, setIssueProductId] = useState('');
     const [issueError, setIssueError] = useState('');
-    const customerBlurTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+    const issueCustomer = useIssueCustomerPicker(() => setIssueError(''));
+    // 발급·사용·복원·취소 중에는 다른 요청을 막는다(연타로 두 번 처리 방지).
+    const flight = useSingleFlight();
+    const [visibleCount, setVisibleCount] = useState(ISSUED_PAGE_SIZE);
 
     const fetchData = useCallback(async () => {
         if (isLocal) return;
@@ -89,40 +87,6 @@ export const MembershipManageSection = () => {
     }, [fetchData]);
 
     const activeProducts = useMemo(() => products.filter((p) => p.status === 'active'), [products]);
-    const customers = useMemo(
-        () => Object.values(customerMap).sort((a, b) => a.name.localeCompare(b.name, 'ko')),
-        [customerMap]
-    );
-    const customerName = useCallback(
-        (legacyId: number) => customerMap[legacyId]?.name ?? `#${legacyId}`,
-        [customerMap]
-    );
-    const filteredIssueCustomers = useMemo(() => (
-        issueCustomerQuery.trim()
-            ? customers.filter((c) => c.name.includes(issueCustomerQuery) || c.tel.includes(issueCustomerQuery))
-            : customers
-    ), [customers, issueCustomerQuery]);
-
-    const handleCustomerSelect = (id: number) => {
-        const c = customerMap[id];
-        setIssueCustomerId(String(id));
-        if (c) setIssueCustomerQuery(c.name);
-        setShowCustomerSuggestions(false);
-        setIssueError('');
-    };
-    const handleCustomerQueryChange = (value: string) => {
-        setIssueCustomerQuery(value);
-        setIssueCustomerId('');
-        setShowCustomerSuggestions(true);
-        setIssueError('');
-    };
-    const handleCustomerFocus = () => {
-        clearTimeout(customerBlurTimer.current);
-        setShowCustomerSuggestions(true);
-    };
-    const handleCustomerBlur = () => {
-        customerBlurTimer.current = setTimeout(() => setShowCustomerSuggestions(false), 150);
-    };
 
     // ── 상품 CRUD ──
     const resetForm = () => {
@@ -188,8 +152,8 @@ export const MembershipManageSection = () => {
     };
 
     // ── 발급 ──
-    const handleIssue = async () => {
-        if (!issueCustomerId) {
+    const handleIssue = () => flight.run(async () => {
+        if (!issueCustomer.customerId) {
             setIssueError('고객을 선택해 주세요.');
             return;
         }
@@ -201,21 +165,20 @@ export const MembershipManageSection = () => {
             const res = await fetch('/api/membership-issue', {
                 method: 'POST',
                 headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({customerId: Number(issueCustomerId), productId: issueProductId}),
+                body: JSON.stringify({customerId: issueCustomer.customerId, productId: issueProductId}),
             });
             if (!res.ok) throw new Error();
             toast('회원권을 발급했습니다.');
-            setIssueCustomerId('');
-            setIssueCustomerQuery('');
+            issueCustomer.reset();
             setIssueProductId('');
             setIssueError('');
             await fetchData();
         } catch {
             toast('발급에 실패했습니다.', 'error');
         }
-    };
+    });
 
-    const handleCancelMembership = async (m: CustomerMembership) => {
+    const handleCancelMembership = (m: CustomerMembership) => flight.run(async () => {
         try {
             const res = await fetch('/api/membership-issue', {
                 method: 'DELETE',
@@ -228,9 +191,9 @@ export const MembershipManageSection = () => {
         } catch {
             toast('취소에 실패했습니다.', 'error');
         }
-    };
+    });
 
-    const handleUse = async (m: CustomerMembership, action: 'use' | 'restore') => {
+    const handleUse = (m: CustomerMembership, action: 'use' | 'restore') => flight.run(async () => {
         try {
             const res = await fetch('/api/membership-use', {
                 method: 'POST',
@@ -246,7 +209,7 @@ export const MembershipManageSection = () => {
         } catch (err) {
             toast(err instanceof Error && err.message ? err.message : '처리에 실패했습니다.', 'error');
         }
-    };
+    });
 
     return (
         <StyledWrap>
@@ -334,17 +297,7 @@ export const MembershipManageSection = () => {
                             <StyledFormCard>
                                 <StyledSettingsCardTitle>회원권 발급</StyledSettingsCardTitle>
                                 <StyledFieldGrid>
-                                    <CustomerAutocomplete
-                                        id="mi-customer"
-                                        query={issueCustomerQuery}
-                                        showSuggestions={showCustomerSuggestions}
-                                        filteredCustomers={filteredIssueCustomers}
-                                        selectedId={issueCustomerId ? Number(issueCustomerId) : 0}
-                                        onChangeQuery={handleCustomerQueryChange}
-                                        onFocus={handleCustomerFocus}
-                                        onBlur={handleCustomerBlur}
-                                        onSelect={handleCustomerSelect}
-                                    />
+                                    <CustomerAutocomplete id="mi-customer" {...issueCustomer.autocompleteProps} />
                                     <StyledField htmlFor="mi-product">
                                         <span>회원권</span>
                                         <StyledSelect id="mi-product" value={issueProductId}
@@ -358,7 +311,7 @@ export const MembershipManageSection = () => {
                                 </StyledFieldGrid>
                                 <FieldError variant="inline">{issueError}</FieldError>
                                 <StyledActionRow>
-                                    <StyledSaveBtn type="button" onClick={handleIssue}>발급</StyledSaveBtn>
+                                    <StyledSaveBtn type="button" disabled={flight.busy} onClick={handleIssue}>발급</StyledSaveBtn>
                                 </StyledActionRow>
                             </StyledFormCard>
 
@@ -366,28 +319,33 @@ export const MembershipManageSection = () => {
                                 <StyledEmpty>{EMPTY_TEXT}</StyledEmpty>
                             ) : (
                                 <StyledList>
-                                    {memberships.map((m) => (
+                                    {memberships.slice(0, visibleCount).map((m) => (
                                         <StyledItem key={m.id}>
                                             <StyledItemMain>
-                                                <StyledItemName>{customerName(m.customerId)} · {m.name}</StyledItemName>
-                                                <StyledItemMeta>{describeBalance(m)} · {MEMBERSHIP_STATUS_LABEL[m.status]}</StyledItemMeta>
+                                                <StyledItemName>{issueCustomer.customerName(m.customerId)} · {m.name}</StyledItemName>
+                                                <StyledItemMeta>{describeBenefitMembership(m)} · {MEMBERSHIP_STATUS_LABEL[m.status]}</StyledItemMeta>
                                             </StyledItemMain>
                                             {m.status !== 'cancelled' && (
                                                 <StyledItemActions>
                                                     {m.totalCount != null && (m.remainingCount ?? 0) > 0 && (
-                                                        <StyledEditBtn type="button" onClick={() => handleUse(m, 'use')}>사용</StyledEditBtn>
+                                                        <StyledEditBtn type="button" disabled={flight.busy} onClick={() => handleUse(m, 'use')}>사용</StyledEditBtn>
                                                     )}
                                                     {m.totalCount != null && (m.remainingCount ?? 0) < m.totalCount && (
-                                                        <StyledEditBtn type="button" onClick={() => handleUse(m, 'restore')}>복원</StyledEditBtn>
+                                                        <StyledEditBtn type="button" disabled={flight.busy} onClick={() => handleUse(m, 'restore')}>복원</StyledEditBtn>
                                                     )}
                                                     {m.status === 'active' && (
-                                                        <StyledDeleteBtn type="button" onClick={() => handleCancelMembership(m)}>취소</StyledDeleteBtn>
+                                                        <StyledDeleteBtn type="button" disabled={flight.busy} onClick={() => handleCancelMembership(m)}>취소</StyledDeleteBtn>
                                                     )}
                                                 </StyledItemActions>
                                             )}
                                         </StyledItem>
                                     ))}
                                 </StyledList>
+                            )}
+                            {!loading && memberships.length > visibleCount && (
+                                <StyledEditBtn type="button" onClick={() => setVisibleCount((n) => n + ISSUED_PAGE_SIZE)}>
+                                    더 보기 ({visibleCount}/{memberships.length})
+                                </StyledEditBtn>
                             )}
                         </>
                     )}
@@ -401,20 +359,6 @@ const StyledWrap = styled.div`
     display: flex;
     flex-direction: column;
     gap: 16px;
-`;
-
-const StyledTabRow = styled.div`
-    display: flex;
-    gap: 8px;
-`;
-
-const StyledTabButton = styled.button<{ $active: boolean }>`
-    ${actionButtonStyle};
-    min-width: 72px;
-    border: 1px solid ${(props) => props.$active ? 'var(--blue-color)' : 'var(--light-gray-color)'};
-    background: ${(props) => props.$active ? 'var(--info-bg)' : 'var(--white-color)'};
-    color: ${(props) => props.$active ? 'var(--blue-color)' : 'var(--dark-gray-color)'};
-    font-weight: ${(props) => props.$active ? 700 : 500};
 `;
 
 const StyledToolbar = styled.div`

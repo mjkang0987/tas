@@ -1,11 +1,13 @@
 import type {NextApiRequest, NextApiResponse} from 'next';
 
+import {Prisma} from '../../client/prisma/generated/prisma/client';
+
 import {prisma} from '../db/prisma';
 import {getApiSession, requireRole} from '../auth/api-session';
 import {dbCustomerToFrontend} from '../db/mappers';
 import {notifySlackOpsError} from '../notify/slack';
 import type {Customer, PointHistoryType} from '../../client/features/customers/model';
-import {normalizeTel} from '../../client/features/customers/model';
+import {DELETED_CUSTOMER_NAME, normalizeTel} from '../../client/features/customers/model';
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
     const session = await getApiSession(req, res);
@@ -40,6 +42,15 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             return res.status(400).json({error: 'Invalid customer payload'});
         }
 
+        // 삭제(익명 처리)된 고객은 되살리지 않는다 — 오래된 화면이 실명을 다시 써 넣는 것을 막는다.
+        const existing = await prisma.customer.findUnique({
+            where: {storeId_legacyId: {storeId: session.storeId, legacyId: customer.id}},
+            select: {deletedAt: true},
+        });
+        if (existing?.deletedAt) {
+            return res.status(409).json({error: 'Customer deleted'});
+        }
+
         const data = {
             name: customer.name,
             tel: normalizeTel(customer.tel),
@@ -71,8 +82,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
         const existingCustomers = await prisma.customer.findMany({
             where: {storeId: session.storeId, legacyId: {in: legacyIds}},
-            select: {id: true},
+            select: {id: true, legacyId: true, deletedAt: true},
         });
+        // 삭제(익명 처리)된 고객은 건너뛴다 — 다른 기기의 오래된 목록이 실명·메모를 다시 써 넣지 못하게.
+        const deletedLegacyIds = new Set(existingCustomers.filter((c) => c.deletedAt).map((c) => c.legacyId));
 
         // 고객별 기존 포인트이력 id 집합 (중복 생성 방지용)
         const existingHistoryByCustomer = new Map<string, Set<string>>();
@@ -110,6 +123,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         try {
             await prisma.$transaction(async (tx) => {
                 for (const customer of customers) {
+                    if (deletedLegacyIds.has(customer.id)) continue;
                     const savedCustomer = await tx.customer.upsert({
                         where: {storeId_legacyId: {storeId: session.storeId, legacyId: customer.id}},
                         update: {
@@ -171,8 +185,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
 
     if (req.method === 'DELETE') {
-        // 고객 영구 삭제(되돌릴 수 없음)는 오너 전용.
-        // 해당 고객의 예약·적립금이력·메모태그는 cascade로 함께 삭제된다.
+        // 고객 삭제 = 익명 처리(되돌릴 수 없음). 오너 전용.
+        // 예전엔 행을 지워 cascade 로 예약·결제 내역까지 사라져 **과거 매출이 소급해 빠졌다.**
+        // 이제 행과 예약(시술 내역)은 남기고, 그 사람을 알아볼 수 있는 정보·메모만 지운다(0023, plan.md).
         if (!requireRole(session, 'owner', res)) return;
 
         const {id} = req.body as { id: number };
@@ -182,28 +197,70 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
         const customer = await prisma.customer.findUnique({
             where: {storeId_legacyId: {storeId: session.storeId, legacyId: id}},
-            select: {id: true},
+            select: {id: true, deletedAt: true},
         });
         if (!customer) {
             return res.status(404).json({error: 'Customer not found'});
         }
+        if (customer.deletedAt) {
+            return res.status(200).json({ok: true});
+        }
 
-        // 병합 건너뛰기 기록도 함께 지운다. FK 가 없어 그대로 두면 고아로 남고,
-        // legacyId 가 재발급되면 엉뚱한 고객의 제안을 막는다(`customers-merge.ts` 참조).
-        //
-        // 삭제된 온라인 예약의 흔적(DeletedBooking)도 지운다. 살아 있는 예약은 cascade 로
-        // 사라져 고객 관리 링크가 함께 죽지만, **예전에 개별 삭제한 예약의 흔적은 FK 가 없어
-        // 남는다** — 그러면 고객을 지웠는데 그 링크만 계속 조회된다. 고객 기록 자체를 지우는
-        // 행위이므로 링크도 같이 없앤다.
         await prisma.$transaction([
+            // 병합 건너뛰기 기록 — FK 가 없어 고아로 남는다(`customers-merge.ts` 참조).
             prisma.customerMergeSkip.deleteMany({
                 where: {
                     storeId: session.storeId,
                     OR: [{maskedId: id}, {candidateId: id}],
                 },
             }),
+            // 예전에 개별 삭제한 온라인 예약의 흔적 — 고객 관리 링크가 계속 조회되지 않게.
             prisma.deletedBooking.deleteMany({where: {customerId: customer.id}}),
-            prisma.customer.delete({where: {id: customer.id}}),
+            // 병합 이력 — 합쳐진 고객의 이름·연락처 스냅샷이 있다. 지우면 이 고객은 분리할 수 없다.
+            prisma.customerMergeHistory.deleteMany({
+                where: {
+                    storeId: session.storeId,
+                    OR: [
+                        {targetCustomerJson: {path: ['id'], equals: customer.id}},
+                        {sourceCustomerJson: {path: ['id'], equals: customer.id}},
+                    ],
+                },
+            }),
+            prisma.customerMemoTag.deleteMany({where: {customerId: customer.id}}),
+            prisma.customerPointHistory.deleteMany({where: {customerId: customer.id}}),
+            // 예약 변경 이력 — 전후 스냅샷에 메모·변경 요청 내용이 남는다.
+            prisma.reservationHistory.deleteMany({where: {reservation: {customerId: customer.id}}}),
+            // 예약은 시술 내역·매출로 남기고 개인정보가 담길 수 있는 칸만 비운다. naverBookingId 는 남긴다 —
+            // 지우면 다음 네이버 동기화가 같은 예약을 새 고객으로 다시 가져와 개인정보가 되살아난다.
+            prisma.reservation.updateMany({
+                where: {customerId: customer.id},
+                data: {
+                    memo: null,
+                    naverBookingUrl: null,
+                    publicToken: null,
+                    pendingPayloadJson: Prisma.DbNull,
+                    decisionReason: null,
+                },
+            }),
+            // 남은 회원권·쿠폰은 "삭제되는 정보"로 안내했다 — 기록(돈 받고 준 이력)은 남기고 더는 쓸 수 없게 취소한다.
+            prisma.customerMembership.updateMany({
+                where: {customerId: customer.id, status: 'active'},
+                data: {status: 'cancelled'},
+            }),
+            prisma.customerCoupon.updateMany({
+                where: {customerId: customer.id, status: 'active'},
+                data: {status: 'cancelled'},
+            }),
+            prisma.customer.update({
+                where: {id: customer.id},
+                data: {
+                    name: DELETED_CUSTOMER_NAME,
+                    tel: '',
+                    points: 0,
+                    firstVisitDate: null,
+                    deletedAt: new Date(),
+                },
+            }),
         ]);
         return res.status(200).json({ok: true});
     }

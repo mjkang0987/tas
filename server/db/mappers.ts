@@ -160,6 +160,7 @@ type DbCustomerRow = {
     tel: string;
     points: number;
     firstVisitDate: Date | null;
+    deletedAt: Date | null;
     memoTags: Array<{ text: string; color: string }>;
     pointHistories: Array<{
         id: string;
@@ -189,6 +190,7 @@ export function dbCustomerToFrontend(row: DbCustomerRow): Customer {
             createdAt: h.createdAt.toISOString(),
             ...(h.relatedReservation?.legacyId != null && {relatedReservationId: h.relatedReservation.legacyId}),
         })),
+        ...(row.deletedAt && {deleted: true}),
     };
 }
 
