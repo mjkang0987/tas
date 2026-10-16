@@ -144,14 +144,25 @@ export function syncCustomerSettings(customers: Customer[]): Promise<void> {
 // 신규 고객 1명만 빠르게 저장(서버는 단일 POST). 전체 목록 PUT(고객 수에 비례해 수 초)
 // 대신 단건이라 수십 ms 안에 끝나고, await 가능해 직후 예약 POST 시 'Customer not found'를
 // 막는다. 로컬 모드에선 스냅샷의 전체 고객 배열을 갱신한다.
-export function persistNewCustomer(customer: Customer, allCustomers: Customer[]): Promise<void> {
+// 서버가 정한 고객 번호를 돌려준다(화면이 보낸 번호가 이미 다른 고객이면 서버가 새 번호를 준다). 실패하면 null.
+export async function persistNewCustomer(customer: Customer, allCustomers: Customer[]): Promise<number | null> {
     if (shouldUseLocalDb()) {
         updateLocalDbSnapshot((current) => ({...current, customers: allCustomers}));
-        return Promise.resolve();
+        return customer.id;
     }
 
-    return requestServerSync('/api/customers', jsonRequest('POST', {customer}),
-        '고객 등록에 실패했습니다. 새로고침 후 다시 시도해 주세요.').then(() => undefined);
+    try {
+        const response = await fetch('/api/customers', jsonRequest('POST', {customer}));
+        if (response.ok) {
+            const data = await response.json().catch(() => null) as {id?: number} | null;
+            return typeof data?.id === 'number' ? data.id : customer.id;
+        }
+        console.error('[sync] POST /api/customers 실패:', await readErrorMessage(response));
+    } catch (error) {
+        console.error('[sync] POST /api/customers 요청 실패:', error);
+    }
+    useToastStore.getState().show('고객 등록에 실패했습니다. 새로고침 후 다시 시도해 주세요.', 'error');
+    return null;
 }
 
 // 고객 삭제 = 익명 처리. 이름·연락처·메모·적립금은 지우고 예약(시술 내역·매출)은 남긴다(서버 DELETE 와 같은 규칙).
