@@ -564,3 +564,63 @@ export const StyledNaverBookingLink = styled.a`
         content: '↗';
     }
 `;
+
+/* 고객 삭제 창 하단 요약 — 남는 정보(예약)와 삭제되는 정보(적립금·회원권·쿠폰)를 따로 묶은 카드 두 개.
+   삭제되는 쪽은 빨간 테두리·배경으로 구분한다. 가운데 정렬 창 안이라 왼쪽 정렬. */
+export const StyledDeleteSummary = styled.div`
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin: 16px 16px 0;
+    text-align: left;
+`;
+
+export const StyledDeleteSummaryGroup = styled.section<{$danger?: boolean}>`
+    overflow: hidden;
+    border: 1px solid ${(p) => p.$danger ? 'var(--danger-border)' : 'var(--light-gray-color)'};
+    border-radius: var(--radius-md);
+`;
+
+export const StyledDeleteSummaryTitle = styled.h3<{$danger?: boolean}>`
+    margin: 0;
+    padding: 7px 12px;
+    background: ${(p) => p.$danger ? 'var(--danger-bg)' : 'var(--gray-color2)'};
+    font-size: var(--small-font);
+    font-weight: 700;
+    color: ${(p) => p.$danger ? 'var(--danger-color)' : 'var(--dark-gray-color)'};
+`;
+
+export const StyledDeleteSummaryList = styled.dl`
+    margin: 0;
+    font-size: var(--medium-font);
+    line-height: 1.5;
+`;
+
+/* dt·dd 한 쌍. 줄 사이는 가는 선으로 나눈다 */
+export const StyledDeleteSummaryRow = styled.div`
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 8px 12px;
+
+    & + & {
+        border-top: 1px solid var(--gray-color2);
+    }
+`;
+
+export const StyledDeleteSummaryTerm = styled.dt`
+    flex-shrink: 0;
+    color: var(--dark-gray-color2);
+`;
+
+/* 값이 여러 개(회원권·쿠폰 이름)면 한 줄에 하나씩 */
+export const StyledDeleteSummaryValue = styled.dd`
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    margin: 0;
+    color: var(--black-color);
+    font-weight: 600;
+    text-align: right;
+    word-break: keep-all;
+`;

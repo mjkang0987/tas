@@ -78,6 +78,13 @@ import {
     StyledReservationScroll,
     StyledReservationTitle,
     StyledMoreButton,
+    StyledDeleteSummary,
+    StyledDeleteSummaryGroup,
+    StyledDeleteSummaryTitle,
+    StyledDeleteSummaryList,
+    StyledDeleteSummaryRow,
+    StyledDeleteSummaryTerm,
+    StyledDeleteSummaryValue,
 } from './CustomerDetail.styles';
 
 const PAGE_SIZE = 5;
@@ -434,14 +441,17 @@ export const CustomerDetail = ({customer, reservationMap, onClose, onReservation
                                       {...extra} />
     );
 
-    // 끝 글자가 원·개·장이라 조사는 항상 '은'.
-    const balanceLabel = deleteBalance
-        ? [
-            deleteBalance.points > 0 && `적립금 ${formatPrice(deleteBalance.points)}`,
-            deleteBalance.memberships > 0 && `회원권 ${deleteBalance.memberships}개`,
-            deleteBalance.coupons > 0 && `쿠폰 ${deleteBalance.coupons}장`,
-        ].filter(Boolean).join('·')
-        : '';
+    // 삭제 창 하단 목록 — 남는 것(예약)과 더는 쓸 수 없게 되는 것(적립금·회원권·쿠폰)을 한눈에.
+    const deletePoints = deleteBalance?.points ?? 0;
+    const deleteMemberships = deleteBalance?.memberships ?? [];
+    const deleteCoupons = deleteBalance?.coupons ?? [];
+    const hasDeleteSummary = customerReservations.length > 0 || deletePoints > 0
+        || deleteMemberships.length > 0 || deleteCoupons.length > 0;
+    // 이름은 3개까지만 보이고 나머지는 "외 N장" — 많아도 창이 길어져 스크롤이 생기지 않게. 개수는 항목 이름에 있다.
+    const renderSummaryNames = (names: string[], unit: string) => <>
+        {names.slice(0, 3).map((name, index) => <span key={index}>{name}</span>)}
+        {names.length > 3 && <span>외 {names.length - 3}{unit}</span>}
+    </>;
 
     if (!modalRoot) return null;
 
@@ -628,9 +638,8 @@ export const CustomerDetail = ({customer, reservationMap, onClose, onReservation
                        icon="trash"
                        message={<>
                            {customerReservations.length > 0
-                               ? <><Emphasis>이름·연락처·메모·적립금</Emphasis>이 삭제되고, 고객명은 <Emphasis>{DELETED_CUSTOMER_NAME}</Emphasis>으로 표시됩니다.{'\n'}기존 예약({customerReservations.length}건)은 매출 기록으로 남습니다.{'\n'}</>
-                               : <><Emphasis>이름·연락처·메모·적립금</Emphasis>이 삭제됩니다.{'\n'}</>}
-                           {balanceLabel && <>남은 <Emphasis>{balanceLabel}</Emphasis>은 더 이상 쓸 수 없습니다.{'\n'}</>}
+                               ? <><Emphasis>이름·연락처·메모</Emphasis>가 삭제되고, 고객명은 <Emphasis>{DELETED_CUSTOMER_NAME}</Emphasis>으로 표시됩니다.{'\n'}</>
+                               : <><Emphasis>이름·연락처·메모</Emphasis>가 삭제됩니다.{'\n'}</>}
                            <Emphasis $tone="danger">되돌릴 수 없습니다. 삭제하시겠습니까?</Emphasis>
                        </>}
                        confirmLabel="삭제"
@@ -640,7 +649,52 @@ export const CustomerDetail = ({customer, reservationMap, onClose, onReservation
                            setIsDeleteConfirm(false);
                            onClose();
                        }}
-                       onClose={() => { setIsDeleteConfirm(false); setDeleteBalance(null); }} />
+                       onClose={() => { setIsDeleteConfirm(false); setDeleteBalance(null); }}>
+            {hasDeleteSummary && (
+                <StyledDeleteSummary>
+                    {customerReservations.length > 0 && (
+                        <StyledDeleteSummaryGroup>
+                            <StyledDeleteSummaryTitle>남는 정보</StyledDeleteSummaryTitle>
+                            <StyledDeleteSummaryList>
+                                <StyledDeleteSummaryRow>
+                                    <StyledDeleteSummaryTerm>예약 내역</StyledDeleteSummaryTerm>
+                                    <StyledDeleteSummaryValue>{customerReservations.length}건</StyledDeleteSummaryValue>
+                                </StyledDeleteSummaryRow>
+                            </StyledDeleteSummaryList>
+                        </StyledDeleteSummaryGroup>
+                    )}
+                    {(deletePoints > 0 || deleteMemberships.length > 0 || deleteCoupons.length > 0) && (
+                        <StyledDeleteSummaryGroup $danger>
+                            <StyledDeleteSummaryTitle $danger>삭제되는 정보</StyledDeleteSummaryTitle>
+                            <StyledDeleteSummaryList>
+                                {deletePoints > 0 && (
+                                    <StyledDeleteSummaryRow>
+                                        <StyledDeleteSummaryTerm>적립금</StyledDeleteSummaryTerm>
+                                        <StyledDeleteSummaryValue>{formatPrice(deletePoints)}</StyledDeleteSummaryValue>
+                                    </StyledDeleteSummaryRow>
+                                )}
+                                {deleteMemberships.length > 0 && (
+                                    <StyledDeleteSummaryRow>
+                                        <StyledDeleteSummaryTerm>회원권 {deleteMemberships.length}개</StyledDeleteSummaryTerm>
+                                        <StyledDeleteSummaryValue>
+                                            {renderSummaryNames(deleteMemberships, '개')}
+                                        </StyledDeleteSummaryValue>
+                                    </StyledDeleteSummaryRow>
+                                )}
+                                {deleteCoupons.length > 0 && (
+                                    <StyledDeleteSummaryRow>
+                                        <StyledDeleteSummaryTerm>쿠폰 {deleteCoupons.length}장</StyledDeleteSummaryTerm>
+                                        <StyledDeleteSummaryValue>
+                                            {renderSummaryNames(deleteCoupons, '장')}
+                                        </StyledDeleteSummaryValue>
+                                    </StyledDeleteSummaryRow>
+                                )}
+                            </StyledDeleteSummaryList>
+                        </StyledDeleteSummaryGroup>
+                    )}
+                </StyledDeleteSummary>
+            )}
+        </ConfirmDialog>
     )}
     {/* 글자만 있던 확인 창은 누가 남고 누가 정리되는지 안 읽혔다 — 자동 제안과 같은 카드형 레이어로 보인다.
         방향은 고정(지금 고객 → 다른 고객)이라 자동 제안 모드와 구조가 같다. 입구는 둘:
