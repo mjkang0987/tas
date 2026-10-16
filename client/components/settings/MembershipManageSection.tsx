@@ -9,11 +9,16 @@ import {cardSurfaceStyle, StyledEditBtn, StyledDeleteBtn, StyledSaveBtn, StyledC
 import {useToastStore} from '../../store/toastStore';
 import {shouldUseLocalDb} from '../../lib/local-db';
 import {formatPrice} from '../../utils/services';
+import {toLocalDateKey} from '../../utils/reservations';
 import {CustomerAutocomplete} from '../customers/CustomerAutocomplete';
 import {useIssueCustomerPicker} from '../customers/useIssueCustomerPicker';
+import {useSingleFlight} from '../../hooks/useSingleFlight';
 import type {MembershipProduct, CustomerMembership} from '../../features/memberships/model';
 
 type Tab = 'products' | 'issue';
+
+// 발급 내역은 이만큼씩 더 보기로 늘린다.
+const ISSUED_PAGE_SIZE = 20;
 
 interface DraftForm {
     name: string;
@@ -40,7 +45,7 @@ function describeProduct(p: Pick<MembershipProduct, 'totalCount' | 'validDays'>)
 
 function describeBalance(m: CustomerMembership): string {
     const count = m.totalCount != null ? `${m.remainingCount ?? 0}/${m.totalCount}회` : '무제한';
-    const expiry = m.expiresAt ? ` · ~${m.expiresAt.slice(0, 10)}` : '';
+    const expiry = m.expiresAt ? ` · ~${toLocalDateKey(m.expiresAt)}` : '';
     return `${count}${expiry}`;
 }
 
@@ -63,6 +68,9 @@ export const MembershipManageSection = () => {
     const [issueProductId, setIssueProductId] = useState('');
     const [issueError, setIssueError] = useState('');
     const issueCustomer = useIssueCustomerPicker(() => setIssueError(''));
+    // 발급·사용·복원·취소 중에는 다른 요청을 막는다(연타로 두 번 처리 방지).
+    const flight = useSingleFlight();
+    const [visibleCount, setVisibleCount] = useState(ISSUED_PAGE_SIZE);
 
     const fetchData = useCallback(async () => {
         if (isLocal) return;
@@ -150,7 +158,7 @@ export const MembershipManageSection = () => {
     };
 
     // ── 발급 ──
-    const handleIssue = async () => {
+    const handleIssue = () => flight.run(async () => {
         if (!issueCustomer.customerId) {
             setIssueError('고객을 선택해 주세요.');
             return;
@@ -174,9 +182,9 @@ export const MembershipManageSection = () => {
         } catch {
             toast('발급에 실패했습니다.', 'error');
         }
-    };
+    });
 
-    const handleCancelMembership = async (m: CustomerMembership) => {
+    const handleCancelMembership = (m: CustomerMembership) => flight.run(async () => {
         try {
             const res = await fetch('/api/membership-issue', {
                 method: 'DELETE',
@@ -189,9 +197,9 @@ export const MembershipManageSection = () => {
         } catch {
             toast('취소에 실패했습니다.', 'error');
         }
-    };
+    });
 
-    const handleUse = async (m: CustomerMembership, action: 'use' | 'restore') => {
+    const handleUse = (m: CustomerMembership, action: 'use' | 'restore') => flight.run(async () => {
         try {
             const res = await fetch('/api/membership-use', {
                 method: 'POST',
@@ -207,7 +215,7 @@ export const MembershipManageSection = () => {
         } catch (err) {
             toast(err instanceof Error && err.message ? err.message : '처리에 실패했습니다.', 'error');
         }
-    };
+    });
 
     return (
         <StyledWrap>
@@ -309,7 +317,7 @@ export const MembershipManageSection = () => {
                                 </StyledFieldGrid>
                                 <FieldError variant="inline">{issueError}</FieldError>
                                 <StyledActionRow>
-                                    <StyledSaveBtn type="button" onClick={handleIssue}>발급</StyledSaveBtn>
+                                    <StyledSaveBtn type="button" disabled={flight.busy} onClick={handleIssue}>{flight.busy ? '처리 중…' : '발급'}</StyledSaveBtn>
                                 </StyledActionRow>
                             </StyledFormCard>
 
@@ -317,7 +325,7 @@ export const MembershipManageSection = () => {
                                 <StyledEmpty>{EMPTY_TEXT}</StyledEmpty>
                             ) : (
                                 <StyledList>
-                                    {memberships.map((m) => (
+                                    {memberships.slice(0, visibleCount).map((m) => (
                                         <StyledItem key={m.id}>
                                             <StyledItemMain>
                                                 <StyledItemName>{issueCustomer.customerName(m.customerId)} · {m.name}</StyledItemName>
@@ -326,19 +334,24 @@ export const MembershipManageSection = () => {
                                             {m.status !== 'cancelled' && (
                                                 <StyledItemActions>
                                                     {m.totalCount != null && (m.remainingCount ?? 0) > 0 && (
-                                                        <StyledEditBtn type="button" onClick={() => handleUse(m, 'use')}>사용</StyledEditBtn>
+                                                        <StyledEditBtn type="button" disabled={flight.busy} onClick={() => handleUse(m, 'use')}>사용</StyledEditBtn>
                                                     )}
                                                     {m.totalCount != null && (m.remainingCount ?? 0) < m.totalCount && (
-                                                        <StyledEditBtn type="button" onClick={() => handleUse(m, 'restore')}>복원</StyledEditBtn>
+                                                        <StyledEditBtn type="button" disabled={flight.busy} onClick={() => handleUse(m, 'restore')}>복원</StyledEditBtn>
                                                     )}
                                                     {m.status === 'active' && (
-                                                        <StyledDeleteBtn type="button" onClick={() => handleCancelMembership(m)}>취소</StyledDeleteBtn>
+                                                        <StyledDeleteBtn type="button" disabled={flight.busy} onClick={() => handleCancelMembership(m)}>취소</StyledDeleteBtn>
                                                     )}
                                                 </StyledItemActions>
                                             )}
                                         </StyledItem>
                                     ))}
                                 </StyledList>
+                            )}
+                            {!loading && memberships.length > visibleCount && (
+                                <StyledEditBtn type="button" onClick={() => setVisibleCount((n) => n + ISSUED_PAGE_SIZE)}>
+                                    더 보기 ({visibleCount}/{memberships.length})
+                                </StyledEditBtn>
                             )}
                         </>
                     )}
