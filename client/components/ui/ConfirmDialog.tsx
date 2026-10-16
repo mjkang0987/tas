@@ -18,7 +18,7 @@ import {
 import {CloseIconButton} from './CloseIconButton';
 
 type ConfirmVariant = 'primary' | 'danger' | 'warning';
-type ConfirmIcon = 'warning' | 'trash' | 'logout';
+type ConfirmIcon = 'warning' | 'trash' | 'logout' | 'download';
 
 interface ConfirmDialogProps {
     title: string;
@@ -26,8 +26,10 @@ interface ConfirmDialogProps {
     description?: string;
     /** 본문 (줄바꿈 \n 지원). 꼭 읽혀야 하는 문구는 `Emphasis`로 감싼다 */
     message?: ReactNode;
-    /** 삭제 계열(danger) 레이어 위쪽 가운데 아이콘. 기본은 경고(!) */
+    /** 가운데 정렬 레이어 위쪽 아이콘. 기본은 경고(!) */
     icon?: ConfirmIcon;
+    /** danger가 아니어도 가운데 정렬(아이콘·질문형 제목·같은 너비 버튼) 레이아웃을 쓴다 */
+    centered?: boolean;
     /** 풍부한 본문 (dl 등). message 대신/함께 사용 */
     children?: ReactNode;
     confirmLabel?: string;
@@ -51,6 +53,7 @@ export const ConfirmDialog = ({
     description,
     message,
     icon = 'warning',
+    centered = false,
     children,
     confirmLabel = '확인',
     cancelLabel = '취소',
@@ -84,7 +87,7 @@ export const ConfirmDialog = ({
             id={layerId}
             data-layer-id={layerDataId}
         >
-            {confirmVariant === 'danger' ? (
+            {confirmVariant === 'danger' || centered ? (
                 // 삭제·되돌릴 수 없는 동작: 헤더 줄 없이 가운데 아이콘 → 질문형 제목 → 설명 → 같은 너비 버튼 두 개.
                 // 아이콘은 색만이 아니라 모양으로도 위험을 알린다(WCAG 1.4.1).
                 <StyledAlertModal ref={dialogRef} tabIndex={-1} onClick={(e) => e.stopPropagation()}>
@@ -148,22 +151,31 @@ function ConfirmIconGlyph({icon}: {icon: ConfirmIcon}) {
     return (
         <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="1.8"
              strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-            {icon === 'trash' && <path d="M4 7h16M10 11v6M14 11v6M5.5 7l1 12a2 2 0 0 0 2 1.8h7a2 2 0 0 0 2-1.8l1-12M9 7V4.5h6V7" />}
+            {icon === 'trash' && <path d="M4 7h16M10 11v6M14 11v6M5.5 7l1 12a2 2 0 0 0 2 1.8h7a2 2 0 0 0 2-1.8l1-12M9 7V4.5h6V7" transform="matrix(1.2 0 0 1.2 -2.4 -2.4)" strokeWidth="1.5" />}
+            {icon === 'download' && <path d="M12 4v11M7.5 10.5 12 15l4.5-4.5M5 19h14" />}
             {icon === 'logout' && <path d="M9 4H6a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h3M14 16l4-4-4-4M18 12H9" />}
-            {icon === 'warning' && <><circle cx="12" cy="12" r="9" /><path d="M12 7.5v5.5M12 16.5v.01" /></>}
+            {icon === 'warning' && <><circle cx="12" cy="12" r="11" /><path d="M12 6.5v7M12 17.5v.01" strokeWidth="2.2" /></>}
         </svg>
     );
 }
 
 const StyledAlertModal = styled(StyledConfirmModal)`
     overflow: hidden;
+
+    /* 확인 창은 좁은 화면에서 좌우 8px만 남기고 채운다 */
+    @media (max-width: 640px) {
+        &&&& {
+            flex-shrink: 0; /* 오버레이 패딩(14px)보다 넓게 */
+            width: min(360px, calc(100vw - 16px));
+        }
+    }
 `;
 
 const StyledAlertBody = styled.div`
     display: flex;
     flex-direction: column;
     align-items: center;
-    padding: 22px 20px 4px;
+    padding: 18px 16px 2px;
     text-align: center;
 `;
 
@@ -203,7 +215,7 @@ const StyledAlertFooter = styled.div`
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(0, 1fr));
     gap: var(--modal-footer-gap);
-    padding: 18px 20px 20px;
+    padding: 22px 16px 16px;
 `;
 
 const StyledMessage = styled.p`
