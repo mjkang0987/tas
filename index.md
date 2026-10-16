@@ -280,7 +280,7 @@ NextAuth 5.0 설정. Google·Kakao·Naver OAuth 지원.
 | 파일 | 엔드포인트 | 메서드 | 권한 | 설명 |
 |------|-----------|-------|------|------|
 | `reservations.ts` | `/api/reservations` | GET/POST/PUT/PATCH(staff) / DELETE(manager) | - | 예약 CRUD + 상태 변경. legacyId↔CUID 변환. 신규/취소/노쇼/삭제/변경 시 Slack 알림(`notifySlackForStore`). DELETE=영구삭제(매니저 이상). **`publicToken` 있는 건(예약페이지 유입)은 삭제 시 `DeletedBooking` 흔적을 트랜잭션으로 남긴다** — 고객 관리 링크가 404로 죽지 않게[^39] |
-| `customers.ts` | `/api/customers` | GET/PUT/POST(staff) / DELETE(owner) | - | GET 조회, PUT 다건 upsert, **POST 단건 저장(신규 고객→예약 레이스 방지)**, DELETE 고객 영구삭제(예약·적립금 cascade, 오너 전용) |
+| `customers.ts` | `/api/customers` | GET/PUT/POST(staff) / DELETE(owner) | - | GET 조회, PUT 다건 upsert, **POST 단건 저장(신규 고객→예약 레이스 방지)**, DELETE 고객 삭제 = **익명 처리**(오너 전용, 0023): 이름 "삭제된 고객"·연락처·메모·적립금·병합/변경 이력 삭제, `deletedAt` 기록, **예약(시술 내역·매출)은 남김**(메모·네이버 링크·관리 링크만 비움). POST/PUT 은 삭제된 고객을 되살리지 않는다(409/건너뜀). 클라이언트는 `deleted` 고객을 customerMap 에 두고 고르는 목록(`isSelectableCustomer`)에서만 뺀다 — 빼면 새 고객 번호(최댓값+1)가 재사용된다 |
 | `customers-merge.ts` | `/api/customers/merge` | POST | staff | 고객 병합 (예약·포인트·태그 이전) |
 | `customer-merge-skip.ts` | `/api/customer-merge-skip` | GET·POST | staff | 병합 제안 '건너뛰기' 기록[^36] |
 | `customers-unmerge.ts` | `/api/customers/unmerge` | POST | staff | 병합 해제 (이력 기반 복원) |
@@ -600,7 +600,7 @@ StorePointSettings (적립률, 충전규칙)
 [^39]: **삭제된 온라인 예약의 흔적**(`DeletedBooking`, 마이그레이션 `0022`). 오너가 예약을 **영구 삭제**하면 행이 실제로 사라지는데, 예약페이지로 들어온 건은 고객이 이미 관리 링크(`/{slug}/r/{token}`)를 받아 갔기 때문에 링크가 404로 죽는다 — 고객은 취소된 건지 링크가 잘못된 건지 알 수 없었다. 그래서 `publicToken` 이 있는 예약만 삭제 시 **최소 정보(토큰·날짜·시간·시술·사유)를 흔적으로 남기고**, 토큰 조회(`api/book/reservation/[token]`)가 예약을 못 찾으면 이 흔적으로 `status:'cancelled'` 응답을 만든다(변경·취소 요청은 둘 다 막음). **매장 화면에는 남지 않는다** — 예약 행은 그대로 삭제되므로 예약 목록·매출·슬롯 계산은 무변경이다.
     - **소프트 삭제(`deletedAt`)를 쓰지 않은 이유**: 예약을 읽는 모든 경로(목록·타임라인·매출·공개 슬롯 가용성·네이버 동기화·고객 이력)에 필터를 심어야 하고, **한 곳만 빠뜨리면 삭제한 예약이 슬롯을 막거나 매출에 되살아난다.** 흔적 방식은 손대는 곳이 삭제 핸들러 1곳 + 토큰 조회 1곳뿐이다.
     - **개인정보를 담지 않는다**: 고객 이름·전화번호를 넣지 않는다. `publicToken` 은 24바이트 난수라 그 자체로 신원과 연결되지 않는다. `customerId`(무작위 cuid)는 **정리용 열쇠로만** 담는다 — 아래 참조.
-    - **고객을 영구 삭제하면 흔적도 함께 지운다**(`customers.ts` DELETE). 살아 있는 예약은 cascade 로 사라져 링크가 함께 죽지만, **예전에 개별 삭제한 예약의 흔적은 FK 가 없어 남는다** — 그러면 고객을 지웠는데 그 링크만 계속 조회된다. 고객 기록 자체를 지우는 행위(개인정보 삭제 요구 이행 경로이기도 하다)이므로 링크도 없앤다. 이걸 하려면 흔적이 누구 것인지 알아야 해서 `customerId` 를 담는다 — 저장하는 쪽이 삭제를 **더 완전하게** 이행한다.
+    - **고객을 삭제(익명 처리)하면 흔적도 함께 지운다**(`customers.ts` DELETE). 남는 예약의 관리 링크(`publicToken`)는 비워 죽이지만, **예전에 개별 삭제한 예약의 흔적은 FK 가 없어 남는다** — 그러면 고객을 지웠는데 그 링크만 계속 조회된다. 고객 기록 자체를 지우는 행위(개인정보 삭제 요구 이행 경로이기도 하다)이므로 링크도 없앤다. 이걸 하려면 흔적이 누구 것인지 알아야 해서 `customerId` 를 담는다 — 저장하는 쪽이 삭제를 **더 완전하게** 이행한다.
     - **병합 시에는 예약과 같이 target 으로 옮긴다**(`customers-merge.ts`). 남겨 두면 주인이 사라져, 나중에 target 을 지워도 그 링크만 살아남는다. (되돌리기[`customers-unmerge.ts`]는 병합 시점에 기록해 둔 예약 id 로 복원하므로 흔적은 target 에 남는다 — 병합→예약삭제→되돌리기 순서의 드문 경우이고, 어느 쪽을 지우든 target 삭제 시 정리된다.)
     - **적용 범위**: 이 변경 **이후** 삭제되는 건만이다. 그 전에 삭제된 예약은 토큰이 남아 있지 않아 되살릴 수 없다.
     - `Store` 관계(FK)를 걸지 않은 것은 마이그레이션을 순수 가산(CREATE only)으로 두기 위함이다(`CustomerMergeSkip` 과 동일).
