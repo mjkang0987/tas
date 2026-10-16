@@ -30,5 +30,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     ]);
     if (!store || !customer) return res.status(404).json({error: 'Customer not found'});
 
-    return res.status(200).json(await loadCustomerBenefits(store, customer.id, new Date()));
+    // all=1: 매장 기능 토글과 무관하게 전부(고객 삭제 창 — 삭제하면 토글과 상관없이 취소된다).
+    const all = req.query.all === '1';
+    const scope = all ? {...store, useMembershipSystem: true, useCouponSystem: true} : store;
+    return res.status(200).json(await loadCustomerBenefits(scope, customer.id, new Date()));
 }

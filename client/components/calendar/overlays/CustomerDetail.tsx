@@ -170,9 +170,11 @@ export const CustomerDetail = ({customer, reservationMap, onClose, onReservation
     const {data: session} = useSession();
     const isOwner = session?.user?.role === 'owner';
     const [isDeleteConfirm, setIsDeleteConfirm] = useState(false);
-    // 이 고객이 쓸 수 있는 회원권·쿠폰 — 정보 목록에 표시하고, 삭제 창에선 "삭제되는 정보"로 보인다.
-    // (게스트는 회원권·쿠폰이 없어 null → 삭제 창엔 적립금만)
-    const benefits = useCustomerBenefits(customer.id);
+    // 이 고객이 쓸 수 있는 회원권·쿠폰(정보 목록에 표시).
+    const {benefits} = useCustomerBenefits(customer.id);
+    // 삭제 창의 "삭제되는 정보" — 삭제하면 기능 토글과 상관없이 전부 취소되므로 전부 받는다. 받는 동안 삭제 버튼을 막는다.
+    // (게스트는 회원권·쿠폰이 없어 요청하지 않음 → 적립금만)
+    const {benefits: deleteBenefits, loading: deleteBenefitsLoading} = useCustomerBenefits(isDeleteConfirm ? customer.id : undefined, {all: true});
     const toast = useToastStore((s) => s.show);
     const modalRoot = document.getElementById('modal-root');
     const {layerId, layerDataId} = useLayerInstanceId('customer-detail');
@@ -431,8 +433,8 @@ export const CustomerDetail = ({customer, reservationMap, onClose, onReservation
 
     // 삭제 창 하단 목록 — 남는 것(예약)과 더는 쓸 수 없게 되는 것(적립금·회원권·쿠폰)을 한눈에.
     const deletePoints = Math.max(customer.points ?? 0, 0);
-    const deleteMemberships = benefits?.memberships.map((m) => m.name) ?? [];
-    const deleteCoupons = benefits?.coupons.map((c) => c.name) ?? [];
+    const deleteMemberships = deleteBenefits?.memberships.map((m) => m.name) ?? [];
+    const deleteCoupons = deleteBenefits?.coupons.map((c) => c.name) ?? [];
     const hasDeleteSummary = customerReservations.length > 0 || deletePoints > 0
         || deleteMemberships.length > 0 || deleteCoupons.length > 0;
     // 이름은 3개까지만 보이고 나머지는 "외 N장" — 많아도 창이 길어져 스크롤이 생기지 않게. 개수는 항목 이름에 있다.
@@ -648,6 +650,7 @@ export const CustomerDetail = ({customer, reservationMap, onClose, onReservation
                        </>}
                        confirmLabel="삭제"
                        confirmVariant="danger"
+                       confirmDisabled={deleteBenefitsLoading}
                        onConfirm={() => {
                            deleteCustomer(customer.id);
                            setIsDeleteConfirm(false);

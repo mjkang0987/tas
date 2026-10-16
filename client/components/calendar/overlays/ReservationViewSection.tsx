@@ -48,7 +48,7 @@ export function ReservationViewSection({
 }: ReservationViewSectionProps) {
     const labels = useStoreLabels();
     const customer = customerMap[reservation.customerId];
-    const benefits = useCustomerBenefits(customer?.id);
+    const {benefits} = useCustomerBenefits(customer?.id);
     const isCancelled = reservation.status === 'cancelled';
     const isCompleted = reservation.status === 'completed';
     const isNoshow = reservation.status === 'noshow';
