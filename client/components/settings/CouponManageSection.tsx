@@ -9,8 +9,10 @@ import {cardSurfaceStyle, StyledEditBtn, StyledDeleteBtn, StyledSaveBtn, StyledC
 import {useToastStore} from '../../store/toastStore';
 import {shouldUseLocalDb} from '../../lib/local-db';
 import {formatPrice} from '../../utils/services';
+import {toLocalDateKey} from '../../utils/reservations';
 import {CustomerAutocomplete} from '../customers/CustomerAutocomplete';
 import {useIssueCustomerPicker} from '../customers/useIssueCustomerPicker';
+import {useSingleFlight} from '../../hooks/useSingleFlight';
 import {COUPON_STATUS_LABEL, couponDisplayStatus, describeCouponDiscount, isDirectIssuable} from '../../features/coupons/model';
 import type {CouponProduct, CouponDiscountType, CouponsPayload, CustomerCoupon} from '../../features/coupons/model';
 
@@ -24,6 +26,9 @@ interface DraftForm {
     code: string;
     oncePerCustomer: boolean;
 }
+
+// 발급 내역은 이만큼씩 더 보기로 늘린다.
+const ISSUED_PAGE_SIZE = 20;
 
 const EMPTY_DRAFT: DraftForm = {
     name: '', discountType: 'amount', discountValue: '', maxDiscount: '', minOrderAmount: '', validDays: '', code: '',
@@ -60,6 +65,9 @@ export const CouponManageSection = () => {
     const [issueProductId, setIssueProductId] = useState('');
     const [issueError, setIssueError] = useState('');
     const issueCustomer = useIssueCustomerPicker(() => setIssueError(''));
+    // 발급·사용·되돌리기·취소 중에는 다른 요청을 막는다(연타로 두 번 발급되는 것 방지).
+    const flight = useSingleFlight();
+    const [visibleCount, setVisibleCount] = useState(ISSUED_PAGE_SIZE);
 
     const [isAdding, setIsAdding] = useState(false);
     const [editingId, setEditingId] = useState<string | null>(null);
@@ -177,7 +185,7 @@ export const CouponManageSection = () => {
     };
 
     // ── 발급 ──
-    const handleIssue = async () => {
+    const handleIssue = () => flight.run(async () => {
         if (!issueCustomer.customerId) {
             setIssueError('고객을 선택해 주세요.');
             return;
@@ -206,9 +214,9 @@ export const CouponManageSection = () => {
         } catch {
             toast('발급에 실패했습니다.', 'error');
         }
-    };
+    });
 
-    const handleCancelCoupon = async (c: CustomerCoupon) => {
+    const handleCancelCoupon = (c: CustomerCoupon) => flight.run(async () => {
         try {
             const res = await fetch('/api/coupon-issue', {
                 method: 'DELETE',
@@ -221,7 +229,25 @@ export const CouponManageSection = () => {
         } catch {
             toast('취소에 실패했습니다.', 'error');
         }
-    };
+    });
+
+    const handleUseCoupon = (c: CustomerCoupon, action: 'use' | 'restore') => flight.run(async () => {
+        try {
+            const res = await fetch('/api/coupon-use', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({couponId: c.id, action}),
+            });
+            if (!res.ok) {
+                const err = await res.json().catch(() => null) as {error?: string} | null;
+                throw new Error(err?.error || '');
+            }
+            toast(action === 'use' ? '쿠폰을 사용 처리했습니다.' : '쿠폰 사용을 되돌렸습니다.');
+            await fetchData();
+        } catch (err) {
+            toast(err instanceof Error && err.message ? err.message : '처리에 실패했습니다.', 'error');
+        }
+    });
 
     const couponForm = (
         <StyledFormCard>
@@ -300,7 +326,7 @@ export const CouponManageSection = () => {
             <PageHero
                 eyebrow="COUPON"
                 title="쿠폰 관리"
-                subtitle="정액·정률 할인 쿠폰을 등록하고 고객에게 발급합니다. 사용 처리·결제 차감은 추후 지원됩니다."
+                subtitle="정액·정률 할인 쿠폰을 등록하고 고객에게 발급·사용 처리합니다. 결제 자동 차감은 추후 지원됩니다."
             />
 
             {isLocal ? (
@@ -383,7 +409,7 @@ export const CouponManageSection = () => {
                                 )}
                                 <FieldError variant="inline">{issueError}</FieldError>
                                 <StyledActionRow>
-                                    <StyledSaveBtn type="button" onClick={handleIssue}>발급</StyledSaveBtn>
+                                    <StyledSaveBtn type="button" disabled={flight.busy} onClick={handleIssue}>{flight.busy ? '처리 중…' : '발급'}</StyledSaveBtn>
                                 </StyledActionRow>
                             </StyledFormCard>
 
@@ -391,7 +417,7 @@ export const CouponManageSection = () => {
                                 <StyledEmpty>{EMPTY_TEXT}</StyledEmpty>
                             ) : (
                                 <StyledList>
-                                    {coupons.map((c) => {
+                                    {coupons.slice(0, visibleCount).map((c) => {
                                         const status = couponDisplayStatus(c, new Date());
                                         return (
                                             <StyledItem key={c.id}>
@@ -399,12 +425,20 @@ export const CouponManageSection = () => {
                                                     <StyledIssuedMain>
                                                         <StyledItemName>{issueCustomer.customerName(c.customerId)} · {c.name}</StyledItemName>
                                                         <StyledIssuedMeta>
-                                                            {describeCouponDiscount(c)} · {c.expiresAt ? `~${c.expiresAt.slice(0, 10)}` : '무기한'} · {COUPON_STATUS_LABEL[status]}
+                                                            {describeCouponDiscount(c)} · {c.expiresAt ? `~${toLocalDateKey(c.expiresAt)}` : '무기한'} · {COUPON_STATUS_LABEL[status]}
                                                         </StyledIssuedMeta>
                                                     </StyledIssuedMain>
-                                                    {status === 'active' && (
+                                                    {(status === 'active' || status === 'used') && (
                                                         <StyledItemActions>
-                                                            <StyledDeleteBtn type="button" onClick={() => handleCancelCoupon(c)}>취소</StyledDeleteBtn>
+                                                            {status === 'active' && (
+                                                                <StyledEditBtn type="button" disabled={flight.busy} onClick={() => handleUseCoupon(c, 'use')}>사용</StyledEditBtn>
+                                                            )}
+                                                            {status === 'used' && (
+                                                                <StyledEditBtn type="button" disabled={flight.busy} onClick={() => handleUseCoupon(c, 'restore')}>되돌리기</StyledEditBtn>
+                                                            )}
+                                                            {status === 'active' && (
+                                                                <StyledDeleteBtn type="button" disabled={flight.busy} onClick={() => handleCancelCoupon(c)}>취소</StyledDeleteBtn>
+                                                            )}
                                                         </StyledItemActions>
                                                     )}
                                                 </StyledItemHead>
@@ -412,6 +446,11 @@ export const CouponManageSection = () => {
                                         );
                                     })}
                                 </StyledList>
+                            )}
+                            {!loading && coupons.length > visibleCount && (
+                                <StyledEditBtn type="button" onClick={() => setVisibleCount((n) => n + ISSUED_PAGE_SIZE)}>
+                                    더 보기 ({visibleCount}/{coupons.length})
+                                </StyledEditBtn>
                             )}
                         </>
                     )}
