@@ -51,6 +51,15 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                 where: {customerId: source.id},
                 select: {id: true},
             });
+            // 회원권·쿠폰은 고객이 지워지면 cascade 로 함께 사라진다 — 아래에서 source 를 지우기 전에 반드시 옮긴다.
+            const movedMemberships = await tx.customerMembership.findMany({
+                where: {customerId: source.id},
+                select: {id: true},
+            });
+            const movedCoupons = await tx.customerCoupon.findMany({
+                where: {customerId: source.id},
+                select: {id: true},
+            });
 
             // 1. 예약 이전
             await tx.reservation.updateMany({
@@ -60,6 +69,16 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
             // 2. 포인트 이력 이전
             await tx.customerPointHistory.updateMany({
+                where: {customerId: source.id},
+                data: {customerId: target.id},
+            });
+
+            // 2-1. 회원권·쿠폰 이전 (target 이 같은 상품을 이미 가지고 있어도 둘 다 남긴다 — 돈 받고 준 것이라 합치거나 버리지 않는다)
+            await tx.customerMembership.updateMany({
+                where: {customerId: source.id},
+                data: {customerId: target.id},
+            });
+            await tx.customerCoupon.updateMany({
                 where: {customerId: source.id},
                 data: {customerId: target.id},
             });
@@ -98,6 +117,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                         points: source.points,
                         firstVisitDate: source.firstVisitDate,
                         memoTags: source.memoTags.map((t) => ({text: t.text, color: t.color})),
+                        // 분리 때 되돌릴 회원권·쿠폰. 전용 컬럼 대신 스냅샷에 둔다(마이그레이션 불필요, 예전 이력엔 없음 = 빈 배열).
+                        movedMembershipIds: movedMemberships.map((m) => m.id),
+                        movedCouponIds: movedCoupons.map((c) => c.id),
                     },
                     targetCustomerJson: {
                         id: target.id,

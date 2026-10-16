@@ -118,6 +118,22 @@ Cloud Build 트리거는 `^main$`뿐이라 release 브랜치 머지는 배포를
 앞서 모바일 중단점을 일괄 치환으로 옮기려다 무관한 중단점(매출 차트 900px, 담당자 800px)까지
 쓸어가 롤백했다(#266). 이번엔 지정한 곳만 고쳤다.
 
+## 진행 — 고객 병합 시 회원권·쿠폰 소실 수정 (`claude/merge-keep-coupons`)
+
+### 배경
+병합은 합쳐지는 고객(source) 행을 지운다(`customers-merge.ts`). 회원권(`CustomerMembership`)·쿠폰(`CustomerCoupon`)은
+고객 FK 가 `onDelete: Cascade`라 **source 가 가진 회원권·쿠폰이 경고 없이 사라지고, 분리해도 돌아오지 않았다.**
+예약·적립금 이력은 옮기는데 이 둘만 빠져 있었다. 쿠폰 발급 화면(`claude/coupon-issue-ui`) 점검 중 발견, 지시자 지시로 수정(2026-10-16).
+
+### 구현
+- 병합: source 를 지우기 전에 회원권·쿠폰을 target 으로 `updateMany`. target 이 같은 상품을 이미 가져도 둘 다 남긴다(돈 받고 준 것).
+- 분리: 옮긴 id 를 병합 이력 `sourceCustomerJson`에 `movedMembershipIds`·`movedCouponIds`로 담고, 분리 때 source 로 되돌린다.
+  전용 컬럼 대신 스냅샷 JSON 에 둬서 **마이그레이션 없음**. 이 수정 전 이력엔 필드가 없어 빈 배열로 본다(이미 사라진 건 복구 불가).
+- 영향 파일: `server/api/customers-merge.ts`, `server/api/customers-unmerge.ts`.
+
+### 리스크
+- 이 수정 전에 병합으로 이미 사라진 회원권·쿠폰은 되살릴 수 없다(백업 없음).
+
 ---
 
 ## 완료 — 타임라인 카드에 시작시간 + 예약 상태 표기 정리 (웹·앱 동시)

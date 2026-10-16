@@ -12,6 +12,9 @@ type SourceSnapshot = {
     points: number;
     firstVisitDate: string | null;
     memoTags: { text: string; color: string }[];
+    /** 병합 때 옮긴 회원권·쿠폰. 이 필드가 생기기 전 이력에는 없다 */
+    movedMembershipIds?: string[];
+    movedCouponIds?: string[];
 };
 
 type TargetSnapshot = {
@@ -92,6 +95,20 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             if (movedPointHistoryIds.length > 0) {
                 await tx.customerPointHistory.updateMany({
                     where: {id: {in: movedPointHistoryIds}},
+                    data: {customerId: source.id},
+                });
+            }
+
+            // 4-1. 회원권·쿠폰 원복
+            if (source.movedMembershipIds?.length) {
+                await tx.customerMembership.updateMany({
+                    where: {id: {in: source.movedMembershipIds}},
+                    data: {customerId: source.id},
+                });
+            }
+            if (source.movedCouponIds?.length) {
+                await tx.customerCoupon.updateMany({
+                    where: {id: {in: source.movedCouponIds}},
                     data: {customerId: source.id},
                 });
             }
