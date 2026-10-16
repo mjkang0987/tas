@@ -34,6 +34,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     if (sources.length !== sourceIds.length || !target) {
         return res.status(404).json({error: 'Customer not found'});
     }
+    // 삭제(익명 처리)된 고객은 합치지 않는다 — 시술 내역만 남은 행이라 같은 사람인지 판단할 근거가 없다.
+    if (target.deletedAt || sources.some((c) => c.deletedAt)) {
+        return res.status(400).json({error: 'Deleted customer cannot be merged'});
+    }
 
     const result = await prisma.$transaction(async (tx) => {
         const mergeHistoryIds: string[] = [];

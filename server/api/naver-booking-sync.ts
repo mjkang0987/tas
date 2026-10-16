@@ -46,7 +46,7 @@ interface CancelledEntry {
 
 interface SyncContext {
     storeId: string;
-    existingBookingMap: Map<string, {id: string; naverBookingUrl: string | null; serviceSummary: string | null; assigneeId: string | null}>;
+    existingBookingMap: Map<string, {id: string; naverBookingUrl: string | null; serviceSummary: string | null; assigneeId: string | null; customerDeleted: boolean}>;
     assigneeMap: Map<string, {id: string; legacyId: number; color?: string | null}>;
     serviceMap: Map<string, {name: string; duration: number}>;
     nextCustomerLegacyId: number;
@@ -111,7 +111,7 @@ export async function syncNaverBookingsForStore(storeId: string): Promise<NaverS
         ]),
         prisma.reservation.findMany({
             where: {storeId, naverBookingId: {not: null}},
-            select: {naverBookingId: true, id: true, naverBookingUrl: true, serviceSummary: true, assigneeId: true},
+            select: {naverBookingId: true, id: true, naverBookingUrl: true, serviceSummary: true, assigneeId: true, customer: {select: {deletedAt: true}}},
         }),
         prisma.assignee.findMany({
             where: {storeId},
@@ -148,7 +148,7 @@ export async function syncNaverBookingsForStore(storeId: string): Promise<NaverS
         existingBookingMap: new Map(
             existingBookings
                 .filter((r) => r.naverBookingId)
-                .map((r) => [r.naverBookingId!, {id: r.id, naverBookingUrl: r.naverBookingUrl, serviceSummary: r.serviceSummary, assigneeId: r.assigneeId}])
+                .map((r) => [r.naverBookingId!, {id: r.id, naverBookingUrl: r.naverBookingUrl, serviceSummary: r.serviceSummary, assigneeId: r.assigneeId, customerDeleted: r.customer.deletedAt !== null}])
         ),
         assigneeMap: new Map(
             allAssignees.map((d) => [d.name, {id: d.id, legacyId: d.legacyId ?? 0, color: d.color}])
@@ -330,7 +330,8 @@ async function createReservationFromBooking(
     const existing = existingBookingMap.get(booking.bookingId);
     if (existing) {
         const updates: Record<string, string | null> = {};
-        if (booking.bookingUrl && !existing.naverBookingUrl && booking.bookingUrl.includes('partner.booking.naver.com')) {
+        // 삭제(익명 처리)된 고객의 예약은 링크를 되살리지 않는다 — 네이버 예약 페이지에 이름·연락처가 그대로 있다.
+        if (booking.bookingUrl && !existing.naverBookingUrl && !existing.customerDeleted && booking.bookingUrl.includes('partner.booking.naver.com')) {
             updates.naverBookingUrl = booking.bookingUrl;
         }
         if ((!existing.serviceSummary || existing.serviceSummary === booking.assigneeName) && booking.services.length > 0) {
@@ -444,6 +445,7 @@ async function createReservationFromBooking(
             naverBookingUrl: booking.bookingUrl || null,
             serviceSummary,
             assigneeId: assignee?.id ?? null,
+            customerDeleted: false,
         });
 
         return {status: 'created', legacyId: resLegacyId};

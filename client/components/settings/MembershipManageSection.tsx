@@ -10,6 +10,7 @@ import {useToastStore} from '../../store/toastStore';
 import {useCalendarStore} from '../../store/calendarStore';
 import {shouldUseLocalDb} from '../../lib/local-db';
 import {formatPrice} from '../../utils/services';
+import {getSelectableCustomers, sortCustomersByName} from '../../utils/customers';
 import {CustomerAutocomplete} from '../customers/CustomerAutocomplete';
 import type {MembershipProduct, CustomerMembership} from '../../features/memberships/model';
 
@@ -90,7 +91,7 @@ export const MembershipManageSection = () => {
 
     const activeProducts = useMemo(() => products.filter((p) => p.status === 'active'), [products]);
     const customers = useMemo(
-        () => Object.values(customerMap).sort((a, b) => a.name.localeCompare(b.name, 'ko')),
+        () => sortCustomersByName(getSelectableCustomers(customerMap)),
         [customerMap]
     );
     const customerName = useCallback(

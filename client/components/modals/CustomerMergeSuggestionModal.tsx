@@ -32,11 +32,23 @@ interface Props {
     selection: MergeSelection;
     reservationMap: Record<string, Reservation[]>;
     merging: boolean;
-    onMerge: (targetId: number) => void;
+    /** 없으면 병합 버튼을 숨긴다 — 병합 API 가 서버 전용이라 게스트 모드에서는 고를 수 없다 */
+    onMerge?: (targetId: number) => void;
     /** 자동 제안은 '건너뛰기'(다시 안 뜸), 수동 병합은 '취소'(그냥 닫기) */
     onSkip: () => void;
     onDismiss: () => void;
     onReservationClick?: (reservation: Reservation) => void;
+    /**
+     * 고객정보 레이어 위에서 열 때 — 그 레이어(childDetail)보다 위로 올리고 고객명 링크를 끈다.
+     * 링크로 여는 고객정보는 childDetail 층이라 이 레이어 아래에 깔리기 때문이다.
+     */
+    overDetail?: boolean;
+    /** 닫기 버튼 문구를 바꾼다 — 자동 제안이 아닌데 '건너뛰기'(다시 안 뜸)는 맞지 않다 */
+    skipLabel?: string;
+    /** 제목·설명을 바꾼다 — 저장 시 번호 중복처럼 "같은 고객인가요?"보다 들어온 이유를 먼저 말해야 할 때 */
+    heading?: {title: string; description: string};
+    /** 병합 말고 고를 수 있는 다른 길(예: 다른 고객으로 저장). 닫기와 병합 사이에 둔다 */
+    secondaryAction?: {label: string; onClick: () => void};
 }
 
 /** 경로별 문구. 상단/하단 카드가 뜻하는 바가 달라 그대로 쓸 수 없다 */
@@ -66,6 +78,10 @@ export const CustomerMergeSuggestionModal = ({
     onSkip,
     onDismiss,
     onReservationClick,
+    overDetail = false,
+    skipLabel,
+    heading,
+    secondaryAction,
 }: Props) => {
     const noop = useCallback(() => {}, []);
     const dialogRef = useDialogAccessibility<HTMLDivElement>(noop);
@@ -83,6 +99,7 @@ export const CustomerMergeSuggestionModal = ({
     const categoryBaseColorMap = useCalendarStore((s) => s.categoryBaseColorMap);
     const assignees = useCalendarStore((s) => s.assignees);
     const openReservationDetail = useCalendarStore((s) => s.openReservationDetail);
+    const openCustomerDetail = useCalendarStore((s) => s.openCustomerDetail);
 
     const serviceColorMap = useMemo(
         () => buildServiceColorMap(serviceCatalog, categoryBaseColorMap),
@@ -118,7 +135,7 @@ export const CustomerMergeSuggestionModal = ({
     const canMerge = targetChoices.some((c) => c.id === selectedTargetId) && sources.length > 0;
 
     const handleMerge = () => {
-        if (!canMerge) return;
+        if (!canMerge || !onMerge) return;
         onMerge(selectedTargetId);
     };
 
@@ -129,6 +146,10 @@ export const CustomerMergeSuggestionModal = ({
             openReservationDetail(reservation);
         }
     };
+
+    const renderName = (customer: Customer) => (overDetail
+        ? <StyledCustomerName as="span">{customer.name}</StyledCustomerName>
+        : <StyledCustomerName type="button" onClick={() => openCustomerDetail(customer.id)}>{customer.name}</StyledCustomerName>);
 
     const renderCustomerDetail = (customer: Customer) => {
         const {count: resCount, last: lastRes} = reservationSummary[customer.id] ?? {count: 0, last: null};
@@ -191,13 +212,13 @@ export const CustomerMergeSuggestionModal = ({
     };
 
     return createPortal(
-        <StyledMergeOverlay role="dialog" aria-modal="true"
+        <StyledMergeOverlay $overDetail={overDetail} role="dialog" aria-modal="true"
                             aria-label={mode === 'manual' ? '고객 병합' : '고객 병합 제안'}>
             <StyledMergeModal ref={dialogRef} tabIndex={-1} onClick={(e) => e.stopPropagation()}>
                 <StyledHeader>
                     <StyledHeaderTitleGroup>
-                        <StyledMergeTitle>{title}</StyledMergeTitle>
-                        <StyledHeaderTitleGroupText>{description}</StyledHeaderTitleGroupText>
+                        <StyledMergeTitle>{heading?.title ?? title}</StyledMergeTitle>
+                        <StyledHeaderTitleGroupText>{heading?.description ?? description}</StyledHeaderTitleGroupText>
                     </StyledHeaderTitleGroup>
                     <CloseIconButton onClick={onDismiss} />
                 </StyledHeader>
@@ -210,7 +231,7 @@ export const CustomerMergeSuggestionModal = ({
                             {sources.map((source) => (
                                 <StyledCustomerItem key={source.id}>
                                     <StyledIdentityRow>
-                                        <StyledCustomerName>{source.name}</StyledCustomerName>
+                                        {renderName(source)}
                                         <StyledTel>{source.tel ? formatTel(source.tel) : '연락처 없음'}</StyledTel>
                                     </StyledIdentityRow>
                                     {renderCustomerDetail(source)}
@@ -248,7 +269,7 @@ export const CustomerMergeSuggestionModal = ({
                                                     onChange={() => setSelectedTargetId(customer.id)}
                                                 />
                                             )}
-                                            <StyledCustomerName>{customer.name}</StyledCustomerName>
+                                            {renderName(customer)}
                                             {mode === 'manual' && (
                                                 <LabelBadge $tone={isTarget ? 'info' : 'danger'}>
                                                     {isTarget ? '기준' : '삭제'}
@@ -266,11 +287,18 @@ export const CustomerMergeSuggestionModal = ({
                 </StyledScrollArea>
                 <StyledFooter>
                     <StyledActionButton type="button" onClick={onSkip} disabled={merging}>
-                        {copy.skipLabel}
+                        {skipLabel ?? copy.skipLabel}
                     </StyledActionButton>
-                    <StyledActionButton type="button" $primary onClick={handleMerge} disabled={merging || !canMerge}>
-                        {merging ? '병합 중...' : '병합'}
-                    </StyledActionButton>
+                    {secondaryAction && (
+                        <StyledActionButton type="button" onClick={secondaryAction.onClick} disabled={merging}>
+                            {secondaryAction.label}
+                        </StyledActionButton>
+                    )}
+                    {onMerge && (
+                        <StyledActionButton type="button" $primary onClick={handleMerge} disabled={merging || !canMerge}>
+                            {merging ? '병합 중...' : '병합'}
+                        </StyledActionButton>
+                    )}
                 </StyledFooter>
             </StyledMergeModal>
         </StyledMergeOverlay>,
@@ -278,8 +306,8 @@ export const CustomerMergeSuggestionModal = ({
     );
 };
 
-const StyledMergeOverlay = styled(StyledOverlay)`
-    z-index: ${OVERLAY_Z_INDEX.supporting};
+const StyledMergeOverlay = styled(StyledOverlay)<{$overDetail: boolean}>`
+    z-index: ${(p) => p.$overDetail ? OVERLAY_Z_INDEX.confirm : OVERLAY_Z_INDEX.supporting};
 `;
 
 const StyledMergeModal = styled(StyledDetail)`
@@ -374,10 +402,23 @@ const StyledRadio = styled.input`
     accent-color: var(--blue-color);
 `;
 
-const StyledCustomerName = styled.span`
+/* 누르면 고객정보 레이어를 연다(포인트 탭 고객명 버튼과 같은 모양). 라디오 라벨 안에 있어도
+   라벨 안의 버튼은 라벨 활성화를 일으키지 않으므로 이름 클릭은 선택이 아니라 고객정보다. */
+const StyledCustomerName = styled.button`
+    padding: 0;
+    border: none;
+    background: none;
     font-size: var(--font);
     font-weight: 700;
     color: #0f172a;
+    text-align: left;
+    cursor: pointer;
+
+    @media (hover: hover) and (pointer: fine) {
+        &:hover {
+            color: var(--blue-color);
+        }
+    }
 `;
 
 const StyledTel = styled.span`

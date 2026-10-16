@@ -10,6 +10,8 @@ type ReservationDetailFooterActionsProps = {
     isCompleted: boolean;
     paymentCompleted: boolean;
     isNaverBooking: boolean;
+    /** 삭제(익명 처리)된 고객의 예약 — 결제·변경을 막는다. 고객 행이 서버 저장에서 빠져 적립금이 새로고침 때 사라진다 */
+    isCustomerDeleted: boolean;
     canDelete: boolean;
     onConfirmBooking: () => void;
     onApproveReservation: () => void;
@@ -41,6 +43,7 @@ export function ReservationDetailFooterActions({
                                                    isCompleted,
                                                    paymentCompleted,
                                                    isNaverBooking,
+                                                   isCustomerDeleted,
                                                    canDelete,
                                                    onConfirmBooking,
                                                    onApproveReservation,
@@ -96,11 +99,13 @@ export function ReservationDetailFooterActions({
         // 채운 색은 주 동작 하나만: 미결제면 결제완료, 결제 후엔 예약완료. 나머지는 테두리 버튼.
         return (
             <>
-                <StyledActionButton type="button"
-                                    $primary={!paymentCompleted}
-                                    onClick={onOpenPayment}>
-                    {paymentCompleted ? '결제수단 변경' : '결제완료'}
-                </StyledActionButton>
+                {!isCustomerDeleted && (
+                    <StyledActionButton type="button"
+                                        $primary={!paymentCompleted}
+                                        onClick={onOpenPayment}>
+                        {paymentCompleted ? '결제수단 변경' : '결제완료'}
+                    </StyledActionButton>
+                )}
                 {!isCompleted && paymentCompleted && (
                     <StyledActionButton type="button"
                                         $primary
@@ -116,8 +121,10 @@ export function ReservationDetailFooterActions({
                                         $dangerOutline
                                         onClick={onOpenNoshow}>노쇼</StyledActionButton>
                 )}
-                <StyledActionButton type="button"
-                                    onClick={onOpenEditing}>변경</StyledActionButton>
+                {!isCustomerDeleted && (
+                    <StyledActionButton type="button"
+                                        onClick={onOpenEditing}>변경</StyledActionButton>
+                )}
                 {canDelete && (
                     <StyledActionButton type="button"
                                         $dangerOutline

@@ -16,6 +16,8 @@ export const CloseIconButton = ({onClick, className}: CloseIconButtonProps) => (
 );
 
 const StyledCloseIconButton = styled.button`
+    /* 헤더(flex)에서 옆 제목·설명이 길면 버튼이 가로로 눌려 17px까지 줄었다 — 크기를 지킨다. */
+    flex-shrink: 0;
     display: inline-flex;
     align-items: center;
     justify-content: center;

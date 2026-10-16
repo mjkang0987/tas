@@ -5,7 +5,7 @@ import type {GetServerSideProps, NextPage} from 'next';
 import styled from 'styled-components';
 
 import type {Customer} from '../utils/customers';
-import {toCustomerMap} from '../utils/customers';
+import {isSelectableCustomer, toCustomerMap} from '../utils/customers';
 import {matchesChosung} from '../features/customers/chosung';
 import type {Reservation, ReservationHistoryEntry} from '../utils/reservations';
 import {groupByDate} from '../utils/reservations';
@@ -118,12 +118,14 @@ const Address: NextPage<AddressProps> = ({customers, reservations, history, stor
         : history;
 
     const customerMap = useMemo(() => toCustomerMap(effectiveCustomers), [effectiveCustomers]);
+    // 고객명단은 고르는 목록이라 삭제(익명 처리)된 고객을 뺀다. customerMap(예약 표시용)엔 남는다.
     const customerList = useMemo(
-        () => storageMode === 'local'
+        () => (storageMode === 'local'
             ? Object.values(storeCustomerMap)
             : Object.keys(storeCustomerMap).length > 0
                 ? Object.values(storeCustomerMap)
-                : effectiveCustomers,
+                : effectiveCustomers
+        ).filter(isSelectableCustomer),
         [storageMode, effectiveCustomers, storeCustomerMap]
     );
     const reservationMap = useMemo(() => groupByDate(effectiveReservations), [effectiveReservations]);

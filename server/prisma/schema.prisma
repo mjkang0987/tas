@@ -9,20 +9,20 @@ datasource db {
 }
 
 model Store {
-  id                     String               @id @default(cuid())
+  id                     String                @id @default(cuid())
   name                   String
   // 공개 예약 페이지 다국어(오너 입력, {en?,ja?,zh?}). 없으면 name 폴백.
   nameI18nJson           Json?
   shopType               String?
-  onboarded              Boolean              @default(false)
-  usePointSystem         Boolean              @default(false)
-  useMembershipSystem    Boolean              @default(false)
-  useCouponSystem        Boolean              @default(false)
-  useOnlineBooking       Boolean              @default(false)
-  bookingSlug            String?              @unique
-  categoryBaseColorsJson Json                 @default("{}")
-  createdAt              DateTime             @default(now())
-  updatedAt              DateTime             @updatedAt
+  onboarded              Boolean               @default(false)
+  usePointSystem         Boolean               @default(false)
+  useMembershipSystem    Boolean               @default(false)
+  useCouponSystem        Boolean               @default(false)
+  useOnlineBooking       Boolean               @default(false)
+  bookingSlug            String?               @unique
+  categoryBaseColorsJson Json                  @default("{}")
+  createdAt              DateTime              @default(now())
+  updatedAt              DateTime              @updatedAt
   customers              Customer[]
   assignees              Assignee[]
   gmailConnection        GmailConnection?
@@ -114,6 +114,8 @@ model Customer {
   tel            String
   points         Int                    @default(0)
   firstVisitDate DateTime?
+  /// 삭제(익명 처리)된 시각. null = 살아 있는 고객. 행은 예약(시술 내역·매출)을 붙들고 남고 개인정보는 비운다(0023).
+  deletedAt      DateTime?
   createdAt      DateTime               @default(now())
   updatedAt      DateTime               @updatedAt
   store          Store                  @relation(fields: [storeId], references: [id], onDelete: Cascade)
@@ -201,40 +203,40 @@ model Service {
 }
 
 model Reservation {
-  id               String                    @id @default(cuid())
-  legacyId         Int?
-  storeId          String
-  customerId       String
-  assigneeId       String?
-  date             DateTime
-  startTime        String
-  endTime          String
-  serviceSummary   String
-  status           ReservationStatus         @default(active)
-  price            Int                       @default(0)
-  memo             String?
-  paymentCompleted Boolean                   @default(false)
-  pointEarned      Int                       @default(0)
-  naverBookingId   String?
-  naverBookingUrl  String?
-  naverDeposit     Int?
-  channel          ReservationChannel        @default(phone)
-  publicToken      String?                   @unique
-  pendingAction    ReservationPendingAction  @default(none)
+  id                 String                    @id @default(cuid())
+  legacyId           Int?
+  storeId            String
+  customerId         String
+  assigneeId         String?
+  date               DateTime
+  startTime          String
+  endTime            String
+  serviceSummary     String
+  status             ReservationStatus         @default(active)
+  price              Int                       @default(0)
+  memo               String?
+  paymentCompleted   Boolean                   @default(false)
+  pointEarned        Int                       @default(0)
+  naverBookingId     String?
+  naverBookingUrl    String?
+  naverDeposit       Int?
+  channel            ReservationChannel        @default(phone)
+  publicToken        String?                   @unique
+  pendingAction      ReservationPendingAction  @default(none)
   pendingPayloadJson Json?
   pendingRequestedAt DateTime?
   // 온라인 예약 승인/거절/취소 시 오너가 남기는 사유(선택). 고객 조회 페이지에 노출. 마지막 결정 사유로 덮어씀.
-  decisionReason   String?
-  createdAt        DateTime                  @default(now())
-  updatedAt        DateTime                  @updatedAt
-  pointHistories   CustomerPointHistory[]
-  customer         Customer                  @relation(fields: [customerId], references: [id], onDelete: Cascade)
-  assignee         Assignee?                 @relation(fields: [assigneeId], references: [id])
-  store            Store                     @relation(fields: [storeId], references: [id], onDelete: Cascade)
-  histories        ReservationHistory[]
-  paymentEntries   ReservationPaymentEntry[]
-  membershipUsages MembershipUsage[]
-  couponsUsed      CustomerCoupon[]
+  decisionReason     String?
+  createdAt          DateTime                  @default(now())
+  updatedAt          DateTime                  @updatedAt
+  pointHistories     CustomerPointHistory[]
+  customer           Customer                  @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  assignee           Assignee?                 @relation(fields: [assigneeId], references: [id])
+  store              Store                     @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  histories          ReservationHistory[]
+  paymentEntries     ReservationPaymentEntry[]
+  membershipUsages   MembershipUsage[]
+  couponsUsed        CustomerCoupon[]
 
   @@unique([storeId, legacyId])
   @@unique([storeId, naverBookingId])
@@ -350,31 +352,31 @@ model StoreNotice {
 
 // 공개(고객) 온라인 예약 규칙. Store.useOnlineBooking ON일 때만 의미.
 model StoreBookingSettings {
-  id                  String   @id @default(cuid())
-  storeId             String   @unique
-  slotIntervalMin     Int      @default(30)
-  minLeadMinutes      Int      @default(60)
-  maxAdvanceDays      Int      @default(30)
-  allowAssigneeChoice Boolean  @default(true)
+  id                     String   @id @default(cuid())
+  storeId                String   @unique
+  slotIntervalMin        Int      @default(30)
+  minLeadMinutes         Int      @default(60)
+  maxAdvanceDays         Int      @default(30)
+  allowAssigneeChoice    Boolean  @default(true)
   // 고객 문의·개인정보 열람/삭제 요구를 받을 매장 연락처. 온라인 예약 사용 시 필수
   // (예약 설정 저장 시 서버가 검증). 정책 문서·공개 예약 페이지에 노출된다.
-  contactTel          String?
-  noticeText          String?
+  contactTel             String?
+  noticeText             String?
   // 공개 예약 페이지 안내문 다국어(오너 입력, {en?,ja?,zh?}). 없으면 noticeText 폴백.
-  noticeI18nJson      Json?
+  noticeI18nJson         Json?
   // 예약 상태별 오너 안내문구(#139). 각 텍스트 + 다국어({en?,ja?,zh?}). 없으면 미표시.
   //  done = 예약완료(신청 접수) 직후 화면, confirm = 조회 페이지 상태=확정, cancel = 조회 페이지 상태=취소.
-  doneText            String?
-  doneI18nJson        Json?
-  confirmText         String?
-  confirmI18nJson     Json?
-  cancelText          String?
-  cancelI18nJson      Json?
+  doneText               String?
+  doneI18nJson           Json?
+  confirmText            String?
+  confirmI18nJson        Json?
+  cancelText             String?
+  cancelI18nJson         Json?
   // (1c) 공개 노출 서비스 화이트리스트(서비스명 배열). null/미지정 = 전체 노출. 배선은 1c.
   bookableServiceIdsJson Json?
-  createdAt           DateTime @default(now())
-  updatedAt           DateTime @updatedAt
-  store               Store    @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  createdAt              DateTime @default(now())
+  updatedAt              DateTime @updatedAt
+  store                  Store    @relation(fields: [storeId], references: [id], onDelete: Cascade)
 }
 
 model Invite {
@@ -568,22 +570,22 @@ model MembershipUsage {
 }
 
 model CouponProduct {
-  id             String           @id @default(cuid())
-  legacyId       Int?
-  storeId        String
-  name           String
-  discountType   String // amount | rate
-  discountValue  Int // 원(amount) 또는 %(rate)
-  maxDiscount    Int? // 정률 상한 (null=무제한)
-  minOrderAmount Int? // 최소 결제금액 (null=제한없음)
-  validDays      Int? // 발급일+유효일수 (null=무기한)
-  code           String? // 코드형이면 코드 (null=직접발급 전용)
-  oncePerCustomer Boolean         @default(false) // true=고객당 1장(미사용 보유 시 재발급 불가)
-  status         String           @default("active") // active | archived
-  createdAt      DateTime         @default(now())
-  updatedAt      DateTime         @updatedAt
-  store          Store            @relation(fields: [storeId], references: [id], onDelete: Cascade)
-  issued         CustomerCoupon[]
+  id              String           @id @default(cuid())
+  legacyId        Int?
+  storeId         String
+  name            String
+  discountType    String // amount | rate
+  discountValue   Int // 원(amount) 또는 %(rate)
+  maxDiscount     Int? // 정률 상한 (null=무제한)
+  minOrderAmount  Int? // 최소 결제금액 (null=제한없음)
+  validDays       Int? // 발급일+유효일수 (null=무기한)
+  code            String? // 코드형이면 코드 (null=직접발급 전용)
+  oncePerCustomer Boolean          @default(false) // true=고객당 1장(미사용 보유 시 재발급 불가)
+  status          String           @default("active") // active | archived
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+  store           Store            @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  issued          CustomerCoupon[]
 
   @@unique([storeId, legacyId])
   @@unique([storeId, code])
