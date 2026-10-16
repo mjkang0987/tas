@@ -24,7 +24,7 @@ Cloud Build 트리거는 `^main$`뿐이라 release 브랜치 머지는 배포를
 |---|---|---|
 | 문서 — 월 칸 카드 이름만 | #269 | ✅ release에 머지 |
 | 개발 도구 경유 취약점 정리 (`pnpm-workspace.yaml` 고정 핀 → 하한 + 메이저 스코프) | #201 | ✅ #271 release에 머지 (82 → 37) |
-| 공지 '고정'/'노출' → '노출' 단일 개념 | #148 | ✖ 닫음 — 현행(공개 + 상단 고정) 유지 결정. 옛 PR은 '노출'을 `pinned`에 연결해 배포 시 미고정 공개 공지가 사라지고, iOS도 두 토글을 씀 |
+| 공지 '공개'·'상단 고정' → '노출' 체크 하나 (최대 3개) | #148 대체 | 🟡 진행 — 옛 PR은 닫음(아래) |
 | legacyId 충돌 · 이름 직접 입력 시 고객 중복 생성 방지 | #130 | ⬜ **재현부터** — 안 나면 닫는다 |
 | 휴무 캘린더 표시 | #200 | 이미 `main`에 있음 → superseded로 닫기 (테스트는 `model.test.ts`가 대신함) |
 
@@ -51,6 +51,22 @@ Cloud Build 트리거는 `^main$`뿐이라 release 브랜치 머지는 배포를
   `braces` 3.0.3은 권고상 `>=3.0.4`이나 **npm에 패치본이 없다**(eslint-config-next → fast-glob 경유, dev 전용).
   루트 `/pnpm-lock.yaml`(서버용 prisma·nodemailer, 24건)도 이번 범위 밖.
 - **검증**: `pnpm audit` 전/후 · 빌드 · `tsc --noEmit` · 테스트 · `prisma validate` · lint(main과 대조) · 프로덕션 빌드 구동.
+
+### 공지 '노출' 단일 체크 (#148 대체)
+- **요구**: 공지 작성 화면의 체크박스 둘('공개'·'상단 고정')을 **'노출' 하나**로. 체크한 공지만 고객 예약 페이지에 보인다. **최대 3개.**
+- **옛 #148과 다른 점 — `pinned`가 아니라 `visible`에 건다.** 옛 PR은 '노출'=`pinned`라, 배포 순간
+  `visible=true, pinned=false`인 기존 공지(기본값)가 전부 고객 페이지에서 사라진다. `visible`에 걸면 지금 보이는 공지가
+  그대로 보이고 데이터 이관(수동 SQL)이 필요 없다. 스키마 변경 없음.
+- **한도 3은 '꺼짐 → 켜짐' 전환 때만 검사**(POST는 visible로 만들 때, PUT은 기존 행이 숨김일 때). 이미 4개 이상 공개 중인
+  매장(레거시)의 기존 공지 수정을 막지 않기 위해서다. 공개 API는 `take: 3`(최신순)이라 레거시 초과분은 고객에게 안 보인다.
+  409 코드는 `visible_limit`.
+- **`pinned`**: 웹은 더 이상 쓰지 않는다(정렬·배지 제거). 단 iOS 앱이 아직 `pinned`를 보내고 응답에서 non-optional로
+  디코드하므로 **API 응답·수신·기존 pin 한도 검사는 그대로 둔다**(앱 호환). 컬럼도 유지.
+- **영향 파일**: `server/api/book/[slug].ts`(where visible + take 3, 정렬 최신순), `server/api/notices.ts`(한도 검사·목록 정렬),
+  `client/components/settings/NoticeManageSection.tsx`(체크 하나·배지), `client/features/notices/model.ts`(상수 이름),
+  `index.md` [^25].
+- **iOS**(`tas-ios` `NoticeFormView`)는 별건 — 앱의 '공개' 토글은 계속 맞게 동작하고 '상단 고정'은 웹 기준으로 효과가 없어진다.
+- **검증**: tsc · 테스트 · 빌드 · 로컬 DB로 `/settings/notice` 조작(체크 3개 상한·레거시 4개 수정) + `/book/<slug>` 노출 확인.
 
 ### 리스크
 - 배포·롤백 단위가 묶음 전체다. 한 건이 문제면 전부 되돌린다.

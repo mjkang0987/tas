@@ -10,7 +10,7 @@ import {cardSurfaceStyle, StyledEditBtn, StyledDeleteBtn, StyledSaveBtn, StyledC
 import {StyledFieldSelect} from '../ui/FormControls';
 import {useToastStore} from '../../store/toastStore';
 import {shouldUseLocalDb} from '../../lib/local-db';
-import {NOTICE_CATEGORIES, noticeCategoryLabel, MAX_PINNED_NOTICES} from '../../features/notices/model';
+import {NOTICE_CATEGORIES, noticeCategoryLabel, MAX_VISIBLE_NOTICES} from '../../features/notices/model';
 import type {StoreNotice, NoticeCategory, NoticeI18n} from '../../features/notices/model';
 
 interface DraftForm {
@@ -20,10 +20,9 @@ interface DraftForm {
     body: string;
     bodyI18n: NoticeI18n | null;
     visible: boolean;
-    pinned: boolean;
 }
 
-const EMPTY_DRAFT: DraftForm = {category: 'notice', title: '', titleI18n: null, body: '', bodyI18n: null, visible: true, pinned: false};
+const EMPTY_DRAFT: DraftForm = {category: 'notice', title: '', titleI18n: null, body: '', bodyI18n: null, visible: true};
 
 function formatDate(iso: string): string {
     const d = new Date(iso);
@@ -72,7 +71,8 @@ export const NoticeManageSection = () => {
     const startAdd = () => {
         setIsAdding(true);
         setEditingId(null);
-        setDraft(EMPTY_DRAFT);
+        // 이미 상한만큼 노출 중이면 새 공지는 꺼진 채로 시작(체크박스도 비활성).
+        setDraft({...EMPTY_DRAFT, visible: notices.filter((n) => n.visible).length < MAX_VISIBLE_NOTICES});
         setError('');
     };
 
@@ -87,7 +87,6 @@ export const NoticeManageSection = () => {
             body: n.body,
             bodyI18n: n.bodyI18n ?? null,
             visible: n.visible,
-            pinned: n.pinned,
         });
     };
 
@@ -109,7 +108,6 @@ export const NoticeManageSection = () => {
             body,
             bodyI18n: draft.bodyI18n,
             visible: draft.visible,
-            pinned: draft.pinned,
         };
         try {
             const res = await fetch('/api/notices', {
@@ -119,7 +117,7 @@ export const NoticeManageSection = () => {
             });
             if (res.status === 409) {
                 const data = await res.json().catch(() => ({}));
-                if (data.error === 'pin_limit') { setError(`상단 고정은 최대 ${MAX_PINNED_NOTICES}개까지 가능합니다.`); return; }
+                if (data.error === 'visible_limit') { setError(`노출은 최대 ${MAX_VISIBLE_NOTICES}개까지 가능합니다.`); return; }
             }
             if (!res.ok) throw new Error();
             toast(editingId ? '공지사항이 수정되었습니다.' : '공지사항이 추가되었습니다.');
@@ -146,15 +144,15 @@ export const NoticeManageSection = () => {
     };
 
     const editing = isAdding || editingId !== null;
-    // 이미 고정된 다른 공지 수(편집 중 항목 제외)가 상한이면 새로 고정 불가.
-    const pinLimitReached = notices.filter((n) => n.pinned && n.id !== editingId).length >= MAX_PINNED_NOTICES;
+    // 이미 노출한 다른 공지 수(편집 중 항목 제외)가 상한이면 새로 노출 불가.
+    const visibleLimitReached = notices.filter((n) => n.visible && n.id !== editingId).length >= MAX_VISIBLE_NOTICES;
 
     return (
         <StyledWrap>
             <PageHero
                 eyebrow="NOTICE"
                 title="공지사항 관리"
-                subtitle="고객 예약 페이지에 노출되는 공지사항입니다. 공개로 둔 항목만 고객에게 보입니다."
+                subtitle={`'노출'을 체크한 공지만 고객 예약 페이지에 보입니다 (최대 ${MAX_VISIBLE_NOTICES}개).`}
             />
 
             {isLocal ? (
@@ -182,14 +180,9 @@ export const NoticeManageSection = () => {
                                 </StyledField>
                                 <StyledCheckboxRow htmlFor="nt-visible">
                                     <input id="nt-visible" type="checkbox" checked={draft.visible}
+                                        disabled={!draft.visible && visibleLimitReached}
                                         onChange={(e) => setDraft((d) => ({...d, visible: e.target.checked}))} />
-                                    <span>공개 (고객 페이지에 노출)</span>
-                                </StyledCheckboxRow>
-                                <StyledCheckboxRow htmlFor="nt-pinned">
-                                    <input id="nt-pinned" type="checkbox" checked={draft.pinned}
-                                        disabled={!draft.pinned && pinLimitReached}
-                                        onChange={(e) => setDraft((d) => ({...d, pinned: e.target.checked}))} />
-                                    <span>상단 고정 (맨 위에 노출){!draft.pinned && pinLimitReached ? ` · 최대 ${MAX_PINNED_NOTICES}개` : ''}</span>
+                                    <span>노출 (고객 예약 페이지에 표시){!draft.visible && visibleLimitReached ? ` · 최대 ${MAX_VISIBLE_NOTICES}개` : ''}</span>
                                 </StyledCheckboxRow>
                             </StyledTopRow>
 
@@ -232,9 +225,8 @@ export const NoticeManageSection = () => {
                                     <StyledItemMain>
                                         <StyledItemTop>
                                             <StyledChip data-category={n.category}>{noticeCategoryLabel(n.category)}</StyledChip>
-                                            {n.pinned && <StyledPinBadge>고정</StyledPinBadge>}
                                             <StyledItemName>{n.title}</StyledItemName>
-                                            {!n.visible && <StyledHiddenBadge>비공개</StyledHiddenBadge>}
+                                            {!n.visible && <StyledHiddenBadge>미노출</StyledHiddenBadge>}
                                         </StyledItemTop>
                                         <StyledItemBody>{n.body}</StyledItemBody>
                                         <StyledItemDate>{formatDate(n.createdAt)}</StyledItemDate>
@@ -369,16 +361,6 @@ const StyledHiddenBadge = styled.span`
     border-radius: 6px;
     color: var(--dark-gray-color2);
     background: var(--black-color-10);
-`;
-
-const StyledPinBadge = styled.span`
-    flex-shrink: 0;
-    font-size: var(--xsmall-font);
-    font-weight: 700;
-    padding: 2px 7px;
-    border-radius: 6px;
-    color: #a8620a;
-    background: rgba(168, 98, 10, 0.12);
 `;
 
 const StyledItemBody = styled.span`
