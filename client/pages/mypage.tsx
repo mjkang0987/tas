@@ -156,7 +156,7 @@ const MyPage: NextPage<MyPageProps> = ({linkedProviders}) => {
         <StyledSection>
             <SeoHead title="계정 관리" />
             <StyledContainer>
-                <PageHero eyebrow="MY PAGE" title="계정 관리" subtitle={storageModeLabel} />
+                <PageHero eyebrow="MY PAGE" subtitle={storageModeLabel} />
 
                 {isLocalMode && <GuestNotice />}
 
