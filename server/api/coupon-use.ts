@@ -20,42 +20,46 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     if (action !== 'use' && action !== 'restore') return res.status(400).json({error: 'Invalid action'});
 
     const now = new Date();
-    if (action === 'restore') {
-        // 되돌리면 다시 쓸 수 있는 쿠폰이 된다 — 발급과 같은 규칙(만료 전, 고객당 1장)을 지킨다.
-        const coupon = await prisma.customerCoupon.findFirst({
-            where: {id: couponId, storeId: session.storeId, status: 'used'},
-            select: {customerId: true, productId: true, expiresAt: true, product: {select: {oncePerCustomer: true}}},
-        });
-        if (!coupon) return res.status(400).json({error: '사용한 쿠폰만 되돌릴 수 있습니다.'});
-        if (coupon.expiresAt && coupon.expiresAt <= now) {
-            return res.status(400).json({error: '만료된 쿠폰은 되돌릴 수 없습니다.'});
-        }
-        if (coupon.product?.oncePerCustomer && coupon.productId) {
-            const held = await prisma.customerCoupon.count({
-                where: {
-                    storeId: session.storeId, customerId: coupon.customerId, productId: coupon.productId, status: 'active',
-                    OR: [{expiresAt: null}, {expiresAt: {gt: now}}],
+    const notExpired = {OR: [{expiresAt: null}, {expiresAt: {gt: now}}]};
+    try {
+        // 확인과 변경을 한 트랜잭션(Serializable)으로 — 다른 기기에서 동시에 눌러도 고객당 1장 규칙이 깨지지 않게.
+        const error = await prisma.$transaction(async (tx) => {
+            const coupon = await tx.customerCoupon.findFirst({
+                where: {id: couponId, storeId: session.storeId},
+                select: {
+                    status: true, customerId: true, productId: true, expiresAt: true,
+                    product: {select: {oncePerCustomer: true}},
+                    customer: {select: {deletedAt: true}},
                 },
             });
-            if (held > 0) return res.status(400).json({error: '같은 쿠폰을 이미 보유 중이라 되돌릴 수 없습니다. (고객당 1장)'});
-        }
-    }
+            if (!coupon) return '쿠폰을 찾을 수 없습니다.';
+            // 삭제(익명 처리)된 고객의 쿠폰은 다시 살리거나 쓰지 않는다.
+            if (coupon.customer.deletedAt) return '삭제된 고객의 쿠폰입니다.';
+            const expired = !!coupon.expiresAt && coupon.expiresAt <= now;
 
-    // 상태 조건을 where 에 넣어 한 번에 바꾼다 — 두 번 눌러도 두 번 처리되지 않는다.
-    const result = action === 'use'
-        ? await prisma.customerCoupon.updateMany({
-            where: {id: couponId, storeId: session.storeId, status: 'active', OR: [{expiresAt: null}, {expiresAt: {gt: now}}]},
-            data: {status: 'used', usedAt: now},
-        })
-        : await prisma.customerCoupon.updateMany({
-            where: {id: couponId, storeId: session.storeId, status: 'used'},
-            data: {status: 'active', usedAt: null},
-        });
+            if (action === 'use') {
+                if (coupon.status !== 'active' || expired) return '사용할 수 없는 쿠폰입니다. (이미 사용·취소·만료)';
+                await tx.customerCoupon.update({where: {id: couponId}, data: {status: 'used', usedAt: now}});
+                return null;
+            }
 
-    if (result.count === 0) {
-        return res.status(400).json({
-            error: action === 'use' ? '사용할 수 없는 쿠폰입니다. (이미 사용·취소·만료)' : '사용한 쿠폰만 되돌릴 수 있습니다.',
-        });
+            // 되돌리면 다시 쓸 수 있는 쿠폰이 된다 — 발급과 같은 규칙(만료 전, 고객당 1장)을 지킨다.
+            if (coupon.status !== 'used') return '사용한 쿠폰만 되돌릴 수 있습니다.';
+            if (expired) return '만료된 쿠폰은 되돌릴 수 없습니다.';
+            if (coupon.product?.oncePerCustomer && coupon.productId) {
+                const held = await tx.customerCoupon.count({
+                    where: {storeId: session.storeId, customerId: coupon.customerId, productId: coupon.productId, status: 'active', ...notExpired},
+                });
+                if (held > 0) return '같은 쿠폰을 이미 보유 중이라 되돌릴 수 없습니다. (고객당 1장)';
+            }
+            await tx.customerCoupon.update({where: {id: couponId}, data: {status: 'active', usedAt: null}});
+            return null;
+        }, {isolationLevel: 'Serializable'});
+
+        if (error) return res.status(400).json({error});
+        return res.status(200).json({ok: true});
+    } catch {
+        // Serializable 충돌(동시 처리) 등 — 다시 시도하면 최신 상태로 판정된다.
+        return res.status(409).json({error: '다른 곳에서 동시에 처리 중입니다. 다시 시도해 주세요.'});
     }
-    return res.status(200).json({ok: true});
 }
