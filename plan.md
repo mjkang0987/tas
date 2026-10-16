@@ -41,11 +41,29 @@
 ### 코드리뷰 반영 (2026-10-16)
 - 수정: 게스트 모드 번호 중복 레이어에 병합 버튼이 떠서 누르면 401 — `onMerge` 없으면 버튼 숨김(게스트에서 확인: 취소·다른 고객으로 저장만).
 - 수정: 네이버 동기화가 링크 없는 기존 예약에 `naverBookingUrl`을 채워 넣어 **삭제된 고객의 링크가 되살아났다** — 삭제 고객 예약은 건너뜀.
-- 미결(지시자 결정 필요):
-  - 남은 회원권 잔액·쿠폰이 "삭제된 고객"에 붙은 채 고르는 목록에서 사라져 사용·환불할 길이 없다. 삭제 창에 잔액 경고 또는 삭제 차단?
-  - 삭제된 고객의 지난 예약에서 결제·적립을 하면 화면엔 적립되지만 서버 일괄 저장이 삭제 고객을 건너뛰어 새로고침 시 사라진다.
-  - 삭제 고객 필터(`isSelectableCustomer`)가 8곳에 흩어져 있다 — 새 목록이 빠뜨리기 쉬움(공용 selector 후보).
-  - `schema.prisma`에 무관한 모델 정렬 변경(약 140줄)이 섞여 있다.
+- 지시자 결정(2026-10-16) → 아래 "후속" 작업으로 진행:
+  1. 잔액이 있으면 삭제 창에서 **경고**(차단은 안 함).
+  2. 삭제된 고객의 지난 예약은 **결제·변경 막기**.
+  3. 삭제 고객 필터를 **공용 함수로** 모은다.
+  4. `schema.prisma` 무관 정렬 변경(공백만, 약 140줄)은 그대로 둔다 — 되돌리면 또 140줄 churn.
+
+### 후속 — 잔액 경고 · 결제 막기 · 공용 함수
+- **요구**
+  - (1) 고객 삭제 창: 남은 적립금(>0원)·사용 가능한 회원권·미사용 쿠폰이 있으면 "삭제하면 더 이상 쓸 수 없다"고 경고. 삭제는 막지 않는다.
+  - (2) 삭제된 고객의 예약 상세: 결제완료/결제수단 변경·변경(수정) 버튼을 숨긴다. 예약완료·취소·노쇼·삭제는 그대로(매출 금액이 바뀌지 않음).
+  - (3) `getSelectableCustomers(customerMap)` 하나로 "삭제 고객 뺀 고객 배열"을 얻는다.
+- **구현**
+  - 순수 함수 `summarizeCustomerBalance(customer, memberships, coupons)` → `{points, memberships, coupons}` (`features/customers/model.ts`, 테스트 추가).
+    회원권은 `status==='active'`이고 남은 횟수가 있거나(null=무제한) 만료 전인 것, 쿠폰은 `status==='active'`.
+  - `CustomerDetail` 삭제 창을 열 때 서버 모드에서만 `/api/memberships`·`/api/coupons`를 받아 이 고객 것만 센다(게스트는 적립금만). 받는 동안 경고 줄은 생략.
+  - `ReservationDetailFooterActions`에 `isCustomerDeleted` — view 모드 기본 분기에서 결제·변경 버튼 숨김.
+  - `getSelectableCustomers` — HeaderSearch·Membership·Point·CustomerDetail(비슷한 고객)·useCustomerMergeSuggestion이 사용.
+    맵이 아니라 배열을 거르는 곳(address 목록, useReservationCreateForm의 정렬된 배열)은 `isSelectableCustomer` 필터 유지.
+- **영향 파일**: `features/customers/model.ts`(+test), `CustomerDetail.tsx`, `ReservationDetail.tsx`, `ReservationDetailFooterActions.tsx`, 위 목록 호출부.
+- **예상 결과**: 잔액 있는 고객 삭제 시 경고 문구, 삭제 고객 예약에서 결제 버튼 없음, 필터 누락 위험 감소.
+- **검증**: tsc · 테스트 209(신규 `getSelectableCustomers` 1·`summarizeCustomerBalance` 2) · 순수 모듈 게이트 · lint 신규 경고 0.
+  게스트 모드 화면: 삭제 고객 예약 상세 = 취소·노쇼만, 일반 고객 = 결제완료·취소·노쇼·변경.
+  잔액 경고 문구는 고객 삭제가 오너 전용이라 로그인 세션 없이 화면 확인 못 함(로직은 단위 테스트).
 
 ### 배포 순서 (⚠️ 스키마 변경)
 - ✅ **0023 운영 Supabase 적용 완료**(지시자, 2026-10-16). 컬럼만 추가돼 지금 운영 코드에는 영향 없음 — 이제 코드 배포 가능.
