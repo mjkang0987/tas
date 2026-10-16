@@ -32,7 +32,8 @@ interface Props {
     selection: MergeSelection;
     reservationMap: Record<string, Reservation[]>;
     merging: boolean;
-    onMerge: (targetId: number) => void;
+    /** 없으면 병합 버튼을 숨긴다 — 병합 API 가 서버 전용이라 게스트 모드에서는 고를 수 없다 */
+    onMerge?: (targetId: number) => void;
     /** 자동 제안은 '건너뛰기'(다시 안 뜸), 수동 병합은 '취소'(그냥 닫기) */
     onSkip: () => void;
     onDismiss: () => void;
@@ -134,7 +135,7 @@ export const CustomerMergeSuggestionModal = ({
     const canMerge = targetChoices.some((c) => c.id === selectedTargetId) && sources.length > 0;
 
     const handleMerge = () => {
-        if (!canMerge) return;
+        if (!canMerge || !onMerge) return;
         onMerge(selectedTargetId);
     };
 
@@ -293,9 +294,11 @@ export const CustomerMergeSuggestionModal = ({
                             {secondaryAction.label}
                         </StyledActionButton>
                     )}
-                    <StyledActionButton type="button" $primary onClick={handleMerge} disabled={merging || !canMerge}>
-                        {merging ? '병합 중...' : '병합'}
-                    </StyledActionButton>
+                    {onMerge && (
+                        <StyledActionButton type="button" $primary onClick={handleMerge} disabled={merging || !canMerge}>
+                            {merging ? '병합 중...' : '병합'}
+                        </StyledActionButton>
+                    )}
                 </StyledFooter>
             </StyledMergeModal>
         </StyledMergeOverlay>,

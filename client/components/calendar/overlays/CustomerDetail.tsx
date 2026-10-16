@@ -405,7 +405,7 @@ export const CustomerDetail = ({customer, reservationMap, onClose, onReservation
                                       }}
                                       reservationMap={reservationMap}
                                       merging={isMergingDup}
-                                      onMerge={(targetId) => mergeIntoCustomer(targetId)}
+                                      onMerge={canMergeSimilar ? (targetId) => mergeIntoCustomer(targetId) : undefined}
                                       onSkip={close}
                                       onDismiss={close}
                                       onReservationClick={onReservationClick}
