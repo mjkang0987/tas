@@ -37,7 +37,7 @@ interface ConfirmDialogProps {
     confirmVariant?: ConfirmVariant;
     /** 확인 버튼만 노출 (안내성 단일 버튼) */
     hideCancel?: boolean;
-    /** 헤더 우측 닫기(X) 버튼 (기본 노출) */
+    /** 헤더 우측 닫기(X) 버튼 (기본 노출). 가운데 정렬(danger·centered) 레이아웃은 헤더가 없어 무시한다 */
     showCloseButton?: boolean;
     confirmDisabled?: boolean;
     /** 오버레이 aria-label (기본: title) */
