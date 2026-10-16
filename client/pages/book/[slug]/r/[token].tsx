@@ -8,7 +8,9 @@ import styled from 'styled-components';
 import {
     BOOK_STRINGS, formatDurationL, formatPriceL, localizedStoreLabels,
     statusLabelL, dowLabelL, todayLabelL, pickI18n, type I18nText,
+    benefitTextL, benefitMembershipL, benefitCouponL,
 } from '../../../../features/booking/i18n';
+import type {CustomerBenefits} from '../../../../features/customers/benefits';
 import {bookBaseForHost, resolveHostFromHeaders} from '../../../../features/booking/routing';
 import {SeoHead} from '../../../../components/ui/SeoHead';
 import {LabelBadge} from '../../../../components/ui/LabelBadge';
@@ -43,6 +45,8 @@ interface ReservationView {
     statusMessage: {text: string | null; i18n: I18nText} | null;
     // 오너가 남긴 승인/거절/취소 사유(선택). 없으면 상태별 기본문구로 대체.
     decisionReason: string | null;
+    // 본인이 쓸 수 있는 회원권·쿠폰. 삭제된 예약 흔적이면 null.
+    benefits: CustomerBenefits | null;
 }
 
 interface BookServiceInfo {name: string; category: string; duration: number; price: number}
@@ -243,6 +247,8 @@ export default function ReservationManagePage({bookBase}: ReservationManagePageP
         : '';
     // 고객 안내(하나만 노출) — 우선순위: 예약별 사유 > 매장 상태 안내문구(#139) > 상태별 기본문구.
     const hasReason = !!reservation.decisionReason;
+    const benefits = reservation.benefits;
+    const benefitText = benefitTextL(lang);
     const customerNotice = reservation.decisionReason
         || statusMsg
         || (reservation.status === 'active' ? t.decisionApprovedDefault
@@ -264,6 +270,30 @@ export default function ReservationManagePage({bookBase}: ReservationManagePageP
                     <StyledSummaryRow><span>{labels.service}</span><StyledSummaryValue>{reservation.serviceSummary}</StyledSummaryValue></StyledSummaryRow>
                     {reservation.assigneeName && <StyledSummaryRow><span>{labels.assignee}</span><StyledSummaryValue>{reservation.assigneeName}</StyledSummaryValue></StyledSummaryRow>}
                 </StyledSummary>
+
+                {benefits && (benefits.memberships.length > 0 || benefits.coupons.length > 0) && (
+                    <section aria-label={benefitText.title}>
+                        <StyledSectionLabel>{benefitText.title}</StyledSectionLabel>
+                        <StyledSummary>
+                            {benefits.memberships.length > 0 && (
+                                <StyledBenefitRow>
+                                    <span>{benefitText.membership}</span>
+                                    <StyledBenefitValues>
+                                        {benefits.memberships.map((m) => <span key={m.id}>{benefitMembershipL(m, lang)}</span>)}
+                                    </StyledBenefitValues>
+                                </StyledBenefitRow>
+                            )}
+                            {benefits.coupons.length > 0 && (
+                                <StyledBenefitRow>
+                                    <span>{benefitText.coupon}</span>
+                                    <StyledBenefitValues>
+                                        {benefits.coupons.map((c) => <span key={c.id}>{benefitCouponL(c, lang)}</span>)}
+                                    </StyledBenefitValues>
+                                </StyledBenefitRow>
+                            )}
+                        </StyledSummary>
+                    </section>
+                )}
 
                 {customerNotice && (
                     <StyledNotice>
@@ -505,6 +535,22 @@ const StyledSummaryValue = styled.strong`
     color: var(--black-color, #111);
     font-weight: 700;
     text-align: right;
+`;
+
+/* 회원권·쿠폰 한 줄은 길어(이름·횟수·만료) 날짜·시간 행처럼 좌우로 두면 좁은 화면에서 카드가 넘친다 →
+   라벨 위, 항목은 아래에 한 줄씩. */
+const StyledBenefitRow = styled(StyledSummaryRow)`
+    flex-direction: column;
+    gap: 4px;
+`;
+
+const StyledBenefitValues = styled(StyledSummaryValue)`
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    min-width: 0;
+    text-align: left;
+    overflow-wrap: anywhere;
 `;
 
 const StyledActions = styled.div`
