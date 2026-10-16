@@ -21,9 +21,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
         const customer = await prisma.customer.findUnique({
             where: {storeId_legacyId: {storeId: session.storeId, legacyId: customerId}},
-            select: {id: true},
+            select: {id: true, deletedAt: true},
         });
         if (!customer) return res.status(404).json({error: 'Customer not found'});
+        // 삭제(익명 처리)된 고객에게는 발급하지 않는다 — 화면 고객 목록에서도 빠져 있다.
+        if (customer.deletedAt) return res.status(400).json({error: '삭제된 고객에게는 쿠폰을 발급할 수 없습니다.'});
 
         const product = await prisma.couponProduct.findFirst({
             where: {id: productId, storeId: session.storeId},
