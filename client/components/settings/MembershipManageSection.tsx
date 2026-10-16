@@ -13,6 +13,8 @@ import {CustomerAutocomplete} from '../customers/CustomerAutocomplete';
 import {useIssueCustomerPicker} from '../customers/useIssueCustomerPicker';
 import {useSingleFlight} from '../../hooks/useSingleFlight';
 import type {MembershipProduct, CustomerMembership} from '../../features/memberships/model';
+import type {PaymentMethod} from '../../utils/reservations';
+import {RECEIVED_PAYMENT_METHODS} from '../../utils/reservations';
 import {describeBenefitMembership} from '../../features/customers/benefits';
 
 type Tab = 'products' | 'issue';
@@ -60,6 +62,12 @@ export const MembershipManageSection = () => {
 
     // 발급 폼
     const [issueProductId, setIssueProductId] = useState('');
+    // 판매 = 그날 매출(금액·결제수단), 기존 등록 = 시스템 쓰기 전에 판 회원권 옮겨 넣기(매출 없음, 남은 횟수·만료일 입력)
+    const [issueMode, setIssueMode] = useState<'sale' | 'carryover'>('sale');
+    const [issuePrice, setIssuePrice] = useState('');
+    const [issueMethod, setIssueMethod] = useState<PaymentMethod>('카드');
+    const [issueRemaining, setIssueRemaining] = useState('');
+    const [issueExpiresAt, setIssueExpiresAt] = useState('');
     const [issueError, setIssueError] = useState('');
     const issueCustomer = useIssueCustomerPicker(() => setIssueError(''));
     // 발급·사용·복원·취소 중에는 다른 요청을 막는다(연타로 두 번 처리 방지).
@@ -161,16 +169,37 @@ export const MembershipManageSection = () => {
             setIssueError('회원권을 선택해 주세요.');
             return;
         }
+        const price = Number(issuePrice.replace(/[^0-9]/g, ''));
+        if (issueMode === 'sale' && issuePrice.trim() === '') {
+            setIssueError('판매 금액을 입력해 주세요.');
+            return;
+        }
+        const product = products.find((p) => p.id === issueProductId);
+        const remaining = Number(issueRemaining.replace(/[^0-9]/g, ''));
+        if (issueMode === 'carryover' && product?.totalCount != null && (!remaining || remaining > product.totalCount)) {
+            setIssueError(`남은 횟수를 1~${product.totalCount}회로 입력해 주세요.`);
+            return;
+        }
         try {
             const res = await fetch('/api/membership-issue', {
                 method: 'POST',
                 headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({customerId: issueCustomer.customerId, productId: issueProductId}),
+                body: JSON.stringify(issueMode === 'sale'
+                    ? {customerId: issueCustomer.customerId, productId: issueProductId, mode: 'sale', salePrice: price, paymentMethod: issueMethod}
+                    : {customerId: issueCustomer.customerId, productId: issueProductId, mode: 'carryover',
+                        ...(product?.totalCount != null && {remainingCount: remaining}), expiresAt: issueExpiresAt || null}),
             });
-            if (!res.ok) throw new Error();
-            toast('회원권을 발급했습니다.');
+            if (!res.ok) {
+                const err = await res.json().catch(() => null) as {error?: string} | null;
+                setIssueError(err?.error ?? '발급에 실패했습니다.');
+                return;
+            }
+            toast(issueMode === 'sale' ? '회원권을 판매 발급했습니다.' : '기존 회원권을 등록했습니다.');
             issueCustomer.reset();
             setIssueProductId('');
+            setIssuePrice('');
+            setIssueRemaining('');
+            setIssueExpiresAt('');
             setIssueError('');
             await fetchData();
         } catch {
@@ -301,7 +330,14 @@ export const MembershipManageSection = () => {
                                     <StyledField htmlFor="mi-product">
                                         <span>회원권</span>
                                         <StyledSelect id="mi-product" value={issueProductId}
-                                                      onChange={(e) => {setIssueProductId(e.target.value); setIssueError('');}}>
+                                                      onChange={(e) => {
+                                                          const next = products.find((p) => p.id === e.target.value);
+                                                          setIssueProductId(e.target.value);
+                                                          // 상품을 고르면 판매 금액·남은 횟수 기본값을 채운다(고칠 수 있음).
+                                                          setIssuePrice(next ? String(next.price) : '');
+                                                          setIssueRemaining(next?.totalCount != null ? String(next.totalCount) : '');
+                                                          setIssueError('');
+                                                      }}>
                                             <option value="">회원권 선택</option>
                                             {activeProducts.map((p) => (
                                                 <option key={p.id} value={p.id}>{p.name} ({describeProduct(p)})</option>
@@ -309,9 +345,57 @@ export const MembershipManageSection = () => {
                                         </StyledSelect>
                                     </StyledField>
                                 </StyledFieldGrid>
+                                <StyledModeFieldset>
+                                    <StyledModeLegend>발급 방식</StyledModeLegend>
+                                    <StyledModeOption htmlFor="mi-mode-sale">
+                                        <input id="mi-mode-sale" type="radio" name="mi-mode" checked={issueMode === 'sale'}
+                                               onChange={() => {setIssueMode('sale'); setIssueError('');}} />
+                                        <span>판매 <StyledModeHint>그날 매출로 잡힙니다</StyledModeHint></span>
+                                    </StyledModeOption>
+                                    <StyledModeOption htmlFor="mi-mode-carryover">
+                                        <input id="mi-mode-carryover" type="radio" name="mi-mode" checked={issueMode === 'carryover'}
+                                               onChange={() => {setIssueMode('carryover'); setIssueError('');}} />
+                                        <span>기존 회원권 등록 <StyledModeHint>이미 팔았던 회원권 — 매출 없이 남은 횟수만</StyledModeHint></span>
+                                    </StyledModeOption>
+                                </StyledModeFieldset>
+                                <StyledFieldGrid>
+                                    {issueMode === 'sale' ? (
+                                        <>
+                                            <StyledField htmlFor="mi-price">
+                                                <span>판매 금액(원)</span>
+                                                <StyledInput id="mi-price" type="text" inputMode="numeric" value={issuePrice} placeholder="상품 가격"
+                                                             onChange={(e) => {setIssuePrice(e.target.value.replace(/[^0-9]/g, '')); setIssueError('');}} />
+                                            </StyledField>
+                                            <StyledField htmlFor="mi-method">
+                                                <span>결제수단</span>
+                                                <StyledSelect id="mi-method" value={issueMethod}
+                                                              onChange={(e) => setIssueMethod(e.target.value as PaymentMethod)}>
+                                                    {RECEIVED_PAYMENT_METHODS.map((method) => (
+                                                        <option key={method} value={method}>{method}</option>
+                                                    ))}
+                                                </StyledSelect>
+                                            </StyledField>
+                                        </>
+                                    ) : (
+                                        <>
+                                            {products.find((p) => p.id === issueProductId)?.totalCount != null && (
+                                                <StyledField htmlFor="mi-remaining">
+                                                    <span>남은 횟수</span>
+                                                    <StyledInput id="mi-remaining" type="text" inputMode="numeric" value={issueRemaining} placeholder="남은 횟수"
+                                                                 onChange={(e) => {setIssueRemaining(e.target.value.replace(/[^0-9]/g, '')); setIssueError('');}} />
+                                                </StyledField>
+                                            )}
+                                            <StyledField htmlFor="mi-expires">
+                                                <span>만료일(비우면 무기한)</span>
+                                                <StyledInput id="mi-expires" type="date" value={issueExpiresAt}
+                                                             onChange={(e) => setIssueExpiresAt(e.target.value)} />
+                                            </StyledField>
+                                        </>
+                                    )}
+                                </StyledFieldGrid>
                                 <FieldError variant="inline">{issueError}</FieldError>
                                 <StyledActionRow>
-                                    <StyledSaveBtn type="button" disabled={flight.busy} onClick={handleIssue}>발급</StyledSaveBtn>
+                                    <StyledSaveBtn type="button" disabled={flight.busy} onClick={handleIssue}>{issueMode === 'sale' ? '판매 발급' : '등록'}</StyledSaveBtn>
                                 </StyledActionRow>
                             </StyledFormCard>
 
@@ -323,7 +407,7 @@ export const MembershipManageSection = () => {
                                         <StyledItem key={m.id}>
                                             <StyledItemMain>
                                                 <StyledItemName>{issueCustomer.customerName(m.customerId)} · {m.name}</StyledItemName>
-                                                <StyledItemMeta>{describeBenefitMembership(m)} · {MEMBERSHIP_STATUS_LABEL[m.status]}</StyledItemMeta>
+                                                <StyledItemMeta>{describeBenefitMembership(m)} · {MEMBERSHIP_STATUS_LABEL[m.status]} · {m.salePrice != null ? `판매 ${formatPrice(m.salePrice)}${m.salePaymentMethod ? ` (${m.salePaymentMethod})` : ''}` : '기존 등록'}</StyledItemMeta>
                                             </StyledItemMain>
                                             {m.status !== 'cancelled' && (
                                                 <StyledItemActions>
@@ -397,6 +481,35 @@ const StyledInput = styled.input`
 `;
 
 const StyledSelect = styled(StyledFieldSelect)``;
+
+const StyledModeFieldset = styled.fieldset`
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px 16px;
+    margin: 0;
+    padding: 0;
+    border: 0;
+`;
+
+const StyledModeLegend = styled.legend`
+    margin-bottom: 4px;
+    padding: 0;
+    font-size: var(--small-font);
+    color: var(--dark-gray-color2);
+`;
+
+const StyledModeOption = styled.label`
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: var(--font);
+    cursor: pointer;
+`;
+
+const StyledModeHint = styled.span`
+    font-size: var(--small-font);
+    color: var(--dark-gray-color2);
+`;
 
 const StyledActionRow = styled.div`
     display: flex;
