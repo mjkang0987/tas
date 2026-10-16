@@ -5,6 +5,41 @@
 
 ---
 
+## 진행 — 쿠폰 고객 발급 화면 (`claude/coupon-issue-ui`)
+
+### 배경
+쿠폰은 상품 CRUD 화면만 있고 **고객에게 발급하는 화면이 없다.** 발급 API(`/api/coupon-issue` POST 발급·DELETE 취소, #156)는
+2026-07-27에 만들어졌지만 화면 연결이 빠졌다. `index.md`는 `CouponManageSection`에 "직접 발급은 구현"이라 적혀 있으나
+**구현된 건 API뿐**(문서·코드 불일치 — 이 작업으로 해소). 지시자 요청(2026-10-16): 쿠폰 발급 만들기.
+
+### 범위
+- 포함: 쿠폰 관리에 **상품 / 발급** 탭(회원권 관리와 같은 구조). 발급 폼(고객 검색 + 쿠폰 선택 → 발급), 발급 내역(고객·쿠폰·할인·만료·상태), 미사용 쿠폰 **취소**.
+- 제외(후속): 쿠폰 **사용 처리**(지금 `used`로 바꾸는 곳이 없음), 코드형 발급(고객이 코드 입력), 결제 자동 차감(`PaymentMethod.coupon`).
+- 발급 대상 상품: 활성 + **코드 없는 상품만**(API가 코드형 직접 발급을 거부). 없으면 안내 문구.
+
+### 구현
+- 회원권 발급의 고객 검색 상태(검색어·선택·제안 열림·blur 타이머)를 훅으로 추출해 두 화면이 공유: `components/customers/useIssueCustomerPicker.ts`.
+  (컴포넌트가 아니라 훅 — 기존 `CustomerAutocomplete`를 그대로 쓴다)
+- 탭 버튼 스타일(`StyledTabRow`·`StyledTabButton`)을 `settings-styles.ts`로 옮겨 공유.
+- `CouponManageSection`: `tab` 상태, `/api/coupons` GET 의 `coupons`(이미 내려옴)를 받아 발급 내역 표시, POST/DELETE `/api/coupon-issue`.
+  서버 에러 메시지(고객당 1장 등)를 그대로 토스트.
+- 순수 함수(할인 설명·발급 가능 상품 필터)는 `features/coupons/model.ts` + 테스트.
+
+### 영향 파일
+`CouponManageSection.tsx`, `MembershipManageSection.tsx`(훅·탭 스타일 공유), `settings-styles.ts`, `components/customers/useIssueCustomerPicker.ts`(신규 훅),
+`features/coupons/model.ts`(+test), `index.md`.
+
+### 예상 결과
+쿠폰 관리 → 발급 탭에서 고객에게 쿠폰을 발급·취소할 수 있고, 고객 삭제 창(별도 브랜치)의 쿠폰 칸이 실제로 쓰인다.
+
+### 진행 기록
+- 구현 완료: 발급 탭·취소·내역, 공용 훅·탭 스타일, `describeCouponDiscount`·`isDirectIssuable`·`couponDisplayStatus`(+테스트 5).
+- tsc · 쿠폰 테스트 5 · lint 통과. **화면 구동 확인은 로그인 세션 필요**(쿠폰은 로그인 전용) — 미확인.
+- ⚠️ 고객 삭제 익명화 브랜치(`claude/customer-delete-anonymize`)와 합칠 때 `MembershipManageSection`의 고객 목록 줄이 충돌한다.
+  그 브랜치는 삭제 고객을 빼는 `getSelectableCustomers`를 쓰므로, 합칠 때 **`useIssueCustomerPicker`에서 삭제 고객을 빼야 한다.**
+
+---
+
 ## 완료 — 타임라인 카드에 시작시간 + 예약 상태 표기 정리 (웹·앱 동시)
 
 ### 한 일
