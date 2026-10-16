@@ -590,12 +590,12 @@ const StyledActions = styled.div`
 // 1px 토큰 보더, shadow-sm, 취소는 danger-outline. 공용 페이지라 터치 높이(48px)는 유지.
 const StyledPrimaryBtn = styled.button`
     flex: 1;
-    height: 48px;
+    height: 40px;
     border: none;
     border-radius: var(--radius-lg);
     background: var(--brand-color);
     color: var(--white-color);
-    font-size: var(--large-font);
+    font-size: var(--medium-font);
     font-weight: 600;
     box-shadow: var(--shadow-sm);
     cursor: pointer;
@@ -604,12 +604,12 @@ const StyledPrimaryBtn = styled.button`
 
 const StyledSecondaryBtn = styled.button`
     flex: 1;
-    height: 48px;
+    height: 40px;
     border: 1px solid var(--border-color);
     border-radius: var(--radius-lg);
     background: var(--white-color);
     color: var(--dark-gray-color);
-    font-size: var(--large-font);
+    font-size: var(--medium-font);
     font-weight: 500;
     box-shadow: var(--shadow-sm);
     cursor: pointer;
@@ -618,12 +618,12 @@ const StyledSecondaryBtn = styled.button`
 
 const StyledDangerBtn = styled.button`
     flex: 1;
-    height: 48px;
+    height: 40px;
     border: 1px solid var(--danger-border);
     border-radius: var(--radius-lg);
     background: var(--white-color);
     color: var(--danger-color);
-    font-size: var(--large-font);
+    font-size: var(--medium-font);
     font-weight: 600;
     box-shadow: var(--shadow-sm);
     cursor: pointer;
