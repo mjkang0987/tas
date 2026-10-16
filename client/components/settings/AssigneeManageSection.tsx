@@ -3,6 +3,7 @@ import {useState} from 'react';
 import {useCalendarStore} from '../../store/calendarStore';
 import {PageHero} from '../ui/PageHero';
 import {ConfirmDialog} from '../ui/ConfirmDialog';
+import {Emphasis} from '../ui/Emphasis';
 import type {Assignee, AssigneeStatus} from '../../utils/assignees';
 import {WEEKDAY_LABELS, getAssigneeColor, getAssigneeStatus, splitAssigneesByStatus, sortAssignees, summarizeSchedule} from '../../utils/assignees';
 import {Dot} from '../ui/Dot';
@@ -493,8 +494,9 @@ export const AssigneeManageSection = () => {
             </StyledServiceFooter>
             {confirmTarget && (
                 <ConfirmDialog
-                    title="확인"
-                    message={`"${confirmTarget.name}" ${labels.assignee}를 퇴직 처리하시겠습니까?`}
+                    title={`${labels.assignee} 퇴직`}
+                    message={<><Emphasis>{confirmTarget.name}</Emphasis> {labels.assignee}를 퇴직 처리합니다.{'\n'}<Emphasis>새 예약에서 고를 수 없게</Emphasis> 되고 근무시간 설정이 숨겨집니다.{'\n'}기존 예약은 그대로 남고, 나중에 다시 재직으로 바꿀 수 있습니다.</>}
+                    confirmLabel="퇴직 처리"
                     confirmVariant="danger"
                     layerKey="assignee-confirm"
                     onConfirm={handleConfirmDelete}
