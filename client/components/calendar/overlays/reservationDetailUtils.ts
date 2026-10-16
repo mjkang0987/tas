@@ -56,10 +56,12 @@ export function getPaymentEntryDrafts(
     if (entries.length > 0) {
         // 이 예약에 쓴 쿠폰이 있으면 첫 '할인' 줄이 그 쿠폰 줄이다(서버엔 결제 줄과 쿠폰 연결이 따로 없다).
         const couponIndex = reservation.usedCoupon ? entries.findIndex((entry) => entry.method === '할인') : -1;
+        const membershipIndex = reservation.usedMembership ? entries.findIndex((entry) => entry.method === '회원권') : -1;
         return entries.map((entry, index) => ({
             method: entry.method,
             amount: String(entry.amount),
             ...(index === couponIndex && {couponId: reservation.usedCoupon!.id}),
+            ...(index === membershipIndex && {membershipId: reservation.usedMembership!.id}),
         }));
     }
 

@@ -14,6 +14,13 @@ const usedCouponSelect = {
     take: 1,
 } as const;
 
+const usedMembershipSelect = {
+    where: {type: 'use'},
+    select: {customerMembership: {select: {id: true, name: true, totalCount: true, remainingCount: true, expiresAt: true}}},
+    orderBy: {createdAt: 'desc'},
+    take: 1,
+} as const;
+
 export const reservationSelect = {
     id: true,
     legacyId: true,
@@ -35,6 +42,8 @@ export const reservationSelect = {
     paymentEntries: {select: {method: true, amount: true}},
     // 이 예약 결제에 쓴 쿠폰(결제 레이어가 '이미 쓴 쿠폰'으로 보이고, 바꾸면 되돌린다).
     couponsUsed: usedCouponSelect,
+    // 이 예약 결제에 쓴 회원권(결제에서 되돌리면 연결이 풀려 빠진다).
+    membershipUsages: usedMembershipSelect,
     customer: {select: {legacyId: true}},
     assignee: {select: {legacyId: true}},
 } as const;
@@ -61,6 +70,8 @@ export const reservationSelectWithNames = {
     paymentEntries: {select: {method: true, amount: true}},
     // 이 예약 결제에 쓴 쿠폰(결제 레이어가 '이미 쓴 쿠폰'으로 보이고, 바꾸면 되돌린다).
     couponsUsed: usedCouponSelect,
+    // 이 예약 결제에 쓴 회원권(결제에서 되돌리면 연결이 풀려 빠진다).
+    membershipUsages: usedMembershipSelect,
     customer: {select: {legacyId: true, name: true}},
     assignee: {select: {legacyId: true, name: true}},
 } as const;

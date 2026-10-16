@@ -22,10 +22,11 @@ describe('getReservationRevenue', () => {
 });
 
 describe('isRevenuePaymentMethod', () => {
-    it('할인·적립금만 매출 제외', () => {
+    it('할인·적립금·회원권만 매출 제외', () => {
         expect(isRevenuePaymentMethod('카드')).toBe(true);
         expect(isRevenuePaymentMethod('네이버 예약금')).toBe(true);
         expect(isRevenuePaymentMethod('할인')).toBe(false);
         expect(isRevenuePaymentMethod('적립금')).toBe(false);
+        expect(isRevenuePaymentMethod('회원권')).toBe(false);
     });
 });

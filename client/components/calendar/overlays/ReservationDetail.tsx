@@ -12,7 +12,7 @@ import {useCustomerBenefits} from '../../../hooks/useCustomerBenefits';
 import {useToastStore} from '../../../store/toastStore';
 import {useSingleFlight} from '../../../hooks/useSingleFlight';
 import {computeCouponDiscount} from '../../../features/coupons/model';
-import type {BenefitCoupon} from '../../../features/customers/benefits';
+import type {BenefitCoupon, BenefitMembership} from '../../../features/customers/benefits';
 import {isNewCustomerVisit} from '../../../utils/customers';
 import type {CustomerMap} from '../../../utils/customers';
 import {buildAssigneeNameMap, getAssigneeAvailabilityState, getAssigneeColor, splitAssigneesByStatus} from '../../../utils/assignees';
@@ -379,6 +379,26 @@ export const ReservationDetail = ({
     const paymentExpectedAmount = displayPrice - (sourceReservation.naverDeposit ?? 0);
     const selectedCouponId = paymentEntries.find((entry) => entry.couponId)?.couponId ?? '';
 
+    // ── 회원권 ── 쓸 수 있는 회원권 + 이 예약에 이미 쓴 회원권
+    const usedMembership = sourceReservation.usedMembership;
+    const membershipOptions = useMemo<BenefitMembership[]>(() => {
+        const usable = benefits?.memberships ?? [];
+        return usedMembership && !usable.some((m) => m.id === usedMembership.id) ? [usedMembership, ...usable] : usable;
+    }, [benefits, usedMembership]);
+    const selectedMembershipId = paymentEntries.find((entry) => entry.membershipId)?.membershipId ?? '';
+    const toAmount = (value: string) => Number(value.replace(/[^0-9]/g, '')) || 0;
+
+    // 회원권을 고르면 남은 금액 전부를 '회원권' 줄로 낸다(쿠폰·네이버 예약금 줄은 그대로, 직접 입력 줄은 걷음).
+    // 빼면 남은 금액을 직접 입력 줄 하나로 돌려 놓는다.
+    const handleSelectMembership = (membershipId: string) => {
+        const kept = paymentEntries.filter((entry) => !entry.membershipId && (entry.couponId || entry.method === '네이버 예약금'));
+        const keptTotal = kept.reduce((sum, entry) => sum + toAmount(entry.amount), 0);
+        const remainder = String(Math.max(paymentExpectedAmount - keptTotal, 0));
+        handlePaymentEntriesChange(membershipId
+            ? [...kept, {method: '회원권', amount: remainder, membershipId}]
+            : [...kept, {method: '', amount: remainder}]);
+    };
+
     // 쿠폰 줄을 넣거나 빼고, 직접 입력하는 결제 줄이 하나뿐이면 남은 금액으로 맞춘다(네이버 예약금·쿠폰 줄은 그대로).
     const handleSelectCoupon = (couponId: string) => {
         const others = paymentEntries.filter((entry) => !entry.couponId);
@@ -407,6 +427,16 @@ export const ReservationDetail = ({
     // 결제 저장 중 연타 방지(쿠폰 사용 요청이 두 번 가지 않게).
     const paymentFlight = useSingleFlight();
     const toast = useToastStore((s) => s.show);
+    const postMembershipUse = async (membershipId: string, action: 'use' | 'restore') => {
+        const res = await fetch('/api/membership-use', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({membershipId, action, reservationId: sourceReservation.id}),
+        });
+        if (res.ok) return null;
+        const err = await res.json().catch(() => null) as {error?: string} | null;
+        return err?.error ?? '회원권 처리에 실패했습니다.';
+    };
     const postCouponUse = async (couponId: string, action: 'use' | 'restore') => {
         const res = await fetch('/api/coupon-use', {
             method: 'POST',
@@ -471,6 +501,23 @@ export const ReservationDetail = ({
             }
         }
 
+        // 회원권도 같은 순서 — 새 회원권 1회 사용(실패하면 저장 중단) → 예전 회원권 되돌리기.
+        const nextMembershipId = selectedMembershipId || undefined;
+        const prevMembershipId = usedMembership?.id;
+        if (nextMembershipId !== prevMembershipId) {
+            if (nextMembershipId) {
+                const useError = await postMembershipUse(nextMembershipId, 'use');
+                if (useError) {
+                    setError({field: 'general', message: useError});
+                    return;
+                }
+            }
+            if (prevMembershipId) {
+                const restoreError = await postMembershipUse(prevMembershipId, 'restore');
+                if (restoreError) toast(`이전 회원권을 되돌리지 못했습니다: ${restoreError}`, 'error');
+            }
+        }
+
         onUpdate(sourceReservation, {
             ...sourceReservation,
             paymentCompleted: true,
@@ -478,6 +525,7 @@ export const ReservationDetail = ({
             paymentEntries: normalizedEntries,
             pointEarned: nextPointEarned,
             usedCoupon: nextCouponId ? couponOptions.find((c) => c.id === nextCouponId) : undefined,
+            usedMembership: nextMembershipId ? membershipOptions.find((m) => m.id === nextMembershipId) : undefined,
         });
 
         if (customer && (pointUsageDiff !== 0 || pointEarnDiff !== 0)) {
@@ -743,10 +791,17 @@ export const ReservationDetail = ({
                     couponOptions={couponOptions}
                     selectedCouponId={selectedCouponId}
                     onSelectCoupon={handleSelectCoupon}
+                    membershipOptions={membershipOptions}
+                    selectedMembershipId={selectedMembershipId}
+                    onSelectMembership={handleSelectMembership}
                     onRemoveEntry={(index) => {
                         // 쿠폰 줄을 지우면 쿠폰 선택도 푼다(남은 금액 다시 맞춤).
                         if (paymentEntries[index]?.couponId) {
                             handleSelectCoupon('');
+                            return;
+                        }
+                        if (paymentEntries[index]?.membershipId) {
+                            handleSelectMembership('');
                             return;
                         }
                         handlePaymentEntriesChange(
