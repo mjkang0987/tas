@@ -7,7 +7,8 @@ import styled from 'styled-components';
 import {useCalendarStore} from '../../store/calendarStore';
 import type {Customer, PointHistoryEntry} from '../../utils/customers';
 import {POINT_HISTORY_LABELS} from '../../utils/customers';
-import type {Reservation} from '../../utils/reservations';
+import type {PaymentMethod, Reservation} from '../../utils/reservations';
+import {RECEIVED_PAYMENT_METHODS} from '../../utils/reservations';
 import {formatPrice} from '../../utils/services';
 import {formControlStyle} from '../ui/FormControls';
 import {CloseIconButton} from '../ui/CloseIconButton';
@@ -33,6 +34,8 @@ export function AddressCustomerRecharge({customer, customerReservations, onReser
     const updateCustomer = useCalendarStore((s) => s.updateCustomer);
     const [selectedValue, setSelectedValue] = useState('0');
     const [customAmount, setCustomAmount] = useState('');
+    // 충전은 받은 돈이라 매출로 잡힌다 — 어떻게 받았는지(결제수단)를 같이 남긴다.
+    const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('카드');
     const [isPointHistoryOpen, setIsPointHistoryOpen] = useState(false);
 
     const rechargeOptions = useMemo(
@@ -40,6 +43,7 @@ export function AddressCustomerRecharge({customer, customerReservations, onReser
             value: String(index),
             label: `${formatPrice(rule.baseAmount)} + ${formatPrice(rule.bonusAmount)}`,
             total: rule.baseAmount + rule.bonusAmount,
+            paid: rule.baseAmount,
         })),
         [storeSettings.pointSettings.rechargeRules]
     );
@@ -55,9 +59,11 @@ export function AddressCustomerRecharge({customer, customerReservations, onReser
     }
 
     const handleCharge = () => {
-        const amount = selectedValue === CUSTOM_OPTION
-            ? (Number(customAmount.replace(/[^0-9]/g, '')) || 0)
-            : (rechargeOptions.find((option) => option.value === selectedValue)?.total ?? 0);
+        const isCustom = selectedValue === CUSTOM_OPTION;
+        const option = rechargeOptions.find((item) => item.value === selectedValue);
+        const amount = isCustom ? (Number(customAmount.replace(/[^0-9]/g, '')) || 0) : (option?.total ?? 0);
+        // 받은 돈 = 기준금액(보너스 제외). 직접 입력은 받은 돈 = 충전액.
+        const paidAmount = isCustom ? amount : (option?.paid ?? 0);
 
         if (amount <= 0) return;
 
@@ -66,7 +72,9 @@ export function AddressCustomerRecharge({customer, customerReservations, onReser
         }, {
             type: 'recharge',
             delta: amount,
-            description: selectedValue === CUSTOM_OPTION ? '적립금 직접 충전' : '적립금 기준 충전',
+            description: isCustom ? '적립금 직접 충전' : '적립금 기준 충전',
+            paidAmount,
+            paymentMethod,
         });
         setCustomAmount('');
         setSelectedValue('0');
@@ -99,6 +107,16 @@ export function AddressCustomerRecharge({customer, customerReservations, onReser
                                 <option key={option.value} value={option.value}>{option.label}</option>
                             ))}
                             <option value={CUSTOM_OPTION}>직접입력</option>
+                        </StyledRechargeSelect>
+                        <StyledRechargeSelect
+                            id="recharge-payment-method"
+                            aria-label="충전 결제수단"
+                            value={paymentMethod}
+                            onChange={(e) => setPaymentMethod(e.target.value as PaymentMethod)}
+                        >
+                            {RECEIVED_PAYMENT_METHODS.map((method) => (
+                                <option key={method} value={method}>{method}</option>
+                            ))}
                         </StyledRechargeSelect>
                         {selectedValue === CUSTOM_OPTION && (
                             <StyledCustomAmountInput
