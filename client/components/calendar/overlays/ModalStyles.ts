@@ -1,6 +1,6 @@
 import {useEffect, useRef, useState} from 'react';
 
-import styled, {css} from 'styled-components';
+import styled, {css, keyframes} from 'styled-components';
 import {formControlStyle} from '../../ui/FormControls';
 import {LabelBadge} from '../../ui/LabelBadge';
 import {FieldError} from '../../ui/FieldError';
@@ -125,6 +125,23 @@ export function useDialogAccessibility<T extends HTMLElement>(onClose: () => voi
     return dialogRef;
 }
 
+// 레이어 등장 애니메이션 — 뒤 화면은 서서히 어두워지고, 레이어는 살짝 떠오르며(모바일 시트는 아래에서 올라오며) 나타난다.
+// 새 레이어가 떴다는 걸 눈으로 구분하려는 것이라 짧게(0.2초 안팎) 둔다. 움직임 줄이기 설정이면 끈다.
+const overlayFadeIn = keyframes`
+    from { opacity: 0; }
+    to { opacity: 1; }
+`;
+
+const layerPopIn = keyframes`
+    from { opacity: 0; transform: translateY(8px) scale(0.98); }
+    to { opacity: 1; transform: none; }
+`;
+
+const sheetSlideUp = keyframes`
+    from { opacity: 0.6; transform: translateY(32px); }
+    to { opacity: 1; transform: none; }
+`;
+
 export const StyledOverlay = styled.div`
     position: fixed;
     top: 0;
@@ -141,6 +158,11 @@ export const StyledOverlay = styled.div`
     background: rgba(15, 23, 42, 0.4);
     backdrop-filter: blur(var(--overlay-backdrop-blur));
     box-sizing: border-box;
+    animation: ${overlayFadeIn} 0.18s ease-out;
+
+    @media (prefers-reduced-motion: reduce) {
+        animation: none;
+    }
 
     /* 모바일은 화면 아래에 붙는 시트 — && 로 확장 컴포넌트(z-index 등만 덮음)보다 우선 */
     @media (max-width: 640px) {
@@ -163,6 +185,7 @@ export const StyledDetail = styled.div<{ $width?: number | string }>`
     border-radius: var(--modal-radius);
     box-shadow: var(--modal-shadow);
     overflow: hidden;
+    animation: ${layerPopIn} 0.22s cubic-bezier(0.2, 0.8, 0.2, 1);
 
     /* 바텀시트: 전체 폭 + 위쪽만 둥글게. && 로 확장 모달들의 width/max-width 지정보다 우선한다.
        모달이 아닌 확장(ReservationListSection 의 목록 패널)은 &&& 로 되돌려야 한다. */
@@ -174,6 +197,14 @@ export const StyledDetail = styled.div<{ $width?: number | string }>`
             max-height: 90dvh;
             border-bottom: 0;
             border-radius: var(--modal-radius-mobile) var(--modal-radius-mobile) 0 0;
+            animation-name: ${sheetSlideUp};
+            animation-duration: 0.26s;
+        }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+        && {
+            animation: none;
         }
     }
 `;
