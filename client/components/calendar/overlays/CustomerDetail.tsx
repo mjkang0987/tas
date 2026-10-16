@@ -5,6 +5,7 @@ import {createPortal} from 'react-dom';
 import {useSession} from 'next-auth/react';
 
 import {ConfirmDialog} from '../../ui/ConfirmDialog';
+import {Emphasis} from '../../ui/Emphasis';
 import {CustomerMergeSuggestionModal} from '../../modals/CustomerMergeSuggestionModal';
 import type {Customer, CustomerMemoTag, PointHistoryEntry} from '../../../utils/customers';
 import type {Reservation, ReservationMap} from '../../../utils/reservations';
@@ -595,8 +596,8 @@ export const CustomerDetail = ({customer, reservationMap, onClose, onReservation
     {isDeleteConfirm && (
         <ConfirmDialog title="고객 삭제"
                        message={customerReservations.length > 0
-                           ? `${customer.name} 고객을 삭제하면 예약 ${customerReservations.length}건과 적립금·메모도 함께 영구 삭제됩니다. 되돌릴 수 없습니다.`
-                           : `${customer.name} 고객을 영구 삭제합니다. 되돌릴 수 없습니다.`}
+                           ? <><Emphasis>{customer.name}</Emphasis> 고객을 삭제하면 <Emphasis>예약 {customerReservations.length}건과 적립금·메모</Emphasis>도 함께 영구 삭제됩니다. <Emphasis $tone="danger">되돌릴 수 없습니다.</Emphasis></>
+                           : <><Emphasis>{customer.name}</Emphasis> 고객을 영구 삭제합니다. <Emphasis $tone="danger">되돌릴 수 없습니다.</Emphasis></>}
                        confirmLabel="삭제"
                        confirmVariant="danger"
                        onConfirm={() => {
