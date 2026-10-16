@@ -7,7 +7,9 @@ import {useSession} from 'next-auth/react';
 import {ConfirmDialog} from '../../ui/ConfirmDialog';
 import {Emphasis} from '../../ui/Emphasis';
 import {CustomerMergeSuggestionModal} from '../../modals/CustomerMergeSuggestionModal';
-import type {Customer, CustomerMemoTag, PointHistoryEntry} from '../../../utils/customers';
+import type {Customer, CustomerBalance, CustomerMemoTag, PointHistoryEntry} from '../../../utils/customers';
+import type {MembershipsPayload} from '../../../features/memberships/model';
+import type {CouponsPayload} from '../../../features/coupons/model';
 import type {Reservation, ReservationMap} from '../../../utils/reservations';
 import {groupByDate} from '../../../utils/reservations';
 
@@ -20,7 +22,7 @@ import {
 
 import {buildAssigneeColorMap, buildAssigneeNameMap} from '../../../utils/assignees';
 import {buildServiceColorMap, formatPrice} from '../../../utils/services';
-import {DELETED_CUSTOMER_NAME, formatTel, isSelectableCustomer, normalizeTel, toCustomerMap} from '../../../utils/customers';
+import {DELETED_CUSTOMER_NAME, formatTel, getSelectableCustomers, normalizeTel, summarizeCustomerBalance, toCustomerMap} from '../../../utils/customers';
 import {findSimilarCustomers} from '../../../features/customers/similar';
 import {summarizeCustomerReservations} from '../../../features/customers/merge-suggestion';
 import {shouldUseLocalDb} from '../../../lib/local-db';
@@ -137,7 +139,7 @@ export const CustomerDetail = ({customer, reservationMap, onClose, onReservation
     const similarCustomers = useMemo(() => (
         isEditing
             ? findSimilarCustomers({
-                customers: Object.values(customerMap).filter(isSelectableCustomer),
+                customers: getSelectableCustomers(customerMap),
                 excludeId: customer.id,
                 name: editForm.name,
                 tel: editForm.tel,
@@ -158,6 +160,24 @@ export const CustomerDetail = ({customer, reservationMap, onClose, onReservation
     const {data: session} = useSession();
     const isOwner = session?.user?.role === 'owner';
     const [isDeleteConfirm, setIsDeleteConfirm] = useState(false);
+    // 삭제하면 더는 쓸 수 없게 되는 잔액(적립금·회원권·쿠폰) — 삭제 창에서 경고한다(막지는 않음).
+    // 회원권·쿠폰은 서버 전용이라 게스트는 적립금만 본다. 목록을 못 받으면 적립금만으로 경고한다.
+    const [deleteBalance, setDeleteBalance] = useState<CustomerBalance | null>(null);
+    useEffect(() => {
+        if (!isDeleteConfirm) return;
+        let cancelled = false;
+        const load = async () => {
+            if (shouldUseLocalDb()) return summarizeCustomerBalance(customer, [], [], new Date());
+            const [membershipRes, couponRes] = await Promise.all([fetch('/api/memberships'), fetch('/api/coupons')]);
+            const memberships = membershipRes.ok ? (await membershipRes.json() as MembershipsPayload).memberships : [];
+            const coupons = couponRes.ok ? (await couponRes.json() as CouponsPayload).coupons : [];
+            return summarizeCustomerBalance(customer, memberships, coupons, new Date());
+        };
+        load()
+            .catch(() => summarizeCustomerBalance(customer, [], [], new Date()))
+            .then((balance) => { if (!cancelled) setDeleteBalance(balance); });
+        return () => { cancelled = true; };
+    }, [isDeleteConfirm, customer]);
     const toast = useToastStore((s) => s.show);
     const modalRoot = document.getElementById('modal-root');
     const {layerId, layerDataId} = useLayerInstanceId('customer-detail');
@@ -414,6 +434,15 @@ export const CustomerDetail = ({customer, reservationMap, onClose, onReservation
                                       {...extra} />
     );
 
+    // 끝 글자가 원·개·장이라 조사는 항상 '은'.
+    const balanceLabel = deleteBalance
+        ? [
+            deleteBalance.points > 0 && `적립금 ${formatPrice(deleteBalance.points)}`,
+            deleteBalance.memberships > 0 && `회원권 ${deleteBalance.memberships}개`,
+            deleteBalance.coupons > 0 && `쿠폰 ${deleteBalance.coupons}장`,
+        ].filter(Boolean).join('·')
+        : '';
+
     if (!modalRoot) return null;
 
     return createPortal(<><StyledCustomerOverlay onClick={onClose}
@@ -597,9 +626,13 @@ export const CustomerDetail = ({customer, reservationMap, onClose, onReservation
     {isDeleteConfirm && (
         <ConfirmDialog title={`${customer.name} 고객을 삭제할까요?`}
                        icon="trash"
-                       message={customerReservations.length > 0
-                           ? <><Emphasis>이름·연락처·메모·적립금</Emphasis>이 삭제되고, 고객명은 <Emphasis>{DELETED_CUSTOMER_NAME}</Emphasis>으로 표시됩니다.{'\n'}기존 예약({customerReservations.length}건)은 매출 기록으로 남습니다.{'\n'}<Emphasis $tone="danger">되돌릴 수 없습니다. 삭제하시겠습니까?</Emphasis></>
-                           : <><Emphasis>이름·연락처·메모·적립금</Emphasis>이 삭제됩니다.{'\n'}<Emphasis $tone="danger">되돌릴 수 없습니다. 삭제하시겠습니까?</Emphasis></>}
+                       message={<>
+                           {customerReservations.length > 0
+                               ? <><Emphasis>이름·연락처·메모·적립금</Emphasis>이 삭제되고, 고객명은 <Emphasis>{DELETED_CUSTOMER_NAME}</Emphasis>으로 표시됩니다.{'\n'}기존 예약({customerReservations.length}건)은 매출 기록으로 남습니다.{'\n'}</>
+                               : <><Emphasis>이름·연락처·메모·적립금</Emphasis>이 삭제됩니다.{'\n'}</>}
+                           {balanceLabel && <>남은 <Emphasis>{balanceLabel}</Emphasis>은 더 이상 쓸 수 없습니다.{'\n'}</>}
+                           <Emphasis $tone="danger">되돌릴 수 없습니다. 삭제하시겠습니까?</Emphasis>
+                       </>}
                        confirmLabel="삭제"
                        confirmVariant="danger"
                        onConfirm={() => {
@@ -607,7 +640,7 @@ export const CustomerDetail = ({customer, reservationMap, onClose, onReservation
                            setIsDeleteConfirm(false);
                            onClose();
                        }}
-                       onClose={() => setIsDeleteConfirm(false)} />
+                       onClose={() => { setIsDeleteConfirm(false); setDeleteBalance(null); }} />
     )}
     {/* 글자만 있던 확인 창은 누가 남고 누가 정리되는지 안 읽혔다 — 자동 제안과 같은 카드형 레이어로 보인다.
         방향은 고정(지금 고객 → 다른 고객)이라 자동 제안 모드와 구조가 같다. 입구는 둘:
