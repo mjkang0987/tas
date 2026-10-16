@@ -44,6 +44,10 @@ interface Props {
     overDetail?: boolean;
     /** 닫기 버튼 문구를 바꾼다 — 자동 제안이 아닌데 '건너뛰기'(다시 안 뜸)는 맞지 않다 */
     skipLabel?: string;
+    /** 제목·설명을 바꾼다 — 저장 시 번호 중복처럼 "같은 고객인가요?"보다 들어온 이유를 먼저 말해야 할 때 */
+    heading?: {title: string; description: string};
+    /** 병합 말고 고를 수 있는 다른 길(예: 다른 고객으로 저장). 닫기와 병합 사이에 둔다 */
+    secondaryAction?: {label: string; onClick: () => void};
 }
 
 /** 경로별 문구. 상단/하단 카드가 뜻하는 바가 달라 그대로 쓸 수 없다 */
@@ -75,6 +79,8 @@ export const CustomerMergeSuggestionModal = ({
     onReservationClick,
     overDetail = false,
     skipLabel,
+    heading,
+    secondaryAction,
 }: Props) => {
     const noop = useCallback(() => {}, []);
     const dialogRef = useDialogAccessibility<HTMLDivElement>(noop);
@@ -210,8 +216,8 @@ export const CustomerMergeSuggestionModal = ({
             <StyledMergeModal ref={dialogRef} tabIndex={-1} onClick={(e) => e.stopPropagation()}>
                 <StyledHeader>
                     <StyledHeaderTitleGroup>
-                        <StyledMergeTitle>{title}</StyledMergeTitle>
-                        <StyledHeaderTitleGroupText>{description}</StyledHeaderTitleGroupText>
+                        <StyledMergeTitle>{heading?.title ?? title}</StyledMergeTitle>
+                        <StyledHeaderTitleGroupText>{heading?.description ?? description}</StyledHeaderTitleGroupText>
                     </StyledHeaderTitleGroup>
                     <CloseIconButton onClick={onDismiss} />
                 </StyledHeader>
@@ -282,6 +288,11 @@ export const CustomerMergeSuggestionModal = ({
                     <StyledActionButton type="button" onClick={onSkip} disabled={merging}>
                         {skipLabel ?? copy.skipLabel}
                     </StyledActionButton>
+                    {secondaryAction && (
+                        <StyledActionButton type="button" onClick={secondaryAction.onClick} disabled={merging}>
+                            {secondaryAction.label}
+                        </StyledActionButton>
+                    )}
                     <StyledActionButton type="button" $primary onClick={handleMerge} disabled={merging || !canMerge}>
                         {merging ? '병합 중...' : '병합'}
                     </StyledActionButton>
