@@ -1,4 +1,4 @@
-import {useMemo, useState} from 'react';
+import {useEffect, useMemo, useState} from 'react';
 
 import {PageHero} from '../../ui/PageHero';
 import {useStoreLabels} from '../../../hooks/useStoreLabels';
@@ -21,6 +21,9 @@ import type {CustomerMap} from '../../../utils/customers';
 
 import {exportRevenueToExcel} from '../../../utils/revenue-export';
 import {RevenueFilters, type RevenueViewTab} from './RevenueFilters';
+import {buildStoreSales, addSalesToRevenue, type StoreSale} from '../../../features/sales/model';
+import type {CustomerMembership, MembershipsPayload} from '../../../features/memberships/model';
+import {shouldUseLocalDb} from '../../../lib/local-db';
 import {RevenueKpiGrid, type RevenueMetricKey} from './RevenueKpiGrid';
 import {RevenueChartGrid, type ChartDetailKey} from './RevenueChartGrid';
 import {RevenueDailyList} from './RevenueDailyList';
@@ -99,8 +102,32 @@ export const RevenueSection = ({
         ? [startDateKey, endDateKey]
         : [endDateKey, startDateKey];
 
-    const rangeRevenue = getRangeRevenue(reservationMap, fromDateKey, toDateKeyValue, selectedAssigneeId, revenueFilterMode);
-    const revenueInsights = getRevenueInsights(reservationMap, fromDateKey, toDateKeyValue, selectedAssigneeId, revenueFilterMode);
+    // 예약 밖에서 받은 돈(회원권 판매·적립금 충전)도 받은 날 매출에 더한다. 담당자가 없는 매출이라 담당자 필터 중엔 뺀다.
+    // 회원권은 서버 전용 — 게스트는 충전분만.
+    const [memberships, setMemberships] = useState<CustomerMembership[]>([]);
+    useEffect(() => {
+        if (shouldUseLocalDb()) return;
+        let cancelled = false;
+        fetch('/api/memberships')
+            .then((res) => (res.ok ? res.json() as Promise<MembershipsPayload> : null))
+            .catch(() => null)
+            .then((data) => { if (!cancelled && data) setMemberships(data.memberships ?? []); });
+        return () => { cancelled = true; };
+    }, []);
+    const storeSales = useMemo(() => buildStoreSales(Object.values(customerMap), memberships), [customerMap, memberships]);
+    const baseRangeRevenue = getRangeRevenue(reservationMap, fromDateKey, toDateKeyValue, selectedAssigneeId, revenueFilterMode);
+    const baseRevenueInsights = getRevenueInsights(reservationMap, fromDateKey, toDateKeyValue, selectedAssigneeId, revenueFilterMode);
+    const salesForRange = selectedAssigneeId == null ? storeSales : [];
+    const makeEmptyDay = (dateKey: string) => ({dateKey, total: 0, count: 0});
+    const rangeWithSales = addSalesToRevenue(baseRangeRevenue.days, [], salesForRange, fromDateKey, toDateKeyValue, makeEmptyDay);
+    const insightsWithSales = addSalesToRevenue(baseRevenueInsights.series, baseRevenueInsights.payments, salesForRange, fromDateKey, toDateKeyValue, makeEmptyDay);
+    const rangeRevenue = {...baseRangeRevenue, days: rangeWithSales.days, total: baseRangeRevenue.total + rangeWithSales.salesTotal};
+    const revenueInsights = {
+        ...baseRevenueInsights,
+        series: insightsWithSales.days,
+        payments: insightsWithSales.payments,
+        paidTotal: baseRevenueInsights.paidTotal + insightsWithSales.paidSalesTotal,
+    };
     const operationInsights = getOperationInsights(reservationMap, fromDateKey, toDateKeyValue, selectedAssigneeId);
     const days = [...rangeRevenue.days].sort((a, b) => b.dateKey.localeCompare(a.dateKey));
 
@@ -115,6 +142,14 @@ export const RevenueSection = ({
         ),
         [days, reservationMap, selectedAssigneeId, revenueFilterMode]
     );
+    const daySalesMap = useMemo(() => {
+        const map: Record<string, StoreSale[]> = {};
+        for (const sale of salesForRange) {
+            if (sale.dateKey < fromDateKey || sale.dateKey > toDateKeyValue) continue;
+            (map[sale.dateKey] ??= []).push(sale);
+        }
+        return map;
+    }, [salesForRange, fromDateKey, toDateKeyValue]);
 
     const openedDateKey = detailDateKey && detailDateKey >= fromDateKey && detailDateKey <= toDateKeyValue
         ? detailDateKey
@@ -479,6 +514,7 @@ export const RevenueSection = ({
                         newCustomerCount={revenueInsights.newCustomerCount}
                         returningCustomerCount={revenueInsights.returningCustomerCount}
                         paidTotal={revenueInsights.paidTotal}
+                        salesTotal={rangeWithSales.salesTotal}
                         onMetricClick={setMetricLayerKey}
                     />
                     <RevenueChartGrid
@@ -511,6 +547,7 @@ export const RevenueSection = ({
                     <RevenueDailyList
                         days={days}
                         dayReservationMap={dayReservationMap}
+                        daySalesMap={daySalesMap}
                         assigneeMap={assigneeMap}
                         customerMap={customerMap}
                         serviceColorMap={serviceColorMap}

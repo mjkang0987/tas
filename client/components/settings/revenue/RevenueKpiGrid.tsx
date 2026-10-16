@@ -10,6 +10,8 @@ interface RevenueKpiGridProps {
     newCustomerCount: number;
     returningCustomerCount: number;
     paidTotal: number;
+    /** 총 매출 중 예약 밖에서 받은 돈(회원권 판매·적립금 충전) */
+    salesTotal?: number;
     onMetricClick: (key: RevenueMetricKey) => void;
 }
 
@@ -19,12 +21,14 @@ export const RevenueKpiGrid = ({
     newCustomerCount,
     returningCustomerCount,
     paidTotal,
+    salesTotal = 0,
     onMetricClick,
 }: RevenueKpiGridProps) => (
     <StyledKpiGrid>
         <StyledKpiCard onClick={() => onMetricClick('sales')}>
             <StyledKpiLabel>총 매출</StyledKpiLabel>
             <StyledKpiValue>{formatPrice(total)}</StyledKpiValue>
+            {salesTotal > 0 && <StyledKpiSub>회원권·충전 {formatPrice(salesTotal)} 포함</StyledKpiSub>}
         </StyledKpiCard>
         <StyledKpiCard onClick={() => onMetricClick('count')}>
             <StyledKpiLabel>예약 건수</StyledKpiLabel>
@@ -46,6 +50,11 @@ export const RevenueKpiGrid = ({
 );
 
 /* ── Styled ── */
+
+const StyledKpiSub = styled.span`
+    font-size: var(--xsmall-font);
+    color: var(--dark-gray-color2);
+`;
 
 const StyledKpiGrid = styled.div`
     display: grid;
