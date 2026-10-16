@@ -67,6 +67,12 @@ export function toDateKey(fullYear: number, month: number, date: number): string
     return `${normalized.getFullYear()}-${m}-${d}`;
 }
 
+/** ISO 순간(만료일 등)을 로컬(한국 시간) 날짜 키로. `iso.slice(0, 10)`은 UTC 날짜라 오전 0~9시 값이 하루 이르게 보인다 */
+export function toLocalDateKey(iso: string): string {
+    const d = new Date(iso);
+    return toDateKey(d.getFullYear(), d.getMonth(), d.getDate());
+}
+
 export function findOverlap(
     reservationMap: ReservationMap,
     dateKey: string,
