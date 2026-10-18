@@ -49,6 +49,14 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             if (unlimited && !reservationCuid) return {error: 'unlimited' as const};
 
             if (action === 'use') {
+                // 이미 이 예약에 쓴 회원권이면 그대로 성공 — 결제 저장이 중간에 실패해 다시 저장할 때 한 번 더 깎지 않게.
+                if (reservationCuid) {
+                    const already = await tx.membershipUsage.findFirst({
+                        where: {customerMembershipId: m.id, reservationId: reservationCuid, type: 'use'},
+                        select: {id: true},
+                    });
+                    if (already) return {remainingCount: m.remainingCount};
+                }
                 if (m.expiresAt && m.expiresAt <= new Date()) return {error: 'expired' as const};
                 if (unlimited) {
                     await tx.membershipUsage.create({
@@ -58,10 +66,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                 }
                 if (m.remainingCount! <= 0) return {error: 'empty' as const};
                 const next = m.remainingCount! - 1;
-                await tx.customerMembership.update({
-                    where: {id: m.id},
+                // 읽은 값 그대로일 때만 바꾼다 — 두 기기가 동시에 쓰면 둘 다 같은 값을 읽고 한 번만 깎였다.
+                const changed = await tx.customerMembership.updateMany({
+                    where: {id: m.id, remainingCount: m.remainingCount},
                     data: {remainingCount: next, status: next === 0 ? 'used_up' : 'active'},
                 });
+                if (changed.count === 0) return {error: 'conflict' as const};
                 await tx.membershipUsage.create({
                     data: {customerMembershipId: m.id, delta: -1, type: 'use', memo: reservationCuid ? '결제 사용' : '수동 차감', reservationId: reservationCuid},
                 });
@@ -83,10 +93,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             }
             const next = Math.min(m.remainingCount! + 1, m.totalCount!);
             if (next === m.remainingCount) return {error: 'full' as const};
-            await tx.customerMembership.update({
-                where: {id: m.id},
+            const restored = await tx.customerMembership.updateMany({
+                where: {id: m.id, remainingCount: m.remainingCount},
                 data: {remainingCount: next, status: 'active'},
             });
+            if (restored.count === 0) return {error: 'conflict' as const};
             await tx.membershipUsage.create({
                 data: {customerMembershipId: m.id, delta: 1, type: 'refund', memo: reservationCuid ? '결제 취소 복원' : '수동 복원'},
             });
@@ -104,6 +115,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                 not_linked: [400, '이 예약에 쓴 기록이 없습니다.'],
                 empty: [400, '남은 횟수가 없습니다.'],
                 full: [400, '이미 최대 횟수입니다.'],
+                conflict: [409, '다른 곳에서 동시에 처리 중입니다. 다시 시도해 주세요.'],
             };
             const [code, message] = map[String(result.error)] ?? [400, '처리할 수 없습니다.'];
             return res.status(code).json({error: message});
