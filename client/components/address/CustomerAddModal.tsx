@@ -33,7 +33,10 @@ export function CustomerAddModal({onClose}: { onClose: () => void }) {
     const customerMap = useCalendarStore((s) => s.customerMap);
     const addCustomer = useCalendarStore((s) => s.addCustomer);
 
-    const handleSubmit = () => {
+    // 서버가 번호를 정해 줄 때까지 닫지 않는다 — 그 전에 고객을 고치면 확정 안 된 번호로 저장돼 남의 고객을 덮는다.
+    const [isSaving, setIsSaving] = useState(false);
+    const handleSubmit = async () => {
+        if (isSaving) return;
         const trimmedName = name.trim();
         const trimmedTel = normalizeTel(tel);
 
@@ -56,8 +59,11 @@ export function CustomerAddModal({onClose}: { onClose: () => void }) {
             pointHistories: [],
         };
 
-        addCustomer(newCustomer);
-        onClose();
+        setIsSaving(true);
+        const savedId = await addCustomer(newCustomer);
+        setIsSaving(false);
+        // 실패는 저장 쪽에서 알림을 띄운다 — 입력을 지우지 않고 다시 누를 수 있게 둔다.
+        if (savedId != null) onClose();
     };
 
     return (
@@ -99,7 +105,7 @@ export function CustomerAddModal({onClose}: { onClose: () => void }) {
                 </StyledFormWrap>
                 <StyledFooter>
                     <StyledActionButton type="button" onClick={onClose}>취소</StyledActionButton>
-                    <StyledActionButton type="button" $primary onClick={handleSubmit}>추가</StyledActionButton>
+                    <StyledActionButton type="button" $primary onClick={handleSubmit} disabled={isSaving} aria-busy={isSaving}>{isSaving ? '추가 중…' : '추가'}</StyledActionButton>
                 </StyledFooter>
             </StyledDetail>
         </StyledOverlay>

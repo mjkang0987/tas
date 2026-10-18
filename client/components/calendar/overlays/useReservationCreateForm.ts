@@ -19,7 +19,7 @@ type UseReservationCreateFormParams = {
     customerMap: CustomerMap;
     reservationMap: Record<string, Reservation[]>;
     assignees: Assignee[];
-    addCustomer: (customer: Customer) => Promise<number>;
+    addCustomer: (customer: Customer) => Promise<number | null>;
     onSave: (reservation: Reservation) => void;
 };
 
@@ -248,6 +248,8 @@ export function useReservationCreateForm({
                 // 'Customer not found'(400)가 나지 않는다. (단건 저장이라 빠름)
                 // 번호는 서버가 최종으로 정한다(이미 다른 고객이 쓰는 번호면 새 번호) — 돌려받은 번호로 예약을 만든다.
                 const savedId = await addCustomer(nextCustomer);
+                // 고객 저장이 실패하면 예약도 만들지 않는다 — 확정 안 된 번호로 만들면 그 번호의 다른 고객에게 붙는다.
+                if (savedId == null) return;
                 resolvedCustomerId = savedId;
                 // 만든 고객을 폼에 고정한다. 저장이 실패해 다시 누르더라도
                 // customerId가 0이 아니라 재생성 경로를 타지 않는다.

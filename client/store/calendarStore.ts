@@ -162,7 +162,8 @@ export interface CalendarState {
     setReservationMap: (map: ReservationMap) => void;
     setCustomerMap: (map: CustomerMap) => void;
     /** 서버가 정한 고객 번호를 돌려준다(보낸 번호와 다를 수 있다). 저장 실패면 보낸 번호 그대로 */
-    addCustomer: (customer: Customer) => Promise<number>;
+    /** 서버가 정한 고객 번호. 저장에 실패하면 null — 화면에 넣었던 고객도 뺀다(확정 안 된 번호로 쓰면 남의 고객을 덮는다). */
+    addCustomer: (customer: Customer) => Promise<number | null>;
     updateCustomer: (
         customerId: number,
         patch: Partial<Customer>,
@@ -246,6 +247,41 @@ function resolveLatestReservation(reservationMap: ReservationMap, reservation: R
 // 예약 변경(추가·수정·취소·복원·삭제) 시 firstVisitDate가 실제로 바뀐 고객만 서버에
 // 저장한다. 전체 고객 목록을 통째로 PUT하던 비효율(고객 수에 비례해 수 초, 예약 POST와
 // 레이스)을 없애기 위함.
+// 서버에 만드는 중이거나 번호가 바뀐 예약(화면 번호 → 서버가 정한 번호, 실패면 null).
+// 만들기가 끝나기 전에, 또는 옛 번호를 들고 있는 열린 화면에서 그 번호로 수정·삭제를 보내면
+// 같은 번호의 **다른 예약**을 덮어쓴다 — 서버 번호가 정해질 때까지 기다렸다가 그 번호로 보낸다.
+const savingReservationIds = new Map<number, Promise<number | null>>();
+const savedReservationIds = new Map<number, number>();
+
+/** 모든 날짜에서 그 번호의 예약을 새 번호로(null 이면 뺀다). */
+function mapReservationIds(map: ReservationMap, fromId: number, toId: number | null): ReservationMap {
+    const next: ReservationMap = {};
+    for (const [dateKey, list] of Object.entries(map)) {
+        next[dateKey] = toId == null
+            ? list.filter((item) => item.id !== fromId)
+            : list.map((item) => (item.id === fromId ? {...item, id: toId} : item));
+    }
+    return next;
+}
+
+/** 화면 번호를 이미 알려진 서버 번호로(열린 레이어가 옛 번호를 들고 있을 때). */
+function withSavedReservationId(reservation: Reservation): Reservation {
+    const saved = savedReservationIds.get(reservation.id);
+    return saved != null && saved !== reservation.id ? {...reservation, id: saved} : reservation;
+}
+
+/** 이 예약의 서버 번호가 정해진 뒤 보낸다. 만들기가 실패했으면 보내지 않는다(서버엔 그 예약이 없다). */
+function afterReservationSaved(id: number, send: (savedId: number) => void): void {
+    const pending = savingReservationIds.get(id);
+    if (!pending) {
+        send(id);
+        return;
+    }
+    void pending.then((savedId) => {
+        if (savedId != null) send(savedId);
+    });
+}
+
 function syncChangedCustomers(prev: CustomerMap, next: CustomerMap): void {
     const changed = Object.values(next).filter((c) => {
         const before = prev[c.id];
@@ -409,17 +445,30 @@ export const useCalendarStore = create<CalendarState>((set) => ({
         });
         // 단건 저장(빠름) + await 가능 → 신규 고객을 서버에 먼저 만든 뒤 예약 POST.
         if (!toSync) return Promise.resolve(customer.id);
+        // 그 사이 목록을 다시 받아 같은 번호에 서버 고객이 들어왔으면 그건 남의 고객이다 — 건드리지 않는다.
+        const isOurs = (c: Customer | undefined) => !!c && c.name === customer.name && c.tel === customer.tel;
         return persistNewCustomer(customer, toSync).then((savedId) => {
-            // 화면이 매긴 번호가 이미 다른 고객(네이버 동기화·온라인 예약이 먼저 씀)이면 서버가 새 번호를 준다 → 옮긴다.
-            if (savedId != null && savedId !== customer.id) {
+            if (savedId == null) {
+                // 확정되지 않은 번호를 화면에 남기면 다음 저장(PUT)이 그 번호의 다른 고객을 덮어쓴다.
                 set((state) => {
+                    if (!isOurs(state.customerMap[customer.id])) return state;
                     const nextCustomerMap = {...state.customerMap};
                     delete nextCustomerMap[customer.id];
-                    nextCustomerMap[savedId] = {...customer, id: savedId};
+                    return {customerMap: nextCustomerMap};
+                });
+                return null;
+            }
+            // 화면이 매긴 번호가 이미 다른 고객(네이버 동기화·온라인 예약이 먼저 씀)이면 서버가 새 번호를 준다 → 옮긴다.
+            if (savedId !== customer.id) {
+                set((state) => {
+                    const nextCustomerMap = {...state.customerMap};
+                    const local = state.customerMap[customer.id];
+                    if (isOurs(local)) delete nextCustomerMap[customer.id];
+                    nextCustomerMap[savedId] = {...(isOurs(local) ? local : customer), id: savedId};
                     return {customerMap: nextCustomerMap};
                 });
             }
-            return savedId ?? customer.id;
+            return savedId;
         });
     },
 
@@ -719,31 +768,31 @@ export const useCalendarStore = create<CalendarState>((set) => ({
             return;
         }
 
-        void fetch('/api/reservations', jsonRequest('POST', reservation))
+        const saving = fetch('/api/reservations', jsonRequest('POST', reservation))
             .then(async (response) => {
                 if (!response.ok) throw new Error(String(response.status));
                 const data = await response.json().catch(() => null) as {reservation?: Reservation} | null;
-                const saved = data?.reservation;
-                // 번호가 겹쳐 서버가 새 번호로 만들었으면 화면의 예약 번호도 옮긴다.
-                if (saved && saved.id !== reservation.id) {
-                    set((state) => {
-                        const list = state.reservationMap[reservation.date] ?? [];
-                        return {
-                            reservationMap: {
-                                ...state.reservationMap,
-                                [reservation.date]: list.map((item) => (item.id === reservation.id ? {...item, id: saved.id} : item)),
-                            },
-                        };
-                    });
+                const savedId = data?.reservation?.id ?? reservation.id;
+                savedReservationIds.set(reservation.id, savedId);
+                // 번호가 겹쳐 서버가 새 번호로 만들었으면 화면의 예약 번호도 옮긴다(그 사이 날짜를 옮겼어도 찾는다).
+                if (savedId !== reservation.id) {
+                    set((state) => ({reservationMap: mapReservationIds(state.reservationMap, reservation.id, savedId)}));
                 }
+                return savedId;
             })
             .catch((error) => {
                 console.error('[sync] POST /api/reservations 실패:', error);
-                useToastStore.getState().show('예약 저장에 실패했습니다. 새로고침 후 다시 확인해 주세요.', 'error');
+                // 확정 안 된 번호를 화면에 남기면 이후 수정이 그 번호의 다른 예약을 덮는다 — 화면에서도 뺀다.
+                set((state) => ({reservationMap: mapReservationIds(state.reservationMap, reservation.id, null)}));
+                useToastStore.getState().show('예약 저장에 실패해 화면에서 뺐습니다. 다시 등록해 주세요.', 'error');
+                return null;
             });
+        savingReservationIds.set(reservation.id, saving);
     },
 
-    updateReservation: (prev, updated) => {
+    updateReservation: (prevInput, updatedInput) => {
+        const prev = withSavedReservationId(prevInput);
+        const updated = withSavedReservationId(updatedInput);
         if (updated.status === 'completed' && !hasCompletedPayment(updated)) {
             return;
         }
@@ -768,10 +817,10 @@ export const useCalendarStore = create<CalendarState>((set) => ({
             return;
         }
 
-        fetch('/api/reservations', {
+        afterReservationSaved(prev.id, (savedId) => fetch('/api/reservations', {
             method: 'PUT',
             headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify({prev, updated})
+            body: JSON.stringify({prev: {...prev, id: savedId}, updated: {...updated, id: savedId}}),
         })
             .then(async (response) => {
                 if (!response.ok) {
@@ -792,7 +841,7 @@ export const useCalendarStore = create<CalendarState>((set) => ({
                     const newKey = savedReservation.date;
 
                     if (nextMap[oldKey]) {
-                        nextMap[oldKey] = nextMap[oldKey].filter((reservation) => reservation.id !== prev.id);
+                        nextMap[oldKey] = nextMap[oldKey].filter((reservation) => reservation.id !== prev.id && reservation.id !== savedId);
                         if (nextMap[oldKey].length === 0) delete nextMap[oldKey];
                     }
 
@@ -819,10 +868,11 @@ export const useCalendarStore = create<CalendarState>((set) => ({
                 console.error('[updateReservation] 저장 요청 실패:', error);
                 useToastStore.getState().show(
                     '예약 수정 저장에 실패했습니다. 새로고침 후 다시 확인해 주세요.', 'error');
-            });
+            }));
     },
 
-    cancelReservation: (reservation, status = 'cancelled', reason) => {
+    cancelReservation: (reservationInput, status = 'cancelled', reason) => {
+        const reservation = withSavedReservationId(reservationInput);
         const updated: Reservation = {...reservation, status};
 
         let nextReservationMap: ReservationMap | null = null;
@@ -845,14 +895,15 @@ export const useCalendarStore = create<CalendarState>((set) => ({
             return;
         }
 
-        void requestServerSync(
+        afterReservationSaved(reservation.id, (savedId) => void requestServerSync(
             '/api/reservations',
-            jsonRequest('PATCH', {id: reservation.id, status, ...(reason ? {reason} : {})}),
+            jsonRequest('PATCH', {id: savedId, status, ...(reason ? {reason} : {})}),
             '예약 상태 변경이 서버에 반영되지 않았습니다. 새로고침 후 다시 시도해 주세요.',
-        );
+        ));
     },
 
-    restoreReservation: (reservation) => {
+    restoreReservation: (reservationInput) => {
+        const reservation = withSavedReservationId(reservationInput);
         const updated: Reservation = {...reservation, status: 'active'};
 
         let nextReservationMap: ReservationMap | null = null;
@@ -889,11 +940,12 @@ export const useCalendarStore = create<CalendarState>((set) => ({
             return;
         }
 
-        void requestServerSync('/api/reservations', jsonRequest('PATCH', {id: reservation.id, status: 'active'}),
-            '예약 복원이 서버에 반영되지 않았습니다. 새로고침 후 다시 시도해 주세요.');
+        afterReservationSaved(reservation.id, (savedId) => void requestServerSync('/api/reservations', jsonRequest('PATCH', {id: savedId, status: 'active'}),
+            '예약 복원이 서버에 반영되지 않았습니다. 새로고침 후 다시 시도해 주세요.'));
     },
 
-    deleteReservation: (reservation) => {
+    deleteReservation: (reservationInput) => {
+        const reservation = withSavedReservationId(reservationInput);
         let nextReservationMap: ReservationMap | null = null;
 
         set((state) => {
@@ -914,8 +966,8 @@ export const useCalendarStore = create<CalendarState>((set) => ({
             return;
         }
 
-        void requestServerSync('/api/reservations', jsonRequest('DELETE', {id: reservation.id}),
-            '예약 삭제가 서버에 반영되지 않았습니다. 새로고침 후 다시 시도해 주세요.');
+        afterReservationSaved(reservation.id, (savedId) => void requestServerSync('/api/reservations', jsonRequest('DELETE', {id: savedId}),
+            '예약 삭제가 서버에 반영되지 않았습니다. 새로고침 후 다시 시도해 주세요.'));
     },
 
     addSyncNotifications: (items) =>
