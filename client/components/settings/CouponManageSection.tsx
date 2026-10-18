@@ -312,7 +312,6 @@ export const CouponManageSection = () => {
         <StyledWrap>
             <PageHero
                 eyebrow="COUPON"
-                title="쿠폰 관리"
                 subtitle="정액·정률 할인 쿠폰을 등록하고 고객에게 발급·사용 처리합니다. 결제 자동 차감은 추후 지원됩니다."
             />
 

@@ -312,7 +312,7 @@ const Address: NextPage<AddressProps> = ({customers, reservations, history, stor
     return (
         <StyledSection>
             <SeoHead title="고객명단" />
-            <PageHero eyebrow="CUSTOMER" title="고객 명단" subtitle="고객 정보, 예약 이력, 메모 태그를 관리합니다." />
+            <PageHero eyebrow="CUSTOMER" subtitle="고객 정보, 예약 이력, 메모 태그를 관리합니다." />
             <AddressContent
                 filteredCustomers={filteredCustomers}
                 reservationsByCustomer={reservationsByCustomer}

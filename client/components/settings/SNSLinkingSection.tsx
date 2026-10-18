@@ -179,7 +179,7 @@ export function SNSLinkingSection() {
 
     return (
         <div>
-            <PageHero eyebrow="SNS" title="계정 연동" subtitle="여러 SNS 계정을 연결하면 어떤 계정으로든 로그인할 수 있습니다." />
+            <PageHero eyebrow="SNS" subtitle="여러 SNS 계정을 연결하면 어떤 계정으로든 로그인할 수 있습니다." />
 
             {isGuest && <StyledGuestNoticeWrap><GuestNotice /></StyledGuestNoticeWrap>}
 

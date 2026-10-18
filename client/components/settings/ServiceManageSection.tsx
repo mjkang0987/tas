@@ -512,7 +512,7 @@ export const ServiceManageSection = () => {
 
     return (
         <>
-            <PageHero eyebrow="SERVICE" title={`${labels.service} 관리`} subtitle={`${labels.service} 카테고리와 항목을 등록하고 가격을 설정합니다.`} />
+            <PageHero eyebrow="SERVICE" subtitle={`${labels.service} 카테고리와 항목을 등록하고 가격을 설정합니다.`} />
             <StyledServiceBody>
                 {grouped.size === 0 && <StyledEmpty>{EMPTY_TEXT}</StyledEmpty>}
                 {Array.from(grouped.entries()).map(([category, items]) => (

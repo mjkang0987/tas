@@ -98,7 +98,7 @@ export function NaverBookingSection() {
 
     return (
         <div>
-            <PageHero eyebrow="설정" title="네이버예약 연동" subtitle="Gmail을 통해 네이버 예약을 자동으로 일정표에 반영합니다." />
+            <PageHero eyebrow="설정" subtitle="Gmail을 통해 네이버 예약을 자동으로 일정표에 반영합니다." />
 
             {isGuest && (
                 <StyledSettingsCard>

@@ -444,7 +444,7 @@ export const RevenueSection = ({
 
     return (
         <>
-            <PageHero eyebrow="REVENUE" title="매출" subtitle={`기간별 매출 현황과 ${labels.assignee}별 실적을 확인합니다.`} />
+            <PageHero eyebrow="REVENUE" subtitle={`기간별 매출 현황과 ${labels.assignee}별 실적을 확인합니다.`} />
             <RevenueFilters
                 startDateKey={startDateKey}
                 endDateKey={endDateKey}
