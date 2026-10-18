@@ -44,6 +44,7 @@ const DB_TO_FRONTEND_PAYMENT_METHOD: Record<DbPaymentMethod, PaymentMethod> = {
     points: '적립금',
     discount: '할인',
     naver_deposit: '네이버 예약금',
+    membership: '회원권',
 };
 
 const FRONTEND_TO_DB_PAYMENT_METHOD: Record<string, DbPaymentMethod> = {
@@ -60,6 +61,7 @@ const FRONTEND_TO_DB_PAYMENT_METHOD: Record<string, DbPaymentMethod> = {
     '적립금': 'points',
     '할인': 'discount',
     '네이버 예약금': 'naver_deposit',
+    '회원권': 'membership',
 };
 
 export function dbPaymentMethodToFrontend(method: DbPaymentMethod): PaymentMethod {
@@ -170,6 +172,8 @@ type DbCustomerRow = {
         description: string;
         createdAt: Date;
         relatedReservation: { legacyId: number | null } | null;
+        paidAmount?: number | null;
+        paymentMethod?: DbPaymentMethod | null;
     }>;
 };
 
@@ -189,6 +193,8 @@ export function dbCustomerToFrontend(row: DbCustomerRow): Customer {
             description: h.description,
             createdAt: h.createdAt.toISOString(),
             ...(h.relatedReservation?.legacyId != null && {relatedReservationId: h.relatedReservation.legacyId}),
+            ...(h.paidAmount != null && {paidAmount: h.paidAmount}),
+            ...(h.paymentMethod != null && {paymentMethod: dbPaymentMethodToFrontend(h.paymentMethod)}),
         })),
         ...(row.deletedAt && {deleted: true}),
     };
@@ -221,6 +227,9 @@ type DbReservationRow = {
         id: string; name: string; discountType: string; discountValue: number;
         maxDiscount: number | null; minOrderAmount: number | null; expiresAt: Date | null;
     }>;
+    membershipUsages?: Array<{
+        customerMembership: {id: string; name: string; totalCount: number | null; remainingCount: number | null; expiresAt: Date | null};
+    }>;
 };
 
 export function dbReservationToFrontend(row: DbReservationRow): Reservation {
@@ -249,6 +258,10 @@ export function dbReservationToFrontend(row: DbReservationRow): Reservation {
             ...row.couponsUsed[0],
             discountType: row.couponsUsed[0].discountType === 'rate' ? 'rate' as const : 'amount' as const,
             expiresAt: row.couponsUsed[0].expiresAt?.toISOString() ?? null,
+        }}),
+        ...(row.membershipUsages?.[0] && {usedMembership: {
+            ...row.membershipUsages[0].customerMembership,
+            expiresAt: row.membershipUsages[0].customerMembership.expiresAt?.toISOString() ?? null,
         }}),
     };
 }

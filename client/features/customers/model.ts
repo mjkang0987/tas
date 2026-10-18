@@ -1,4 +1,4 @@
-import type {Reservation, ReservationMap} from '../reservations/model';
+import type {PaymentMethod, Reservation, ReservationMap} from '../reservations/model';
 
 export type PointHistoryType = 'manual_add' | 'manual_subtract' | 'recharge' | 'payment_use' | 'payment_earn' | 'payment_adjust';
 
@@ -19,6 +19,9 @@ export interface PointHistoryEntry {
     description: string;
     createdAt: string;
     relatedReservationId?: number;
+    /** 충전 때 받은 금액(보너스 붙은 적립액 delta 와 다를 수 있다)·결제수단 — 매출로 잡힌다. 그 밖의 이력엔 없음 */
+    paidAmount?: number;
+    paymentMethod?: PaymentMethod;
 }
 
 export interface CustomerMemoTag {
@@ -68,7 +71,8 @@ export function anonymizeCustomer(customer: Customer): Customer {
         tel: '',
         points: 0,
         firstVisitDate: null,
-        pointHistories: [],
+        // 받은 돈이 기록된 충전(매출)만 남긴다 — 서버 DELETE 와 같은 규칙.
+        pointHistories: (customer.pointHistories ?? []).filter((h) => h.type === 'recharge' && h.paidAmount != null),
         memoTags: [],
         deleted: true,
     };
