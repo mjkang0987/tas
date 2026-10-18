@@ -22,6 +22,8 @@ export type ReservationDiffItem = {
 export type PaymentEntryDraft = {
     method: PaymentMethod | '';
     amount: string;
+    /** 쿠폰으로 생긴 '할인' 줄이면 그 쿠폰 id — 금액·종류는 쿠폰이 정하므로 직접 고치지 않는다 */
+    couponId?: string;
 };
 
 export type PointAwardDraft = {

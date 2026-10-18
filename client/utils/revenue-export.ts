@@ -8,7 +8,7 @@ import type {Reservation, ReservationMap} from './reservations';
 import type {CustomerMap} from './customers';
 import type {Assignee} from './assignees';
 import type {RevenueFilterMode} from './revenue';
-import {isRevenueReservationTarget, resolvePrice} from './revenue';
+import {isRevenueReservationTarget, resolveRevenue} from './revenue';
 import {getStoreLabels} from '../features/store-settings/labels';
 import {useCalendarStore} from '../store/calendarStore';
 
@@ -79,7 +79,8 @@ export function exportRevenueToExcel({
                 '고객명': customer?.name ?? '',
                 [labels.service]: r.service,
                 [labels.assignee]: r.assigneeId != null ? (assigneeMap.get(r.assigneeId) ?? '') : '',
-                '금액': resolvePrice(r.service, r.price),
+                // 매출 화면과 같은 기준(할인·적립금 제외). 결제 내역은 '결제수단' 칸에 그대로 남는다.
+                '금액': resolveRevenue(r),
                 '결제수단': formatPayment(r),
                 '상태': STATUS_LABELS[r.status ?? 'active'] ?? r.status ?? '',
                 '예약경로': r.channel ?? '',

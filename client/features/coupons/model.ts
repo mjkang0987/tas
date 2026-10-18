@@ -61,3 +61,17 @@ export function couponDisplayStatus(c: Pick<CustomerCoupon, 'status' | 'expiresA
     if (c.status === 'active' && c.expiresAt && new Date(c.expiresAt) <= now) return 'expired';
     return c.status;
 }
+
+/**
+ * 결제 금액(amount)에 이 쿠폰을 쓸 때의 할인액. 최소 결제금액에 못 미치면 null(쓸 수 없음).
+ * 정액은 결제 금액을 넘지 않고, 정률은 원 단위 내림 + 최대 할인액 한도.
+ */
+export function computeCouponDiscount(
+    c: Pick<CouponProduct, 'discountType' | 'discountValue' | 'maxDiscount' | 'minOrderAmount'>,
+    amount: number,
+): number | null {
+    if (c.minOrderAmount != null && amount < c.minOrderAmount) return null;
+    const raw = c.discountType === 'amount' ? c.discountValue : Math.floor(amount * c.discountValue / 100);
+    const capped = c.discountType === 'rate' && c.maxDiscount != null ? Math.min(raw, c.maxDiscount) : raw;
+    return Math.max(Math.min(capped, amount), 0);
+}
