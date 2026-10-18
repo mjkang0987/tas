@@ -60,6 +60,12 @@ function getSettingsTabTitles(labels: StoreLabels): Record<string, string> {
         assignee: `${labels.assignee} 관리`,
         member: '멤버 관리',
         sns: 'SNS 연동',
+        // PageHero 제목을 걷어낸 뒤 헤더가 이 탭들의 유일한 제목이다 — 빠지면 '매출'로 보인다.
+        membership: '회원권 관리',
+        coupon: '쿠폰 관리',
+        booking: '고객 예약 설정',
+        notice: '공지사항 관리',
+        naver: '네이버예약 연동',
     };
 }
 
