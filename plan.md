@@ -5,7 +5,7 @@
 
 ---
 
-## 진행 — 시간축 라벨을 정시선에 맞추기 (#286, `feature/timeline-label-align`)
+## 진행 — 시간축 라벨을 정시선에 맞추기 (#286, `feature/timeline-label-align`, PR 대기)
 
 ### 배경
 정시선·카드는 `blockOffsetOf`(일 55 · 주/3일 25)에서 시작한다. 시간축 라벨은 목록 `margin-top: 30px` 뒤
@@ -31,9 +31,19 @@ unit 20 → 8px 위, unit 10 → 15px 위, unit 60 → 25px 아래. 기본 카�
 `client/components/calendar/views/TimelineTitle.tsx`(여백), `Timeline.tsx`(`blockOffsetOf` export),
 `Week.tsx`(머리줄 높이 상수), `client/utils/constants.ts`(`TIMELINE_WEEK_HEADING`).
 
-### 검증
-게스트 모드 `takeaseat.local-db.v1` 서비스 최소 소요시간을 20·10분으로 바꿔 일·주·3일 뷰에서
-라벨 중심 Y와 정시선 Y, 30분 눈금 Y와 :30 선 Y를 브라우저에서 실측(차이 ≤ 1px). unit 30 회귀 없음.
+### 검증 (구현 완료 · PR 대기)
+게스트 모드 `takeaseat.local-db.v1`의 `services`를 바꿔 일·주·3일 뷰에서 실측.
+값 = 라벨 중심 Y − 정시선(1px 선의 윗변) Y. 선 두께 안(0~1px)이면 선 위에 있는 것이다.
+
+| 단위 | 칸 | 수정 전 (일 / 주·3일) | 수정 후 (일 · 3일 · 주) | 30분 눈금 − :30 선 |
+|---|---|---|---|---|
+| 30 | 50px | 0 / **+6** | 0 · 0 · 0 | 0 (수정 전 주 +6) |
+| 20 | 33.3px | **−8.3** / **−2.4** | −0.2~0 (서브픽셀 누적) | 칸 없음(원래 안 그림) |
+| 10 | 20px | (계산상 −15 / −9) | 0 · 0 · 0 | 0 |
+| 60 | 100px | (계산상 +25 / +31) | 0 · 0 · 0 (주 위 여백 −1px, 축 박스 위치 변화 없음) | 칸 없음 |
+
+축 전체 높이는 수정 전과 같다(`90 + 시간수 × hourHeight`, 예: 1190 / 1410). 주 머리줄 실측 24px 그대로.
+tsc ✓ · vitest 224 ✓ · 변경 파일 eslint ✓.
 
 ---
 
