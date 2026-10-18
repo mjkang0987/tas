@@ -34,6 +34,12 @@ describe('anonymizeCustomer', () => {
         });
     });
 
+    it('받은 돈이 기록된 충전 이력(매출)만 남긴다', () => {
+        const recharge = {id: 'r1', type: 'recharge' as const, delta: 110000, balance: 110000, description: '충전', createdAt: '2026-10-16T00:00:00.000Z', paidAmount: 100000, paymentMethod: '카드' as const};
+        const oldRecharge = {id: 'r0', type: 'recharge' as const, delta: 5000, balance: 5000, description: '예전 충전', createdAt: '2026-01-01T00:00:00.000Z'};
+        expect(anonymizeCustomer({...customer, pointHistories: [...customer.pointHistories!, recharge, oldRecharge]}).pointHistories).toEqual([recharge]);
+    });
+
     it('번호(id)는 유지한다 — 예약이 이 번호로 고객을 찾는다', () => {
         expect(anonymizeCustomer(customer).id).toBe(customer.id);
     });

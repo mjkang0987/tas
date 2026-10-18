@@ -147,6 +147,9 @@ model CustomerPointHistory {
   balance              Int
   description          String
   relatedReservationId String?
+  /// 충전 때 받은 금액·결제수단(보너스 포함 적립액 delta 와 다를 수 있음). 예전 충전·적립은 null (0024)
+  paidAmount    Int?
+  paymentMethod PaymentMethod?
   createdAt            DateTime         @default(now())
   customer             Customer         @relation(fields: [customerId], references: [id], onDelete: Cascade)
   relatedReservation   Reservation?     @relation(fields: [relatedReservationId], references: [id])
@@ -419,6 +422,7 @@ enum PaymentMethod {
   points
   discount
   naver_deposit
+  membership
 }
 
 enum ReservationChannel {
@@ -544,6 +548,9 @@ model CustomerMembership {
   name           String // 발급 시점 상품명 스냅샷
   totalCount     Int?
   remainingCount Int?
+  /// 판매 금액·결제수단. null 이면 기존 회원권 등록(시스템 이전 판매분 — 매출 없음) (0024)
+  salePrice         Int?
+  salePaymentMethod PaymentMethod?
   issuedAt       DateTime           @default(now())
   expiresAt      DateTime?
   status         String             @default("active") // active | expired | used_up | cancelled

@@ -5,7 +5,7 @@ import {useCalendarStore} from '../../../store/calendarStore';
 import type {Reservation, ReservationChannel} from '../../../utils/reservations';
 import {findOverlap} from '../../../utils/reservations';
 import type {Customer, CustomerMap} from '../../../utils/customers';
-import {isSelectableCustomer, normalizeTel, sortCustomersByName} from '../../../utils/customers';
+import {findExactCustomer, isSelectableCustomer, normalizeTel, sortCustomersByName} from '../../../utils/customers';
 import type {Assignee} from '../../../utils/assignees';
 import {getAssigneeAvailabilityState, splitAssigneesByStatus} from '../../../utils/assignees';
 import {buildCatalogMap, calcEndTime, joinServiceNames, sumDurationMinutes, sumPrice} from '../../../utils/services';
@@ -19,7 +19,7 @@ type UseReservationCreateFormParams = {
     customerMap: CustomerMap;
     reservationMap: Record<string, Reservation[]>;
     assignees: Assignee[];
-    addCustomer: (customer: Customer) => void;
+    addCustomer: (customer: Customer) => Promise<number>;
     onSave: (reservation: Reservation) => void;
 };
 
@@ -229,8 +229,13 @@ export function useReservationCreateForm({
             //  legacyId 0 한 칸에 덮어써지는 치명적 버그가 있었음)
             let resolvedCustomerId = customerId;
 
-            // customerId==0 → 추천에서 고른 기존 고객이 없으므로 신규로 생성.
-            if (customerId === 0) {
+            // customerId==0 → 추천에서 고르지 않았다. 이름+연락처가 둘 다 같은 기존 고객이면 그 고객을 쓰고(중복 생성 방지),
+            // 아니면 신규로 만든다(연락처만 같으면 가족 공유번호라 새 고객).
+            const exact = customerId === 0 ? findExactCustomer(customers, customerQuery, customerTel) : undefined;
+            if (exact) {
+                resolvedCustomerId = exact.id;
+                setCustomerId(exact.id);
+            } else if (customerId === 0) {
                 const nextCustomer: Customer = {
                     id: nextCustomerId,
                     name: customerQuery.trim(),
@@ -241,11 +246,12 @@ export function useReservationCreateForm({
 
                 // 신규 고객을 서버에 먼저 저장(await)한 뒤 예약을 POST해야
                 // 'Customer not found'(400)가 나지 않는다. (단건 저장이라 빠름)
-                await addCustomer(nextCustomer);
-                resolvedCustomerId = nextCustomer.id;
+                // 번호는 서버가 최종으로 정한다(이미 다른 고객이 쓰는 번호면 새 번호) — 돌려받은 번호로 예약을 만든다.
+                const savedId = await addCustomer(nextCustomer);
+                resolvedCustomerId = savedId;
                 // 만든 고객을 폼에 고정한다. 저장이 실패해 다시 누르더라도
                 // customerId가 0이 아니라 재생성 경로를 타지 않는다.
-                setCustomerId(nextCustomer.id);
+                setCustomerId(savedId);
             }
 
             const reservation: Reservation = {

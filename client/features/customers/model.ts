@@ -1,4 +1,4 @@
-import type {Reservation, ReservationMap} from '../reservations/model';
+import type {PaymentMethod, Reservation, ReservationMap} from '../reservations/model';
 
 export type PointHistoryType = 'manual_add' | 'manual_subtract' | 'recharge' | 'payment_use' | 'payment_earn' | 'payment_adjust';
 
@@ -19,6 +19,9 @@ export interface PointHistoryEntry {
     description: string;
     createdAt: string;
     relatedReservationId?: number;
+    /** 충전 때 받은 금액(보너스 붙은 적립액 delta 와 다를 수 있다)·결제수단 — 매출로 잡힌다. 그 밖의 이력엔 없음 */
+    paidAmount?: number;
+    paymentMethod?: PaymentMethod;
 }
 
 export interface CustomerMemoTag {
@@ -68,7 +71,8 @@ export function anonymizeCustomer(customer: Customer): Customer {
         tel: '',
         points: 0,
         firstVisitDate: null,
-        pointHistories: [],
+        // 받은 돈이 기록된 충전(매출)만 남긴다 — 서버 DELETE 와 같은 규칙.
+        pointHistories: (customer.pointHistories ?? []).filter((h) => h.type === 'recharge' && h.paidAmount != null),
         memoTags: [],
         deleted: true,
     };
@@ -82,6 +86,17 @@ export function anonymizeCustomerReservation(reservation: Reservation): Reservat
 // 저장용 정규화: 숫자만 남긴다(DB엔 숫자만 저장). 표시는 formatTel이 담당.
 export function normalizeTel(tel: string): string {
     return tel.replace(/\D/g, '');
+}
+
+/**
+ * 이름과 연락처가 **둘 다** 같은 기존 고객(삭제 고객 제외). 예약 추가에서 추천을 누르지 않고 기존 고객을 그대로 입력했을 때
+ * 새 고객이 또 생기지 않게 쓴다. 연락처만 같으면 가족 공유번호일 수 있어 같은 사람으로 보지 않는다(이름만 같으면 동명이인).
+ */
+export function findExactCustomer(customers: Customer[], name: string, tel: string): Customer | undefined {
+    const trimmedName = name.trim();
+    const normalizedTel = normalizeTel(tel);
+    if (!trimmedName || !normalizedTel) return undefined;
+    return customers.find((c) => isSelectableCustomer(c) && c.name.trim() === trimmedName && normalizeTel(c.tel) === normalizedTel);
 }
 
 export function formatTel(tel: string): string {
@@ -178,3 +193,10 @@ export function appendPointHistories(
     };
 }
 
+/** 바뀐 고객만 받아 전체 목록에 반영(같은 번호는 교체, 없으면 추가). 게스트 저장소에 일부 고객만 넘겨도 나머지를 지우지 않게 */
+export function mergeCustomersById(current: Customer[], updates: Customer[]): Customer[] {
+    const byId = new Map(updates.map((c) => [c.id, c]));
+    const merged = current.map((c) => byId.get(c.id) ?? c);
+    const existing = new Set(current.map((c) => c.id));
+    return [...merged, ...updates.filter((c) => !existing.has(c.id))];
+}
