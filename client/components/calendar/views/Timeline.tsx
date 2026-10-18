@@ -355,8 +355,8 @@ export const Timeline = ({
         ) : null}
     </StyledTimelineWrap>);
 };
-/** 카드·정시선의 공통 세로 오프셋. 시간축 라벨이 행(50px) 중앙에 그려지므로 주 뷰는 +25,
- *  일 뷰는 머리줄이 더 높아 +55. 둘이 어긋나면 카드가 시작시간과 안 맞아 보인다. */
+/** 카드·정시선의 공통 세로 오프셋(타임라인 상단 기준). 시간축 라벨(TimelineTitle)이 이 값을 따라
+ *  칸 중앙을 정시선에 맞추므로, 바꾸면 축도 같이 움직인다. 일 뷰는 머리줄이 타임라인 안에 있어 더 크다. */
 export const blockOffsetOf = (type: string) => (type === ViewType.Day ? 55 : 25);
 
 const StyledTimelineWrap = styled.div<{
