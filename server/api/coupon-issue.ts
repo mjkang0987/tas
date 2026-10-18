@@ -36,10 +36,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         if (product.status !== 'active') {
             return res.status(400).json({error: '보관된 쿠폰은 발급할 수 없습니다.'});
         }
-        // 가드: 코드형(code 있음)은 코드 사용 흐름 전용 — 직접 발급 대상 아님.
-        if (product.code) {
-            return res.status(400).json({error: '코드형 쿠폰은 직접 발급 대상이 아닙니다.'});
-        }
         // 가드: 상품이 '고객당 1장'이면 미사용(active)·만료 전 보유분이 있을 때 재발급 불가.
         // (사용/만료/취소된 건 제외 — 다 쓰고 나면 다시 받을 수 있다.)
         // 만료를 status 로 바꾸는 작업이 없어 active 인 채 만료일이 지난 쿠폰이 남는다 → 만료일로도 거른다.

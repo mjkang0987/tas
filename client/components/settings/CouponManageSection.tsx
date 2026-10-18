@@ -23,7 +23,6 @@ interface DraftForm {
     maxDiscount: string;
     minOrderAmount: string;
     validDays: string;
-    code: string;
     oncePerCustomer: boolean;
 }
 
@@ -31,7 +30,7 @@ interface DraftForm {
 const ISSUED_PAGE_SIZE = 20;
 
 const EMPTY_DRAFT: DraftForm = {
-    name: '', discountType: 'amount', discountValue: '', maxDiscount: '', minOrderAmount: '', validDays: '', code: '',
+    name: '', discountType: 'amount', discountValue: '', maxDiscount: '', minOrderAmount: '', validDays: '',
     oncePerCustomer: false,
 };
 
@@ -48,7 +47,6 @@ function productSpecs(p: CouponProduct): {label: string; value: string}[] {
         },
         {label: '최소 결제금액', value: p.minOrderAmount != null ? formatPrice(p.minOrderAmount) : '제한없음'},
         {label: '유효기간', value: p.validDays != null ? `${p.validDays}일` : '무기한'},
-        {label: '코드', value: p.code ? p.code : '직접발급'},
     ];
 }
 
@@ -115,7 +113,6 @@ export const CouponManageSection = () => {
             maxDiscount: p.maxDiscount != null ? String(p.maxDiscount) : '',
             minOrderAmount: p.minOrderAmount != null ? String(p.minOrderAmount) : '',
             validDays: p.validDays != null ? String(p.validDays) : '',
-            code: p.code ?? '',
             oncePerCustomer: p.oncePerCustomer ?? false,
         });
     };
@@ -146,7 +143,6 @@ export const CouponManageSection = () => {
             maxDiscount: draft.discountType === 'rate' && draft.maxDiscount.trim() !== '' ? Number(draft.maxDiscount) : null,
             minOrderAmount: draft.minOrderAmount.trim() === '' ? null : Number(draft.minOrderAmount),
             validDays: draft.validDays.trim() === '' ? null : Number(draft.validDays),
-            code: draft.code.trim() === '' ? null : draft.code.trim(),
             oncePerCustomer: draft.oncePerCustomer,
         };
         try {
@@ -155,10 +151,6 @@ export const CouponManageSection = () => {
                 headers: {'Content-Type': 'application/json'},
                 body: JSON.stringify(editingId ? {id: editingId, ...payload} : payload),
             });
-            if (res.status === 409) {
-                setError('이미 사용 중인 쿠폰 코드입니다.');
-                return;
-            }
             if (!res.ok) throw new Error();
             toast(editingId ? '쿠폰이 수정되었습니다.' : '쿠폰이 추가되었습니다.');
             resetForm();
@@ -311,11 +303,6 @@ export const CouponManageSection = () => {
                                     <StyledInput id="cp-days" type="number" inputMode="numeric" value={draft.validDays} placeholder="무기한"
                                                  onChange={(e) => setDraft((d) => ({...d, validDays: e.target.value}))} />
                                 </StyledField>
-                                <StyledField htmlFor="cp-code">
-                                    <span>코드 (비우면 직접발급 전용)</span>
-                                    <StyledInput id="cp-code" type="text" value={draft.code} placeholder="예: WELCOME5000"
-                                                 onChange={(e) => {setDraft((d) => ({...d, code: e.target.value})); setError('');}} />
-                                </StyledField>
                             </StyledFieldGrid>
                             <FieldError variant="inline">{error}</FieldError>
         </StyledFormCard>
@@ -404,7 +391,7 @@ export const CouponManageSection = () => {
                                     </StyledField>
                                 </StyledFieldGrid>
                                 {!loading && issuableProducts.length === 0 && (
-                                    <StyledHint>발급할 수 있는 쿠폰이 없습니다. 상품 탭에서 코드 없이 쿠폰을 추가해 주세요(코드형은 직접 발급 대상이 아닙니다).</StyledHint>
+                                    <StyledHint>발급할 수 있는 쿠폰이 없습니다. 상품 탭에서 쿠폰을 먼저 추가해 주세요.</StyledHint>
                                 )}
                                 <FieldError variant="inline">{issueError}</FieldError>
                                 <StyledActionRow>

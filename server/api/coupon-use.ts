@@ -15,8 +15,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     if (!requireRole(session, 'staff', res)) return;
 
-    const {couponId, action} = req.body as {couponId?: unknown; action?: unknown};
+    const {couponId, action, reservationId} = req.body as {couponId?: unknown; action?: unknown; reservationId?: unknown};
     if (typeof couponId !== 'string') return res.status(400).json({error: 'Invalid couponId'});
+    // 결제 레이어에서 쓸 때는 그 예약(프론트 id)과 연결한다. 설정 화면의 수동 사용은 예약 없이.
+    if (reservationId !== undefined && (typeof reservationId !== 'number' || !Number.isInteger(reservationId))) {
+        return res.status(400).json({error: 'Invalid reservationId'});
+    }
     if (action !== 'use' && action !== 'restore') return res.status(400).json({error: 'Invalid action'});
 
     const now = new Date();
@@ -39,7 +43,17 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
             if (action === 'use') {
                 if (coupon.status !== 'active' || expired) return '사용할 수 없는 쿠폰입니다. (이미 사용·취소·만료)';
-                await tx.customerCoupon.update({where: {id: couponId}, data: {status: 'used', usedAt: now}});
+                let linkedReservationId: string | null = null;
+                if (typeof reservationId === 'number') {
+                    const reservation = await tx.reservation.findUnique({
+                        where: {storeId_legacyId: {storeId: session.storeId, legacyId: reservationId}},
+                        select: {id: true, customerId: true},
+                    });
+                    // 다른 고객의 예약에 쓰지 못하게 — 쿠폰 주인과 예약 고객이 같아야 한다.
+                    if (!reservation || reservation.customerId !== coupon.customerId) return '이 예약에 쓸 수 없는 쿠폰입니다.';
+                    linkedReservationId = reservation.id;
+                }
+                await tx.customerCoupon.update({where: {id: couponId}, data: {status: 'used', usedAt: now, reservationId: linkedReservationId}});
                 return null;
             }
 
@@ -52,7 +66,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                 });
                 if (held > 0) return '같은 쿠폰을 이미 보유 중이라 되돌릴 수 없습니다. (고객당 1장)';
             }
-            await tx.customerCoupon.update({where: {id: couponId}, data: {status: 'active', usedAt: null}});
+            await tx.customerCoupon.update({where: {id: couponId}, data: {status: 'active', usedAt: null, reservationId: null}});
             return null;
         }, {isolationLevel: 'Serializable'});
 
