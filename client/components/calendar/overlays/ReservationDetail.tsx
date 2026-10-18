@@ -377,6 +377,11 @@ export const ReservationDetail = ({
         return usedCoupon && !usable.some((c) => c.id === usedCoupon.id) ? [usedCoupon, ...usable] : usable;
     }, [benefits, usedCoupon]);
     const paymentExpectedAmount = displayPrice - (sourceReservation.naverDeposit ?? 0);
+    // 결제 줄 합계가 맞춰야 할 금액. '네이버 예약금' 줄이 있으면 그 줄이 예약금을 이미 담으니 서비스 금액 전체,
+    // 없으면 예약금을 뺀 실결제 금액. (기본 줄은 예약금 줄을 넣어 전체 금액이 되는데, 검사는 실결제만 받아 저장이 막혔다.)
+    const paymentTargetFor = (entries: Array<{method: string}>) => (
+        entries.some((entry) => entry.method === '네이버 예약금') ? displayPrice : paymentExpectedAmount
+    );
     const selectedCouponId = paymentEntries.find((entry) => entry.couponId)?.couponId ?? '';
 
     // ── 회원권 ── 쓸 수 있는 회원권 + 이 예약에 이미 쓴 회원권
@@ -393,7 +398,7 @@ export const ReservationDetail = ({
     const handleSelectMembership = (membershipId: string) => {
         const kept = paymentEntries.filter((entry) => !entry.membershipId && (entry.couponId || entry.method === '네이버 예약금'));
         const keptTotal = kept.reduce((sum, entry) => sum + toAmount(entry.amount), 0);
-        const remainder = String(Math.max(paymentExpectedAmount - keptTotal, 0));
+        const remainder = String(Math.max(paymentTargetFor(kept) - keptTotal, 0));
         handlePaymentEntriesChange(membershipId
             ? [...kept, {method: '회원권', amount: remainder, membershipId}]
             : [...kept, {method: '', amount: remainder}]);
@@ -418,7 +423,7 @@ export const ReservationDetail = ({
             const fixed = next
                 .filter((entry) => entry !== editable[0])
                 .reduce((sum, entry) => sum + (Number(entry.amount.replace(/[^0-9]/g, '')) || 0), 0);
-            const remainder = paymentExpectedAmount - fixed - (discountEntry ? Number(discountEntry.amount) : 0);
+            const remainder = paymentTargetFor(next) - fixed - (discountEntry ? Number(discountEntry.amount) : 0);
             next[next.indexOf(editable[0])] = {...editable[0], amount: String(Math.max(remainder, 0))};
         }
         handlePaymentEntriesChange(discountEntry ? [...next, discountEntry] : next);
@@ -441,7 +446,8 @@ export const ReservationDetail = ({
         const res = await fetch('/api/coupon-use', {
             method: 'POST',
             headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify(action === 'use' ? {couponId, action, reservationId: sourceReservation.id} : {couponId, action}),
+            // 되돌릴 때도 예약을 보낸다 — 서버가 이 예약에 쓴 쿠폰인지 확인한다(다른 예약에 다시 쓴 쿠폰을 풀지 않게).
+            body: JSON.stringify({couponId, action, reservationId: sourceReservation.id}),
         });
         if (res.ok) return null;
         const err = await res.json().catch(() => null) as {error?: string} | null;
@@ -462,7 +468,7 @@ export const ReservationDetail = ({
         }
 
         const paymentTotal = normalizedEntries.reduce((sum, entry) => sum + entry.amount, 0);
-        const expectedAmount = displayPrice - (sourceReservation.naverDeposit ?? 0);
+        const expectedAmount = paymentTargetFor(normalizedEntries);
 
         if (paymentTotal !== expectedAmount) {
             setError({field: 'general', message: `결제 금액 합계(${formatPrice(paymentTotal)})가 ${labels.service} 금액(${formatPrice(expectedAmount)})과 일치하지 않습니다.`});
@@ -485,7 +491,8 @@ export const ReservationDetail = ({
         }
 
         // 쿠폰이 바뀌었으면 새 쿠폰을 먼저 쓰고(실패하면 저장 중단), 그다음 예전 쿠폰을 되돌린다.
-        const nextCouponId = selectedCouponId || undefined;
+        // 금액이 0 인 줄은 저장되지 않는다 — 그 줄의 쿠폰·회원권을 쓰면 결제 줄 없이 소모만 된다.
+        const nextCouponId = paymentEntries.find((entry) => entry.couponId && toAmount(entry.amount) > 0)?.couponId;
         const prevCouponId = usedCoupon?.id;
         if (nextCouponId !== prevCouponId) {
             if (nextCouponId) {
@@ -502,7 +509,7 @@ export const ReservationDetail = ({
         }
 
         // 회원권도 같은 순서 — 새 회원권 1회 사용(실패하면 저장 중단) → 예전 회원권 되돌리기.
-        const nextMembershipId = selectedMembershipId || undefined;
+        const nextMembershipId = paymentEntries.find((entry) => entry.membershipId && toAmount(entry.amount) > 0)?.membershipId;
         const prevMembershipId = usedMembership?.id;
         if (nextMembershipId !== prevMembershipId) {
             if (nextMembershipId) {
