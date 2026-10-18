@@ -161,7 +161,8 @@ export interface CalendarState {
     setRouterSlice: (v: RouterSlice | ((prev: RouterSlice) => RouterSlice)) => void;
     setReservationMap: (map: ReservationMap) => void;
     setCustomerMap: (map: CustomerMap) => void;
-    addCustomer: (customer: Customer) => Promise<void>;
+    /** 서버가 정한 고객 번호를 돌려준다(보낸 번호와 다를 수 있다). 저장 실패면 보낸 번호 그대로 */
+    addCustomer: (customer: Customer) => Promise<number>;
     updateCustomer: (
         customerId: number,
         patch: Partial<Customer>,
@@ -407,7 +408,19 @@ export const useCalendarStore = create<CalendarState>((set) => ({
             return {customerMap: normalizedCustomerMap};
         });
         // 단건 저장(빠름) + await 가능 → 신규 고객을 서버에 먼저 만든 뒤 예약 POST.
-        return toSync ? persistNewCustomer(customer, toSync) : Promise.resolve();
+        if (!toSync) return Promise.resolve(customer.id);
+        return persistNewCustomer(customer, toSync).then((savedId) => {
+            // 화면이 매긴 번호가 이미 다른 고객(네이버 동기화·온라인 예약이 먼저 씀)이면 서버가 새 번호를 준다 → 옮긴다.
+            if (savedId != null && savedId !== customer.id) {
+                set((state) => {
+                    const nextCustomerMap = {...state.customerMap};
+                    delete nextCustomerMap[customer.id];
+                    nextCustomerMap[savedId] = {...customer, id: savedId};
+                    return {customerMap: nextCustomerMap};
+                });
+            }
+            return savedId ?? customer.id;
+        });
     },
 
     updateCustomer: (customerId, patch, pointHistory) =>
@@ -706,8 +719,28 @@ export const useCalendarStore = create<CalendarState>((set) => ({
             return;
         }
 
-        void requestServerSync('/api/reservations', jsonRequest('POST', reservation),
-            '예약 저장에 실패했습니다. 새로고침 후 다시 확인해 주세요.');
+        void fetch('/api/reservations', jsonRequest('POST', reservation))
+            .then(async (response) => {
+                if (!response.ok) throw new Error(String(response.status));
+                const data = await response.json().catch(() => null) as {reservation?: Reservation} | null;
+                const saved = data?.reservation;
+                // 번호가 겹쳐 서버가 새 번호로 만들었으면 화면의 예약 번호도 옮긴다.
+                if (saved && saved.id !== reservation.id) {
+                    set((state) => {
+                        const list = state.reservationMap[reservation.date] ?? [];
+                        return {
+                            reservationMap: {
+                                ...state.reservationMap,
+                                [reservation.date]: list.map((item) => (item.id === reservation.id ? {...item, id: saved.id} : item)),
+                            },
+                        };
+                    });
+                }
+            })
+            .catch((error) => {
+                console.error('[sync] POST /api/reservations 실패:', error);
+                useToastStore.getState().show('예약 저장에 실패했습니다. 새로고침 후 다시 확인해 주세요.', 'error');
+            });
     },
 
     updateReservation: (prev, updated) => {
