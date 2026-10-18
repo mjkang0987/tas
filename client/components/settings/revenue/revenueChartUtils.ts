@@ -7,7 +7,8 @@ export const CHANNEL_COLORS: Record<string, string> = {'전화예약': '#FB8C00'
 
 export const PAYMENT_METHOD_COLORS = ['#2D7FF9', '#00A896', '#FB8C00', '#E85D75', '#7E57C2', '#4C6EF5', '#8E8E93', '#34A853'] as const;
 
-export const PAYMENT_METHOD_ORDER: PaymentMethod[] = ['현금', '현금+현금영수증', '카드', '네이버페이', '지역화폐', '지역화폐+현금영수증', '상품권', '적립금'];
+// 결제수단 분포는 받은 돈만 — 적립금·할인은 매출이 아니라 뺀다(utils/revenue 의 결제 합계와 같은 기준).
+export const PAYMENT_METHOD_ORDER: PaymentMethod[] = ['현금', '현금+현금영수증', '카드', '네이버페이', '지역화폐', '지역화폐+현금영수증', '상품권'];
 
 export function shiftDateKey(dateKey: string, days: number): string {
     const date = new Date(`${dateKey}T00:00:00`);

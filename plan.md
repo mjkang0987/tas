@@ -18,6 +18,53 @@
 
 ---
 
+## 진행 — 결제완료 레이어에 쿠폰 + 할인·적립금은 매출에서 차감 (`claude/payment-coupon`)
+
+### 요구 (지시자 2026-10-16)
+- 결제완료 레이어에서 그 고객의 쿠폰을 골라 쓴다 → 할인 적용, 저장하면 쿠폰 자동 사용 처리(이 예약과 연결).
+- 매출: **할인만큼 매출 차감**, **적립금 결제분도 매출 차감**(매장이 돌려준 돈이라 받은 돈이 아님).
+- (다음 브랜치) 회원권: 판매(발급) 때 매출 기록, 결제 때는 1회 차감만 — 방법 3, 지시자 선택.
+  - 발급 화면에서 **판매**(금액·결제수단 → 그날 매출) / **기존 회원권 등록**(매출 없음, 남은 횟수·만료일 직접 입력 — 시스템 이전 판매분) 구분.
+  - **충전식 적립금도 회원권처럼**(지시자): 충전할 때 금액·결제수단을 기록해 매출에 넣고, 쓸 때(결제 '적립금')는 매출 제외.
+    결제 적립(보상)·수동 추가·기존 이관은 받은 돈이 아니라 매출과 무관. 지금은 충전(`recharge`)이 매출에 안 잡혀 쓸 때 빠지면 매출에서 사라진다.
+
+### 구현
+- 매출 순수 함수(`features/reservations/model.ts`): `NON_REVENUE_PAYMENT_METHODS = ['할인', '적립금']`,
+  `getReservationRevenue(price, entries)` = 서비스 금액 − 그 결제분(0 미만 안 됨). `utils/revenue.ts`의 일·월·기간·담당자 합계,
+  결제 합계(paidTotal)·결제수단 분포가 이 기준을 쓴다(할인·적립금 제외). 엑셀 내보내기 '금액'도 같은 기준.
+- 쿠폰 할인 계산 순수 함수 `computeCouponDiscount(coupon, amount)` — 정액은 금액 한도, 정률은 내림·최대 할인액, 최소 결제금액 미달이면 null.
+- 서버: 예약 조회에 그 예약에서 쓴 쿠폰(`couponsUsed`)을 실어 `usedCoupon`으로 내린다. `/api/coupon-use`가 `reservationId`(프론트 id)를 받아 사용 시 연결, 되돌리면 연결 해제.
+- 결제 레이어: 쓸 수 있는 쿠폰(+이 예약에 이미 쓴 쿠폰) 네이티브 select. 고르면 '할인' 줄(쿠폰 표시, 금액 고정)을 넣고, 다른 결제 줄이 하나면 남은 금액으로 맞춘다.
+  저장 시 쿠폰이 바뀌었으면 새 쿠폰 사용 → 예전 쿠폰 되돌리기 순서로 서버 호출(새 쿠폰 사용이 실패하면 저장 중단).
+- 적립 자동 계산 기준에서 할인도 뺀다(지금은 적립금만 빠짐 — 할인받은 금액에 적립이 붙고 있었다).
+- 기존 버그: 예약 PUT 이 결제 내역을 지우고 다시 쓰기 **전에** 예약을 select 해 돌려줘, 화면이 옛 결제 내역으로 덮였다 → 결제 내역 쓰기 후 select.
+
+### 영향 파일
+`client/features/reservations/model.ts`(+test), `client/features/coupons/model.ts`(+test), `client/utils/revenue.ts`, `client/utils/revenue-export.ts`,
+`components/settings/revenue/revenueChartUtils.ts`, `server/db/prisma-includes.ts`, `server/db/mappers.ts`, `server/api/reservations.ts`, `server/api/coupon-use.ts`,
+`ReservationDetail.tsx`, `ReservationDetailPaymentLayer.tsx`, `reservationDetailTypes.ts`, `reservationDetailUtils.ts`.
+
+---
+
+## 진행 — 쿠폰 코드형 폐지 (`claude/coupon-remove-code`)
+
+### 배경
+쿠폰 상품에 "코드"를 넣으면 고객이 코드를 입력해 받는 코드형이 되는데, 그 입력 화면이 없고 직접 발급 API 는 코드형을 거부했다.
+그래서 코드를 넣은 쿠폰은 **아무 방법으로도 고객에게 줄 수 없었다**(운영에서 "발급이 안 된다"로 드러남, 2026-10-16).
+지시자 결정: 매장에서 직접 주는 쿠폰이라 코드형은 필요 없다(쇼핑몰이 아님) → 폐지.
+
+### 구현
+- 상품 추가·수정 폼과 상품 정보에서 "코드" 제거, 저장 시 code 를 보내지 않는다. 쓸모없어진 중복 코드 409 처리 제거.
+- 직접 발급 API 의 코드형 거부 가드 제거 → 예전에 코드를 넣어 만든 쿠폰도 바로 발급된다.
+- `isDirectIssuable`: 보관되지 않은 상품이면 발급 대상(코드 무시) — 테스트 갱신.
+- DB `CouponProduct.code` 컬럼은 그대로(마이그레이션 없음, 남은 값은 무시).
+
+### 다음 후보
+- 고객정보 레이어에서 바로 쿠폰·회원권 발급(지시자 언급).
+- 여러 고객에게 한 번에 발급.
+
+---
+
 ## 진행 — 묶음 배포 `release/2026-10-batch` (묵은 PR 정리)
 
 > **2026-10-16 갱신** — 묵은 PR 정리분에 이번 작업(#272·#273·#275·#276·#277·#278·#279)까지 합쳐 **v0.61.0 하나로 배포**한다(지시자).
