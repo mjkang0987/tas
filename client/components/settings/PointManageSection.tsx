@@ -97,7 +97,7 @@ export const PointManageSection = () => {
 
     return (
         <StyledWrap>
-            <PageHero eyebrow="POINT" title="적립금 관리" subtitle="고객 적립금·선불금(충전) 내역 조회, 수동 적립/차감, 적립·충전 정책을 설정합니다." />
+            <PageHero eyebrow="POINT" subtitle="고객 적립금·선불금(충전) 내역 조회, 수동 적립/차감, 적립·충전 정책을 설정합니다." />
             <StyledStickyHeader>
                 <StyledTopBar>
                     <StyledTabRow>

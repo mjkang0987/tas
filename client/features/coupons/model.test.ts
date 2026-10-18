@@ -1,6 +1,6 @@
 import {describe, expect, it} from 'vitest';
 
-import {couponDisplayStatus, describeCouponDiscount, isDirectIssuable} from './model';
+import {computeCouponDiscount, couponDisplayStatus, describeCouponDiscount, isDirectIssuable} from './model';
 import type {CouponProduct} from './model';
 
 const product = (over: Partial<CouponProduct>): CouponProduct => ({
@@ -20,9 +20,9 @@ describe('describeCouponDiscount', () => {
 });
 
 describe('isDirectIssuable', () => {
-    it('활성 + 코드 없는 상품만 직접 발급 대상', () => {
+    it('보관되지 않은 상품은 발급 대상(예전에 넣은 코드는 무시)', () => {
         expect(isDirectIssuable(product({}))).toBe(true);
-        expect(isDirectIssuable(product({code: 'WELCOME'}))).toBe(false);
+        expect(isDirectIssuable(product({code: 'WELCOME'}))).toBe(true);
         expect(isDirectIssuable(product({status: 'archived'}))).toBe(false);
     });
 });
@@ -38,5 +38,22 @@ describe('couponDisplayStatus', () => {
     it('사용·취소는 그대로', () => {
         expect(couponDisplayStatus({status: 'cancelled', expiresAt: '2026-10-15T00:00:00.000Z'}, now)).toBe('cancelled');
         expect(couponDisplayStatus({status: 'used', expiresAt: null}, now)).toBe('used');
+    });
+});
+
+describe('computeCouponDiscount', () => {
+    it('정액은 결제 금액을 넘지 않는다', () => {
+        expect(computeCouponDiscount(product({discountValue: 5000}), 20000)).toBe(5000);
+        expect(computeCouponDiscount(product({discountValue: 5000}), 3000)).toBe(3000);
+    });
+
+    it('정률은 원 단위 내림 + 최대 할인액', () => {
+        expect(computeCouponDiscount(product({discountType: 'rate', discountValue: 10}), 25550)).toBe(2555);
+        expect(computeCouponDiscount(product({discountType: 'rate', discountValue: 10, maxDiscount: 2000}), 25550)).toBe(2000);
+    });
+
+    it('최소 결제금액 미달이면 쓸 수 없다', () => {
+        expect(computeCouponDiscount(product({minOrderAmount: 30000}), 20000)).toBeNull();
+        expect(computeCouponDiscount(product({minOrderAmount: 20000}), 20000)).toBe(5000);
     });
 });

@@ -6,8 +6,13 @@ import {useSession} from 'next-auth/react';
 import {useCalendarStore} from '../../../store/calendarStore';
 import {useStoreLabels} from '../../../hooks/useStoreLabels';
 
-import type {PaymentEntry, PaymentMethod, Reservation, ReservationHistoryEntry, ReservationMap, ReservationStatus} from '../../../utils/reservations';
-import {findOverlap, hasCompletedPayment, isOnlineReservation} from '../../../utils/reservations';
+import type {PaymentEntry, Reservation, ReservationHistoryEntry, ReservationMap, ReservationStatus} from '../../../utils/reservations';
+import {findOverlap, hasCompletedPayment, isOnlineReservation, isRevenuePaymentMethod} from '../../../utils/reservations';
+import {useCustomerBenefits} from '../../../hooks/useCustomerBenefits';
+import {useToastStore} from '../../../store/toastStore';
+import {useSingleFlight} from '../../../hooks/useSingleFlight';
+import {computeCouponDiscount} from '../../../features/coupons/model';
+import type {BenefitCoupon} from '../../../features/customers/benefits';
 import {isNewCustomerVisit} from '../../../utils/customers';
 import type {CustomerMap} from '../../../utils/customers';
 import {buildAssigneeNameMap, getAssigneeAvailabilityState, getAssigneeColor, splitAssigneesByStatus} from '../../../utils/assignees';
@@ -47,7 +52,7 @@ import {
 import {ReservationDetailHeader} from './ReservationDetailHeader';
 import {ReservationDetailFooterActions} from './ReservationDetailFooterActions';
 import {ReservationDetailPaymentLayer} from './ReservationDetailPaymentLayer';
-import type {PointAwardDraft, ReservationDetailMode} from './reservationDetailTypes';
+import type {PaymentEntryDraft, PointAwardDraft, ReservationDetailMode} from './reservationDetailTypes';
 import {
     formatPaymentEntries,
     formatTimestamp,
@@ -166,7 +171,7 @@ export const ReservationDetail = ({
     const [isPriceManual, setIsPriceManual] = useState(false);
     const draftReservation = buildDraftReservation(sourceReservation, form);
     const displayPrice = resolveReservationPrice(draftReservation);
-    const [paymentEntries, setPaymentEntries] = useState<Array<{ method: PaymentMethod | ''; amount: string }>>(
+    const [paymentEntries, setPaymentEntries] = useState<PaymentEntryDraft[]>(
         () => getPaymentEntryDrafts(sourceReservation, displayPrice, sourceReservation.naverDeposit ?? 0)
     );
     const [isPointAwardManual, setIsPointAwardManual] = useState(false);
@@ -342,11 +347,12 @@ export const ReservationDetail = ({
         setMode('view');
     };
 
-    const syncPointAward = (entries: Array<{ method: PaymentMethod | ''; amount: string }>) => {
+    const syncPointAward = (entries: PaymentEntryDraft[]) => {
         if (!storeSettings.pointSettings.enableServiceRate || isPointAwardManual) return;
 
+        // 받은 돈에만 적립한다 — 적립금·할인(쿠폰)으로 낸 만큼은 빼고 계산.
         const nonPointPaidAmount = entries.reduce((sum, entry) => {
-            if (!entry.method || entry.method === '적립금') return sum;
+            if (!entry.method || !isRevenuePaymentMethod(entry.method)) return sum;
             return sum + (Number(entry.amount.replace(/[^0-9]/g, '')) || 0);
         }, 0);
 
@@ -357,13 +363,62 @@ export const ReservationDetail = ({
         }));
     };
 
-    const handlePaymentEntriesChange = (nextEntries: Array<{ method: PaymentMethod | ''; amount: string }>) => {
+    const handlePaymentEntriesChange = (nextEntries: PaymentEntryDraft[]) => {
         setPaymentEntries(nextEntries);
         syncPointAward(nextEntries);
         setError(null);
     };
 
-    const handlePaymentSave = () => {
+    // ── 쿠폰 ── 이 고객이 쓸 수 있는 쿠폰 + 이 예약에 이미 쓴 쿠폰(사용됨이라 목록엔 없다)
+    const {benefits} = useCustomerBenefits(customer?.id);
+    const usedCoupon = sourceReservation.usedCoupon;
+    const couponOptions = useMemo<BenefitCoupon[]>(() => {
+        const usable = benefits?.coupons ?? [];
+        return usedCoupon && !usable.some((c) => c.id === usedCoupon.id) ? [usedCoupon, ...usable] : usable;
+    }, [benefits, usedCoupon]);
+    const paymentExpectedAmount = displayPrice - (sourceReservation.naverDeposit ?? 0);
+    const selectedCouponId = paymentEntries.find((entry) => entry.couponId)?.couponId ?? '';
+
+    // 쿠폰 줄을 넣거나 빼고, 직접 입력하는 결제 줄이 하나뿐이면 남은 금액으로 맞춘다(네이버 예약금·쿠폰 줄은 그대로).
+    const handleSelectCoupon = (couponId: string) => {
+        const others = paymentEntries.filter((entry) => !entry.couponId);
+        let discountEntry: PaymentEntryDraft | null = null;
+        if (couponId) {
+            const coupon = couponOptions.find((c) => c.id === couponId);
+            const discount = coupon ? computeCouponDiscount(coupon, paymentExpectedAmount) : null;
+            if (!coupon || discount == null) {
+                setError({field: 'general', message: '이 결제 금액에는 쓸 수 없는 쿠폰입니다.'});
+                return;
+            }
+            discountEntry = {method: '할인', amount: String(discount), couponId};
+        }
+        const editable = others.filter((entry) => entry.method !== '네이버 예약금');
+        const next = [...others];
+        if (editable.length === 1) {
+            const fixed = next
+                .filter((entry) => entry !== editable[0])
+                .reduce((sum, entry) => sum + (Number(entry.amount.replace(/[^0-9]/g, '')) || 0), 0);
+            const remainder = paymentExpectedAmount - fixed - (discountEntry ? Number(discountEntry.amount) : 0);
+            next[next.indexOf(editable[0])] = {...editable[0], amount: String(Math.max(remainder, 0))};
+        }
+        handlePaymentEntriesChange(discountEntry ? [...next, discountEntry] : next);
+    };
+
+    // 결제 저장 중 연타 방지(쿠폰 사용 요청이 두 번 가지 않게).
+    const paymentFlight = useSingleFlight();
+    const toast = useToastStore((s) => s.show);
+    const postCouponUse = async (couponId: string, action: 'use' | 'restore') => {
+        const res = await fetch('/api/coupon-use', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify(action === 'use' ? {couponId, action, reservationId: sourceReservation.id} : {couponId, action}),
+        });
+        if (res.ok) return null;
+        const err = await res.json().catch(() => null) as {error?: string} | null;
+        return err?.error ?? '쿠폰 처리에 실패했습니다.';
+    };
+
+    const handlePaymentSave = () => paymentFlight.run(async () => {
         const normalizedEntries = paymentEntries
             .map((entry) => ({
                 method: entry.method,
@@ -399,12 +454,30 @@ export const ReservationDetail = ({
             return;
         }
 
+        // 쿠폰이 바뀌었으면 새 쿠폰을 먼저 쓰고(실패하면 저장 중단), 그다음 예전 쿠폰을 되돌린다.
+        const nextCouponId = selectedCouponId || undefined;
+        const prevCouponId = usedCoupon?.id;
+        if (nextCouponId !== prevCouponId) {
+            if (nextCouponId) {
+                const useError = await postCouponUse(nextCouponId, 'use');
+                if (useError) {
+                    setError({field: 'general', message: useError});
+                    return;
+                }
+            }
+            if (prevCouponId) {
+                const restoreError = await postCouponUse(prevCouponId, 'restore');
+                if (restoreError) toast(`이전 쿠폰을 되돌리지 못했습니다: ${restoreError}`, 'error');
+            }
+        }
+
         onUpdate(sourceReservation, {
             ...sourceReservation,
             paymentCompleted: true,
             paymentMethod: normalizedEntries[0].method,
             paymentEntries: normalizedEntries,
             pointEarned: nextPointEarned,
+            usedCoupon: nextCouponId ? couponOptions.find((c) => c.id === nextCouponId) : undefined,
         });
 
         if (customer && (pointUsageDiff !== 0 || pointEarnDiff !== 0)) {
@@ -436,7 +509,7 @@ export const ReservationDetail = ({
 
         setError(null);
         setMode('view');
-    };
+    });
 
     const handleCancel = () => {
         const nextForm = buildReservationFormState(sourceReservation);
@@ -667,7 +740,15 @@ export const ReservationDetail = ({
                         }));
                         setError(null);
                     }}
+                    couponOptions={couponOptions}
+                    selectedCouponId={selectedCouponId}
+                    onSelectCoupon={handleSelectCoupon}
                     onRemoveEntry={(index) => {
+                        // 쿠폰 줄을 지우면 쿠폰 선택도 푼다(남은 금액 다시 맞춤).
+                        if (paymentEntries[index]?.couponId) {
+                            handleSelectCoupon('');
+                            return;
+                        }
                         handlePaymentEntriesChange(
                             paymentEntries.length > 1
                                 ? paymentEntries.filter((_, itemIndex) => itemIndex !== index)

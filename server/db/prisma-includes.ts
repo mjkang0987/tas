@@ -8,6 +8,12 @@
 // 그때 이 목록에 추가하고, 해당 마이그레이션이 선적용됐는지 확인한다.
 
 // dbReservationToFrontend가 필요로 하는 스칼라 + 관계. id는 update/delete/이력 기록에 쓰인다.
+const usedCouponSelect = {
+    where: {status: 'used'},
+    select: {id: true, name: true, discountType: true, discountValue: true, maxDiscount: true, minOrderAmount: true, expiresAt: true},
+    take: 1,
+} as const;
+
 export const reservationSelect = {
     id: true,
     legacyId: true,
@@ -27,6 +33,8 @@ export const reservationSelect = {
     naverDeposit: true,
     channel: true,
     paymentEntries: {select: {method: true, amount: true}},
+    // 이 예약 결제에 쓴 쿠폰(결제 레이어가 '이미 쓴 쿠폰'으로 보이고, 바꾸면 되돌린다).
+    couponsUsed: usedCouponSelect,
     customer: {select: {legacyId: true}},
     assignee: {select: {legacyId: true}},
 } as const;
@@ -51,6 +59,8 @@ export const reservationSelectWithNames = {
     naverDeposit: true,
     channel: true,
     paymentEntries: {select: {method: true, amount: true}},
+    // 이 예약 결제에 쓴 쿠폰(결제 레이어가 '이미 쓴 쿠폰'으로 보이고, 바꾸면 되돌린다).
+    couponsUsed: usedCouponSelect,
     customer: {select: {legacyId: true, name: true}},
     assignee: {select: {legacyId: true, name: true}},
 } as const;

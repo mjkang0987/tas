@@ -179,8 +179,15 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             amount: e.amount,
         }));
 
-        const [savedReservation] = await prisma.$transaction([
-            prisma.reservation.update({
+        // 결제 내역을 다시 쓴 뒤에 select 해야 새 내역이 응답에 실린다(먼저 하면 옛 내역이 돌아와 화면을 덮었다).
+        const savedReservation = await prisma.$transaction(async (tx) => {
+            await tx.reservationPaymentEntry.deleteMany({where: {reservationId: dbReservation.id}});
+            if (paymentEntries.length > 0) {
+                await tx.reservationPaymentEntry.createMany({
+                    data: paymentEntries.map((e) => ({reservationId: dbReservation.id, ...e})),
+                });
+            }
+            const saved = await tx.reservation.update({
                 where: {id: dbReservation.id},
                 data: {
                     customerId,
@@ -196,22 +203,17 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                     pointEarned: updated.pointEarned ?? 0,
                 },
                 select: reservationSelect,
-            }),
-            prisma.reservationPaymentEntry.deleteMany({where: {reservationId: dbReservation.id}}),
-            ...(paymentEntries.length > 0
-                ? [prisma.reservationPaymentEntry.createMany({
-                    data: paymentEntries.map((e) => ({reservationId: dbReservation.id, ...e})),
-                })]
-                : []),
-            prisma.reservationHistory.create({
+            });
+            await tx.reservationHistory.create({
                 data: {
                     storeId: session.storeId,
                     reservationId: dbReservation.id,
                     beforeJson: prev as object,
                     afterJson: updated as object,
                 },
-            }),
-        ]);
+            });
+            return saved;
+        });
 
         const entry = {
             reservationId: prev.id,

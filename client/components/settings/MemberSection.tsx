@@ -222,7 +222,7 @@ export const MemberSection = () => {
     if (isGuest) {
         return (
             <StyledContainer>
-                <PageHero eyebrow="MEMBER" title="멤버 관리" subtitle="초대코드를 생성하고 매장 멤버를 관리합니다." />
+                <PageHero eyebrow="MEMBER" subtitle="초대코드를 생성하고 매장 멤버를 관리합니다." />
                 <StyledGuestCard>
                     <StyledGuestTitle>게스트 모드</StyledGuestTitle>
                     <StyledGuestDesc>
@@ -238,7 +238,7 @@ export const MemberSection = () => {
     if (!isOwner) {
         return (
             <StyledContainer>
-                <PageHero eyebrow="MEMBER" title="멤버 관리" subtitle="초대코드를 생성하고 매장 멤버를 관리합니다." />
+                <PageHero eyebrow="MEMBER" subtitle="초대코드를 생성하고 매장 멤버를 관리합니다." />
                 <StyledSettingsHint>멤버 관리는 오너만 가능합니다.</StyledSettingsHint>
             </StyledContainer>
         );
@@ -246,7 +246,7 @@ export const MemberSection = () => {
 
     return (<>
         <StyledContainer>
-            <PageHero eyebrow="MEMBER" title="멤버 관리" subtitle="초대코드를 생성하고 매장 멤버를 관리합니다." />
+            <PageHero eyebrow="MEMBER" subtitle="초대코드를 생성하고 매장 멤버를 관리합니다." />
 
             <StyledSettingsCard>
                 <StyledSettingsCardTitle>초대코드 생성</StyledSettingsCardTitle>

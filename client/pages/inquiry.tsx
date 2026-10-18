@@ -92,7 +92,7 @@ const InquiryPage: NextPage = () => {
         <StyledSection>
             <SeoHead title="고객센터" />
             <StyledContainer>
-                <PageHero eyebrow="SUPPORT" title="고객센터" />
+                <PageHero eyebrow="SUPPORT" />
                 <StyledStickyHeader>
                     <StyledTabRow>
                         <StyledTabButton type="button" $active={activeTab === 'form'} onClick={() => setActiveTab('form')}>문의하기</StyledTabButton>

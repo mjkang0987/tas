@@ -9,6 +9,7 @@ import {
     getRevenueInsights,
     isPaidReservationTarget,
     isRevenueReservationTarget,
+    resolveRevenue,
     type RevenueFilterMode,
 } from '../../../utils/revenue';
 import {formatPrice, getServiceColor, parseServiceString} from '../../../utils/services';
@@ -311,7 +312,7 @@ export const RevenueSection = ({
         switch (chartDetailKey.kind) {
             case 'date': {
                 const dayReservations = metricReservations.filter((r) => r.date === chartDetailKey.dateKey);
-                const total = dayReservations.reduce((sum, r) => sum + (r.price ?? 0), 0);
+                const total = dayReservations.reduce((sum, r) => sum + resolveRevenue(r), 0);
                 return {
                     title: `${chartDetailKey.dateKey} 매출 상세`,
                     summary: `${dayReservations.length}건 · ${formatPrice(total)}`,
@@ -327,7 +328,10 @@ export const RevenueSection = ({
                     }
                     return r.paymentCompleted && r.paymentMethod === method;
                 });
-                const total = filtered.reduce((sum, r) => sum + (r.price ?? 0), 0);
+                // 이 결제수단으로 받은 금액만 더한다(차트 조각 금액과 같게). 결제 내역이 없는 옛 예약은 매출 전체.
+                const total = filtered.reduce((sum, r) => sum + (Array.isArray(r.paymentEntries) && r.paymentEntries.length > 0
+                    ? r.paymentEntries.filter((e) => e.method === method).reduce((s2, e) => s2 + e.amount, 0)
+                    : resolveRevenue(r)), 0);
                 return {
                     title: `${method} 결제 상세`,
                     summary: `${filtered.length}건 · ${formatPrice(total)}`,
@@ -338,7 +342,7 @@ export const RevenueSection = ({
             case 'assignee': {
                 const did = chartDetailKey.assigneeId;
                 const filtered = metricReservations.filter((r) => r.assigneeId === did);
-                const total = filtered.reduce((sum, r) => sum + (r.price ?? 0), 0);
+                const total = filtered.reduce((sum, r) => sum + resolveRevenue(r), 0);
                 const name = assigneeMap[did]?.name ?? '미지정';
                 return {
                     title: `${name} 매출 상세`,
@@ -375,7 +379,7 @@ export const RevenueSection = ({
             case 'channel': {
                 const ch = chartDetailKey.channel;
                 const filtered = metricReservations.filter((r) => (r.channel ?? '전화예약') === ch);
-                const total = filtered.reduce((sum, r) => sum + (r.price ?? 0), 0);
+                const total = filtered.reduce((sum, r) => sum + resolveRevenue(r), 0);
                 return {
                     title: `${ch} 상세`,
                     summary: `${filtered.length}건 · ${formatPrice(total)}`,
@@ -440,7 +444,7 @@ export const RevenueSection = ({
 
     return (
         <>
-            <PageHero eyebrow="REVENUE" title="매출" subtitle={`기간별 매출 현황과 ${labels.assignee}별 실적을 확인합니다.`} />
+            <PageHero eyebrow="REVENUE" subtitle={`기간별 매출 현황과 ${labels.assignee}별 실적을 확인합니다.`} />
             <RevenueFilters
                 startDateKey={startDateKey}
                 endDateKey={endDateKey}

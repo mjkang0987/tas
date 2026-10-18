@@ -46,6 +46,7 @@ import {
 const PAGE_TITLES: Record<string, string> = {
     '/address': '고객 명단',
     '/mypage': '계정 정보',
+    '/inquiry': '고객센터',
     '/logout': '로그아웃',
     '/menu': '설정',
 };

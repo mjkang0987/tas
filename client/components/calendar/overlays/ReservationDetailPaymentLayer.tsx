@@ -4,6 +4,8 @@ import styled, {css} from 'styled-components';
 
 import type {PaymentMethod} from '../../../utils/reservations';
 import {formatPrice} from '../../../utils/services';
+import {computeCouponDiscount, describeCouponDiscount} from '../../../features/coupons/model';
+import type {BenefitCoupon} from '../../../features/customers/benefits';
 import {StyledBody, StyledBodyInner} from './ModalStyles';
 import type {PaymentEntryDraft, PointAwardDraft} from './reservationDetailTypes';
 
@@ -20,6 +22,10 @@ type ReservationDetailPaymentLayerProps = {
     onChangeEntryAmount: (index: number, value: string) => void;
     onTogglePointAward: (enabled: boolean) => void;
     onChangePointAwardAmount: (value: string) => void;
+    /** 이 고객이 쓸 수 있는 쿠폰(+이 예약에 이미 쓴 쿠폰). 비어 있으면 쿠폰 칸을 숨긴다 */
+    couponOptions: BenefitCoupon[];
+    selectedCouponId: string;
+    onSelectCoupon: (couponId: string) => void;
     onRemoveEntry: (index: number) => void;
     onAddEntry: () => void;
     onNavigateToPoints: () => void;
@@ -34,6 +40,9 @@ export function ReservationDetailPaymentLayer({
     paymentMethodOptions,
     totalPrice,
     naverDeposit,
+    couponOptions,
+    selectedCouponId,
+    onSelectCoupon,
     onChangeEntryMethod,
     onChangeEntryAmount,
     onTogglePointAward,
@@ -61,12 +70,37 @@ export function ReservationDetailPaymentLayer({
                             </>
                         )}
                     </StyledExpectedAmount>
+                    {couponOptions.length > 0 && (
+                        <StyledCouponField htmlFor="payment-coupon">
+                            <span>쿠폰</span>
+                            <StyledPaymentEntrySelect
+                                id="payment-coupon"
+                                value={selectedCouponId}
+                                onChange={(e) => onSelectCoupon(e.target.value)}
+                            >
+                                <option value="">쿠폰 사용 안 함</option>
+                                {couponOptions.map((coupon) => {
+                                    // 최소 결제금액에 못 미치면 고를 수 없게 이유와 함께 막는다.
+                                    const usable = computeCouponDiscount(coupon, expectedAmount) != null;
+                                    return (
+                                        <option key={coupon.id} value={coupon.id} disabled={!usable}>
+                                            {coupon.name} · {describeCouponDiscount(coupon)}
+                                            {!usable && coupon.minOrderAmount != null ? ` (${formatPrice(coupon.minOrderAmount)} 이상)` : ''}
+                                        </option>
+                                    );
+                                })}
+                            </StyledPaymentEntrySelect>
+                        </StyledCouponField>
+                    )}
                     <StyledPaymentEntryList>
                         {paymentEntries.map((entry, index) => (
                             <StyledPaymentEntryRow key={`payment-entry-${index}`}>
                                 <StyledPaymentEntrySelect
                                     id={`payment-entry-${index}-method`}
                                     value={entry.method}
+                                    // 쿠폰 줄은 종류·금액을 쿠폰이 정한다 — 바꾸려면 위 쿠폰 칸에서.
+                                    disabled={!!entry.couponId}
+                                    aria-label={entry.couponId ? '쿠폰 할인' : undefined}
                                     onChange={(e) => onChangeEntryMethod(index, e.target.value as PaymentMethod | '')}
                                 >
                                     <option value="">결제종류</option>
@@ -80,6 +114,7 @@ export function ReservationDetailPaymentLayer({
                                     inputMode="numeric"
                                     value={entry.amount}
                                     placeholder="금액"
+                                    readOnly={!!entry.couponId}
                                     onChange={(e) => onChangeEntryAmount(index, e.target.value)}
                                 />
                                 <StyledPaymentRemoveButton
@@ -122,6 +157,14 @@ export function ReservationDetailPaymentLayer({
         </StyledBody>
     );
 }
+
+const StyledCouponField = styled.label`
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    font-size: var(--small-font);
+    color: var(--dark-gray-color2);
+`;
 
 const StyledPaymentLayer = styled.div`
     display: flex;
