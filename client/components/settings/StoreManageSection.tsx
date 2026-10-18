@@ -137,7 +137,7 @@ export const StoreManageSection = ({formatDateLabel}: StoreManageSectionProps) =
 
     return (
         <StyledStoreSection>
-            <PageHero eyebrow="STORE" title="매장 관리" subtitle="영업시간과 휴업일을 설정합니다." />
+            <PageHero eyebrow="STORE" subtitle="영업시간과 휴업일을 설정합니다." />
             <StyledStoreCard>
                 <StyledStoreCardHeader>
                     <StyledStoreCardTitle>매장 정보</StyledStoreCardTitle>

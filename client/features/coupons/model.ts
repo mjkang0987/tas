@@ -1,5 +1,5 @@
 // 쿠폰(coupon, 할인) 프론트 타입. 적립금(금액)·회원권(횟수/기간)과 별개의 할인 수단.
-// 상품 CRUD + 고객 직접 발급·취소. 코드형 발급·사용 처리·결제 차감은 후속 단계.
+// 상품 CRUD + 매장 직접 발급·사용 처리·취소. 결제 자동 차감은 후속 단계. 코드형(고객이 코드 입력)은 쓰지 않는다.
 
 import {formatPrice} from '../services/model';
 
@@ -13,7 +13,7 @@ export interface CouponProduct {
     maxDiscount: number | null; // 정률 상한 (null = 무제한)
     minOrderAmount: number | null; // 최소 결제금액 (null = 제한없음)
     validDays: number | null; // 발급일+유효일수 (null = 무기한)
-    code: string | null; // 코드형이면 코드 (null = 직접발급 전용)
+    code: string | null; // 미사용(코드형 폐지). 예전 데이터 호환용으로만 남김
     oncePerCustomer: boolean; // true = 고객당 1장(미사용 보유 시 재발급 불가)
     status: 'active' | 'archived';
 }
@@ -51,9 +51,9 @@ export function describeCouponDiscount(c: Pick<CouponProduct, 'discountType' | '
     return `${c.discountValue}% 할인${c.maxDiscount != null ? ` (최대 ${formatPrice(c.maxDiscount)})` : ''}`;
 }
 
-/** 고객에게 직접 발급할 수 있는 상품 — 보관되지 않았고 코드형이 아닌 것(코드형은 코드 입력 흐름 전용, API도 거부) */
+/** 고객에게 발급할 수 있는 상품 — 보관되지 않은 것. 쿠폰은 매장이 직접 발급만 한다(코드형 없음 — 예전에 넣은 code 는 무시) */
 export function isDirectIssuable(p: CouponProduct): boolean {
-    return p.status === 'active' && !p.code;
+    return p.status === 'active';
 }
 
 /** 화면에 보일 상태 — 만료를 따로 처리하는 작업이 없어 '미사용'이라도 만료일이 지났으면 만료로 본다 */

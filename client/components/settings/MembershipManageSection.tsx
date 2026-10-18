@@ -244,7 +244,6 @@ export const MembershipManageSection = () => {
         <StyledWrap>
             <PageHero
                 eyebrow="MEMBERSHIP"
-                title="회원권 관리"
                 subtitle="횟수·기간 회원권을 등록하고 고객에게 발급합니다."
             />
 

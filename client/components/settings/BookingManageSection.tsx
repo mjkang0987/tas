@@ -158,7 +158,6 @@ export function BookingManageSection() {
         <div>
             <PageHero
                 eyebrow="BOOKING"
-                title="고객 예약 설정"
                 subtitle="고객이 직접 예약하는 공개 예약 페이지의 주소와 규칙을 설정합니다."
             />
 

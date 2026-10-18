@@ -42,6 +42,31 @@
 
 ---
 
+## 진행 — 페이지 큰 제목 제거 (`claude/remove-pagehero-title`)
+
+### 배경
+각 페이지 위 `PageHero` 큰 제목(h1)이 헤더 제목(`Header`의 h1)과 같은 글자로 겹쳐 보였다(지시자 2026-10-16). h1 도 두 개였다.
+
+### 구현
+- `PageHero`에서 제목을 기본으로 빼고 eyebrow·설명만. 16개 화면 호출부에서 title 제거.
+- 예외: 정책 문서(`PolicyPage` — 헤더 제목이 없고 로그아웃 상태엔 헤더 자체가 없음)는 제목 유지(`title` 선택 prop).
+- 고객센터(`/inquiry`)는 헤더 제목이 'TAS'였어서 `PAGE_TITLES`에 '고객센터' 추가.
+
+---
+
+## 진행 — 레이어 등장 애니메이션 (`claude/layer-enter-animation`)
+
+### 배경
+레이어가 떠도 움직임이 없어 "새로 뜬 건지" 구분이 잘 안 된다(지시자 2026-10-16).
+
+### 구현
+- 공통 `ModalStyles`: 오버레이(`StyledOverlay`)는 0.18초 페이드 인, 레이어(`StyledDetail`)는 0.22초 살짝 떠오르며 나타남,
+  모바일 바텀시트는 0.26초 아래에서 올라옴. `prefers-reduced-motion: reduce`면 끈다(접근성).
+- `StyledDetail`을 확장한 레이어 전부에 자동 적용. 화면에 붙어 있는 예약 목록 패널(`ReservationListSection`)만 애니메이션 끔.
+- 같은 레이어 안에서 화면만 바뀌는 경우(예약 상세 → 결제)는 다시 마운트하지 않아 애니메이션이 없다 — 포커스 관리가 깨질 수 있어 이번엔 제외.
+
+---
+
 ## 진행 — 결제완료 레이어에 쿠폰 + 할인·적립금은 매출에서 차감 (`claude/payment-coupon`)
 
 ### 요구 (지시자 2026-10-16)
@@ -67,6 +92,25 @@
 `client/features/reservations/model.ts`(+test), `client/features/coupons/model.ts`(+test), `client/utils/revenue.ts`, `client/utils/revenue-export.ts`,
 `components/settings/revenue/revenueChartUtils.ts`, `server/db/prisma-includes.ts`, `server/db/mappers.ts`, `server/api/reservations.ts`, `server/api/coupon-use.ts`,
 `ReservationDetail.tsx`, `ReservationDetailPaymentLayer.tsx`, `reservationDetailTypes.ts`, `reservationDetailUtils.ts`.
+
+---
+
+## 진행 — 쿠폰 코드형 폐지 (`claude/coupon-remove-code`)
+
+### 배경
+쿠폰 상품에 "코드"를 넣으면 고객이 코드를 입력해 받는 코드형이 되는데, 그 입력 화면이 없고 직접 발급 API 는 코드형을 거부했다.
+그래서 코드를 넣은 쿠폰은 **아무 방법으로도 고객에게 줄 수 없었다**(운영에서 "발급이 안 된다"로 드러남, 2026-10-16).
+지시자 결정: 매장에서 직접 주는 쿠폰이라 코드형은 필요 없다(쇼핑몰이 아님) → 폐지.
+
+### 구현
+- 상품 추가·수정 폼과 상품 정보에서 "코드" 제거, 저장 시 code 를 보내지 않는다. 쓸모없어진 중복 코드 409 처리 제거.
+- 직접 발급 API 의 코드형 거부 가드 제거 → 예전에 코드를 넣어 만든 쿠폰도 바로 발급된다.
+- `isDirectIssuable`: 보관되지 않은 상품이면 발급 대상(코드 무시) — 테스트 갱신.
+- DB `CouponProduct.code` 컬럼은 그대로(마이그레이션 없음, 남은 값은 무시).
+
+### 다음 후보
+- 고객정보 레이어에서 바로 쿠폰·회원권 발급(지시자 언급).
+- 여러 고객에게 한 번에 발급.
 
 ---
 

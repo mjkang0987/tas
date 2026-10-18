@@ -382,7 +382,7 @@ export const AssigneeManageSection = () => {
 
     return (
         <>
-            <PageHero eyebrow="ASSIGNEE" title={`${labels.assignee} 관리`} subtitle={`${labels.assignee} 정보, 근무 일정, 재직 상태를 관리합니다.`} />
+            <PageHero eyebrow="ASSIGNEE" subtitle={`${labels.assignee} 정보, 근무 일정, 재직 상태를 관리합니다.`} />
             <StyledAssigneeBody>
                 <AssigneeSection
                     title="재직자"

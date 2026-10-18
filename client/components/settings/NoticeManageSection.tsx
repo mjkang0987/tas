@@ -151,7 +151,6 @@ export const NoticeManageSection = () => {
         <StyledWrap>
             <PageHero
                 eyebrow="NOTICE"
-                title="공지사항 관리"
                 subtitle={`'노출'을 체크한 공지만 고객 예약 페이지에 보입니다 (최대 ${MAX_VISIBLE_NOTICES}개).`}
             />
 

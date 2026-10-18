@@ -20,9 +20,9 @@ describe('describeCouponDiscount', () => {
 });
 
 describe('isDirectIssuable', () => {
-    it('활성 + 코드 없는 상품만 직접 발급 대상', () => {
+    it('보관되지 않은 상품은 발급 대상(예전에 넣은 코드는 무시)', () => {
         expect(isDirectIssuable(product({}))).toBe(true);
-        expect(isDirectIssuable(product({code: 'WELCOME'}))).toBe(false);
+        expect(isDirectIssuable(product({code: 'WELCOME'}))).toBe(true);
         expect(isDirectIssuable(product({status: 'archived'}))).toBe(false);
     });
 });
