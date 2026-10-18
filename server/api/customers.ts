@@ -9,6 +9,7 @@ import {dbCustomerToFrontend, frontendPaymentMethodToDb} from '../db/mappers';
 import {notifySlackOpsError} from '../notify/slack';
 import type {Customer, PointHistoryType} from '../../client/features/customers/model';
 import {DELETED_CUSTOMER_NAME, normalizeTel} from '../../client/features/customers/model';
+import {RECEIVED_PAYMENT_METHODS} from '../../client/features/reservations/model';
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
     const session = await getApiSession(req, res);
@@ -39,13 +40,14 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         if (!requireRole(session, 'staff', res)) return;
 
         const {customer} = req.body as { customer: Customer };
-        if (!customer || typeof customer.id !== 'number') {
+        if (!customer || !Number.isInteger(customer.id) || customer.id <= 0
+            || typeof customer.name !== 'string' || !customer.name.trim() || typeof (customer.tel ?? '') !== 'string') {
             return res.status(400).json({error: 'Invalid customer payload'});
         }
 
         const data = {
             name: customer.name,
-            tel: normalizeTel(customer.tel),
+            tel: normalizeTel(customer.tel ?? ''),
             points: customer.points ?? 0,
             firstVisitDate: customer.firstVisitDate ? new Date(`${customer.firstVisitDate}T00:00:00`) : null,
         };
@@ -55,8 +57,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             where: {storeId_legacyId: {storeId: session.storeId, legacyId: customer.id}},
             select: {name: true, tel: true, deletedAt: true},
         });
-        // 같은 요청의 재시도(이미 같은 사람으로 저장됨)는 그대로 성공.
-        if (existing && !existing.deletedAt && existing.name === data.name && existing.tel === data.tel) {
+        // 같은 요청의 재시도(이미 같은 사람으로 저장됨)는 그대로 성공. 연락처가 없으면 이름만 같은 다른 사람일 수 있어 새로 만든다.
+        if (existing && !existing.deletedAt && data.tel && existing.name === data.name && existing.tel === data.tel) {
             return res.status(201).json({ok: true, id: customer.id});
         }
 
@@ -182,8 +184,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                                     ? reservationLegacyToCuid.get(h.relatedReservationId) ?? null
                                     : null,
                                 // 충전 때 받은 돈(매출) — 충전 이력에만 있다.
-                                paidAmount: typeof h.paidAmount === 'number' && h.paidAmount >= 0 ? Math.floor(h.paidAmount) : null,
-                                paymentMethod: h.paymentMethod ? frontendPaymentMethodToDb(h.paymentMethod) : null,
+                                // 충전만, 실제로 받는 결제수단만, int4 범위만 — 아니면 매출에 잘못 잡히거나 일괄 저장 전체가 500 으로 깨진다.
+                                ...(h.type === 'recharge' && Number.isInteger(h.paidAmount) && h.paidAmount! >= 0 && h.paidAmount! <= 2_147_483_647
+                                    && h.paymentMethod && (RECEIVED_PAYMENT_METHODS as readonly string[]).includes(h.paymentMethod)
+                                    ? {paidAmount: h.paidAmount, paymentMethod: frontendPaymentMethodToDb(h.paymentMethod)}
+                                    : {paidAmount: null, paymentMethod: null}),
                             })),
                         });
                     }

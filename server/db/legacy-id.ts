@@ -8,12 +8,13 @@ import {prisma} from './prisma';
 const MAX_ATTEMPTS = 4;
 
 export async function nextCustomerLegacyId(storeId: string): Promise<number> {
-    const row = await prisma.customer.findFirst({where: {storeId}, orderBy: {legacyId: 'desc'}, select: {legacyId: true}});
+    // nulls last — DESC 는 NULL 을 맨 앞에 둬서, 번호 없는 행이 하나라도 있으면 늘 1 을 골라 계속 겹쳤다.
+    const row = await prisma.customer.findFirst({where: {storeId}, orderBy: {legacyId: {sort: 'desc', nulls: 'last'}}, select: {legacyId: true}});
     return (row?.legacyId ?? 0) + 1;
 }
 
 export async function nextReservationLegacyId(storeId: string): Promise<number> {
-    const row = await prisma.reservation.findFirst({where: {storeId}, orderBy: {legacyId: 'desc'}, select: {legacyId: true}});
+    const row = await prisma.reservation.findFirst({where: {storeId}, orderBy: {legacyId: {sort: 'desc', nulls: 'last'}}, select: {legacyId: true}});
     return (row?.legacyId ?? 0) + 1;
 }
 

@@ -1,7 +1,7 @@
 import type {NextApiRequest, NextApiResponse} from 'next';
 
 import {prisma} from '../db/prisma';
-import {createWithFreeLegacyId, nextReservationLegacyId} from '../db/legacy-id';
+import {createWithFreeLegacyId, isUniqueConflict, nextReservationLegacyId} from '../db/legacy-id';
 import {getApiSession, requireRole} from '../auth/api-session';
 import {
     dbReservationToFrontend,
@@ -75,28 +75,35 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
         // 번호는 서버가 최종으로 정한다 — 화면이 보낸 번호가 네이버 동기화·온라인 예약이 먼저 쓴 번호면
         // 예전엔 P2002 로 500 이 나 예약이 사라졌다. 겹치면 DB 최대+1 로 다시 만들고 실제 번호를 응답한다.
-        const created = await createWithFreeLegacyId(reservation.id, true, () => nextReservationLegacyId(session.storeId), (legacyId) => prisma.reservation.create({
-            data: {
-                storeId: session.storeId,
-                legacyId,
-                customerId,
-                assigneeId,
-                date: new Date(`${reservation.date}T00:00:00`),
-                startTime: reservation.startTime,
-                endTime: reservation.endTime,
-                serviceSummary: reservation.service,
-                status: frontendReservationStatusToDb(reservation.status),
-                price: reservation.price ?? 0,
-                memo: reservation.memo ?? null,
-                paymentCompleted: reservation.paymentCompleted ?? false,
-                pointEarned: reservation.pointEarned ?? 0,
-                ...(reservation.channel && { channel: frontendChannelToDb(reservation.channel) }),
-                paymentEntries: paymentEntries.length > 0
-                    ? {createMany: {data: paymentEntries}}
-                    : undefined,
-            },
-            select: reservationSelect,
-        }));
+        let created;
+        try {
+            created = await createWithFreeLegacyId(reservation.id, true, () => nextReservationLegacyId(session.storeId), (legacyId) => prisma.reservation.create({
+                data: {
+                    storeId: session.storeId,
+                    legacyId,
+                    customerId,
+                    assigneeId,
+                    date: new Date(`${reservation.date}T00:00:00`),
+                    startTime: reservation.startTime,
+                    endTime: reservation.endTime,
+                    serviceSummary: reservation.service,
+                    status: frontendReservationStatusToDb(reservation.status),
+                    price: reservation.price ?? 0,
+                    memo: reservation.memo ?? null,
+                    paymentCompleted: reservation.paymentCompleted ?? false,
+                    pointEarned: reservation.pointEarned ?? 0,
+                    ...(reservation.channel && { channel: frontendChannelToDb(reservation.channel) }),
+                    paymentEntries: paymentEntries.length > 0
+                        ? {createMany: {data: paymentEntries}}
+                        : undefined,
+                },
+                select: reservationSelect,
+            }));
+        } catch (err) {
+            // 몇 번 다시 골라도 겹치면(동시에 여럿이 만드는 중) 500 대신 다시 시도하라고 알린다.
+            if (isUniqueConflict(err)) return res.status(409).json({error: 'Reservation id conflict'});
+            throw err;
+        }
 
         await notifySlackForStore(session.storeId,
             `🗓️ *새 예약*\n• 날짜: ${reservation.date}`
