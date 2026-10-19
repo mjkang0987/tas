@@ -2,6 +2,7 @@ import type {NextApiRequest, NextApiResponse} from 'next';
 
 import {prisma} from '../db/prisma';
 import {createWithFreeLegacyId, isUniqueConflict, nextReservationLegacyId} from '../db/legacy-id';
+import {releaseReservationBenefits} from '../db/reservation-benefits';
 import {getApiSession, requireRole} from '../auth/api-session';
 import {
     dbReservationToFrontend,
@@ -277,6 +278,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                 select: reservationSelect,
             });
 
+            // 취소되면 그 예약에 쓴 쿠폰·회원권을 돌려준다(이미 취소였으면 다시 하지 않는다).
+            if (status === 'cancelled' && dbReservation.status !== 'cancelled') {
+                await releaseReservationBenefits(tx, session.storeId, dbReservation.id);
+            }
+
             const afterFront = dbReservationToFrontend(updatedReservation);
 
             await tx.reservationHistory.create({
@@ -343,8 +349,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         // 고객 조회에 필요한 최소 정보만 흔적으로 남기고 지운다(매장 화면에는 남지 않는다).
         // 흔적 생성과 삭제는 한 트랜잭션 — 흔적만 남고 예약이 살아 있는 상태를 만들지 않는다.
         const {publicToken} = dbReservation;
-        await prisma.$transaction([
-            ...(publicToken ? [prisma.deletedBooking.create({
+        await prisma.$transaction(async (tx) => {
+            // 지우기 전에 쓴 쿠폰·회원권을 돌려준다 — 지우면 연결만 풀리고(SET NULL) 사용됨으로 남는다.
+            await releaseReservationBenefits(tx, session.storeId, dbReservation.id);
+            if (publicToken) await tx.deletedBooking.create({
                 data: {
                     storeId: session.storeId,
                     customerId: dbReservation.customerId,
@@ -359,9 +367,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                     // 비우면 고객 페이지가 매장 취소 안내문구 → 기본 취소문구 순으로 대체한다.
                     reason: dbReservation.status === 'cancelled' ? dbReservation.decisionReason : null,
                 },
-            })] : []),
-            prisma.reservation.delete({where: {id: dbReservation.id}}),
-        ]);
+            });
+            await tx.reservation.delete({where: {id: dbReservation.id}});
+        });
 
         await notifySlackForStore(session.storeId,
             `🗑️ *예약 삭제*\n• 날짜: ${deleted.date}`
