@@ -9,7 +9,7 @@ import {NaverBookingInfo} from '../../ui/NaverBookingInfo';
 import {ServiceChipList} from '../../ui/ServiceChip';
 import type {CustomerMap} from '../../../utils/customers';
 import {formatTel} from '../../../utils/customers';
-import type {Reservation} from '../../../utils/reservations';
+import type {PaymentEntry, Reservation} from '../../../utils/reservations';
 import {formatPrice} from '../../../utils/services';
 import {ReservationStatusBadge} from '../../ui/ReservationStatusBadge';
 import {useStoreLabels} from '../../../hooks/useStoreLabels';
@@ -25,7 +25,7 @@ interface ReservationViewSectionProps {
     displayAssigneeColor: string;
     isNewCustomer: boolean;
     paymentCompleted: boolean;
-    paymentLines: string[];
+    paymentEntries: PaymentEntry[];
     historyCount: number;
     serviceColorMap: Record<string, string>;
     onCustomerClick: (customerId: number) => void;
@@ -40,7 +40,7 @@ export function ReservationViewSection({
     displayAssigneeColor,
     isNewCustomer,
     paymentCompleted,
-    paymentLines,
+    paymentEntries,
     historyCount,
     serviceColorMap,
     onCustomerClick,
@@ -101,9 +101,17 @@ export function ReservationViewSection({
                             <ReservationStatusBadge $type={paymentCompleted ? 'paid' : 'unpaid'}>
                                 {paymentCompleted ? '결제완료' : '미결제'}
                             </ReservationStatusBadge>
-                            <StyledPaymentLineList>
-                                {paymentLines.map((line) => <span key={line}>{line}</span>)}
-                            </StyledPaymentLineList>
+                            {/* 결제종류 왼쪽 · 금액 오른쪽으로 줄을 맞춘다. 미결제면 줄이 없다('미입력'은 배지와 같은 말이라 뺀다). */}
+                            {paymentEntries.length > 0 && (
+                                <StyledPaymentEntryList>
+                                    {paymentEntries.map((entry, index) => (
+                                        <StyledPaymentEntry key={`${entry.method}-${index}`}>
+                                            <span>{entry.method}</span>
+                                            <StyledPaymentAmount>{formatPrice(entry.amount)}</StyledPaymentAmount>
+                                        </StyledPaymentEntry>
+                                    ))}
+                                </StyledPaymentEntryList>
+                            )}
                         </StyledPaymentValue>
                         {reservation.naverBookingId && reservation.naverDeposit != null && reservation.naverDeposit > 0 && (
                             <StyledNaverDepositLine>
@@ -241,18 +249,33 @@ const StyledCustomerButton = styled.button`
     }
 `;
 
-const StyledPaymentValue = styled.span`
+const StyledPaymentValue = styled.div`
     display: flex;
-    align-items: center;
-    gap: 4px;
-    flex-wrap: wrap;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 6px;
     padding-bottom: 2px;
 `;
 
-const StyledPaymentLineList = styled.span`
-    display: inline-flex;
+const StyledPaymentEntryList = styled.ul`
+    display: flex;
     flex-direction: column;
-    gap: 2px;
+    gap: 4px;
+    width: 100%;
+    max-width: 220px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+`;
+
+const StyledPaymentEntry = styled.li`
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+`;
+
+const StyledPaymentAmount = styled.span`
+    font-variant-numeric: tabular-nums;
 `;
 
 

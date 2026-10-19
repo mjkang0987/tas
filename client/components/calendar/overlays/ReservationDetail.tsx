@@ -54,7 +54,6 @@ import {ReservationDetailFooterActions} from './ReservationDetailFooterActions';
 import {ReservationDetailPaymentLayer} from './ReservationDetailPaymentLayer';
 import type {PaymentEntryDraft, PointAwardDraft, ReservationDetailMode} from './reservationDetailTypes';
 import {
-    formatPaymentEntries,
     formatTimestamp,
     getChangedFields,
     getHistoryDiffs,
@@ -210,7 +209,6 @@ export const ReservationDetail = ({
         : '#8E8E93';
     const normalizedPaymentEntries = getPaymentEntries(sourceReservation);
     const paymentCompleted = hasCompletedPayment(sourceReservation);
-    const paymentLines = formatPaymentEntries(normalizedPaymentEntries);
     const showPointAward = storeSettings.pointSettings.enableServiceRate;
 
     const handleChange = (field: keyof ReservationDetailFormState, value: string) => {
@@ -682,7 +680,7 @@ export const ReservationDetail = ({
                     displayAssigneeColor={displayAssigneeColor}
                     isNewCustomer={isNewCustomerVisit(customer?.firstVisitDate, sourceReservation.date)}
                     paymentCompleted={paymentCompleted}
-                    paymentLines={paymentLines}
+                    paymentEntries={normalizedPaymentEntries}
                     historyCount={thisHistory.length}
                     serviceColorMap={serviceColorMap}
                     onCustomerClick={onCustomerClick}
