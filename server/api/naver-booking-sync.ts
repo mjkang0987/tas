@@ -4,6 +4,7 @@ import {Prisma} from '../../client/prisma/generated/prisma/client';
 
 import {prisma} from '../db/prisma';
 import {getApiSession, requireRole} from '../auth/api-session';
+import {releaseReservationBenefits} from '../db/reservation-benefits';
 import {getValidAccessTokenWithReason} from './gmail/token-manager';
 import {
     listNaverBookingEmails,
@@ -492,10 +493,15 @@ async function cancelReservationByBookingId(
 
     const before = dbReservationToFrontend(reservation);
 
-    const updatedReservation = await prisma.reservation.update({
-        where: {id: reservation.id},
-        data: {status: 'cancelled'},
-        select: reservationSelectWithNames,
+    // 결제한 예약이면 쓴 쿠폰·회원권·적립금을 돌려주고 결제를 비운다(매장 화면 취소와 같은 규칙).
+    // 동기화를 부른 화면은 이 뒤 고객·예약을 다시 받는다.
+    const updatedReservation = await prisma.$transaction(async (tx) => {
+        await releaseReservationBenefits(tx, storeId, reservation.id, {clearPayment: true});
+        return tx.reservation.update({
+            where: {id: reservation.id},
+            data: {status: 'cancelled'},
+            select: reservationSelectWithNames,
+        });
     });
 
     const after = dbReservationToFrontend(updatedReservation);

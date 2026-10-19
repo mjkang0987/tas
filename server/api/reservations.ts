@@ -2,7 +2,7 @@ import type {NextApiRequest, NextApiResponse} from 'next';
 
 import {prisma} from '../db/prisma';
 import {createWithFreeLegacyId, isUniqueConflict, nextReservationLegacyId} from '../db/legacy-id';
-import {releaseReservationBenefits} from '../db/reservation-benefits';
+import {releaseReservationBenefits, type PointRefund} from '../db/reservation-benefits';
 import {getApiSession, requireRole} from '../auth/api-session';
 import {
     dbReservationToFrontend,
@@ -268,7 +268,14 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         const before = dbReservationToFrontend(dbReservation);
 
         // 상태 변경과 이력 기록을 한 트랜잭션으로 묶어 원자화(이력 생성 실패 시 상태도 롤백).
+        let pointRefund: PointRefund | null = null;
         const after = await prisma.$transaction(async (tx) => {
+            // 취소되면 그 예약에 쓴 쿠폰·회원권·적립금을 돌려주고 결제를 비운다(이미 취소였으면 다시 하지 않는다).
+            // 상태를 바꾸기 전에 해야 아래 select 가 비워진 결제를 담는다.
+            if (status === 'cancelled' && dbReservation.status !== 'cancelled') {
+                pointRefund = await releaseReservationBenefits(tx, session.storeId, dbReservation.id, {clearPayment: true});
+            }
+
             const updatedReservation = await tx.reservation.update({
                 where: {id: dbReservation.id},
                 data: {
@@ -277,11 +284,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                 },
                 select: reservationSelect,
             });
-
-            // 취소되면 그 예약에 쓴 쿠폰·회원권을 돌려준다(이미 취소였으면 다시 하지 않는다).
-            if (status === 'cancelled' && dbReservation.status !== 'cancelled') {
-                await releaseReservationBenefits(tx, session.storeId, dbReservation.id);
-            }
 
             const afterFront = dbReservationToFrontend(updatedReservation);
 
@@ -320,7 +322,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             );
         }
 
-        return res.status(200).json({reservation: after, historyEntry: entry});
+        return res.status(200).json({reservation: after, historyEntry: entry, pointRefund});
     }
 
     if (req.method === 'DELETE') {
@@ -349,9 +351,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         // 고객 조회에 필요한 최소 정보만 흔적으로 남기고 지운다(매장 화면에는 남지 않는다).
         // 흔적 생성과 삭제는 한 트랜잭션 — 흔적만 남고 예약이 살아 있는 상태를 만들지 않는다.
         const {publicToken} = dbReservation;
+        let pointRefund: PointRefund | null = null;
         await prisma.$transaction(async (tx) => {
-            // 지우기 전에 쓴 쿠폰·회원권을 돌려준다 — 지우면 연결만 풀리고(SET NULL) 사용됨으로 남는다.
-            await releaseReservationBenefits(tx, session.storeId, dbReservation.id);
+            // 지우기 전에 쓴 쿠폰·회원권·적립금을 돌려준다 — 지우면 연결만 풀리고(SET NULL) 사용됨으로 남는다.
+            pointRefund = await releaseReservationBenefits(tx, session.storeId, dbReservation.id, {clearPayment: false});
             if (publicToken) await tx.deletedBooking.create({
                 data: {
                     storeId: session.storeId,
@@ -378,7 +381,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             + await customerNoteLine(dbReservation.customerId)
         );
 
-        return res.status(200).json({ok: true});
+        // 돌려준 적립금 — 화면이 잔액·이력을 이 값으로 맞춘다(다시 저장하지 않는다).
+        return res.status(200).json({ok: true, pointRefund});
     }
 
     res.setHeader('Allow', ['GET', 'POST', 'PUT', 'PATCH', 'DELETE']);
