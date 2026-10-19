@@ -143,12 +143,14 @@ export function ReservationDetailPaymentLayer({
                                     inputMode="numeric"
                                     value={entry.amount}
                                     placeholder="금액"
-                                    aria-label={`결제 금액 ${index + 1}`}
+                                    aria-label={entry.couponId ? '쿠폰 할인 금액' : entry.membershipId ? '회원권 결제 금액' : `결제 금액 ${index + 1}`}
                                     readOnly={!!entry.couponId}
                                     onChange={(e) => onChangeEntryAmount(index, e.target.value)}
                                 />
                                 <StyledPaymentRemoveButton
                                     type="button"
+                                    // 줄마다 '삭제'만 들리면 어느 줄인지 모른다 — 보이는 글자(삭제)는 이름에 그대로 둔다.
+                                    aria-label={`결제 ${index + 1} 삭제`}
                                     onClick={() => onRemoveEntry(index)}
                                 >
                                     삭제
