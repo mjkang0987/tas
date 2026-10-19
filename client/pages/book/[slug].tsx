@@ -905,7 +905,7 @@ const StyledNoticeChip = styled.span`
     background: var(--brand-color-bg);
 
     &[data-category='event'] { color: #8a4bb0; background: rgba(138, 75, 176, 0.12); }
-    &[data-category='info'] { color: #16a34a; background: rgba(22, 163, 74, 0.1); }
+    &[data-category='info'] { color: #137333; background: rgba(22, 163, 74, 0.1); }
 `;
 const StyledNoticeItemTitle = styled.span`
     min-width: 0;

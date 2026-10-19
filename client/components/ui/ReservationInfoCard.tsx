@@ -284,7 +284,7 @@ const StyledMetaLine = styled.div`
     align-items: center;
     gap: 8px 12px;
     font-size: var(--tiny-font);
-    color: var(--gray-color);
+    color: var(--dark-gray-color2);
 `;
 
 const StyledAssigneeMeta = styled.span`

@@ -309,7 +309,7 @@ const StyledAddButton = styled.button`
     border: none;
     border-radius: 50%;
     background-color: transparent;
-    color: var(--gray-color);
+    color: var(--dark-gray-color2); /* 아이콘 버튼 — 3:1 이상(WCAG 1.4.11) */
     font-size: var(--large-font);
     line-height: 1;
 

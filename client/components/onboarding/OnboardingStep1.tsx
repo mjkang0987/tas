@@ -89,7 +89,7 @@ const StyledInput = styled.input`
     outline: none;
     transition: border-color 0.15s;
 
-    &::placeholder { color: var(--gray-color); }
+    &::placeholder { color: var(--dark-gray-color2); }
     &:focus { border-color: var(--blue-color); }
 `;
 

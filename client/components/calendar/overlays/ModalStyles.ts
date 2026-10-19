@@ -419,7 +419,7 @@ export const StyledInfoGridRow = styled.div`
 `;
 
 export const StyledInfoGridTerm = styled.dt`
-    color: var(--gray-color);
+    color: var(--dark-gray-color2);
     font-weight: 600;
 `;
 

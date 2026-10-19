@@ -26,7 +26,7 @@ const StyledInput = styled.label<StyledProps>`
     padding-right: 4px;
 
     &::placeholder {
-        color: var(--gray-color);
+        color: var(--dark-gray-color2);
     }
 
     .input-field {

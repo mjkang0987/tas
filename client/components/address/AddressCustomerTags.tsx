@@ -163,7 +163,8 @@ const StyledTag = styled(ColorTag).attrs({ $shape: 'soft' as const })`
 const StyledTagRemoveButton = styled.button`
     border: none;
     background: none;
-    color: rgba(255, 255, 255, 0.7);
+    color: inherit; /* 태그 글자(흰)를 따른다 */
+    opacity: 0.7;
     font-size: var(--tiny-font);
     cursor: pointer;
     padding: 0;
@@ -171,7 +172,7 @@ const StyledTagRemoveButton = styled.button`
 
     @media (hover: hover) and (pointer: fine) {
         &:hover {
-            color: var(--white-color);
+            opacity: 1;
         }
     }
 `;

@@ -123,7 +123,7 @@ export const StyledEmpty = styled.div<{ $size?: 'sm' | 'md' }>`
 export const StyledEmptyCard = styled.p`
     padding: 16px 10px;
     font-size: var(--small-font);
-    color: var(--gray-color);
+    color: var(--dark-gray-color2);
     text-align: center;
     background-color: var(--black-color-10);
     border-radius: 4px;

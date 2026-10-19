@@ -16,6 +16,7 @@ import {useStoreLabels} from '../../../hooks/useStoreLabels';
 import {useCustomerBenefits} from '../../../hooks/useCustomerBenefits';
 import {describeBenefitCoupon, describeBenefitMembership} from '../../../features/customers/benefits';
 import {StyledBody, StyledBodyInner} from './ModalStyles';
+import {backgroundForWhiteText} from '../../../features/colors/contrast';
 
 interface ReservationViewSectionProps {
     reservation: Reservation;
@@ -245,7 +246,7 @@ const StyledCustomerButton = styled.button`
     background: none;
     padding: 0;
     font-size: var(--medium-font);
-    color: #4285F4;
+    color: #1967D2; /* 흰 바탕 5.3:1 — 예전 #4285F4 3.6 */
 
     @media (hover: hover) and (pointer: fine) {
         &:hover {
@@ -316,7 +317,7 @@ const StyledMemoTag = styled.span<{ $color: string }>`
     min-height: 22px;
     padding: 2px 8px;
     border-radius: 999px;
-    background-color: ${(props) => props.$color};
+    background-color: ${(props) => backgroundForWhiteText(props.$color)}; /* 흰 글자가 안 읽히는 밝은 색만 같은 색을 진하게 */
     color: #fff;
     font-size: var(--xsmall-font);
     font-weight: 600;
