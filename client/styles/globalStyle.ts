@@ -22,7 +22,7 @@ export const GlobalStyle = createGlobalStyle`
         --gray-color: hsl(0, 0%, 86%);
         --gray-color2: hsl(0, 0%, 96%);
         --dark-gray-color: hsl(0, 0%, 32%);
-        --dark-gray-color2: hsl(0, 0%, 45%);
+        --dark-gray-color2: hsl(0, 0%, 43%); /* 흰 5.1 · 옅은 회색(#F7F7F7) 4.8 — 45% 는 회색 바탕에서 4.43 */
         --light-gray-color: hsl(0, 0%, 89%);
         --white-color: hsl(0, 0%, 100%);
         --blue-color: hsl(196, 100%, 32%); /* 글자로 많이 써서 흰 바탕 4.5:1 이상(예전 45% 는 2.7) */

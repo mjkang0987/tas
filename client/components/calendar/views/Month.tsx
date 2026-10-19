@@ -184,6 +184,6 @@ const StyledDate = styled.li<{ type: string, $active: boolean, $closedKind: Stor
     }
 
     ${props => (props.type === 'prev' || props.type === 'next') && `
-    .faded { color: var(--gray-color); }
+    .faded { color: var(--dark-gray-color2); }
   `}
 `;

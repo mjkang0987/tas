@@ -155,12 +155,12 @@ const StyledResultItem = styled.li`
 
 const StyledResultTel = styled.span`
     font-size: var(--small-font);
-    color: var(--gray-color);
+    color: var(--dark-gray-color2);
 `;
 
 const StyledNoResult = styled.li`
     padding: 24px;
     font-size: var(--medium-font);
-    color: var(--gray-color);
+    color: var(--dark-gray-color2);
     text-align: center;
 `;

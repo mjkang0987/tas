@@ -467,9 +467,9 @@ const StyledInAppButton = styled.button`
     align-self: flex-start;
     margin-top: 2px;
     padding: 8px 14px;
-    border: 1px solid #f59e0b;
+    border: 1px solid #b45309;
     border-radius: 8px;
-    background: #f59e0b;
+    background: #b45309; /* 흰 글자 5.0:1 — 예전 #f59e0b 2.2 */
     color: #fff;
     font-size: var(--medium-font);
     font-weight: 700;
