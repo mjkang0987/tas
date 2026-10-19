@@ -1,4 +1,5 @@
 import type {ReactNode} from 'react';
+import {useEffect, useRef} from 'react';
 
 import styled from 'styled-components';
 
@@ -12,14 +13,34 @@ interface FieldErrorProps {
     role?: 'alert' | 'status';
 }
 
+// 한 번에 오류가 여러 개 뜨면(예약 페이지 이름·연락처) 첫 번째로만 간다 — 이펙트는 문서 순서로 돌아 맨 위 오류가 먼저 잡는다.
+// 하나씩 다 스크롤하면 마지막(맨 아래) 오류로 끝나 첫 오류가 밀려 올라간다.
+let scrolledThisTick = false;
+
 export const FieldError = ({children, variant = 'box', className, id, role}: FieldErrorProps) => {
+    const ref = useRef<HTMLParagraphElement>(null);
+    const shownText = useRef<string | null>(null);
+    // 오류가 뜨면(문구가 바뀌면) 보이는 곳까지 스크롤 — 긴 모달·시트에서 저장을 눌렀는데 오류가 화면 아래에 떠 먹통처럼 보였다.
+    // 글자로 비교한다: children 이 JSX 면 렌더마다 새 객체라, 다른 칸에 타이핑할 때마다 끌려 올라간다.
+    // 'nearest' 라 이미 보이면 움직이지 않는다. jsdom 엔 scrollIntoView 가 없다.
+    useEffect(() => {
+        const text = ref.current?.textContent ?? null;
+        if (text && text !== shownText.current && !scrolledThisTick) {
+            scrolledThisTick = true;
+            queueMicrotask(() => { scrolledThisTick = false; });
+            ref.current?.scrollIntoView?.({block: 'nearest'});
+        }
+        shownText.current = text;
+    });
     if (!children) return null;
     return variant === 'inline'
-        ? <StyledInline className={className} id={id} role={role}>{children}</StyledInline>
-        : <StyledBox className={className} id={id} role={role}>{children}</StyledBox>;
+        ? <StyledInline ref={ref} className={className} id={id} role={role}>{children}</StyledInline>
+        : <StyledBox ref={ref} className={className} id={id} role={role}>{children}</StyledBox>;
 };
 
+// 스크롤해 올 때 가장자리에 딱 붙지 않게(스크롤 영역 아래 흐림에 가리지 않게) 여유를 둔다.
 const StyledBox = styled.p`
+    scroll-margin: 24px 0;
     margin: 8px 0 0;
     padding: var(--gap-md) var(--gap-lg);
     background: var(--danger-bg);
@@ -31,6 +52,7 @@ const StyledBox = styled.p`
 `;
 
 const StyledInline = styled.p`
+    scroll-margin: 24px 0;
     margin: 0;
     font-size: var(--small-font);
     line-height: 1.4;
