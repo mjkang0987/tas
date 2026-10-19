@@ -1,12 +1,15 @@
 const MAGIC_NUMBER = {
     TIMELINE_DAY_TOP: 40,
     TIMELINE_TOP: 30,
+    // 주·3일 칸 맨 위 날짜 머리줄. 그 아래서 타임라인이 시작하므로 시간축 라벨도 이만큼 내려야 정시선과 맞는다.
+    TIMELINE_WEEK_HEADING: 24,
     TIMELINE_HOUR_HEIGHT: 100
 };
 
 export const {
     TIMELINE_DAY_TOP,
     TIMELINE_TOP,
+    TIMELINE_WEEK_HEADING,
     TIMELINE_HOUR_HEIGHT
 } = MAGIC_NUMBER;
 

@@ -9,6 +9,7 @@ import {computeTargetDerived} from '../../../utils/calendarDerived';
 import {
     DAYS,
     isTodayValue,
+    TIMELINE_WEEK_HEADING,
     ViewType,
 } from '../../../utils/constants';
 
@@ -82,7 +83,8 @@ export const Week = ({
    칸 전체 폭을 눌리게 해 글자가 작아도 터치 타깃을 잃지 않는다. */
 const StyledDayHeading = styled.button<{ $isToday: boolean; $faded: boolean }>`
     width: 100%;
-    min-height: 24px;
+    /* 시간축 라벨이 이 높이만큼 내려 정시선에 맞춘다(TimelineTitle) — min-height 로 두면 글꼴 따라 커져 어긋난다. */
+    height: ${TIMELINE_WEEK_HEADING}px;
     padding: 4px 2px;
     border: none;
     background: none;

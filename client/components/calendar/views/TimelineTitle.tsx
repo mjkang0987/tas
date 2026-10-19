@@ -5,6 +5,9 @@ import styled from 'styled-components';
 import {useCalendarStore} from '../../../store/calendarStore';
 import {useTimelineScale} from '../../../hooks/useTimelineScale';
 import {getTimelineRange} from '../../../utils/timelineRange';
+import {TIMELINE_WEEK_HEADING, ViewType} from '../../../utils/constants';
+
+import {blockOffsetOf} from './Timeline';
 
 export const TimelineTitle = () => {
     const view = useCalendarStore((s) => s.view);
@@ -40,14 +43,19 @@ export const TimelineTitle = () => {
         return result;
     };
 
+    const slotHeight = scale.hourHeight / (60 / scale.unit);
+    // 정시 칸의 **중앙**이 정시선에 오도록 위 여백을 칸 높이에 맞춘다. 정시선(축 기준) = 카드와 같은 오프셋,
+    // 주·3일은 칸 안의 날짜 머리줄 아래서 타임라인이 시작하므로 그만큼 더 내린다.
+    const lineTop = (view.type === ViewType.Day ? 0 : TIMELINE_WEEK_HEADING) + blockOffsetOf(view.type);
+
     return (<StyledTimelineTitle>
-            <StyledTimes>
+            <StyledTimes $top={lineTop - slotHeight / 2}>
                 {setTimes().map((t) => <StyledTime key={`time_${t.key}`}
                                                    $half={t.half}
                                                    // 눈금만 있는 칸은 읽을 것이 없다. 빈 항목으로 읽히지 않게 숨긴다.
                                                    aria-hidden={t.label ? undefined : true}>
                     {/* 보이는 글자는 두 자리뿐이라 "10" 으로 읽힌다 — 몇 시인지 소리로도 알 수 있어야 한다. */}
-                    <StyledNum $height={scale.hourHeight / (60 / scale.unit)}
+                    <StyledNum $height={slotHeight}
                                aria-label={t.label ? `${t.label}시` : undefined}>{t.label}</StyledNum>
                 </StyledTime>)}
             </StyledTimes>
@@ -62,10 +70,11 @@ const StyledTimelineTitle = styled.div`
     box-sizing: border-box;
 `;
 
-const StyledTimes = styled.ul`
+const StyledTimes = styled.ul<{$top: number}>`
     display: flex;
     flex-direction: column;
-    margin: 30px 0 60px;
+    /* 위+아래 90px 은 그대로 — 축 전체 높이가 바뀌지 않게 아래 여백이 위 여백을 받아준다. */
+    margin: ${props => props.$top}px 0 ${props => 90 - props.$top}px;
 `;
 
 const StyledTime = styled.li<{$half: boolean}>`
