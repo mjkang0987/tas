@@ -12,5 +12,5 @@ export const ReservationStatusBadge = styled.span<{ $type: string }>`
     white-space: nowrap;
     flex-shrink: 0;
     background-color: ${(props) => RESERVATION_STATUS_BADGE_STYLES[props.$type]?.bg || '#F1F1F1'};
-    color: ${(props) => RESERVATION_STATUS_BADGE_STYLES[props.$type]?.color || '#999'};
+    color: ${(props) => RESERVATION_STATUS_BADGE_STYLES[props.$type]?.color || '#666666'};
 `;

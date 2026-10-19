@@ -492,7 +492,7 @@ const StyledStatusBadge = styled.span<{$status: ReservationView['status']}>`
     font-weight: 700;
     color: #fff;
     background: ${(p) => (p.$status === 'active' ? 'var(--brand-color, #6526d9)'
-        : p.$status === 'requested' ? 'var(--caution-color, #a88417)'
+        : p.$status === 'requested' ? 'var(--caution-color, #806600)'
         : p.$status === 'completed' ? 'var(--success-color, #2f9e44)'
         : 'var(--dark-gray-color2, #667)')};
 `;
