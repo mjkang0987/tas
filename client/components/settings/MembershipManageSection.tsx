@@ -160,6 +160,10 @@ export const MembershipManageSection = () => {
     };
 
     // ── 발급 ──
+    // 고른 상품이 기간권(횟수 없음)이면 기존 등록에 만료일이 꼭 있어야 한다. 상품을 아직 안 골랐으면 아니다.
+    const issueProduct = products.find((p) => p.id === issueProductId);
+    const isPeriodOnlyIssue = !!issueProduct && issueProduct.totalCount == null;
+
     const handleIssue = () => flight.run(async () => {
         if (!issueCustomer.customerId) {
             setIssueError('고객을 선택해 주세요.');
@@ -390,8 +394,9 @@ export const MembershipManageSection = () => {
                                             )}
                                             <StyledField htmlFor="mi-expires">
                                                 {/* 기간권(횟수 없음)은 만료일이 곧 끝이라 비울 수 없다 — 서버도 거부한다. */}
-                                                <span>{products.find((p) => p.id === issueProductId)?.totalCount == null ? '만료일' : '만료일(비우면 무기한)'}</span>
+                                                <span>{isPeriodOnlyIssue ? '만료일' : '만료일(비우면 무기한)'}</span>
                                                 <StyledInput id="mi-expires" type="date" value={issueExpiresAt} min={toLocalDateKey(new Date().toISOString())}
+                                                             required={isPeriodOnlyIssue} aria-required={isPeriodOnlyIssue}
                                                              onChange={(e) => {setIssueExpiresAt(e.target.value); setIssueError('');}} />
                                             </StyledField>
                                         </>

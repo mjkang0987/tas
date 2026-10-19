@@ -41,7 +41,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
         const {customer} = req.body as { customer: Customer };
         if (!customer || !Number.isInteger(customer.id) || customer.id <= 0
-            || typeof customer.name !== 'string' || !customer.name.trim() || typeof (customer.tel ?? '') !== 'string') {
+            || typeof customer.name !== 'string' || !customer.name.trim() || typeof (customer.tel ?? '') !== 'string'
+            // 범위 밖 적립금·없는 날짜는 Prisma 에서 500 이 된다 — 들어오는 곳에서 거른다.
+            || (customer.points != null && (!Number.isInteger(customer.points) || customer.points < 0 || customer.points > 2_147_483_647))
+            || (customer.firstVisitDate != null && Number.isNaN(new Date(`${customer.firstVisitDate}T00:00:00`).getTime()))) {
             return res.status(400).json({error: 'Invalid customer payload'});
         }
 
