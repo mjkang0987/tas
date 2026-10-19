@@ -13,6 +13,10 @@ interface FieldErrorProps {
     role?: 'alert' | 'status';
 }
 
+// 한 번에 오류가 여러 개 뜨면(예약 페이지 이름·연락처) 첫 번째로만 간다 — 이펙트는 문서 순서로 돌아 맨 위 오류가 먼저 잡는다.
+// 하나씩 다 스크롤하면 마지막(맨 아래) 오류로 끝나 첫 오류가 밀려 올라간다.
+let scrolledThisTick = false;
+
 export const FieldError = ({children, variant = 'box', className, id, role}: FieldErrorProps) => {
     const ref = useRef<HTMLParagraphElement>(null);
     const shownText = useRef<string | null>(null);
@@ -21,7 +25,11 @@ export const FieldError = ({children, variant = 'box', className, id, role}: Fie
     // 'nearest' 라 이미 보이면 움직이지 않는다. jsdom 엔 scrollIntoView 가 없다.
     useEffect(() => {
         const text = ref.current?.textContent ?? null;
-        if (text && text !== shownText.current) ref.current?.scrollIntoView?.({block: 'nearest'});
+        if (text && text !== shownText.current && !scrolledThisTick) {
+            scrolledThisTick = true;
+            queueMicrotask(() => { scrolledThisTick = false; });
+            ref.current?.scrollIntoView?.({block: 'nearest'});
+        }
         shownText.current = text;
     });
     if (!children) return null;
