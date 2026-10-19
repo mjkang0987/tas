@@ -239,6 +239,8 @@ export function buildDraftReservation(reservation: Reservation, form: Reservatio
         service: form.service,
         price: form.price,
         memo: form.memo,
+        // 예약경로 — 빠져 있어 변경 확인 화면엔 바뀐다고 나오는데 저장은 예전 값이었다.
+        channel: form.channel,
         ...(form.assigneeId ? {assigneeId: form.assigneeId} : {assigneeId: undefined}),
     };
 }

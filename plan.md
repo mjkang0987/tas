@@ -5,6 +5,10 @@
 
 ---
 
+## 진행 — 예약 변경에서 예약경로가 저장되지 않던 것 (`claude/edit-keep-channel`)
+- 안드로이드 변경 화면 이식 중 발견: `buildDraftReservation` 이 `channel` 을 빠뜨려, 변경 확인 화면(getChangedFields)엔 "예약경로 전화예약 → 현장방문"이
+  나오는데 저장되는 예약은 예전 경로였다. 초안에 `channel: form.channel` 추가 + 테스트(`reservationDetailUtils.test.ts`).
+
 ## 완료(배포 v0.64.4 #293) — 파랑·경고 빨강·색 바탕·흐린 회색 글자 대비 4.5:1 (`claude/contrast-blue-warning`, 안드로이드·iOS 함께)
 
 ### 요구 (지시자 2026-10-19 — "다 바꿔줘 컬러 안맞는건")
