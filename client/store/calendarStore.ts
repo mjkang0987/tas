@@ -3,7 +3,7 @@ import {create} from 'zustand';
 import type {Reservation, ReservationMap, ReservationHistoryEntry, ReservationStatus} from '../utils/reservations';
 import {toDateKey} from '../utils/reservations';
 import {ViewType} from '../utils/constants';
-import {hasCompletedPayment} from '../utils/reservations';
+import {hasCompletedPayment, pointRefundOnCancel} from '../utils/reservations';
 import type {Customer, CustomerMap} from '../utils/customers';
 import type {PointHistoryEntry} from '../utils/customers';
 import {anonymizeCustomer, anonymizeCustomerReservation, appendPointHistories, syncCustomerFirstVisitDates} from '../utils/customers';
@@ -279,6 +279,21 @@ function afterReservationSaved(id: number, send: (savedId: number) => void): voi
     }
     void pending.then((savedId) => {
         if (savedId != null) send(savedId);
+    });
+}
+
+/** 결제한 예약이 취소·삭제되면 쓴 적립금은 돌려주고 쌓인 적립금은 회수한다(쿠폰·회원권은 서버가 돌려준다). */
+function refundPointsOnCancel(reservation: Reservation): void {
+    const delta = pointRefundOnCancel(reservation);
+    if (delta === 0) return;
+    const {customerMap, updateCustomer} = useCalendarStore.getState();
+    const customer = customerMap[reservation.customerId];
+    if (!customer || customer.deleted) return;
+    updateCustomer(customer.id, {points: Math.max((customer.points ?? 0) + delta, 0)}, {
+        type: 'payment_adjust',
+        delta,
+        description: delta > 0 ? '예약 취소 — 결제에 쓴 적립금 반환' : '예약 취소 — 결제 적립금 회수',
+        relatedReservationId: reservation.id,
     });
 }
 
@@ -873,7 +888,10 @@ export const useCalendarStore = create<CalendarState>((set) => ({
 
     cancelReservation: (reservationInput, status = 'cancelled', reason) => {
         const reservation = withSavedReservationId(reservationInput);
-        const updated: Reservation = {...reservation, status};
+        // 취소면 쓴 쿠폰·회원권은 서버가 돌려준다 — 화면의 '이 예약에 쓴' 표시도 지운다(결제 레이어가 되돌리기를 다시 시도하지 않게).
+        const updated: Reservation = status === 'cancelled'
+            ? {...reservation, status, usedCoupon: undefined, usedMembership: undefined}
+            : {...reservation, status};
 
         let nextReservationMap: ReservationMap | null = null;
         let nextHistory: ReservationHistoryEntry[] = [];
@@ -890,6 +908,9 @@ export const useCalendarStore = create<CalendarState>((set) => ({
         if (nextReservationMap) {
             syncReservationState(nextReservationMap, nextHistory);
         }
+
+        // 적립금은 게스트 모드에서도 돌려준다(쿠폰·회원권은 로그인 전용).
+        if (status === 'cancelled') refundPointsOnCancel(reservation);
 
         if (shouldUseLocalDb()) {
             return;
@@ -961,6 +982,8 @@ export const useCalendarStore = create<CalendarState>((set) => ({
         if (nextReservationMap) {
             syncReservationState(nextReservationMap, useCalendarStore.getState().reservationHistory);
         }
+
+        refundPointsOnCancel(reservation);
 
         if (shouldUseLocalDb()) {
             return;
