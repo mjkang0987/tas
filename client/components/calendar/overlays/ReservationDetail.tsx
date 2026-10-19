@@ -466,7 +466,7 @@ export const ReservationDetail = ({
             .filter((entry) => !entry.method)
             .reduce((sum, entry) => sum + toAmount(entry.amount), 0);
         if (unselectedAmount > 0) {
-            setError({field: 'general', message: `남은 ${formatPrice(unselectedAmount)}의 결제종류를 선택해 주세요.`});
+            setError({field: 'general', message: `결제종류를 고르지 않은 금액(${formatPrice(unselectedAmount)})이 있습니다. 결제종류를 선택하거나 그 줄을 삭제해 주세요.`});
             return;
         }
 
@@ -496,7 +496,8 @@ export const ReservationDetail = ({
             const gap = expectedAmount - paymentTotal;
             setError({
                 field: 'general',
-                message: `결제 금액이 ${formatPrice(Math.abs(gap))} ${gap > 0 ? '부족합니다' : '많습니다'}. (입력 ${formatPrice(paymentTotal)} / ${labels.service} 금액 ${formatPrice(expectedAmount)})`,
+                // 예약금을 뺀 실결제 기준이면 서비스 금액과 숫자가 달라 '받을 금액'이라 부른다.
+                message: `결제 금액이 ${formatPrice(Math.abs(gap))} ${gap > 0 ? '부족합니다' : '많습니다'}. (입력 ${formatPrice(paymentTotal)} / ${expectedAmount === displayPrice ? `${labels.service} 금액` : '받을 금액'} ${formatPrice(expectedAmount)})`,
             });
             return;
         }

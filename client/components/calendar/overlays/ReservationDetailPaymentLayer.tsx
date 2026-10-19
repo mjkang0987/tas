@@ -125,7 +125,7 @@ export function ReservationDetailPaymentLayer({
                                     value={entry.method}
                                     // 쿠폰 줄은 종류·금액을 쿠폰이 정한다 — 바꾸려면 위 쿠폰 칸에서.
                                     disabled={!!entry.couponId || !!entry.membershipId}
-                                    aria-label={entry.couponId ? '쿠폰 할인' : entry.membershipId ? '회원권 결제' : undefined}
+                                    aria-label={entry.couponId ? '쿠폰 할인' : entry.membershipId ? '회원권 결제' : `결제종류 ${index + 1}`}
                                     onChange={(e) => onChangeEntryMethod(index, e.target.value as PaymentMethod | '')}
                                 >
                                     <option value="">결제종류</option>
@@ -143,6 +143,7 @@ export function ReservationDetailPaymentLayer({
                                     inputMode="numeric"
                                     value={entry.amount}
                                     placeholder="금액"
+                                    aria-label={`결제 금액 ${index + 1}`}
                                     readOnly={!!entry.couponId}
                                     onChange={(e) => onChangeEntryAmount(index, e.target.value)}
                                 />
@@ -180,7 +181,8 @@ export function ReservationDetailPaymentLayer({
                             />
                         </StyledPointAwardBox>
                     )}
-                    {error && <StyledPaymentError>{error}</StyledPaymentError>}
+                    {/* 저장을 누르고 나오는 안내 — 화면 낭독기도 바로 읽게 */}
+                    {error && <StyledPaymentError role="alert">{error}</StyledPaymentError>}
                 </StyledPaymentLayer>
             </StyledBodyInner>
         </StyledBody>

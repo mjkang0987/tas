@@ -103,7 +103,8 @@ export function ReservationViewSection({
                             </ReservationStatusBadge>
                             {/* 결제종류 왼쪽 · 금액 오른쪽으로 줄을 맞춘다. 미결제면 줄이 없다('미입력'은 배지와 같은 말이라 뺀다). */}
                             {paymentEntries.length > 0 && (
-                                <StyledPaymentEntryList>
+                                // list-style 을 끄면 Safari VoiceOver 가 목록으로 읽지 않는다 — role 로 되살린다.
+                                <StyledPaymentEntryList role="list">
                                     {paymentEntries.map((entry, index) => (
                                         <StyledPaymentEntry key={`${entry.method}-${index}`}>
                                             <span>{entry.method}</span>
@@ -113,7 +114,9 @@ export function ReservationViewSection({
                                 </StyledPaymentEntryList>
                             )}
                         </StyledPaymentValue>
-                        {reservation.naverBookingId && reservation.naverDeposit != null && reservation.naverDeposit > 0 && (
+                        {/* 결제 목록에 '네이버 예약금' 줄이 이미 있으면 같은 금액을 두 번 보이지 않는다. */}
+                        {reservation.naverBookingId && reservation.naverDeposit != null && reservation.naverDeposit > 0
+                            && !paymentEntries.some((entry) => entry.method === '네이버 예약금') && (
                             <StyledNaverDepositLine>
                                 <StyledNaverLogo viewBox="0 0 20 20" width="14" height="14">
                                     <rect width="20" height="20" rx="4" fill="#03C75A" />
@@ -275,6 +278,9 @@ const StyledPaymentEntry = styled.li`
 `;
 
 const StyledPaymentAmount = styled.span`
+    flex-shrink: 0;
+    /* '1,000,000원' 이 숫자와 '원' 사이에서 줄바꿈되지 않게 */
+    white-space: nowrap;
     font-variant-numeric: tabular-nums;
 `;
 
