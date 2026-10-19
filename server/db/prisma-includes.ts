@@ -11,6 +11,8 @@
 const usedCouponSelect = {
     where: {status: 'used'},
     select: {id: true, name: true, discountType: true, discountValue: true, maxDiscount: true, minOrderAmount: true, expiresAt: true},
+    // 한 예약에 쿠폰이 둘 묶여 있으면(예전 되돌리기 실패) 가장 최근에 쓴 것 — 순서 없이 take 1 이면 매번 달라진다.
+    orderBy: {usedAt: 'desc'},
     take: 1,
 } as const;
 

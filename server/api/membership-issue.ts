@@ -59,18 +59,27 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                 remaining = remainingCount;
             }
             if (expiresAtInput !== undefined && expiresAtInput !== null && expiresAtInput !== '') {
-                if (typeof expiresAtInput !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(expiresAtInput)) {
-                    return res.status(400).json({error: 'Invalid expiresAt'});
-                }
+                // 형식만 보면 2026-02-31 이 3월로 넘어가고 2026-13-01 은 Invalid Date → 500. 실제 있는 날짜만 받는다.
+                const day = typeof expiresAtInput === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(expiresAtInput)
+                    ? new Date(`${expiresAtInput}T00:00:00Z`) : null;
+                // toISOString 은 Invalid Date 에서 던진다 — 먼저 거른다.
+                const valid = !!day && !Number.isNaN(day.getTime()) && day.toISOString().startsWith(expiresAtInput as string);
+                if (!valid) return res.status(400).json({error: '만료일이 올바르지 않습니다.'});
                 // 그날 끝까지 쓸 수 있게 한국 시간 하루 끝으로.
                 expiresAt = new Date(`${expiresAtInput}T23:59:59+09:00`);
+                if (expiresAt.getTime() < Date.now()) return res.status(400).json({error: '이미 지난 만료일입니다.'});
             } else if (expiresAtInput === null || expiresAtInput === '') {
                 expiresAt = null;
+            }
+            // 기간권(횟수 없음)에 만료일까지 없으면 끝나지 않는 회원권이 된다.
+            if (product.totalCount == null && expiresAt == null) {
+                return res.status(400).json({error: '기간권은 만료일을 입력해 주세요.'});
             }
         } else {
             // 판매: 금액(기본 상품가)·결제수단을 남겨 그날 매출로 잡는다.
             const price = salePrice === undefined ? product.price : salePrice;
-            if (typeof price !== 'number' || !Number.isInteger(price) || price < 0) {
+            // 상한 = DB int4 — 넘으면 Prisma 가 500 을 낸다(자릿수 실수 한 번이면 된다).
+            if (typeof price !== 'number' || !Number.isInteger(price) || price < 0 || price > 2_147_483_647) {
                 return res.status(400).json({error: '판매 금액이 올바르지 않습니다.'});
             }
             if (paymentMethod !== undefined && (typeof paymentMethod !== 'string' || !(RECEIVED_PAYMENT_METHODS as readonly string[]).includes(paymentMethod))) {

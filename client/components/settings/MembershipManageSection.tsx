@@ -14,7 +14,7 @@ import {useIssueCustomerPicker} from '../customers/useIssueCustomerPicker';
 import {useSingleFlight} from '../../hooks/useSingleFlight';
 import type {MembershipProduct, CustomerMembership} from '../../features/memberships/model';
 import type {PaymentMethod} from '../../utils/reservations';
-import {RECEIVED_PAYMENT_METHODS} from '../../utils/reservations';
+import {RECEIVED_PAYMENT_METHODS, toLocalDateKey} from '../../utils/reservations';
 import {describeBenefitMembership} from '../../features/customers/benefits';
 
 type Tab = 'products' | 'issue';
@@ -160,6 +160,10 @@ export const MembershipManageSection = () => {
     };
 
     // ── 발급 ──
+    // 고른 상품이 기간권(횟수 없음)이면 기존 등록에 만료일이 꼭 있어야 한다. 상품을 아직 안 골랐으면 아니다.
+    const issueProduct = products.find((p) => p.id === issueProductId);
+    const isPeriodOnlyIssue = !!issueProduct && issueProduct.totalCount == null;
+
     const handleIssue = () => flight.run(async () => {
         if (!issueCustomer.customerId) {
             setIssueError('고객을 선택해 주세요.');
@@ -178,6 +182,10 @@ export const MembershipManageSection = () => {
         const remaining = Number(issueRemaining.replace(/[^0-9]/g, ''));
         if (issueMode === 'carryover' && product?.totalCount != null && (!remaining || remaining > product.totalCount)) {
             setIssueError(`남은 횟수를 1~${product.totalCount}회로 입력해 주세요.`);
+            return;
+        }
+        if (issueMode === 'carryover' && product && product.totalCount == null && !issueExpiresAt) {
+            setIssueError('기간권은 만료일을 입력해 주세요.');
             return;
         }
         try {
@@ -385,9 +393,11 @@ export const MembershipManageSection = () => {
                                                 </StyledField>
                                             )}
                                             <StyledField htmlFor="mi-expires">
-                                                <span>만료일(비우면 무기한)</span>
-                                                <StyledInput id="mi-expires" type="date" value={issueExpiresAt}
-                                                             onChange={(e) => setIssueExpiresAt(e.target.value)} />
+                                                {/* 기간권(횟수 없음)은 만료일이 곧 끝이라 비울 수 없다 — 서버도 거부한다. */}
+                                                <span>{isPeriodOnlyIssue ? '만료일' : '만료일(비우면 무기한)'}</span>
+                                                <StyledInput id="mi-expires" type="date" value={issueExpiresAt} min={toLocalDateKey(new Date().toISOString())}
+                                                             required={isPeriodOnlyIssue} aria-required={isPeriodOnlyIssue}
+                                                             onChange={(e) => {setIssueExpiresAt(e.target.value); setIssueError('');}} />
                                             </StyledField>
                                         </>
                                     )}

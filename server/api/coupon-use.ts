@@ -31,7 +31,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             const coupon = await tx.customerCoupon.findFirst({
                 where: {id: couponId, storeId: session.storeId},
                 select: {
-                    status: true, customerId: true, productId: true, expiresAt: true,
+                    status: true, customerId: true, productId: true, expiresAt: true, reservationId: true,
                     product: {select: {oncePerCustomer: true}},
                     customer: {select: {deletedAt: true}},
                 },
@@ -41,25 +41,32 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             if (coupon.customer.deletedAt) return '삭제된 고객의 쿠폰입니다.';
             const expired = !!coupon.expiresAt && coupon.expiresAt <= now;
 
+            let linkedReservationId: string | null = null;
+            if (typeof reservationId === 'number') {
+                const reservation = await tx.reservation.findUnique({
+                    where: {storeId_legacyId: {storeId: session.storeId, legacyId: reservationId}},
+                    select: {id: true, customerId: true},
+                });
+                // 다른 고객의 예약에 쓰지 못하게 — 쓸 때만 쿠폰 주인과 예약 고객이 같아야 한다.
+                // (되돌리기는 '이 예약에 연결됐는지'만 본다 — 결제 뒤 예약 고객을 바꿨어도 풀 수 있게.)
+                if (!reservation || (action === 'use' && reservation.customerId !== coupon.customerId)) return '이 예약에 쓸 수 없는 쿠폰입니다.';
+                linkedReservationId = reservation.id;
+            }
+
             if (action === 'use') {
+                // 이미 이 예약에 쓴 쿠폰이면 그대로 성공 — 결제 저장이 중간에 실패해 다시 저장할 때 막히지 않게.
+                if (linkedReservationId && coupon.status === 'used' && coupon.reservationId === linkedReservationId) return null;
                 if (coupon.status !== 'active' || expired) return '사용할 수 없는 쿠폰입니다. (이미 사용·취소·만료)';
-                let linkedReservationId: string | null = null;
-                if (typeof reservationId === 'number') {
-                    const reservation = await tx.reservation.findUnique({
-                        where: {storeId_legacyId: {storeId: session.storeId, legacyId: reservationId}},
-                        select: {id: true, customerId: true},
-                    });
-                    // 다른 고객의 예약에 쓰지 못하게 — 쿠폰 주인과 예약 고객이 같아야 한다.
-                    if (!reservation || reservation.customerId !== coupon.customerId) return '이 예약에 쓸 수 없는 쿠폰입니다.';
-                    linkedReservationId = reservation.id;
-                }
                 await tx.customerCoupon.update({where: {id: couponId}, data: {status: 'used', usedAt: now, reservationId: linkedReservationId}});
                 return null;
             }
 
-            // 되돌리면 다시 쓸 수 있는 쿠폰이 된다 — 발급과 같은 규칙(만료 전, 고객당 1장)을 지킨다.
             if (coupon.status !== 'used') return '사용한 쿠폰만 되돌릴 수 있습니다.';
-            if (expired) return '만료된 쿠폰은 되돌릴 수 없습니다.';
+            // 결제에서 되돌릴 때는 그 예약에 쓴 쿠폰이어야 한다 — 다른 예약에 다시 쓴 쿠폰을 풀어 두 번 쓰이지 않게.
+            if (linkedReservationId && coupon.reservationId !== linkedReservationId) return '이 예약에 쓴 쿠폰이 아닙니다.';
+            // 되돌리면 다시 쓸 수 있는 쿠폰이 된다 — 발급과 같은 규칙(만료 전, 고객당 1장)을 지킨다.
+            // 단, 결제 수정으로 되돌리는 건 만료여도 허용한다(되살아나도 못 쓰고, 막으면 예약에 쿠폰이 두 장 묶인다).
+            if (expired && !linkedReservationId) return '만료된 쿠폰은 되돌릴 수 없습니다.';
             if (coupon.product?.oncePerCustomer && coupon.productId) {
                 const held = await tx.customerCoupon.count({
                     where: {storeId: session.storeId, customerId: coupon.customerId, productId: coupon.productId, status: 'active', ...notExpired},

@@ -64,7 +64,7 @@ export interface ReservationHistoryEntry {
     timestamp: string;
 }
 
-export function hasCompletedPayment(reservation: Reservation): boolean {
+export function hasCompletedPayment(reservation: Pick<Reservation, 'paymentEntries' | 'paymentCompleted'>): boolean {
     return (Array.isArray(reservation.paymentEntries) && reservation.paymentEntries.length > 0)
         || reservation.paymentCompleted === true;
 }
@@ -144,3 +144,17 @@ export const RESERVATION_STATUS_BADGE_STYLES: Record<string, { bg: string; color
     unpaid: {bg: '#FEF3C7', color: '#92400E'},
     requested: {bg: '#FEF7E0', color: '#a88417'},
 };
+
+/**
+ * 결제한 예약이 취소·삭제될 때 고객 적립금에 되돌릴 양 — 결제에 쓴 적립금은 돌려주고, 그 결제로 쌓인 적립금은 회수한다.
+ * (지시자 2026-10-19 — 쿠폰·회원권·적립금은 예약 취소 시 돌려준다. 쿠폰·회원권은 서버가 돌려준다.)
+ * 0 이면 바꿀 것이 없다. 이미 취소된 예약은 0(두 번 돌려주지 않게).
+ */
+export function pointRefundOnCancel(reservation: Pick<Reservation, 'status' | 'paymentEntries' | 'paymentCompleted' | 'pointEarned'>): number {
+    if (reservation.status === 'cancelled') return 0;
+    if (!hasCompletedPayment(reservation)) return 0;
+    const used = (reservation.paymentEntries ?? [])
+        .filter((entry) => entry.method === '적립금')
+        .reduce((sum, entry) => sum + entry.amount, 0);
+    return used - (reservation.pointEarned ?? 0);
+}

@@ -145,9 +145,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             } else {
                 // 기존 매장 (confirm=true): legacyId remap 후 append
                 const [maxAssigneeRow, maxCustomerRow, maxReservationRow] = await Promise.all([
-                    tx.assignee.findFirst({where: {storeId}, orderBy: {legacyId: 'desc'}, select: {legacyId: true}}),
-                    tx.customer.findFirst({where: {storeId}, orderBy: {legacyId: 'desc'}, select: {legacyId: true}}),
-                    tx.reservation.findFirst({where: {storeId}, orderBy: {legacyId: 'desc'}, select: {legacyId: true}}),
+                    tx.assignee.findFirst({where: {storeId}, orderBy: {legacyId: {sort: 'desc', nulls: 'last'}}, select: {legacyId: true}}),
+                    tx.customer.findFirst({where: {storeId}, orderBy: {legacyId: {sort: 'desc', nulls: 'last'}}, select: {legacyId: true}}),
+                    tx.reservation.findFirst({where: {storeId}, orderBy: {legacyId: {sort: 'desc', nulls: 'last'}}, select: {legacyId: true}}),
                 ]);
 
                 let nextAssigneeLegacyId = (maxAssigneeRow?.legacyId ?? 0) + 1;
