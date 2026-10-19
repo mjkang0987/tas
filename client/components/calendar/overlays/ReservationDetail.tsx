@@ -461,6 +461,15 @@ export const ReservationDetail = ({
     };
 
     const handlePaymentSave = () => paymentFlight.run(async () => {
+        // 금액은 있는데 결제종류를 안 고른 줄 — 그대로 두면 합계에서 조용히 빠져 "합계가 맞지 않는다"로만 보였다.
+        const unselectedAmount = paymentEntries
+            .filter((entry) => !entry.method)
+            .reduce((sum, entry) => sum + toAmount(entry.amount), 0);
+        if (unselectedAmount > 0) {
+            setError({field: 'general', message: `남은 ${formatPrice(unselectedAmount)}의 결제종류를 선택해 주세요.`});
+            return;
+        }
+
         const normalizedEntries = paymentEntries
             .map((entry) => ({
                 method: entry.method,
@@ -484,7 +493,11 @@ export const ReservationDetail = ({
         }
 
         if (paymentTotal !== expectedAmount) {
-            setError({field: 'general', message: `결제 금액 합계(${formatPrice(paymentTotal)})가 ${labels.service} 금액(${formatPrice(expectedAmount)})과 일치하지 않습니다.`});
+            const gap = expectedAmount - paymentTotal;
+            setError({
+                field: 'general',
+                message: `결제 금액이 ${formatPrice(Math.abs(gap))} ${gap > 0 ? '부족합니다' : '많습니다'}. (입력 ${formatPrice(paymentTotal)} / ${labels.service} 금액 ${formatPrice(expectedAmount)})`,
+            });
             return;
         }
 
