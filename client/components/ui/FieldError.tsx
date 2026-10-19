@@ -30,7 +30,9 @@ export const FieldError = ({children, variant = 'box', className, id, role}: Fie
         : <StyledBox ref={ref} className={className} id={id} role={role}>{children}</StyledBox>;
 };
 
+// 스크롤해 올 때 가장자리에 딱 붙지 않게(스크롤 영역 아래 흐림에 가리지 않게) 여유를 둔다.
 const StyledBox = styled.p`
+    scroll-margin: 24px 0;
     margin: 8px 0 0;
     padding: var(--gap-md) var(--gap-lg);
     background: var(--danger-bg);
@@ -42,6 +44,7 @@ const StyledBox = styled.p`
 `;
 
 const StyledInline = styled.p`
+    scroll-margin: 24px 0;
     margin: 0;
     font-size: var(--small-font);
     line-height: 1.4;

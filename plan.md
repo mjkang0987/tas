@@ -14,6 +14,11 @@
 - 공용 `components/ui/FieldError.tsx` 가 나타날 때(문구가 바뀔 때) `scrollIntoView({block: 'nearest'})` — 이미 보이면 움직이지 않는다.
   화면마다 고치지 않고 41곳 공용에서 한 번에. jsdom 엔 scrollIntoView 가 없어 있을 때만 부른다.
 - 같은 오류로 다시 저장(문구 그대로)은 다시 스크롤하지 않는다 — 사이에 칸을 고치면 오류가 지워져 다음엔 스크롤된다.
+- `scroll-margin: 24px` — 딱 붙여 멈추면 스크롤 영역 아래 흐림(scrollHint)에 오류가 반쯤 가렸다.
+
+### 검증 (2026-10-19)
+- 모바일 375 게스트: 예약 추가에서 겹침 오류 → 시트가 오류 칸까지 내려가 오류가 흐림 위로 24px 띄워져 보임. 칸 고친 뒤 재저장 → 다시 스크롤.
+- tsc·eslint·vitest(components·features 240) 통과.
 
 ## 진행 — 상태 배지·예약경로·네이버 글자 대비 4.5:1 (`claude/badge-contrast`, 웹·iOS·안드로이드 함께)
 
