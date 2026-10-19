@@ -49,7 +49,7 @@ export const GlobalStyle = createGlobalStyle`
         --success-text: #15803d;
         --success-bg: rgba(34, 197, 94, 0.12);
         --success-border: rgba(34, 197, 94, 0.2);
-        --caution-color: #a88417;
+        --caution-color: #806600;
 
         /* 캘린더 휴무 배경 — 시간축 눈금선이 비쳐야 하므로 반투명이다(불투명 색은 선을 덮는다).
            임시 휴업일은 오너가 직접 찍은 날이라 눈에 띄게(적색), 정기 휴무는 매주 반복이라 가라앉힌다(회색). */
@@ -60,12 +60,13 @@ export const GlobalStyle = createGlobalStyle`
         --neutral-bg: rgba(241, 245, 249, 0.92);
         --neutral-border: rgba(203, 213, 225, 0.95);
 
-        --info-color: #2d7ff9;
+        --info-color: #1660cc; /* 연한 info 배경 위 글자 대비 4.5 이상(예전 #2d7ff9 는 3.4) */
         --info-bg: rgba(45, 127, 249, 0.1);
         --info-border: rgba(45, 127, 249, 0.2);
 
-        --naver-color: #2DB400;
-        --naver-color-dark: #269900;
+        /* 흰 글자를 얹는 배지 바탕이라 대비 4.5 이상으로(예전 #2DB400 은 2.8). 로고·네이버 로그인 버튼은 브랜드 규정 색(#03C75A) 그대로. */
+        --naver-color: #208200;
+        --naver-color-dark: #1A6B00;
 
         /* 신규 고객 배지 — iOS Badges.swift 의 NewCustomerBadge 와 같은 값(#00A896, 바탕 15%). */
         --new-customer-color: #00A896;

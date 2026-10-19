@@ -135,14 +135,17 @@ export function isFirstVisitReservation(
     return firstVisitByCustomer.get(reservation.customerId) === reservation.date;
 }
 
+// 글자색은 배경 위 대비 4.5:1 이상(WCAG AA, 11px 작은 글자) — 2026-10-19 웹·iOS·안드로이드 함께 진하게 바꿈.
+// 예전 값(대비): booked #4285F4(3.1) · cancelled #999(2.5) · completed #34A853(2.7) · noshow #EA4335(3.3) · requested #a88417(3.3).
+// badgeContrast.test.ts 가 다시 옅어지지 않게 지킨다.
 export const RESERVATION_STATUS_BADGE_STYLES: Record<string, { bg: string; color: string }> = {
-    booked: {bg: '#E8F0FE', color: '#4285F4'},
-    cancelled: {bg: '#F1F1F1', color: '#999'},
-    completed: {bg: '#E6F4EA', color: '#34A853'},
-    noshow: {bg: '#FCE8E6', color: '#EA4335'},
+    booked: {bg: '#E8F0FE', color: '#1967D2'},
+    cancelled: {bg: '#F1F1F1', color: '#666666'},
+    completed: {bg: '#E6F4EA', color: '#137333'},
+    noshow: {bg: '#FCE8E6', color: '#C5221F'},
     paid: {bg: 'rgba(101, 38, 217, 0.08)', color: '#6526d9'},
     unpaid: {bg: '#FEF3C7', color: '#92400E'},
-    requested: {bg: '#FEF7E0', color: '#a88417'},
+    requested: {bg: '#FEF7E0', color: '#806600'},
 };
 
 /**
