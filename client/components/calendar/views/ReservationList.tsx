@@ -46,9 +46,9 @@ export const ReservationList = ({reservations: rawReservations}: ReservationList
                                         setCreateReservationInitial(null);
                                         openReservationDetail(r);
                                     }}>
-                            {/* 칸에는 이름만 — 칸 폭이 100px 안팎이라 시간을 넣으면 이름이 "이..." 로 잘린다.
-                                몇 시인지는 오른쪽 예약목록과 상세가 말하고(앱 월 뷰도 칸에 시간이 없다),
-                                시술은 왼쪽 색 막대가 담당자로 대신한다. 시간은 버튼 레이블로만 남긴다. */}
+                            {/* 칸에는 시작시간 + 이름 한 줄 — 넘치면 이름이 말줄임으로 줄어든다(지시자 2026-10-19).
+                                모바일(칸 약 48px)에서는 시간을 접고 이름만. 시술은 왼쪽 색 막대가 담당자로 대신한다. */}
+                            <StyledTimeMeta>{r.startTime}</StyledTimeMeta>
                             <StyledCustomerMeta>
                                 {isNewCustomerVisit(customer?.firstVisitDate, r.date) &&
                                     <NewCustomerBadge>신규</NewCustomerBadge>}
@@ -143,10 +143,18 @@ const StyledMeta = styled.span`
     }
 `;
 
+const StyledTimeMeta = styled(StyledMeta)`
+    /* 시간은 줄이지 않는다 — 줄어들 자리는 이름이 낸다(StyledCustomerName 말줄임). */
+    flex-shrink: 0;
+    font-variant-numeric: tabular-nums;
+
+    ${onMobile('display: none;')}
+`;
+
 /* 신규고객 배지는 배지+간격만 18px — 남은 글자 폭의 절반을 먹는다. 칸이 좁으면 접고 레이어에서 확인.
-   78px 선: 패딩 8 + 이름 세 글자 33 = 41px 에 배지 30px 을 더한 값이다(시간은 칸에 없다). */
+   110px 선: 시간 32 + 간격 6 + 패딩 8 + 이름 세 글자 33 = 79px 에 배지 30px 을 더한 값이다. */
 const StyledCustomerMeta = styled(StyledMeta)`
-    @container (max-width: 78px) {
+    @container (max-width: 110px) {
         ${NewCustomerBadge} { display: none; }
     }
 
