@@ -207,6 +207,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                     status: frontendReservationStatusToDb(updated.status),
                     price: updated.price ?? 0,
                     memo: updated.memo ?? null,
+                    // 예약경로 — 빠져 있어 상세에서 바꿔도 새로고침하면 예전 경로였다(만들 때만 저장했다).
+                    ...(updated.channel && {channel: frontendChannelToDb(updated.channel)}),
                     paymentCompleted: updated.paymentCompleted ?? false,
                     pointEarned: updated.pointEarned ?? 0,
                 },

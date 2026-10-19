@@ -1,7 +1,7 @@
 import {describe, expect, it} from 'vitest';
 
 import type {Reservation} from '../../../utils/reservations';
-import {buildDraftReservation, buildReservationFormState, getChangedFields} from './reservationDetailUtils';
+import {buildDraftReservation, buildReservationFormState, getChangedFields, getHistoryDiffs} from './reservationDetailUtils';
 
 describe('예약 변경 초안', () => {
     const reservation: Reservation = {
@@ -23,5 +23,12 @@ describe('예약 변경 초안', () => {
         expect(getChangedFields(legacy, form, {})).toEqual([]);
         expect(getChangedFields(legacy, {...form, channel: '현장방문'}, {}))
             .toEqual([{label: '예약경로', before: '전화예약', after: '현장방문'}]);
+    });
+
+    it('이력 — 경로 없던 예약을 시간만 바꿔 저장해도 예약경로 줄이 안 생긴다', () => {
+        const legacy: Reservation = {...reservation, channel: undefined};
+        const after = buildDraftReservation(legacy, {...buildReservationFormState(legacy), startTime: '10:30', endTime: '11:00'});
+        const diffs = getHistoryDiffs({reservationId: 1, before: legacy, after, timestamp: ''}, {});
+        expect(diffs.map((d) => d.label)).toEqual(['시작시간']);
     });
 });

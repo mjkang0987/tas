@@ -187,6 +187,13 @@ export function getHistoryDiffs(entry: ReservationHistoryEntry, assigneeNameMap:
                     after: formatPrice(afterPrice)
                 });
             }
+        } else if (key === 'channel') {
+            // 경로가 없던 옛 예약은 전화예약으로 본다 — 변경하면 초안에 '전화예약'이 실려, 빈 값과 비교하면 안 바꾼 경로가 이력에 남았다.
+            const beforeChannel = entry.before.channel ?? '전화예약';
+            const afterChannel = entry.after.channel ?? '전화예약';
+            if (beforeChannel !== afterChannel) {
+                diffs.push({label: FIELD_LABELS[key], before: beforeChannel, after: afterChannel});
+            }
         } else if ((entry.before[key] ?? '') !== (entry.after[key] ?? '')) {
             diffs.push({
                 label: FIELD_LABELS[key],
