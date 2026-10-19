@@ -1,7 +1,8 @@
 import type {NextApiRequest, NextApiResponse} from 'next';
 
 import {prisma} from '../db/prisma';
-import {createWithFreeLegacyId, nextReservationLegacyId} from '../db/legacy-id';
+import {createWithFreeLegacyId, isUniqueConflict, nextReservationLegacyId} from '../db/legacy-id';
+import {releaseReservationBenefits, type PointRefund} from '../db/reservation-benefits';
 import {getApiSession, requireRole} from '../auth/api-session';
 import {
     dbReservationToFrontend,
@@ -75,28 +76,35 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
         // 번호는 서버가 최종으로 정한다 — 화면이 보낸 번호가 네이버 동기화·온라인 예약이 먼저 쓴 번호면
         // 예전엔 P2002 로 500 이 나 예약이 사라졌다. 겹치면 DB 최대+1 로 다시 만들고 실제 번호를 응답한다.
-        const created = await createWithFreeLegacyId(reservation.id, true, () => nextReservationLegacyId(session.storeId), (legacyId) => prisma.reservation.create({
-            data: {
-                storeId: session.storeId,
-                legacyId,
-                customerId,
-                assigneeId,
-                date: new Date(`${reservation.date}T00:00:00`),
-                startTime: reservation.startTime,
-                endTime: reservation.endTime,
-                serviceSummary: reservation.service,
-                status: frontendReservationStatusToDb(reservation.status),
-                price: reservation.price ?? 0,
-                memo: reservation.memo ?? null,
-                paymentCompleted: reservation.paymentCompleted ?? false,
-                pointEarned: reservation.pointEarned ?? 0,
-                ...(reservation.channel && { channel: frontendChannelToDb(reservation.channel) }),
-                paymentEntries: paymentEntries.length > 0
-                    ? {createMany: {data: paymentEntries}}
-                    : undefined,
-            },
-            select: reservationSelect,
-        }));
+        let created;
+        try {
+            created = await createWithFreeLegacyId(reservation.id, true, () => nextReservationLegacyId(session.storeId), (legacyId) => prisma.reservation.create({
+                data: {
+                    storeId: session.storeId,
+                    legacyId,
+                    customerId,
+                    assigneeId,
+                    date: new Date(`${reservation.date}T00:00:00`),
+                    startTime: reservation.startTime,
+                    endTime: reservation.endTime,
+                    serviceSummary: reservation.service,
+                    status: frontendReservationStatusToDb(reservation.status),
+                    price: reservation.price ?? 0,
+                    memo: reservation.memo ?? null,
+                    paymentCompleted: reservation.paymentCompleted ?? false,
+                    pointEarned: reservation.pointEarned ?? 0,
+                    ...(reservation.channel && { channel: frontendChannelToDb(reservation.channel) }),
+                    paymentEntries: paymentEntries.length > 0
+                        ? {createMany: {data: paymentEntries}}
+                        : undefined,
+                },
+                select: reservationSelect,
+            }));
+        } catch (err) {
+            // 몇 번 다시 골라도 겹치면(동시에 여럿이 만드는 중) 500 대신 다시 시도하라고 알린다.
+            if (isUniqueConflict(err)) return res.status(409).json({error: 'Reservation id conflict'});
+            throw err;
+        }
 
         await notifySlackForStore(session.storeId,
             `🗓️ *새 예약*\n• 날짜: ${reservation.date}`
@@ -260,7 +268,14 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         const before = dbReservationToFrontend(dbReservation);
 
         // 상태 변경과 이력 기록을 한 트랜잭션으로 묶어 원자화(이력 생성 실패 시 상태도 롤백).
+        let pointRefund: PointRefund | null = null;
         const after = await prisma.$transaction(async (tx) => {
+            // 취소되면 그 예약에 쓴 쿠폰·회원권·적립금을 돌려주고 결제를 비운다(이미 취소였으면 다시 하지 않는다).
+            // 상태를 바꾸기 전에 해야 아래 select 가 비워진 결제를 담는다.
+            if (status === 'cancelled' && dbReservation.status !== 'cancelled') {
+                pointRefund = await releaseReservationBenefits(tx, session.storeId, dbReservation.id, {clearPayment: true});
+            }
+
             const updatedReservation = await tx.reservation.update({
                 where: {id: dbReservation.id},
                 data: {
@@ -307,7 +322,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             );
         }
 
-        return res.status(200).json({reservation: after, historyEntry: entry});
+        return res.status(200).json({reservation: after, historyEntry: entry, pointRefund});
     }
 
     if (req.method === 'DELETE') {
@@ -336,8 +351,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         // 고객 조회에 필요한 최소 정보만 흔적으로 남기고 지운다(매장 화면에는 남지 않는다).
         // 흔적 생성과 삭제는 한 트랜잭션 — 흔적만 남고 예약이 살아 있는 상태를 만들지 않는다.
         const {publicToken} = dbReservation;
-        await prisma.$transaction([
-            ...(publicToken ? [prisma.deletedBooking.create({
+        let pointRefund: PointRefund | null = null;
+        await prisma.$transaction(async (tx) => {
+            // 지우기 전에 쓴 쿠폰·회원권·적립금을 돌려준다 — 지우면 연결만 풀리고(SET NULL) 사용됨으로 남는다.
+            pointRefund = await releaseReservationBenefits(tx, session.storeId, dbReservation.id, {clearPayment: false});
+            if (publicToken) await tx.deletedBooking.create({
                 data: {
                     storeId: session.storeId,
                     customerId: dbReservation.customerId,
@@ -352,9 +370,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                     // 비우면 고객 페이지가 매장 취소 안내문구 → 기본 취소문구 순으로 대체한다.
                     reason: dbReservation.status === 'cancelled' ? dbReservation.decisionReason : null,
                 },
-            })] : []),
-            prisma.reservation.delete({where: {id: dbReservation.id}}),
-        ]);
+            });
+            await tx.reservation.delete({where: {id: dbReservation.id}});
+        });
 
         await notifySlackForStore(session.storeId,
             `🗑️ *예약 삭제*\n• 날짜: ${deleted.date}`
@@ -363,7 +381,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             + await customerNoteLine(dbReservation.customerId)
         );
 
-        return res.status(200).json({ok: true});
+        // 돌려준 적립금 — 화면이 잔액·이력을 이 값으로 맞춘다(다시 저장하지 않는다).
+        return res.status(200).json({ok: true, pointRefund});
     }
 
     res.setHeader('Allow', ['GET', 'POST', 'PUT', 'PATCH', 'DELETE']);

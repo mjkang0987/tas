@@ -402,7 +402,7 @@ DeletedBooking (관계 없음 — storeId 컬럼만)[^39]
 ```
 
 > **Store 기능 토글**: `usePointSystem`/`useMembershipSystem`/`useCouponSystem`(모두 `@default(false)`). 적립금·회원권·**쿠폰** 모두 토글 → aside 메뉴/페이지 연동 완료. **쿠폰은 Phase 2(토글 배선·상품 CRUD·`/settings/coupon` 탭 + 직접 발급/발급취소·사용 처리)까지 구현. `PaymentMethod.coupon` 결제 차감(Phase 3)은 미구현(예정). 코드형은 폐지.**
-> **결제 연동 현황**: 쿠폰은 결제 레이어에서 '할인' 줄로, 회원권은 `PaymentMethod.membership`('회원권' 줄, 0024)로 결제완료에서 사용한다. **매출 기준**(`NON_REVENUE_PAYMENT_METHODS = 할인·적립금·회원권`): 쓸 때는 매출 제외, 받을 때 매출 — 회원권 판매·적립금 충전(`CustomerPointHistory.paidAmount`/`paymentMethod`, 보너스 제외 받은 금액)을 받은 날 매출에 더한다(`features/sales/model.ts` `buildStoreSales`/`addSalesToRevenue`, 담당자 필터 중엔 제외 — 담당자 없는 매출). 예전 충전·기존 등록 회원권은 받은 금액이 없어 매출 없음.
+> **결제 연동 현황**: 쿠폰은 결제 레이어에서 '할인' 줄로, 회원권은 `PaymentMethod.membership`('회원권' 줄, 0024)로 결제완료에서 사용한다. **매출 기준**(`NON_REVENUE_PAYMENT_METHODS = 할인·적립금·회원권`): 쓸 때는 매출 제외, 받을 때 매출 — 회원권 판매·적립금 충전(`CustomerPointHistory.paidAmount`/`paymentMethod`, 보너스 제외 받은 금액)을 받은 날 매출에 더한다(`features/sales/model.ts` `buildStoreSales`/`addSalesToRevenue`, 담당자 필터 중엔 제외 — 담당자 없는 매출). 예전 충전·기존 등록 회원권은 받은 금액이 없어 매출 없음. **예약 취소·삭제 시 반환**: 취소(cancelled)·삭제·온라인 취소 수락·네이버 취소는 같은 트랜잭션에서 그 예약에 쓴 쿠폰·회원권·적립금을 돌려주고(`server/db/reservation-benefits.ts`) 취소면 결제를 비운다 — 노쇼는 그대로. 화면은 응답의 `pointRefund` 로 잔액·이력을 맞춘 **뒤** 고객을 저장한다(고객 PUT 이 적립금을 절대값으로 써서 먼저 보내면 반환을 덮는다). 결제 합계 기준: '네이버 예약금' 줄이 있으면 서비스 금액 전체, 없으면 실결제. 고객·예약 번호는 서버 확정 전엔 그 번호로 쓰지 않는다(`calendarStore` 예약별 요청 줄).
 
 ### 주요 Enum
 

@@ -3,7 +3,7 @@ import {useEffect, useMemo, useState} from 'react';
 import {createPortal} from 'react-dom';
 import {useRouter} from 'next/router';
 import {useSession} from 'next-auth/react';
-import {useCalendarStore} from '../../../store/calendarStore';
+import {serverReservationId, useCalendarStore} from '../../../store/calendarStore';
 import {useStoreLabels} from '../../../hooks/useStoreLabels';
 
 import type {PaymentEntry, Reservation, ReservationHistoryEntry, ReservationMap, ReservationStatus} from '../../../utils/reservations';
@@ -377,6 +377,14 @@ export const ReservationDetail = ({
         return usedCoupon && !usable.some((c) => c.id === usedCoupon.id) ? [usedCoupon, ...usable] : usable;
     }, [benefits, usedCoupon]);
     const paymentExpectedAmount = displayPrice - (sourceReservation.naverDeposit ?? 0);
+    // 결제 줄 합계가 맞춰야 할 금액. '네이버 예약금' 줄이 있으면 그 줄이 예약금을 이미 담으니 서비스 금액 전체,
+    // 없으면 예약금을 뺀 실결제 금액. (기본 줄은 예약금 줄을 넣어 전체 금액이 되는데, 검사는 실결제만 받아 저장이 막혔다.)
+    // 금액이 0 인 줄은 저장 때 빠지므로 판정에서도 뺀다 — 자동 채우기와 저장 검사가 같은 기준을 쓰게.
+    const paymentTargetFor = (entries: Array<{method: string; amount: string | number}>) => (
+        entries.some((entry) => entry.method === '네이버 예약금' && Number(String(entry.amount).replace(/[^0-9]/g, '')) > 0)
+            ? displayPrice
+            : paymentExpectedAmount
+    );
     const selectedCouponId = paymentEntries.find((entry) => entry.couponId)?.couponId ?? '';
 
     // ── 회원권 ── 쓸 수 있는 회원권 + 이 예약에 이미 쓴 회원권
@@ -393,7 +401,7 @@ export const ReservationDetail = ({
     const handleSelectMembership = (membershipId: string) => {
         const kept = paymentEntries.filter((entry) => !entry.membershipId && (entry.couponId || entry.method === '네이버 예약금'));
         const keptTotal = kept.reduce((sum, entry) => sum + toAmount(entry.amount), 0);
-        const remainder = String(Math.max(paymentExpectedAmount - keptTotal, 0));
+        const remainder = String(Math.max(paymentTargetFor(kept) - keptTotal, 0));
         handlePaymentEntriesChange(membershipId
             ? [...kept, {method: '회원권', amount: remainder, membershipId}]
             : [...kept, {method: '', amount: remainder}]);
@@ -418,7 +426,7 @@ export const ReservationDetail = ({
             const fixed = next
                 .filter((entry) => entry !== editable[0])
                 .reduce((sum, entry) => sum + (Number(entry.amount.replace(/[^0-9]/g, '')) || 0), 0);
-            const remainder = paymentExpectedAmount - fixed - (discountEntry ? Number(discountEntry.amount) : 0);
+            const remainder = paymentTargetFor(next) - fixed - (discountEntry ? Number(discountEntry.amount) : 0);
             next[next.indexOf(editable[0])] = {...editable[0], amount: String(Math.max(remainder, 0))};
         }
         handlePaymentEntriesChange(discountEntry ? [...next, discountEntry] : next);
@@ -428,20 +436,26 @@ export const ReservationDetail = ({
     const paymentFlight = useSingleFlight();
     const toast = useToastStore((s) => s.show);
     const postMembershipUse = async (membershipId: string, action: 'use' | 'restore') => {
+        // 방금 만든 예약이면 서버 번호가 정해질 때까지 기다린다 — 화면 번호가 다른 예약의 번호일 수 있다.
+        const reservationId = await serverReservationId(sourceReservation.id);
+        if (reservationId == null) return '예약이 아직 저장되지 않았습니다. 새로고침 후 다시 시도해 주세요.';
         const res = await fetch('/api/membership-use', {
             method: 'POST',
             headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify({membershipId, action, reservationId: sourceReservation.id}),
+            body: JSON.stringify({membershipId, action, reservationId}),
         });
         if (res.ok) return null;
         const err = await res.json().catch(() => null) as {error?: string} | null;
         return err?.error ?? '회원권 처리에 실패했습니다.';
     };
     const postCouponUse = async (couponId: string, action: 'use' | 'restore') => {
+        const reservationId = await serverReservationId(sourceReservation.id);
+        if (reservationId == null) return '예약이 아직 저장되지 않았습니다. 새로고침 후 다시 시도해 주세요.';
         const res = await fetch('/api/coupon-use', {
             method: 'POST',
             headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify(action === 'use' ? {couponId, action, reservationId: sourceReservation.id} : {couponId, action}),
+            // 되돌릴 때도 예약을 보낸다 — 서버가 이 예약에 쓴 쿠폰인지 확인한다(다른 예약에 다시 쓴 쿠폰을 풀지 않게).
+            body: JSON.stringify({couponId, action, reservationId}),
         });
         if (res.ok) return null;
         const err = await res.json().catch(() => null) as {error?: string} | null;
@@ -462,7 +476,14 @@ export const ReservationDetail = ({
         }
 
         const paymentTotal = normalizedEntries.reduce((sum, entry) => sum + entry.amount, 0);
-        const expectedAmount = displayPrice - (sourceReservation.naverDeposit ?? 0);
+        const expectedAmount = paymentTargetFor(normalizedEntries);
+        // 예약금 줄은 실제 네이버 예약금과 같아야 한다 — 다르면 합계는 맞아도 받은 돈이 틀린다.
+        const depositRows = normalizedEntries.filter((entry) => entry.method === '네이버 예약금');
+        const naverDeposit = sourceReservation.naverDeposit ?? 0;
+        if (naverDeposit > 0 && depositRows.length > 0 && depositRows.reduce((sum, entry) => sum + entry.amount, 0) !== naverDeposit) {
+            setError({field: 'general', message: `네이버 예약금은 ${formatPrice(naverDeposit)}입니다.`});
+            return;
+        }
 
         if (paymentTotal !== expectedAmount) {
             setError({field: 'general', message: `결제 금액 합계(${formatPrice(paymentTotal)})가 ${labels.service} 금액(${formatPrice(expectedAmount)})과 일치하지 않습니다.`});
@@ -485,7 +506,8 @@ export const ReservationDetail = ({
         }
 
         // 쿠폰이 바뀌었으면 새 쿠폰을 먼저 쓰고(실패하면 저장 중단), 그다음 예전 쿠폰을 되돌린다.
-        const nextCouponId = selectedCouponId || undefined;
+        // 금액이 0 인 줄은 저장되지 않는다 — 그 줄의 쿠폰·회원권을 쓰면 결제 줄 없이 소모만 된다.
+        const nextCouponId = paymentEntries.find((entry) => entry.couponId && toAmount(entry.amount) > 0)?.couponId;
         const prevCouponId = usedCoupon?.id;
         if (nextCouponId !== prevCouponId) {
             if (nextCouponId) {
@@ -502,7 +524,7 @@ export const ReservationDetail = ({
         }
 
         // 회원권도 같은 순서 — 새 회원권 1회 사용(실패하면 저장 중단) → 예전 회원권 되돌리기.
-        const nextMembershipId = selectedMembershipId || undefined;
+        const nextMembershipId = paymentEntries.find((entry) => entry.membershipId && toAmount(entry.amount) > 0)?.membershipId;
         const prevMembershipId = usedMembership?.id;
         if (nextMembershipId !== prevMembershipId) {
             if (nextMembershipId) {

@@ -4,6 +4,7 @@ import {Prisma} from '../../client/prisma/generated/prisma/client';
 import {prisma} from '../db/prisma';
 import {toDateKey} from '../db/mappers';
 import {getApiSession, requireRole} from '../auth/api-session';
+import {releaseReservationBenefits} from '../db/reservation-benefits';
 
 // 오너 확정 대기 항목을 오너가 수락/거절하는 인증 API. 로그인 + staff 이상 + storeId 스코프.
 // 두 종류:
@@ -143,7 +144,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
         // 취소 요청 수락
         if (kind === 'cancel') {
-            await prisma.reservation.update({where: {id: reservation.id}, data: {status: 'cancelled', ...CLEAR_PENDING}});
+            // 결제한 예약이면 쓴 쿠폰·회원권·적립금을 돌려주고 결제를 비운다(매장 화면 취소와 같은 규칙). 화면은 이 뒤 새로고침한다.
+            await prisma.$transaction(async (tx) => {
+                await releaseReservationBenefits(tx, session.storeId, reservation.id, {clearPayment: true});
+                await tx.reservation.update({where: {id: reservation.id}, data: {status: 'cancelled', ...CLEAR_PENDING}});
+            });
             return res.status(200).json({ok: true, applied: 'cancelled'});
         }
 

@@ -139,14 +139,14 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                     });
                     if (dup) return {status: 'duplicate' as const};
                 } else {
-                    const maxCustomer = await tx.customer.findFirst({where: {storeId: store.id}, orderBy: {legacyId: 'desc'}, select: {legacyId: true}});
+                    const maxCustomer = await tx.customer.findFirst({where: {storeId: store.id}, orderBy: {legacyId: {sort: 'desc', nulls: 'last'}}, select: {legacyId: true}});
                     customer = await tx.customer.create({
                         data: {storeId: store.id, legacyId: (maxCustomer?.legacyId ?? 0) + 1, name, tel},
                         select: {id: true},
                     });
                 }
 
-                const maxReservation = await tx.reservation.findFirst({where: {storeId: store.id}, orderBy: {legacyId: 'desc'}, select: {legacyId: true}});
+                const maxReservation = await tx.reservation.findFirst({where: {storeId: store.id}, orderBy: {legacyId: {sort: 'desc', nulls: 'last'}}, select: {legacyId: true}});
                 const created = await tx.reservation.create({
                     data: {
                         storeId: store.id,
