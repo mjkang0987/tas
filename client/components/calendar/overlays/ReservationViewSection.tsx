@@ -9,7 +9,7 @@ import {NaverBookingInfo} from '../../ui/NaverBookingInfo';
 import {ServiceChipList} from '../../ui/ServiceChip';
 import type {CustomerMap} from '../../../utils/customers';
 import {formatTel} from '../../../utils/customers';
-import type {Reservation} from '../../../utils/reservations';
+import type {PaymentEntry, Reservation} from '../../../utils/reservations';
 import {formatPrice} from '../../../utils/services';
 import {ReservationStatusBadge} from '../../ui/ReservationStatusBadge';
 import {useStoreLabels} from '../../../hooks/useStoreLabels';
@@ -25,7 +25,7 @@ interface ReservationViewSectionProps {
     displayAssigneeColor: string;
     isNewCustomer: boolean;
     paymentCompleted: boolean;
-    paymentLines: string[];
+    paymentEntries: PaymentEntry[];
     historyCount: number;
     serviceColorMap: Record<string, string>;
     onCustomerClick: (customerId: number) => void;
@@ -40,7 +40,7 @@ export function ReservationViewSection({
     displayAssigneeColor,
     isNewCustomer,
     paymentCompleted,
-    paymentLines,
+    paymentEntries,
     historyCount,
     serviceColorMap,
     onCustomerClick,
@@ -101,11 +101,24 @@ export function ReservationViewSection({
                             <ReservationStatusBadge $type={paymentCompleted ? 'paid' : 'unpaid'}>
                                 {paymentCompleted ? '결제완료' : '미결제'}
                             </ReservationStatusBadge>
-                            <StyledPaymentLineList>
-                                {paymentLines.map((line) => <span key={line}>{line}</span>)}
-                            </StyledPaymentLineList>
+                            {/* 결제종류 왼쪽 · 금액 오른쪽으로 줄을 맞춘다. 미결제면 줄이 없다('미입력'은 배지와 같은 말이라 뺀다).
+                                결제완료인데 줄이 없는 옛 데이터만 '미입력'을 남긴다 — 빠진 정보가 있다는 걸 알려야 한다. */}
+                            {paymentCompleted && paymentEntries.length === 0 && <StyledPaymentMissing>미입력</StyledPaymentMissing>}
+                            {paymentEntries.length > 0 && (
+                                // list-style 을 끄면 Safari VoiceOver 가 목록으로 읽지 않는다 — role 로 되살린다.
+                                <StyledPaymentEntryList role="list">
+                                    {paymentEntries.map((entry, index) => (
+                                        <StyledPaymentEntry key={`${entry.method}-${index}`}>
+                                            <span>{entry.method}</span>
+                                            <StyledPaymentAmount>{formatPrice(entry.amount)}</StyledPaymentAmount>
+                                        </StyledPaymentEntry>
+                                    ))}
+                                </StyledPaymentEntryList>
+                            )}
                         </StyledPaymentValue>
-                        {reservation.naverBookingId && reservation.naverDeposit != null && reservation.naverDeposit > 0 && (
+                        {/* 결제 목록의 '네이버 예약금' 줄이 같은 금액이면 두 번 보이지 않는다(금액이 다르면 네이버 확정 금액을 남긴다). */}
+                        {reservation.naverBookingId && reservation.naverDeposit != null && reservation.naverDeposit > 0
+                            && paymentEntries.filter((entry) => entry.method === '네이버 예약금').reduce((sum, entry) => sum + entry.amount, 0) !== reservation.naverDeposit && (
                             <StyledNaverDepositLine>
                                 <StyledNaverLogo viewBox="0 0 20 20" width="14" height="14">
                                     <rect width="20" height="20" rx="4" fill="#03C75A" />
@@ -241,18 +254,40 @@ const StyledCustomerButton = styled.button`
     }
 `;
 
-const StyledPaymentValue = styled.span`
+const StyledPaymentValue = styled.div`
     display: flex;
-    align-items: center;
-    gap: 4px;
-    flex-wrap: wrap;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 6px;
     padding-bottom: 2px;
 `;
 
-const StyledPaymentLineList = styled.span`
-    display: inline-flex;
+const StyledPaymentEntryList = styled.ul`
+    display: flex;
     flex-direction: column;
-    gap: 2px;
+    gap: 4px;
+    width: 100%;
+    max-width: 220px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+`;
+
+const StyledPaymentEntry = styled.li`
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+`;
+
+const StyledPaymentMissing = styled.span`
+    color: var(--dark-gray-color2);
+`;
+
+const StyledPaymentAmount = styled.span`
+    flex-shrink: 0;
+    /* '1,000,000원' 이 숫자와 '원' 사이에서 줄바꿈되지 않게 */
+    white-space: nowrap;
+    font-variant-numeric: tabular-nums;
 `;
 
 

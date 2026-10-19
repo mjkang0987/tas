@@ -54,7 +54,6 @@ import {ReservationDetailFooterActions} from './ReservationDetailFooterActions';
 import {ReservationDetailPaymentLayer} from './ReservationDetailPaymentLayer';
 import type {PaymentEntryDraft, PointAwardDraft, ReservationDetailMode} from './reservationDetailTypes';
 import {
-    formatPaymentEntries,
     formatTimestamp,
     getChangedFields,
     getHistoryDiffs,
@@ -210,7 +209,6 @@ export const ReservationDetail = ({
         : '#8E8E93';
     const normalizedPaymentEntries = getPaymentEntries(sourceReservation);
     const paymentCompleted = hasCompletedPayment(sourceReservation);
-    const paymentLines = formatPaymentEntries(normalizedPaymentEntries);
     const showPointAward = storeSettings.pointSettings.enableServiceRate;
 
     const handleChange = (field: keyof ReservationDetailFormState, value: string) => {
@@ -463,6 +461,17 @@ export const ReservationDetail = ({
     };
 
     const handlePaymentSave = () => paymentFlight.run(async () => {
+        // 금액은 있는데 결제종류를 안 고른 줄 — 그대로 두면 합계에서 조용히 빠져 "합계가 맞지 않는다"로만 보였다.
+        const unselectedAmount = paymentEntries
+            .filter((entry) => !entry.method)
+            .reduce((sum, entry) => sum + toAmount(entry.amount), 0);
+        if (unselectedAmount > 0) {
+            // 줄이 하나뿐이면 지울 수 없으니(지우면 빈 줄이 다시 생긴다) 고르라고만 한다.
+            const advice = paymentEntries.length > 1 ? '결제 종류를 선택하거나 그 줄을 삭제해 주세요.' : '결제 종류를 선택해 주세요.';
+            setError({field: 'general', message: `결제 종류를 선택하지 않은 금액(${formatPrice(unselectedAmount)})이 있습니다. ${advice}`});
+            return;
+        }
+
         const normalizedEntries = paymentEntries
             .map((entry) => ({
                 method: entry.method,
@@ -471,7 +480,7 @@ export const ReservationDetail = ({
             .filter((entry): entry is PaymentEntry => !!entry.method && entry.amount > 0);
 
         if (normalizedEntries.length === 0) {
-            setError({field: 'general', message: '결제종류와 금액을 입력해주세요.'});
+            setError({field: 'general', message: '결제 종류와 금액을 입력해 주세요.'});
             return;
         }
 
@@ -486,7 +495,12 @@ export const ReservationDetail = ({
         }
 
         if (paymentTotal !== expectedAmount) {
-            setError({field: 'general', message: `결제 금액 합계(${formatPrice(paymentTotal)})가 ${labels.service} 금액(${formatPrice(expectedAmount)})과 일치하지 않습니다.`});
+            const gap = expectedAmount - paymentTotal;
+            setError({
+                field: 'general',
+                // 예약금을 뺀 실결제 기준이면 서비스 금액과 숫자가 달라 결제 레이어의 '실결제'와 같은 말로 부른다.
+                message: `결제 금액이 ${formatPrice(Math.abs(gap))} ${gap > 0 ? '부족합니다' : '많습니다'}. (입력 ${formatPrice(paymentTotal)} / ${expectedAmount === displayPrice ? `${labels.service} 금액` : '실결제 금액'} ${formatPrice(expectedAmount)})`,
+            });
             return;
         }
 
@@ -682,7 +696,7 @@ export const ReservationDetail = ({
                     displayAssigneeColor={displayAssigneeColor}
                     isNewCustomer={isNewCustomerVisit(customer?.firstVisitDate, sourceReservation.date)}
                     paymentCompleted={paymentCompleted}
-                    paymentLines={paymentLines}
+                    paymentEntries={normalizedPaymentEntries}
                     historyCount={thisHistory.length}
                     serviceColorMap={serviceColorMap}
                     onCustomerClick={onCustomerClick}
