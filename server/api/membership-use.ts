@@ -40,8 +40,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                     where: {storeId_legacyId: {storeId: session.storeId, legacyId: reservationId}},
                     select: {id: true, customerId: true},
                 });
-                // 다른 고객의 예약에 쓰지 못하게 — 회원권 주인과 예약 고객이 같아야 한다.
-                if (!reservation || reservation.customerId !== m.customerId) return {error: 'wrong_reservation' as const};
+                // 다른 고객의 예약에 쓰지 못하게 — 쓸 때만 주인과 예약 고객이 같아야 한다(되돌리기는 연결 여부만 본다).
+                if (!reservation || (action === 'use' && reservation.customerId !== m.customerId)) return {error: 'wrong_reservation' as const};
                 reservationCuid = reservation.id;
             }
             // 무제한(횟수 없음)은 수동 차감 대상이 아니지만, 결제에선 "이 예약에 썼다"는 기록만 남긴다(횟수 변화 없음).
@@ -79,27 +79,29 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             }
 
             // restore — 결제에서 되돌리면 그 예약에 연결된 사용 기록을 풀고 횟수를 돌려준다.
-            if (reservationCuid) {
-                const linked = await tx.membershipUsage.findFirst({
+            // 횟수부터 바꾸고(실패하면 아무것도 안 바뀐 채 끝) 그다음 연결을 푼다 — 거꾸로 하면 실패 때 연결만 풀린 채 커밋돼
+            // 돌려줄 횟수를 잃고, 다시 시도하면 '이 예약에 쓴 기록이 없습니다'가 된다.
+            const linked = reservationCuid
+                ? await tx.membershipUsage.findFirst({
                     where: {customerMembershipId: m.id, reservationId: reservationCuid, type: 'use'},
                     orderBy: {createdAt: 'desc'},
+                })
+                : null;
+            if (reservationCuid && !linked) return {error: 'not_linked' as const};
+
+            let next: number | null = null;
+            if (!unlimited) {
+                next = Math.min(m.remainingCount! + 1, m.totalCount!);
+                if (next === m.remainingCount) return {error: 'full' as const};
+                const restored = await tx.customerMembership.updateMany({
+                    where: {id: m.id, remainingCount: m.remainingCount},
+                    data: {remainingCount: next, status: 'active'},
                 });
-                if (!linked) return {error: 'not_linked' as const};
-                await tx.membershipUsage.update({where: {id: linked.id}, data: {reservationId: null}});
-                if (unlimited) {
-                    await tx.membershipUsage.create({data: {customerMembershipId: m.id, delta: 0, type: 'refund', memo: '결제 취소 복원'}});
-                    return {remainingCount: null};
-                }
+                if (restored.count === 0) return {error: 'conflict' as const};
             }
-            const next = Math.min(m.remainingCount! + 1, m.totalCount!);
-            if (next === m.remainingCount) return {error: 'full' as const};
-            const restored = await tx.customerMembership.updateMany({
-                where: {id: m.id, remainingCount: m.remainingCount},
-                data: {remainingCount: next, status: 'active'},
-            });
-            if (restored.count === 0) return {error: 'conflict' as const};
+            if (linked) await tx.membershipUsage.update({where: {id: linked.id}, data: {reservationId: null}});
             await tx.membershipUsage.create({
-                data: {customerMembershipId: m.id, delta: 1, type: 'refund', memo: reservationCuid ? '결제 취소 복원' : '수동 복원'},
+                data: {customerMembershipId: m.id, delta: unlimited ? 0 : 1, type: 'refund', memo: reservationCuid ? '결제 취소 복원' : '수동 복원'},
             });
             return {remainingCount: next};
         });

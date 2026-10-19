@@ -47,8 +47,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                     where: {storeId_legacyId: {storeId: session.storeId, legacyId: reservationId}},
                     select: {id: true, customerId: true},
                 });
-                // 다른 고객의 예약에 쓰지 못하게 — 쿠폰 주인과 예약 고객이 같아야 한다.
-                if (!reservation || reservation.customerId !== coupon.customerId) return '이 예약에 쓸 수 없는 쿠폰입니다.';
+                // 다른 고객의 예약에 쓰지 못하게 — 쓸 때만 쿠폰 주인과 예약 고객이 같아야 한다.
+                // (되돌리기는 '이 예약에 연결됐는지'만 본다 — 결제 뒤 예약 고객을 바꿨어도 풀 수 있게.)
+                if (!reservation || (action === 'use' && reservation.customerId !== coupon.customerId)) return '이 예약에 쓸 수 없는 쿠폰입니다.';
                 linkedReservationId = reservation.id;
             }
 
