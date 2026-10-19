@@ -467,8 +467,8 @@ export const ReservationDetail = ({
             .reduce((sum, entry) => sum + toAmount(entry.amount), 0);
         if (unselectedAmount > 0) {
             // 줄이 하나뿐이면 지울 수 없으니(지우면 빈 줄이 다시 생긴다) 고르라고만 한다.
-            const advice = paymentEntries.length > 1 ? '결제종류를 선택하거나 그 줄을 삭제해 주세요.' : '결제종류를 선택해 주세요.';
-            setError({field: 'general', message: `결제종류를 고르지 않은 금액(${formatPrice(unselectedAmount)})이 있습니다. ${advice}`});
+            const advice = paymentEntries.length > 1 ? '결제 종류를 선택하거나 그 줄을 삭제해 주세요.' : '결제 종류를 선택해 주세요.';
+            setError({field: 'general', message: `결제 종류를 선택하지 않은 금액(${formatPrice(unselectedAmount)})이 있습니다. ${advice}`});
             return;
         }
 
@@ -480,7 +480,7 @@ export const ReservationDetail = ({
             .filter((entry): entry is PaymentEntry => !!entry.method && entry.amount > 0);
 
         if (normalizedEntries.length === 0) {
-            setError({field: 'general', message: '결제종류와 금액을 입력해주세요.'});
+            setError({field: 'general', message: '결제 종류와 금액을 입력해 주세요.'});
             return;
         }
 
