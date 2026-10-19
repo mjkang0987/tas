@@ -123,17 +123,17 @@ export async function syncNaverBookingsForStore(storeId: string): Promise<NaverS
         }),
         prisma.customer.findFirst({
             where: {storeId},
-            orderBy: {legacyId: 'desc'},
+            orderBy: {legacyId: {sort: 'desc', nulls: 'last'}},
             select: {legacyId: true},
         }),
         prisma.reservation.findFirst({
             where: {storeId},
-            orderBy: {legacyId: 'desc'},
+            orderBy: {legacyId: {sort: 'desc', nulls: 'last'}},
             select: {legacyId: true},
         }),
         prisma.assignee.findFirst({
             where: {storeId},
-            orderBy: {legacyId: 'desc'},
+            orderBy: {legacyId: {sort: 'desc', nulls: 'last'}},
             select: {legacyId: true},
         }),
     ]);
