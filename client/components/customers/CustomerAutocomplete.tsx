@@ -157,6 +157,6 @@ const StyledSuggestionTel = styled.span`
 const StyledNoResult = styled.li`
   padding: 8px 10px;
   font-size: var(--small-font);
-  color: var(--gray-color);
+  color: var(--dark-gray-color2); /* 흰 바탕 4.7:1(예전 --gray-color 1.4) */
   text-align: center;
 `;
