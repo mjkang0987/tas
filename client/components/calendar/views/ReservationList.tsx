@@ -40,7 +40,8 @@ export const ReservationList = ({reservations: rawReservations}: ReservationList
                                     $color={r.assigneeId ? (assigneeColorMap[r.assigneeId] ?? '#8E8E93') : '#8E8E93'}
                                     $inactive={isInactive}
                                     $noshow={r.status === 'noshow'}
-                                    aria-label={`${r.startTime} ${customer?.name ?? ''}`}
+                                    // 보이는 글자(시간·신규·이름)가 이름에 다 들어가야 음성 조작으로 부를 수 있다(WCAG 2.5.3)
+                                    aria-label={`${r.startTime} ${isNewCustomerVisit(customer?.firstVisitDate, r.date) ? '신규 ' : ''}${customer?.name ?? ''}`}
                                     onClick={(e) => {
                                         e.stopPropagation();
                                         setCreateReservationInitial(null);
