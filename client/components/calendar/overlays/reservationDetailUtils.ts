@@ -104,6 +104,12 @@ export function getChangedFields(
                     after: formatPrice(after.price)
                 });
             }
+        } else if (key === 'channel') {
+            // 경로가 없던 옛 예약은 전화예약으로 본다(폼 기본값과 같게) — 빈 값과 비교하면 안 바꿔도 '예약경로 → 전화예약'이 잡혔다.
+            const beforeChannel = before.channel ?? '전화예약';
+            if (beforeChannel !== after.channel) {
+                fields.push({label: FIELD_LABELS[key], before: beforeChannel, after: after.channel});
+            }
         } else if ((before[key] ?? '') !== (after[key] ?? '')) {
             fields.push({
                 label: FIELD_LABELS[key],
@@ -181,6 +187,13 @@ export function getHistoryDiffs(entry: ReservationHistoryEntry, assigneeNameMap:
                     after: formatPrice(afterPrice)
                 });
             }
+        } else if (key === 'channel') {
+            // 경로가 없던 옛 예약은 전화예약으로 본다 — 변경하면 초안에 '전화예약'이 실려, 빈 값과 비교하면 안 바꾼 경로가 이력에 남았다.
+            const beforeChannel = entry.before.channel ?? '전화예약';
+            const afterChannel = entry.after.channel ?? '전화예약';
+            if (beforeChannel !== afterChannel) {
+                diffs.push({label: FIELD_LABELS[key], before: beforeChannel, after: afterChannel});
+            }
         } else if ((entry.before[key] ?? '') !== (entry.after[key] ?? '')) {
             diffs.push({
                 label: FIELD_LABELS[key],
@@ -239,6 +252,8 @@ export function buildDraftReservation(reservation: Reservation, form: Reservatio
         service: form.service,
         price: form.price,
         memo: form.memo,
+        // 예약경로 — 빠져 있어 변경 확인 화면엔 바뀐다고 나오는데 저장은 예전 값이었다.
+        channel: form.channel,
         ...(form.assigneeId ? {assigneeId: form.assigneeId} : {assigneeId: undefined}),
     };
 }

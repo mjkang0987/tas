@@ -5,6 +5,14 @@
 
 ---
 
+## 완료(배포 v0.64.5 #294) — 예약 변경에서 예약경로가 저장되지 않던 것 (`claude/edit-keep-channel`)
+- 안드로이드 변경 화면 이식 중 발견: `buildDraftReservation` 이 `channel` 을 빠뜨려, 변경 확인 화면(getChangedFields)엔 "예약경로 전화예약 → 현장방문"이
+  나오는데 저장되는 예약은 예전 경로였다. 초안에 `channel: form.channel` 추가 + 테스트(`reservationDetailUtils.test.ts`).
+- 같이: 경로가 없던 옛 예약은 변경 확인에서 빈 값과 비교돼, 안 바꿔도 "예약경로 → 전화예약"이 잡혔다 → 없으면 전화예약으로 비교.
+- 리뷰 1회차: **서버 PUT 이 channel 을 아예 저장하지 않았다**(만들 때 POST 만) — 로그인 사용자는 화면만 바뀌고 새로고침하면 예전 경로.
+  `server/api/reservations.ts` 단건 수정에 `channel` 추가(열은 이미 있음, 마이그레이션 없음). 변경 이력(getHistoryDiffs)도 옛 예약을
+  전화예약으로 비교 — 초안에 경로가 실리면서 안 바꾼 경로가 이력에 남을 뻔했다.
+
 ## 완료(배포 v0.64.4 #293) — 파랑·경고 빨강·색 바탕·흐린 회색 글자 대비 4.5:1 (`claude/contrast-blue-warning`, 안드로이드·iOS 함께)
 
 ### 요구 (지시자 2026-10-19 — "다 바꿔줘 컬러 안맞는건")
