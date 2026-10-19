@@ -42,19 +42,39 @@ export function contrastRatio(a: string, b: string): number {
     return (Math.max(la, lb) + 0.05) / (Math.min(la, lb) + 0.05);
 }
 
-export const LIGHT_TEXT = '#ffffff';
-/** 순검정 — --black-color(#212121)로는 중간 밝기 바탕(#EA4335·#E91E8C 등)에서 흰·검 둘 다 4.5 를 못 넘는다.
- *  흰(#fff)·순검정 중 나은 쪽은 어떤 바탕에서도 4.58 이상이다. */
-export const DARK_TEXT = '#000000';
+function toHsl([r, g, b]: Rgb): [number, number, number] {
+    const [rn, gn, bn] = [r / 255, g / 255, b / 255];
+    const max = Math.max(rn, gn, bn), min = Math.min(rn, gn, bn);
+    const l = (max + min) / 2;
+    if (max === min) return [0, 0, l];
+    const d = max - min;
+    const s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+    const h = max === rn ? (gn - bn) / d + (gn < bn ? 6 : 0) : max === gn ? (bn - rn) / d + 2 : (rn - gn) / d + 4;
+    return [h * 60, s, l];
+}
+
+function hslToHex(h: number, s: number, l: number): string {
+    const a = s * Math.min(l, 1 - l);
+    const f = (n: number) => {
+        const k = (n + h / 30) % 12;
+        return Math.round(255 * (l - a * Math.max(Math.min(k - 3, 9 - k, 1), -1))).toString(16).padStart(2, '0');
+    };
+    return `#${f(0)}${f(8)}${f(4)}`;
+}
 
 /**
- * 색 바탕(메모 태그·담당자 라벨) 위 글자색 — 흰 글자와 검은 글자 중 대비가 큰 쪽.
- * 바탕색은 사장님이 고른 값이 저장돼 있어 바꿀 수 없다. 노랑(#FBBC04) 위 흰 글자는 1.6:1 이라 안 읽혔다.
- * 읽을 수 없는 색은 예전처럼 흰 글자.
+ * 흰 글자를 얹는 색 바탕(메모 태그·담당자 라벨) — 흰 글자가 4.5:1 이 될 때까지 **같은 색을 진하게**(색상·채도 유지, 밝기만 내림).
+ * 바탕은 사장님이 고른 색이라 다른 색으로 바꾸지 않는다. 이미 충분히 진하면 그대로. 노랑(#FBBC04 → 흰 1.6:1)은 진한 황토색이 된다.
+ * 읽을 수 없는 색(var() 등)은 그대로 돌려준다.
  */
-export function readableTextOn(background: string): string {
-    const light = contrastRatio(LIGHT_TEXT, background);
-    const dark = contrastRatio(DARK_TEXT, background);
-    if (Number.isNaN(light) || Number.isNaN(dark)) return LIGHT_TEXT;
-    return light >= dark ? LIGHT_TEXT : DARK_TEXT;
+export function backgroundForWhiteText(color: string): string {
+    const rgb = parseColor(color);
+    if (!rgb) return color;
+    if (contrastRatio('#ffffff', color) >= 4.5) return color;
+    const [h, s, l] = toHsl(rgb);
+    for (let next = l; next > 0; next -= 0.01) {
+        const candidate = hslToHex(h, s, next);
+        if (contrastRatio('#ffffff', candidate) >= 4.5) return candidate;
+    }
+    return '#000000';
 }

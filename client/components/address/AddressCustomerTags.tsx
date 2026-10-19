@@ -163,8 +163,7 @@ const StyledTag = styled(ColorTag).attrs({ $shape: 'soft' as const })`
 const StyledTagRemoveButton = styled.button`
     border: none;
     background: none;
-    /* 태그 글자색(흰·검 — ColorTag)을 따른다 */
-    color: inherit;
+    color: inherit; /* 태그 글자(흰)를 따른다 */
     opacity: 0.7;
     font-size: var(--tiny-font);
     cursor: pointer;

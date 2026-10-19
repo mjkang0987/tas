@@ -1,6 +1,6 @@
 import styled from 'styled-components';
 
-import {readableTextOn} from '../../features/colors/contrast';
+import {backgroundForWhiteText} from '../../features/colors/contrast';
 
 export const ColorTag = styled.span<{ $color: string; $shape?: 'pill' | 'soft' }>`
     display: inline-flex;
@@ -8,9 +8,9 @@ export const ColorTag = styled.span<{ $color: string; $shape?: 'pill' | 'soft' }
     gap: 4px;
     padding: 2px 8px;
     border-radius: ${(p) => p.$shape === 'soft' ? '4px' : '999px'};
-    background-color: ${(p) => p.$color};
-    /* 바탕은 사장님이 고른 색 — 글자는 흰·검 중 더 잘 읽히는 쪽(노랑 위 흰 글자는 1.6:1 이었다) */
-    color: ${(p) => readableTextOn(p.$color)};
+    /* 사장님이 고른 색 — 흰 글자가 안 읽히는 밝은 색(노랑 등)만 같은 색을 진하게 */
+    background-color: ${(p) => backgroundForWhiteText(p.$color)};
+    color: var(--white-color);
     font-size: var(--xsmall-font);
     font-weight: 600;
     flex-shrink: 0;

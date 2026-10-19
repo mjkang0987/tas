@@ -16,7 +16,7 @@ import {useStoreLabels} from '../../../hooks/useStoreLabels';
 import {useCustomerBenefits} from '../../../hooks/useCustomerBenefits';
 import {describeBenefitCoupon, describeBenefitMembership} from '../../../features/customers/benefits';
 import {StyledBody, StyledBodyInner} from './ModalStyles';
-import {readableTextOn} from '../../../features/colors/contrast';
+import {backgroundForWhiteText} from '../../../features/colors/contrast';
 
 interface ReservationViewSectionProps {
     reservation: Reservation;
@@ -317,8 +317,8 @@ const StyledMemoTag = styled.span<{ $color: string }>`
     min-height: 22px;
     padding: 2px 8px;
     border-radius: 999px;
-    background-color: ${(props) => props.$color};
-    color: ${(props) => readableTextOn(props.$color)}; /* 사장님이 고른 색 위 — 흰·검 중 읽히는 쪽 */
+    background-color: ${(props) => backgroundForWhiteText(props.$color)}; /* 흰 글자가 안 읽히는 밝은 색만 같은 색을 진하게 */
+    color: #fff;
     font-size: var(--xsmall-font);
     font-weight: 600;
 `;
