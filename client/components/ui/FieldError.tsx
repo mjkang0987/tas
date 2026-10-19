@@ -1,4 +1,5 @@
 import type {ReactNode} from 'react';
+import {useEffect, useRef} from 'react';
 
 import styled from 'styled-components';
 
@@ -13,10 +14,20 @@ interface FieldErrorProps {
 }
 
 export const FieldError = ({children, variant = 'box', className, id, role}: FieldErrorProps) => {
+    const ref = useRef<HTMLParagraphElement>(null);
+    const shownText = useRef<string | null>(null);
+    // 오류가 뜨면(문구가 바뀌면) 보이는 곳까지 스크롤 — 긴 모달·시트에서 저장을 눌렀는데 오류가 화면 아래에 떠 먹통처럼 보였다.
+    // 글자로 비교한다: children 이 JSX 면 렌더마다 새 객체라, 다른 칸에 타이핑할 때마다 끌려 올라간다.
+    // 'nearest' 라 이미 보이면 움직이지 않는다. jsdom 엔 scrollIntoView 가 없다.
+    useEffect(() => {
+        const text = ref.current?.textContent ?? null;
+        if (text && text !== shownText.current) ref.current?.scrollIntoView?.({block: 'nearest'});
+        shownText.current = text;
+    });
     if (!children) return null;
     return variant === 'inline'
-        ? <StyledInline className={className} id={id} role={role}>{children}</StyledInline>
-        : <StyledBox className={className} id={id} role={role}>{children}</StyledBox>;
+        ? <StyledInline ref={ref} className={className} id={id} role={role}>{children}</StyledInline>
+        : <StyledBox ref={ref} className={className} id={id} role={role}>{children}</StyledBox>;
 };
 
 const StyledBox = styled.p`
