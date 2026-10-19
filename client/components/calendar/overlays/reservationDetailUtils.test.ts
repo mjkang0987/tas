@@ -1,7 +1,7 @@
 import {describe, expect, it} from 'vitest';
 
 import type {Reservation} from '../../../utils/reservations';
-import {buildDraftReservation, buildReservationFormState} from './reservationDetailUtils';
+import {buildDraftReservation, buildReservationFormState, getChangedFields} from './reservationDetailUtils';
 
 describe('예약 변경 초안', () => {
     const reservation: Reservation = {
@@ -15,5 +15,13 @@ describe('예약 변경 초안', () => {
         expect(draft.channel).toBe('현장방문');
         expect(draft.memo).toBe('앞머리');
         expect(draft.price).toBe(20000);
+    });
+
+    it('경로가 없던 옛 예약 — 그대로면 변경 없음, 바꾸면 전화예약 → 현장방문', () => {
+        const legacy: Reservation = {...reservation, channel: undefined};
+        const form = buildReservationFormState(legacy);
+        expect(getChangedFields(legacy, form, {})).toEqual([]);
+        expect(getChangedFields(legacy, {...form, channel: '현장방문'}, {}))
+            .toEqual([{label: '예약경로', before: '전화예약', after: '현장방문'}]);
     });
 });

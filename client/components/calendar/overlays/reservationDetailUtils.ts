@@ -104,6 +104,12 @@ export function getChangedFields(
                     after: formatPrice(after.price)
                 });
             }
+        } else if (key === 'channel') {
+            // 경로가 없던 옛 예약은 전화예약으로 본다(폼 기본값과 같게) — 빈 값과 비교하면 안 바꿔도 '예약경로 → 전화예약'이 잡혔다.
+            const beforeChannel = before.channel ?? '전화예약';
+            if (beforeChannel !== after.channel) {
+                fields.push({label: FIELD_LABELS[key], before: beforeChannel, after: after.channel});
+            }
         } else if ((before[key] ?? '') !== (after[key] ?? '')) {
             fields.push({
                 label: FIELD_LABELS[key],
