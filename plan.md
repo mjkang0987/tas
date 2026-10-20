@@ -5,6 +5,18 @@
 
 ---
 
+## 진행 — 보안 업데이트(Dependabot) (`claude/dep-security-1020`)
+- 지시자 2026-10-20 "다 올리면?" → "검증 해줘". 열린 경고 정리:
+  - client: next 16.2.10 → **16.3.8**(critical 다건, sharp 0.35.5·postcss 8.5.23+ 같이), eslint-config-next 16.3.8,
+    nodemailer 9 → **10.1.7**(high). 10.0.0 의 깨지는 변경은 Node 20+ 요구뿐(배포 이미지 Node 24).
+  - 루트(server/ 메일·prisma CLI): nodemailer 10.1.7, prisma·@prisma/* 7.8 → 7.10.1, 강제 지정 정리 —
+    fast-uri 3.1.7 고정 핀 → `>=3.1.8 <4`, mysql2·deepmerge-ts 는 client 와 같은 하한, hono 계열은 prisma 7.10 부터 안 끌어와 뺐다.
+  - braces(≤3.0.3)는 패치본이 아직 없어 남김.
+- 검증: 잠긴 lockfile 설치(배포와 동일), prisma generate·validate, tsc, vitest 278, eslint 오류 0(경고 +9 는 next 16.3 새 규칙
+  `no-location-assign-relative-destination` — 기존 `window.location.href` 내부 이동, 동작 변화 없음), `next build` 통과.
+  게스트 미리보기: 캘린더·고객 명단·매출·고객센터 화면 기존과 같음(콘솔 오류는 미리보기에 AUTH 비밀키가 없어 나는 기존 500 뿐).
+  nodemailer 10: 실제 발송 없이 gmail 설정 해석(smtp.gmail.com:465 보안)·문의 메일 생성(jsonTransport) 확인.
+
 ## 완료(배포 v0.64.6 #295) — 월 칸 카드에 시작시간 다시 표시 (`claude/month-cell-time`)
 - 지시자 2026-10-19: "시간 나오게 해줘 — 한 줄 말줄임, 모바일에선 시간 삭제". 10/15 `3474933` 에서 칸이 좁아 이름이 잘린다는 이유로
   시간을 통째로 뺐던 것을 되돌린다 — 이번엔 시간 + 이름 한 줄, 넘치면 이름이 말줄임(시간은 줄지 않는다).
