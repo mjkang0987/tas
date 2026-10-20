@@ -95,4 +95,9 @@ describe('formatTimestamp(iso) — 적립금·예약·문의 이력 시각 표�
     it('한국 시간 오전(UTC 전날)은 날짜도 넘긴다', () => {
         expect(formatTimestamp('2026-12-31T15:05:00.000Z')).toBe('2027-01-01 00:05');
     });
+
+    it('못 읽는 값은 그대로', () => {
+        expect(formatTimestamp('')).toBe('');
+        expect(formatTimestamp('어제')).toBe('어제');
+    });
 });
