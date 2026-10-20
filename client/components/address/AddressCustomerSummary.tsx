@@ -266,6 +266,10 @@ const StyledPrice = styled.span`
     display: inline-flex;
     align-items: center;
     gap: 4px;
+    /* 줄어들지도 쪼개지지도 않는다 — 모바일에서 이게 줄면 '적립 / 금', '171,850 / 원'처럼 깨졌다(320px·6자리 이상).
+       자리가 모자라면 옆 상태 배지가 대신 줄바꿈한다(StyledStatusCounts 의 flex-wrap). */
+    flex-shrink: 0;
+    white-space: nowrap;
     font-size: var(--small-font);
     font-weight: 600;
     color: var(--dark-gray-color);
