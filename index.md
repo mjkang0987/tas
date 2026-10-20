@@ -29,7 +29,7 @@
 
 > 작업 영역과 무관하게 적용된다. **위반 이력이 있는 것만** 모았다. 규칙만 적고, 이유와 상세는 각 링크에 남겨둔다.
 
-1. **날짜 전용 컬럼(`Reservation.date`·`StoreClosedDate.date` 등)은 읽을 때 항상 `toDateKey`** — `.toISOString().slice(0,10)`(UTC) 금지. 서버가 KST면 하루 밀려 휴업일이 공개 예약에서 누락된다. 저장은 ``new Date(`${dateStr}T00:00:00`)``. → [^13]
+1. **날짜 전용 컬럼(`Reservation.date`·`StoreClosedDate.date` 등)은 읽을 때 항상 `toDateKey`** — `.toISOString().slice(0,10)`(UTC) 금지. 서버가 KST면 하루 밀려 휴업일이 공개 예약에서 누락된다. 저장은 ``new Date(`${dateStr}T00:00:00`)``. **ISO 순간값(`createdAt` 등)을 화면에 낼 때도** `iso.slice(...)` 금지 — 날짜는 `toLocalDateKey`, 날짜+시각은 `formatTimestamp`(둘 다 `features/reservations/model.ts`). 적립금·문의 이력이 slice 로 잘라 한국 14:58 충전이 05:58 로 보였다. → [^13]
 2. **예약 조회는 `prisma-includes.ts`의 명시적 `select`만 쓴다** — `include`(전체 컬럼 SELECT) 금지. 새 컬럼 추가 후 마이그레이션이 미적용된 채 배포되면 전체 예약 조회가 500난다(2026-07 `publicToken` 배포순서 사고). → [^13]
 3. **`legacyId`는 생성 시 반드시 부여** — null이면 프론트 id가 깨져 선택·수정이 안 된다. → [ID 체계](#id-체계)
 4. **스키마 변경은 마이그레이션(수동)이 먼저, 코드 배포가 나중** — `main` 머지 시 코드는 자동 배포되므로 순서가 뒤바뀌면 운영 500. → `CLAUDE.md` 배포 절차

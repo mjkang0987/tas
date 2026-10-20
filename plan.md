@@ -5,6 +5,23 @@
 
 ---
 
+## 완료(배포 v0.64.8 #302, #301) — 고객 명단 적립금이 모바일에서 두 줄로 깨지던 것 (`claude/customer-points-nowrap`)
+- 지시자 2026-10-20 "웹도 확인해주라" — 안드로이드 이식 중 찾은 같은 버그. 320px(또는 7자리 적립금)에서 '적립 / 금', '171,850 / 원'.
+  모바일(≤840) 블록 줄은 nowrap 이라 적립금 칸이 줄어들며 글자가 쪼개졌다 → `StyledPrice` 에 flex-shrink 0 + nowrap, 블록 줄에 wrap — 배지 4개가 한 덩어리로 다음 줄(지시자: "4개짜리가 아예 다음줄로").
+- 영향: `components/address/AddressCustomerSummary.tsx` 만.
+
+## 완료(배포 v0.64.8 #302, #300) — 적립금 이력 시각이 UTC로 보이던 것 (`fix/point-history-local-time`)
+- 지시자 2026-10-20: 적립금 이력 `createdAt`(ISO UTC, 예 `2026-10-20T05:58:18.166Z`)을 `.slice(0, 16).replace('T', ' ')` 로 잘라
+  보여줘, 한국 시각 14:58 충전이 05:58 로 보였다.
+- 같은 방식이 4곳: 고객 명단 충전(`AddressCustomerRecharge` 최신 카드·전체 이력 모달), 고객 상세 `PointHistoryItem`
+  (`CustomerDetailSections`), 설정 적립금 `PointHistoryTab`. 같은 버그라 고객센터 문의 내역(`pages/inquiry.tsx`)도 함께.
+- 수정: 예약 이력이 쓰던 `formatTimestamp`(로컬 시각 `YYYY-MM-DD HH:mm`)를 `reservationDetailUtils.ts` 에서
+  `features/reservations/model.ts`(`toDateKey` 옆, 순수 모듈)로 옮기고 위 5곳이 같이 쓴다. 테스트는 `dateKey.test.ts`(KST 고정)에.
+- 영향: 위 컴포넌트 5개 + `ReservationDetail.tsx` import, `features/reservations/model.ts`·`dateKey.test.ts`.
+- 확인: 게스트 미리보기 375·1280 — 이력 `05:58:18Z`·`16:05Z` 를 심어 고객 명단 충전 카드·전체 모달, 고객 상세 이력·더보기,
+  설정 적립금 내역 모두 `2026-10-20 14:58`·`01:05`(가로 스크롤 없음). 문의 내역은 로그인 전용이라 화면 확인 못 함(같은 헬퍼).
+  tsc·eslint(오류 0)·vitest 280·next build 통과.
+
 ## 완료(배포 v0.64.7 #299, #296) — 모바일 고객 명단 헤더에 '＋고객' (`claude/mobile-customer-add`)
 - 지시자 2026-10-20: "iOS 처럼 모바일 고객 페이지 진입 시 + 예약 > + 고객". 모바일에선 고객 추가가 메뉴(설정 탭 → /menu) 안에만 있어
   고객 명단에서 바로 못 했다. `/address` 모바일 헤더 오른쪽에 캘린더 '＋예약'과 같은 알약(`StyledMobileAddPill`) '＋고객' →

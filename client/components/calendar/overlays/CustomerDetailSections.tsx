@@ -1,6 +1,7 @@
 import type {CustomerMemoTag, PointHistoryEntry} from '../../../utils/customers';
 import {POINT_HISTORY_LABELS, formatTel} from '../../../utils/customers';
 import {formatPrice} from '../../../utils/services';
+import {formatTimestamp} from '../../../features/reservations/model';
 import {CloseIconButton} from '../../ui/CloseIconButton';
 import {ColorPickerButton} from '../../ui/ColorPickerButton';
 import {StyledHeader, StyledHeaderTitle} from './ModalStyles';
@@ -58,7 +59,7 @@ export function PointHistoryItem({entry, onClick}: {entry: PointHistoryEntry; on
             <StyledPointHistoryMeta>
                 <span>{entry.description}</span>
                 <span>잔액 {formatPrice(entry.balance)}</span>
-                <span>{entry.createdAt.slice(0, 16).replace('T', ' ')}</span>
+                <span>{formatTimestamp(entry.createdAt)}</span>
             </StyledPointHistoryMeta>
         </StyledPointHistoryItem>
     );

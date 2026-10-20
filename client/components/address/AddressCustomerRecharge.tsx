@@ -10,6 +10,7 @@ import {POINT_HISTORY_LABELS} from '../../utils/customers';
 import type {PaymentMethod, Reservation} from '../../utils/reservations';
 import {RECEIVED_PAYMENT_METHODS} from '../../utils/reservations';
 import {formatPrice} from '../../utils/services';
+import {formatTimestamp} from '../../features/reservations/model';
 import {formControlStyle} from '../ui/FormControls';
 import {CloseIconButton} from '../ui/CloseIconButton';
 import {
@@ -157,7 +158,7 @@ export function AddressCustomerRecharge({customer, customerReservations, onReser
                             <StyledPointMeta>
                                 <span>{pointHistories[0].description}</span>
                                 <span>잔액 {formatPrice(pointHistories[0].balance)}</span>
-                                <span>{pointHistories[0].createdAt.slice(0, 16).replace('T', ' ')}</span>
+                                <span>{formatTimestamp(pointHistories[0].createdAt)}</span>
                             </StyledPointMeta>
                         </StyledPointItem>
                     </StyledPointList>
@@ -185,7 +186,7 @@ export function AddressCustomerRecharge({customer, customerReservations, onReser
                                         <StyledPointMeta>
                                             <span>{history.description}</span>
                                             <span>잔액 {formatPrice(history.balance)}</span>
-                                            <span>{history.createdAt.slice(0, 16).replace('T', ' ')}</span>
+                                            <span>{formatTimestamp(history.createdAt)}</span>
                                         </StyledPointMeta>
                                     </StyledPointItem>
                                 ))}

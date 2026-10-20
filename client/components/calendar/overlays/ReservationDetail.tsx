@@ -13,6 +13,7 @@ import {useToastStore} from '../../../store/toastStore';
 import {useSingleFlight} from '../../../hooks/useSingleFlight';
 import {computeCouponDiscount} from '../../../features/coupons/model';
 import type {BenefitCoupon, BenefitMembership} from '../../../features/customers/benefits';
+import {formatTimestamp} from '../../../features/reservations/model';
 import {isNewCustomerVisit} from '../../../utils/customers';
 import type {CustomerMap} from '../../../utils/customers';
 import {buildAssigneeNameMap, getAssigneeAvailabilityState, getAssigneeColor, splitAssigneesByStatus} from '../../../utils/assignees';
@@ -54,7 +55,6 @@ import {ReservationDetailFooterActions} from './ReservationDetailFooterActions';
 import {ReservationDetailPaymentLayer} from './ReservationDetailPaymentLayer';
 import type {PaymentEntryDraft, PointAwardDraft, ReservationDetailMode} from './reservationDetailTypes';
 import {
-    formatTimestamp,
     getChangedFields,
     getHistoryDiffs,
     getPaymentEntries,
