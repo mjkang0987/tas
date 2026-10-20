@@ -23,9 +23,6 @@ importers:
         specifier: ^10.1.7
         version: 10.1.7
     devDependencies:
-      '@types/nodemailer':
-        specifier: ^8.0.0
-        version: 8.0.0
       prisma:
         specifier: ^7.10.1
         version: 7.10.1(@types/node@25.9.1)(@types/react@19.2.17)(react-dom@19.2.7(react@19.2.7))(react@19.2.7)
@@ -227,9 +224,6 @@ packages:
 
   '@types/node@25.9.1':
     resolution: {integrity: sha512-xfrlY7UD5rMJk3ZVJP8BNzS28J36YJg+xp+LPXV1TdWxr8uMH5A860QNxYDGQe/ylDSgjxE52Q9VnO7p75tJxg==}
-
-  '@types/nodemailer@8.0.0':
-    resolution: {integrity: sha512-fyf8jWULsCo0d0BuoQ75i6IeoHs47qcqxWc7yUdUcV0pOZGjUTTOvwdG1PRXUDqN/8A64yQdQdnA2pZgcdi+cA==}
 
   '@types/pg@8.20.0':
     resolution: {integrity: sha512-bEPFOaMAHTEP1EzpvHTbmwR8UsFyHSKsRisLIHVMXnpNefSbGA1bD6CVy+qKjGSqmZqNqBDV2azOBo8TgkcVow==}
@@ -873,10 +867,6 @@ snapshots:
   '@types/node@25.9.1':
     dependencies:
       undici-types: 7.24.6
-
-  '@types/nodemailer@8.0.0':
-    dependencies:
-      '@types/node': 25.9.1
 
   '@types/pg@8.20.0':
     dependencies:

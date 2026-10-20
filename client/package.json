@@ -36,8 +36,8 @@
     "test:db:setup": "sh ./scripts/setup-test-db.sh"
   },
   "dependencies": {
-    "@prisma/adapter-pg": "^7.10.0",
-    "@prisma/client": "^7.10.0",
+    "@prisma/adapter-pg": "^7.10.1",
+    "@prisma/client": "^7.10.1",
     "dotenv": "^17.4.2",
     "next": "16.3.8",
     "next-auth": "5.0.0-beta.30",
@@ -50,14 +50,13 @@
   },
   "devDependencies": {
     "@types/node": "25.9.3",
-    "@types/nodemailer": "^8.0.1",
     "@types/react": "^19.2.17",
     "@types/react-dom": "^19.2.3",
     "@types/styled-components": "^5.1.36",
     "eslint": "9.39.5",
     "eslint-config-next": "16.3.8",
     "fsevents": "^2.3.3",
-    "prisma": "^7.10.0",
+    "prisma": "^7.10.1",
     "typescript": "6.0.3",
     "vitest": "^4.1.11"
   },
