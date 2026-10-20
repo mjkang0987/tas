@@ -5,13 +5,13 @@
 
 ---
 
-## 진행 — 모바일 고객 명단 헤더에 '＋고객' (`claude/mobile-customer-add`)
+## 완료(배포 v0.64.7 #299, #296) — 모바일 고객 명단 헤더에 '＋고객' (`claude/mobile-customer-add`)
 - 지시자 2026-10-20: "iOS 처럼 모바일 고객 페이지 진입 시 + 예약 > + 고객". 모바일에선 고객 추가가 메뉴(설정 탭 → /menu) 안에만 있어
   고객 명단에서 바로 못 했다. `/address` 모바일 헤더 오른쪽에 캘린더 '＋예약'과 같은 알약(`StyledMobileAddPill`) '＋고객' →
   기존 `CustomerAddModal`. 데스크톱은 그대로(알약은 640px 이하에서만 보인다, aside 고객추가 유지). 안드로이드도 같게(tas-android #11).
 - 영향: `components/layout/Header.tsx` 만(＋ 아이콘은 두 알약이 같이 쓰게 묶음).
 
-## 진행 — 헤더 안 오버레이가 모바일 탭바 아래로 깔리던 것 (`claude/header-overlay-layer`)
+## 완료(배포 v0.64.7 #299, #297) — 헤더 안 오버레이가 모바일 탭바 아래로 깔리던 것 (`claude/header-overlay-layer`)
 - 지시자 2026-10-20: 헤더(`StyledHeader` relative + z-index 20)가 쌓임 맥락을 만들어, 그 안에 그린 fixed 레이어가 모바일 탭바(z-index 40) 아래로
   깔린다는 의심 — 고객검색·헤더에서 연 예약 상세·병합 제안·네이버 충돌 레이어.
 - 조사(main 기준): 위 네 레이어는 **이미 각자 `createPortal(…, #modal-root)`** 로 헤더 밖에 그려진다. 375px 게스트에서 고객검색을 열면
@@ -24,13 +24,14 @@
 - 영향: `components/layout/Header.tsx` 만.
 - 확인: 375·1280 게스트 미리보기(고객검색 스크림이 탭바를 덮음), tsc·eslint 통과. 실제 토스트는 게스트에선 띄울 수 없어 위 주입 방식으로만 확인.
 
-## 진행 — 보안 업데이트(Dependabot) (`claude/dep-security-1020`)
+## 완료(배포 v0.64.7 #299, #298) — 보안 업데이트(Dependabot) (`claude/dep-security-1020`)
 - 지시자 2026-10-20 "다 올리면?" → "검증 해줘". 열린 경고 정리:
   - client: next 16.2.10 → **16.3.8**(critical 다건, sharp 0.35.5·postcss 8.5.23+ 같이), eslint-config-next 16.3.8,
     nodemailer 9 → **10.1.7**(high). 10.0.0 의 깨지는 변경은 Node 20+ 요구뿐(배포 이미지 Node 24).
   - 루트(server/ 메일·prisma CLI): nodemailer 10.1.7, prisma·@prisma/* 7.8 → 7.10.1, 강제 지정 정리 —
     fast-uri 3.1.7 고정 핀 → `>=3.1.8 <4`, mysql2·deepmerge-ts 는 client 와 같은 하한, hono 계열은 prisma 7.10 부터 안 끌어와 뺐다.
   - braces(≤3.0.3)는 패치본이 아직 없어 남김.
+  - 릴리스 리뷰: @types/nodemailer 제거(nodemailer 10 이 타입을 갖고 있음), client prisma 도 7.10.1 로 맞춤.
 - 검증: 잠긴 lockfile 설치(배포와 동일), prisma generate·validate, tsc, vitest 278, eslint 오류 0(경고 +9 는 next 16.3 새 규칙
   `no-location-assign-relative-destination` — 기존 `window.location.href` 내부 이동, 동작 변화 없음), `next build` 통과.
   게스트 미리보기: 캘린더·고객 명단·매출·고객센터 화면 기존과 같음(콘솔 오류는 미리보기에 AUTH 비밀키가 없어 나는 기존 500 뿐).
