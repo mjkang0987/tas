@@ -7,5 +7,8 @@ allowBuilds:
 # pnpm 11+ 설정 위치 (package.json의 pnpm 필드는 더 이상 읽지 않음)
 # 보안 패치용 override — 88eaaf9(의존성 취약점 정리)에서 이전.
 overrides:
-  '@hono/node-server': '>=1.19.13' # prisma dev 도구 경유
-  fast-uri: 3.1.7 # ajv 경유. SSRF/host confusion 다건(GHSA-f65p-4m7j-42xc 등) 패치
+  # 규칙은 client/pnpm-workspace.yaml 과 같다(#201) — 상위가 고정해 패치본을 못 받을 때만, '하한 + 메이저 상한'·메이저 스코프.
+  # (@hono/node-server·hono 는 prisma 7.10 부터 안 끌어와 뺐다)
+  'fast-uri@3': '>=3.1.8 <4' # ajv 경유. SSRF/host confusion 다건 — 3.1.7 고정 핀이 3.1.8 패치를 막고 있었다
+  'mysql2@3': '>=3.23.1 <4' # prisma 7.10 이 3.15.3 고정 (dev 도구)
+  'deepmerge-ts@7': '>=8.0.2 <9' # @prisma/config 고정, 패치본은 8 뿐 — prisma generate/validate 로 호환 확인
