@@ -1,4 +1,5 @@
 import {useCallback, useState} from 'react';
+import {createPortal} from 'react-dom';
 
 import {useRouter} from 'next/router';
 
@@ -22,6 +23,7 @@ import {BookingRequestNotification} from './BookingRequestNotification';
 import {NaverSyncConflictModal} from '../modals/NaverSyncConflictModal';
 import {CustomerMergeSuggestionModal} from '../modals/CustomerMergeSuggestionModal';
 import {HeaderSearchLayer} from './HeaderSearchLayer';
+import {CustomerAddModal} from '../address/CustomerAddModal';
 import {
     StyledConflictBanner,
     StyledHeader,
@@ -69,8 +71,21 @@ function getSettingsTabTitles(labels: StoreLabels): Record<string, string> {
     };
 }
 
+// 모바일 '＋예약'·'＋고객' 알약의 ＋
+const PlusIcon = () => (
+    <svg viewBox="0 0 24 24"
+         fill="none"
+         stroke="currentColor"
+         strokeWidth="2.3"
+         strokeLinecap="round"
+         aria-hidden="true">
+        <path d="M12 5v14M5 12h14" />
+    </svg>
+);
+
 export const Header = () => {
     const [isSearchOpen, setIsSearchOpen] = useState(false);
+    const [isCustomerAddOpen, setIsCustomerAddOpen] = useState(false);
     const router = useRouter();
     const labels = useStoreLabels();
     const aside = useCalendarStore((s) => s.aside);
@@ -91,6 +106,7 @@ export const Header = () => {
     const pathSegments = router.asPath.split('?')[0].split('/');
     const isRootPath = pathSegments.join('').length === 0;
     const isCalendarPage = isRootPath || isCalendar(pathSegments);
+    const isAddressPage = router.pathname === '/address';
     const settingsTab = typeof router.query.tab === 'string' ? router.query.tab : 'revenue';
     const isSettingsPage = router.pathname === '/settings' || router.pathname === '/settings/[tab]';
     const settingsTabTitles = getSettingsTabTitles(labels);
@@ -201,14 +217,7 @@ export const Header = () => {
                     <StyledMobileAddPill type="button"
                                          onClick={handleCreateReservation}
                                          aria-label="예약 추가">
-                        <svg viewBox="0 0 24 24"
-                             fill="none"
-                             stroke="currentColor"
-                             strokeWidth="2.3"
-                             strokeLinecap="round"
-                             aria-hidden="true">
-                            <path d="M12 5v14M5 12h14" />
-                        </svg>
+                        <PlusIcon />
                         예약
                     </StyledMobileAddPill>
                 </StyledCalendarRow>
@@ -333,7 +342,21 @@ export const Header = () => {
                         <path d="M15.8 15.8L21 21" />
                     </StyledSearchIcon>
                 </StyledCustomerSearchButton>
+                {/* 모바일 고객 명단: 캘린더의 '＋예약' 자리에 '＋고객'(데스크톱은 aside의 고객추가) */}
+                {isAddressPage && (
+                    <StyledMobileAddPill type="button"
+                                         onClick={() => setIsCustomerAddOpen(true)}
+                                         aria-label="고객 추가">
+                        <PlusIcon />
+                        고객
+                    </StyledMobileAddPill>
+                )}
             </>}
+            {/* 헤더(z-index 20) 안에 그리면 모바일 탭바(40) 아래로 깔려 취소·추가가 가린다 — modal-root 로 꺼낸다 */}
+            {isCustomerAddOpen && createPortal(
+                <CustomerAddModal onClose={() => setIsCustomerAddOpen(false)} />,
+                document.getElementById('modal-root') ?? document.body,
+            )}
             {canUseSync && currentConflict && (
                 <NaverSyncConflictModal conflict={currentConflict}
                                         isConfirmed={currentConflictStatus === 'confirmed'}
