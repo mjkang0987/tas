@@ -11,6 +11,19 @@
   기존 `CustomerAddModal`. 데스크톱은 그대로(알약은 640px 이하에서만 보인다, aside 고객추가 유지). 안드로이드도 같게(tas-android #11).
 - 영향: `components/layout/Header.tsx` 만(＋ 아이콘은 두 알약이 같이 쓰게 묶음).
 
+## 진행 — 헤더 안 오버레이가 모바일 탭바 아래로 깔리던 것 (`claude/header-overlay-layer`)
+- 지시자 2026-10-20: 헤더(`StyledHeader` relative + z-index 20)가 쌓임 맥락을 만들어, 그 안에 그린 fixed 레이어가 모바일 탭바(z-index 40) 아래로
+  깔린다는 의심 — 고객검색·헤더에서 연 예약 상세·병합 제안·네이버 충돌 레이어.
+- 조사(main 기준): 위 네 레이어는 **이미 각자 `createPortal(…, #modal-root)`** 로 헤더 밖에 그려진다. 375px 게스트에서 고객검색을 열면
+  탭바 중앙의 최상단 요소가 검색 스크림(modal-root 안)이고 탭바는 딤 처리된다 — 재현 안 됨. #296 의 포털은 `CustomerAddModal` 이
+  스스로 포털하지 않아서 필요했던 것.
+- 실제로 갇혀 있던 것: **Google 인증 만료 토스트**(`StyledTokenExpiredToast`, fixed bottom 24px) — 헤더 안이라 모바일에선 탭바가 덮는다
+  (같은 스타일 요소를 헤더 안/ modal-root 에 넣어 탭바 위치 elementFromPoint 로 확인: 헤더 안 → 탭바, modal-root → 토스트).
+- 수정: 토스트만 `#modal-root` 로 포털(#296 과 같은 호출 방식). 헤더 z-index 20 은 그대로 — 데스크톱 알림 드롭다운이 본문 위에 뜨는 데
+  필요하고, 40 위로 올리면 타임라인 hover 카드(fixed z-index 30)가 헤더 밑으로 들어간다. `globalStyle.ts` 레이어 순서 규칙과 무관.
+- 영향: `components/layout/Header.tsx` 만.
+- 확인: 375·1280 게스트 미리보기(고객검색 스크림이 탭바를 덮음), tsc·eslint 통과. 실제 토스트는 게스트에선 띄울 수 없어 위 주입 방식으로만 확인.
+
 ## 완료(배포 v0.64.6 #295) — 월 칸 카드에 시작시간 다시 표시 (`claude/month-cell-time`)
 - 지시자 2026-10-19: "시간 나오게 해줘 — 한 줄 말줄임, 모바일에선 시간 삭제". 10/15 `3474933` 에서 칸이 좁아 이름이 잘린다는 이유로
   시간을 통째로 뺐던 것을 되돌린다 — 이번엔 시간 + 이름 한 줄, 넘치면 이름이 말줄임(시간은 줄지 않는다).

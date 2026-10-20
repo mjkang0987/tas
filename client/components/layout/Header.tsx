@@ -399,7 +399,8 @@ export const Header = () => {
                                    onDelete={(res) => deleteReservation(res)} />
             ))}
             {isSearchOpen && <HeaderSearchLayer onClose={() => setIsSearchOpen(false)} />}
-            {gmailTokenExpired && (
+            {/* 헤더(z-index 20) 안의 fixed 는 모바일 탭바(40) 아래로 깔린다 — modal-root 로 꺼낸다 */}
+            {gmailTokenExpired && createPortal(
                 <StyledTokenExpiredToast>
                     <span>Google 인증이 만료되었습니다.</span>
                     <StyledTokenReconnect type="button" onClick={() => {
@@ -411,7 +412,8 @@ export const Header = () => {
                     <StyledTokenClose type="button" onClick={dismissGmailTokenExpired}>
                         ✕
                     </StyledTokenClose>
-                </StyledTokenExpiredToast>
+                </StyledTokenExpiredToast>,
+                document.getElementById('modal-root') ?? document.body,
             )}
         </StyledHeader>
         {conflictCount > 0 && firstConflictKey && (
