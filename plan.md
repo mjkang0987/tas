@@ -7,7 +7,7 @@
 
 ## 진행 — 고객 명단 적립금이 모바일에서 두 줄로 깨지던 것 (`claude/customer-points-nowrap`)
 - 지시자 2026-10-20 "웹도 확인해주라" — 안드로이드 이식 중 찾은 같은 버그. 320px(또는 7자리 적립금)에서 '적립 / 금', '171,850 / 원'.
-  모바일(≤840) 블록 줄은 nowrap 이라 적립금 칸이 줄어들며 글자가 쪼개졌다 → `StyledPrice` 에 flex-shrink 0 + nowrap, 배지가 대신 줄바꿈.
+  모바일(≤840) 블록 줄은 nowrap 이라 적립금 칸이 줄어들며 글자가 쪼개졌다 → `StyledPrice` 에 flex-shrink 0 + nowrap, 블록 줄에 wrap — 배지 4개가 한 덩어리로 다음 줄(지시자: "4개짜리가 아예 다음줄로").
 - 영향: `components/address/AddressCustomerSummary.tsx` 만.
 
 ## 완료(배포 v0.64.7 #299, #296) — 모바일 고객 명단 헤더에 '＋고객' (`claude/mobile-customer-add`)

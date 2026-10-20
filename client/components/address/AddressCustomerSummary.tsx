@@ -259,6 +259,9 @@ const StyledBlockRow = styled.div`
     @media (max-width: 840px) {
         width: 100%;
         justify-content: space-between;
+        /* 자리가 모자라면 상태 배지 4개가 한 덩어리로 다음 줄로 내려간다(배지끼리 두 줄로 쪼개지지 않게). */
+        flex-wrap: wrap;
+        row-gap: 4px;
     }
 `;
 
@@ -267,7 +270,7 @@ const StyledPrice = styled.span`
     align-items: center;
     gap: 4px;
     /* 줄어들지도 쪼개지지도 않는다 — 모바일에서 이게 줄면 '적립 / 금', '171,850 / 원'처럼 깨졌다(320px·6자리 이상).
-       자리가 모자라면 옆 상태 배지가 대신 줄바꿈한다(StyledStatusCounts 의 flex-wrap). */
+       자리가 모자라면 옆 상태 배지 묶음이 통째로 다음 줄로 내려간다(StyledBlockRow 의 flex-wrap). */
     flex-shrink: 0;
     white-space: nowrap;
     font-size: var(--small-font);
