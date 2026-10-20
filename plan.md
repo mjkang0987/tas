@@ -13,7 +13,9 @@
 - 수정: 예약 이력이 쓰던 `formatTimestamp`(로컬 시각 `YYYY-MM-DD HH:mm`)를 `reservationDetailUtils.ts` 에서
   `features/reservations/model.ts`(`toDateKey` 옆, 순수 모듈)로 옮기고 위 5곳이 같이 쓴다. 테스트는 `dateKey.test.ts`(KST 고정)에.
 - 영향: 위 컴포넌트 5개 + `ReservationDetail.tsx` import, `features/reservations/model.ts`·`dateKey.test.ts`.
-- 확인: 게스트 미리보기 375·1280 에서 충전 직후 이력 시각이 현재 한국 시각, tsc·eslint·vitest·next build.
+- 확인: 게스트 미리보기 375·1280 — 이력 `05:58:18Z`·`16:05Z` 를 심어 고객 명단 충전 카드·전체 모달, 고객 상세 이력·더보기,
+  설정 적립금 내역 모두 `2026-10-20 14:58`·`01:05`(가로 스크롤 없음). 문의 내역은 로그인 전용이라 화면 확인 못 함(같은 헬퍼).
+  tsc·eslint(오류 0)·vitest 280·next build 통과.
 
 ## 완료(배포 v0.64.7 #299, #296) — 모바일 고객 명단 헤더에 '＋고객' (`claude/mobile-customer-add`)
 - 지시자 2026-10-20: "iOS 처럼 모바일 고객 페이지 진입 시 + 예약 > + 고객". 모바일에선 고객 추가가 메뉴(설정 탭 → /menu) 안에만 있어
