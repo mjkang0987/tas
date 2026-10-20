@@ -5,12 +5,12 @@
 
 ---
 
-## 진행 — 고객 명단 적립금이 모바일에서 두 줄로 깨지던 것 (`claude/customer-points-nowrap`)
+## 완료(배포 v0.64.8 #302, #301) — 고객 명단 적립금이 모바일에서 두 줄로 깨지던 것 (`claude/customer-points-nowrap`)
 - 지시자 2026-10-20 "웹도 확인해주라" — 안드로이드 이식 중 찾은 같은 버그. 320px(또는 7자리 적립금)에서 '적립 / 금', '171,850 / 원'.
   모바일(≤840) 블록 줄은 nowrap 이라 적립금 칸이 줄어들며 글자가 쪼개졌다 → `StyledPrice` 에 flex-shrink 0 + nowrap, 블록 줄에 wrap — 배지 4개가 한 덩어리로 다음 줄(지시자: "4개짜리가 아예 다음줄로").
 - 영향: `components/address/AddressCustomerSummary.tsx` 만.
 
-## 진행 — 적립금 이력 시각이 UTC로 보이던 것 (`fix/point-history-local-time`)
+## 완료(배포 v0.64.8 #302, #300) — 적립금 이력 시각이 UTC로 보이던 것 (`fix/point-history-local-time`)
 - 지시자 2026-10-20: 적립금 이력 `createdAt`(ISO UTC, 예 `2026-10-20T05:58:18.166Z`)을 `.slice(0, 16).replace('T', ' ')` 로 잘라
   보여줘, 한국 시각 14:58 충전이 05:58 로 보였다.
 - 같은 방식이 4곳: 고객 명단 충전(`AddressCustomerRecharge` 최신 카드·전체 이력 모달), 고객 상세 `PointHistoryItem`
