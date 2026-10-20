@@ -30,7 +30,9 @@
     nodemailer 9 → **10.1.7**(high). 10.0.0 의 깨지는 변경은 Node 20+ 요구뿐(배포 이미지 Node 24).
   - 루트(server/ 메일·prisma CLI): nodemailer 10.1.7, prisma·@prisma/* 7.8 → 7.10.1, 강제 지정 정리 —
     fast-uri 3.1.7 고정 핀 → `>=3.1.8 <4`, mysql2·deepmerge-ts 는 client 와 같은 하한, hono 계열은 prisma 7.10 부터 안 끌어와 뺐다.
-  - braces(≤3.0.3)는 패치본이 아직 없어 남김.
+  - next-auth 5.0.0-beta.30 → **beta.32**(@auth/core 0.41.3, critical 2·high 1) — 설정 오류 때 세션 응답이 오류 객체로 와서
+    `!!auth` 검사가 통과해 버리던 것(fail open)을 막는다. 그 밖엔 OAuth 확인 쿠키를 공급자에 묶는 것·Bearer 오류 처리·이메일 NFKC. 깨지는 API 없음.
+  - braces(≤3.0.3)·xlsx(SheetJS, npm 패치본 없음)는 고칠 버전이 없어 남김.
   - 릴리스 리뷰: @types/nodemailer 제거(nodemailer 10 이 타입을 갖고 있음), client prisma 도 7.10.1 로 맞춤.
 - 검증: 잠긴 lockfile 설치(배포와 동일), prisma generate·validate, tsc, vitest 278, eslint 오류 0(경고 +9 는 next 16.3 새 규칙
   `no-location-assign-relative-destination` — 기존 `window.location.href` 내부 이동, 동작 변화 없음), `next build` 통과.
