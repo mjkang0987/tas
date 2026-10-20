@@ -206,12 +206,6 @@ export function getHistoryDiffs(entry: ReservationHistoryEntry, assigneeNameMap:
     return diffs;
 }
 
-export function formatTimestamp(iso: string) {
-    const d = new Date(iso);
-    const pad = (n: number) => String(n).padStart(2, '0');
-    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
-}
-
 export const PAYMENT_METHOD_OPTIONS: PaymentMethod[] = ['현금', '현금+현금영수증', '카드', '네이버페이', '네이버 예약금', '지역화폐', '지역화폐+현금영수증', '상품권', '적립금', '할인'];
 
 export const MODE_LABELS: Partial<Record<ReservationDetailMode, string>> = {

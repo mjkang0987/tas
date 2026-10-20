@@ -9,6 +9,7 @@ import {SeoHead} from '../components/ui/SeoHead';
 import {actionButtonStyle, EMPTY_TEXT, StyledEmpty as StyledEmptyBase} from '../components/settings/settings-styles';
 import {FieldError} from '../components/ui/FieldError';
 import {CsFooter} from '../components/ui/CsFooter';
+import {formatTimestamp} from '../features/reservations/model';
 
 type InquiryTab = 'form' | 'history';
 
@@ -175,7 +176,7 @@ const InquiryPage: NextPage = () => {
                                                     {inquiry.email && <StyledHistoryEmail>{inquiry.email}</StyledHistoryEmail>}
                                                 </StyledHistoryMeta>
                                                 <StyledHistoryDate>
-                                                    {inquiry.createdAt.slice(0, 16).replace('T', ' ')}
+                                                    {formatTimestamp(inquiry.createdAt)}
                                                 </StyledHistoryDate>
                                             </StyledHistoryHead>
                                             <StyledHistoryContent>{inquiry.content}</StyledHistoryContent>

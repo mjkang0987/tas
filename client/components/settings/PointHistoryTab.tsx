@@ -3,6 +3,7 @@ import styled from 'styled-components';
 import type {Customer, PointHistoryEntry} from '../../utils/customers';
 import {formatTel, POINT_HISTORY_LABELS} from '../../utils/customers';
 import {formatPrice} from '../../utils/services';
+import {formatTimestamp} from '../../features/reservations/model';
 import {cardSurfaceStyle, EMPTY_TEXT, StyledEmpty} from './settings-styles';
 
 interface Props {
@@ -55,7 +56,7 @@ export const PointHistoryTab = ({customersWithPoints, handlePointHistoryClick, o
                                             <StyledHistoryMeta>
                                                 <StyledHistoryMetaItem>{history.description}</StyledHistoryMetaItem>
                                                 <StyledHistoryMetaItem>잔액 {formatPrice(history.balance)}</StyledHistoryMetaItem>
-                                                <StyledHistoryMetaItem>{history.createdAt.slice(0, 16).replace('T', ' ')}</StyledHistoryMetaItem>
+                                                <StyledHistoryMetaItem>{formatTimestamp(history.createdAt)}</StyledHistoryMetaItem>
                                             </StyledHistoryMeta>
                                         </StyledHistoryItem>
                                     ))}
