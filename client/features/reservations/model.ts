@@ -100,6 +100,13 @@ export function toLocalDateKey(iso: string): string {
     return toDateKey(d.getFullYear(), d.getMonth(), d.getDate());
 }
 
+/** ISO 순간(이력 시각 등)을 로컬(한국 시간) `YYYY-MM-DD HH:mm`로. `iso.slice(0, 16)`은 UTC라 9시간 이르게 보인다 */
+export function formatTimestamp(iso: string): string {
+    const d = new Date(iso);
+    const pad = (n: number) => String(n).padStart(2, '0');
+    return `${toLocalDateKey(iso)} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+
 export function findOverlap(
     reservationMap: ReservationMap,
     dateKey: string,
