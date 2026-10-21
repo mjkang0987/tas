@@ -13,7 +13,8 @@
 - 지시자 2026-10-21 "아예 완벽하게" — 병합 레이어가 뜨는 나머지 입구도 게스트면 막는다: 고객 상세 '비슷한 고객' 목록은 숨기고,
   저장 시 번호 중복은 병합 레이어 대신 '다른 고객으로 저장 / 취소' 확인창(`ConfirmDialog`). `mergeIntoCustomer`·`handleMerge` 도 로컬 모드면 바로 돌아간다.
   (헤더 자동 제안은 원래 게스트 제외.)
-- 영향: `components/calendar/overlays/CustomerDetail.tsx`, `server/api/client-errors.ts`, `components/address/AddressContent.tsx`, `pages/address.tsx`.
+- 리뷰 중 발견: 레이어(확인창 등)를 Esc·취소로 닫으면 포커스가 body 로 떨어졌다 → 공통 `useDialogAccessibility` 가 닫힐 때 연 자리로 포커스를 돌려준다(WCAG 2.4.3).
+- 영향: `components/calendar/overlays/CustomerDetail.tsx`, `components/calendar/overlays/ModalStyles.ts`, `server/api/client-errors.ts`, `components/address/AddressContent.tsx`, `pages/address.tsx`.
 
 ## 완료(배포 v0.64.8 #302, #301) — 고객 명단 적립금이 모바일에서 두 줄로 깨지던 것 (`claude/customer-points-nowrap`)
 - 지시자 2026-10-20 "웹도 확인해주라" — 안드로이드 이식 중 찾은 같은 버그. 320px(또는 7자리 적립금)에서 '적립 / 금', '171,850 / 원'.
