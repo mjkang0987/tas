@@ -68,9 +68,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     lastSentAt.set(key, now);
     sentInWindow += 1;
 
-    const env = process.env.NODE_ENV === 'production' ? 'prod' : 'dev';
+    // 개발 서버(next dev)는 슬랙으로 보내지 않는다 — 고치는 중인 화면의 오류(HMR 등)가 운영 알림처럼 와서 헷갈렸다. 서버 로그에만.
+    if (process.env.NODE_ENV !== 'production') {
+        console.warn(`[client-error] ${layer}: ${message}${path ? ` (${path})` : ''}`);
+        return res.status(202).json({skipped: true, reason: 'dev'});
+    }
     await notifySlackOps(
-        `🧨 *브라우저 오류* \`${env}\``
+        '🧨 *브라우저 오류* `prod`'
         + `\n• 레이어: ${layer}`
         + `\n• 내용: ${message}`
         + (path ? `\n• 경로: ${path}` : '')
