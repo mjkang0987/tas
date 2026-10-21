@@ -146,8 +146,12 @@ export const CustomerDetail = ({customer, reservationMap, onClose, onReservation
 
     // 수정 중에만 계산한다. 저장 시 중복 경고(dupWarning)는 번호 완전 일치만 보므로,
     // 입력 도중에 이름·번호 부분 일치로 같은 사람을 먼저 알아채라고 두는 것이다.
+    // 병합 API 는 서버가 필요하다. 게스트(로컬 모드)는 병합 전용인 '비슷한 고객' 목록을 아예 만들지 않고,
+    // 저장 시 번호 중복도 병합 레이어 대신 '다른 고객으로 저장' 확인창만 띄운다.
+    const canMergeSimilar = !shouldUseLocalDb();
+
     const similarCustomers = useMemo(() => (
-        isEditing
+        isEditing && canMergeSimilar
             ? findSimilarCustomers({
                 customers: getSelectableCustomers(customerMap),
                 excludeId: customer.id,
@@ -155,11 +159,7 @@ export const CustomerDetail = ({customer, reservationMap, onClose, onReservation
                 tel: editForm.tel,
             })
             : []
-    ), [isEditing, customerMap, customer.id, editForm.name, editForm.tel]);
-
-    // 병합 API 는 서버가 필요하다. 게스트 모드에서는 고를 수 없고 알림 역할만 한다
-    // (저장 시 중복 경고의 병합 버튼도 같은 게이트를 쓴다).
-    const canMergeSimilar = !shouldUseLocalDb();
+    ), [isEditing, canMergeSimilar, customerMap, customer.id, editForm.name, editForm.tel]);
 
     // 후보마다 예약을 따로 훑지 않는다 — 예약 맵을 한 번만 지나며 건수·최근 예약을 낸다.
     const similarSummary = useMemo(
@@ -519,8 +519,7 @@ export const CustomerDetail = ({customer, reservationMap, onClose, onReservation
                                 </StyledEditFieldLabel>
                                 <StyledSimilarSection ref={similarRef}
                                                       aria-live="polite"
-                                                      // 게스트는 고를 수 없는(병합 전용) 목록이라 아예 숨긴다
-                                                      hidden={!canMergeSimilar || !isSimilarOpen || similarCustomers.length === 0}
+                                                      hidden={!isSimilarOpen || similarCustomers.length === 0}
                                                       onMouseDown={(e) => e.preventDefault()}
                                                       onBlur={closeSimilarOnBlur}>
                                     <StyledSimilarTitle>비슷한 고객</StyledSimilarTitle>
