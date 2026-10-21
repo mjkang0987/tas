@@ -346,7 +346,8 @@ const Address: NextPage<AddressProps> = ({customers, reservations, history, stor
                     setSelectedReservations((prev) => [...prev, reservation]);
                 }}
                 onCustomerClick={openCustomerDetail}
-                onMerge={handleMerge}
+                // 게스트는 병합 숨김 — 병합은 서버 API 라 로컬 모드에선 실패했다(지시자 2026-10-21 "게스트는 병합 숨김")
+                onMerge={storageMode === 'local' ? undefined : handleMerge}
             />
             {lastMerge && (
                 <StyledUndoToast>
