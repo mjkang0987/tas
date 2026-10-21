@@ -231,6 +231,8 @@ export const CustomerDetail = ({customer, reservationMap, onClose, onReservation
     }, []);
 
     useEffect(() => {
+        // 게스트(로컬 모드)는 서버 병합 이력이 없다 — 부르면 401 만 남는다(병합 제안과 같은 조건).
+        if (shouldUseLocalDb()) return;
         let cancelled = false;
         fetch(`/api/customers/merge-history?customerId=${customer.id}`)
             .then((r) => r.ok ? r.json() : null)
