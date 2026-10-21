@@ -5,7 +5,7 @@
 
 ---
 
-## 진행 — 재방문 간격 28~29일이 '0달전'으로 보이던 것 (`claude/visit-gap-month`)
+## 완료(배포 v0.64.10 #304) — 재방문 간격 28~29일이 '0달전'으로 보이던 것 (`claude/visit-gap-month`)
 - 안드로이드 매출 지표 상세(11-2) 이식 중 발견(2026-10-21). 매출 > 재방문 고객 수 > 상세의 간격 배지 `formatVisitGap` 이
   28일부터 달 단위로 바꾸면서 30으로 나눠 버려 28·29일이 '0달전'. → 최소 1달.
 - 영향: `components/settings/revenue/RevenueMetricModal.tsx` 만.
