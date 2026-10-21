@@ -9,6 +9,8 @@
 - 안드로이드 매출 지표 상세(11-2) 이식 중 발견(2026-10-21). 매출 > 재방문 고객 수 > 상세의 간격 배지 `formatVisitGap` 이
   28일부터 달 단위로 바꾸면서 30으로 나눠 버려 28·29일이 '0달전'. → 최소 1달.
 - 영향: `components/settings/revenue/RevenueMetricModal.tsx` 만.
+- 검증(리뷰 3회 + 기능): tsc·eslint·vitest 281·운영 빌드 통과. `next start` 게스트에서 간격 27·28·29·30·364·365일 →
+  3주전·1달전·1달전·1달전·12달전·1년전(시험 데이터는 되돌림). iOS(`RevenueStats.visitGapLabel`)는 이미 1달로 올리고 있었다.
 
 ## 완료(배포 v0.64.9 #303) — 게스트 401·게스트 병합 숨김·개발 서버 슬랙 알림 정리 (`claude/guest-noise-fixes`)
 - 게스트가 고객 상세를 열면 로그인 전용 `/api/customers/merge-history` 를 불러 401 이 콘솔에 남았다 → 로컬 모드면 부르지 않는다(병합 제안 `canMergeSimilar` 와 같은 조건).
