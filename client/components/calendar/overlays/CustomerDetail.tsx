@@ -146,8 +146,12 @@ export const CustomerDetail = ({customer, reservationMap, onClose, onReservation
 
     // 수정 중에만 계산한다. 저장 시 중복 경고(dupWarning)는 번호 완전 일치만 보므로,
     // 입력 도중에 이름·번호 부분 일치로 같은 사람을 먼저 알아채라고 두는 것이다.
+    // 병합 API 는 서버가 필요하다. 게스트(로컬 모드)는 병합 전용인 '비슷한 고객' 목록을 아예 만들지 않고,
+    // 저장 시 번호 중복도 병합 레이어 대신 '다른 고객으로 저장' 확인창만 띄운다.
+    const canMergeSimilar = !shouldUseLocalDb();
+
     const similarCustomers = useMemo(() => (
-        isEditing
+        isEditing && canMergeSimilar
             ? findSimilarCustomers({
                 customers: getSelectableCustomers(customerMap),
                 excludeId: customer.id,
@@ -155,11 +159,7 @@ export const CustomerDetail = ({customer, reservationMap, onClose, onReservation
                 tel: editForm.tel,
             })
             : []
-    ), [isEditing, customerMap, customer.id, editForm.name, editForm.tel]);
-
-    // 병합 API 는 서버가 필요하다. 게스트 모드에서는 고를 수 없고 알림 역할만 한다
-    // (저장 시 중복 경고의 병합 버튼도 같은 게이트를 쓴다).
-    const canMergeSimilar = !shouldUseLocalDb();
+    ), [isEditing, canMergeSimilar, customerMap, customer.id, editForm.name, editForm.tel]);
 
     // 후보마다 예약을 따로 훑지 않는다 — 예약 맵을 한 번만 지나며 건수·최근 예약을 낸다.
     const similarSummary = useMemo(
@@ -231,6 +231,8 @@ export const CustomerDetail = ({customer, reservationMap, onClose, onReservation
     }, []);
 
     useEffect(() => {
+        // 게스트(로컬 모드)는 서버 병합 이력이 없다 — 부르면 401 만 남는다(병합 제안과 같은 조건).
+        if (shouldUseLocalDb()) return;
         let cancelled = false;
         fetch(`/api/customers/merge-history?customerId=${customer.id}`)
             .then((r) => r.ok ? r.json() : null)
@@ -368,7 +370,8 @@ export const CustomerDetail = ({customer, reservationMap, onClose, onReservation
     // source 삭제(분리로 복원 가능). 현재 레이어의 고객은 사라지므로 병합 후 닫는다.
     // 저장 시 중복 경고와 추천 레이어가 같은 경로를 쓴다 — 들어온 곳만 다르다.
     const mergeIntoCustomer = async (targetId: number) => {
-        if (isMergingDup) return;
+        // 게스트는 병합 API 를 쓸 수 없다(401) — 화면에서 막았어도 이 길로 들어오지 않게 한 번 더
+        if (isMergingDup || !canMergeSimilar) return;
         setIsMergingDup(true);
         try {
             const res = await fetch('/api/customers/merge', {
@@ -706,13 +709,23 @@ export const CustomerDetail = ({customer, reservationMap, onClose, onReservation
     {/* 글자만 있던 확인 창은 누가 남고 누가 정리되는지 안 읽혔다 — 자동 제안과 같은 카드형 레이어로 보인다.
         방향은 고정(지금 고객 → 다른 고객)이라 자동 제안 모드와 구조가 같다. 입구는 둘:
         입력 중 "비슷한 고객" 클릭, 저장 시 번호 중복(레이어로 막아야 뒤의 저장을 다시 눌러도 헛돌지 않는다). */}
-    {similarMergeTarget && renderMergeLayer(similarMergeTarget, () => setSimilarMergeTarget(null))}
-    {dupWarning && renderMergeLayer(dupWarning.match, () => setDupWarning(null), {
+    {/* 게스트(로컬 모드)는 병합이 없다 — 병합 레이어를 아예 띄우지 않고, 번호 중복은 '다른 고객으로 저장' 확인창만(지시자 2026-10-21). */}
+    {canMergeSimilar && similarMergeTarget && renderMergeLayer(similarMergeTarget, () => setSimilarMergeTarget(null))}
+    {dupWarning && canMergeSimilar && renderMergeLayer(dupWarning.match, () => setDupWarning(null), {
         heading: {
             title: '이미 등록된 번호입니다',
             description: `${dupWarning.match.name} 고객과 같은 번호입니다. 다른 분(가족 공유번호 등)이면 다른 고객으로 저장하세요.`,
         },
         secondaryAction: {label: '다른 고객으로 저장', onClick: () => commitEdit(dupWarning.name, dupWarning.tel)},
     })}
+    {dupWarning && !canMergeSimilar && (
+        <ConfirmDialog title="이미 등록된 번호입니다"
+                       description={`${dupWarning.match.name} 고객과 같은 번호입니다. 다른 분(가족 공유번호 등)이면 다른 고객으로 저장하세요.`}
+                       confirmLabel="다른 고객으로 저장"
+                       cancelLabel="취소"
+                       layerKey="customer-dup-tel"
+                       onConfirm={() => commitEdit(dupWarning.name, dupWarning.tel)}
+                       onClose={() => setDupWarning(null)} />
+    )}
     </>, modalRoot);
 };

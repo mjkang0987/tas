@@ -50,7 +50,8 @@ type AddressContentProps = {
     onFinishEditing: () => void;
     onReservationClick: (reservation: Reservation) => void;
     onCustomerClick: (customerId: number) => void;
-    onMerge: (sourceIds: number[], targetId: number) => void;
+    /** 없으면(게스트 — 병합은 서버에서만 된다) 선택 체크박스·병합 버튼을 그리지 않는다 */
+    onMerge?: (sourceIds: number[], targetId: number) => void;
 };
 
 export function AddressContent({
@@ -123,7 +124,7 @@ export function AddressContent({
         const sourceIds = mergeSelection.targetChoices
             .filter((c) => c.id !== targetId)
             .map((c) => c.id);
-        if (sourceIds.length === 0) return;
+        if (sourceIds.length === 0 || !onMerge) return;
 
         onMerge(sourceIds, targetId);
         setMergeSelection(null);
@@ -198,7 +199,7 @@ export function AddressContent({
                                 onReservationClick={onReservationClick}
                                 onCustomerClick={onCustomerClick}
                                 checked={selectedIds.has(customer.id)}
-                                onCheck={handleCheck}
+                                onCheck={onMerge ? handleCheck : undefined}
                             />
                         );
                     })}

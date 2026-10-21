@@ -256,6 +256,8 @@ const Address: NextPage<AddressProps> = ({customers, reservations, history, stor
     };
 
     const handleMerge = useCallback(async (sourceIds: number[], targetId: number) => {
+        // 게스트(로컬 모드)는 병합 API 를 쓸 수 없다 — 버튼을 숨겼어도 이 길로 들어오면 아무것도 하지 않는다
+        if (storageMode === 'local') return;
         const sourceCustomers = sourceIds.map((id) => customerList.find((c) => c.id === id));
         const targetCustomer = customerList.find((c) => c.id === targetId);
 
@@ -284,7 +286,7 @@ const Address: NextPage<AddressProps> = ({customers, reservations, history, stor
         } catch {
             alert('병합 중 오류가 발생했습니다.');
         }
-    }, [customerList]);
+    }, [customerList, storageMode]);
 
     const handleUnmerge = useCallback(async () => {
         if (!lastMerge) return;
@@ -346,7 +348,8 @@ const Address: NextPage<AddressProps> = ({customers, reservations, history, stor
                     setSelectedReservations((prev) => [...prev, reservation]);
                 }}
                 onCustomerClick={openCustomerDetail}
-                onMerge={handleMerge}
+                // 게스트는 병합 숨김 — 병합은 서버 API 라 로컬 모드에선 실패했다(지시자 2026-10-21 "게스트는 병합 숨김")
+                onMerge={storageMode === 'local' ? undefined : handleMerge}
             />
             {lastMerge && (
                 <StyledUndoToast>
