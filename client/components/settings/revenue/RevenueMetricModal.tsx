@@ -68,7 +68,8 @@ function formatVisitGap(visitDate: string, prevVisitDate: string): string {
 
     if (diffDays < 7) return `${diffDays}일전`;
     if (diffDays < 28) return `${Math.floor(diffDays / 7)}주전`;
-    if (diffDays < 365) return `${Math.floor(diffDays / 30)}달전`;
+    // 28~29일은 30으로 나누면 0 — '0달전'이 됐다. 최소 1달.
+    if (diffDays < 365) return `${Math.max(Math.floor(diffDays / 30), 1)}달전`;
     return `${Math.floor(diffDays / 365)}년전`;
 }
 
