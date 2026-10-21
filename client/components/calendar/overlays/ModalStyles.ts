@@ -75,6 +75,8 @@ export function useDialogAccessibility<T extends HTMLElement>(onClose: () => voi
         const dialog = dialogRef.current;
         if (!dialog) return;
 
+        // 닫히면 연 자리(저장 버튼 등)로 포커스를 돌려준다 — 안 하면 body 로 떨어져 키보드·스크린리더가 위치를 잃는다(WCAG 2.4.3)
+        const opener = document.activeElement as HTMLElement | null;
         const focusable = Array.from(dialog.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR));
         const initialTarget = focusable[0] ?? dialog;
         initialTarget.focus();
@@ -119,6 +121,7 @@ export function useDialogAccessibility<T extends HTMLElement>(onClose: () => voi
         dialog.addEventListener('keydown', handleKeyDown);
         return () => {
             dialog.removeEventListener('keydown', handleKeyDown);
+            if (opener?.isConnected) opener.focus();
         };
     }, []);
 
