@@ -5,6 +5,11 @@
 
 ---
 
+## 진행 — 게스트 401·개발 서버 슬랙 알림 정리 (`claude/guest-noise-fixes`)
+- 게스트가 고객 상세를 열면 로그인 전용 `/api/customers/merge-history` 를 불러 401 이 콘솔에 남았다 → 로컬 모드면 부르지 않는다(병합 제안 `canMergeSimilar` 와 같은 조건).
+- 개발 서버(next dev)의 브라우저 오류도 슬랙으로 가 운영 알림처럼 보였다(2026-10-20, Claude 미리보기의 HMR 오류) → `NODE_ENV !== 'production'` 이면 서버 로그에만 남기고 202 skipped.
+- 영향: `components/calendar/overlays/CustomerDetail.tsx`, `server/api/client-errors.ts`.
+
 ## 완료(배포 v0.64.8 #302, #301) — 고객 명단 적립금이 모바일에서 두 줄로 깨지던 것 (`claude/customer-points-nowrap`)
 - 지시자 2026-10-20 "웹도 확인해주라" — 안드로이드 이식 중 찾은 같은 버그. 320px(또는 7자리 적립금)에서 '적립 / 금', '171,850 / 원'.
   모바일(≤840) 블록 줄은 nowrap 이라 적립금 칸이 줄어들며 글자가 쪼개졌다 → `StyledPrice` 에 flex-shrink 0 + nowrap, 블록 줄에 wrap — 배지 4개가 한 덩어리로 다음 줄(지시자: "4개짜리가 아예 다음줄로").
