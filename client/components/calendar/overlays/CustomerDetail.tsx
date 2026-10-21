@@ -370,7 +370,8 @@ export const CustomerDetail = ({customer, reservationMap, onClose, onReservation
     // source 삭제(분리로 복원 가능). 현재 레이어의 고객은 사라지므로 병합 후 닫는다.
     // 저장 시 중복 경고와 추천 레이어가 같은 경로를 쓴다 — 들어온 곳만 다르다.
     const mergeIntoCustomer = async (targetId: number) => {
-        if (isMergingDup) return;
+        // 게스트는 병합 API 를 쓸 수 없다(401) — 화면에서 막았어도 이 길로 들어오지 않게 한 번 더
+        if (isMergingDup || !canMergeSimilar) return;
         setIsMergingDup(true);
         try {
             const res = await fetch('/api/customers/merge', {
@@ -518,7 +519,8 @@ export const CustomerDetail = ({customer, reservationMap, onClose, onReservation
                                 </StyledEditFieldLabel>
                                 <StyledSimilarSection ref={similarRef}
                                                       aria-live="polite"
-                                                      hidden={!isSimilarOpen || similarCustomers.length === 0}
+                                                      // 게스트는 고를 수 없는(병합 전용) 목록이라 아예 숨긴다
+                                                      hidden={!canMergeSimilar || !isSimilarOpen || similarCustomers.length === 0}
                                                       onMouseDown={(e) => e.preventDefault()}
                                                       onBlur={closeSimilarOnBlur}>
                                     <StyledSimilarTitle>비슷한 고객</StyledSimilarTitle>
@@ -708,13 +710,23 @@ export const CustomerDetail = ({customer, reservationMap, onClose, onReservation
     {/* 글자만 있던 확인 창은 누가 남고 누가 정리되는지 안 읽혔다 — 자동 제안과 같은 카드형 레이어로 보인다.
         방향은 고정(지금 고객 → 다른 고객)이라 자동 제안 모드와 구조가 같다. 입구는 둘:
         입력 중 "비슷한 고객" 클릭, 저장 시 번호 중복(레이어로 막아야 뒤의 저장을 다시 눌러도 헛돌지 않는다). */}
-    {similarMergeTarget && renderMergeLayer(similarMergeTarget, () => setSimilarMergeTarget(null))}
-    {dupWarning && renderMergeLayer(dupWarning.match, () => setDupWarning(null), {
+    {/* 게스트(로컬 모드)는 병합이 없다 — 병합 레이어를 아예 띄우지 않고, 번호 중복은 '다른 고객으로 저장' 확인창만(지시자 2026-10-21). */}
+    {canMergeSimilar && similarMergeTarget && renderMergeLayer(similarMergeTarget, () => setSimilarMergeTarget(null))}
+    {dupWarning && canMergeSimilar && renderMergeLayer(dupWarning.match, () => setDupWarning(null), {
         heading: {
             title: '이미 등록된 번호입니다',
             description: `${dupWarning.match.name} 고객과 같은 번호입니다. 다른 분(가족 공유번호 등)이면 다른 고객으로 저장하세요.`,
         },
         secondaryAction: {label: '다른 고객으로 저장', onClick: () => commitEdit(dupWarning.name, dupWarning.tel)},
     })}
+    {dupWarning && !canMergeSimilar && (
+        <ConfirmDialog title="이미 등록된 번호입니다"
+                       description={`${dupWarning.match.name} 고객과 같은 번호입니다. 다른 분(가족 공유번호 등)이면 다른 고객으로 저장하세요.`}
+                       confirmLabel="다른 고객으로 저장"
+                       cancelLabel="취소"
+                       layerKey="customer-dup-tel"
+                       onConfirm={() => commitEdit(dupWarning.name, dupWarning.tel)}
+                       onClose={() => setDupWarning(null)} />
+    )}
     </>, modalRoot);
 };

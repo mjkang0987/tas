@@ -10,6 +10,9 @@
 - 개발 서버(next dev)의 브라우저 오류도 슬랙으로 가 운영 알림처럼 보였다(2026-10-20, Claude 미리보기의 HMR 오류) → `NODE_ENV !== 'production'` 이면 서버 로그에만 남기고 202 skipped.
 - 게스트에 고객 명단 선택 체크박스·'병합' 버튼이 보였지만 병합은 서버 API 라 실패했다 → 지시자 2026-10-21 "게스트는 병합 숨김": 로컬 모드면
   `onMerge` 를 안 넘겨 체크박스·버튼을 그리지 않는다(안드로이드도 병합 안 넣음).
+- 지시자 2026-10-21 "아예 완벽하게" — 병합 레이어가 뜨는 나머지 입구도 게스트면 막는다: 고객 상세 '비슷한 고객' 목록은 숨기고,
+  저장 시 번호 중복은 병합 레이어 대신 '다른 고객으로 저장 / 취소' 확인창(`ConfirmDialog`). `mergeIntoCustomer`·`handleMerge` 도 로컬 모드면 바로 돌아간다.
+  (헤더 자동 제안은 원래 게스트 제외.)
 - 영향: `components/calendar/overlays/CustomerDetail.tsx`, `server/api/client-errors.ts`, `components/address/AddressContent.tsx`, `pages/address.tsx`.
 
 ## 완료(배포 v0.64.8 #302, #301) — 고객 명단 적립금이 모바일에서 두 줄로 깨지던 것 (`claude/customer-points-nowrap`)
