@@ -5,6 +5,23 @@
 
 ---
 
+## 진행 — 네이버 예약 알림이 PC에만 보이고 휴대폰엔 안 보이던 것 (`claude/server-sync-notifications`)
+- 지시자 2026-10-22 "PC에서는 알림 리스트 뜨는데 모바일은 안 뜸 · 전체알림보기 버튼도 모바일만 없음 → 알림부터 고쳐줘".
+- **원인**: 동기화는 서버(`syncNaverBookingsForStore`)가 하지만, 그 결과로 알림을 만드는 건 **동기화를 부른 브라우저**이고 그 브라우저의
+  localStorage(`sync-notifications`)에만 저장한다. PC 가 먼저(로그인·매 정시) 동기화하면 새 예약을 PC 가 가져가 알림도 PC 에만 남고,
+  나중에 연 휴대폰은 바뀐 게 없어 0건 → 패널 "새 알림이 없습니다", '전체알림보기'(알림 1건 이상일 때만)도 사라진다.
+  읽음도 기기마다 따로. 게다가 **고객 공개 예약 흐름이 서버에서 부르는 동기화**의 알림은 받을 브라우저가 없어 통째로 버려졌다.
+- **수정**: 확정·취소 알림을 서버가 동기화하면서 **매장 단위로 저장**(`SyncNotification`), 읽음은 **사람별**(`SyncNotificationRead`).
+  - `server/api/naver-booking-sync.ts` — 동기화 결과(synced·cancelled)를 저장(실패해도 동기화는 그대로 — 알림만 빠진다). 30일 지난 건 지운다.
+  - `server/api/sync-notifications.ts`(+ `pages/api` 재수출) — GET: 최근 30일 + 내 읽음 여부(같은 예약의 취소가 뒤에 오면 확정 알림은 읽음 취급 — 예전 화면 규칙).
+    POST: `{ids}` 또는 `{all: true}` 읽음. 오너만(네이버 연동이 오너 전용 — `canUseSync`).
+  - 화면: 동기화 뒤·처음 열 때 서버 목록을 받아 합친다. 중복예약(conflict) 알림은 지금처럼 기기에서 계산(해결 여부는 이미 서버 `ConflictResolution`).
+    이전에 기기에 쌓인 확정·취소 알림은 그 기기에 그대로 둔다(서버로 못 옮김 — 서버엔 없던 기록).
+  - 탈퇴(매장 삭제)·사용자 삭제 때 함께 지워지게 FK cascade.
+- **DB(운영 수동 선적용 필요)**: `0025_sync_notifications` — 새 테이블 2개 추가만(기존 데이터 무변경, IF NOT EXISTS 로 멱등).
+- 영향: `server/prisma/schema.prisma`, `server/prisma/migrations/0025_sync_notifications`, `server/api/naver-booking-sync.ts`, `server/api/sync-notifications.ts`,
+  `client/pages/api/sync-notifications.ts`, `client/hooks/useNaverBookingSync.ts`, `client/store/calendarStore.ts`(+ 순수 합치기 함수·테스트).
+
 ## 완료(배포 v0.64.10 #304) — 재방문 간격 28~29일이 '0달전'으로 보이던 것 (`claude/visit-gap-month`)
 - 안드로이드 매출 지표 상세(11-2) 이식 중 발견(2026-10-21). 매출 > 재방문 고객 수 > 상세의 간격 배지 `formatVisitGap` 이
   28일부터 달 단위로 바꾸면서 30으로 나눠 버려 28·29일이 '0달전'. → 최소 1달.

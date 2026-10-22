@@ -436,9 +436,15 @@ Gmail (네이버 예약 메일)
     ├─ 신규: 고객 생성 + 담당자 매칭(이름) + 예약 생성
     ├─ 중복: assigneeId null이면 재매칭, serviceSummary/URL 업데이트
     └─ 취소: 상태 → cancelled
-  → useNaverBookingSync.ts (알림 생성 + 중복 감지)
+    └─ 확정·취소 알림을 SyncNotification 에 매장 단위로 저장(server/db/sync-notifications.ts, 30일 보관)
+  → /api/sync-notifications (GET 최근 30일 + 내 읽음 / POST 읽음 — 읽음은 사람별 SyncNotificationRead)
+  → useNaverBookingSync.ts (서버 알림 받아오기 — 열 때·화면 복귀·동기화 뒤 + 중복 감지는 기기에서)
   → NaverSyncNotification.tsx (UI 표시)
 ```
+
+> **알림은 서버가 원본이다.** 예전엔 동기화를 부른 브라우저의 localStorage 에만 만들어, 먼저 동기화한 PC 에만 보이고 휴대폰엔 0건이었다
+> (공개 예약 흐름이 서버에서 부른 동기화의 알림은 아예 버려졌다). 이제 확정·취소는 서버 저장, 중복예약 알림만 기기에서 계산(해결 여부는 `ConflictResolution`).
+> 서버 저장 전에 기기에 쌓인 옛 확정·취소 알림은 그 기기에만 남는다.
 
 > **노출 범위 제한(전체 공개 아님).** 이 연동은 허용 매장에만 보인다 — 판별은 `server/naver-access.ts`의
 > `isNaverBookingEnabledStore()`(허용 슬러그 목록 `client/features/store-settings/naver-access.ts` **또는**
