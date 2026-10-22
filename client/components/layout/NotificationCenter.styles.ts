@@ -2,7 +2,7 @@ import styled from 'styled-components';
 
 import {LabelBadge} from '../ui/LabelBadge';
 
-import {StyledBadge, StyledEmpty, StyledModalDetail, StyledSectionLabel} from './NaverSyncNotification.styles';
+import {StyledBadge, StyledEmpty, StyledModalBodyInner, StyledModalDetail, StyledSectionLabel} from './NaverSyncNotification.styles';
 
 // 알림 종 하나(NotificationCenter) — 벨·패널 기본 모양은 예전 네이버 벨(NaverSyncNotification.styles)을 그대로 쓴다.
 
@@ -201,4 +201,9 @@ export const StyledTabCount = styled.span`
 /** 알림 레이어 — 탭이 한 줄에 들어가게 데스크톱 폭만 조금 넓힌다(휴대폰 시트는 ModalStyles 가 전체 폭으로 덮는다). */
 export const StyledCenterDetail = styled(StyledModalDetail).attrs({$width: 480})`
     max-width: min(480px, 92vw);
+`;
+
+/** 알림 본문 — 아래 버튼 줄이 없어 휴대폰 시트가 화면 끝에 붙는다. 홈 인디케이터에 마지막 줄이 가리지 않게. */
+export const StyledSheetBodyInner = styled(StyledModalBodyInner)`
+    padding-bottom: calc(30px + env(safe-area-inset-bottom));
 `;

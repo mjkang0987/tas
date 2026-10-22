@@ -68,8 +68,10 @@ export const BookingRequestSection = ({requests, loading, refetch, decide, onOpe
                             </StyledChangeLine>
                         )}
                     </StyledItemBody>
-                    <StyledRejectBtn type="button" disabled={!!busyId} onClick={() => onDecide(req, 'reject')}>거절</StyledRejectBtn>
-                    <StyledApproveBtn type="button" disabled={!!busyId} onClick={() => onDecide(req, 'approve')}>수락</StyledApproveBtn>
+                    <StyledRejectBtn type="button" disabled={!!busyId} onClick={() => onDecide(req, 'reject')}
+                                     aria-label={`${req.customerName || '고객'} 요청 거절`}>거절</StyledRejectBtn>
+                    <StyledApproveBtn type="button" disabled={!!busyId} onClick={() => onDecide(req, 'approve')}
+                                      aria-label={`${req.customerName || '고객'} 요청 수락`}>수락</StyledApproveBtn>
                 </StyledPlainItem>
             ))}
         </>

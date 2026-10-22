@@ -27,7 +27,6 @@ import {
     StyledContainer,
     StyledItem,
     StyledItemText,
-    StyledModalBodyInner,
     StyledModalOverlay,
     StyledSection,
 } from './NaverSyncNotification.styles';
@@ -48,6 +47,7 @@ import {
     StyledSectionHead,
     StyledSectionList,
     StyledSectionTitle,
+    StyledSheetBodyInner,
     StyledStrong,
     StyledTab,
     StyledTabCount,
@@ -95,7 +95,7 @@ const NotificationLayer = ({onClose, tabs, children}: {onClose: () => void; tabs
                 </StyledHeader>
                 {tabs}
                 <StyledBody>
-                    <StyledModalBodyInner>{children}</StyledModalBodyInner>
+                    <StyledSheetBodyInner>{children}</StyledSheetBodyInner>
                 </StyledBody>
             </StyledCenterDetail>
         </StyledModalOverlay>,
@@ -184,8 +184,10 @@ export const NotificationCenter = ({
     const indicator = now
         ? bellIndicator({todo: naverCount + requestCount + uncheckedBenefits, soon: upcoming.soon.length})
         : {count: 0, dot: false};
-    const hasNaverUnread = notifications.some((n) => n.type !== 'conflict' && !n.read);
-    const naverHasItems = naverPanelItems(notifications, now?.getTime() ?? 0).length > 0;
+    const naverItems = naverPanelItems(notifications, now?.getTime() ?? 0);
+    const naverHasItems = naverItems.length > 0;
+    // '모두 읽음'은 목록에 보이는 안 읽은 것(30일 안)이 있을 때만
+    const hasNaverUnread = naverItems.some((n) => n.type !== 'conflict');
 
     // 탭 — 쓸 수 있는 칸만. 전체에선 빈 칸을 숨기고, 칸 탭에선 빈 문구를 보인다.
     const tabs: {key: NotificationTab; label: string; count: number}[] = [
@@ -244,7 +246,10 @@ export const NotificationCenter = ({
                     <StyledCallLink href={`tel:${b.customerTel}`} aria-label={`${b.customerName || '고객'}에게 전화`}>전화</StyledCallLink>
                 )}
                 <StyledCheckLabel>
-                    <input type="checkbox" checked={b.checked} onChange={(e) => setChecked(b, e.target.checked)} />
+                    <input type="checkbox"
+                           checked={b.checked}
+                           onChange={(e) => setChecked(b, e.target.checked)}
+                           aria-label={`${b.customerName || '고객'} ${b.name} 만료 안내 확인`} />
                     확인
                 </StyledCheckLabel>
             </StyledPlainItem>

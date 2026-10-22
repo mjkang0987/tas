@@ -158,7 +158,7 @@ export const StyledItem = styled.button`
     }
 `;
 
-export const StyledItemText = styled.div`
+export const StyledItemText = styled.span`
     display: flex;
     align-items: center;
     flex-wrap: wrap;
@@ -183,7 +183,7 @@ export const StyledItemText = styled.div`
     }
 `;
 
-export const StyledConflictItemText = styled.div`
+export const StyledConflictItemText = styled.span`
     display: flex;
     align-items: flex-start;
     flex-wrap: wrap;
