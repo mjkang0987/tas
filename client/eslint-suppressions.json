@@ -21,7 +21,7 @@
   },
   "components/layout/NaverSyncNotification.tsx": {
     "react-hooks/purity": {
-      "count": 2
+      "count": 1
     }
   },
   "components/layout/StoreSwitcher.tsx": {

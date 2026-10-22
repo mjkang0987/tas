@@ -134,11 +134,18 @@ export const StyledEmpty = styled(StyledEmptyBase)`
     padding: 32px 12px;
 `;
 
-export const StyledItem = styled.div`
+export const StyledItem = styled.button`
     display: flex;
     flex-direction: column;
+    align-items: flex-start;
     gap: 4px;
+    width: 100%;
+    box-sizing: border-box;
     padding: 10px 12px;
+    border: none;
+    color: inherit;
+    font: inherit;
+    text-align: left;
     border-radius: var(--radius-md);
     background-color: var(--notification-unread-bg);
     margin-bottom: 4px;

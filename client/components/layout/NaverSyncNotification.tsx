@@ -1,4 +1,4 @@
-import {useCallback, useEffect, useRef, useState} from 'react';
+import {useState} from 'react';
 
 import {useCalendarStore} from '../../store/calendarStore';
 import {useStoreLabels} from '../../hooks/useStoreLabels';
@@ -7,17 +7,18 @@ import type {Reservation} from '../../utils/reservations';
 import type {ReservationMap} from '../../features/reservations/model';
 import type {Assignee} from '../../utils/assignees';
 import {AssigneeLabel} from '../ui/AssigneeLabel';
-import {LabelBadge} from '../ui/LabelBadge';
 import {ConflictResolutionDetailModal} from '../modals/ConflictResolutionDetailModal';
 
 interface Props {
     notifications: SyncNotification[];
-    unreadCount: number;
     markRead: (id: string) => void;
-    markAllRead: () => void;
     reservationMap: ReservationMap;
     onSelectReservation: (reservation: Reservation) => void;
     onSelectConflict: (conflictKey: string) => void;
+    /** 항목을 눌러 다른 화면(상세·충돌 모달)으로 갈 때 — 알림 목록을 닫는다 */
+    onNavigate: () => void;
+    /** 30일 기준 시각(ms) — 렌더 중 Date.now() 를 부르지 않게 부모가 넘긴다 */
+    now: number;
 }
 const SEVEN_DAYS_MS  = 7  * 24 * 60 * 60 * 1000;
 const THIRTY_DAYS_MS = 30 * 24 * 60 * 60 * 1000;
@@ -39,164 +40,93 @@ function getConflictStatusLabel(n: SyncNotification): string {
     return '대기';
 }
 
-export const NaverSyncNotification = ({
-    notifications,
-    unreadCount,
-    markRead,
-    markAllRead,
-    reservationMap,
-    onSelectReservation,
-    onSelectConflict,
-}: Props) => {
-    const labels = useStoreLabels();
-    const [open, setOpen] = useState(false);
-    const [showAllModal, setShowAllModal] = useState(false);
-    const [hasMounted, setHasMounted] = useState(false);
-    const containerRef = useRef<HTMLDivElement>(null);
-    const assignees = useCalendarStore((s) => s.assignees);
-
-    const toggle = useCallback(() => {
-        setOpen((prev) => !prev);
-    }, []);
-
-    useEffect(() => {
-        setHasMounted(true);
-    }, []);
-
-    useEffect(() => {
-        if (!open) return;
-
-        const handleClick = (e: MouseEvent) => {
-            if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
-                setOpen(false);
-            }
-        };
-
-        document.addEventListener('mousedown', handleClick);
-        return () => document.removeEventListener('mousedown', handleClick);
-    }, [open]);
-
-    const now = Date.now();
-    // 미해결 중복예약: read 여부·날짜 무관
+/** 목록에 보일 네이버 알림 — 미해결 중복예약(읽음·날짜 무관) + 30일 안의 안 읽은 일반 알림. */
+export function naverPanelItems(notifications: SyncNotification[], now: number): SyncNotification[] {
     const pendingConflicts = notifications.filter(
         (n) => n.type === 'conflict' && n.conflictStatus !== 'confirmed',
     );
-    // 안읽은 일반 알림: 30일 이내
     const recentUnread = notifications.filter(
         (n) => n.type !== 'conflict' && !n.read && now - n.timestamp.getTime() <= THIRTY_DAYS_MS,
     );
-    const panelItems = [...pendingConflicts, ...recentUnread];
+    return [...pendingConflicts, ...recentUnread];
+}
+
+/**
+ * 알림 목록의 '네이버 알림' 칸 — 미해결 중복예약 + 30일 안의 안 읽은 확정·취소.
+ * 예전엔 따로 있던 네이버 벨이었는데 알림 종(NotificationCenter) 하나로 합쳤다(2026-10-22).
+ * '모두 읽음'·'전체알림보기'는 칸 머리(NotificationCenter)에 있다.
+ */
+export const NaverSyncSection = ({
+    notifications,
+    markRead,
+    reservationMap,
+    onSelectReservation,
+    onSelectConflict,
+    onNavigate,
+    now,
+}: Props) => {
+    const labels = useStoreLabels();
+    const assignees = useCalendarStore((s) => s.assignees);
+    const panelItems = naverPanelItems(notifications, now);
 
     const handleNotificationClick = (n: SyncNotification) => {
         markRead(n.id);
         if (n.type === 'conflict' && n.conflictKey) {
             onSelectConflict(n.conflictKey);
-            setOpen(false);
+            onNavigate();
             return;
         }
         const dateReservations = Object.values(reservationMap).flat();
         const reservation = dateReservations.find((r) => r.id === n.reservationId);
         if (reservation) {
             onSelectReservation(reservation);
-            setOpen(false);
+            onNavigate();
         }
     };
 
-    const handleShowAll = () => {
-        setOpen(false);
-        setShowAllModal(true);
-    };
-    const displayUnreadCount = hasMounted ? unreadCount : 0;
-
     return (
         <>
-            <StyledContainer ref={containerRef}>
-                <StyledBellButton type="button" id="tour-notify" onClick={toggle}
-                                  aria-label={displayUnreadCount > 0 ? `알림, 안 읽음 ${displayUnreadCount}건` : '알림'}>
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                         strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                        <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
-                        <path d="M13.73 21a2 2 0 0 1-3.46 0" />
-                    </svg>
-                    {displayUnreadCount > 0 && <StyledBadge aria-hidden="true">{displayUnreadCount > 9 ? '9+' : displayUnreadCount}</StyledBadge>}
-                </StyledBellButton>
-
-                {open && (
-                    <StyledPanel>
-                        <StyledPanelHeader>
-                            <StyledPanelTitle>알림</StyledPanelTitle>
-                            {recentUnread.length > 0 && (
-                                <StyledMarkReadButton type="button" onClick={markAllRead}>
-                                    모두 읽음
-                                </StyledMarkReadButton>
-                            )}
-                        </StyledPanelHeader>
-
-                        <StyledPanelBody>
-                            {panelItems.length === 0 && (
-                                <StyledEmpty>새 알림이 없습니다</StyledEmpty>
-                            )}
-                            {panelItems.map((n) => (
-                                <StyledItem key={n.id}
-                                            onClick={() => handleNotificationClick(n)}>
-                                    {n.type === 'conflict' ? (
-                                        <StyledConflictItemText>
-                                            <StyledUnreadDot />
-                                            <span className="message">
-                                                <span className="date">{formatDate(n.appointmentDate)}</span>{' '}
-                                                <span className="time">{n.appointmentTime}</span>{' '}
-                                                <span className="name">{n.customerName || '고객'}</span>{' '}
-                                                <span className="suffix">고객님</span>{' '}
-                                                <span className="name">{n.assigneeName || '미지정'}</span>{' '}
-                                                <span className="suffix">{labels.assignee}로 중복 예약 발생했습니다.</span>{' '}
-                                                <StyledConflictTag>중복예약</StyledConflictTag>{' '}
-                                                <StyledStatusTag $status={n.conflictStatus}>{getConflictStatusLabel(n)}</StyledStatusTag>
-                                            </span>
-                                        </StyledConflictItemText>
-                                    ) : (
-                                        <StyledItemText>
-                                            <StyledUnreadDot />
-                                            <span className="date">{formatDate(n.appointmentDate)}</span>
-                                            <span className="time">{n.appointmentTime}</span>
-                                            <span className="name">{n.customerName}</span>
-                                            <span className="suffix">고객님</span>
-                                            {n.type === 'cancel'
-                                                ? <StyledCancelTag>취소</StyledCancelTag>
-                                                : <><StyledNaverTag>네이버예약</StyledNaverTag><span className="suffix">확정</span></>
-                                            }
-                                        </StyledItemText>
-                                    )}
-                                    <StyledAssigneeMeta>
-                                        {/* 라벨 없이 색 배지와 이름만 — 예약 카드와 같은 규칙. */}
-                                        <AssigneeLabel color={getAssigneeColor(n.assigneeName, assignees)}
-                                                       name={n.assigneeName} />
-                                    </StyledAssigneeMeta>
-                                </StyledItem>
-                            ))}
-                        </StyledPanelBody>
-
-                        {notifications.length > 0 && (
-                            <StyledPanelFooter>
-                                <StyledShowAllButton type="button" onClick={handleShowAll}>
-                                    전체알림보기
-                                </StyledShowAllButton>
-                            </StyledPanelFooter>
-                        )}
-                    </StyledPanel>
-                )}
-            </StyledContainer>
-
-            {showAllModal && (
-                <NotificationModal
-                    notifications={notifications}
-                    assignees={assignees}
-                    reservationMap={reservationMap}
-                    markRead={markRead}
-                    markAllRead={markAllRead}
-                    onSelectReservation={onSelectReservation}
-                    onSelectConflict={onSelectConflict}
-                    onClose={() => setShowAllModal(false)} />
+            {panelItems.length === 0 && (
+                <StyledEmpty>새 알림이 없습니다</StyledEmpty>
             )}
+            {panelItems.map((n) => (
+                <StyledItem key={n.id}
+                            type="button"
+                            onClick={() => handleNotificationClick(n)}>
+                    {n.type === 'conflict' ? (
+                        <StyledConflictItemText>
+                            <StyledUnreadDot />
+                            <span className="message">
+                                <span className="date">{formatDate(n.appointmentDate)}</span>{' '}
+                                <span className="time">{n.appointmentTime}</span>{' '}
+                                <span className="name">{n.customerName || '고객'}</span>{' '}
+                                <span className="suffix">고객님</span>{' '}
+                                <span className="name">{n.assigneeName || '미지정'}</span>{' '}
+                                <span className="suffix">{labels.assignee}로 중복 예약 발생했습니다.</span>{' '}
+                                <StyledConflictTag>중복예약</StyledConflictTag>{' '}
+                                <StyledStatusTag $status={n.conflictStatus}>{getConflictStatusLabel(n)}</StyledStatusTag>
+                            </span>
+                        </StyledConflictItemText>
+                    ) : (
+                        <StyledItemText>
+                            <StyledUnreadDot />
+                            <span className="date">{formatDate(n.appointmentDate)}</span>
+                            <span className="time">{n.appointmentTime}</span>
+                            <span className="name">{n.customerName}</span>
+                            <span className="suffix">고객님</span>
+                            {n.type === 'cancel'
+                                ? <StyledCancelTag>취소</StyledCancelTag>
+                                : <><StyledNaverTag>네이버예약</StyledNaverTag><span className="suffix">확정</span></>
+                            }
+                        </StyledItemText>
+                    )}
+                    <StyledAssigneeMeta>
+                        {/* 라벨 없이 색 배지와 이름만 — 예약 카드와 같은 규칙. */}
+                        <AssigneeLabel color={getAssigneeColor(n.assigneeName, assignees)}
+                                       name={n.assigneeName} />
+                    </StyledAssigneeMeta>
+                </StyledItem>
+            ))}
         </>
     );
 };
@@ -206,27 +136,15 @@ export const NaverSyncNotification = ({
 import {createPortal} from 'react-dom';
 
 import {
-    StyledOverlay,
-    StyledDetail,
     StyledHeader,
     StyledHeaderTitle,
     StyledHeaderTitleGroup,
     StyledBody,
-    StyledBodyInner,
     StyledFooter,
     StyledActionButton,
     useDialogAccessibility,
-    OVERLAY_Z_INDEX,
 } from '../calendar/overlays/ModalStyles';
 import {
-    StyledContainer,
-    StyledBellButton,
-    StyledBadge,
-    StyledPanel,
-    StyledPanelHeader,
-    StyledPanelTitle,
-    StyledMarkReadButton,
-    StyledPanelBody,
     StyledSection,
     StyledSectionLabel,
     StyledUnreadDot,
@@ -240,8 +158,6 @@ import {
     StyledConflictTag,
     StyledStatusTag,
     StyledAssigneeMeta,
-    StyledPanelFooter,
-    StyledShowAllButton,
     StyledModalOverlay,
     StyledModalDetail,
     StyledModalBodyInner,
@@ -259,7 +175,7 @@ interface ModalProps {
     onClose: () => void;
 }
 
-const NotificationModal = ({notifications, assignees, reservationMap, markRead, markAllRead, onSelectReservation, onSelectConflict, onClose}: ModalProps) => {
+export const NaverNotificationModal = ({notifications, assignees, reservationMap, markRead, markAllRead, onSelectReservation, onSelectConflict, onClose}: ModalProps) => {
     const labels = useStoreLabels();
     const dialogRef = useDialogAccessibility<HTMLDivElement>(onClose);
     const [resolvedDetail, setResolvedDetail] = useState<SyncNotification | null>(null);
