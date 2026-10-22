@@ -287,13 +287,18 @@ export const StyledModalBodyInner = styled(StyledBodyInner)`
     padding: 0 0 30px 0;
 `;
 
-export const StyledModalItem = styled.div<{ $unread: boolean; $isConflict?: boolean }>`
+/* 키보드로도 열 수 있게 버튼 — 기본 버튼 모양은 지운다 */
+export const StyledModalItem = styled.button<{ $unread: boolean; $isConflict?: boolean }>`
     display: grid;
     grid-template-columns: ${({$isConflict}) => $isConflict ? '1fr' : '1fr 30px'};
     gap: 4px;
     width: 100%;
     box-sizing: border-box;
     padding: 4px 8px;
+    border: none;
+    color: inherit;
+    font: inherit;
+    text-align: left;
     background-color: ${({$unread}) => $unread ? 'var(--notification-unread-bg)' : 'transparent'};
     border-bottom: 1px solid var(--gray-color2);
     cursor: pointer;

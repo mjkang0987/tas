@@ -219,6 +219,7 @@ export const NaverNotificationModal = ({notifications, assignees, reservationMap
 
     const renderConflictItem = (n: SyncNotification) => (
         <StyledModalItem key={n.id}
+                         type="button"
                          $unread={n.conflictStatus !== 'confirmed'}
                          $isConflict
                          onClick={() => handleClick(n)}>
@@ -243,6 +244,7 @@ export const NaverNotificationModal = ({notifications, assignees, reservationMap
 
     const renderRegularItem = (n: SyncNotification, flag: string) => (
         <StyledModalItem key={n.id}
+                         type="button"
                          $unread={!n.read}
                          onClick={() => handleClick(n)}>
             <StyledItemText>
