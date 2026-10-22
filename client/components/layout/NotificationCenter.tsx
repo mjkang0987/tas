@@ -72,6 +72,9 @@ function formatMd(iso: string): string {
     return `${d.getMonth() + 1}/${d.getDate()}`;
 }
 
+/** 곧 시작하는 예약은 3개까지만(지시자 2026-10-22) — 그 뒤는 캘린더에서 본다. */
+const UPCOMING_MAX_SHOWN = 3;
+
 type NotificationTab = 'all' | 'benefit' | 'request' | 'naver' | 'upcoming';
 
 /** 다른 레이어와 같은 모양 — 데스크톱은 가운데, 휴대폰은 아래 시트(ModalStyles). Esc·포커스 가두기·닫으면 종으로 포커스. */
@@ -104,7 +107,7 @@ const NotificationLayer = ({onClose, tabs, children}: {onClose: () => void; tabs
 };
 
 /**
- * 알림 종 하나 — 확인할 일(쿠폰·회원권 만료 임박) · 고객 예약 요청 · 네이버 알림 · 곧 시작하는 예약.
+ * 알림 종 하나 — 고객 예약 요청(온라인 예약 켠 매장) · 네이버 알림(연동 매장) · 곧 시작하는 예약(3개까지) · 쿠폰·회원권 만료 임박 순.
  * 예전엔 네이버 벨·예약 요청 벨이 따로였고 휴대폰 헤더에 자리가 없어 합쳤다(2026-10-22).
  * 종은 누구나(게스트 포함) 보이고, 칸은 쓸 수 있는 것만 보인다.
  */
@@ -123,8 +126,13 @@ export const NotificationCenter = ({
     const customerMap = useCalendarStore((s) => s.customerMap);
     const assignees = useCalendarStore((s) => s.assignees);
     const useOnlineBooking = useCalendarStore((s) => s.useOnlineBooking);
+    const useCouponSystem = useCalendarStore((s) => s.useCouponSystem);
+    const useMembershipSystem = useCalendarStore((s) => s.useMembershipSystem);
     const {requests, loading: requestsLoading, refetch: refetchRequests, decide} = useBookingRequests();
-    const {benefits, refetch: refetchBenefits, setChecked} = useExpiringBenefits();
+    const {benefits: allBenefits, refetch: refetchBenefits, setChecked} = useExpiringBenefits();
+    // 켠 기능만(서버도 거르지만, 설정에서 방금 끈 것을 바로 숨긴다)
+    const benefits = allBenefits.filter((b) => (b.kind === 'coupon' ? useCouponSystem : useMembershipSystem));
+    const benefitLabel = useCouponSystem && useMembershipSystem ? '쿠폰·회원권' : useCouponSystem ? '쿠폰' : '회원권';
 
     const [open, setOpen] = useState(false);
     const [showAllNaver, setShowAllNaver] = useState(false);
@@ -185,10 +193,10 @@ export const NotificationCenter = ({
     // 탭 — 쓸 수 있는 칸만. 전체에선 빈 칸을 숨기고, 칸 탭에선 빈 문구를 보인다.
     const tabs: {key: NotificationTab; label: string; count: number}[] = [
         {key: 'all', label: '전체', count: indicator.count},
-        ...(benefits.length > 0 ? [{key: 'benefit' as const, label: '쿠폰·회원권', count: uncheckedBenefits}] : []),
-        ...(requestCount > 0 ? [{key: 'request' as const, label: '요청', count: requestCount}] : []),
+        ...(useOnlineBooking ? [{key: 'request' as const, label: '요청', count: requestCount}] : []),
         ...(canUseSync ? [{key: 'naver' as const, label: '네이버', count: naverCount}] : []),
         {key: 'upcoming', label: '곧 시작', count: 0},
+        ...(benefits.length > 0 ? [{key: 'benefit' as const, label: benefitLabel, count: uncheckedBenefits}] : []),
     ];
     const activeTab = tabs.some((t) => t.key === tab) ? tab : 'all';
     const shows = (key: Exclude<NotificationTab, 'all'>, hasContent: boolean) =>
@@ -283,18 +291,7 @@ export const NotificationCenter = ({
                                                ))}
                                            </StyledTabs>
                                        )}>
-                            {shows('benefit', benefits.length > 0) && (
-                                <StyledSection>
-                                    <StyledSectionHead>
-                                        <StyledSectionTitle>쿠폰·회원권 만료 임박{uncheckedBenefits > 0 && <> <StyledSectionCount>{uncheckedBenefits}</StyledSectionCount></>}</StyledSectionTitle>
-                                    </StyledSectionHead>
-                                    {benefits.length > 0
-                                        ? <StyledSectionList>{benefits.map(renderBenefit)}</StyledSectionList>
-                                        : <StyledSectionEmpty>7일 안에 끝나는 쿠폰·회원권이 없습니다</StyledSectionEmpty>}
-                                </StyledSection>
-                            )}
-
-                            {useOnlineBooking && shows('request', requests.length > 0) && (
+                            {useOnlineBooking && shows('request', true) && (
                                 <StyledSection>
                                     <StyledSectionHead>
                                         <StyledSectionTitle>고객 예약 요청 <StyledSectionCount>{requests.length}</StyledSectionCount></StyledSectionTitle>
@@ -344,11 +341,22 @@ export const NotificationCenter = ({
                                 </StyledSectionHead>
                                 {upcoming.soon.length > 0 || upcoming.next ? (
                                     <StyledSectionList>
-                                        {upcoming.soon.map(renderUpcoming)}
+                                        {upcoming.soon.slice(0, UPCOMING_MAX_SHOWN).map(renderUpcoming)}
                                         {upcoming.soon.length === 0 && upcoming.next && renderUpcoming(upcoming.next)}
                                     </StyledSectionList>
                                 ) : <StyledSectionEmpty>오늘 남은 예약이 없습니다</StyledSectionEmpty>}
                             </StyledSection>}
+
+                            {shows('benefit', benefits.length > 0) && (
+                                <StyledSection>
+                                    <StyledSectionHead>
+                                        <StyledSectionTitle>{benefitLabel} 만료 임박{uncheckedBenefits > 0 && <> <StyledSectionCount>{uncheckedBenefits}</StyledSectionCount></>}</StyledSectionTitle>
+                                    </StyledSectionHead>
+                                    {benefits.length > 0
+                                        ? <StyledSectionList>{benefits.map(renderBenefit)}</StyledSectionList>
+                                        : <StyledSectionEmpty>7일 안에 끝나는 {benefitLabel}이 없습니다</StyledSectionEmpty>}
+                                </StyledSection>
+                            )}
                     </NotificationLayer>
                 )}
 

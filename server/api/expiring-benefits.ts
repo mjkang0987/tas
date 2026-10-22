@@ -6,7 +6,7 @@ import {notifySlackOpsError} from '../notify/slack';
 import {EXPIRY_ALERT_DAYS, type ExpiringBenefit} from '../../client/features/notifications/expiring';
 
 /**
- * 알림 목록 '확인할 일' — 7일 안에 만료되는 쿠폰·회원권(사용 가능 상태만, 회원권은 남은 횟수 0 제외).
+ * 알림 목록 '쿠폰·회원권 만료 임박' — 7일 안에 만료되는 쿠폰·회원권(매장에서 켠 기능만, 사용 가능 상태만, 회원권은 남은 횟수 0 제외).
  * GET: 목록 + 매장 확인 여부, POST `{kind, id, checked}`: 확인/해제(매장 단위 — 누가 확인해도 모두에게 확인함).
  * 쿠폰·회원권은 로그인 매장 기능이라 직원 이상.
  */
@@ -21,12 +21,17 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             const until = new Date(now.getTime() + EXPIRY_ALERT_DAYS * 24 * 60 * 60 * 1000);
             const window = {gt: now, lte: until};
             const customer = {select: {legacyId: true, name: true, tel: true}};
+            // 매장에서 켠 기능만 — 쿠폰·회원권을 끈 매장엔 그 알림을 내지 않는다.
+            const features = await prisma.store.findUnique({
+                where: {id: storeId},
+                select: {useCouponSystem: true, useMembershipSystem: true},
+            });
             const [coupons, memberships] = await Promise.all([
-                prisma.customerCoupon.findMany({
+                !features?.useCouponSystem ? [] : prisma.customerCoupon.findMany({
                     where: {storeId, status: 'active', expiresAt: window, customer: {deletedAt: null}},
                     select: {id: true, name: true, expiresAt: true, customer},
                 }),
-                prisma.customerMembership.findMany({
+                !features?.useMembershipSystem ? [] : prisma.customerMembership.findMany({
                     where: {
                         storeId, status: 'active', expiresAt: window, customer: {deletedAt: null},
                         OR: [{remainingCount: null}, {remainingCount: {gt: 0}}],
