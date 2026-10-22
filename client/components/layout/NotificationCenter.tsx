@@ -239,7 +239,7 @@ export const NotificationCenter = ({
                             {benefits.length > 0 && (
                                 <StyledSection>
                                     <StyledSectionHead>
-                                        <StyledSectionTitle>확인할 일 · 만료 임박{uncheckedBenefits > 0 && <> <StyledSectionCount>{uncheckedBenefits}</StyledSectionCount></>}</StyledSectionTitle>
+                                        <StyledSectionTitle>쿠폰·회원권 만료 임박{uncheckedBenefits > 0 && <> <StyledSectionCount>{uncheckedBenefits}</StyledSectionCount></>}</StyledSectionTitle>
                                     </StyledSectionHead>
                                     <StyledSectionList>{benefits.map(renderBenefit)}</StyledSectionList>
                                 </StyledSection>
