@@ -4,7 +4,7 @@ import {useSession} from 'next-auth/react';
 
 import type {ExpiringBenefit} from '../features/notifications/expiring';
 
-// 알림 목록 '확인할 일' — 7일 안에 만료되는 쿠폰·회원권과 매장 확인 여부. useBookingRequests 와 같은 모양.
+// 알림 목록 '쿠폰·회원권 만료 임박' — 7일 안에 만료되는 쿠폰·회원권과 매장 확인 여부. useBookingRequests 와 같은 모양.
 export function useExpiringBenefits() {
     const [benefits, setBenefits] = useState<ExpiringBenefit[]>([]);
     const {data: session, status} = useSession();

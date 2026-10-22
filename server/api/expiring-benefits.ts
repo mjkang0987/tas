@@ -39,6 +39,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                     select: {id: true, name: true, expiresAt: true, remainingCount: true, customer},
                 }),
             ]);
+            // 확인은 7일 창 안에서만 하므로, 그보다 오래된 확인은 이미 만료된 혜택 것 — 정리한다(혜택에 FK 가 없어 저절로 안 지워진다).
+            await prisma.benefitExpiryCheck.deleteMany({
+                where: {storeId, checkedAt: {lt: new Date(now.getTime() - (EXPIRY_ALERT_DAYS + 1) * 24 * 60 * 60 * 1000)}},
+            });
             const ids = [...coupons.map((c) => c.id), ...memberships.map((m) => m.id)];
             const checked = new Set(
                 ids.length === 0 ? [] : (await prisma.benefitExpiryCheck.findMany({
