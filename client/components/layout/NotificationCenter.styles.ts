@@ -148,19 +148,23 @@ export const StyledUntilTag = styled(LabelBadge).attrs({
 /** 칸 제목 옆 건수 — 처리할 것만 센다. */
 export const StyledSectionCount = styled.span`
     margin-left: 2px;
-    color: var(--danger-color);
+    color: var(--brand-color);
 `;
 
-/** 알림 종류 탭 — 네이티브 라디오(숨김 .a11y) + 라벨 칩. 칸이 많으면 가로로 넘긴다. */
+/**
+ * 알림 종류 탭 — 네이티브 라디오(숨김 .a11y) + 라벨. 캘린더 보기 탭(MobileViewTabs)과 같은 세그먼트 모양:
+ * 회색 트랙 위 고른 칸만 흰 바탕. 건수는 빨간 배지 대신 글자 옆 숫자로 조용히.
+ */
 export const StyledTabs = styled.fieldset`
     display: flex;
-    gap: 4px;
+    gap: 2px;
     flex-shrink: 0;
     min-width: 0; /* fieldset 기본 min-width:min-content 라 안 줄면 가로 스크롤 대신 시트 밖으로 넘친다 */
-    margin: 0;
-    padding: 10px 12px;
+    margin: 10px 12px;
+    padding: 3px;
     border: 0;
-    border-bottom: 1px solid var(--light-gray-color);
+    border-radius: var(--chip-radius);
+    background-color: var(--gray-color2);
     overflow-x: auto;
     scrollbar-width: none;
 `;
@@ -168,37 +172,33 @@ export const StyledTabs = styled.fieldset`
 export const StyledTab = styled.label<{$active: boolean}>`
     display: inline-flex;
     align-items: center;
+    justify-content: center;
     gap: 4px;
-    flex-shrink: 0;
-    min-height: 32px;
+    flex: 1 0 auto;
+    min-height: 30px;
     padding: 0 10px;
-    border: 1px solid ${({$active}) => $active ? 'var(--brand-color)' : 'var(--light-gray-color)'};
-    border-radius: 999px;
-    background: ${({$active}) => $active ? 'var(--brand-color)' : 'var(--white-color)'};
-    color: ${({$active}) => $active ? 'var(--white-color)' : 'var(--dark-gray-color)'};
+    border-radius: var(--chip-radius);
+    background-color: ${({$active}) => $active ? 'var(--white-color)' : 'transparent'};
+    box-shadow: ${({$active}) => $active ? 'var(--shadow-sm)' : 'none'};
+    color: ${({$active}) => $active ? 'var(--brand-color)' : 'var(--dark-gray-color)'};
     font-size: var(--small-font);
     font-weight: 700;
     white-space: nowrap;
     cursor: pointer;
+    transition: background-color 0.15s, color 0.15s;
 
     &:has(.a11y:focus-visible) {
         outline: 2px solid var(--brand-color);
-        outline-offset: 2px;
+        outline-offset: 1px;
     }
 `;
 
 export const StyledTabCount = styled.span`
-    min-width: 16px;
-    padding: 0 5px;
-    border-radius: 999px;
-    background: var(--danger-color);
-    color: var(--white-color);
-    font-size: var(--tiny-font);
-    line-height: 16px;
-    text-align: center;
+    font-weight: 600;
+    opacity: 0.7;
 `;
 
-/** 알림 레이어 — 탭 다섯 개가 한 줄에 들어가게 데스크톱 폭만 조금 넓힌다(휴대폰 시트는 ModalStyles 가 전체 폭으로 덮는다). */
+/** 알림 레이어 — 탭이 한 줄에 들어가게 데스크톱 폭만 조금 넓힌다(휴대폰 시트는 ModalStyles 가 전체 폭으로 덮는다). */
 export const StyledCenterDetail = styled(StyledModalDetail).attrs({$width: 480})`
     max-width: min(480px, 92vw);
 `;
