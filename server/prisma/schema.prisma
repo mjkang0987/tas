@@ -40,6 +40,7 @@ model Store {
   couponProducts         CouponProduct[]
   customerCoupons        CustomerCoupon[]
   storeNotices           StoreNotice[]
+  syncNotifications      SyncNotification[]
 }
 
 model User {
@@ -57,6 +58,7 @@ model User {
   invitesCreated     Invite[]          @relation("InviteCreatedBy")
   memberships        Membership[]
   gmailConnections   GmailConnection[] @relation("GmailConnectionConnectedBy")
+  syncNotificationReads SyncNotificationRead[]
 }
 
 model GmailConnection {
@@ -622,4 +624,39 @@ model CustomerCoupon {
   reservation    Reservation?   @relation(fields: [reservationId], references: [id], onDelete: SetNull)
 
   @@unique([storeId, legacyId])
+}
+
+/// 네이버 예약 동기화 알림(확정·취소) — 매장 단위. 예전엔 동기화를 부른 브라우저의 localStorage 에만 남아
+/// PC 가 먼저 동기화하면 휴대폰엔 안 보였고, 서버가 혼자 부른 동기화(공개 예약 흐름)의 알림은 버려졌다.
+/// 중복예약 알림은 여기 없다(기기에서 계산, 해결 여부는 `ConflictResolution`). 30일 지나면 지운다.
+model SyncNotification {
+  id                  String                 @id @default(cuid())
+  storeId             String
+  /// "sync"(확정) | "cancel"(취소)
+  type                String
+  bookingId           String
+  /// 예약의 legacyId(프론트 번호) — 눌러서 상세를 연다
+  reservationLegacyId Int?
+  customerName        String
+  assigneeName        String
+  /// "YYYY-MM-DD" · "HH:mm" — 메일에 적힌 그대로(문자열)
+  appointmentDate     String
+  appointmentTime     String
+  createdAt           DateTime               @default(now())
+  store               Store                  @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  reads               SyncNotificationRead[]
+
+  @@index([storeId, createdAt])
+}
+
+/// 알림 읽음 — 사람별(사장님이 읽어도 다른 사람 목록에선 안 읽음).
+model SyncNotificationRead {
+  notificationId String
+  userId         String
+  readAt         DateTime         @default(now())
+  notification   SyncNotification @relation(fields: [notificationId], references: [id], onDelete: Cascade)
+  user           User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([notificationId, userId])
+  @@index([userId])
 }
