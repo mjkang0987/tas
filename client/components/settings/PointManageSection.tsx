@@ -86,10 +86,13 @@ export const PointManageSection = () => {
         const nextPoints = direction === 'add'
             ? currentPoints + amount
             : Math.max(currentPoints - amount, 0);
+        // 이력엔 실제로 바뀐 만큼만 — 잔액보다 많이 빼면 친 금액을 적어 이력 잔액이 음수(-4,000원)로 남았다
+        const delta = nextPoints - currentPoints;
+        if (delta === 0) return;
 
         updateCustomer(customerId, {points: nextPoints}, {
             type: direction === 'add' ? 'manual_add' : 'manual_subtract',
-            delta: direction === 'add' ? amount : -amount,
+            delta,
             description: direction === 'add' ? '수동 적립' : '수동 차감',
         });
         setAmountByCustomer((prev) => ({...prev, [customerId]: ''}));
