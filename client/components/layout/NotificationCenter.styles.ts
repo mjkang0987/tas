@@ -66,8 +66,9 @@ export const StyledPlainItem = styled.div<{$done?: boolean}>`
     padding: 8px 10px;
     margin-bottom: 4px;
     border-radius: var(--radius-md);
+    /* 확인한 줄은 바탕만 빼서 구분한다 — 흐리게(opacity) 하면 글자 대비가 WCAG 4.5:1 아래로 떨어진다 */
     background-color: ${({$done}) => $done ? 'transparent' : 'var(--notification-unread-bg)'};
-    opacity: ${({$done}) => $done ? 0.6 : 1};
+    border: 1px solid ${({$done}) => $done ? 'var(--light-gray-color)' : 'transparent'};
 `;
 
 export const StyledItemMain = styled.div`
@@ -195,7 +196,6 @@ export const StyledTab = styled.label<{$active: boolean}>`
 
 export const StyledTabCount = styled.span`
     font-weight: 600;
-    opacity: 0.7;
 `;
 
 /** 알림 레이어 — 탭이 한 줄에 들어가게 데스크톱 폭만 조금 넓힌다(휴대폰 시트는 ModalStyles 가 전체 폭으로 덮는다). */

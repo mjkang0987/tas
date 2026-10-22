@@ -34,5 +34,6 @@ export function useExpiringBenefits() {
         }).then((res) => { if (!res.ok) apply(!checked); }).catch(() => apply(!checked));
     }, []);
 
-    return {benefits, refetch, setChecked};
+    // enabled: 이 칸을 쓸 수 있는 사람(로그인 매장 직원 이상) — 비어 있어도 칸·탭을 보일지 정한다
+    return {benefits, enabled: authed, refetch, setChecked};
 }

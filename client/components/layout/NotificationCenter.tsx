@@ -2,6 +2,7 @@ import {useCallback, useEffect, useState, type ReactNode} from 'react';
 import {createPortal} from 'react-dom';
 
 import {useCalendarStore} from '../../store/calendarStore';
+import {useToastStore} from '../../store/toastStore';
 import {useBookingRequests} from '../../hooks/useBookingRequests';
 import {useExpiringBenefits} from '../../hooks/useExpiringBenefits';
 import type {SyncNotification} from '../../hooks/useNaverBookingSync';
@@ -126,10 +127,13 @@ export const NotificationCenter = ({
     const useCouponSystem = useCalendarStore((s) => s.useCouponSystem);
     const useMembershipSystem = useCalendarStore((s) => s.useMembershipSystem);
     const {requests, loading: requestsLoading, refetch: refetchRequests, decide} = useBookingRequests();
-    const {benefits: allBenefits, refetch: refetchBenefits, setChecked} = useExpiringBenefits();
+    const {benefits: allBenefits, enabled: benefitsAuthed, refetch: refetchBenefits, setChecked} = useExpiringBenefits();
+    const toast = useToastStore((s) => s.show);
     // 켠 기능만(서버도 거르지만, 설정에서 방금 끈 것을 바로 숨긴다)
     const benefits = allBenefits.filter((b) => (b.kind === 'coupon' ? useCouponSystem : useMembershipSystem));
     const benefitLabel = useCouponSystem && useMembershipSystem ? '쿠폰·회원권' : useCouponSystem ? '쿠폰' : '회원권';
+    // 예약 요청처럼 기능을 켠 매장이면 비어 있어도 칸·탭을 보인다
+    const benefitEnabled = benefitsAuthed && (useCouponSystem || useMembershipSystem);
 
     const [open, setOpen] = useState(false);
     const [showAllNaver, setShowAllNaver] = useState(false);
@@ -157,6 +161,7 @@ export const NotificationCenter = ({
     };
 
     const openCustomer = (customerId: number) => {
+        if (!customerMap[customerId]) { toast('고객 정보를 찾지 못했습니다.', 'error'); return; }
         setDetailCustomerId(customerId);
         setOpen(false);
     };
@@ -167,15 +172,18 @@ export const NotificationCenter = ({
         if (inMap) { onSelectReservation(inMap); setOpen(false); return; }
         try {
             const res = await fetch('/api/reservations');
-            if (!res.ok) return;
+            if (!res.ok) { toast('예약을 불러오지 못했습니다.', 'error'); return; }
             const data = await res.json();
             const list: Reservation[] = Array.isArray(data.reservations) ? data.reservations : [];
             setReservationMap(groupByDate(list));
             if (Array.isArray(data.history)) setReservationHistory(data.history);
             const found = list.find((r) => r.id === legacyId);
-            if (found) { onSelectReservation(found); setOpen(false); }
-        } catch { /* 네트워크 실패 무시 */ }
-    }, [reservationMap, onSelectReservation, setReservationMap, setReservationHistory]);
+            if (found) { onSelectReservation(found); setOpen(false); return; }
+            toast('예약을 찾지 못했습니다.', 'error');
+        } catch {
+            toast('예약을 불러오지 못했습니다.', 'error');
+        }
+    }, [reservationMap, onSelectReservation, setReservationMap, setReservationHistory, toast]);
 
     const naverCount = canUseSync ? unreadCount : 0;
     const requestCount = useOnlineBooking ? requests.length : 0;
@@ -195,7 +203,7 @@ export const NotificationCenter = ({
         ...(useOnlineBooking ? [{key: 'request' as const, label: '요청', count: requestCount}] : []),
         ...(canUseSync ? [{key: 'naver' as const, label: '네이버', count: naverCount}] : []),
         {key: 'upcoming', label: '곧 시작', count: 0},
-        ...(benefits.length > 0 ? [{key: 'benefit' as const, label: benefitLabel, count: uncheckedBenefits}] : []),
+        ...(benefitEnabled ? [{key: 'benefit' as const, label: benefitLabel, count: uncheckedBenefits}] : []),
     ];
     const activeTab = tabs.some((t) => t.key === tab) ? tab : 'all';
     const shows = (key: Exclude<NotificationTab, 'all'>, hasContent: boolean) =>
@@ -349,7 +357,7 @@ export const NotificationCenter = ({
                                 ) : <StyledSectionEmpty>오늘 남은 예약이 없습니다</StyledSectionEmpty>}
                             </StyledSection>}
 
-                            {shows('benefit', benefits.length > 0) && (
+                            {benefitEnabled && shows('benefit', true) && (
                                 <StyledSection>
                                     <StyledSectionHead>
                                         <StyledSectionTitle>{benefitLabel} 만료 임박{uncheckedBenefits > 0 && <> <StyledSectionCount>{uncheckedBenefits}</StyledSectionCount></>}</StyledSectionTitle>
