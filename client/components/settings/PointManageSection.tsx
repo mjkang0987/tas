@@ -3,6 +3,7 @@ import {useEffect, useMemo, useState} from 'react';
 import styled from 'styled-components';
 
 import {useCalendarStore} from '../../store/calendarStore';
+import {useToastStore} from '../../store/toastStore';
 import type {PointHistoryEntry} from '../../utils/customers';
 import {getSelectableCustomers, sortCustomersByName} from '../../utils/customers';
 import type {Reservation} from '../../utils/reservations';
@@ -19,6 +20,7 @@ export const PointManageSection = () => {
     const customerMap = useCalendarStore((s) => s.customerMap);
     const storeSettings = useCalendarStore((s) => s.storeSettings);
     const updateCustomer = useCalendarStore((s) => s.updateCustomer);
+    const toast = useToastStore((s) => s.show);
     const updateStorePointSettings = useCalendarStore((s) => s.updateStorePointSettings);
     const openCustomerDetail = useCalendarStore((s) => s.openCustomerDetail);
     const openReservationDetailFromCustomer = useCalendarStore((s) => s.openReservationDetailFromCustomer);
@@ -88,7 +90,9 @@ export const PointManageSection = () => {
             : Math.max(currentPoints - amount, 0);
         // 이력엔 실제로 바뀐 만큼만 — 잔액보다 많이 빼면 친 금액을 적어 이력 잔액이 음수(-4,000원)로 남았다
         const delta = nextPoints - currentPoints;
-        if (delta === 0) return;
+        if (delta === 0) { toast('차감할 적립금이 없습니다.', 'error'); return; }
+        // 잔액보다 많이 친 차감은 잔액만큼만 — 조용히 줄이면 친 금액이 다 빠진 줄 안다
+        if (-delta < amount && direction === 'subtract') toast(`잔액 ${formatPrice(-delta)}만 차감했습니다.`, 'info');
 
         updateCustomer(customerId, {points: nextPoints}, {
             type: direction === 'add' ? 'manual_add' : 'manual_subtract',
