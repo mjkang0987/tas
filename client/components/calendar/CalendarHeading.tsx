@@ -102,7 +102,7 @@ export const CalendarHeading = () => {
     return (<StyledHeading>
             {full && <StyledDateWrap>
                 {!yearInLabel && <StyledDateElement>{+fullYear}</StyledDateElement>}
-                {monthLabel !== null && <StyledDateElement>
+                {monthLabel !== null && <StyledDateElement $long={yearInLabel}>
                     {monthLabel}
                 </StyledDateElement>}
                 {type === ViewType.Day && <StyledDateElement>{+date}</StyledDateElement>}
@@ -166,13 +166,15 @@ const StyledChevron = styled.svg`
   pointer-events: none;
 `;
 
-const StyledDateElement = styled.span`
+const StyledDateElement = styled.span<{$long?: boolean}>`
   display: inline-flex;
   font-size: var(--big-font);
+  white-space: nowrap;
 
-  /* 일 뷰 제목이 가장 길어 좁은 화면에서 옆 버튼을 밀어낸다. */
+  /* 일 뷰 제목이 가장 길어 좁은 화면에서 옆 버튼을 밀어낸다.
+     해가 걸친 주·3일("2025 / 12 - 2026 / 1")은 더 길어 한 단계 더 줄인다 — 안 그러면 두 줄로 꺾인다. */
   @media (max-width: 640px) {
-    font-size: var(--large-font);
+    font-size: ${({$long}) => $long ? 'var(--medium-font)' : 'var(--large-font)'};
   }
 
   & + & {
