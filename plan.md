@@ -19,6 +19,9 @@
     이전에 기기에 쌓인 확정·취소 알림은 그 기기에 그대로 둔다(서버로 못 옮김 — 서버엔 없던 기록).
   - 탈퇴(매장 삭제)·사용자 삭제 때 함께 지워지게 FK cascade.
 - **DB(운영 수동 선적용 필요)**: `0025_sync_notifications` — 새 테이블 2개 추가만(기존 데이터 무변경, IF NOT EXISTS 로 멱등).
+  → **2026-10-22 운영 Supabase 에 적용 완료**(지시자가 SQL Editor 에서 실행, 두 테이블 생성 확인). 이제 머지(배포)해도 된다.
+- 같은 날: 운영 Supabase **Data API 끔**(지시자) — RLS 가 없어 anon key 로 테이블을 읽고 쓸 수 있던 상태. 앱은 전부 Prisma 직접 접속이라 영향 없음
+  (끈 뒤 운영 첫 화면 200, 공개 예약 API DB 조회 정상 확인).
 - 영향: `server/prisma/schema.prisma`, `server/prisma/migrations/0025_sync_notifications`, `server/api/naver-booking-sync.ts`, `server/api/sync-notifications.ts`,
   `client/pages/api/sync-notifications.ts`, `client/hooks/useNaverBookingSync.ts`, `client/store/calendarStore.ts`(+ 순수 합치기 함수·테스트).
 
