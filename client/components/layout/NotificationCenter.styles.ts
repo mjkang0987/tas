@@ -33,11 +33,19 @@ export const StyledCenterPanel = styled(StyledPanel)`
     }
 `;
 
+/** 칸 제목 — 목록 줄(연한 파랑)과 구분되게 회색 띠 + 진한 글씨. 스크롤해도 위에 붙어 있다. */
 export const StyledSectionHead = styled(StyledSectionLabel)`
     display: flex;
     align-items: center;
     justify-content: space-between;
     gap: 8px;
+    padding: 8px 12px;
+    font-size: var(--small-font);
+    color: var(--black-color);
+    letter-spacing: 0;
+    background: var(--gray-color2);
+    border-top: 1px solid var(--light-gray-color);
+    border-bottom: 1px solid var(--light-gray-color);
 `;
 
 export const StyledSectionTitle = styled.h3`
