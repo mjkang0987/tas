@@ -2,7 +2,7 @@ import styled from 'styled-components';
 
 import {LabelBadge} from '../ui/LabelBadge';
 
-import {StyledBadge, StyledEmpty, StyledPanel, StyledSectionLabel} from './NaverSyncNotification.styles';
+import {StyledBadge, StyledEmpty, StyledModalDetail, StyledSectionLabel} from './NaverSyncNotification.styles';
 
 // 알림 종 하나(NotificationCenter) — 벨·패널 기본 모양은 예전 네이버 벨(NaverSyncNotification.styles)을 그대로 쓴다.
 
@@ -15,22 +15,6 @@ export const StyledDot = styled(StyledBadge)`
     height: 8px;
     padding: 0;
     background: var(--brand-color);
-`;
-
-export const StyledCenterPanel = styled(StyledPanel)`
-    width: 360px;
-    max-height: min(560px, calc(100dvh - 120px));
-
-    /* 휴대폰: 종 아래 말풍선은 화면 왼쪽으로 잘린다 — 화면 폭에 맞춰 띄운다. */
-    @media (max-width: 640px) {
-        position: fixed;
-        top: var(--notification-panel-top, 96px);
-        left: 8px;
-        right: 8px;
-        width: auto;
-        margin-top: 0;
-        max-height: calc(100dvh - var(--notification-panel-top, 96px) - 72px);
-    }
 `;
 
 /** 칸 제목 — 목록 줄(연한 파랑)과 구분되게 회색 띠 + 진한 글씨. 스크롤해도 위에 붙어 있다. */
@@ -165,4 +149,56 @@ export const StyledUntilTag = styled(LabelBadge).attrs({
 export const StyledSectionCount = styled.span`
     margin-left: 2px;
     color: var(--danger-color);
+`;
+
+/** 알림 종류 탭 — 네이티브 라디오(숨김 .a11y) + 라벨 칩. 칸이 많으면 가로로 넘긴다. */
+export const StyledTabs = styled.fieldset`
+    display: flex;
+    gap: 4px;
+    flex-shrink: 0;
+    min-width: 0; /* fieldset 기본 min-width:min-content 라 안 줄면 가로 스크롤 대신 시트 밖으로 넘친다 */
+    margin: 0;
+    padding: 10px 12px;
+    border: 0;
+    border-bottom: 1px solid var(--light-gray-color);
+    overflow-x: auto;
+    scrollbar-width: none;
+`;
+
+export const StyledTab = styled.label<{$active: boolean}>`
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    flex-shrink: 0;
+    min-height: 32px;
+    padding: 0 10px;
+    border: 1px solid ${({$active}) => $active ? 'var(--brand-color)' : 'var(--light-gray-color)'};
+    border-radius: 999px;
+    background: ${({$active}) => $active ? 'var(--brand-color)' : 'var(--white-color)'};
+    color: ${({$active}) => $active ? 'var(--white-color)' : 'var(--dark-gray-color)'};
+    font-size: var(--small-font);
+    font-weight: 700;
+    white-space: nowrap;
+    cursor: pointer;
+
+    &:has(.a11y:focus-visible) {
+        outline: 2px solid var(--brand-color);
+        outline-offset: 2px;
+    }
+`;
+
+export const StyledTabCount = styled.span`
+    min-width: 16px;
+    padding: 0 5px;
+    border-radius: 999px;
+    background: var(--danger-color);
+    color: var(--white-color);
+    font-size: var(--tiny-font);
+    line-height: 16px;
+    text-align: center;
+`;
+
+/** 알림 레이어 — 탭 다섯 개가 한 줄에 들어가게 데스크톱 폭만 조금 넓힌다(휴대폰 시트는 ModalStyles 가 전체 폭으로 덮는다). */
+export const StyledCenterDetail = styled(StyledModalDetail).attrs({$width: 480})`
+    max-width: min(480px, 92vw);
 `;
