@@ -1,5 +1,7 @@
 import styled from 'styled-components';
 
+import {LabelBadge} from '../ui/LabelBadge';
+
 import {StyledBadge, StyledEmpty, StyledPanel, StyledSectionLabel} from './NaverSyncNotification.styles';
 
 // 알림 종 하나(NotificationCenter) — 벨·패널 기본 모양은 예전 네이버 벨(NaverSyncNotification.styles)을 그대로 쓴다.
@@ -105,8 +107,14 @@ export const StyledNameButton = styled.button`
     color: inherit;
     font: inherit;
     font-weight: 700;
-    text-decoration: underline;
-    text-underline-offset: 2px;
+    text-align: left;
+
+    @media (hover: hover) and (pointer: fine) {
+        &:hover {
+            text-decoration: underline;
+            text-underline-offset: 2px;
+        }
+    }
 `;
 
 export const StyledStrong = styled.span`
@@ -134,4 +142,19 @@ export const StyledCheckLabel = styled.label`
     font-size: var(--xsmall-font);
     color: var(--dark-gray-color2);
     cursor: pointer;
+`;
+
+/** '15분 후' — 네이버 줄의 태그(StyledNaverTag)와 같은 크기, 보라(곧 시작 점과 같은 색). */
+export const StyledUntilTag = styled(LabelBadge).attrs({
+    $tone: 'purple',
+    $shape: 'soft',
+    $size: 'sm',
+})`
+    font-size: var(--tiny-font);
+`;
+
+/** 칸 제목 옆 건수 — 처리할 것만 센다. */
+export const StyledSectionCount = styled.span`
+    margin-left: 2px;
+    color: var(--danger-color);
 `;

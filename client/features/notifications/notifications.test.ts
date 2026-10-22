@@ -25,7 +25,7 @@ describe('upcomingReservations', () => {
         const {soon} = upcomingReservations({'2026-10-22': [r(1, '13:40')]}, now);
         expect(soon[0].minutesUntil).toBe(0);
         expect(upcomingReservations({'2026-10-22': [r(1, '09:00')]}, now)).toEqual({soon: [], next: null});
-        expect([0, 20, 60].map(untilLabel)).toEqual(['지금', '20분 후', '1시간 후']);
+        expect([0, 20, 60, 150].map(untilLabel)).toEqual(['지금', '20분 후', '1시간 후', '2시간 30분 후']);
     });
 });
 

@@ -17,6 +17,7 @@ import {
     StyledBellButton,
     StyledContainer,
     StyledItem,
+    StyledItemText,
     StyledPanelBody,
     StyledPanelHeader,
     StyledPanelTitle,
@@ -33,12 +34,14 @@ import {
     StyledNameButton,
     StyledPlainItem,
     StyledSectionAction,
+    StyledSectionCount,
     StyledSectionActions,
     StyledSectionEmpty,
     StyledSectionHead,
     StyledSectionList,
     StyledSectionTitle,
     StyledStrong,
+    StyledUntilTag,
 } from './NotificationCenter.styles';
 
 interface Props {
@@ -164,12 +167,13 @@ export const NotificationCenter = ({
             <StyledItem key={reservation.id}
                         type="button"
                         onClick={() => { onSelectReservation(reservation); setOpen(false); }}>
-                <StyledItemTop>
-                    <LabelBadge $tone="purple" $shape="soft" $size="sm">{untilLabel(minutesUntil)}</LabelBadge>
-                    <StyledStrong>{reservation.startTime}</StyledStrong>
-                    <StyledStrong>{customerName}</StyledStrong>
-                    {reservation.service && <StyledItemSub>{reservation.service}</StyledItemSub>}
-                </StyledItemTop>
+                {/* 네이버 알림 줄과 같은 글씨(StyledItemText) — 크기·굵기를 맞춘다 */}
+                <StyledItemText>
+                    <StyledUntilTag>{untilLabel(minutesUntil)}</StyledUntilTag>
+                    <span className="date">{reservation.startTime}</span>
+                    <span className="name">{customerName}</span>
+                    {reservation.service && <span className="suffix">{reservation.service}</span>}
+                </StyledItemText>
                 {assignee && <AssigneeLabel color={getAssigneeColor(assignee)} name={assignee.name} />}
             </StyledItem>
         );
@@ -235,7 +239,7 @@ export const NotificationCenter = ({
                             {benefits.length > 0 && (
                                 <StyledSection>
                                     <StyledSectionHead>
-                                        <StyledSectionTitle>확인할 일 · 쿠폰·회원권 만료 임박</StyledSectionTitle>
+                                        <StyledSectionTitle>확인할 일 · 만료 임박{uncheckedBenefits > 0 && <> <StyledSectionCount>{uncheckedBenefits}</StyledSectionCount></>}</StyledSectionTitle>
                                     </StyledSectionHead>
                                     <StyledSectionList>{benefits.map(renderBenefit)}</StyledSectionList>
                                 </StyledSection>
@@ -244,7 +248,7 @@ export const NotificationCenter = ({
                             {useOnlineBooking && (requests.length > 0 || requestsLoading) && (
                                 <StyledSection>
                                     <StyledSectionHead>
-                                        <StyledSectionTitle>고객 예약 요청</StyledSectionTitle>
+                                        <StyledSectionTitle>고객 예약 요청 <StyledSectionCount>{requests.length}</StyledSectionCount></StyledSectionTitle>
                                     </StyledSectionHead>
                                     <StyledSectionList>
                                         <BookingRequestSection requests={requests}
@@ -259,7 +263,7 @@ export const NotificationCenter = ({
                             {canUseSync && (
                                 <StyledSection>
                                     <StyledSectionHead>
-                                        <StyledSectionTitle>네이버 알림</StyledSectionTitle>
+                                        <StyledSectionTitle>네이버 알림{naverCount > 0 && <> <StyledSectionCount>{naverCount}</StyledSectionCount></>}</StyledSectionTitle>
                                         <StyledSectionActions>
                                             {hasNaverUnread && (
                                                 <StyledSectionAction type="button" onClick={markAllRead}>모두 읽음</StyledSectionAction>
@@ -287,7 +291,7 @@ export const NotificationCenter = ({
 
                             <StyledSection>
                                 <StyledSectionHead>
-                                    <StyledSectionTitle>곧 시작하는 예약</StyledSectionTitle>
+                                    <StyledSectionTitle>{upcoming.soon.length === 0 && upcoming.next ? '다음 예약' : '곧 시작하는 예약'}</StyledSectionTitle>
                                 </StyledSectionHead>
                                 {upcoming.soon.length > 0 || upcoming.next ? (
                                     <StyledSectionList>

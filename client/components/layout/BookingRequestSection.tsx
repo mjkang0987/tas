@@ -6,6 +6,7 @@ import {StyledEmpty as StyledEmptyBase} from '../settings/settings-styles';
 
 import type {BookingRequestDto} from '../../hooks/useBookingRequests';
 import {LabelBadge} from '../ui/LabelBadge';
+import {StyledItemSub, StyledItemTop, StyledPlainItem, StyledStrong} from './NotificationCenter.styles';
 
 function formatMd(dateStr: string): string {
     if (!dateStr || !dateStr.includes('-')) return dateStr || '-';
@@ -48,105 +49,82 @@ export const BookingRequestSection = ({requests, loading, refetch, decide, onOpe
         <>
             {loading && requests.length === 0 && <StyledEmpty>불러오는 중…</StyledEmpty>}
             {!loading && requests.length === 0 && <StyledEmpty>대기 중인 요청이 없습니다</StyledEmpty>}
+            {/* 다른 칸(확인할 일)과 같은 줄 모양 — 왼쪽 내용, 오른쪽 거절·수락 */}
             {requests.map((req) => (
-                <StyledItem key={req.id}>
+                <StyledPlainItem key={req.id}>
                     <StyledItemBody type="button" onClick={() => req.legacyId != null && onOpenReservation(req.legacyId)} title="예약 상세 보기">
-                        <StyledItemHead>
-                            <StyledCustomer>{req.customerName || '고객'}</StyledCustomer>
-                            {req.kind === 'new' && <LabelBadge $tone="warning" $shape="pill">신규 예약 신청</LabelBadge>}
-                            {req.kind === 'change' && <LabelBadge $tone="purple" $shape="pill">변경 요청</LabelBadge>}
-                            {req.kind === 'cancel' && <LabelBadge $tone="danger" $shape="pill">취소 요청</LabelBadge>}
-                        </StyledItemHead>
-                        <StyledItemLine>
-                            {req.kind === 'new' ? '신청' : '현재'}: {formatMd(req.current.date)} {req.current.startTime}~{req.current.endTime} ({req.current.serviceSummary})
-                        </StyledItemLine>
+                        <StyledItemTop>
+                            <StyledStrong>{req.customerName || '고객'}</StyledStrong>
+                            {req.kind === 'new' && <LabelBadge $tone="warning" $shape="soft" $size="sm">신규 신청</LabelBadge>}
+                            {req.kind === 'change' && <LabelBadge $tone="purple" $shape="soft" $size="sm">변경 요청</LabelBadge>}
+                            {req.kind === 'cancel' && <LabelBadge $tone="danger" $shape="soft" $size="sm">취소 요청</LabelBadge>}
+                        </StyledItemTop>
+                        <StyledItemSub>
+                            {formatMd(req.current.date)} {req.current.startTime}~{req.current.endTime} · {req.current.serviceSummary}
+                        </StyledItemSub>
                         {req.kind === 'change' && req.requestedChange && (
-                            <StyledItemLine $accent>
-                                변경: {formatMd(req.requestedChange.date)} {req.requestedChange.startTime}~{req.requestedChange.endTime} ({req.requestedChange.serviceSummary})
-                            </StyledItemLine>
+                            <StyledChangeLine>
+                                → {formatMd(req.requestedChange.date)} {req.requestedChange.startTime}~{req.requestedChange.endTime} · {req.requestedChange.serviceSummary}
+                            </StyledChangeLine>
                         )}
                     </StyledItemBody>
-                    <StyledItemActions>
-                        <StyledRejectBtn type="button" disabled={!!busyId} onClick={() => onDecide(req, 'reject')}>거절</StyledRejectBtn>
-                        <StyledApproveBtn type="button" disabled={!!busyId} onClick={() => onDecide(req, 'approve')}>수락</StyledApproveBtn>
-                    </StyledItemActions>
-                </StyledItem>
+                    <StyledRejectBtn type="button" disabled={!!busyId} onClick={() => onDecide(req, 'reject')}>거절</StyledRejectBtn>
+                    <StyledApproveBtn type="button" disabled={!!busyId} onClick={() => onDecide(req, 'approve')}>수락</StyledApproveBtn>
+                </StyledPlainItem>
             ))}
         </>
     );
 };
 
 const StyledEmpty = styled(StyledEmptyBase)`
-    padding: 20px 14px;
-`;
-
-const StyledItem = styled.div`
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-    padding: 12px 14px;
-    border-bottom: 1px solid var(--light-gray-color, #f1f3f5);
+    padding: 14px 12px;
 `;
 
 const StyledItemBody = styled.button`
     display: flex;
     flex-direction: column;
-    gap: 4px;
-    width: 100%;
+    gap: 2px;
+    flex: 1;
+    min-width: 0;
     padding: 0;
     border: none;
     background: none;
+    color: inherit;
+    font: inherit;
+    font-size: var(--small-font);
     text-align: left;
     cursor: pointer;
 `;
 
-const StyledItemHead = styled.div`
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 8px;
+const StyledChangeLine = styled.span`
+    color: var(--brand-color);
+    font-size: var(--xsmall-font);
+    font-weight: 600;
 `;
 
-const StyledCustomer = styled.span`
-    font-size: var(--font);
-    font-weight: 700;
-    color: var(--black-color, #111);
-`;
-
-const StyledItemLine = styled.span<{$accent?: boolean}>`
-    font-size: 12.5px;
-    color: ${(p) => (p.$accent ? 'var(--brand-color, #6526d9)' : 'var(--dark-gray-color2, #667)')};
-    font-weight: ${(p) => (p.$accent ? 600 : 400)};
-`;
-
-const StyledItemActions = styled.div`
-    display: flex;
-    gap: 8px;
-    margin-top: 6px;
-`;
-
-const StyledApproveBtn = styled.button`
-    flex: 1;
-    height: 34px;
-    border: none;
-    border-radius: 8px;
-    background: var(--brand-color, #6526d9);
-    color: #fff;
-    font-size: var(--medium-font);
+const StyledDecisionBtn = styled.button`
+    flex-shrink: 0;
+    min-height: 32px;
+    padding: 0 10px;
+    border-radius: var(--radius-md);
+    font-size: var(--xsmall-font);
     font-weight: 700;
     cursor: pointer;
-    &:disabled { opacity: 0.45; cursor: not-allowed; }
+
+    &:disabled {
+        opacity: 0.45;
+        cursor: not-allowed;
+    }
 `;
 
-const StyledRejectBtn = styled.button`
-    flex: 1;
-    height: 34px;
-    border: 1px solid var(--light-gray-color, #d7dbe0);
-    border-radius: 8px;
-    background: var(--white-color, #fff);
-    color: var(--dark-gray-color, #444);
-    font-size: var(--medium-font);
-    font-weight: 700;
-    cursor: pointer;
-    &:disabled { opacity: 0.45; cursor: not-allowed; }
+const StyledRejectBtn = styled(StyledDecisionBtn)`
+    border: 1px solid var(--gray-color2);
+    background: var(--white-color);
+    color: var(--dark-gray-color);
+`;
+
+const StyledApproveBtn = styled(StyledDecisionBtn)`
+    border: 1px solid var(--brand-color);
+    background: var(--brand-color);
+    color: var(--white-color);
 `;

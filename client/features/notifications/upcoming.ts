@@ -38,11 +38,13 @@ export function upcomingReservations(
     return {soon, next: later.find((x) => x.minutesUntil > windowMinutes) ?? null};
 }
 
-/** "지금" · "20분 후" · "1시간 후". */
+/** "지금" · "20분 후" · "1시간 후" · "2시간 30분 후". */
 export function untilLabel(minutes: number): string {
     if (minutes <= 0) return '지금';
-    if (minutes % 60 === 0) return `${minutes / 60}시간 후`;
-    return `${minutes}분 후`;
+    const h = Math.floor(minutes / 60);
+    const m = minutes % 60;
+    if (h === 0) return `${m}분 후`;
+    return m === 0 ? `${h}시간 후` : `${h}시간 ${m}분 후`;
 }
 
 /**
