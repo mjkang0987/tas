@@ -41,6 +41,7 @@ model Store {
   customerCoupons        CustomerCoupon[]
   storeNotices           StoreNotice[]
   syncNotifications      SyncNotification[]
+  benefitExpiryChecks    BenefitExpiryCheck[]
 }
 
 model User {
@@ -659,4 +660,20 @@ model SyncNotificationRead {
 
   @@id([notificationId, userId])
   @@index([userId])
+}
+
+/// 알림 목록 '확인할 일'의 쿠폰·회원권 만료 임박 체크 — **매장 단위**(사장님이 확인하면 직원 목록에서도 확인함).
+/// 만료 임박 목록 자체는 저장하지 않고 열 때마다 계산한다(`/api/expiring-benefits`). 혜택이 지워지면 이 줄은 목록에 안 걸려 의미가 없어진다.
+model BenefitExpiryCheck {
+  storeId   String
+  /// "coupon" | "membership"
+  kind      String
+  /// CustomerCoupon.id 또는 CustomerMembership.id
+  benefitId String
+  checkedBy String?
+  checkedAt DateTime @default(now())
+  store     Store    @relation(fields: [storeId], references: [id], onDelete: Cascade)
+
+  @@id([kind, benefitId])
+  @@index([storeId])
 }
