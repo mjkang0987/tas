@@ -10,14 +10,13 @@ import {getAssigneeColor} from '../../utils/assignees';
 import {bellIndicator, untilLabel, upcomingReservations, type UpcomingReservation} from '../../features/notifications/upcoming';
 import {daysUntil, dDayLabel, type ExpiringBenefit} from '../../features/notifications/expiring';
 import {AssigneeLabel} from '../ui/AssigneeLabel';
+import {CloseIconButton} from '../ui/CloseIconButton';
 import {CustomerDetail} from '../calendar/overlays/CustomerDetail';
 import {LabelBadge} from '../ui/LabelBadge';
 import {BookingRequestSection} from './BookingRequestSection';
 import {NaverNotificationModal, NaverSyncSection, naverPanelItems} from './NaverSyncNotification';
 import {
-    StyledActionButton,
     StyledBody,
-    StyledFooter,
     StyledHeader,
     StyledHeaderTitle,
     useDialogAccessibility,
@@ -92,14 +91,12 @@ const NotificationLayer = ({onClose, tabs, children}: {onClose: () => void; tabs
                                onClick={(e) => e.stopPropagation()}>
                 <StyledHeader>
                     <StyledHeaderTitle id="notification-center-title">알림</StyledHeaderTitle>
+                    <CloseIconButton onClick={onClose} />
                 </StyledHeader>
                 {tabs}
                 <StyledBody>
                     <StyledModalBodyInner>{children}</StyledModalBodyInner>
                 </StyledBody>
-                <StyledFooter>
-                    <StyledActionButton type="button" onClick={onClose}>닫기</StyledActionButton>
-                </StyledFooter>
             </StyledCenterDetail>
         </StyledModalOverlay>,
         modalRoot,
