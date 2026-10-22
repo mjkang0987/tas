@@ -5,19 +5,21 @@ import {useSession} from 'next-auth/react';
 import type {ExpiringBenefit} from '../features/notifications/expiring';
 
 // 알림 목록 '쿠폰·회원권 만료 임박' — 7일 안에 만료되는 쿠폰·회원권과 매장 확인 여부. useBookingRequests 와 같은 모양.
-export function useExpiringBenefits() {
+/** featureOn: 매장에서 쿠폰·회원권 중 하나라도 켰는지 — 둘 다 끈 매장은 부르지 않는다. */
+export function useExpiringBenefits(featureOn: boolean) {
     const [benefits, setBenefits] = useState<ExpiringBenefit[]>([]);
     const {data: session, status} = useSession();
     // 쿠폰·회원권은 로그인 매장 기능 — 게스트·미인증은 서버 세션이 없어 401만 난다.
     const authed = status === 'authenticated' && !!session?.user?.role && !!session.user?.storeId;
+    const active = authed && featureOn;
 
     const refetch = useCallback(() => {
-        if (!authed) { setBenefits([]); return; }
+        if (!active) { setBenefits([]); return; }
         fetch('/api/expiring-benefits')
             .then((res) => (res.ok ? res.json() : Promise.reject(new Error('load failed'))))
             .then((data) => setBenefits(Array.isArray(data.items) ? data.items : []))
             .catch(() => setBenefits([]));
-    }, [authed]);
+    }, [active]);
 
     // eslint-disable-next-line react-hooks/set-state-in-effect
     useEffect(() => { refetch(); }, [refetch]);

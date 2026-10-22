@@ -126,8 +126,8 @@ export const NotificationCenter = ({
     const useOnlineBooking = useCalendarStore((s) => s.useOnlineBooking);
     const useCouponSystem = useCalendarStore((s) => s.useCouponSystem);
     const useMembershipSystem = useCalendarStore((s) => s.useMembershipSystem);
+    const {benefits: allBenefits, enabled: benefitsAuthed, refetch: refetchBenefits, setChecked} = useExpiringBenefits(useCouponSystem || useMembershipSystem);
     const {requests, loading: requestsLoading, refetch: refetchRequests, decide} = useBookingRequests();
-    const {benefits: allBenefits, enabled: benefitsAuthed, refetch: refetchBenefits, setChecked} = useExpiringBenefits();
     const toast = useToastStore((s) => s.show);
     // 켠 기능만(서버도 거르지만, 설정에서 방금 끈 것을 바로 숨긴다)
     const benefits = allBenefits.filter((b) => (b.kind === 'coupon' ? useCouponSystem : useMembershipSystem));
