@@ -1118,7 +1118,10 @@ export const useCalendarStore = create<CalendarState>((set) => ({
                 )
                 : state.syncNotifications;
 
-            const next = [...newItems, ...existing].slice(0, 50);
+            // 50개 상한은 이 기기에서 만든 것(중복예약 등)에만 — 서버 알림(최대 100)까지 세면 기기 알림이 밀려 사라진다.
+            const merged = [...newItems, ...existing];
+            const keptLocal = new Set(merged.filter((n) => n.source !== 'server').slice(0, 50));
+            const next = merged.filter((n) => n.source === 'server' || keptLocal.has(n));
             saveSyncNotifications(next);
             return {syncNotifications: next};
         }),
