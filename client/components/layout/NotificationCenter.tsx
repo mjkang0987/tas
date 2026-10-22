@@ -1,6 +1,5 @@
 import {useCallback, useEffect, useState, type ReactNode} from 'react';
 import {createPortal} from 'react-dom';
-import {useRouter} from 'next/router';
 
 import {useCalendarStore} from '../../store/calendarStore';
 import {useBookingRequests} from '../../hooks/useBookingRequests';
@@ -11,6 +10,7 @@ import {getAssigneeColor} from '../../utils/assignees';
 import {bellIndicator, untilLabel, upcomingReservations, type UpcomingReservation} from '../../features/notifications/upcoming';
 import {daysUntil, dDayLabel, type ExpiringBenefit} from '../../features/notifications/expiring';
 import {AssigneeLabel} from '../ui/AssigneeLabel';
+import {CustomerDetail} from '../calendar/overlays/CustomerDetail';
 import {LabelBadge} from '../ui/LabelBadge';
 import {BookingRequestSection} from './BookingRequestSection';
 import {NaverNotificationModal, NaverSyncSection, naverPanelItems} from './NaverSyncNotification';
@@ -72,9 +72,6 @@ function formatMd(iso: string): string {
     return `${d.getMonth() + 1}/${d.getDate()}`;
 }
 
-// 고객 상세 레이어(CustomerDetail)를 그리는 페이지 — 그 밖(/menu·/inquiry 등)에선 고객 명단으로 가서 연다.
-const CUSTOMER_DETAIL_PAGES = new Set(['/', '/address', '/mypage', '/settings', '/settings/[tab]']);
-
 type NotificationTab = 'all' | 'benefit' | 'request' | 'naver' | 'upcoming';
 
 /** 다른 레이어와 같은 모양 — 데스크톱은 가운데, 휴대폰은 아래 시트(ModalStyles). Esc·포커스 가두기·닫으면 종으로 포커스. */
@@ -125,7 +122,6 @@ export const NotificationCenter = ({
     const setReservationHistory = useCalendarStore((s) => s.setReservationHistory);
     const customerMap = useCalendarStore((s) => s.customerMap);
     const assignees = useCalendarStore((s) => s.assignees);
-    const openCustomerDetail = useCalendarStore((s) => s.openCustomerDetail);
     const useOnlineBooking = useCalendarStore((s) => s.useOnlineBooking);
     const {requests, loading: requestsLoading, refetch: refetchRequests, decide} = useBookingRequests();
     const {benefits, refetch: refetchBenefits, setChecked} = useExpiringBenefits();
@@ -135,7 +131,8 @@ export const NotificationCenter = ({
     const [tab, setTab] = useState<NotificationTab>('all');
     // 서버 렌더와 어긋나지 않게 첫 화면 뒤에 시각을 잡고, 1분마다 '곧 시작'을 다시 센다. null = 아직 마운트 전.
     const [now, setNow] = useState<Date | null>(null);
-    const router = useRouter();
+    // 고객 이름을 누르면 종이 직접 고객 상세를 띄운다 — 페이지마다 고객 레이어가 있는지와 무관하게 그 자리에서 열린다.
+    const [detailCustomerId, setDetailCustomerId] = useState<number | null>(null);
 
     useEffect(() => {
         const tick = () => setNow(new Date());
@@ -155,9 +152,8 @@ export const NotificationCenter = ({
     };
 
     const openCustomer = (customerId: number) => {
-        openCustomerDetail(customerId);
+        setDetailCustomerId(customerId);
         setOpen(false);
-        if (!CUSTOMER_DETAIL_PAGES.has(router.pathname)) void router.push('/address');
     };
 
     // 요청을 누르면 그 예약 상세 — 맵에 없으면(로드 뒤 들어온 신규 예약) 다시 불러와 찾는다.
@@ -355,6 +351,13 @@ export const NotificationCenter = ({
                             </StyledSection>}
                     </NotificationLayer>
                 )}
+
+            {detailCustomerId !== null && customerMap[detailCustomerId] && (
+                <CustomerDetail customer={customerMap[detailCustomerId]}
+                                reservationMap={reservationMap}
+                                onReservationClick={onSelectReservation}
+                                onClose={() => setDetailCustomerId(null)} />
+            )}
 
             {showAllNaver && (
                 <NaverNotificationModal notifications={notifications}
