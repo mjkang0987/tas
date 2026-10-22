@@ -29,6 +29,7 @@ function ToastItem({toast, onDismiss}: {toast: Toast; onDismiss: (id: string) =>
 
     return (
         <StyledItem ref={ref} $type={toast.type} tabIndex={-1} role="alert">
+            <ToastIcon type={toast.type} />
             <StyledMsg>{toast.message}</StyledMsg>
             <StyledClose
                 type="button"
@@ -38,6 +39,34 @@ function ToastItem({toast, onDismiss}: {toast: Toast; onDismiss: (id: string) =>
         </StyledItem>
     );
 }
+
+// 종류를 색만으로 알리지 않는다(WCAG 1.4.1) — 성공 ✓ · 오류 ! · 안내 i. 뜻은 문구가 전하므로 낭독에선 뺀다.
+// 안드로이드(tas-android)도 같은 모양을 쓴다.
+const TOAST_ICON_PATHS: Record<Toast['type'], string> = {
+    success: 'M8 12.5L10.5 15L16 9.5',
+    error: 'M12 7.5V13M12 16.5H12.01',
+    info: 'M12 11V16.5M12 7.5H12.01',
+};
+
+function ToastIcon({type}: {type: Toast['type']}) {
+    return (
+        <StyledIcon viewBox="0 0 24 24" aria-hidden="true">
+            <circle cx="12" cy="12" r="9" />
+            <path d={TOAST_ICON_PATHS[type]} />
+        </StyledIcon>
+    );
+}
+
+const StyledIcon = styled.svg`
+    width: 18px;
+    height: 18px;
+    flex-shrink: 0;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+`;
 
 const slideIn = keyframes`
     from { transform: translateY(-8px); opacity: 0; }
