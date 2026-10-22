@@ -39,10 +39,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                     select: {id: true, name: true, expiresAt: true, remainingCount: true, customer},
                 }),
             ]);
-            // 확인은 7일 창 안에서만 하므로, 그보다 오래된 확인은 이미 만료된 혜택 것 — 정리한다(혜택에 FK 가 없어 저절로 안 지워진다).
-            await prisma.benefitExpiryCheck.deleteMany({
-                where: {storeId, checkedAt: {lt: new Date(now.getTime() - (EXPIRY_ALERT_DAYS + 1) * 24 * 60 * 60 * 1000)}},
-            });
             const ids = [...coupons.map((c) => c.id), ...memberships.map((m) => m.id)];
             const checked = new Set(
                 ids.length === 0 ? [] : (await prisma.benefitExpiryCheck.findMany({
@@ -75,6 +71,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                 ? await prisma.customerCoupon.findFirst({where: {id, storeId}, select: {id: true}})
                 : await prisma.customerMembership.findFirst({where: {id, storeId}, select: {id: true}});
             if (!owned) return res.status(404).json({error: 'not_found'});
+            // 확인은 7일 창 안에서만 하므로, 그보다 오래된 확인은 이미 만료된 혜택 것 — 정리한다(혜택에 FK 가 없어 저절로 안 지워진다).
+            // 확인이 바뀔 때만 정리한다 — 목록(GET)은 화면마다 불려 거기서 지우면 매번 쓰기가 난다.
+            await prisma.benefitExpiryCheck.deleteMany({
+                where: {storeId, checkedAt: {lt: new Date(Date.now() - (EXPIRY_ALERT_DAYS + 1) * 24 * 60 * 60 * 1000)}},
+            });
             if (checked) {
                 await prisma.benefitExpiryCheck.upsert({
                     where: {kind_benefitId: {kind, benefitId: id}},
