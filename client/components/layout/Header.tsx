@@ -18,8 +18,7 @@ import {CalendarDirection} from '../calendar/CalendarDirection';
 import {CalendarHeading} from '../calendar/CalendarHeading';
 import {ReservationDetail} from '../calendar/overlays/ReservationDetail';
 import {MobileViewTabs} from './MobileViewTabs';
-import {NaverSyncNotification} from './NaverSyncNotification';
-import {BookingRequestNotification} from './BookingRequestNotification';
+import {NotificationCenter} from './NotificationCenter';
 import {NaverSyncConflictModal} from '../modals/NaverSyncConflictModal';
 import {CustomerMergeSuggestionModal} from '../modals/CustomerMergeSuggestionModal';
 import {HeaderSearchLayer} from './HeaderSearchLayer';
@@ -150,6 +149,7 @@ export const Header = () => {
     } = useCustomerMergeSuggestion();
 
     const customerMap = useCalendarStore((s) => s.customerMap);
+    const reservationHistory = useCalendarStore((s) => s.reservationHistory);
     const openCustomerDetail = useCalendarStore((s) => s.openCustomerDetail);
     const updateReservation = useCalendarStore((s) => s.updateReservation);
     const cancelReservation = useCalendarStore((s) => s.cancelReservation);
@@ -273,16 +273,13 @@ export const Header = () => {
                             {syncing && <StyledSyncToast>동기화 중입니다</StyledSyncToast>}
                         </StyledSyncWrap>
                     )}
-                    {canUseSync && (
-                        <NaverSyncNotification notifications={visibleNotifications}
-                                               unreadCount={unreadCount}
-                                               markRead={markRead}
-                                               markAllRead={markAllRead}
-                                               reservationMap={reservationMap}
-                                               onSelectReservation={handleHeaderReservationClick}
-                                               onSelectConflict={openConflictByKey} />
-                    )}
-                    <BookingRequestNotification />
+                    <NotificationCenter canUseSync={canUseSync}
+                                        notifications={visibleNotifications}
+                                        unreadCount={unreadCount}
+                                        markRead={markRead}
+                                        markAllRead={markAllRead}
+                                        onSelectReservation={handleHeaderReservationClick}
+                                        onSelectConflict={openConflictByKey} />
                     <StyledCustomerSearchButton type="button"
                                                 id="tour-search"
                                                 onClick={() => setIsSearchOpen(true)}
@@ -321,16 +318,13 @@ export const Header = () => {
                         {syncing && <StyledSyncToast>동기화 중입니다</StyledSyncToast>}
                     </StyledSyncWrap>
                 )}
-                {canUseSync && (
-                    <NaverSyncNotification notifications={visibleNotifications}
-                                           unreadCount={unreadCount}
-                                           markRead={markRead}
-                                           markAllRead={markAllRead}
-                                           reservationMap={reservationMap}
-                                           onSelectReservation={handleHeaderReservationClick}
-                                           onSelectConflict={openConflictByKey} />
-                )}
-                <BookingRequestNotification />
+                <NotificationCenter canUseSync={canUseSync}
+                                    notifications={visibleNotifications}
+                                    unreadCount={unreadCount}
+                                    markRead={markRead}
+                                    markAllRead={markAllRead}
+                                    onSelectReservation={handleHeaderReservationClick}
+                                    onSelectConflict={openConflictByKey} />
                 <StyledCustomerSearchButton type="button"
                                             onClick={() => setIsSearchOpen(true)}
                                             aria-label="고객검색">
@@ -381,7 +375,7 @@ export const Header = () => {
                                    reservation={reservation}
                                    customerMap={customerMap}
                                    reservationMap={reservationMap}
-                                   history={[]}
+                                   history={reservationHistory}
                                    onClose={() => setHeaderReservations((prev) => prev.filter((r) => r.id !== reservation.id))}
                                    onCustomerClick={openCustomerDetail}
                                    onUpdate={(prev, updated) => {

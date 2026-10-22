@@ -60,6 +60,7 @@ import {
     buildUpdatedStoreClosedWeekdaysState,
     buildUpdatedStorePointSettingsState,
 } from './calendarStoreStoreSettingsHelpers';
+import {mergeServerSyncNotifications, type ServerSyncNotification} from '../features/sync-notifications/model';
 import {shouldUseLocalDb} from '../lib/local-db';
 
 // ── Notification localStorage persistence ──
@@ -88,10 +89,21 @@ function loadSyncNotifications(): SyncNotification[] {
 function saveSyncNotifications(notifications: SyncNotification[]) {
     if (typeof window === 'undefined') return;
     try {
-        localStorage.setItem(SYNC_NOTIFICATIONS_KEY, JSON.stringify(notifications));
+        // 서버 알림은 서버가 원본이라 기기에 쌓지 않는다(열 때마다 받아 온다) — 기기에서 만든 것만 남긴다.
+        localStorage.setItem(SYNC_NOTIFICATIONS_KEY, JSON.stringify(notifications.filter((n) => n.source !== 'server')));
     } catch {
         // Silently ignore storage errors
     }
+}
+
+/** 서버 알림 읽음 — 실패해도 화면은 읽음으로 둔다(다음에 받아 올 때 서버 값으로 돌아온다). */
+function postSyncNotificationsRead(body: {ids: string[]} | {all: true}) {
+    if (typeof window === 'undefined') return;
+    fetch('/api/sync-notifications', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify(body),
+    }).catch(() => {});
 }
 
 export type FullType = Date | null;
@@ -219,6 +231,7 @@ export interface CalendarState {
     deleteReservation: (reservation: Reservation) => void;
     addSyncNotifications: (items: SyncNotification[]) => void;
     markSyncNotificationRead: (id: string) => void;
+    setServerSyncNotifications: (items: ServerSyncNotification[]) => void;
     markSyncNotificationsRead: () => void;
     updateConflictNotificationStatus: (conflictKey: string, status: 'pending' | 'deferred' | 'confirmed', resolvedBy?: 'manual' | 'auto', resolution?: {reason?: string; memo?: string}) => void;
     replaceMockConflictNotifications: (items: SyncNotification[]) => void;
@@ -1105,20 +1118,29 @@ export const useCalendarStore = create<CalendarState>((set) => ({
                 )
                 : state.syncNotifications;
 
-            const next = [...newItems, ...existing].slice(0, 50);
+            // 50개 상한은 이 기기에서 만든 것(중복예약 등)에만 — 서버 알림(최대 100)까지 세면 기기 알림이 밀려 사라진다.
+            const merged = [...newItems, ...existing];
+            const keptLocal = new Set(merged.filter((n) => n.source !== 'server').slice(0, 50));
+            const next = merged.filter((n) => n.source === 'server' || keptLocal.has(n));
             saveSyncNotifications(next);
             return {syncNotifications: next};
         }),
 
     markSyncNotificationRead: (id) =>
         set((state) => {
+            const target = state.syncNotifications.find((n) => n.id === id);
+            if (target?.source === 'server' && !target.read) postSyncNotificationsRead({ids: [id]});
             const next = state.syncNotifications.map((n) => n.id === id ? {...n, read: true} : n);
             saveSyncNotifications(next);
             return {syncNotifications: next};
         }),
 
+    setServerSyncNotifications: (items) =>
+        set((state) => ({syncNotifications: mergeServerSyncNotifications(state.syncNotifications, items)})),
+
     markSyncNotificationsRead: () =>
         set((state) => {
+            if (state.syncNotifications.some((n) => n.source === 'server' && !n.read)) postSyncNotificationsRead({all: true});
             const next = state.syncNotifications.map((n) =>
                 n.type === 'conflict' && n.conflictStatus === 'deferred' ? n : {...n, read: true}
             );

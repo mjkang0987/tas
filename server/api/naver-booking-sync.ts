@@ -20,6 +20,7 @@ import {reservationSelectWithNames} from '../db/prisma-includes';
 import {calcEndTime, getLastNaverSyncTimestamp, markNaverSyncCompleted} from './gmail/helpers';
 import {findByNameContains} from '../utils/string-matching';
 import {notifySlackOps} from '../notify/slack';
+import {recordSyncNotifications} from '../db/sync-notifications';
 
 const DEFAULT_DURATION = 30;
 const ASSIGNEE_COLORS = [
@@ -53,6 +54,17 @@ interface SyncContext {
     nextCustomerLegacyId: number;
     nextReservationLegacyId: number;
     nextAssigneeLegacyId: number;
+}
+
+function syncNotificationFields(entry: SyncedEntry | CancelledEntry) {
+    return {
+        bookingId: entry.bookingId,
+        reservationLegacyId: entry.reservationId,
+        customerName: entry.customerName || '고객',
+        assigneeName: entry.assigneeName || '미지정',
+        appointmentDate: entry.appointmentDate || '',
+        appointmentTime: entry.appointmentTime || '',
+    };
 }
 
 export interface NaverSyncResult {
@@ -247,6 +259,12 @@ export async function syncNaverBookingsForStore(storeId: string): Promise<NaverS
             cancelFailureCount++;
         }
     }
+
+    // 매장 알림으로 남긴다 — 이 결과를 받는 브라우저(또는 공개 예약 흐름의 서버)만 아는 게 아니라 매장의 모든 기기가 본다.
+    await recordSyncNotifications(storeId, [
+        ...synced.map((entry) => ({type: 'sync' as const, ...syncNotificationFields(entry)})),
+        ...cancelled.map((entry) => ({type: 'cancel' as const, ...syncNotificationFields(entry)})),
+    ]);
 
     // 동기화 실패(파싱/생성/취소 오류)는 운영 채널로 1건 요약 전송.
     // 폴링이 반복되므로 건별이 아닌 폴링 1회당 요약으로 노이즈를 줄인다.

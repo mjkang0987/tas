@@ -39,7 +39,7 @@ const MAIN_TOUR_STEPS: TourStep[] = [
     {targetId: 'tour-settings', title: '설정', description: '매장·서비스·담당자·멤버를 여기서 관리해요.', inAside: true},
     {targetId: 'tour-assignee-filter', title: '담당자 필터', description: '특정 담당자의 예약만 모아서 볼 수 있어요.'},
     {targetId: 'tour-search', title: '고객 검색', description: '고객·예약을 빠르게 찾을 수 있어요.'},
-    {targetId: 'tour-notify', title: '알림', description: '네이버 예약·중복 예약 알림이 여기에 표시돼요.'},
+    {targetId: 'tour-notify', title: '알림', description: '곧 시작하는 예약·고객 예약 요청·네이버 알림·만료 임박 쿠폰/회원권이 여기에 모여요.'},
 ];
 
 type HomeProps = {

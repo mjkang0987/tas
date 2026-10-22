@@ -10,6 +10,7 @@ import {toCustomerMap} from '../utils/customers';
 import type {Reservation, ReservationHistoryEntry} from '../utils/reservations';
 import type {Customer} from '../utils/customers';
 import type {Assignee} from '../utils/assignees';
+import type {ServerSyncNotification} from '../features/sync-notifications/model';
 
 export interface ConflictInfo {
     newReservation: Reservation;
@@ -35,6 +36,8 @@ export interface SyncNotification {
     // 수동 처리 시 입력한 사유·메모 (내역 자체 완결 표시용)
     resolutionReason?: string;
     resolutionMemo?: string;
+    /** 'server' = 서버가 매장 단위로 저장한 알림(읽음도 서버로). 없으면 이 기기에서 만든 것. */
+    source?: 'server';
 }
 
 interface SyncedEntry {
@@ -345,6 +348,31 @@ export function useNaverBookingSync() {
 
     const isActive = canUseSync && gmailConnected;
 
+    // 서버에 저장된 매장 알림(네이버 확정·취소)을 받아 온다 — 어느 기기에서 열어도 같은 목록.
+    const setServerSyncNotifications = useCalendarStore((st) => st.setServerSyncNotifications);
+    const refreshServerNotifications = useCallback(async () => {
+        if (!canUseSync) return;
+        try {
+            const res = await fetch('/api/sync-notifications');
+            if (!res.ok) return;
+            const body = await res.json() as {notifications?: ServerSyncNotification[]};
+            setServerSyncNotifications(body.notifications ?? []);
+        } catch {
+            // 네트워크 실패 — 다음에 다시 받는다
+        }
+    }, [canUseSync, setServerSyncNotifications]);
+
+    // 처음 열 때 + 화면으로 돌아올 때 받아 온다. 휴대폰은 동기화를 PC 가 먼저 해 '바뀐 게 없음'이어도 목록이 보여야 한다.
+    useEffect(() => {
+        if (!canUseSync) return;
+        void refreshServerNotifications();
+        const onVisible = () => {
+            if (document.visibilityState === 'visible') void refreshServerNotifications();
+        };
+        document.addEventListener('visibilitychange', onVisible);
+        return () => document.removeEventListener('visibilitychange', onVisible);
+    }, [canUseSync, refreshServerNotifications]);
+
     const sync = useCallback(async () => {
         if (!isActive) return;
         if (isSyncingRef.current) return;
@@ -374,39 +402,16 @@ export function useNaverBookingSync() {
             localStorage.setItem('naver-sync-last', String(Date.now()));
             console.log('[naver-sync]', {synced: data.synced.length, cancelled: data.cancelled.length, skipped: data.skipped.length, errors: data.errors.length});
 
-            if (data.synced.length === 0 && data.cancelled.length === 0 && data.errors.length === 0) return;
+            if (data.synced.length === 0 && data.cancelled.length === 0 && data.errors.length === 0) {
+                // 이번엔 바뀐 게 없어도 다른 기기(또는 서버)가 먼저 가져간 알림이 있을 수 있다
+                await refreshServerNotifications();
+                return;
+            }
 
             const now = new Date();
-            const newNotifications: SyncNotification[] = data.synced.map((entry, i) => ({
-                id: `${Date.now()}-sync-${i}`,
-                bookingId: entry.bookingId,
-                customerName: entry.customerName,
-                assigneeName: entry.assigneeName,
-                appointmentDate: entry.appointmentDate,
-                appointmentTime: entry.appointmentTime,
-                reservationId: entry.reservationId,
-                timestamp: now,
-                read: false,
-            }));
-
-            const cancelNotifications: SyncNotification[] = data.cancelled.map((entry, i) => ({
-                id: `${Date.now()}-cancel-${i}`,
-                bookingId: entry.bookingId,
-                customerName: entry.customerName || '고객',
-                assigneeName: entry.assigneeName || '미지정',
-                appointmentDate: entry.appointmentDate || '',
-                appointmentTime: entry.appointmentTime || '',
-                reservationId: entry.reservationId,
-                timestamp: now,
-                read: false,
-                type: 'cancel' as const,
-            }));
-
-            const allNotifications = [...newNotifications, ...cancelNotifications];
-            if (allNotifications.length > 0) {
-                console.log('[naver-sync] adding notifications:', allNotifications.length);
-                addSyncNotifications(allNotifications);
-            }
+            // 확정·취소 알림은 서버가 동기화하면서 매장 단위로 저장했다 — 이 기기에 따로 만들지 않고 받아 온다
+            // (예전엔 여기서만 만들어 이 브라우저에만 남았다. 먼저 동기화한 PC 에만 보이고 휴대폰엔 0건이던 원인).
+            await refreshServerNotifications();
 
             if (data.synced.length > 0 || data.cancelled.length > 0) {
                 await reloadStoreData();
@@ -450,7 +455,7 @@ export function useNaverBookingSync() {
             isSyncingRef.current = false;
             setSyncing(false);
         }
-    }, [isActive]);
+    }, [isActive, refreshServerNotifications]);
 
     // 자동 동기화: 로그인 시 + 매 정시 (마지막 동기화 후 30분 이내면 건너뜀)
     useEffect(() => {
