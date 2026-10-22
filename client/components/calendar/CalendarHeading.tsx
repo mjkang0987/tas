@@ -95,11 +95,15 @@ export const CalendarHeading = () => {
         return `${+month + 1}`;
     }
 
+    const monthLabel = type !== ViewType.Year ? setMonth() : null;
+    // 해가 걸친 주·3일은 범위 글자가 연도를 이미 안는다("2025 / 12 - 2026 / 1") — 앞 연도를 또 쓰지 않는다.
+    const yearInLabel = typeof monthLabel === 'string' && monthLabel.includes(' / ');
+
     return (<StyledHeading>
             {full && <StyledDateWrap>
-                <StyledDateElement>{+fullYear}</StyledDateElement>
-                {type !== ViewType.Year && <StyledDateElement>
-                    {setMonth()}
+                {!yearInLabel && <StyledDateElement>{+fullYear}</StyledDateElement>}
+                {monthLabel !== null && <StyledDateElement>
+                    {monthLabel}
                 </StyledDateElement>}
                 {type === ViewType.Day && <StyledDateElement>{+date}</StyledDateElement>}
                 <StyledChevron viewBox="0 0 24 24" aria-hidden="true">
