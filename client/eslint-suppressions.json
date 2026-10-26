@@ -29,9 +29,39 @@
       "count": 1
     }
   },
+  "components/settings/CouponManageSection.tsx": {
+    "react-hooks/set-state-in-effect": {
+      "count": 1
+    }
+  },
+  "components/settings/MemberSection.tsx": {
+    "react-hooks/set-state-in-effect": {
+      "count": 1
+    }
+  },
+  "components/settings/MembershipManageSection.tsx": {
+    "react-hooks/set-state-in-effect": {
+      "count": 1
+    }
+  },
+  "components/settings/NaverBookingSection.tsx": {
+    "react-hooks/set-state-in-effect": {
+      "count": 2
+    }
+  },
+  "components/settings/NoticeManageSection.tsx": {
+    "react-hooks/set-state-in-effect": {
+      "count": 1
+    }
+  },
   "components/settings/PointManageSection.tsx": {
     "react-hooks/set-state-in-effect": {
       "count": 1
+    }
+  },
+  "components/settings/SNSLinkingSection.tsx": {
+    "react-hooks/set-state-in-effect": {
+      "count": 2
     }
   },
   "components/settings/ServiceManageSection.tsx": {
@@ -40,6 +70,9 @@
     }
   },
   "components/settings/StoreManageSection.tsx": {
+    "react-hooks/set-state-in-effect": {
+      "count": 4
+    },
     "react/no-unescaped-entities": {
       "count": 2
     }
@@ -54,9 +87,22 @@
       "count": 1
     }
   },
+  "hooks/useCustomerMergeSuggestion.ts": {
+    "react-hooks/set-state-in-effect": {
+      "count": 1
+    }
+  },
+  "hooks/useNaverBookingSync.ts": {
+    "react-hooks/purity": {
+      "count": 1
+    },
+    "react-hooks/set-state-in-effect": {
+      "count": 2
+    }
+  },
   "pages/_app.tsx": {
     "react-hooks/set-state-in-effect": {
-      "count": 6
+      "count": 5
     }
   },
   "pages/book/[slug].tsx": {
@@ -64,9 +110,24 @@
       "count": 2
     }
   },
+  "pages/inquiry.tsx": {
+    "react-hooks/set-state-in-effect": {
+      "count": 2
+    }
+  },
   "pages/login.tsx": {
     "react-hooks/set-state-in-effect": {
       "count": 2
+    }
+  },
+  "pages/mypage.tsx": {
+    "react-hooks/set-state-in-effect": {
+      "count": 1
+    }
+  },
+  "pages/onboarding/index.tsx": {
+    "react-hooks/set-state-in-effect": {
+      "count": 1
     }
   }
 }
