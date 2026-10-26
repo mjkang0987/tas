@@ -54,7 +54,7 @@ export const StyledHeader = styled.header<{ $stack?: boolean }>`
     padding: 0 12px 0 0;
     min-height: 48px;
     box-sizing: border-box;
-    background-color: var(--white-color);
+    background-color: var(--surface-color);
     border-bottom: solid 1px var(--light-gray-color);
 
     /* 모바일 달력 화면에서는 이 선이 요일 줄 바로 위에 붙어 머리줄처럼 보인다. 거기서만 걷는다.
@@ -143,7 +143,7 @@ export const StyledMobileAddPill = styled.button`
         padding: 0 13px 0 9px;
         border: none;
         border-radius: 999px;
-        background-color: var(--brand-color);
+        background-color: var(--brand-fill);
         color: var(--white-color);
         font-size: var(--small-font);
         font-weight: 700;
@@ -221,7 +221,7 @@ export const StyledAssigneeFilter = styled.select`
         padding: 6px;
         border: 1px solid var(--border-color);
         border-radius: var(--radius-lg);
-        background: var(--white-color);
+        background: var(--surface-color);
         box-shadow: var(--shadow-md);
     }
 
@@ -280,8 +280,8 @@ export const StyledSyncToast = styled.span`
     margin-top: 4px;
     padding: 4px 10px;
     border-radius: var(--radius-md);
-    background-color: var(--black-color);
-    color: var(--white-color);
+    background-color: var(--inverse-bg);
+    color: var(--inverse-text);
     font-size: var(--tiny-font);
     white-space: nowrap;
     pointer-events: none;

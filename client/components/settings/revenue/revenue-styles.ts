@@ -48,7 +48,7 @@ export const StyledClickableRow = styled.div<{ $accentColor?: string; $showAccen
     border-left-width: ${(props) => props.$showAccentBar ? '4px' : '1px'};
     border-left-color: ${(props) => props.$showAccentBar ? (props.$accentColor || 'rgba(148, 163, 184, 0.42)') : undefined};
     background:
-        linear-gradient(180deg, rgba(255, 255, 255, 0.96) 0%, ${(props) => props.$accentColor ? `${props.$accentColor}10` : 'var(--bg-subtle-96)'} 100%);
+        linear-gradient(180deg, rgba(var(--surface-rgb), 0.96) 0%, ${(props) => props.$accentColor ? `${props.$accentColor}10` : 'var(--bg-subtle-96)'} 100%);
     box-shadow: var(--card-shadow);
     cursor: pointer;
     transition: transform 0.14s ease, box-shadow 0.14s ease, border-color 0.14s ease, background-color 0.14s ease;
@@ -74,7 +74,7 @@ export const StyledPrice = styled.span`
     align-self: center;
     font-size: var(--medium-font);
     font-weight: 700;
-    color: #0f172a;
+    color: var(--black-color);
 
     @media (max-width: 640px) {
         margin-left: 0;
@@ -159,7 +159,7 @@ export const StyledInlineCustomerButton = styled.button`
     line-height: 1.35;
     word-break: keep-all;
     font-weight: 700;
-    color: #0f172a;
+    color: var(--black-color);
 
     @media (hover: hover) and (pointer: fine) {
         &:hover {

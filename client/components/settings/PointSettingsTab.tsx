@@ -355,7 +355,7 @@ const StyledAddRuleButton = styled.button`
     padding: 0 10px;
     border: 1px solid var(--light-gray-color);
     border-radius: 8px;
-    background: var(--white-color);
+    background: var(--surface-color);
     font-size: var(--small-font);
     font-weight: 600;
 `;

@@ -145,7 +145,7 @@ const StyledHeaderCard = styled.div`
     flex-direction: column;
     gap: 3px;
     padding: 14px 16px;
-    background-color: var(--white-color);
+    background-color: var(--surface-color);
     border: 1px solid var(--light-gray-color);
     border-radius: var(--radius-lg);
 `;
@@ -175,7 +175,7 @@ const StyledGroup = styled.div`
     flex-shrink: 0;
     display: flex;
     flex-direction: column;
-    background-color: var(--white-color);
+    background-color: var(--surface-color);
     border: 1px solid var(--light-gray-color);
     border-radius: var(--radius-lg);
     overflow: hidden;
@@ -189,7 +189,7 @@ const rowBase = `
     min-height: 52px;
     padding: 0 14px;
     box-sizing: border-box;
-    background-color: var(--white-color);
+    background-color: var(--surface-color);
     border: none;
     border-top: 1px solid var(--light-gray-color);
     text-align: left;

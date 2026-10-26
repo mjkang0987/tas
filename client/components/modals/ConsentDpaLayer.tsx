@@ -109,8 +109,8 @@ const StyledError = styled.p`
     box-sizing: border-box;
     border: 1px solid #fecaca;
     border-radius: 8px;
-    background: #fff1f2;
-    color: #9f1239;
+    background: var(--danger-bg);
+    color: var(--danger-color);
     font-size: var(--small-font);
     line-height: 1.5;
     text-align: center;

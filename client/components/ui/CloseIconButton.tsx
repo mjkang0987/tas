@@ -26,7 +26,7 @@ const StyledCloseIconButton = styled.button`
     padding: 0;
     border: 1px solid var(--light-gray-color);
     border-radius: 8px;
-    background: var(--white-color);
+    background: var(--surface-color);
     color: var(--dark-gray-color);
 
     @media (max-width: 640px) {

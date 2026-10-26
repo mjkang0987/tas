@@ -4,14 +4,14 @@ import styled from 'styled-components';
 import type {ReactNode} from 'react';
 
 import {getServiceColor, parseServiceString} from '../../utils/services';
+import {tintChip} from '../../styles/theme';
 
 export const StyledServiceText = styled.span<{ $color: string }>`
     display: inline-flex;
     align-items: center;
     padding: 3px 7px;
     border-radius: 999px;
-    background-color: ${(props) => `${props.$color}18`};
-    color: ${(props) => props.$color};
+    ${(props) => tintChip(props.$color)};
     font-size: var(--xsmall-font);
     font-weight: 600;
     line-height: 1.2;

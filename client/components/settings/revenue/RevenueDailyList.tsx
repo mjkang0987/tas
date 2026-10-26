@@ -279,10 +279,10 @@ const StyledRevenueSummary = styled(StyledSummary)`
     position: sticky;
     bottom: 0;
     z-index: 2;
-    background: var(--white-color);
+    background: var(--surface-color);
     border: 1px solid var(--light-gray-color);
     border-radius: 10px;
     margin-top: 8px;
-    background: rgba(255, 255, 255, .1);
+    background: rgba(var(--surface-rgb), .1);
     backdrop-filter: var(--sticky-backdrop);
 `;

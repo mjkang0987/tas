@@ -246,11 +246,11 @@ const StyledCustomerButton = styled.button`
     background: none;
     padding: 0;
     font-size: var(--medium-font);
-    color: #1967D2; /* 흰 바탕 5.3:1 — 예전 #4285F4 3.6 */
+    color: var(--link-color); /* 흰 바탕 5.3:1 — 예전 #4285F4 3.6 */
 
     @media (hover: hover) and (pointer: fine) {
         &:hover {
-        color: #1a73e8;
+        color: var(--link-color);
     }
     }
 `;
@@ -329,11 +329,11 @@ const StyledNaverDepositLine = styled.div`
     gap: 2px;
     padding: 3px 7px;
     border-radius: 6px;
-    background: #f0faf4;
+    background: var(--success-bg);
     border: 1px solid #d4edda;
     font-size: var(--small-font);
     font-weight: 600;
-    color: #333;
+    color: var(--black-color);
 `;
 
 const StyledNaverLogo = styled.svg`
@@ -360,7 +360,7 @@ const StyledHistoryButton = styled.button`
     padding: 8px 12px;
     border: 1px solid var(--light-gray-color);
     border-radius: 6px;
-    background: var(--white-color);
+    background: var(--surface-color);
     font-size: var(--small-font);
     font-weight: 600;
     color: var(--dark-gray-color);

@@ -1,6 +1,7 @@
 import {useMemo, useState} from 'react';
 
 import styled from 'styled-components';
+import {tintChip} from '../../styles/theme';
 
 import {StyledEmpty as StyledEmptyBase} from '../settings/settings-styles';
 
@@ -230,8 +231,7 @@ const StyledNameChip = styled.span<{$color: string}>`
     border-radius: 999px;
     font-size: var(--small-font);
     font-weight: 600;
-    color: ${(p) => p.$color};
-    background-color: ${(p) => `${p.$color}18`};
+    ${(p) => tintChip(p.$color)};
 `;
 
 const StyledServiceMeta = styled.span`

@@ -413,7 +413,7 @@ const StyledCheckBtn = styled.button`
     padding: 0 12px;
     border: 1px solid var(--blue-color);
     border-radius: var(--radius-md);
-    background: var(--white-color);
+    background: var(--surface-color);
     color: var(--blue-color);
     font-size: var(--small-font);
     font-weight: 600;

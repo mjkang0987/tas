@@ -54,7 +54,7 @@ const StyledCard = styled.div`
     padding: 28px 24px;
     border: 1px solid #e5e7eb;
     border-radius: 18px;
-    background: #fff;
+    background: var(--surface-color);
     box-shadow: 0 10px 30px rgba(15, 23, 42, 0.05);
     text-align: center;
 `;
@@ -62,12 +62,12 @@ const StyledCard = styled.div`
 const StyledTitle = styled.h1`
     margin: 0;
     font-size: var(--display-sm);
-    color: #111827;
+    color: var(--black-color);
 `;
 
 const StyledDescription = styled.p`
     margin: 12px 0 0;
-    color: #4b5563;
+    color: var(--dark-gray-color);
     font-size: var(--font);
     line-height: 1.6;
 `;
@@ -82,8 +82,8 @@ const StyledButton = styled.button`
     gap: 8px;
     border: none;
     border-radius: 8px;
-    background: #111827;
-    color: #fff;
+    background: var(--inverse-bg);
+    color: var(--inverse-text);
     font-size: var(--font);
     font-weight: 600;
 `;

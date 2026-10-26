@@ -37,7 +37,7 @@ export const StyledSaveBtn = styled.button`
     ${actionButtonStyle};
     ${mobileStretchButtonStyle};
     border: 1px solid var(--brand-color);
-    background-color: var(--brand-color);
+    background-color: var(--brand-fill);
     color: var(--white-color);
 `;
 
@@ -81,7 +81,7 @@ export const StyledHeaderActions = styled.div`
 export const cardSurfaceStyle = css`
     border: 1px solid var(--light-gray-color);
     border-radius: var(--radius-lg);
-    background: var(--white-color);
+    background: var(--surface-color);
     box-shadow: var(--shadow-sm);
 `;
 
@@ -145,7 +145,7 @@ export const StyledTabButton = styled.button<{ $active: boolean }>`
     ${actionButtonStyle};
     min-width: 72px;
     border: 1px solid ${(props) => props.$active ? 'var(--blue-color)' : 'var(--light-gray-color)'};
-    background: ${(props) => props.$active ? 'var(--info-bg)' : 'var(--white-color)'};
+    background: ${(props) => props.$active ? 'var(--info-bg)' : 'var(--surface-color)'};
     color: ${(props) => props.$active ? 'var(--blue-color)' : 'var(--dark-gray-color)'};
     font-weight: ${(props) => props.$active ? 700 : 500};
 `;

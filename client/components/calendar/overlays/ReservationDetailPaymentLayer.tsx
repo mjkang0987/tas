@@ -226,14 +226,14 @@ const StyledPointBalance = styled.button`
     padding: 0 10px;
     border: none;
     border-radius: 999px;
-    background: #f5efe3;
-    color: #8a5a00;
+    background: var(--warning-bg-soft);
+    color: var(--warning-text);
     font-size: var(--small-font);
     font-weight: 700;
 
     @media (hover: hover) and (pointer: fine) {
         &:hover {
-            background: #efe5d4;
+            background: var(--warning-border-soft);
         }
     }
 `;
@@ -260,7 +260,7 @@ const paymentEntryFieldStyles = css`
     padding: 0 10px 0 4px;
     border: 1px solid var(--light-gray-color);
     border-radius: 4px;
-    background: var(--white-color);
+    background: var(--surface-color);
     font-size: var(--small-font);
     color: var(--dark-gray-color);
     box-sizing: border-box;
@@ -330,7 +330,7 @@ const StyledPointAwardInput = styled.input`
     padding: 0 10px;
     border: 1px solid var(--light-gray-color);
     border-radius: 8px;
-    background: var(--white-color);
+    background: var(--surface-color);
     font-size: var(--small-font);
     color: var(--dark-gray-color);
     box-sizing: border-box;
@@ -352,8 +352,8 @@ const StyledNaverDeposit = styled.span`
     min-height: 24px;
     padding: 0 8px;
     border-radius: 999px;
-    background: #e8f5e9;
-    color: #2e7d32;
+    background: var(--success-bg);
+    color: var(--success-text);
     font-size: var(--xsmall-font);
     font-weight: 700;
 `;
@@ -364,8 +364,8 @@ const StyledExpectedTotal = styled.span`
     min-height: 24px;
     padding: 0 8px;
     border-radius: 999px;
-    background: #e3f2fd;
-    color: #1565c0;
+    background: var(--info-bg);
+    color: var(--info-color);
     font-size: var(--xsmall-font);
     font-weight: 700;
 `;

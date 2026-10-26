@@ -77,7 +77,7 @@ export function PickerScrollRow({onClick, ...rest}: ComponentPropsWithoutRef<'di
 const selectableBase = css<{$on: boolean}>`
     flex: 0 0 auto;
     border: 1px solid ${(p) => (p.$on ? 'var(--brand-color)' : 'var(--light-gray-color)')};
-    background: ${(p) => (p.$on ? 'var(--brand-color)' : 'var(--white-color)')};
+    background: ${(p) => (p.$on ? 'var(--brand-fill)' : 'var(--surface-color)')};
     color: ${(p) => (p.$on ? 'var(--white-color)' : 'var(--black-color)')};
     cursor: pointer;
     transition: border-color 0.12s ease, background-color 0.12s ease, color 0.12s ease;
@@ -129,7 +129,7 @@ export const ServiceChoiceChip = styled.button<{$on: boolean}>`
     padding: 8px 14px;
     border: 1px solid ${(p) => (p.$on ? 'var(--brand-color)' : 'var(--light-gray-color)')};
     border-radius: var(--radius-lg);
-    background: ${(p) => (p.$on ? 'var(--brand-color-bg)' : 'var(--white-color)')};
+    background: ${(p) => (p.$on ? 'var(--brand-color-bg)' : 'var(--surface-color)')};
     cursor: pointer;
     text-align: left;
 

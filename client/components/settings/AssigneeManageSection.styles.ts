@@ -64,7 +64,7 @@ export const StyledAssigneeCard = styled.div<{ $status: AssigneeStatus; $assigne
     border-left: 4px solid ${({$assigneeColor}) => $assigneeColor};
     border-radius: 10px;
     padding: 8px;
-    background: linear-gradient(180deg, rgba(255, 255, 255, 0.96) 0%, ${({$assigneeColor}) => `${$assigneeColor}10`} 100%);
+    background: linear-gradient(180deg, rgba(var(--surface-rgb), 0.96) 0%, ${({$assigneeColor}) => `${$assigneeColor}10`} 100%);
     box-shadow: ${({$isEditing}) => $isEditing
             ? '0 0 0 2px var(--blue-color), var(--card-shadow)'
             : 'var(--card-shadow)'};
@@ -212,7 +212,7 @@ export const StyledAssigneeColorInput = styled.input`
     padding: 2px;
     border: 1px solid var(--light-gray-color);
     border-radius: var(--radius-md);
-    background: var(--white-color);
+    background: var(--surface-color);
 `;
 
 export const StyledAssigneeNameInput = styled.input`

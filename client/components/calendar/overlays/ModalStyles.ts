@@ -183,7 +183,7 @@ export const StyledDetail = styled.div<{ $width?: number | string }>`
     max-height: 80dvh;
     display: flex;
     flex-direction: column;
-    background: linear-gradient(180deg, rgba(255, 255, 255, 0.98) 0%, var(--bg-subtle-98) 100%);
+    background: linear-gradient(180deg, rgba(var(--surface-rgb), 0.98) 0%, var(--bg-subtle-98) 100%);
     border: 1px solid var(--modal-border);
     border-radius: var(--modal-radius);
     box-shadow: var(--modal-shadow);
@@ -220,7 +220,7 @@ export const StyledHeader = styled.div`
     gap: var(--modal-header-gap);
     padding: var(--modal-header-padding);
     border-bottom: 1px solid var(--modal-header-border);
-    background: linear-gradient(180deg, rgba(255, 255, 255, 0.88) 0%, var(--bg-subtle-92) 100%);
+    background: linear-gradient(180deg, rgba(var(--surface-rgb), 0.88) 0%, var(--bg-subtle-92) 100%);
     backdrop-filter: blur(10px);
 
     > button:not([class]) {
@@ -229,7 +229,7 @@ export const StyledHeader = styled.div`
         padding: 0 10px;
         border: 1px solid var(--light-gray-color);
         border-radius: 8px;
-        background: var(--white-color);
+        background: var(--surface-color);
         font-size: var(--modal-subtitle-font);
         font-weight: 600;
         cursor: pointer;
@@ -287,7 +287,7 @@ export const scrollHintStyle = css`
         left: 0;
         width: 100%;
         height: 30px;
-        background: linear-gradient(to top, rgba(255, 255, 255, 1), rgba(255, 255, 255, 0));
+        background: linear-gradient(to top, rgba(var(--surface-rgb), 1), rgba(var(--surface-rgb), 0));
         pointer-events: none;
         z-index: 1;
     }
@@ -396,7 +396,7 @@ export const StyledModalMessage = styled.p<{ $color?: string }>`
     font-weight: 600;
     line-height: 1.55;
     text-align: left;
-    color: ${(p) => p.$color || '#111827'};
+    color: ${(p) => p.$color || 'var(--black-color)'};
 `;
 
 export const StyledModalContent = styled.div`
@@ -428,7 +428,7 @@ export const StyledInfoGridTerm = styled.dt`
 
 export const StyledInfoGridDesc = styled.dd`
     margin: 0;
-    color: #111827;
+    color: var(--black-color);
     font-weight: 600;
     line-height: 1.45;
 `;
@@ -481,7 +481,7 @@ export const StyledFooter = styled.div`
     gap: var(--modal-footer-gap);
     padding: var(--modal-footer-padding);
     border-top: 1px solid var(--modal-footer-border);
-    background: linear-gradient(180deg, var(--bg-subtle-72) 0%, rgba(255, 255, 255, 0.96) 100%);
+    background: linear-gradient(180deg, var(--bg-subtle-72) 0%, rgba(var(--surface-rgb), 0.96) 100%);
 
     @media (max-width: 640px) {
         flex-wrap: wrap;
@@ -553,7 +553,7 @@ export const StyledActionButton = styled.button<{ $primary?: boolean; $danger?: 
     padding: 0 var(--modal-button-padding-x);
     border: ${(props) => props.$dangerOutline ? '1px solid var(--danger-border)' : (props.$danger || props.$primary || props.$warning) ? 'none' : '1px solid var(--border-color)'};
     border-radius: var(--modal-button-radius);
-    background-color: ${(props) => props.$dangerOutline ? 'var(--white-color)' : props.$danger ? 'var(--danger-color)' : props.$warning ? 'var(--warning-color)' : props.$primary ? 'var(--brand-color)' : 'var(--white-color)'};
+    background-color: ${(props) => props.$dangerOutline ? 'var(--surface-color)' : props.$danger ? 'var(--danger-fill)' : props.$warning ? 'var(--warning-fill)' : props.$primary ? 'var(--brand-fill)' : 'var(--surface-color)'};
     color: ${(props) => props.$dangerOutline ? 'var(--danger-color)' : (props.$danger || props.$primary || props.$warning) ? 'var(--white-color)' : 'var(--dark-gray-color)'};
     font-size: var(--modal-button-font);
     font-weight: ${(props) => (props.$danger || props.$dangerOutline || props.$primary || props.$warning) ? 600 : 500};

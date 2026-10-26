@@ -75,7 +75,7 @@ const StyledBar = styled.div`
     justify-content: center;
     padding: 8px 16px;
     padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 8px);
-    background: var(--white-color);
+    background: var(--surface-color);
     border-top: 1px solid var(--light-gray-color);
 `;
 

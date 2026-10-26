@@ -1,6 +1,7 @@
 import {useMemo} from 'react';
 
 import styled from 'styled-components';
+import {tintChip} from '../../../styles/theme';
 
 import {useCalendarStore} from '../../../store/calendarStore';
 import {EMPTY_TEXT, StyledEmpty} from '../../settings/settings-styles';
@@ -120,7 +121,7 @@ export const StyledCategoryHeader = styled.div`
     position: sticky;
     top: 0;
     z-index: 2;
-    background: rgba(255, 255, 255, .7); /* 살짝만 흰색 */
+    background: rgba(var(--surface-rgb), .7); /* 살짝만 흰색 */
     backdrop-filter: var(--sticky-backdrop);
 `;
 
@@ -148,8 +149,7 @@ export const StyledServiceChip = styled.span<{ $color: string }>`
     border-radius: 999px;
     font-size: var(--xsmall-font);
     font-weight: 600;
-    color: ${(props) => props.$color};
-    background-color: ${(props) => `${props.$color}18`};
+    ${(props) => tintChip(props.$color)};
 `;
 
 const StyledItemMeta = styled.span`
@@ -190,7 +190,7 @@ const StyledBadge = styled.span<{ $color: string }>`
     font-size: var(--xsmall-font);
     font-weight: 500;
     color: var(--dark-gray-color);
-    background-color: var(--white-color);
+    background-color: var(--surface-color);
     border: 1px solid var(--light-gray-color);
 `;
 

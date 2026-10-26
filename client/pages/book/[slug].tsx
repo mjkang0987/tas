@@ -825,7 +825,7 @@ const StyledWrap = styled.div`
     /* 하단 여백은 고정 언어 바 높이만큼 확보(콘텐츠가 바에 가리지 않도록). */
     padding: 24px 16px ${LANG_BAR_OFFSET};
     box-sizing: border-box;
-    background: var(--white-color);
+    background: var(--surface-color);
     @media (max-width: 640px) { padding: 0 0 ${LANG_BAR_OFFSET}; }
 `;
 
@@ -845,7 +845,7 @@ const StyledCard = styled.div<{$flush?: boolean}>`
        그만큼 여백을 둬야 최하단 스크롤에서 요약 바가 natural 위치로 '풀려' 마지막 필드를
        가리지 않는다. (wrap 패딩은 카드 밖이라 sticky 해제에 기여 못 함) */
     ${(p) => (p.$flush ? `padding-bottom: ${LANG_BAR_OFFSET};` : '')}
-    background: var(--white-color);
+    background: var(--surface-color);
     border-radius: var(--radius-lg);
     box-shadow: var(--shadow-md);
     @media (max-width: 640px) {
@@ -1041,7 +1041,7 @@ const StyledStickyFooter = styled.div`
     display: flex;
     flex-direction: column;
     gap: 10px;
-    background: var(--white-color);
+    background: var(--surface-color);
     border-top: 1px solid var(--light-gray-color);
     box-shadow: 0 -6px 20px rgba(0, 0, 0, 0.06);
     @media (max-width: 640px) {
@@ -1147,7 +1147,7 @@ const StyledNextBtn = styled.button`
     height: 40px;
     border: none;
     border-radius: var(--radius-md);
-    background: var(--brand-color);
+    background: var(--brand-fill);
     color: var(--white-color);
     font-size: var(--medium-font);
     font-weight: 700;
@@ -1173,7 +1173,7 @@ const StyledManageLink = styled.a`
     padding: 14px;
     border: 1px solid var(--brand-color);
     border-radius: var(--radius-md);
-    background: var(--white-color);
+    background: var(--surface-color);
     color: var(--brand-color);
     font-size: var(--small-font);
     font-weight: 700;
@@ -1197,7 +1197,7 @@ const StyledHomeBtn = styled.button<{$primary?: boolean}>`
     padding: 18px 20px;
     border: 1px solid ${(p) => (p.$primary ? 'var(--brand-color)' : 'var(--light-gray-color)')};
     border-radius: var(--radius-lg);
-    background: ${(p) => (p.$primary ? 'var(--brand-color)' : 'var(--white-color)')};
+    background: ${(p) => (p.$primary ? 'var(--brand-fill)' : 'var(--surface-color)')};
     cursor: pointer;
     text-align: left;
 
@@ -1237,7 +1237,7 @@ const StyledLookupItem = styled.a`
     padding: 14px;
     border: 1px solid var(--light-gray-color);
     border-radius: var(--radius-lg);
-    background: var(--white-color);
+    background: var(--surface-color);
     text-decoration: none;
 `;
 
@@ -1248,7 +1248,7 @@ const StyledLookupStatus = styled.span<{$status: 'requested' | 'active'}>`
     font-size: var(--xsmall-font);
     font-weight: 700;
     color: var(--white-color);
-    background: ${(p) => (p.$status === 'active' ? 'var(--brand-color)' : 'var(--caution-color)')};
+    background: ${(p) => (p.$status === 'active' ? 'var(--brand-fill)' : 'var(--caution-fill)')};
 `;
 
 const StyledLookupWhen = styled.strong`

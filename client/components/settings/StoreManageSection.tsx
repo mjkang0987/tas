@@ -635,7 +635,7 @@ const StyledWeekdayChip = styled.label`
     padding: 5px 2px;
     border: 1px solid var(--light-gray-color);
     border-radius: var(--chip-radius);
-    background: var(--white-color);
+    background: var(--surface-color);
     color: var(--black-color);
     font-size: var(--small-font);
     font-weight: 600;
@@ -652,7 +652,7 @@ const StyledWeekdayChip = styled.label`
 
     &.is-on {
         border-color: var(--brand-color);
-        background: var(--brand-color);
+        background: var(--brand-fill);
         color: var(--white-color);
     }
 

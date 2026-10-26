@@ -137,7 +137,7 @@ const StyledName = styled.span`
 const StyledSwitchBtn = styled.button`
     ${actionButtonStyle};
     border: none;
-    background: var(--brand-color);
+    background: var(--brand-fill);
     color: var(--white-color);
 `;
 
@@ -155,7 +155,7 @@ const StyledStoreItem = styled.button<{$active: boolean}>`
     padding: 12px 14px;
     border: 1px solid ${(p) => p.$active ? 'var(--brand-color)' : 'var(--light-gray-color)'};
     border-radius: var(--radius-md);
-    background: ${(p) => p.$active ? 'var(--brand-color-bg)' : 'var(--white-color)'};
+    background: ${(p) => p.$active ? 'var(--brand-color-bg)' : 'var(--surface-color)'};
     cursor: ${(p) => p.$active ? 'default' : 'pointer'};
     text-align: left;
     transition: background-color 0.1s, border-color 0.1s;

@@ -181,7 +181,7 @@ const StyledCard = styled.div<{
     border-left-width: ${(props) => props.$accentBar ? '4px' : '1px'};
     border-left-color: ${(props) => props.$accentBar ? props.$accentColor : `${props.$accentColor}44`};
     border-radius: 8px;
-    background: linear-gradient(180deg, rgba(255, 255, 255, 0.96) 0%, ${(props) => `${props.$accentColor}12`} 100%);
+    background: linear-gradient(180deg, rgba(var(--surface-rgb), 0.96) 0%, ${(props) => `${props.$accentColor}12`} 100%);
     color: var(--dark-gray-color);
     box-sizing: border-box;
     text-align: left;
@@ -226,7 +226,7 @@ const StyledLeft = styled.strong`
 const timeTypography = css`
     font-size: var(--small-font);
     font-weight: 700;
-    color: #0f172a;
+    color: var(--black-color);
 `;
 
 const StyledTime = styled.span`
@@ -307,7 +307,7 @@ const StyledCustomerMeta = styled.span`
 const StyledCustomerName = styled.span`
     min-width: 0;
     font-weight: 700;
-    color: #0f172a;
+    color: var(--black-color);
     line-height: 1.35;
     word-break: keep-all;
     font-size: var(--small-font);
@@ -323,7 +323,7 @@ const StyledCustomerName = styled.span`
 const StyledCustomerButton = styled.span`
     min-width: 0;
     font-weight: 700;
-    color: #0f172a;
+    color: var(--black-color);
     text-align: left;
     cursor: pointer;
     line-height: 1.35;
@@ -357,5 +357,5 @@ const StyledTrailing = styled.div`
 const StyledPrice = styled.span`
     font-size: var(--medium-font);
     font-weight: 700;
-    color: #0f172a;
+    color: var(--black-color);
 `;

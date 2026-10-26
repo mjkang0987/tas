@@ -90,7 +90,7 @@ export const StyledCopyButton = styled.button`
     padding: 0 10px;
     border: 1px solid var(--border-color);
     border-radius: var(--radius-md);
-    background: var(--white-color);
+    background: var(--surface-color);
     color: var(--dark-gray-color);
     font-size: var(--xsmall-font);
     font-weight: 600;
@@ -219,7 +219,7 @@ export const StyledGuestCard = styled.div`
     padding: 14px;
     border: 1px solid var(--border-color);
     border-radius: var(--radius-lg);
-    background: var(--white-color);
+    background: var(--surface-color);
     box-shadow: var(--shadow-sm);
 `;
 

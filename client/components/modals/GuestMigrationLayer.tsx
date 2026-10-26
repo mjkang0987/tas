@@ -378,7 +378,7 @@ const StyledToggleBtn = styled.button<{$active: boolean}>`
     font-size: var(--small-font);
     font-weight: ${(p) => (p.$active ? 600 : 400)};
     border: 1px solid ${(p) => (p.$active ? 'var(--brand-color)' : 'var(--light-gray-color)')};
-    background: ${(p) => (p.$active ? 'var(--brand-color)' : 'var(--white-color)')};
+    background: ${(p) => (p.$active ? 'var(--brand-fill)' : 'var(--surface-color)')};
     color: ${(p) => (p.$active ? 'var(--white-color)' : 'var(--dark-gray-color)')};
     transition: background 0.12s, color 0.12s, border-color 0.12s;
 `;

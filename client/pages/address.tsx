@@ -441,8 +441,8 @@ const StyledUndoToast = styled.div`
     align-items: center;
     gap: 12px;
     padding: 10px 16px;
-    background-color: var(--black-color);
-    color: #fff;
+    background-color: var(--inverse-bg);
+    color: var(--inverse-text);
     border-radius: var(--radius-md);
     font-size: var(--small-font);
     z-index: 100;

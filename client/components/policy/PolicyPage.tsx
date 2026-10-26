@@ -44,7 +44,7 @@ const StyledCloseButton = styled.button`
     padding: 8px 14px;
     border: 1px solid var(--light-gray-color);
     border-radius: 8px;
-    background: var(--white-color);
+    background: var(--surface-color);
     font-size: var(--medium-font);
     font-weight: 600;
     color: var(--dark-gray-color2);

@@ -65,7 +65,7 @@ const StyledSwitch = styled.button<{$on: boolean}>`
     height: 26px;
     border-radius: 999px;
     border: none;
-    background: ${(p) => p.$on ? 'var(--brand-color)' : 'var(--light-gray-color)'};
+    background: ${(p) => p.$on ? 'var(--brand-fill)' : 'var(--light-gray-color)'};
     cursor: pointer;
     transition: background-color 0.2s;
     padding: 0;
@@ -78,7 +78,7 @@ const StyledKnob = styled.span<{$on: boolean}>`
     width: 20px;
     height: 20px;
     border-radius: 50%;
-    background: var(--white-color);
+    background: var(--surface-color);
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.18);
     transition: left 0.2s;
 `;

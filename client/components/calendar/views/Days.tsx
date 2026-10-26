@@ -84,7 +84,7 @@ const StyledDays = styled.ul <DaysType>`
   grid-row: 1 / 2;
   /* 흰 바탕 — 페이지와 같은 색이라 눈에는 배경이 없지만, 밑으로 스크롤돼 지나가는
      카드는 가린다. 투명하게 두면 카드가 비쳐 "윗 보더가 잘린" 것처럼 읽힌다. */
-  background: var(--white-color);
+  background: var(--surface-color);
   `
     }
 `;

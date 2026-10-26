@@ -54,7 +54,7 @@ const StyledOverlay = styled.div<{$backdrop: Backdrop; $zIndex: number}>`
     gap: 14px;
     box-sizing: border-box;
 
-    ${(p) => p.$backdrop === 'solid' && css`background: var(--white-color);`}
+    ${(p) => p.$backdrop === 'solid' && css`background: var(--surface-color);`}
     ${(p) => p.$backdrop === 'dim' && css`background: rgba(255, 255, 255, 0.6);`}
     ${(p) => p.$backdrop === 'blur' && css`
         background: transparent;
@@ -72,7 +72,7 @@ const StyledCard = styled.div`
     width: 100%;
     max-width: 200px;
     padding: 24px 0;
-    background: rgba(255, 255, 255, 0.9);
+    background: rgba(var(--surface-rgb), 0.9);
     backdrop-filter: var(--sticky-backdrop);
     border: 1px solid var(--modal-border);
     border-radius: var(--modal-radius);

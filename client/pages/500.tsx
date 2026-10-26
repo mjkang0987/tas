@@ -34,7 +34,7 @@ const StyledCard = styled.div`
     flex-direction: column;
     align-items: center;
     gap: 12px;
-    background: var(--white-color);
+    background: var(--surface-color);
     border-radius: var(--card-radius);
     padding: 48px 40px;
     max-width: 400px;
@@ -71,7 +71,7 @@ const StyledHomeLink = styled(Link)`
     height: 36px;
     line-height: 36px;
     padding: 0 20px;
-    background: var(--brand-color);
+    background: var(--brand-fill);
     color: var(--white-color);
     border-radius: var(--radius-md);
     font-size: var(--medium-font);

@@ -13,7 +13,7 @@ export const StyledConflictTitle = styled.strong`
 
 export const StyledCustomerValue = styled.span`
     font-weight: 600;
-    color: #0f172a;
+    color: var(--black-color);
 `;
 
 export const StyledServiceChipList = styled(ServiceChipList)``;
@@ -105,7 +105,7 @@ export const StyledClickableInfo = styled.div`
     padding: 10px 12px;
     border: 1px solid var(--light-gray-color);
     border-radius: var(--radius-md);
-    background: var(--white-color);
+    background: var(--surface-color);
     transition: background-color 0.14s ease, border-color 0.14s ease;
 
     @media (hover: hover) and (pointer: fine) {
@@ -188,7 +188,7 @@ export const StyledCancelledWrapper = styled.div<{ $cancelled: boolean }>`
                     rgba(150, 150, 150, 0.18) 6px,
                     rgba(150, 150, 150, 0.18) 7px
                 );
-            background-color: rgba(255, 255, 255, 0.55);
+            background-color: rgba(var(--surface-rgb), 0.55);
             pointer-events: none;
             z-index: 1;
         }
@@ -207,7 +207,7 @@ export const StyledUnresolvedOverlay = styled.div`
 `;
 
 export const StyledUnresolvedDialog = styled.div`
-    background: var(--white-color);
+    background: var(--surface-color);
     border-radius: var(--radius-md);
     padding: 20px;
     box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);

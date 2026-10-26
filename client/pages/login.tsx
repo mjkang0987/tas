@@ -358,7 +358,7 @@ const StyledCard = styled.div`
     align-items: center;
     margin: auto 0;
     padding: 40px 30px;
-    background-color: var(--white-color);
+    background-color: var(--surface-color);
     border-radius: var(--radius-lg);
     box-shadow: var(--shadow-md);
     width: 100%;
@@ -440,7 +440,7 @@ const StyledInAppNotice = styled.div`
     box-sizing: border-box;
     border: 1px solid #fde68a;
     border-radius: 10px;
-    background: #fffbeb;
+    background: var(--warning-bg-soft);
     display: flex;
     flex-direction: column;
     gap: 8px;
@@ -449,14 +449,14 @@ const StyledInAppNotice = styled.div`
 const StyledInAppTitle = styled.strong`
     font-size: var(--medium-font);
     font-weight: 700;
-    color: #92400e;
+    color: var(--warning-text);
 `;
 
 const StyledInAppText = styled.p`
     margin: 0;
     font-size: var(--small-font);
     line-height: 1.6;
-    color: #92400e;
+    color: var(--warning-text);
 
     b {
         font-weight: 700;
@@ -494,7 +494,7 @@ const StyledEmptyState = styled.p`
     box-sizing: border-box;
     border: 1px solid var(--light-gray-color);
     border-radius: 10px;
-    background: #f8fafc;
+    background: var(--gray-color2);
     color: var(--dark-gray-color2);
     font-size: var(--medium-font);
     line-height: 1.6;
@@ -508,8 +508,8 @@ const StyledNotice = styled.p`
     box-sizing: border-box;
     border: 1px solid #fecaca;
     border-radius: 10px;
-    background: #fff1f2;
-    color: #9f1239;
+    background: var(--danger-bg);
+    color: var(--danger-color);
     font-size: var(--medium-font);
     line-height: 1.6;
     text-align: center;
@@ -544,7 +544,7 @@ const StyledLoginError = styled.div`
     box-sizing: border-box;
     border: 1px solid #fecaca;
     border-radius: 10px;
-    background: #fff1f2;
+    background: var(--danger-bg);
     text-align: center;
 `;
 
@@ -553,7 +553,7 @@ const StyledLoginErrorText = styled.strong`
     font-size: var(--medium-font);
     font-weight: 600;
     line-height: 1.5;
-    color: #9f1239;
+    color: var(--danger-color);
 `;
 
 const StyledSecondaryButton = styled.button`
@@ -566,7 +566,7 @@ const StyledSecondaryButton = styled.button`
     padding: 12px;
     border-radius: 8px;
     border: 1px solid var(--light-gray-color);
-    background-color: var(--white-color);
+    background-color: var(--surface-color);
     color: var(--black-color);
     font-size: var(--font);
     font-weight: 600;

@@ -146,7 +146,7 @@ export const StyledNavLink = styled(Link)<{ $active?: boolean }>`
     flex-shrink: 0;
     padding: 0 8px;
     box-sizing: border-box;
-    background-color: ${(props) => props.$active ? 'var(--brand-color)' : 'transparent'};
+    background-color: ${(props) => props.$active ? 'var(--brand-fill)' : 'transparent'};
     border: none;
     border-radius: var(--radius-md);
     font-size: var(--small-font);
@@ -252,7 +252,7 @@ export const StyledSubNavLink = styled(Link)<{ $active?: boolean }>`
     color: ${(props) => props.$active ? 'var(--brand-color)' : 'var(--aside-text)'};
     white-space: nowrap;
     opacity: ${(props) => props.$active ? 1 : 0.8};
-    background-color: ${(props) => props.$active ? 'var(--brand-color)' : 'transparent'};
+    background-color: ${(props) => props.$active ? 'var(--brand-fill)' : 'transparent'};
     transition: background-color 0.1s, color 0.1s, opacity 0.1s, filter 0.1s;
 
     ${StyledMenuContent} {
@@ -338,7 +338,7 @@ export const StyledInquiryLink = styled(Link)<{ $active?: boolean }>`
     font-size: var(--small-font);
     font-weight: 500;
     color: ${(p) => p.$active ? 'var(--white-color)' : 'var(--aside-text)'};
-    background-color: ${(p) => p.$active ? 'var(--brand-color)' : 'transparent'};
+    background-color: ${(p) => p.$active ? 'var(--brand-fill)' : 'transparent'};
     text-decoration: none;
     white-space: nowrap;
     opacity: ${(p) => p.$active ? 1 : 0.7};

@@ -20,7 +20,7 @@ export const StyledCard = styled.div`
     padding: 14px;
     border: 1px solid var(--light-gray-color);
     border-radius: var(--card-radius);
-    background: var(--white-color);
+    background: var(--surface-color);
     box-shadow: var(--shadow-sm);
 `;
 
@@ -70,8 +70,8 @@ export const StyledLogoutBtn = styled.button`
     align-items: center;
     gap: 6px;
     border: 1px solid var(--light-gray-color);
-    background: var(--black-color);
-    color: var(--white-color);
+    background: var(--inverse-bg);
+    color: var(--inverse-text);
 `;
 
 export const StyledGrid = styled.div`
@@ -164,7 +164,7 @@ export const StyledGoogleButton = styled.button`
     align-items: center;
     gap: 8px;
     border: 1px solid var(--light-gray-color);
-    background: var(--white-color);
+    background: var(--surface-color);
     color: var(--black-color);
 `;
 
