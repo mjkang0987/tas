@@ -14,7 +14,7 @@ export const StyledDot = styled(StyledBadge)`
     width: 8px;
     height: 8px;
     padding: 0;
-    background: var(--brand-color);
+    background: var(--brand-fill);
 `;
 
 /** 칸 제목 — 목록 줄(연한 파랑)과 구분되게 회색 띠 + 진한 글씨. 스크롤해도 위에 붙어 있다. */
@@ -123,7 +123,7 @@ export const StyledCallLink = styled.a`
     font-size: var(--xsmall-font);
     font-weight: 600;
     text-decoration: none;
-    background: var(--white-color);
+    background: var(--surface-color);
 `;
 
 export const StyledCheckLabel = styled.label`
@@ -179,7 +179,7 @@ export const StyledTab = styled.label<{$active: boolean}>`
     min-height: 30px;
     padding: 0 10px;
     border-radius: var(--chip-radius);
-    background-color: ${({$active}) => $active ? 'var(--white-color)' : 'transparent'};
+    background-color: ${({$active}) => $active ? 'var(--surface-color)' : 'transparent'};
     box-shadow: ${({$active}) => $active ? 'var(--shadow-sm)' : 'none'};
     color: ${({$active}) => $active ? 'var(--brand-color)' : 'var(--dark-gray-color)'};
     font-size: var(--small-font);

@@ -93,7 +93,7 @@ const StyledList = styled.ul`
 
 const typeStyles = {
     success: css`background: #1a7f3c; color: #fff;`,
-    error:   css`background: var(--danger-color); color: #fff;`,
+    error:   css`background: var(--danger-fill); color: #fff;`,
     info:    css`background: var(--toast-bg); color: #fff;`,
 };
 

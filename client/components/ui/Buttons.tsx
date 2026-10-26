@@ -53,7 +53,7 @@ const StyledSquareButton = styled.button <Props>`
     min-height: 32px;
     padding: 0 8px;
     border: 1px solid var(--border-color);
-    background-color: ${props => props.$active ? 'var(--gray-color2)' : 'var(--white-color)'};
+    background-color: ${props => props.$active ? 'var(--gray-color2)' : 'var(--surface-color)'};
     border-radius: var(--radius-md);
     box-shadow: var(--shadow-sm);
     font-size: var(--small-font);
@@ -75,7 +75,7 @@ const StyledCircleButton = styled.button <Props>`
     width: 20px;
     height: 20px;
     border: 1px solid var(--border-color);
-    background-color: var(--white-color);
+    background-color: var(--surface-color);
     border-radius: 50%;
     box-shadow: var(--shadow-sm);
     font-size: var(--font);
@@ -176,7 +176,7 @@ const StyledReserveButton = styled.button <Props>`
         position: absolute;
         inset: 0;
         border-radius: inherit;
-        background: rgba(255, 255, 255, 0.72);
+        background: rgba(var(--surface-rgb), 0.72);
         pointer-events: none;
     }
 
@@ -207,7 +207,7 @@ const StyledReserveButton = styled.button <Props>`
         padding: 0;
         border: 1px solid rgba(15, 23, 42, 0.12);
         border-radius: 999px;
-        background: rgba(255, 255, 255, 0.86);
+        background: rgba(var(--surface-rgb), 0.86);
         color: var(--dark-gray-color);
         line-height: 1;
         cursor: grab;

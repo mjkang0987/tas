@@ -113,7 +113,7 @@ const StyledSuggestionWrap = styled.div`
   z-index: 10;
   margin: 4px 0 0;
   max-height: 160px;
-  background-color: var(--white-color);
+  background-color: var(--surface-color);
   border: 1px solid var(--light-gray-color);
   border-radius: 4px;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);

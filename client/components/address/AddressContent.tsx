@@ -247,7 +247,7 @@ const StyledMergeButton = styled.button`
     padding: 0 16px;
     border: none;
     border-radius: var(--radius-md);
-    background-color: var(--blue-color);
+    background-color: var(--blue-fill);
     color: #fff;
     font-size: var(--small-font);
     font-weight: 600;

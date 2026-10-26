@@ -211,7 +211,7 @@ const StyledCustomerRow = styled.button`
     border: 1px solid rgba(148, 163, 184, 0.18);
     border-radius: 10px;
     background:
-        linear-gradient(180deg, rgba(255, 255, 255, 0.96) 0%, rgba(248, 250, 252, 0.96) 100%);
+        linear-gradient(180deg, rgba(var(--surface-rgb), 0.96) 0%, var(--bg-subtle-96) 100%);
     box-shadow: 0 8px 18px rgba(15, 23, 42, 0.05);
     text-align: left;
     transition: transform 0.14s ease, box-shadow 0.14s ease, border-color 0.14s ease;
@@ -239,7 +239,7 @@ const StyledCustomerTitle = styled.span`
     min-width: 0;
     font-size: var(--medium-font);
     font-weight: 700;
-    color: #0f172a;
+    color: var(--black-color);
     white-space: normal;
     line-height: 1.35;
     word-break: keep-all;

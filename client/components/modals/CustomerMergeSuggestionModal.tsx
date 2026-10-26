@@ -27,6 +27,7 @@ import {CloseIconButton} from '../ui/CloseIconButton';
 import {LabelBadge} from '../ui/LabelBadge';
 import {ReservationInfoCard} from '../ui/ReservationInfoCard';
 import {NaverBookingInfo} from '../ui/NaverBookingInfo';
+import {tintChip} from '../../styles/theme';
 
 interface Props {
     selection: MergeSelection;
@@ -410,7 +411,7 @@ const StyledCustomerName = styled.button`
     background: none;
     font-size: var(--font);
     font-weight: 700;
-    color: #0f172a;
+    color: var(--black-color);
     text-align: left;
     cursor: pointer;
 
@@ -472,7 +473,7 @@ const StyledDetailLabel = styled.dt`
 
 const StyledDetailValue = styled.dd`
     margin: 0;
-    color: #0f172a;
+    color: var(--black-color);
     font-weight: 600;
 `;
 
@@ -491,8 +492,7 @@ const StyledTag = styled.span<{$color: string}>`
     border-radius: 4px;
     font-size: var(--tiny-font);
     font-weight: 600;
-    background: ${(p) => p.$color}1a;
-    color: ${(p) => p.$color};
+    ${(p) => tintChip(p.$color, '1a')};
 `;
 
 const StyledNaverInfo = styled(NaverBookingInfo)`
@@ -504,7 +504,7 @@ const StyledGuide = styled.p`
     padding: 9px 10px;
     border-radius: 8px;
     background: rgba(45, 127, 249, 0.06);
-    color: #1e40af;
+    color: var(--info-color);
     font-size: var(--small-font);
     line-height: 1.45;
     word-break: keep-all;

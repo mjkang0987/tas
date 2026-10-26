@@ -97,7 +97,7 @@ const StyledSearchModal = styled.div`
     max-height: 70vh;
     display: flex;
     flex-direction: column;
-    background-color: var(--white-color);
+    background-color: var(--surface-color);
     border-radius: var(--radius-lg);
     box-shadow: var(--shadow-md);
     overflow: hidden;

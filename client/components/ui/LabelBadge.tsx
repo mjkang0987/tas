@@ -11,7 +11,7 @@ const toneStyles: Record<LabelBadgeTone, ReturnType<typeof css>> = {
         color: var(--neutral-text);
     `,
     brand: css`
-        background: var(--naver-color);
+        background: var(--naver-fill);
         border-color: var(--naver-color-dark);
         color: var(--white-color);
     `,

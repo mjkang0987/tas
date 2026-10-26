@@ -44,7 +44,7 @@ const StyledCloseButton = styled.button`
     padding: 8px 14px;
     border: 1px solid var(--light-gray-color);
     border-radius: 8px;
-    background: var(--white-color);
+    background: var(--surface-color);
     font-size: var(--medium-font);
     font-weight: 600;
     color: var(--dark-gray-color2);
@@ -60,7 +60,10 @@ const StyledBody = styled.div`
 
     ${POLICY_ELEMENT_CSS}
 
+    /* 정책 화면은 밝게 고정(html[data-theme=light]) — 앱 안 레이어로 볼 때만 어둡게 */
     @media (prefers-color-scheme: dark) {
-        ${POLICY_VARS_DARK}
+        :root:not([data-theme="light"]) & {
+            ${POLICY_VARS_DARK}
+        }
     }
 `;

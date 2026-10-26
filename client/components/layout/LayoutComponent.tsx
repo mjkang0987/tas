@@ -252,7 +252,7 @@ const StyledContent = styled.div<{ $asideOpen: boolean }>`
     flex-direction: column;
     height: 100%;
     overflow: hidden;
-    background-color: var(--white-color);
+    background-color: var(--surface-color);
     border-radius: 8px;
     transition: border-radius 0.25s ease;
 
@@ -267,7 +267,7 @@ const StyledMain = styled.main`
     overscroll-behavior: auto;
     display: flex;
     height: 100%;
-    background-color: var(--white-color);
+    background-color: var(--surface-color);
 `;
 
 const StyledFooterAd = styled.div`
@@ -276,5 +276,5 @@ const StyledFooterAd = styled.div`
        없으면 홈 인디케이터·사파리 하단 툴바 영역에 광고가 물린다. */
     padding: 6px 12px calc(6px + env(safe-area-inset-bottom, 0px));
     border-top: 1px solid var(--light-gray-color);
-    background-color: var(--white-color);
+    background-color: var(--surface-color);
 `;

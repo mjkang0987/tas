@@ -32,7 +32,7 @@ export const StyledChartCard = styled.div<{ $hero?: boolean; $autoHeight?: boole
     padding: 10px;
     border: 1px solid var(--light-gray-color);
     border-radius: 10px;
-    background: var(--white-color);
+    background: var(--surface-color);
     box-shadow: 0 10px 24px rgba(15, 23, 42, 0.05);
 
     ${(props) => props.$hero && `grid-column: span 2;`};
@@ -86,7 +86,7 @@ export const StyledTrendChartBox = styled.div`
     border-radius: 18px;
     background:
         radial-gradient(circle at top right, rgba(101, 38, 217, 0.1), transparent 28%),
-        linear-gradient(180deg, #faf8ff 0%, #ffffff 100%);
+        linear-gradient(180deg, var(--brand-color-bg) 0%, var(--surface-color) 100%);
 `;
 
 export const REVENUE_TOOLTIP_WIDTH = 140;
@@ -113,7 +113,7 @@ export const StyledChartTooltip = styled.div<{ $left: number; $top: number; $arr
     padding: 9px 11px;
     border: 1px solid var(--brand-color-border);
     border-radius: 8px;
-    background: rgba(255, 255, 255, 0.96);
+    background: rgba(var(--surface-rgb), 0.96);
     box-shadow: 0 12px 28px rgba(15, 23, 42, 0.12);
     backdrop-filter: var(--sticky-backdrop);
 
@@ -125,7 +125,7 @@ export const StyledChartTooltip = styled.div<{ $left: number; $top: number; $arr
         bottom: -6px;
         width: 10px;
         height: 10px;
-        background: rgba(255, 255, 255, 0.96);
+        background: rgba(var(--surface-rgb), 0.96);
         border-right: 1px solid var(--brand-color-border);
         border-bottom: 1px solid var(--brand-color-border);
         transform: translateX(-50%) rotate(45deg);
@@ -235,7 +235,7 @@ export const StyledTrendColumnFill = styled.span<{ $heightRatio: number; $active
     min-height: ${(p) => p.$heightRatio > 0 ? '3px' : '0'};
     border-radius: 3px 3px 0 0;
     /* 키컬러(--brand-color). hover 는 같은 색상에서 채도만 낮춘 톤 — 강조는 툴팁이 맡는다. */
-    background: ${(p) => p.$active ? TREND_BAR_HOVER : 'var(--brand-color)'};
+    background: ${(p) => p.$active ? TREND_BAR_HOVER : 'var(--brand-fill)'};
 `;
 
 /* 스크롤 콘텐츠 안에 둔다 — 밖에 두면 90일 넘는 범위에서 보이는 막대와 라벨이 어긋난다. */
@@ -293,7 +293,7 @@ export const StyledBarTrack = styled.div`
     position: relative;
     height: 20px;
     border-radius: 999px;
-    background: #edf2f7;
+    background: var(--gray-color2);
     overflow: hidden;
 `;
 
@@ -321,7 +321,7 @@ export const StyledShareBar = styled.div`
     height: 20px;
     border-radius: 999px;
     overflow: hidden;
-    background: #edf2f7;
+    background: var(--gray-color2);
     margin-top: 4px;
 `;
 
@@ -387,7 +387,7 @@ export const StyledDonutChart = styled.div<{ $gradient: string }>`
         position: absolute;
         inset: 22px;
         border-radius: 50%;
-        background: var(--white-color);
+        background: var(--surface-color);
         box-shadow: inset 0 0 0 1px rgba(15, 23, 42, 0.04);
     }
 
@@ -441,7 +441,7 @@ export const StyledLegendInlineLabel = styled.div`
     padding: 6px 10px;
     border: 1px solid var(--light-gray-color);
     border-radius: 999px;
-    background: var(--white-color);
+    background: var(--surface-color);
 `;
 
 export const StyledLegendInlineLabelStrong = styled.strong`
@@ -463,7 +463,7 @@ export const StyledOperationSummary = styled.div`
     gap: 8px;
     padding: 10px 12px;
     border-radius: 8px;
-    background: #f6f8fc;
+    background: var(--gray-color2);
 `;
 
 export const StyledOperationSummaryLabel = styled.span`
@@ -490,7 +490,7 @@ export const StyledOperationRow = styled.div`
     padding: 10px 12px;
     border: 1px solid var(--light-gray-color);
     border-radius: 8px;
-    background: var(--white-color);
+    background: var(--surface-color);
 `;
 
 export const StyledClickableOperationRow = styled(StyledOperationRow)`

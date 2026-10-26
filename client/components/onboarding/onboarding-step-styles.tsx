@@ -16,7 +16,7 @@ export const StyledBackBtn = styled.button`
     padding: 0 12px;
     border: 1px solid var(--border-color);
     border-radius: 8px;
-    background: var(--white-color);
+    background: var(--surface-color);
     font-size: var(--medium-font);
     font-weight: 500;
     color: var(--dark-gray-color);
@@ -46,7 +46,7 @@ export const StyledNextBtn = styled.button`
     padding: 0 12px;
     border: none;
     border-radius: 8px;
-    background: var(--brand-color);
+    background: var(--brand-fill);
     font-size: var(--medium-font);
     font-weight: 600;
     color: var(--white-color);
@@ -99,7 +99,7 @@ export const StyledAddFormRowSelect = styled.select`
     border: 1px solid var(--light-gray-color);
     border-radius: var(--radius-sm);
     font-size: var(--medium-font);
-    background: var(--white-color);
+    background: var(--surface-color);
     outline: none;
 
     &:focus { border-color: var(--blue-color); }
@@ -113,7 +113,7 @@ export const StyledAddInput = styled.input`
     border: 1px solid var(--light-gray-color);
     border-radius: var(--radius-sm);
     font-size: var(--medium-font);
-    background: var(--white-color);
+    background: var(--surface-color);
     outline: none;
     box-sizing: border-box;
 
@@ -131,7 +131,7 @@ export const StyledCancelBtnSm = styled.button`
     padding: 0 12px;
     border: 1px solid var(--light-gray-color);
     border-radius: var(--radius-sm);
-    background: var(--white-color);
+    background: var(--surface-color);
     font-size: var(--small-font);
     color: var(--dark-gray-color);
     cursor: pointer;
@@ -142,7 +142,7 @@ export const StyledConfirmBtnSm = styled.button`
     padding: 0 12px;
     border: none;
     border-radius: var(--radius-sm);
-    background: var(--brand-color);
+    background: var(--brand-fill);
     font-size: var(--small-font);
     font-weight: 600;
     color: var(--white-color);

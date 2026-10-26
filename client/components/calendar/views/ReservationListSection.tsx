@@ -336,9 +336,9 @@ const StyledDateTitle = styled.div`
     border-radius: 999px;
     font-size: var(--small-font);
     font-weight: 700;
-    color: #111;
+    color: var(--black-color);
     letter-spacing: -0.01em;
-    background: rgba(255, 255, 255, .1); /* 살짝만 흰색 */
+    background: rgba(var(--surface-rgb), .1); /* 살짝만 흰색 */
     backdrop-filter: var(--sticky-backdrop);
 `;
 

@@ -108,7 +108,7 @@ const StyledTextarea = styled.textarea`
     font-size: var(--font);
     font-family: inherit;
     color: var(--black-color);
-    background: var(--white-color);
+    background: var(--surface-color);
     box-sizing: border-box;
     resize: none;
 
@@ -123,7 +123,7 @@ const StyledInput = styled.input`
     border-radius: 8px;
     font-size: var(--font);
     color: var(--black-color);
-    background: var(--white-color);
+    background: var(--surface-color);
     box-sizing: border-box;
 
     &:focus { outline: none; border-color: var(--blue-color); }

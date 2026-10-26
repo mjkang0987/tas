@@ -187,7 +187,7 @@ const StyledTooltip = styled.div`
     position: fixed;
     box-sizing: border-box;
     pointer-events: auto;
-    background: var(--white-color, #fff);
+    background: var(--surface-color);
     border-radius: 12px;
     box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
     padding: 16px 18px;
@@ -205,7 +205,7 @@ const StyledStepCount = styled.span`
 const StyledTitle = styled.strong`
     font-size: var(--large-font);
     font-weight: 700;
-    color: var(--black-color, #222);
+    color: var(--black-color, var(--black-color));
 `;
 
 const StyledDesc = styled.p`
@@ -254,7 +254,7 @@ const StyledPrevButton = styled.button`
     padding: 8px 14px;
     border: 1px solid var(--light-gray-color, #ddd);
     border-radius: 8px;
-    background: var(--white-color, #fff);
+    background: var(--surface-color);
     font-size: var(--medium-font);
     font-weight: 600;
     color: var(--dark-gray-color, #555);

@@ -252,9 +252,9 @@ const StyledChargeButton = styled.button`
     height: 30px;
     width: 84px;
     padding: 0 12px;
-    border: 1px solid var(--blue-color);
+    border: 1px solid var(--blue-fill);
     border-radius: var(--radius-md);
-    background: var(--blue-color);
+    background: var(--blue-fill);
     color: #fff;
     font-size: var(--small-font);
     font-weight: 600;
@@ -299,7 +299,7 @@ const StyledPointItem = styled.li<{$clickable?: boolean}>`
     padding: 8px 10px;
     border: 1px solid var(--light-gray-color);
     border-radius: 8px;
-    background: var(--white-color);
+    background: var(--surface-color);
     cursor: ${(p) => p.$clickable ? 'pointer' : 'default'};
 
     ${(p) => p.$clickable && `

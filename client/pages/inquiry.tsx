@@ -227,7 +227,7 @@ const StyledTabButton = styled.button<{ $active: boolean }>`
     flex-shrink: 0;
     min-width: 72px;
     border: 1px solid ${(props) => props.$active ? 'var(--blue-color)' : 'var(--light-gray-color)'};
-    background: ${(props) => props.$active ? 'rgba(45, 127, 249, 0.1)' : 'var(--white-color)'};
+    background: ${(props) => props.$active ? 'rgba(45, 127, 249, 0.1)' : 'var(--surface-color)'};
     color: ${(props) => props.$active ? 'var(--blue-color)' : 'var(--dark-gray-color)'};
     font-weight: ${(props) => props.$active ? 700 : 500};
 `;
@@ -237,7 +237,7 @@ const StyledCard = styled.div`
     padding: 10px;
     border: 1px solid #e5e7eb;
     border-radius: var(--card-radius);
-    background: rgba(255, 255, 255, 0.92);
+    background: rgba(var(--surface-rgb), 0.92);
     box-shadow: 0 10px 30px rgba(15, 23, 42, 0.05);
 `;
 
@@ -255,7 +255,7 @@ const StyledFieldGroup = styled.div`
 
 const StyledFieldLabel = styled.label`
     font-size: var(--medium-font);
-    color: #374151;
+    color: var(--dark-gray-color);
 `;
 
 const StyledFieldLabelText = styled.strong`
@@ -308,8 +308,8 @@ const StyledSubmitButton = styled.button`
     height: 44px;
     border: none;
     border-radius: var(--radius-lg);
-    background: #111827;
-    color: #fff;
+    background: var(--inverse-bg);
+    color: var(--inverse-text);
     font-size: var(--large-font);
     font-weight: 600;
     transition: opacity 0.15s;
@@ -336,12 +336,12 @@ const StyledSuccess = styled.div`
 
 const StyledSuccessTitle = styled.strong`
     font-size: var(--large-font);
-    color: #111827;
+    color: var(--black-color);
 `;
 
 const StyledSuccessText = styled.span`
     font-size: var(--medium-font);
-    color: #6b7280;
+    color: var(--dark-gray-color2);
 `;
 
 const StyledResetButton = styled.button`
@@ -349,8 +349,8 @@ const StyledResetButton = styled.button`
     padding: 10px 24px;
     border: 1px solid #d1d5db;
     border-radius: var(--radius-lg);
-    background: var(--white-color);
-    color: #111827;
+    background: var(--surface-color);
+    color: var(--black-color);
     font-size: var(--font);
     font-weight: 600;
 `;

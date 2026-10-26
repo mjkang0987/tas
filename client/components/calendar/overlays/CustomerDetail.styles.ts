@@ -30,7 +30,7 @@ export const StyledHeaderActionButton = styled.button<{ $primary?: boolean; $dan
     padding: 0 10px;
     border: ${props => (props.$danger || props.$primary) ? 'none' : '1px solid var(--border-color)'};
     border-radius: 8px;
-    background: ${props => props.$danger ? 'var(--danger-color)' : props.$primary ? 'var(--brand-color)' : 'var(--white-color)'};
+    background: ${props => props.$danger ? 'var(--danger-fill)' : props.$primary ? 'var(--brand-fill)' : 'var(--surface-color)'};
     color: ${props => (props.$danger || props.$primary) ? 'var(--white-color)' : 'var(--dark-gray-color)'};
     font-size: var(--small-font);
     font-weight: 600;
@@ -269,7 +269,7 @@ export const StyledTagAddButton = styled.button`
     padding: 0 12px;
     border: none;
     border-radius: 8px;
-    background: var(--brand-color);
+    background: var(--brand-fill);
     color: var(--white-color);
     font-size: var(--small-font);
     font-weight: 600;
@@ -316,7 +316,7 @@ export const StyledPointHistoryItem = styled.li<{$clickable?: boolean}>`
     padding: 8px 10px;
     border: 1px solid var(--light-gray-color);
     border-radius: 8px;
-    background: var(--white-color);
+    background: var(--surface-color);
     cursor: ${(p) => p.$clickable ? 'pointer' : 'default'};
 
     ${(p) => p.$clickable && `
@@ -405,7 +405,7 @@ export const StyledUnmergeMessage = styled.p`
 `;
 
 export const StyledUnmergeHighlight = styled.strong`
-    color: #0f172a;
+    color: var(--black-color);
 `;
 
 export const StyledUnmergeList = styled.div`
@@ -427,7 +427,7 @@ export const StyledUnmergeItem = styled.div`
 
 export const StyledUnmergeName = styled.strong`
     font-weight: 700;
-    color: #0f172a;
+    color: var(--black-color);
 `;
 
 export const StyledUnmergeTel = styled.span`
@@ -477,7 +477,7 @@ export const StyledSimilarSection = styled.section`
     border: 1px solid var(--info-border);
     border-radius: var(--radius-lg);
     /* 떠 있으므로 뒤 내용이 비치면 안 된다 — 반투명 --info-bg 대신 불투명 흰 바탕. */
-    background-color: var(--white-color);
+    background-color: var(--surface-color);
     box-shadow: var(--shadow-md);
 `;
 

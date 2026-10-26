@@ -11,7 +11,7 @@ export const DirectionIcon = ({direction, size = 32}: {direction: 'left' | 'righ
         {/* 테두리 사각형은 아이콘이 아니라 버튼 모양이었다. 버튼 쪽에서 정하도록 걷는다. */}
         <path
             d={direction === 'left' ? 'M18.5 10.5L13 16L18.5 21.5' : 'M13.5 10.5L19 16L13.5 21.5'}
-            stroke="#111827"
+            stroke="currentColor"
             strokeWidth="2.2"
             strokeLinecap="round"
             strokeLinejoin="round"

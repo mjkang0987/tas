@@ -285,7 +285,7 @@ const StyledCard = styled.div`
     flex-direction: column;
     margin: auto 0;
     padding: 40px 30px;
-    background-color: var(--white-color);
+    background-color: var(--surface-color);
     border-radius: var(--radius-lg);
     box-shadow: var(--shadow-md);
     width: 100%;
@@ -391,8 +391,8 @@ const StyledError = styled.p`
     box-sizing: border-box;
     border: 1px solid #fecaca;
     border-radius: 8px;
-    background: #fff1f2;
-    color: #9f1239;
+    background: var(--danger-bg);
+    color: var(--danger-color);
     font-size: var(--medium-font);
     line-height: 1.5;
     text-align: center;
@@ -404,7 +404,7 @@ const StyledPrimaryButton = styled.button`
     padding: 13px;
     border: none;
     border-radius: 8px;
-    background-color: var(--brand-color);
+    background-color: var(--brand-fill);
     color: var(--white-color);
     font-size: var(--large-font);
     font-weight: 700;
@@ -427,7 +427,7 @@ const StyledSecondaryButton = styled.button`
     padding: 12px;
     border: 1px solid var(--dark-gray-color2);
     border-radius: 8px;
-    background-color: var(--white-color);
+    background-color: var(--surface-color);
     color: var(--dark-gray-color);
     font-size: var(--font);
     font-weight: 600;

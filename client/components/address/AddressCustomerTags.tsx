@@ -195,7 +195,7 @@ const StyledMemoButton = styled.button`
     padding: 0 10px;
     border: 1px solid var(--light-gray-color);
     border-radius: 4px;
-    background-color: var(--white-color);
+    background-color: var(--surface-color);
     font-size: var(--tiny-font);
     color: var(--dark-gray-color);
 

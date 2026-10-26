@@ -162,7 +162,7 @@ const StyledAssigneeCard = styled.div<{$color: string; $isEditing: boolean}>`
     border-left: 4px solid ${(p) => p.$color};
     border-radius: 10px;
     padding: 8px 10px;
-    background: linear-gradient(180deg, rgba(255,255,255,0.96) 0%, ${(p) => `${p.$color}10`} 100%);
+    background: linear-gradient(180deg, rgba(var(--surface-rgb), 0.96) 0%, ${(p) => `${p.$color}10`} 100%);
     box-shadow: ${(p) => p.$isEditing
         ? '0 0 0 2px var(--blue-color), var(--card-shadow)'
         : 'var(--card-shadow)'};
@@ -227,7 +227,7 @@ const StyledAssigneeNameInput = styled.input`
     border-radius: var(--radius-sm);
     font-size: var(--font);
     font-weight: 700;
-    background: var(--white-color);
+    background: var(--surface-color);
     outline: none;
     box-sizing: border-box;
 
@@ -251,7 +251,7 @@ const StyledSmEditBtn = styled.button`
     padding: 0 10px;
     border: 1px solid var(--border-color);
     border-radius: var(--radius-md);
-    background: var(--white-color);
+    background: var(--surface-color);
     font-size: var(--xsmall-font);
     font-weight: 600;
     color: var(--dark-gray-color);

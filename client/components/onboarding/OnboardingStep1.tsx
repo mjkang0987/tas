@@ -84,7 +84,7 @@ const StyledInput = styled.input`
     border-radius: var(--radius-md);
     font-size: var(--large-font);
     color: var(--black-color);
-    background: var(--white-color);
+    background: var(--surface-color);
     box-sizing: border-box;
     outline: none;
     transition: border-color 0.15s;
@@ -111,7 +111,7 @@ const StyledTypeCard = styled.button<{$selected: boolean}>`
     padding: 14px 8px;
     border: 2px solid ${(p) => p.$selected ? 'var(--blue-color)' : 'var(--light-gray-color)'};
     border-radius: var(--radius-lg);
-    background: ${(p) => p.$selected ? 'rgba(45, 127, 249, 0.06)' : 'var(--white-color)'};
+    background: ${(p) => p.$selected ? 'rgba(45, 127, 249, 0.06)' : 'var(--surface-color)'};
     cursor: pointer;
     transition: border-color 0.15s, background 0.15s;
 

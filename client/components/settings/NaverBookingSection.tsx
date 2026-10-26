@@ -294,7 +294,7 @@ const StyledGhostBtn = styled.button<{$danger?: boolean}>`
     border-radius: var(--radius-md);
     font-size: var(--small-font);
     border: 1px solid ${(p) => (p.$danger ? 'var(--danger-color)' : 'var(--light-gray-color)')};
-    background: var(--white-color);
+    background: var(--surface-color);
     color: ${(p) => (p.$danger ? 'var(--danger-color)' : 'var(--dark-gray-color)')};
 
     &:disabled {

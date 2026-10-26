@@ -166,7 +166,7 @@ const StyledDirectionButton = styled.button`
   padding: 0;
   border: 1px solid var(--border-color);
   border-radius: var(--chip-radius);
-  background-color: var(--white-color);
+  background-color: var(--surface-color);
   box-shadow: var(--shadow-sm);
   line-height: 0;
 

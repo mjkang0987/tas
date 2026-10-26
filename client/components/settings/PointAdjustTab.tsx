@@ -159,7 +159,7 @@ const StyledActionButton = styled.button<{ $danger?: boolean }>`
     height: 30px;
     border: 1px solid ${(props) => props.$danger ? 'var(--danger-border)' : 'var(--light-gray-color)'};
     border-radius: 8px;
-    background: ${(props) => props.$danger ? 'var(--danger-bg)' : 'var(--white-color)'};
+    background: ${(props) => props.$danger ? 'var(--danger-bg)' : 'var(--surface-color)'};
     color: ${(props) => props.$danger ? 'var(--danger-color)' : 'var(--dark-gray-color)'};
     font-size: var(--small-font);
     font-weight: 600;

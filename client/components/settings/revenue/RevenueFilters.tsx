@@ -153,7 +153,7 @@ const StyledStickyArea = styled.div`
     flex-direction: column;
     gap: 6px;
     padding-top: 8px;
-    background: rgba(255, 255, 255, .1); /* 살짝만 흰색 */
+    background: rgba(var(--surface-rgb), .1); /* 살짝만 흰색 */
     backdrop-filter: var(--sticky-backdrop);
 `;
 
@@ -175,7 +175,7 @@ const StyledQuickFilterButton = styled.button<{ $active: boolean }>`
     padding: 0 11px;
     border: 1px solid ${(p) => p.$active ? 'var(--blue-color)' : 'var(--light-gray-color)'};
     border-radius: 13px;
-    background: ${(p) => p.$active ? 'var(--blue-color)' : 'var(--white-color)'};
+    background: ${(p) => p.$active ? 'var(--blue-fill)' : 'var(--surface-color)'};
     color: ${(p) => p.$active ? 'var(--white-color)' : 'var(--dark-gray-color)'};
 `;
 
@@ -236,7 +236,7 @@ const StyledAssigneeTab = styled.button<{ $active: boolean }>`
     padding: 0 11px;
     border: 1px solid ${(p) => p.$active ? 'var(--blue-color)' : 'var(--light-gray-color)'};
     border-radius: 10px;
-    background: ${(p) => p.$active ? 'var(--blue-color)' : 'var(--white-color)'};
+    background: ${(p) => p.$active ? 'var(--blue-fill)' : 'var(--surface-color)'};
     color: ${(p) => p.$active ? 'var(--white-color)' : 'var(--dark-gray-color)'};
 `;
 
@@ -257,9 +257,9 @@ const StyledTabGroup = styled.div`
 const StyledViewTab = styled.button<{ $active: boolean; $mobileHide?: boolean }>`
     ${actionButtonStyle};
     white-space: nowrap;
-    border: 1px solid ${(p) => p.$active ? 'var(--black-color)' : 'var(--light-gray-color)'};
-    background: ${(p) => p.$active ? 'var(--black-color)' : 'var(--white-color)'};
-    color: ${(p) => p.$active ? 'var(--white-color)' : 'var(--dark-gray-color)'};
+    border: 1px solid ${(p) => p.$active ? 'var(--inverse-bg)' : 'var(--light-gray-color)'};
+    background: ${(p) => p.$active ? 'var(--inverse-bg)' : 'var(--surface-color)'};
+    color: ${(p) => p.$active ? 'var(--inverse-text)' : 'var(--dark-gray-color)'};
 
     @media (max-width: 640px) {
         min-width: 0;
@@ -274,7 +274,7 @@ const StyledFilterModeTab = styled.button<{ $active: boolean }>`
     padding: 0 11px;
     border: 1px solid ${(p) => p.$active ? 'var(--blue-color)' : 'var(--light-gray-color)'};
     border-radius: 10px;
-    background: ${(p) => p.$active ? 'var(--info-bg)' : 'var(--white-color)'};
+    background: ${(p) => p.$active ? 'var(--info-bg)' : 'var(--surface-color)'};
     color: ${(p) => p.$active ? 'var(--blue-color)' : 'var(--dark-gray-color)'};
     font-weight: ${(p) => p.$active ? 700 : 500};
 `;
@@ -288,7 +288,7 @@ const StyledInfoButton = styled.button`
     padding: 0;
     border: 1px solid var(--light-gray-color);
     border-radius: 50%;
-    background: var(--white-color);
+    background: var(--surface-color);
     font-size: var(--xsmall-font);
     font-weight: 700;
     color: var(--dark-gray-color2);
@@ -298,7 +298,7 @@ const StyledCriteriaHint = styled.p`
     margin: 0;
     padding: 6px 8px;
     border-radius: 8px;
-    background: #f6f8fc;
+    background: var(--gray-color2);
     font-size: var(--xsmall-font);
     color: var(--dark-gray-color2);
     line-height: 1.45;
@@ -313,7 +313,7 @@ const StyledExportButton = styled.button`
     padding: 0;
     border: 1px solid var(--light-gray-color);
     border-radius: 8px;
-    background: var(--white-color);
+    background: var(--surface-color);
     color: var(--dark-gray-color);
     transition: background-color 0.15s, border-color 0.15s;
 

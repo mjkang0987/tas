@@ -44,7 +44,7 @@ const StyledNum = styled.button <{ $isToday?: boolean; $isSelected?: boolean; $c
     background-color: var(--brand-color-border);
   `}
   ${props => props.$isSelected && `
-    background-color: var(--brand-color);
+    background-color: var(--brand-fill);
     color: var(--white-color);
     font-weight: 700;
   `}

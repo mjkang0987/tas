@@ -77,7 +77,7 @@ const StyledHistorySection = styled.section`
     padding: 14px;
     border: 1px solid var(--light-gray-color);
     border-radius: 8px;
-    background: rgba(248, 250, 252, 0.88);
+    background: var(--bg-subtle-88);
 `;
 
 const StyledHistoryHeader = styled.div`

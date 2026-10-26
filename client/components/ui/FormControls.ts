@@ -6,7 +6,7 @@ export const formControlStyle = css`
     border: 1px solid var(--light-gray-color);
     border-radius: var(--radius-md);
     /* 단축(background)이 아니라 개별 속성 — 단축은 확장 컴포넌트가 얹은 background-image(예: select 화살표)를 리셋한다. */
-    background-color: var(--white-color);
+    background-color: var(--surface-color);
     box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
     font-size: var(--small-font);
     color: var(--dark-gray-color);

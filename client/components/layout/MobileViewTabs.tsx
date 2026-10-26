@@ -105,7 +105,7 @@ const StyledSegmentTab = styled(Link)<{ $active: boolean }>`
     font-weight: 700;
     text-decoration: none;
     color: ${(props) => props.$active ? 'var(--brand-color)' : 'var(--dark-gray-color)'};
-    background-color: ${(props) => props.$active ? 'var(--white-color)' : 'transparent'};
+    background-color: ${(props) => props.$active ? 'var(--surface-color)' : 'transparent'};
     box-shadow: ${(props) => props.$active ? 'var(--shadow-sm)' : 'none'};
     transition: background-color 0.15s, color 0.15s;
 `;

@@ -53,7 +53,7 @@ const StyledWrapper = styled.div`
     min-height: 100%;
     padding: 40px 16px;
     box-sizing: border-box;
-    background: var(--white-color);
+    background: var(--surface-color);
 `;
 
 const StyledMain = styled.main`
@@ -136,7 +136,7 @@ const StyledCtaLink = styled(Link)`
     justify-content: center;
     padding: 12px 28px;
     border-radius: 8px;
-    background: var(--brand-color);
+    background: var(--brand-fill);
     color: var(--white-color);
     font-size: var(--large-font);
     font-weight: 600;

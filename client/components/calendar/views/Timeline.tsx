@@ -403,7 +403,7 @@ const StyledBar = styled.span<{ $top: number }>`
     left: 0;
     width: 100%;
     height: 2px;
-    background-color: var(--orange-color);
+    background-color: var(--orange-fill);
     pointer-events: none;
     /* 자동 스크롤 시 화면 맨 위에 딱 붙지 않게 여백을 둔다.
        바로 앞 시간대가 조금 보여야 "지금 어디쯤인지" 읽힌다. */
@@ -416,7 +416,7 @@ const StyledBar = styled.span<{ $top: number }>`
         left: 0;
         width: 10px;
         height: 10px;
-        background-color: var(--orange-color);
+        background-color: var(--orange-fill);
         border-radius: 100%;
     }
 `;

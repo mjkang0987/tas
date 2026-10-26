@@ -13,7 +13,7 @@ export const StyledConflictTitle = styled.strong`
 
 export const StyledCustomerValue = styled.span`
     font-weight: 600;
-    color: #0f172a;
+    color: var(--black-color);
 `;
 
 export const StyledServiceChipList = styled(ServiceChipList)``;
@@ -41,7 +41,7 @@ export const StyledResolvedNotice = styled.div`
     border-radius: 8px;
     background: rgba(220, 38, 38, 0.06);
     border: 1px solid rgba(220, 38, 38, 0.2);
-    color: #991b1b;
+    color: var(--danger-color);
     font-size: var(--small-font);
     line-height: 1.5;
     word-break: keep-all;
@@ -67,7 +67,7 @@ export const StyledResolvedNotice = styled.div`
     .notice-item:last-child {
         margin-top: 6px;
         font-weight: 600;
-        color: #7f1d1d;
+        color: var(--danger-color);
     }
 `;
 
@@ -76,7 +76,7 @@ export const StyledGuideNotice = styled.p`
     padding: 9px 10px;
     border-radius: 8px;
     background: rgba(3, 199, 90, 0.08);
-    color: #0f5132;
+    color: var(--success-text);
     font-size: var(--small-font);
     line-height: 1.45;
     word-break: keep-all;
@@ -105,7 +105,7 @@ export const StyledClickableInfo = styled.div`
     padding: 10px 12px;
     border: 1px solid var(--light-gray-color);
     border-radius: var(--radius-md);
-    background: var(--white-color);
+    background: var(--surface-color);
     transition: background-color 0.14s ease, border-color 0.14s ease;
 
     @media (hover: hover) and (pointer: fine) {
@@ -188,7 +188,7 @@ export const StyledCancelledWrapper = styled.div<{ $cancelled: boolean }>`
                     rgba(150, 150, 150, 0.18) 6px,
                     rgba(150, 150, 150, 0.18) 7px
                 );
-            background-color: rgba(255, 255, 255, 0.55);
+            background-color: rgba(var(--surface-rgb), 0.55);
             pointer-events: none;
             z-index: 1;
         }
@@ -207,7 +207,7 @@ export const StyledUnresolvedOverlay = styled.div`
 `;
 
 export const StyledUnresolvedDialog = styled.div`
-    background: var(--white-color);
+    background: var(--surface-color);
     border-radius: var(--radius-md);
     padding: 20px;
     box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);

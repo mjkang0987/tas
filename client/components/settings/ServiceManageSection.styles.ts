@@ -2,6 +2,7 @@ import styled from 'styled-components';
 
 import {StyledEditBtn as StyledEditBtnBase, actionButtonStyle} from './settings-styles';
 import {StyledDetail, StyledOverlay} from '../calendar/overlays/ModalStyles';
+import {tintChip} from '../../styles/theme';
 export const StyledServiceOverlay = styled(StyledOverlay)`
     z-index: 160;
 `;
@@ -38,7 +39,7 @@ export const StyledGroup = styled.div<{ $isCategoryDragging: boolean; $isCategor
         height: 22px;
         padding: 0 8px;
         border-radius: 999px;
-        background: var(--success-color);
+        background: var(--success-fill);
         color: var(--white-color);
         font-size: var(--xsmall-font);
         font-weight: 700;
@@ -54,7 +55,7 @@ export const StyledGroup = styled.div<{ $isCategoryDragging: boolean; $isCategor
         top: -2px;
         height: 4px;
         border-radius: 999px;
-        background: ${(p) => p.$isCategoryDragOver ? 'var(--success-color)' : 'transparent'};
+        background: ${(p) => p.$isCategoryDragOver ? 'var(--success-fill)' : 'transparent'};
         box-shadow: ${(p) => p.$isCategoryDragOver ? '0 0 0 3px rgba(36, 117, 58, 0.14)' : 'none'};
     }
 
@@ -95,7 +96,7 @@ export const StyledCategoryHeader = styled.summary`
         flex-shrink: 0;
         border: 1px solid var(--light-gray-color);
         border-radius: 999px;
-        background: var(--white-color);
+        background: var(--surface-color);
         background-image: url("data:image/svg+xml,%3Csvg width='10' height='10' viewBox='0 0 10 10' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M3 1.75L6.25 5L3 8.25' stroke='%23111827' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
         background-repeat: no-repeat;
         background-position: center;
@@ -156,7 +157,7 @@ export const StyledCategoryEditInput = styled.input`
     padding: 0 10px;
     border: 1px solid var(--light-gray-color);
     border-radius: var(--radius-md);
-    background: var(--white-color);
+    background: var(--surface-color);
     font-size: var(--small-font);
     color: var(--dark-gray-color);
     outline: none;
@@ -223,8 +224,8 @@ export const StyledItem = styled.div<{ $isDragging: boolean; $isDragOver: boolea
         align-items: center;
         padding: 2px 8px;
         border-radius: 999px;
-        background: var(--dark-gray-color);
-        color: var(--white-color);
+        background: var(--inverse-bg);
+        color: var(--inverse-text);
         font-size: var(--tiny-font);
         font-weight: 700;
     }
@@ -267,8 +268,7 @@ export const StyledNameChip = styled.span<{ $color: string }>`
     border-radius: 999px;
     font-size: var(--small-font);
     font-weight: 600;
-    color: ${(p) => p.$color};
-    background-color: ${(p) => `${p.$color}18`};
+    ${(p) => tintChip(p.$color)};
 `;
 
 export const StyledServiceLeft = styled.span`
@@ -297,7 +297,7 @@ export const StyledPrice = styled.span`
 `;
 
 export const StyledEditBtn = styled(StyledEditBtnBase)`
-    background-color: var(--white-color);
+    background-color: var(--surface-color);
 `;
 
 export const StyledAddButton = styled.button`

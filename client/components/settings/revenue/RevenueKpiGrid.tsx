@@ -77,13 +77,13 @@ const StyledKpiCard = styled.div`
     padding: 10px 8px;
     border: 1px solid var(--light-gray-color);
     border-radius: 10px;
-    background: linear-gradient(180deg, #ffffff 0%, #f9fbff 100%);
+    background: var(--surface-color);
     box-shadow: 0 8px 20px rgba(15, 23, 42, 0.05);
     cursor: pointer;
 
     @media (hover: hover) and (pointer: fine) {
         &:hover {
-        background: linear-gradient(180deg, #f5f8ff 0%, #edf2ff 100%);
+        background: var(--info-bg);
     }
     }
 `;

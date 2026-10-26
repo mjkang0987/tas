@@ -116,7 +116,7 @@ const StyledDaysWrap = styled.div <DaysType & {$weekColumns: string | null}>`
       position: sticky;
       left: 0;
       z-index: 14; /* 요일 헤더 13 위 */
-      background: var(--white-color);
+      background: var(--surface-color);
     }
 
     /* 1행 왼쪽 모서리. 시간축은 2행만 차지해 여기가 비고, 가로로 스크롤된
@@ -128,7 +128,7 @@ const StyledDaysWrap = styled.div <DaysType & {$weekColumns: string | null}>`
       position: sticky;
       left: 0;
       z-index: 15; /* 날짜 헤더 13·시간축 14 위 */
-      background: var(--white-color);
+      background: var(--surface-color);
     }
 
     /* 날짜마다 폭이 다르다 — 겹친 수만큼 넓어진다. 두 줄(요일 헤더·칼럼)이 같은 배열을 써야 어긋나지 않는다. */

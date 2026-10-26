@@ -45,7 +45,7 @@ export const StyledBadge = styled.span`
     box-sizing: border-box;
     border-radius: 999px;
     color: var(--white-color);
-    background: var(--danger-color);
+    background: var(--danger-fill);
     font-size: var(--tiny-font);
     font-weight: 700;
     line-height: 1;
@@ -58,7 +58,7 @@ export const StyledPanel = styled.div`
     margin-top: 4px;
     width: 320px;
     max-height: 400px;
-    background: var(--white-color);
+    background: var(--surface-color);
     border: 1px solid var(--modal-border);
     border-radius: var(--modal-radius);
     box-shadow: var(--modal-shadow);
@@ -107,7 +107,7 @@ export const StyledSectionLabel = styled.div`
     font-weight: 700;
     color: var(--dark-gray-color2);
     letter-spacing: 0.02em;
-    background: var(--white-color);
+    background: var(--surface-color);
     border-bottom: 1px solid var(--gray-color2);
 `;
 
@@ -115,7 +115,7 @@ export const StyledUnreadDot = styled.span`
     width: 6px;
     height: 6px;
     border-radius: 50%;
-    background: var(--blue-color);
+    background: var(--blue-fill);
     flex-shrink: 0;
 `;
 

@@ -443,7 +443,7 @@ const StyledWrap = styled.div`
     /* 하단 여백은 고정 언어 바 높이만큼 확보(콘텐츠가 바에 가리지 않도록). */
     padding: 24px 16px ${LANG_BAR_OFFSET};
     box-sizing: border-box;
-    background: var(--white-color);
+    background: var(--surface-color);
     @media (max-width: 640px) { padding: 0 0 ${LANG_BAR_OFFSET}; }
 `;
 
@@ -457,7 +457,7 @@ const StyledCard = styled.div`
     flex-direction: column;
     gap: 16px;
     padding: 32px 28px;
-    background: var(--white-color);
+    background: var(--surface-color);
     border-radius: var(--radius-lg);
     box-shadow: var(--shadow-md);
     @media (max-width: 640px) {
@@ -570,7 +570,7 @@ const StyledBenefitItem = styled.span`
     padding: 10px 12px;
     border: 1px solid var(--light-gray-color);
     border-radius: var(--radius-md);
-    background: var(--white-color);
+    background: var(--surface-color);
     overflow-wrap: anywhere;
 `;
 
@@ -593,7 +593,7 @@ const StyledPrimaryBtn = styled.button`
     height: 40px;
     border: none;
     border-radius: var(--radius-lg);
-    background: var(--brand-color);
+    background: var(--brand-fill);
     color: var(--white-color);
     font-size: var(--medium-font);
     font-weight: 600;
@@ -607,7 +607,7 @@ const StyledSecondaryBtn = styled.button`
     height: 40px;
     border: 1px solid var(--border-color);
     border-radius: var(--radius-lg);
-    background: var(--white-color);
+    background: var(--surface-color);
     color: var(--dark-gray-color);
     font-size: var(--medium-font);
     font-weight: 500;
@@ -621,7 +621,7 @@ const StyledDangerBtn = styled.button`
     height: 40px;
     border: 1px solid var(--danger-border);
     border-radius: var(--radius-lg);
-    background: var(--white-color);
+    background: var(--surface-color);
     color: var(--danger-color);
     font-size: var(--medium-font);
     font-weight: 600;

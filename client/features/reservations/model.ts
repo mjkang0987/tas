@@ -157,6 +157,17 @@ export const RESERVATION_STATUS_BADGE_STYLES: Record<string, { bg: string; color
     requested: {bg: '#FEF7E0', color: '#806600'},
 };
 
+/** 어두운 화면 배지 — iOS `BadgeTone.dark*`·안드로이드와 같은 값. 글자 7:1 이상, 바탕이 카드(#1C1C1E)와 구분된다. */
+export const RESERVATION_STATUS_BADGE_STYLES_DARK: Record<string, { bg: string; color: string }> = {
+    booked: {bg: '#1F3A63', color: '#C2D7FB'},
+    cancelled: {bg: '#3A3A3C', color: '#D1D1D6'},
+    completed: {bg: '#1D4A2C', color: '#BDE5C8'},
+    noshow: {bg: '#5C221E', color: '#FFB4AB'},
+    paid: {bg: '#3B2A6B', color: '#D0BCFF'},
+    unpaid: {bg: '#574209', color: '#FDE68A'},
+    requested: {bg: '#4D3F0B', color: '#F6D860'},
+};
+
 /**
  * 결제한 예약이 취소·삭제될 때 고객 적립금에 되돌릴 양 — 결제에 쓴 적립금은 돌려주고, 그 결제로 쌓인 적립금은 회수한다.
  * (지시자 2026-10-19 — 쿠폰·회원권·적립금은 예약 취소 시 돌려준다. 쿠폰·회원권은 서버가 돌려준다.)
