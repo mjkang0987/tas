@@ -23,6 +23,7 @@ import {clearGuestEntryResolved, clearGuestTermsAgreed, createDefaultLocalDbSnap
 import {CURRENT_TERMS_VERSION} from '../utils/terms';
 import {SITE_TITLE} from '../lib/seo';
 import {isBookingRoute} from '../features/booking/routing';
+import {themeAttribute} from '../styles/theme';
 
 import LayoutComponent from '../components/layout/LayoutComponent';
 import {ToastContainer} from '../components/ui/ToastContainer';
@@ -39,6 +40,12 @@ function AppContent({Component, pageProps}: AppContentProps) {
     // 루트가 익명 방문자에게 소개 화면을 서버렌더했는지(pages/index.tsx `landing`).
     // 경로가 같아서(`/`) 캘린더와 구분할 다른 신호가 없다.
     const isLanding = router.pathname === '/' && pageProps.landing === true;
+    // 앱 안에서 정책 문서 등으로 옮겨갈 때 html[data-theme] 를 맞춘다(첫 그림은 _document 가 정한다)
+    useEffect(() => {
+        const theme = themeAttribute(router.pathname, isLanding);
+        if (theme) document.documentElement.dataset.theme = theme;
+        else delete document.documentElement.dataset.theme;
+    }, [router.pathname, isLanding]);
     const setServiceCatalog = useCalendarStore((s) => s.setServiceCatalog);
     const setCategoryBaseColorMap = useCalendarStore((s) => s.setCategoryBaseColorMap);
     const setAssignees = useCalendarStore((s) => s.setAssignees);

@@ -5,6 +5,7 @@ import {ServerStyleSheet} from 'styled-components';
 import {SITE_KEYWORDS, SITE_OG_DESCRIPTION, SITE_OG_IMAGE, SITE_OG_IMAGE_HEIGHT, SITE_OG_IMAGE_WIDTH, SITE_TITLE, SITE_TWITTER_DESCRIPTION, SITE_URL} from '../lib/seo';
 import {ADSENSE_CLIENT} from '../lib/ads';
 import {isBookingRoute} from '../features/booking/routing';
+import {themeAttribute} from '../styles/theme';
 
 class ReservationDocument extends Document {
     static async getInitialProps(ctx: DocumentContext) {
@@ -38,7 +39,8 @@ class ReservationDocument extends Document {
         // 스크립트만 로드되면 고객 브라우저에 광고 식별 쿠키(__eoi·_gcl_au)만 남으므로 제외한다.
         const isBookingPage = isBookingRoute(this.props.__NEXT_DATA__?.page);
         return (
-            <Html lang="ko">
+            // 손님 화면·정책 문서는 첫 그림부터 밝게(바뀌며 깜빡이지 않게) — 앱 안 이동은 _app 이 맞춘다
+            <Html lang="ko" data-theme={themeAttribute(this.props.__NEXT_DATA__?.page, this.props.__NEXT_DATA__?.props?.pageProps?.landing === true)}>
                 <Head>
                     <meta name="naver-site-verification" content="007f9bb5b9d7d529ee9b602a19c8a3da58298eee" />
                     <meta name="keywords" content={SITE_KEYWORDS} />
