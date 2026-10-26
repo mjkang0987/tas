@@ -41,6 +41,7 @@
 10. **비모달 표면은 전역(`document`·`window`) Esc 를 걸지 않는다** — 달력에 붙은 예약 목록이 `document` 에 Esc 를 걸자, 사용 안내 투어(`GuidedTour`, `window` 리스너)나 예약 상세를 닫는 Esc **한 번에 그 목록까지 함께 닫혔다.** 레이어의 Esc 는 `useDialogAccessibility` 가 자기 요소에서 받아 `stopPropagation` 한다(겹친 레이어가 한꺼번에 닫히지 않게).
 11. **예약 상태는 카드에 글자로 적지 않는다 — 상태마다 제 장치가 있다.** 글자를 붙이면 이름·시술을 밀어내는데, 지난 예약 대부분이 `결제완료`라 꼬리표만 늘고 정작 봐야 할 예외가 묻혔다. 규칙: **결제완료**는 정상 종착점이라 아무것도 표시하지 않고, **취소·노쇼**는 빗금 + 무채색 + 취소선(취소는 회색, **노쇼는 붉은색** — 매출이 빈 자리라 눈에 걸려야 한다), **확정대기**는 딤 + 배지(아직 수락 전인 온라인 신청이라 "있지만 정해지지 않았다"로 읽혀야 한다). 딤과 배지는 **클릭을 통과시킨다**(`pointer-events: none`) — 눌러서 상세로 들어가 수락·거절해야 하기 때문이다. 좁은 칸에서는 배지가 고객명을 가리는데, 눌러보면 보이므로 그 비용을 받아들였다. **빗금은 반드시 `features/reservations/inactiveHatch.ts` 를 쓴다** — 같은 문자열이 타임라인·목록·월 칸에 복사돼 있던 탓에 타임라인만 붉게 바꿨더니 **한 화면 안에서 같은 노쇼가 빨강과 회색으로 갈렸다.** 목록 카드는 상태 배지가 따로 있어 딤을 쓰지 않는다(앱도 같다).
 12. **`font-size`에 px 리터럴을 쓰지 않는다** — `styles/globalStyle.ts`의 토큰만 사용(유일한 예외: `components/policy/policyCss.ts`). → [디자인 토큰](#디자인-토큰--폰트)
+13. **색은 토큰만 — 어두운 화면이 있다(시스템 테마 따라).** 바탕은 `--surface-color`(반투명은 `rgba(var(--surface-rgb), a)`), 흰 글자를 얹는 채움은 `--*-fill`, 글자는 `--*-color`. `--white-color` 는 **흰 글자 전용**, `--brand-color` 등은 **글자색**(어두운 화면에서 밝아진다) — 바탕으로 쓰면 어두운 화면에서 흰 글자가 파스텔 위에 놓인다. 사장님이 고른 색 칩은 `tintChip`(`styles/theme.ts`). 손님 예약·정책·소개 화면은 `html[data-theme=light]` 로 밝게 고정. → [디자인 토큰 — 색](#디자인-토큰--색)
 
 ---
 
@@ -108,6 +109,21 @@ hair_reservations/
 | 디스플레이 | `--display-sm` / `--display-md` / `--display-lg` | 24 / 32 / 64px | 페이지 타이틀·상태 아이콘 등 본문 밖 |
 
 폰트 **패밀리**는 `styles/fontStack.ts`의 `FONT_STACK` 단일 소스 — `globalStyle`(앱)과 `policyCss`(정책 문서 독립 HTML)가 공유한다. 적용 대상에 `textarea`·`select`를 반드시 포함할 것(빠져 있어 `select`가 Arial로 렌더된 이력).
+
+### 디자인 토큰 — 색
+
+`styles/globalStyle.ts` `:root` 가 밝은 값, `@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) }` 가 어두운 값(2026-10-26). 어두운 값은 iOS `Theme.swift`·안드로이드 `TasTokens.kt` `DarkPalette` 와 같다 — 글자 7:1 이상(배지), 글자색 토큰은 `#1C1C1E`·`#2C2C2E` 위 4.5:1 이상(`badgeContrast.test.ts` 가 지킨다).
+
+| 쓰임 | 토큰 |
+|------|------|
+| 바탕(카드·레이어·입력칸) | `--surface-color`, 반투명·그라데이션 `rgba(var(--surface-rgb), a)`, 옅은 회색 `--gray-color2`·`--bg-subtle-*` |
+| 글자 | `--black-color` · `--dark-gray-color(2)` · `--brand-color` · `--danger-color` · `--blue-color` · `--link-color` … |
+| 흰 글자를 얹는 채움 | `--brand-fill` · `--danger-fill` · `--warning-fill` · `--success-fill` · `--blue-fill` · `--naver-fill` … + `--white-color` |
+| 검정 바탕 + 흰 글자 | `--inverse-bg` + `--inverse-text`(어두운 화면에서 뒤집힘) |
+| 예약 상태 배지 | `RESERVATION_STATUS_BADGE_STYLES` / `_DARK`(`ReservationStatusBadge` 가 고른다) |
+| 사장님이 고른 색 칩 | `tintChip(color)` — 어두운 화면에서 글자를 흰색 쪽으로 섞는다(`color-mix`) |
+
+밝게 고정: `styles/theme.ts` `isLightOnlyPage` — `/book/**`·`/terms`·`/privacy`·`/dpa`·소개 화면(`_document` 가 첫 그림부터, `_app` 이 이동 때).
 
 ### 미들웨어 (`client/proxy.ts`)
 
