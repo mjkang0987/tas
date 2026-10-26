@@ -5,6 +5,15 @@
 
 ---
 
+## PR 대기 — 의존성 보안 패치: next 16.4.3 외 (`claude/security-next-16-4`)
+- Dependabot(지시자 2026-10-26 알림): **next ≤16.4.0 치명**(인증 없이 원격 코드 실행 — `use cache` 타입 배열 · 이미지 최적화 SVG, 서버 액션 서비스 거부),
+  zod <4.6.6(높음, 개발 도구 경유) · fast-uri <3.1.9(prisma 경유) · vite ≤8.1.5 · @vitest/mocker <4.1.12(개발 도구).
+- 조치: next·eslint-config-next 16.3.8 → 16.4.3(같은 16 메이저 최신 패치, 24시간 정책 지남), 나머지는 상위 범위 안에서 lock 만 갱신
+  (zod 4.6.7 · fast-uri 3.1.9 · vite 8.3.5 · @vitest/mocker 4.1.12). override 추가 없음.
+- eslint-config-next 16.4 의 react-hooks 규칙이 더 엄격해져 **기존 코드** 20곳(setState-in-effect 19 · purity 1)이 새로 잡힘 →
+  기존 위반 기준선(`eslint-suppressions.json`)에 고정(8d16502 방침 — 새로 들어오는 위반만 막는다). 코드 변경 없음.
+- 확인: tsc · lint · vitest 311 · `next build` · 미리보기(next 16.4.3 dev) 캘린더 화면·콘솔 에러 없음.
+
 ## PR 대기 — 어두운 화면(시스템 테마 따라) (`claude/dark-mode`)
 - 지시자 2026-10-24 "웹도 테마 넣는 방향" · "시스템 테마 따라가면 좋을 듯" · 2026-10-26 "다음은 웹이랑 안드로이드 다크모드".
   세 플랫폼 같은 값 — iOS `TAS/Core/UI/Theme.swift`(v0.21.0) 의 어두운 값을 그대로 옮긴다(글자 7:1 이상, 배지 바탕이 카드와 구분).
