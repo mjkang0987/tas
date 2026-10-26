@@ -400,7 +400,7 @@ const StyledMemoSection = styled.div`
     padding: 10px 12px;
     border: 1px solid var(--light-gray-color);
     border-radius: 10px;
-    background: rgba(248, 250, 252, 0.9);
+    background: var(--bg-subtle-90);
 `;
 
 const StyledMemoLabel = styled.strong`

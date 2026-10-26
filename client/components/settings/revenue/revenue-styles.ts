@@ -124,7 +124,7 @@ export const StyledRevenueMetaLabel = styled.span`
     color: var(--dark-gray-color2);
     padding: var(--chip-padding);
     border-radius: var(--chip-radius);
-    background: rgba(241, 245, 249, 0.92);
+    background: var(--neutral-chip-bg);
 `;
 
 export const StyledColorSwatch = styled(Dot).attrs<{ $color: string }>((props) => ({

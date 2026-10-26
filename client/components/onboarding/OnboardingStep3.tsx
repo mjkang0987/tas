@@ -162,7 +162,7 @@ const StyledAssigneeCard = styled.div<{$color: string; $isEditing: boolean}>`
     border-left: 4px solid ${(p) => p.$color};
     border-radius: 10px;
     padding: 8px 10px;
-    background: linear-gradient(180deg, rgba(255,255,255,0.96) 0%, ${(p) => `${p.$color}10`} 100%);
+    background: linear-gradient(180deg, rgba(var(--surface-rgb), 0.96) 0%, ${(p) => `${p.$color}10`} 100%);
     box-shadow: ${(p) => p.$isEditing
         ? '0 0 0 2px var(--blue-color), var(--card-shadow)'
         : 'var(--card-shadow)'};

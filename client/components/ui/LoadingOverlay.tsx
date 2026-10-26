@@ -55,7 +55,7 @@ const StyledOverlay = styled.div<{$backdrop: Backdrop; $zIndex: number}>`
     box-sizing: border-box;
 
     ${(p) => p.$backdrop === 'solid' && css`background: var(--surface-color);`}
-    ${(p) => p.$backdrop === 'dim' && css`background: rgba(255, 255, 255, 0.6);`}
+    ${(p) => p.$backdrop === 'dim' && css`background: rgba(var(--surface-rgb), 0.6);`}
     ${(p) => p.$backdrop === 'blur' && css`
         background: transparent;
         padding: var(--overlay-padding);

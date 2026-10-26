@@ -504,7 +504,7 @@ const StyledGuide = styled.p`
     padding: 9px 10px;
     border-radius: 8px;
     background: rgba(45, 127, 249, 0.06);
-    color: #1e40af;
+    color: var(--info-color);
     font-size: var(--small-font);
     line-height: 1.45;
     word-break: keep-all;

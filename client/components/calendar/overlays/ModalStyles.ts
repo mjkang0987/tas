@@ -416,8 +416,8 @@ export const StyledInfoGridRow = styled.div`
     align-items: start;
     padding: var(--info-grid-cell-padding);
     border-radius: var(--info-grid-cell-radius);
-    background: rgba(248, 250, 252, 0.9); /* --bg-subtle 계열 (0.9 변형은 변수 없음) */
-    border: 1px solid rgba(226, 232, 240, 0.9);
+    background: var(--bg-subtle-90);
+    border: 1px solid var(--info-grid-border);
     font-size: var(--medium-font);
 `;
 

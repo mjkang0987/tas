@@ -36,7 +36,7 @@ export const StyledEditBtn = styled.button`
 export const StyledSaveBtn = styled.button`
     ${actionButtonStyle};
     ${mobileStretchButtonStyle};
-    border: 1px solid var(--brand-color);
+    border: 1px solid var(--brand-fill);
     background-color: var(--brand-fill);
     color: var(--white-color);
 `;

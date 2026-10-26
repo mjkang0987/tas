@@ -305,7 +305,7 @@ const StyledBookingNotice = styled.p`
     padding: 9px 10px;
     border-radius: 8px;
     background: rgba(3, 199, 90, 0.08);
-    color: #0f5132;
+    color: var(--success-text);
     font-size: var(--small-font);
     line-height: 1.45;
     word-break: keep-all;

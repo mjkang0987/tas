@@ -126,7 +126,7 @@ const StyledRejectBtn = styled(StyledDecisionBtn)`
 `;
 
 const StyledApproveBtn = styled(StyledDecisionBtn)`
-    border: 1px solid var(--brand-color);
+    border: 1px solid var(--brand-fill);
     background: var(--brand-fill);
     color: var(--white-color);
 `;

@@ -41,7 +41,7 @@ export const StyledResolvedNotice = styled.div`
     border-radius: 8px;
     background: rgba(220, 38, 38, 0.06);
     border: 1px solid rgba(220, 38, 38, 0.2);
-    color: #991b1b;
+    color: var(--danger-color);
     font-size: var(--small-font);
     line-height: 1.5;
     word-break: keep-all;
@@ -67,7 +67,7 @@ export const StyledResolvedNotice = styled.div`
     .notice-item:last-child {
         margin-top: 6px;
         font-weight: 600;
-        color: #7f1d1d;
+        color: var(--danger-color);
     }
 `;
 
@@ -76,7 +76,7 @@ export const StyledGuideNotice = styled.p`
     padding: 9px 10px;
     border-radius: 8px;
     background: rgba(3, 199, 90, 0.08);
-    color: #0f5132;
+    color: var(--success-text);
     font-size: var(--small-font);
     line-height: 1.45;
     word-break: keep-all;

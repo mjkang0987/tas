@@ -41,7 +41,7 @@ const StyledPlatformTag = styled(LabelBadge).attrs({
 
 const StyledBookingLink = styled.a`
     font-size: var(--xsmall-font);
-    color: #00803C; /* 흰 바탕 글자 대비 4.5 이상(브랜드 #03C75A 는 2.3) */
+    color: var(--naver-link);
     font-weight: 600;
     text-decoration: none;
 

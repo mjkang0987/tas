@@ -224,8 +224,8 @@ export const StyledItem = styled.div<{ $isDragging: boolean; $isDragOver: boolea
         align-items: center;
         padding: 2px 8px;
         border-radius: 999px;
-        background: var(--dark-gray-color);
-        color: var(--white-color);
+        background: var(--inverse-bg);
+        color: var(--inverse-text);
         font-size: var(--tiny-font);
         font-weight: 700;
     }

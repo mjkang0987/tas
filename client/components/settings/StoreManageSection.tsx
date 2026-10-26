@@ -651,7 +651,7 @@ const StyledWeekdayChip = styled.label`
     }
 
     &.is-on {
-        border-color: var(--brand-color);
+        border-color: var(--brand-fill);
         background: var(--brand-fill);
         color: var(--white-color);
     }

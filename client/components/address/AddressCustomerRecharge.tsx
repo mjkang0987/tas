@@ -252,7 +252,7 @@ const StyledChargeButton = styled.button`
     height: 30px;
     width: 84px;
     padding: 0 12px;
-    border: 1px solid var(--blue-color);
+    border: 1px solid var(--blue-fill);
     border-radius: var(--radius-md);
     background: var(--blue-fill);
     color: #fff;

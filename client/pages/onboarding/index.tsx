@@ -450,8 +450,8 @@ const StyledStepDot = styled.span<{$active: boolean; $done: boolean}>`
     height: 8px;
     border-radius: 999px;
     background: ${({$active, $done}) =>
-        $active ? 'var(--brand-color)' :
-        $done ? 'var(--blue-color)' :
+        $active ? 'var(--brand-fill)' :
+        $done ? 'var(--blue-fill)' :
         'var(--light-gray-color)'};
     opacity: ${({$done}) => $done ? 0.5 : 1};
     transition: width 0.2s ease, background 0.2s ease;

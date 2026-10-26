@@ -67,6 +67,8 @@ export const GlobalStyle = createGlobalStyle`
         /* 흰 글자를 얹는 배지 바탕이라 대비 4.5 이상으로(예전 #2DB400 은 2.8). 로고·네이버 로그인 버튼은 브랜드 규정 색(#03C75A) 그대로. */
         --naver-color: #208200;
         --naver-color-dark: #1A6B00;
+        /* 네이버 바로가기 글자 — 흰 바탕 4.5 이상(브랜드 #03C75A 는 2.3) */
+        --naver-link: #00803C;
 
         /* 신규 고객 배지 — iOS Badges.swift 의 NewCustomerBadge 와 같은 값(#00A896, 바탕 15%). */
         --new-customer-color: #00A896;
@@ -166,6 +168,9 @@ export const GlobalStyle = createGlobalStyle`
         --bg-subtle-92: rgba(248, 250, 252, 0.92);
         --bg-subtle-96: rgba(248, 250, 252, 0.96);
         --bg-subtle-98: rgba(248, 250, 252, 0.98);
+        --bg-subtle-90: rgba(248, 250, 252, 0.9);
+        --neutral-chip-bg: rgba(241, 245, 249, 0.92);
+        --info-grid-border: rgba(226, 232, 240, 0.9);
 
         /* 바탕(카드·레이어·입력칸) — 예전엔 --white-color 가 바탕과 '색 채움 위 흰 글자' 두 뜻이었다.
            어두운 화면에서 바탕만 어두워져야 해서 나눴다. --white-color 는 이제 흰 글자 전용. */
@@ -244,6 +249,7 @@ export const GlobalStyle = createGlobalStyle`
             --info-border: rgba(45, 127, 249, .4);
 
             --naver-color: #8FD86E;
+            --naver-link: #8FD86E;
             --new-customer-color: #8EE6DA;
             --new-customer-bg: rgba(0, 168, 150, .25);
 
@@ -268,6 +274,9 @@ export const GlobalStyle = createGlobalStyle`
             --bg-subtle-92: rgba(44, 44, 46, .92);
             --bg-subtle-96: rgba(44, 44, 46, .96);
             --bg-subtle-98: rgba(44, 44, 46, .98);
+            --bg-subtle-90: rgba(44, 44, 46, .9);
+            --neutral-chip-bg: rgba(255, 255, 255, .08);
+            --info-grid-border: rgba(255, 255, 255, .12);
         }
     }
 
