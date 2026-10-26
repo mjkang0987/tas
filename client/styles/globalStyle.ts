@@ -79,6 +79,8 @@ export const GlobalStyle = createGlobalStyle`
 
         --toast-bg: #1e293b;
         --link-color-light: #60a5fa;
+        /* 누르면 다른 레이어로 가는 이름(고객명 등) — 흰 바탕 5.3:1 */
+        --link-color: #1967D2;
         --muted-text: #64748b;
 
         --radius-sm: 4px;
@@ -164,6 +166,109 @@ export const GlobalStyle = createGlobalStyle`
         --bg-subtle-92: rgba(248, 250, 252, 0.92);
         --bg-subtle-96: rgba(248, 250, 252, 0.96);
         --bg-subtle-98: rgba(248, 250, 252, 0.98);
+
+        /* 바탕(카드·레이어·입력칸) — 예전엔 --white-color 가 바탕과 '색 채움 위 흰 글자' 두 뜻이었다.
+           어두운 화면에서 바탕만 어두워져야 해서 나눴다. --white-color 는 이제 흰 글자 전용. */
+        --surface-color: hsl(0, 0%, 100%);
+        /* 바탕을 반투명·그라데이션으로 쓰는 곳용 — rgba(var(--surface-rgb), .96) */
+        --surface-rgb: 255, 255, 255;
+        /* 검정 바탕 + 흰 글자(말풍선·선택된 검정 칩) — 어두운 화면에선 뒤집는다. */
+        --inverse-bg: hsl(0, 0%, 13%);
+        --inverse-text: hsl(0, 0%, 100%);
+        /* 흰 글자를 얹는 채움 — 모드와 상관없이 같은 색(흰 글자 4.5:1 이상).
+           같은 이름의 --*-color 는 '글자색'이라 어두운 화면에서 밝아진다. */
+        --brand-fill: #6526d9;
+        --danger-fill: #c93a30;
+        --warning-fill: #C5221F;
+        --success-fill: #24753a;
+        --blue-fill: hsl(196, 100%, 32%);
+        --caution-fill: #806600;
+        --orange-fill: hsl(27, 100%, 50%);
+        --naver-fill: #208200;
+    }
+
+    /* 어두운 화면 — 시스템 설정을 따른다. 값은 iOS Theme.swift·안드로이드와 같다(글자 7:1 이상, 배지 바탕이 카드와 구분).
+       고객 공개 예약·정책 화면은 html[data-theme="light"] 로 밝게 고정한다(손님 화면). */
+    @media (prefers-color-scheme: dark) {
+        :root:not([data-theme="light"]) {
+            color-scheme: dark;
+
+            --black-color: #F5F5F7;
+            --black-color-10: rgba(255, 255, 255, .06);
+            --gray-color: #48484A;
+            --gray-color2: #2C2C2E;
+            --dark-gray-color: #D1D1D6;
+            --dark-gray-color2: #AEAEB2;
+            --light-gray-color: #3A3A3C;
+            --border-color: #545458;
+            --calendar-grid-line: #2C2C2E;
+            --surface-color: #1C1C1E;
+            --surface-rgb: 28, 28, 30;
+            --inverse-bg: #F5F5F7;
+            --inverse-text: #1C1C1E;
+
+            --white-color-80: rgba(28, 28, 30, .8);
+            --white-color-60: rgba(28, 28, 30, .6);
+            --white-color-40: rgba(28, 28, 30, .4);
+            --glass-bg: rgba(28, 28, 30, .72);
+
+            --blue-color: #7FD4F0;
+            --brand-color: #A57BFF;
+            --brand-color-bg: rgba(165, 123, 255, .16);
+            --brand-color-border: rgba(165, 123, 255, .35);
+
+            --danger-color: #FF8A80;
+            --danger-bg: rgba(201, 58, 48, .22);
+            --danger-border: rgba(255, 138, 128, .4);
+            --warning-color: #FFA19A;
+            --warning-bg: rgba(197, 34, 31, .24);
+            --warning-border: rgba(255, 161, 154, .4);
+            --warning-text: #FDE68A;
+            --warning-bg-soft: rgba(253, 230, 138, .16);
+            --warning-border-soft: rgba(253, 230, 138, .4);
+            --success-color: #A8DAB5;
+            --success-text: #A8DAB5;
+            --success-bg: rgba(34, 197, 94, .2);
+            --success-border: rgba(34, 197, 94, .35);
+            --caution-color: #F6D860;
+
+            --closed-date-bg: rgba(255, 138, 128, .1);
+            --closed-weekday-bg: rgba(255, 255, 255, .05);
+
+            --neutral-text: #C7CDD6;
+            --neutral-bg: rgba(255, 255, 255, .08);
+            --neutral-border: rgba(255, 255, 255, .18);
+
+            --info-color: #AECBFA;
+            --info-bg: rgba(45, 127, 249, .22);
+            --info-border: rgba(45, 127, 249, .4);
+
+            --naver-color: #8FD86E;
+            --new-customer-color: #8EE6DA;
+            --new-customer-bg: rgba(0, 168, 150, .25);
+
+            --notification-unread-bg: rgba(45, 127, 249, .14);
+            --notification-unread-bg-hover: rgba(45, 127, 249, .22);
+            --notification-text: #F5F5F7;
+            --toast-bg: #2C2C2E;
+            --muted-text: #AEAEB2;
+            --link-color: #AECBFA;
+
+            --shadow-sm: 0 1px 4px rgba(0, 0, 0, .5);
+            --shadow-md: 0 4px 16px rgba(0, 0, 0, .6);
+            --card-shadow: 0 8px 18px rgba(0, 0, 0, .35);
+            --card-shadow-hover: 0 14px 26px rgba(0, 0, 0, .45);
+            --modal-border: rgba(255, 255, 255, .12);
+            --modal-header-border: rgba(255, 255, 255, .1);
+            --modal-footer-border: rgba(255, 255, 255, .1);
+            --bg-subtle: rgba(44, 44, 46, .6);
+            --bg-subtle-72: rgba(44, 44, 46, .72);
+            --bg-subtle-78: rgba(44, 44, 46, .78);
+            --bg-subtle-88: rgba(44, 44, 46, .88);
+            --bg-subtle-92: rgba(44, 44, 46, .92);
+            --bg-subtle-96: rgba(44, 44, 46, .96);
+            --bg-subtle-98: rgba(44, 44, 46, .98);
+        }
     }
 
     @media (max-width: 640px) {
@@ -182,6 +287,20 @@ export const GlobalStyle = createGlobalStyle`
         padding: 0;
         margin: 0;
         height: 100%;
+    }
+
+    :root {
+        /* 기본 입력칸·날짜 고르기·스크롤바도 테마를 따른다 */
+        color-scheme: light dark;
+    }
+
+    :root[data-theme="light"] {
+        color-scheme: light;
+    }
+
+    body {
+        background: var(--surface-color);
+        color: var(--black-color);
     }
 
     body,
