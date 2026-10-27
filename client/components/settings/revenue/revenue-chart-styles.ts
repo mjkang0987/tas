@@ -234,8 +234,8 @@ export const StyledTrendColumnFill = styled.span<{ $heightRatio: number; $active
     /* 매출이 있는 날은 아주 작아도 보이게 — 0원인 날(0)과 구분된다. */
     min-height: ${(p) => p.$heightRatio > 0 ? '3px' : '0'};
     border-radius: 3px 3px 0 0;
-    /* 키컬러(--brand-color). hover 는 같은 색상에서 채도만 낮춘 톤 — 강조는 툴팁이 맡는다. */
-    background: ${(p) => p.$active ? TREND_BAR_HOVER : 'var(--brand-fill)'};
+    /* 키컬러 글자색(--brand-color) — 어두운 화면에서 밝아져 바탕 대비 5.6:1(--brand-fill 은 고정이라 2.3:1). hover 는 같은 색상에서 채도만 낮춘 톤 — 강조는 툴팁이 맡는다. */
+    background: ${(p) => p.$active ? TREND_BAR_HOVER : 'var(--brand-color)'};
 `;
 
 /* 스크롤 콘텐츠 안에 둔다 — 밖에 두면 90일 넘는 범위에서 보이는 막대와 라벨이 어긋난다. */
