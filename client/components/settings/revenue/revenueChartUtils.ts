@@ -40,7 +40,7 @@ export function clampRevenueRange(startDateKey: string, endDateKey: string): {st
 
 export function buildPaymentDonutGradient(colors: string[], totals: number[]): string {
     const sum = totals.reduce((acc, value) => acc + value, 0);
-    if (sum <= 0 || colors.length === 0) return 'conic-gradient(#E5E7EB 0deg 360deg)';
+    if (sum <= 0 || colors.length === 0) return 'conic-gradient(var(--light-gray-color) 0deg 360deg)';
     let angle = 0;
     const segments = totals.map((total, index) => {
         const start = angle;
