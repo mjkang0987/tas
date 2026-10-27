@@ -91,7 +91,6 @@ export const StyledTrendChartBox = styled.div`
 
 export const REVENUE_TOOLTIP_WIDTH = 140;
 
-/** 막대 hover 색 — 키컬러(#6526d9 ≒ hsl(261,70%,50%))에서 채도만 낮춘 톤. */
 
 /* 위치는 실제 막대·박스를 재서 px 로 받는다 — 비율식으로 추정하면 툴팁 폭만큼 어긋난다. */
 export const StyledChartTooltip = styled.div<{ $left: number; $top: number; $arrowLeft: number }>`
@@ -205,7 +204,8 @@ export const StyledChartHorizontalGuide = styled.div<{ $topRatio: number }>`
     left: 0; right: 0;
     top: ${(p) => `${p.$topRatio * 100}%`};
     height: 1px;
-    /* 글자색 6% — 어두운 화면에서 밝은 선이 된다(안드로이드 Black 6% 와 같다) */
+    /* 글자색 6% — 어두운 화면에서 밝은 선이 된다(안드로이드 Black 6% 와 같다). 앞 줄은 color-mix 못 쓰는 브라우저용 */
+    background: rgba(15, 23, 42, 0.06);
     background: color-mix(in srgb, var(--black-color) 6%, transparent);
     transform: translateY(-50%);
     pointer-events: none;
