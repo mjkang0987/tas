@@ -5,6 +5,13 @@
 
 ---
 
+## PR 대기 — 캘린더 담당자 '미지정' 합계가 0원이던 것 (`claude/calendar-unassigned-revenue`)
+- 안드로이드 담당자 필터 이식(tas-android#34) 중 대조로 발견. 캘린더 담당자 필터 '미지정'(`calendarAssigneeId` 0)에서
+  카드·건수는 담당자 없는 예약을 보여주는데, 합계(연 보기 달별 매출·`ReservationListSection` 머리줄)는 0원.
+- 원인: `utils/revenue.ts` `matchAssignee` 가 `assigneeId === 0` 으로만 비교 → 담당자 null 예약이 빠짐.
+- 조치: target 0 이면 `!assigneeId`(null·0) — 카드 거르기와 같은 기준. 매출 화면은 '전체'(null)·실제 담당자 id 만 넘겨 영향 없음.
+- 확인: `utils/revenue.test.ts` 신규(전체·담당자·미지정, 고치기 전 코드에선 미지정 실패) · tsc · eslint · vitest 314.
+
 ## PR 대기 — 의존성 보안 패치: next 16.4.3 외 (`claude/security-next-16-4`)
 - Dependabot(지시자 2026-10-26 알림): **next ≤16.4.0 치명**(인증 없이 원격 코드 실행 — `use cache` 타입 배열 · 이미지 최적화 SVG, 서버 액션 서비스 거부),
   zod <4.6.6(높음, 개발 도구 경유) · fast-uri <3.1.9(prisma 경유) · vite ≤8.1.5 · @vitest/mocker <4.1.12(개발 도구).
