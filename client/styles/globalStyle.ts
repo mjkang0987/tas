@@ -24,6 +24,8 @@ export const GlobalStyle = createGlobalStyle`
         --dark-gray-color: hsl(0, 0%, 32%);
         --dark-gray-color2: hsl(0, 0%, 43%); /* 흰 5.1 · 옅은 회색(#F7F7F7) 4.8 — 45% 는 회색 바탕에서 4.43 */
         --light-gray-color: hsl(0, 0%, 89%);
+        /* 매출 추이 막대 hover — 막대(--brand-color)에서 채도만 낮춘 톤 */
+        --trend-bar-hover: hsl(261, 40%, 60%);
         --white-color: hsl(0, 0%, 100%);
         --blue-color: hsl(196, 100%, 32%); /* 글자로 많이 써서 흰 바탕 4.5:1 이상(예전 45% 는 2.7) */
         --orange-color: hsl(27, 100%, 50%);
@@ -205,6 +207,8 @@ export const GlobalStyle = createGlobalStyle`
             --dark-gray-color: #D1D1D6;
             --dark-gray-color2: #AEAEB2;
             --light-gray-color: #3A3A3C;
+            /* 밝아진 막대(#A57BFF)보다 더 밝게 — 선택 칸 바탕 5.3:1 */
+            --trend-bar-hover: hsl(261, 40%, 78%);
             --border-color: #545458;
             --calendar-grid-line: #2C2C2E;
             --surface-color: #1C1C1E;

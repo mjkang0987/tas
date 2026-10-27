@@ -91,8 +91,6 @@ export const StyledTrendChartBox = styled.div`
 
 export const REVENUE_TOOLTIP_WIDTH = 140;
 
-/** 막대 hover 색 — 키컬러(#6526d9 ≒ hsl(261,70%,50%))에서 채도만 낮춘 톤. */
-const TREND_BAR_HOVER = 'hsl(261, 40%, 60%)';
 
 /* 위치는 실제 막대·박스를 재서 px 로 받는다 — 비율식으로 추정하면 툴팁 폭만큼 어긋난다. */
 export const StyledChartTooltip = styled.div<{ $left: number; $top: number; $arrowLeft: number }>`
@@ -206,7 +204,9 @@ export const StyledChartHorizontalGuide = styled.div<{ $topRatio: number }>`
     left: 0; right: 0;
     top: ${(p) => `${p.$topRatio * 100}%`};
     height: 1px;
+    /* 글자색 6% — 어두운 화면에서 밝은 선이 된다(안드로이드 Black 6% 와 같다). 앞 줄은 color-mix 못 쓰는 브라우저용 */
     background: rgba(15, 23, 42, 0.06);
+    background: color-mix(in srgb, var(--black-color) 6%, transparent);
     transform: translateY(-50%);
     pointer-events: none;
 `;
@@ -234,8 +234,8 @@ export const StyledTrendColumnFill = styled.span<{ $heightRatio: number; $active
     /* 매출이 있는 날은 아주 작아도 보이게 — 0원인 날(0)과 구분된다. */
     min-height: ${(p) => p.$heightRatio > 0 ? '3px' : '0'};
     border-radius: 3px 3px 0 0;
-    /* 키컬러(--brand-color). hover 는 같은 색상에서 채도만 낮춘 톤 — 강조는 툴팁이 맡는다. */
-    background: ${(p) => p.$active ? TREND_BAR_HOVER : 'var(--brand-fill)'};
+    /* 키컬러 글자색(--brand-color) — 어두운 화면에서 밝아져 바탕 대비 5.6:1(--brand-fill 은 고정이라 2.3:1). hover 는 같은 색상에서 채도만 낮춘 톤 — 강조는 툴팁이 맡는다. */
+    background: ${(p) => p.$active ? 'var(--trend-bar-hover)' : 'var(--brand-color)'};
 `;
 
 /* 스크롤 콘텐츠 안에 둔다 — 밖에 두면 90일 넘는 범위에서 보이는 막대와 라벨이 어긋난다. */

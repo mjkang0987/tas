@@ -5,7 +5,13 @@
 
 ---
 
-## PR 대기 — 캘린더 담당자 '미지정' 합계가 0원이던 것 (`claude/calendar-unassigned-revenue`)
+## PR 대기 — 어두운 화면 매출 차트 색 (`claude/dark-trend-bar`, v0.66.3)
+- 기간별 매출 추이 막대가 `--brand-fill`(흰 글자용, 모드 고정 #6526d9) 이라 어두운 바탕 대비 2.3:1(차트 보라 바탕 1.8:1) → `--brand-color`(어두운 #A57BFF, 5.6:1·4.4:1). 밝은 화면은 같은 색.
+- 같이: hover 막대 `--trend-bar-hover` 토큰(어두운 화면은 막대보다 밝은 hsl(261,40%,78%) — 선택 칸 바탕 5.3:1), 눈금선 고정 검정 6% → 글자색 6%(안드로이드와 같게), 빈 도넛 #E5E7EB → `--light-gray-color`.
+- 안드로이드 같은 수정 tas-android#36. iOS 는 AccentColor(어두운 #A57BFF)라 해당 없음.
+- 남은 것: 차트 팔레트 일부(#7C3AED 온라인예약 등)가 어두운 화면 3:1 경계 — 범례 글자가 함께라 별건.
+
+## 완료(배포 v0.66.2) — 캘린더 담당자 '미지정' 합계가 0원이던 것 (`claude/calendar-unassigned-revenue`, #312)
 - 안드로이드 담당자 필터 이식(tas-android#34) 중 대조로 발견. 캘린더 담당자 필터 '미지정'(`calendarAssigneeId` 0)에서
   카드·건수는 담당자 없는 예약을 보여주는데, 합계(연 보기 달별 매출·`ReservationListSection` 머리줄)는 0원.
 - 원인: `utils/revenue.ts` `matchAssignee` 가 `assigneeId === 0` 으로만 비교 → 담당자 null 예약이 빠짐.
