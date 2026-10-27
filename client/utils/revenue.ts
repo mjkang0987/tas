@@ -104,6 +104,8 @@ export function resolveRevenue(reservation: Reservation): number {
 
 function matchAssignee(assigneeId: number | null | undefined, targetAssigneeId: number | null): boolean {
     if (targetAssigneeId == null) return true;
+    // 0 = 캘린더 '미지정' — 카드 거르기(`calendarAssigneeId === 0 ? !assigneeId`)와 같은 기준
+    if (targetAssigneeId === 0) return !assigneeId;
     return assigneeId === targetAssigneeId;
 }
 
